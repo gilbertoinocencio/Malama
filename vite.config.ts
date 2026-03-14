@@ -21,16 +21,47 @@ export default defineConfig(({ mode }) => {
           description: 'Align your nutrition with your natural rhythm using AI.',
           theme_color: '#1F4E5F',
           background_color: '#FDFBF9',
+          display: 'standalone',
+          orientation: 'portrait',
           icons: [
             {
               src: 'pwa-icon.svg',
               sizes: '192x192',
-              type: 'image/svg+xml'
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
             },
             {
               src: 'pwa-icon.svg',
               sizes: '512x512',
-              type: 'image/svg+xml'
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
+            }
+          ]
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg}'],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'supabase-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 // 24 hours
+                }
+              }
+            },
+            {
+              urlPattern: /^https:\/\/generativelanguage\.googleapis\.com\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'gemini-cache',
+                expiration: {
+                  maxEntries: 20,
+                  maxAgeSeconds: 60 * 60 // 1 hour
+                }
+              }
             }
           ]
         }
@@ -42,7 +73,7 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, './src'),
       }
     }
   };
