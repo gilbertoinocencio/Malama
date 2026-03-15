@@ -17,15 +17,35 @@ export interface ProfileUpdates {
 
 export const ProfileService = {
     async updateProfile(userId: string, updates: ProfileUpdates) {
-        // Use UPSERT to create profile if it doesn't exist
-        const { data, error } = await supabase
+        // First, try to get existing profile
+        const { data: existing } = await supabase
             .from('profiles')
-            .upsert(
-                { id: userId, ...updates },
-                { onConflict: 'id' }
-            )
-            .select()
-            .single();
+            .select('id')
+            .eq('id', userId)
+            .maybeSingle();
+
+        let data, error;
+
+        if (existing) {
+            // Profile exists, update it
+            const result = await supabase
+                .from('profiles')
+                .update(updates)
+                .eq('id', userId)
+                .select()
+                .single();
+            data = result.data;
+            error = result.error;
+        } else {
+            // Profile doesn't exist, insert it
+            const result = await supabase
+                .from('profiles')
+                .insert({ id: userId, ...updates })
+                .select()
+                .single();
+            data = result.data;
+            error = result.error;
+        }
 
         if (error) throw error;
         return data;
