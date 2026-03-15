@@ -56,12 +56,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .from('profiles')
             .select('*')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Error fetching profile:', error);
-        } else {
+            return;
+        }
+
+        if (data) {
             setProfile(data);
+        } else {
+            // Profile doesn't exist yet, create a minimal one
+            console.log('Profile not found, will be created on first update');
+            setProfile({ id: userId }); // Set minimal profile to avoid null checks
         }
     };
 

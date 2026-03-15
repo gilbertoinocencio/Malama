@@ -17,10 +17,13 @@ export interface ProfileUpdates {
 
 export const ProfileService = {
     async updateProfile(userId: string, updates: ProfileUpdates) {
+        // Use UPSERT to create profile if it doesn't exist
         const { data, error } = await supabase
             .from('profiles')
-            .update(updates)
-            .eq('id', userId)
+            .upsert(
+                { id: userId, ...updates },
+                { onConflict: 'id' }
+            )
             .select()
             .single();
 
