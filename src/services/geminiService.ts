@@ -137,7 +137,7 @@ export const analyzeImageLog = async (base64Image: string, language: string = 'p
   }
 };
 
-export const generatePlanContent = async (profile: any, language: string = 'pt'): Promise<any> => {
+export const generatePlanContent = async (profile: any, onboardingData?: any, language: string = 'pt'): Promise<any> => {
   if (!apiKey) throw new Error("API Key missing");
 
   try {
@@ -146,29 +146,98 @@ export const generatePlanContent = async (profile: any, language: string = 'pt')
       generationConfig: { responseMimeType: "application/json" }
     });
 
+    // Build detailed user data section
+    let userDataSection = '';
+
+    if (onboardingData) {
+      // Use detailed onboarding data if available
+      userDataSection = `
+      DADOS DETALHADOS DO USUÁRIO (coletados via onboarding):
+
+      Demográficos:
+      - Nome: ${onboardingData.fullName || 'N/A'}
+      - Idade: ${onboardingData.age || profile.age} anos
+      - Sexo: ${onboardingData.biologicalSex || profile.gender}
+      - Peso: ${onboardingData.weight || profile.weight}kg
+      - Altura: ${onboardingData.height || profile.height}cm
+
+      ${onboardingData.hasBodyComposition ? `
+      Composição Corporal:
+      - Gordura Corporal: ${onboardingData.bodyFatPercentage}%
+      - Massa Muscular: ${onboardingData.muscleMass}kg
+      - Massa de Gordura: ${onboardingData.fatMass}kg
+      - IMC: ${onboardingData.bmi}
+      - Água Corporal: ${onboardingData.bodyWater}%
+      ` : ''}
+
+      Atividade Física:
+      - Tipos: ${onboardingData.activityTypes?.join(', ') || 'N/A'}
+      - Frequência: ${onboardingData.weeklyFrequency || 'N/A'}x por semana
+      - Duração média: ${onboardingData.averageDuration || 'N/A'} minutos
+      - Intensidade: ${onboardingData.intensity || 'N/A'}
+
+      Hábitos Alimentares:
+      - Rotina Atual: ${onboardingData.currentRoutine || 'N/A'}
+      - Restrições: ${onboardingData.restrictions?.join(', ') || 'Nenhuma'}
+      - Preferências: ${onboardingData.preferences?.join(', ') || 'Nenhuma'}
+      - Dietas Anteriores: ${onboardingData.previousDiets || 'Nenhuma'}
+
+      Objetivo Principal: ${onboardingData.mainGoal || profile.goal}
+      `;
+    } else {
+      // Fallback to basic profile data
+      userDataSection = `
+      DADOS BÁSICOS DO PERFIL:
+      - Biotipo: ${profile.biotype}
+      - Objetivo: ${profile.goal}
+      - Nível de Atividade: ${profile.activity_level}
+      - Estatísticas: ${profile.weight}kg, ${profile.height}cm, ${profile.age} anos, ${profile.gender}
+      `;
+    }
+
     const prompt = `
-      You are NURA, an expert nutritionist and fitness coach. 
-      Create a 3-Month Quarterly Plan for this user:
-      - Biotype: ${profile.biotype}
-      - Goal: ${profile.goal}
-      - Activity: ${profile.activity_level}
-      - Stats: ${profile.weight}kg, ${profile.height}cm, ${profile.age} years, ${profile.gender}
-      
-      Return a STRICT JSON object (no markdown) with:
+      Você é NURA, uma nutricionista clínica experiente especializada em composição corporal e saúde metabólica.
+
+      ${userDataSection}
+
+      SUA TAREFA:
+      Crie um plano alimentar DETALHADO e PERSONALIZADO de 3 meses, dividido em 3 fases:
+
+      1. Fase 1 - Adaptação (Semanas 1-4):
+         Reorganização alimentar gradual, ajuste de horários, estabelecimento de hábitos sustentáveis
+
+      2. Fase 2 - Progressão/Flow (Semanas 5-8):
+         Intensificação das estratégias, otimização de macros, timing de nutrientes, fase de máxima performance
+
+      3. Fase 3 - Consolidação (Semanas 9-12):
+         Manutenção de resultados, ajustes finos, autonomia alimentar, preparação para próximo ciclo
+
+      IMPORTANTE:
+      - Use TODOS os dados fornecidos
+      - Considere restrições e preferências
+      - Adapte às atividades físicas
+      - Seja específico e prático
+      - Tom motivador e empático
+
+      Retorne JSON ESTRITO (sem markdown):
       {
-        "calories": number (daily target),
-        "macros": { "protein": number, "carbs": number, "fats": number },
-        "optimization_tag": string (e.g., "Otimizado: Ectomorfo"),
+        "calories": number (meta calórica diária),
+        "macros": {
+          "protein": number (gramas),
+          "carbs": number (gramas),
+          "fats": number (gramas)
+        },
+        "optimization_tag": string (ex: "Otimizado: Ectomorfo + Performance"),
         "phases": [
-          { "title": string, "tag": string, "description": string }, // Phase 1 (Month 1)
-          { "title": string, "tag": string, "description": string }, // Phase 2 (Month 2 - Flow Focus)
-          { "title": string, "tag": string, "description": string }  // Phase 3 (Month 3)
+          {
+            "title": string,
+            "tag": string,
+            "description": string (200-300 palavras)
+          }
         ]
       }
-      
-      Ensure the plan is scientifically tailored to the biotype and goal.
-      Phase 2 should always be the "Flow" or "Construction" peak phase.
-      Language: ${LANG_NAMES[language] || LANG_NAMES.pt}. ALL text MUST be in this language.
+
+      Idioma: ${LANG_NAMES[language] || LANG_NAMES.pt}. TODO o texto DEVE estar neste idioma.
     `;
 
     const result = await model.generateContent(prompt);
@@ -178,15 +247,14 @@ export const generatePlanContent = async (profile: any, language: string = 'pt')
     return JSON.parse(cleanJsonString(jsonStr));
   } catch (error) {
     console.error("Gemini Plan Error:", error);
-    // Mock for fallback
     return {
       calories: 2200,
       macros: { protein: 160, carbs: 220, fats: 70 },
       optimization_tag: "Otimizado: IA Fallback",
       phases: [
-        { title: "Adaptação", tag: "Fase 1", description: "Recalibrando metabolismo." },
-        { title: "Flow", tag: "Fase 2", description: "Foco total em performance." },
-        { title: "Consolidação", tag: "Fase 3", description: "Mantendo os ganhos." }
+        { title: "Adaptação", tag: "Fase 1", description: "Recalibrando metabolismo e estabelecendo hábitos alimentares saudáveis." },
+        { title: "Flow", tag: "Fase 2", description: "Foco total em performance e otimização de resultados." },
+        { title: "Consolidação", tag: "Fase 3", description: "Mantendo os ganhos e desenvolvendo autonomia alimentar." }
       ]
     };
   }

@@ -39,7 +39,7 @@ export const PlanService = {
     },
 
     // Generate a new plan using Gemini and save it
-    async generatePlan(userId: string): Promise<QuarterlyPlanData> {
+    async generatePlan(userId: string, onboardingId?: string): Promise<QuarterlyPlanData> {
         // 1. Fetch User Profile
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
@@ -49,17 +49,31 @@ export const PlanService = {
 
         if (profileError || !profile) throw new Error("Profile not found");
 
-        // 2. Generate Plan with AI
-        const planContent = await generatePlanContent(profile);
+        // 2. Fetch onboarding data if provided
+        let onboardingData = null;
+        if (onboardingId) {
+            const { data, error } = await supabase
+                .from('nutritionist_onboarding')
+                .select('data')
+                .eq('id', onboardingId)
+                .single();
 
-        // 3. Archive old active plans
+            if (!error && data) {
+                onboardingData = data.data;
+            }
+        }
+
+        // 3. Generate Plan with AI (using onboarding data if available)
+        const planContent = await generatePlanContent(profile, onboardingData);
+
+        // 4. Archive old active plans
         await supabase
             .from('quarterly_plans')
             .update({ status: 'archived' })
             .eq('user_id', userId)
             .eq('status', 'active');
 
-        // 4. Save new plan
+        // 5. Save new plan
         const startDate = new Date();
         const endDate = new Date();
         endDate.setMonth(endDate.getMonth() + 3);
@@ -71,7 +85,8 @@ export const PlanService = {
                 content: planContent,
                 status: 'active',
                 start_date: startDate.toISOString(),
-                end_date: endDate.toISOString()
+                end_date: endDate.toISOString(),
+                onboarding_id: onboardingId || null
             })
             .select()
             .single();
