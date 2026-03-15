@@ -346,4 +346,64 @@ IMPORTANTE:
   async resetOnboarding(userId: string): Promise<void> {
     await supabase.from('nutritionist_onboarding').delete().eq('user_id', userId);
   },
+
+  /**
+   * Get quick reply suggestions for current stage
+   */
+  getQuickReplies(stage: OnboardingStage): { label: string; value: string; icon?: string }[] | null {
+    const quickReplies: Record<OnboardingStage, { label: string; value: string; icon?: string }[] | null> = {
+      WELCOME: [
+        { label: 'Vamos começar!', value: 'Sim, quero começar!', icon: 'play_arrow' },
+      ],
+      NAME: null, // User needs to type their name
+      BIRTH_DATE: null, // User needs to type their birth date
+      BIOLOGICAL_SEX: [
+        { label: 'Masculino', value: 'Masculino', icon: 'man' },
+        { label: 'Feminino', value: 'Feminino', icon: 'woman' },
+        { label: 'Prefiro não informar', value: 'Prefiro não informar', icon: 'help' },
+      ],
+      HEIGHT_WEIGHT: null, // User needs to type numbers
+      BODY_COMPOSITION_QUESTION: [
+        { label: 'Sim, tenho os dados', value: 'Sim', icon: 'check_circle' },
+        { label: 'Não tenho', value: 'Não', icon: 'cancel' },
+      ],
+      BODY_COMPOSITION_DATA: null, // User needs to type data
+      ACTIVITY_TYPES: null, // User might have various activities
+      ACTIVITY_FREQUENCY: [
+        { label: '1-2x por semana', value: '2 vezes por semana' },
+        { label: '3-4x por semana', value: '3 vezes por semana' },
+        { label: '5+ por semana', value: '5 ou mais vezes por semana' },
+        { label: 'Não faço exercícios', value: 'Não pratico atividades físicas' },
+      ],
+      ACTIVITY_DURATION: [
+        { label: 'Menos de 30min', value: 'Menos de 30 minutos' },
+        { label: '30-60min', value: 'Entre 30 e 60 minutos' },
+        { label: 'Mais de 1h', value: 'Mais de 1 hora' },
+      ],
+      ACTIVITY_INTENSITY: [
+        { label: 'Leve', value: 'Leve', icon: 'sentiment_satisfied' },
+        { label: 'Moderada', value: 'Moderada', icon: 'sentiment_neutral' },
+        { label: 'Alta', value: 'Alta', icon: 'sentiment_very_satisfied' },
+      ],
+      FOOD_ROUTINE: null, // User needs to describe their routine
+      FOOD_RESTRICTIONS: [
+        { label: 'Não tenho restrições', value: 'Não tenho restrições alimentares' },
+        { label: 'Tenho restrições', value: 'Sim, tenho algumas restrições' },
+      ],
+      FOOD_PREFERENCES: null, // User needs to describe preferences
+      PREVIOUS_DIETS: [
+        { label: 'Nunca fiz dieta', value: 'Nunca fiz dieta antes' },
+        { label: 'Já fiz dietas', value: 'Sim, já fiz algumas dietas' },
+      ],
+      MAIN_GOAL: [
+        { label: 'Emagrecimento', value: 'Emagrecimento', icon: 'trending_down' },
+        { label: 'Ganho de Massa', value: 'Ganho de massa muscular', icon: 'fitness_center' },
+        { label: 'Performance', value: 'Melhorar performance esportiva', icon: 'speed' },
+        { label: 'Saúde', value: 'Melhorar saúde geral', icon: 'favorite' },
+      ],
+      COMPLETED: null,
+    };
+
+    return quickReplies[stage] || null;
+  },
 };
