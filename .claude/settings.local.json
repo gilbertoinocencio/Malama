@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir src /s /b)"
+      "Bash(dir src /s /b)",
+      "Bash(npm run build)"
     ],
     "deny": [],
     "ask": []

@@ -58,6 +58,20 @@ export interface OnboardingData {
 
   // Goal
   mainGoal?: 'emagrecimento' | 'ganho_massa' | 'performance' | 'saude';
+
+  // Wellness (new fields inspired by BitePal)
+  intermittentFasting?: {
+    enabled: boolean;
+    window?: string; // e.g., "16:8", "18:6"
+    startTime?: string; // e.g., "12:00"
+  };
+  gutHealth?: number; // 1-10 scale
+  energyLevel?: number; // 1-10 scale
+  sleepQuality?: number; // 1-10 scale
+  stressLevel?: number; // 1-10 scale
+
+  // Biotype (for profile sync)
+  biotype?: 'ecto' | 'meso' | 'endo';
 }
 
 export interface ChatMessage {
@@ -468,6 +482,65 @@ IMPORTANTE:
    */
   async resetOnboarding(userId: string): Promise<void> {
     await supabase.from('nutritionist_onboarding').delete().eq('user_id', userId);
+  },
+
+  /**
+   * Sync onboarding data with profile
+   */
+  async syncWithProfile(userId: string, onboardingData: OnboardingData): Promise<void> {
+    const { ProfileService } = await import('./profileService');
+
+    // Map onboarding goal to profile goal
+    let profileGoal: 'aesthetic' | 'health' | 'performance' = 'health';
+    if (onboardingData.mainGoal === 'emagrecimento') profileGoal = 'aesthetic';
+    else if (onboardingData.mainGoal === 'ganho_massa' || onboardingData.mainGoal === 'performance') profileGoal = 'performance';
+    else if (onboardingData.mainGoal === 'saude') profileGoal = 'health';
+
+    // Map intensity/frequency to activity_level
+    let activityLevel: 'sedentary' | 'moderate' | 'intense' = 'sedentary';
+    if (onboardingData.weeklyFrequency && onboardingData.weeklyFrequency > 0) {
+      if (onboardingData.weeklyFrequency >= 5 || onboardingData.intensity === 'alta') {
+        activityLevel = 'intense';
+      } else if (onboardingData.weeklyFrequency >= 3 || onboardingData.intensity === 'moderada') {
+        activityLevel = 'moderate';
+      }
+    }
+
+    // Map biological sex to gender
+    const gender = onboardingData.biologicalSex === 'M' ? 'male' : onboardingData.biologicalSex === 'F' ? 'female' : undefined;
+
+    // Calculate targets if we have all required data
+    let targets = {};
+    if (onboardingData.weight && onboardingData.height && onboardingData.age && gender && onboardingData.biotype) {
+      targets = ProfileService.calculateTargets(
+        onboardingData.weight,
+        onboardingData.height,
+        onboardingData.age,
+        gender,
+        activityLevel,
+        profileGoal,
+        onboardingData.biotype
+      );
+    }
+
+    // Update profile
+    await ProfileService.updateProfile(userId, {
+      display_name: onboardingData.fullName,
+      goal: profileGoal,
+      biotype: onboardingData.biotype,
+      activity_level: activityLevel,
+      weight: onboardingData.weight,
+      height: onboardingData.height,
+      age: onboardingData.age,
+      gender,
+      ...(onboardingData.bodyFatPercentage && { body_fat: onboardingData.bodyFatPercentage }),
+      ...(targets && {
+        target_calories: (targets as any).calories,
+        target_protein: (targets as any).protein,
+        target_carbs: (targets as any).carbs,
+        target_fats: (targets as any).fats,
+      }),
+    });
   },
 
   /**

@@ -28,6 +28,7 @@ const FlowAdaptation = React.lazy<React.ComponentType<any>>(() => import('./comp
 const VisualEvolution = React.lazy<React.ComponentType<any>>(() => import('./components/VisualEvolution').then(m => ({ default: (m as any).VisualEvolution || (m as any).default })));
 const VisualShare = React.lazy<React.ComponentType<any>>(() => import('./components/VisualShare').then(m => ({ default: (m as any).VisualShare || (m as any).default })));
 const Integrations = React.lazy<React.ComponentType<any>>(() => import('./components/Integrations').then(m => ({ default: (m as any).Integrations || (m as any).default })));
+const OnboardingFlow = React.lazy<React.ComponentType<any>>(() => import('./components/OnboardingFlow').then(m => ({ default: (m as any).OnboardingFlow || (m as any).default })));
 
 const App: React.FC = () => {
   const { user, profile, loading } = useAuth();
@@ -118,10 +119,8 @@ const App: React.FC = () => {
   if (!profile?.goal) {
     return (
       <Suspense fallback={<LoadingSpinner />}>
-        <ProfileConfig
-          onBack={() => { }}
-          onFinish={() => window.location.reload()}
-          isOnboarding={true}
+        <OnboardingFlow
+          onComplete={() => window.location.reload()}
         />
       </Suspense>
     );
