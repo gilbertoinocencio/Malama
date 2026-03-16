@@ -7,6 +7,8 @@ import { GamificationService, GamificationStats } from '../services/gamification
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Confetti } from './Confetti';
+import { TodayMissionsCard } from './TodayMissionsCard';
+import { DailyCheckinModal } from './DailyCheckinModal';
 
 interface FlowDashboardProps {
   stats: DailyStats;
@@ -35,6 +37,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const [gameStats, setGameStats] = useState<GamificationStats | null>(null);
   const [waterIntake, setWaterIntake] = useState(0);
   const [weeklyScores, setWeeklyScores] = useState<{ date: string, score: number }[]>([]);
+  const [showCheckinModal, setShowCheckinModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -247,6 +250,11 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
         {period === 'day' ? (
           /* ——— DAY VIEW: Calorie Ring + Macros (original dashboard) ——— */
           <>
+            {/* Today's Missions Card */}
+            <div className="px-6">
+              <TodayMissionsCard />
+            </div>
+
             <div className="flex flex-col items-center justify-center px-6 py-4">
               <div className="relative size-64">
                 <svg className="circular-chart transform -rotate-90 w-full h-full" viewBox="0 0 36 36">
@@ -541,6 +549,17 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
           </button>
         </div>
       </main>
+
+      {/* Daily Check-in Modal */}
+      {showCheckinModal && (
+        <DailyCheckinModal
+          onClose={() => setShowCheckinModal(false)}
+          onComplete={() => {
+            setShowCheckinModal(false);
+            loadGameStats();
+          }}
+        />
+      )}
     </div>
   );
 };

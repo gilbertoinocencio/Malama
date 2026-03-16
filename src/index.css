@@ -10,3 +10,75 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* Custom Range Slider Styles for ScaleSlider */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #1a5f5a;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(26, 95, 90, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(26, 95, 90, 0.5);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(0.95);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: #1a5f5a;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(26, 95, 90, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(26, 95, 90, 0.5);
+}
+
+input[type="range"]::-moz-range-thumb:active {
+    transform: scale(0.95);
+}
+
+/* Dark mode slider thumb */
+.dark input[type="range"]::-webkit-slider-thumb {
+    background: #22c55e;
+}
+
+.dark input[type="range"]::-moz-range-thumb {
+    background: #22c55e;
+}
+
+/* Fade-in animation for smooth transitions */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
