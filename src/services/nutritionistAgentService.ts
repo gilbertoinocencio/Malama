@@ -223,6 +223,17 @@ export const NutritionistAgentService = {
   },
 
   /**
+   * Helper to clean up content from history to avoid sending large base64 strings to AI
+   */
+  sanitizeContent(content: string): string {
+    // If it's a very large string that looks like base64 image data, truncate it
+    if (content.length > 1000 && content.includes('data:image')) {
+      return "[Imagem]";
+    }
+    return content;
+  },
+
+  /**
    * Generate agent response using Gemini AI
    */
   async generateAgentResponse(
@@ -236,7 +247,7 @@ export const NutritionistAgentService = {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
     const conversationHistory = session.messages
-      .map((m) => `${m.role === 'agent' ? 'Nutricionista' : 'Usuário'}: ${m.content}`)
+      .map((m) => `${m.role === 'agent' ? 'Nutricionista' : 'Usuário'}: ${this.sanitizeContent(m.content)}`)
       .join('\n');
 
     const prompt = `
