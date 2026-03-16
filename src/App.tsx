@@ -117,14 +117,20 @@ const App: React.FC = () => {
 
   // Onboarding Flow: User exists but hasn't set up profile
   if (!profile?.goal) {
+    console.log('🎯 Onboarding required - no goal set. Profile:', profile);
     return (
       <Suspense fallback={<LoadingSpinner />}>
         <OnboardingFlow
-          onComplete={() => window.location.reload()}
+          onComplete={() => {
+            console.log('✅ Onboarding completed, reloading app...');
+            window.location.reload();
+          }}
         />
       </Suspense>
     );
   }
+
+  console.log('✅ User authenticated with profile:', { userId: user.id, goal: profile.goal, biotype: profile.biotype });
 
   return (
     <Layout
