@@ -63,10 +63,11 @@ interface Message {
   content: any; // Text string or AIResponse object
 }
 
-// Helper for image resizing
-const resizeImage = (base64Str: string, maxWidth = 800): Promise<string> => {
+// Helper for image resizing to stay within AI limits (usually 2000px)
+const resizeImage = (base64Str: string, maxDim = 1200): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.src = base64Str;
     img.onload = () => {
       const canvas = document.createElement('canvas');
@@ -76,17 +77,35 @@ const resizeImage = (base64Str: string, maxWidth = 800): Promise<string> => {
       let width = img.width;
       let height = img.height;
 
-      if (width > maxWidth) {
-        height *= maxWidth / width;
-        width = maxWidth;
+      // Calculate new dimensions keeping aspect ratio
+      if (width > height) {
+        if (width > maxDim) {
+          height *= maxDim / width;
+          width = maxDim;
+        }
+      } else {
+        if (height > maxDim) {
+          width *= maxDim / height;
+          height = maxDim;
+        }
       }
 
       canvas.width = width;
       canvas.height = height;
+      
+      // Use better quality scaling
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      
       ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', 0.7)); // Compress to JPEG 70%
+
+      // Export as JPEG with 0.8 quality to balance file size and detail
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
     };
-    img.onerror = () => resolve(base64Str);
+    img.onerror = (e) => {
+      console.error("Image load error for resizing:", e);
+      resolve(base64Str);
+    };
   });
 };
 
@@ -208,9 +227,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     reader.onloadend = async () => {
       let base64 = reader.result as string;
 
-      // Optimize image before sending
+      // Optimize image before sending to AI
       try {
-        base64 = await resizeImage(base64);
+        // Enforce max dimension of 1200px (well below the 2000px limit)
+        base64 = await resizeImage(base64, 1200);
         setScannedImageUri(base64);
 
         const result = await analyzeImageLog(base64, language);

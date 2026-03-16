@@ -301,13 +301,125 @@ IMPORTANTE:
     } catch (error) {
       console.error('Error generating agent response:', error);
 
-      // Fallback response
-      return {
-        message: 'Desculpe, tive um problema técnico. Pode tentar novamente?',
-        extractedData: {},
-        nextStage: session.currentStage,
-      };
+      // Fallback with predefined responses based on stage
+      return this.getFallbackResponse(session.currentStage, userMessage);
     }
+  },
+
+  /**
+   * Get fallback response when Gemini API fails
+   */
+  getFallbackResponse(
+    stage: OnboardingStage,
+    userMessage: string
+  ): {
+    message: string;
+    extractedData: Partial<OnboardingData>;
+    nextStage: OnboardingStage;
+  } {
+    const fallbacks: Record<OnboardingStage, any> = {
+      WELCOME: {
+        message: 'Ótimo! Vamos começar. Qual é o seu nome completo?',
+        extractedData: {},
+        nextStage: 'NAME' as OnboardingStage,
+      },
+      NAME: {
+        message: `Prazer em conhecer você, ${userMessage}! Qual é a sua data de nascimento? (dd/mm/aaaa)`,
+        extractedData: { fullName: userMessage },
+        nextStage: 'BIRTH_DATE' as OnboardingStage,
+      },
+      BIRTH_DATE: {
+        message: 'Entendi. Qual é o seu sexo biológico?',
+        extractedData: { birthDate: userMessage },
+        nextStage: 'BIOLOGICAL_SEX' as OnboardingStage,
+      },
+      BIOLOGICAL_SEX: {
+        message: 'Certo! Agora me diga: qual é a sua altura (em cm) e peso atual (em kg)?',
+        extractedData: { biologicalSex: userMessage.toLowerCase().includes('fem') ? 'F' : 'M' },
+        nextStage: 'HEIGHT_WEIGHT' as OnboardingStage,
+      },
+      HEIGHT_WEIGHT: {
+        message: 'Você possui dados de composição corporal (percentual de gordura, massa muscular)?',
+        extractedData: {},
+        nextStage: 'BODY_COMPOSITION_QUESTION' as OnboardingStage,
+      },
+      BODY_COMPOSITION_QUESTION: {
+        message: userMessage.toLowerCase().includes('sim')
+          ? 'Ótimo! Quais são os seus dados de composição corporal?'
+          : 'Sem problemas! Que tipos de atividades físicas você pratica?',
+        extractedData: { hasBodyComposition: userMessage.toLowerCase().includes('sim') },
+        nextStage: userMessage.toLowerCase().includes('sim') ? 'BODY_COMPOSITION_DATA' as OnboardingStage : 'ACTIVITY_TYPES' as OnboardingStage,
+      },
+      BODY_COMPOSITION_DATA: {
+        message: 'Entendi. Que tipos de atividades físicas você pratica?',
+        extractedData: {},
+        nextStage: 'ACTIVITY_TYPES' as OnboardingStage,
+      },
+      ACTIVITY_TYPES: {
+        message: 'Legal! Com que frequência você treina por semana?',
+        extractedData: { activityTypes: [userMessage] },
+        nextStage: 'ACTIVITY_FREQUENCY' as OnboardingStage,
+      },
+      ACTIVITY_FREQUENCY: {
+        message: 'E quanto tempo dura cada sessão de treino, em média?',
+        extractedData: {},
+        nextStage: 'ACTIVITY_DURATION' as OnboardingStage,
+      },
+      ACTIVITY_DURATION: {
+        message: 'Como você classificaria a intensidade dos seus treinos?',
+        extractedData: {},
+        nextStage: 'ACTIVITY_INTENSITY' as OnboardingStage,
+      },
+      ACTIVITY_INTENSITY: {
+        message: 'Perfeito! Agora sobre alimentação: como é a sua rotina alimentar atualmente?',
+        extractedData: { intensity: userMessage.toLowerCase() as any },
+        nextStage: 'FOOD_ROUTINE' as OnboardingStage,
+      },
+      FOOD_ROUTINE: {
+        message: 'Você possui alguma restrição alimentar? (alergias, intolerâncias, vegetariano, etc.)',
+        extractedData: { currentRoutine: userMessage },
+        nextStage: 'FOOD_RESTRICTIONS' as OnboardingStage,
+      },
+      FOOD_RESTRICTIONS: {
+        message: 'Existem alimentos que você prefere evitar ou que adora comer?',
+        extractedData: { restrictions: userMessage === 'Não tenho restrições alimentares' ? [] : [userMessage] },
+        nextStage: 'FOOD_PREFERENCES' as OnboardingStage,
+      },
+      FOOD_PREFERENCES: {
+        message: 'Você já seguiu alguma dieta antes? Como foi a experiência?',
+        extractedData: { preferences: [userMessage] },
+        nextStage: 'PREVIOUS_DIETS' as OnboardingStage,
+      },
+      PREVIOUS_DIETS: {
+        message: 'Por fim, qual é o seu principal objetivo com a nutrição?',
+        extractedData: { previousDiets: userMessage },
+        nextStage: 'MAIN_GOAL' as OnboardingStage,
+      },
+      MAIN_GOAL: {
+        message: 'Perfeito! Coletei todas as informações. Vou criar um plano personalizado de 3 meses para você!',
+        extractedData: {
+          mainGoal: userMessage.toLowerCase().includes('emagre')
+            ? 'emagrecimento'
+            : userMessage.toLowerCase().includes('massa')
+            ? 'ganho_massa'
+            : userMessage.toLowerCase().includes('performance')
+            ? 'performance'
+            : 'saude',
+        },
+        nextStage: 'COMPLETED' as OnboardingStage,
+      },
+      COMPLETED: {
+        message: 'Onboarding completo!',
+        extractedData: {},
+        nextStage: 'COMPLETED' as OnboardingStage,
+      },
+    };
+
+    return fallbacks[stage] || {
+      message: 'Desculpe, tive um problema. Pode repetir?',
+      extractedData: {},
+      nextStage: stage,
+    };
   },
 
   /**
