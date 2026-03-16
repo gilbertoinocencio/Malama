@@ -29,6 +29,7 @@ const VisualEvolution = React.lazy<React.ComponentType<any>>(() => import('./com
 const VisualShare = React.lazy<React.ComponentType<any>>(() => import('./components/VisualShare').then(m => ({ default: (m as any).VisualShare || (m as any).default })));
 const Integrations = React.lazy<React.ComponentType<any>>(() => import('./components/Integrations').then(m => ({ default: (m as any).Integrations || (m as any).default })));
 const OnboardingFlow = React.lazy<React.ComponentType<any>>(() => import('./components/OnboardingFlow').then(m => ({ default: (m as any).OnboardingFlow || (m as any).default })));
+const UnifiedChatModal = React.lazy<React.ComponentType<any>>(() => import('./components/UnifiedChatModal').then(m => ({ default: (m as any).UnifiedChatModal || (m as any).default })));
 
 const App: React.FC = () => {
   const { user, profile, loading } = useAuth();
@@ -116,13 +117,15 @@ const App: React.FC = () => {
   }
 
   // Onboarding Flow: User exists but hasn't set up profile
+  // Now using unified chat that handles both onboarding and free chat
   if (!profile?.goal) {
     console.log('🎯 Onboarding required - no goal set. Profile:', profile);
     return (
       <Suspense fallback={<LoadingSpinner />}>
-        <OnboardingFlow
-          onComplete={() => {
-            console.log('✅ Onboarding completed, reloading app...');
+        <UnifiedChatModal
+          onClose={() => {}} // Can't close during onboarding
+          onOnboardingComplete={() => {
+            console.log('✅ Onboarding completed via unified chat, reloading app...');
             window.location.reload();
           }}
         />

@@ -10,6 +10,7 @@ import { Confetti } from './Confetti';
 import { TodayMissionsCard } from './TodayMissionsCard';
 import { DailyCheckinModal } from './DailyCheckinModal';
 import { MealSuggestionsCarousel } from './MealSuggestionsCarousel';
+import { UnifiedChatModal } from './UnifiedChatModal';
 
 interface FlowDashboardProps {
   stats: DailyStats;
@@ -39,6 +40,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const [waterIntake, setWaterIntake] = useState(0);
   const [weeklyScores, setWeeklyScores] = useState<{ date: string, score: number }[]>([]);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
+  const [showCoachChat, setShowCoachChat] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -565,6 +567,32 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
             loadGameStats();
           }}
         />
+      )}
+
+      {/* Unified Coach Chat Modal */}
+      {showCoachChat && (
+        <UnifiedChatModal
+          onClose={() => setShowCoachChat(false)}
+        />
+      )}
+
+      {/* Floating Coach Chat Button */}
+      {!showCoachChat && (
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowCoachChat(true)}
+          className="fixed bottom-24 right-6 size-16 rounded-full bg-gradient-to-br from-nura-petrol to-nura-petrol-light dark:from-primary dark:to-primary/70 text-white shadow-2xl flex items-center justify-center z-40 hover:shadow-nura-petrol/50 dark:hover:shadow-primary/50 transition-shadow"
+          title="Falar com Coach AI"
+        >
+          <span className="material-symbols-outlined text-[28px]">psychology</span>
+          {/* Notification Pulse */}
+          <span className="absolute -top-1 -right-1 size-5 bg-orange-500 rounded-full border-2 border-white dark:border-background-dark flex items-center justify-center">
+            <span className="material-symbols-outlined text-[12px] text-white">chat</span>
+          </span>
+        </motion.button>
       )}
     </div>
   );
