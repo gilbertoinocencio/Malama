@@ -126,6 +126,9 @@ export const NutritionistAgentService = {
   /**
    * Get or create onboarding session for user
    */
+  /**
+   * Get or create onboarding session for user
+   */
   async getOrCreateSession(userId: string): Promise<OnboardingSession> {
     // Try to fetch existing session
     const { data: existing, error } = await supabase
@@ -147,29 +150,99 @@ export const NutritionistAgentService = {
       };
     }
 
+    // Fetch existing profile data to pre-populate onboarding
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    const initialData: OnboardingData = {};
+    if (profile) {
+      if (profile.display_name) initialData.fullName = profile.display_name;
+      if (profile.age) initialData.age = profile.age;
+      if (profile.gender) {
+        initialData.biologicalSex = profile.gender === 'male' ? 'M' : 'F';
+      }
+      if (profile.height) initialData.height = Number(profile.height);
+      if (profile.weight) initialData.weight = Number(profile.weight);
+      if (profile.body_fat) initialData.bodyFatPercentage = Number(profile.body_fat);
+      
+      if (profile.activity_level) {
+        initialData.intensity = 
+          profile.activity_level === 'sedentary' ? 'leve' :
+          profile.activity_level === 'moderate' ? 'moderada' : 
+          'alta';
+      }
+
+      if (profile.goal) {
+        initialData.mainGoal = 
+          profile.goal === 'performance' ? 'performance' :
+          profile.goal === 'health' ? 'saude' :
+          undefined; // 'aesthetic' could be emagrecimento or ganho_massa
+      }
+    }
+
+    // Determine initial stage based on what data we already have
+    const stages: OnboardingStage[] = [
+      'WELCOME', 
+      'NAME', 
+      'BIRTH_DATE', 
+      'BIOLOGICAL_SEX', 
+      'HEIGHT_WEIGHT', 
+      'BODY_COMPOSITION_QUESTION',
+      'ACTIVITY_TYPES',
+      'ACTIVITY_FREQUENCY',
+      'ACTIVITY_DURATION',
+      'ACTIVITY_INTENSITY',
+      'FOOD_ROUTINE',
+      'FOOD_RESTRICTIONS',
+      'FOOD_PREFERENCES',
+      'PREVIOUS_DIETS',
+      'MAIN_GOAL',
+      'COMPLETED'
+    ];
+
+    let initialStage: OnboardingStage = 'WELCOME';
+    
+    // Logic to skip stages based on data
+    if (!initialData.fullName) initialStage = 'NAME';
+    else if (!initialData.age) initialStage = 'BIRTH_DATE';
+    else if (!initialData.biologicalSex) initialStage = 'BIOLOGICAL_SEX';
+    else if (!initialData.height || !initialData.weight) initialStage = 'HEIGHT_WEIGHT';
+    else if (!initialData.activityTypes) initialStage = 'BODY_COMPOSITION_QUESTION';
+    else initialStage = 'FOOD_ROUTINE';
+
+    // Build a more descriptive welcome message
+    const facts = [];
+    if (initialData.fullName) facts.push(`seu nome (${initialData.fullName})`);
+    if (initialData.age) facts.push(`sua idade (${initialData.age} anos)`);
+    if (initialData.biologicalSex) facts.push(`seu sexo biológico`);
+    if (initialData.weight && initialData.height) facts.push(`seu peso (${initialData.weight}kg) e altura (${initialData.height}cm)`);
+    if (initialData.mainGoal) facts.push(`seu objetivo (${initialData.mainGoal})`);
+
+    let content = 'Olá! Sou a nutricionista virtual da NURA. Vou te ajudar a montar um plano alimentar personalizado de 3 meses, baseado em evidências científicas e adaptado à sua realidade.\n\nVou fazer algumas perguntas para conhecer você melhor. Vamos começar?';
+
+    if (facts.length > 0) {
+      const factList = facts.join(', ');
+      content = `Olá${initialData.fullName ? ' ' + initialData.fullName : ''}! Sou a nutricionista da NURA. Já importei ${factList} do seu perfil para agilizar nosso atendimento.\n\nVamos continuar de onde paramos para montar seu plano de 3 meses?`;
+    }
+
     // Create new session
     const welcomeMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'agent',
-      content: 'Olá! Sou a nutricionista virtual da NURA. Vou te ajudar a montar um plano alimentar personalizado de 3 meses, baseado em evidências científicas e adaptado à sua realidade.\n\nVou fazer algumas perguntas para conhecer você melhor. Não se preocupe, é rápido e você pode pular perguntas opcionais.\n\nVamos começar?',
+      content,
       timestamp: new Date(),
-    };
-
-    const newSession: OnboardingSession = {
-      userId,
-      currentStage: 'WELCOME',
-      completed: false,
-      data: {},
-      messages: [welcomeMessage],
     };
 
     const { data: created, error: createError } = await supabase
       .from('nutritionist_onboarding')
       .insert({
         user_id: userId,
-        current_stage: 'WELCOME',
+        current_stage: initialStage,
         completed: false,
-        data: {},
+        data: initialData,
         messages: [welcomeMessage],
       })
       .select()
@@ -178,8 +251,12 @@ export const NutritionistAgentService = {
     if (createError) throw createError;
 
     return {
-      ...newSession,
       id: created.id,
+      userId: created.user_id,
+      currentStage: created.current_stage as OnboardingStage,
+      completed: created.completed,
+      data: created.data as OnboardingData,
+      messages: created.messages as ChatMessage[],
       createdAt: new Date(created.created_at),
       updatedAt: new Date(created.updated_at),
     };
