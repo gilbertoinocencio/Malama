@@ -29,6 +29,7 @@ const VisualEvolution = React.lazy<React.ComponentType<any>>(() => import('./com
 const VisualShare = React.lazy<React.ComponentType<any>>(() => import('./components/VisualShare').then(m => ({ default: (m as any).VisualShare || (m as any).default })));
 const Integrations = React.lazy<React.ComponentType<any>>(() => import('./components/Integrations').then(m => ({ default: (m as any).Integrations || (m as any).default })));
 const OnboardingFlow = React.lazy<React.ComponentType<any>>(() => import('./components/OnboardingFlow').then(m => ({ default: (m as any).OnboardingFlow || (m as any).default })));
+const OnboardingFlowV2 = React.lazy<React.ComponentType<any>>(() => import('./components/OnboardingFlowV2').then(m => ({ default: (m as any).OnboardingFlowV2 || (m as any).default })));
 const UnifiedChatModal = React.lazy<React.ComponentType<any>>(() => import('./components/UnifiedChatModal').then(m => ({ default: (m as any).UnifiedChatModal || (m as any).default })));
 
 const App: React.FC = () => {
@@ -117,15 +118,14 @@ const App: React.FC = () => {
   }
 
   // Onboarding Flow: User exists but hasn't set up profile
-  // Now using unified chat that handles both onboarding and free chat
+  // Now using visual onboarding (BitePal style) with Nura design
   if (!profile?.goal) {
     console.log('🎯 Onboarding required - no goal set. Profile:', profile);
     return (
       <Suspense fallback={<LoadingSpinner />}>
-        <UnifiedChatModal
-          onClose={() => {}} // Can't close during onboarding
-          onOnboardingComplete={() => {
-            console.log('✅ Onboarding completed via unified chat, reloading app...');
+        <OnboardingFlowV2
+          onComplete={() => {
+            console.log('✅ Onboarding V2 completed, reloading app...');
             window.location.reload();
           }}
         />
