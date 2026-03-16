@@ -3,6 +3,7 @@ import { AppView } from '../types';
 import { PlanService, QuarterlyPlanData } from '../services/planService';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
+import { PlanRoadmap } from './PlanRoadmap';
 
 // Lazy load the chat component
 const NutritionistChat = React.lazy(() => import('./NutritionistChat'));
@@ -178,11 +179,16 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
               </div>
             </div>
 
+            {/* Roadmap Visual */}
+            <div className="w-full mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+              <PlanRoadmap currentWeek={1} />
+            </div>
+
             {/* Timeline */}
-            <div className="w-full animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <div className="w-full animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
               <h3 className="text-lg font-bold text-nura-main dark:text-white mb-6 flex items-center gap-2">
-                <span className="material-symbols-outlined text-nura-petrol dark:text-primary">calendar_month</span>
-                {qp.journey3Months}
+                <span className="material-symbols-outlined text-nura-petrol dark:text-primary">description</span>
+                Detalhamento do Plano
               </h3>
               <div className="flex flex-col space-y-0">
 
