@@ -66,13 +66,97 @@ export const MealSuggestionService = {
   async generateWithAI(profile: any, onboardingData: any): Promise<Partial<MealSuggestion>[]> {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
+    // Extract all relevant data from onboarding
     const restrictions = onboardingData.restrictions || [];
     const preferences = onboardingData.preferences || [];
+    const currentRoutine = onboardingData.currentRoutine || '';
+    const intermittentFasting = onboardingData.intermittentFasting || { enabled: false };
+    const activityTypes = onboardingData.activityTypes || [];
+    const intensity = onboardingData.intensity || 'moderada';
+    const gutHealth = onboardingData.gutHealth || 5;
+    const energyLevel = onboardingData.energyLevel || 5;
+    const sleepQuality = onboardingData.sleepQuality || 5;
+    const stressLevel = onboardingData.stressLevel || 5;
+    const biotype = onboardingData.biotype || profile.biotype || 'meso';
+
     const goal = profile.goal || 'health';
     const targetCalories = profile.target_calories || 2000;
     const targetProtein = profile.target_protein || 150;
     const targetCarbs = profile.target_carbs || 200;
     const targetFats = profile.target_fats || 70;
+
+    // Build context string with all personalization factors
+    let contextInfo = '';
+
+    // Dietary restrictions and preferences
+    if (restrictions.includes('Vegetariano') || restrictions.includes('Vegano')) {
+      contextInfo += `\n- IMPORTANTE: Dieta ${restrictions.includes('Vegano') ? 'VEGANA (sem nenhum produto animal)' : 'VEGETARIANA (sem carne/peixe)'}`;
+    }
+    if (restrictions.includes('Sem Lactose')) {
+      contextInfo += '\n- IMPORTANTE: Sem lactose - usar alternativas vegetais (leite de amêndoa, coco, etc)';
+    }
+    if (restrictions.includes('Sem Glúten')) {
+      contextInfo += '\n- IMPORTANTE: Sem glúten - evitar trigo, centeio, cevada';
+    }
+    if (restrictions.includes('Halal')) {
+      contextInfo += '\n- IMPORTANTE: Dieta Halal - sem carne de porco, produtos preparados conforme tradição islâmica';
+    }
+    if (restrictions.includes('Kosher')) {
+      contextInfo += '\n- IMPORTANTE: Dieta Kosher - sem mistura carne/laticínios, produtos certificados';
+    }
+
+    // Intermittent fasting
+    if (intermittentFasting.enabled) {
+      const window = intermittentFasting.window || '16:8';
+      contextInfo += `\n- Jejum Intermitente ${window} - ajustar horários das refeições conforme janela de alimentação`;
+      if (window === '16:8') {
+        contextInfo += ' (ex: primeira refeição 12h, última 20h)';
+      } else if (window === '18:6') {
+        contextInfo += ' (ex: primeira refeição 13h, última 19h)';
+      } else if (window === '20:4') {
+        contextInfo += ' (ex: primeira refeição 14h, última 18h)';
+      }
+    }
+
+    // Activity level and timing
+    if (activityTypes.length > 0) {
+      contextInfo += `\n- Atividades: ${activityTypes.join(', ')} (intensidade ${intensity})`;
+      if (activityTypes.includes('Musculação') || activityTypes.includes('CrossFit')) {
+        contextInfo += ' - priorizar proteína pós-treino';
+      }
+      if (activityTypes.includes('Corrida') || activityTypes.includes('Ciclismo')) {
+        contextInfo += ' - garantir carboidratos para energia';
+      }
+    }
+
+    // Health optimizations
+    if (gutHealth < 5) {
+      contextInfo += '\n- Saúde intestinal comprometida - incluir probióticos (iogurte natural, kefir) e fibras';
+    }
+    if (energyLevel < 5) {
+      contextInfo += '\n- Baixa energia - evitar picos glicêmicos, priorizar carboidratos complexos';
+    }
+    if (sleepQuality < 5) {
+      contextInfo += '\n- Sono ruim - evitar cafeína após 14h, ceia leve';
+    }
+    if (stressLevel > 7) {
+      contextInfo += '\n- Alto estresse - incluir alimentos anti-inflamatórios (ômega 3, magnésio)';
+    }
+
+    // Biotype-specific
+    if (biotype === 'ecto') {
+      contextInfo += '\n- Biotipo Ectomorfo - dificuldade ganhar peso, aumentar densidade calórica';
+    } else if (biotype === 'endo') {
+      contextInfo += '\n- Biotipo Endomorfo - facilidade ganhar gordura, controlar carboidratos simples';
+    }
+
+    // Current routine insights
+    if (currentRoutine) {
+      contextInfo += `\n- Rotina atual: "${currentRoutine}"`;
+      if (currentRoutine.toLowerCase().includes('pouco tempo') || currentRoutine.toLowerCase().includes('rápid')) {
+        contextInfo += ' - PRIORIZAR RECEITAS RÁPIDAS E PRÁTICAS';
+      }
+    }
 
     const prompt = `
 Você é um nutricionista criando sugestões de refeições para o dia.
@@ -81,7 +165,7 @@ Você é um nutricionista criando sugestões de refeições para o dia.
 - Objetivo: ${goal === 'aesthetic' ? 'Emagrecimento' : goal === 'performance' ? 'Performance/Ganho de Massa' : 'Saúde'}
 - Meta Diária: ${targetCalories} kcal | ${targetProtein}g proteína | ${targetCarbs}g carboidratos | ${targetFats}g gorduras
 - Restrições: ${restrictions.length > 0 ? restrictions.join(', ') : 'Nenhuma'}
-- Preferências: ${preferences.length > 0 ? preferences.join(', ') : 'Variado'}
+- Preferências: ${preferences.length > 0 ? preferences.join(', ') : 'Variado'}${contextInfo}
 
 **TAREFA:**
 Crie 6 sugestões de refeições para o dia, distribuídas assim:
