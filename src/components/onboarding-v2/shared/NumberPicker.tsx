@@ -23,8 +23,9 @@ const NumberPicker: React.FC<NumberPickerProps> = ({
   const itemHeight = 80;
 
   const values = [];
+  const decimalPlaces = step < 1 ? 1 : 0;
   for (let i = min; i <= max; i += step) {
-    values.push(i);
+    values.push(parseFloat(i.toFixed(decimalPlaces)));
   }
 
   const handleScroll = () => {
@@ -80,7 +81,7 @@ const NumberPicker: React.FC<NumberPickerProps> = ({
                   : 'text-2xl text-gray-300 dark:text-gray-600'
               }`}
             >
-              {val}
+              {val.toFixed(decimalPlaces)}
               {val === value && unit && (
                 <span className="ml-2 text-3xl font-medium text-gray-600 dark:text-gray-400">
                   {unit}

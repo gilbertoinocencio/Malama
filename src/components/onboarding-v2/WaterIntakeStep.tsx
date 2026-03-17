@@ -26,10 +26,8 @@ const WaterIntakeStep: React.FC<StepProps> = ({
     <StepContainer currentStep={currentStep} totalSteps={totalSteps} onBack={onBack} showBack={true}>
       <div className="flex flex-col h-full justify-between">
         <div>
-          <div className="flex items-start gap-4 mb-12">
-            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-3xl">🦝</span>
-            </div>
+          <div className="flex items-start mb-12">
+            
             <div className="bg-white dark:bg-gray-800 rounded-2xl px-6 py-4 shadow-sm flex-1">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Achas que bebes água suficiente?</h2>
             </div>

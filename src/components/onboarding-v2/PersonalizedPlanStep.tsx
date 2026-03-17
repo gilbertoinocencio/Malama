@@ -3,13 +3,85 @@ import { StepProps } from './types';
 import { StepContainer } from './StepContainer';
 
 const PersonalizedPlanStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
+  const features = [
+    {
+      icon: 'restaurant',
+      title: 'Refeições personalizadas',
+      description: 'Sugestões diárias adaptadas aos seus gostos e objetivos'
+    },
+    {
+      icon: 'insights',
+      title: 'Acompanhamento inteligente',
+      description: 'Análise de progresso com IA e ajustes automáticos'
+    },
+    {
+      icon: 'notifications_active',
+      title: 'Lembretes personalizados',
+      description: 'Notificações nos horários que você escolheu'
+    },
+    {
+      icon: 'auto_awesome',
+      title: 'Coach nutricional IA',
+      description: 'Assistente disponível 24/7 para suas dúvidas'
+    }
+  ];
+
   return (
     <StepContainer currentStep={currentStep} totalSteps={totalSteps} onBack={onBack} showBack={true}>
-      <div className="flex flex-col h-full justify-center items-center">
-        <div className="text-center max-w-2xl">
-          <h1 className="text-3xl font-bold mb-4">Plano Personalizado</h1><p className="text-gray-600 dark:text-gray-400">Adaptado às suas necessidades</p>
-          <button onClick={onNext} className="mt-8 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 px-8 rounded-full font-semibold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors inline-flex items-center gap-2">
-            Seguinte <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+      <div className="flex flex-col h-full">
+        <div className="flex items-start mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl px-6 py-4 shadow-sm flex-1">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              O seu plano personalizado
+            </h2>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center gap-6">
+          <div className="text-center mb-4">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Tudo o que precisa num só lugar
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Ferramentas criadas especialmente para você
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 max-w-md w-full">
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="bg-white dark:bg-gray-800 rounded-xl p-5 border-2 border-gray-100 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700 transition-all"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-xl">
+                    <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-2xl">
+                      {feature.icon}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                      {feature.title}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <button
+            onClick={onNext}
+            className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 px-6 rounded-full font-semibold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+          >
+            Seguinte
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
           </button>
         </div>
       </div>
