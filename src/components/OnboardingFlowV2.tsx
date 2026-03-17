@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../services/supabase';
 
-// Import all 28 step components matching BitePal flow
+// Import all step components
 import AdditionalGoalsStep from './onboarding-v2/AdditionalGoalsStep';
 import IntermittentFastingKnowledgeStep from './onboarding-v2/IntermittentFastingKnowledgeStep';
 import IntermittentFastingEducationStep from './onboarding-v2/IntermittentFastingEducationStep';
@@ -32,7 +32,22 @@ import SocialProofStep from './onboarding-v2/SocialProofStep';
 import PaywallFeaturesStep from './onboarding-v2/PaywallFeaturesStep';
 import PricingStep from './onboarding-v2/PricingStep';
 
+// Import new visual/educational steps
+import PrimaryGoalStep from './onboarding-v2/PrimaryGoalStep';
+import CalorieTrackingExperienceStep from './onboarding-v2/CalorieTrackingExperienceStep';
+import WaterTrackingVisualStep from './onboarding-v2/WaterTrackingVisualStep';
+import FastingBenefitsStep from './onboarding-v2/FastingBenefitsStep';
+import ProgressTrackingStep from './onboarding-v2/ProgressTrackingStep';
+import MotivationStep from './onboarding-v2/MotivationStep';
+import ReminderMotivationStep from './onboarding-v2/ReminderMotivationStep';
+import CalorieTrackingStep from './onboarding-v2/CalorieTrackingStep';
+import UniqueApproachStep from './onboarding-v2/UniqueApproachStep';
+
 export interface OnboardingData {
+  // New fields
+  primaryGoal?: string;
+  calorieTrackingExperience?: string;
+
   // Step 1: Additional goals
   additionalGoals: string[];
 
@@ -117,7 +132,7 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
     goalSpeed: 0.4,
   });
 
-  const totalSteps = 28;
+  const totalSteps = 37; // Updated to include 9 new steps
 
   const updateData = (newData: Partial<OnboardingData>) => {
     setData((prev) => ({ ...prev, ...newData }));
@@ -155,6 +170,8 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
       const { error } = await supabase
         .from('profiles')
         .update({
+          primary_goal: data.primaryGoal,
+          calorie_tracking_experience: data.calorieTrackingExperience,
           age: data.age,
           gender: data.gender,
           height: data.heightUnit === 'cm' ? data.height : data.height * 12 * 2.54,
@@ -198,64 +215,91 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
     };
 
     switch (currentStep) {
+      // New: Primary goal selection
       case 0:
-        return <AdditionalGoalsStep {...stepProps} />;
+        return <PrimaryGoalStep {...stepProps} />;
+      // New: Calorie tracking experience
       case 1:
-        return <IntermittentFastingKnowledgeStep {...stepProps} />;
+        return <CalorieTrackingExperienceStep {...stepProps} />;
       case 2:
-        return <IntermittentFastingEducationStep {...stepProps} />;
+        return <AdditionalGoalsStep {...stepProps} />;
       case 3:
-        return <ReminderScheduleStep {...stepProps} />;
+        return <IntermittentFastingKnowledgeStep {...stepProps} />;
       case 4:
-        return <MealsPerDayStep {...stepProps} />;
+        return <IntermittentFastingEducationStep {...stepProps} />;
+      // New: Fasting benefits visual
       case 5:
-        return <EatingWindowStep {...stepProps} />;
+        return <FastingBenefitsStep {...stepProps} />;
       case 6:
-        return <EatingLocationStep {...stepProps} />;
+        return <ReminderScheduleStep {...stepProps} />;
+      // New: Reminder motivation
       case 7:
-        return <DietTypeStep {...stepProps} />;
+        return <ReminderMotivationStep {...stepProps} />;
       case 8:
-        return <DietaryRestrictionsStep {...stepProps} />;
+        return <MealsPerDayStep {...stepProps} />;
       case 9:
-        return <WaterIntakeStep {...stepProps} />;
+        return <EatingWindowStep {...stepProps} />;
       case 10:
-        return <WaterEducationStep {...stepProps} />;
+        return <EatingLocationStep {...stepProps} />;
       case 11:
-        return <HabitChangesStep {...stepProps} />;
+        return <DietTypeStep {...stepProps} />;
       case 12:
-        return <GenderStep {...stepProps} />;
+        return <DietaryRestrictionsStep {...stepProps} />;
       case 13:
-        return <AgeStep {...stepProps} />;
+        return <WaterIntakeStep {...stepProps} />;
       case 14:
-        return <ActivityLevelStep {...stepProps} />;
+        return <WaterEducationStep {...stepProps} />;
+      // New: Water tracking visual
       case 15:
-        return <HeightStep {...stepProps} />;
+        return <WaterTrackingVisualStep {...stepProps} />;
       case 16:
-        return <CurrentWeightStep {...stepProps} />;
+        return <HabitChangesStep {...stepProps} />;
       case 17:
-        return <PersonalSummaryStep {...stepProps} />;
+        return <GenderStep {...stepProps} />;
       case 18:
-        return <TargetWeightStep {...stepProps} />;
+        return <AgeStep {...stepProps} />;
       case 19:
-        return <GoalSpeedStep {...stepProps} />;
+        return <ActivityLevelStep {...stepProps} />;
       case 20:
-        return <GoalSuccessStep {...stepProps} />;
+        return <HeightStep {...stepProps} />;
       case 21:
-        return <PersonalizingPlanStep {...stepProps} />;
+        return <CurrentWeightStep {...stepProps} />;
       case 22:
-        return <GoalConfirmationStep {...stepProps} />;
+        return <PersonalSummaryStep {...stepProps} />;
       case 23:
-        return <NutritionalRecommendationsStep {...stepProps} />;
+        return <TargetWeightStep {...stepProps} />;
       case 24:
-        return <PersonalizedPlanStep {...stepProps} />;
+        return <GoalSpeedStep {...stepProps} />;
+      // New: Progress tracking visual
       case 25:
-        return <SocialProofStep {...stepProps} />;
+        return <ProgressTrackingStep {...stepProps} />;
       case 26:
-        return <PaywallFeaturesStep {...stepProps} />;
+        return <GoalSuccessStep {...stepProps} />;
       case 27:
+        return <PersonalizingPlanStep {...stepProps} />;
+      case 28:
+        return <GoalConfirmationStep {...stepProps} />;
+      case 29:
+        return <NutritionalRecommendationsStep {...stepProps} />;
+      // New: Calorie tracking step
+      case 30:
+        return <CalorieTrackingStep {...stepProps} />;
+      case 31:
+        return <PersonalizedPlanStep {...stepProps} />;
+      // New: Motivation step
+      case 32:
+        return <MotivationStep {...stepProps} />;
+      case 33:
+        return <SocialProofStep {...stepProps} />;
+      // New: Unique approach
+      case 34:
+        return <UniqueApproachStep {...stepProps} />;
+      case 35:
+        return <PaywallFeaturesStep {...stepProps} />;
+      case 36:
         return <PricingStep {...stepProps} onComplete={handleComplete} />;
       default:
-        return <AdditionalGoalsStep {...stepProps} />;
+        return <PrimaryGoalStep {...stepProps} />;
     }
   };
 
