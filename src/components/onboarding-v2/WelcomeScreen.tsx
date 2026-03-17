@@ -67,7 +67,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onStart }) => {
           onClick={onStart}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="w-full bg-gradient-to-r from-nura-petrol to-nura-petrol-light dark:from-primary dark:to-primary/80 text-white font-bold text-lg py-4 rounded-xl shadow-lg hover:shadow-xl transition-shadow"
+          className="w-full bg-gradient-to-r from-primary to-emerald-500 text-white py-4 px-6 rounded-2xl font-bold text-xl shadow-md hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-shadow"
         >
           Começar
         </motion.button>

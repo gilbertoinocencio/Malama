@@ -18,9 +18,9 @@ export const StepContainer: React.FC<StepContainerProps> = ({
   showBack = false
 }) => {
   return (
-    <div className="min-h-screen bg-white dark:bg-background-dark flex flex-col">
+    <div className="h-[100dvh] overflow-y-auto overflow-x-hidden bg-white dark:bg-background-dark flex flex-col">
       {/* Header with Progress */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800">
+      <div className="sticky top-0 z-10 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-2xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-3">
             {showBack && onBack ? (

@@ -35,7 +35,7 @@ const IntermittentFastingEducationStep: React.FC<StepProps> = ({ onNext }) => {
 
         <button
           onClick={onNext}
-          className="w-full max-w-md bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 px-6 rounded-full font-semibold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+          className="w-full max-w-md bg-gradient-to-r from-primary to-emerald-500 text-white py-4 px-6 rounded-2xl font-bold text-xl shadow-md hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
           Seguinte
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

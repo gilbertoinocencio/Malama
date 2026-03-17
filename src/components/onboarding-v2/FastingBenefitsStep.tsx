@@ -104,7 +104,7 @@ const FastingBenefitsStep: React.FC<StepProps> = ({
 
           <button
             onClick={onNext}
-            className="w-full bg-nura-petrol dark:bg-primary text-white py-4 px-6 rounded-full font-semibold text-lg hover:bg-nura-petrol/90 dark:hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-primary to-emerald-500 text-white py-4 px-6 rounded-2xl font-bold text-xl shadow-md hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
             Próximo
             <span className="material-symbols-outlined text-xl">arrow_forward</span>

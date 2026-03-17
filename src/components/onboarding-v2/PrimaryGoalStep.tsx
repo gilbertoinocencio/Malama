@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { StepProps } from './types';
 import { StepContainer } from './StepContainer';
 
@@ -47,34 +48,41 @@ const PrimaryGoalStep: React.FC<StepProps> = ({
   return (
     <StepContainer currentStep={currentStep} totalSteps={totalSteps} onBack={onBack} showBack={true}>
       <div className="flex flex-col h-full">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-nura-main dark:text-white mb-2 font-display">
-            Qual é o seu objetivo principal?
-          </h2>
+        <div className="flex items-start mb-8">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-3xl px-6 py-5 shadow-sm flex-1 border border-gray-100 dark:border-gray-700">
+            <h2 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-nura-main to-primary dark:from-white dark:to-primary">
+              Qual é o seu objetivo principal?
+            </h2>
+          </div>
         </div>
 
-        <div className="space-y-4 flex-1 flex flex-col justify-center">
-          {goals.map((goal) => (
-            <button
+        <div className="space-y-4 flex-1 flex flex-col justify-center pb-8">
+          {goals.map((goal, index) => (
+            <motion.button
               key={goal.value}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => handleSelect(goal.value)}
-              className={`w-full text-left p-6 rounded-3xl border-2 transition-all transform hover:scale-[1.02] ${
+              className={`w-full text-left p-6 rounded-3xl border-2 transition-all duration-200 shadow-sm hover:shadow-md ${
                 isSelected(goal.value)
-                  ? 'border-primary bg-primary/10 dark:bg-primary/20 shadow-lg'
-                  : `${goal.borderColor} ${goal.bgColor} hover:shadow-md`
+                  ? 'border-primary bg-primary/10 dark:bg-primary/20 shadow-md shadow-primary/10'
+                  : `${goal.borderColor} ${goal.bgColor}`
               }`}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-nura-card dark:bg-surface-dark rounded-2xl flex items-center justify-center shadow-sm">
+              <div className="flex items-center gap-5">
+                <div className="w-16 h-16 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-sm border border-white/50 dark:border-white/10">
                   <span className={`material-symbols-outlined text-4xl ${goal.iconColor}`}>
                     {goal.icon}
                   </span>
                 </div>
-                <span className="text-xl font-bold text-nura-main dark:text-white font-display">
+                <span className={`text-xl font-bold font-display ${isSelected(goal.value) ? 'text-primary dark:text-white' : 'text-nura-main dark:text-white'}`}>
                   {goal.label}
                 </span>
               </div>
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>

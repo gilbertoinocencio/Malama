@@ -25,11 +25,11 @@ export const OptionCard: React.FC<OptionCardProps> = ({
       whileHover={{ scale: disabled ? 1 : 1.02 }}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       className={`
-        w-full p-6 rounded-2xl border-2 transition-all text-left
+        w-full p-6 rounded-2xl border-2 transition-all duration-200 text-left shadow-sm hover:shadow-md
         ${
           selected
-            ? 'border-nura-petrol dark:border-primary bg-nura-petrol/5 dark:bg-primary/10'
-            : 'border-gray-200 dark:border-gray-700 hover:border-nura-petrol/50 dark:hover:border-primary/50'
+            ? 'border-primary bg-primary/10 dark:bg-primary/20 shadow-primary/10'
+            : 'border-transparent bg-white dark:bg-gray-800 hover:border-primary/30'
         }
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
       `}
@@ -38,11 +38,11 @@ export const OptionCard: React.FC<OptionCardProps> = ({
         {/* Icon */}
         <div
           className={`
-          size-14 rounded-xl flex items-center justify-center flex-shrink-0
+          size-14 rounded-xl flex items-center justify-center flex-shrink-0 backdrop-blur-sm border
           ${
             selected
-              ? 'bg-nura-petrol/10 dark:bg-primary/20'
-              : 'bg-gray-100 dark:bg-gray-800'
+              ? 'bg-white/80 dark:bg-gray-700/80 border-primary/20'
+              : 'bg-gray-50/80 dark:bg-gray-700/80 border-transparent'
           }
         `}
         >
@@ -51,8 +51,8 @@ export const OptionCard: React.FC<OptionCardProps> = ({
             material-symbols-outlined text-3xl
             ${
               selected
-                ? 'text-nura-petrol dark:text-primary'
-                : 'text-nura-muted dark:text-gray-400'
+                ? 'text-primary dark:text-primary'
+                : 'text-gray-500 dark:text-gray-400'
             }
           `}
           >
@@ -64,11 +64,11 @@ export const OptionCard: React.FC<OptionCardProps> = ({
         <div className="flex-1 min-w-0">
           <h3
             className={`
-            text-lg font-bold mb-1
+            text-lg font-bold mb-1 transition-colors
             ${
               selected
-                ? 'text-nura-main dark:text-white'
-                : 'text-nura-main dark:text-gray-200'
+                ? 'text-primary dark:text-white'
+                : 'text-gray-900 dark:text-gray-200'
             }
           `}
           >
@@ -86,7 +86,7 @@ export const OptionCard: React.FC<OptionCardProps> = ({
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="size-6 rounded-full bg-nura-petrol dark:bg-primary flex items-center justify-center flex-shrink-0"
+            className="size-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0 shadow-sm"
           >
             <span className="material-symbols-outlined text-white text-sm">
               check

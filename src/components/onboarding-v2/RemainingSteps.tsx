@@ -77,7 +77,7 @@ export const ActivityLevelStep: React.FC<ActivityLevelStepProps> = ({
 
         <button
           onClick={() => onNext({ frequency, intensity })}
-          className="w-full bg-gradient-to-r from-nura-petrol to-nura-petrol-light dark:from-primary dark:to-primary/80 text-white font-bold text-lg py-4 rounded-xl"
+          className="w-full bg-gradient-to-r from-primary to-emerald-500 text-white py-4 px-6 rounded-2xl font-bold text-xl shadow-md hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
           Continuar
         </button>
@@ -147,7 +147,7 @@ export const RestrictionsStep: React.FC<RestrictionsStepProps> = ({
 
         <button
           onClick={() => onNext(selected)}
-          className="w-full bg-gradient-to-r from-nura-petrol to-nura-petrol-light dark:from-primary dark:to-primary/80 text-white font-bold text-lg py-4 rounded-xl"
+          className="w-full bg-gradient-to-r from-primary to-emerald-500 text-white py-4 px-6 rounded-2xl font-bold text-xl shadow-md hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
           {selected.length > 0 ? 'Continuar' : 'Pular'}
         </button>
