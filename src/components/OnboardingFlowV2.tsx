@@ -153,12 +153,12 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
 
       // Save onboarding data to user profile
       const { error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .update({
           age: data.age,
           gender: data.gender,
-          height_cm: data.heightUnit === 'cm' ? data.height : data.height * 12 * 2.54,
-          weight_kg: weightInKg,
+          height: data.heightUnit === 'cm' ? data.height : data.height * 12 * 2.54,
+          weight: weightInKg,
           target_weight_kg: data.weightUnit === 'kg' ? data.targetWeight : data.targetWeight * 0.453592,
           activity_level: data.activityLevel,
           diet_type: data.dietType,
