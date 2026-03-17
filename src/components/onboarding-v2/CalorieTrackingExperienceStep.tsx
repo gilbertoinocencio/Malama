@@ -14,20 +14,23 @@ const CalorieTrackingExperienceStep: React.FC<StepProps> = ({
     {
       value: 'new',
       label: 'Sou novo na contagem de calorias',
-      icon: '🔥',
-      description: 'Vou aprender com você'
+      icon: 'new_releases',
+      description: 'Vou aprender com você',
+      iconColor: 'text-primary'
     },
     {
       value: 'tried_quit',
       label: 'Já tentei antes, mas desisti',
-      icon: '😰',
-      description: 'Vamos fazer diferente desta vez'
+      icon: 'restart_alt',
+      description: 'Vamos fazer diferente desta vez',
+      iconColor: 'text-nura-brown'
     },
     {
       value: 'currently_tracking',
       label: 'Atualmente estou contando',
-      icon: '🧮',
-      description: 'Continue o ótimo trabalho!'
+      icon: 'check_circle',
+      description: 'Continue o ótimo trabalho!',
+      iconColor: 'text-nura-petrol'
     },
   ];
 
@@ -42,7 +45,7 @@ const CalorieTrackingExperienceStep: React.FC<StepProps> = ({
     <StepContainer currentStep={currentStep} totalSteps={totalSteps} onBack={onBack} showBack={true}>
       <div className="flex flex-col h-full">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-2xl font-bold text-nura-main dark:text-white mb-2 font-display">
             Você já tentou contar calorias antes?
           </h2>
         </div>
@@ -54,19 +57,21 @@ const CalorieTrackingExperienceStep: React.FC<StepProps> = ({
               onClick={() => handleSelect(option.value)}
               className={`w-full text-left p-6 rounded-3xl border-2 transition-all transform hover:scale-[1.02] ${
                 isSelected(option.value)
-                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-lg'
-                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+                  ? 'border-primary bg-primary/10 dark:bg-primary/20 shadow-lg'
+                  : 'border-nura-border dark:border-gray-700 bg-nura-card dark:bg-surface-dark hover:border-nura-petrol/30 dark:hover:border-primary/30 hover:shadow-md'
               }`}
             >
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-2xl flex items-center justify-center text-3xl shadow-sm flex-shrink-0">
-                  {option.icon}
+                <div className="w-14 h-14 bg-gradient-to-br from-nura-petrol-light/30 to-primary/20 dark:from-nura-petrol/30 dark:to-primary/20 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0">
+                  <span className={`material-symbols-outlined text-3xl ${option.iconColor}`}>
+                    {option.icon}
+                  </span>
                 </div>
                 <div className="flex-1">
-                  <div className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                  <div className="text-lg font-bold text-nura-main dark:text-white mb-1 font-display">
                     {option.label}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="text-sm text-nura-muted dark:text-gray-400">
                     {option.description}
                   </div>
                 </div>

@@ -14,23 +14,26 @@ const PrimaryGoalStep: React.FC<StepProps> = ({
     {
       value: 'lose_weight',
       label: 'Perder peso',
-      icon: '📉',
-      bgColor: 'bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20',
-      borderColor: 'border-red-200 dark:border-red-800'
+      icon: 'trending_down',
+      bgColor: 'bg-gradient-to-br from-nura-petrol-light/20 to-primary/10 dark:from-nura-petrol/20 dark:to-primary/20',
+      borderColor: 'border-nura-petrol/20 dark:border-primary/30',
+      iconColor: 'text-primary'
     },
     {
       value: 'maintain_weight',
       label: 'Manter o peso',
-      icon: '⚖️',
-      bgColor: 'bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20',
-      borderColor: 'border-yellow-200 dark:border-yellow-800'
+      icon: 'balance',
+      bgColor: 'bg-gradient-to-br from-nura-brown/10 to-nura-pastel-orange/20 dark:from-nura-brown/20 dark:to-nura-pastel-orange/10',
+      borderColor: 'border-nura-brown/20 dark:border-nura-brown/30',
+      iconColor: 'text-nura-brown'
     },
     {
       value: 'gain_weight',
       label: 'Ganhar peso',
-      icon: '💪',
-      bgColor: 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
-      borderColor: 'border-green-200 dark:border-green-800'
+      icon: 'trending_up',
+      bgColor: 'bg-gradient-to-br from-primary/10 to-nura-petrol-light/20 dark:from-primary/20 dark:to-nura-petrol/20',
+      borderColor: 'border-primary/20 dark:border-nura-petrol/30',
+      iconColor: 'text-nura-petrol'
     },
   ];
 
@@ -45,7 +48,7 @@ const PrimaryGoalStep: React.FC<StepProps> = ({
     <StepContainer currentStep={currentStep} totalSteps={totalSteps} onBack={onBack} showBack={true}>
       <div className="flex flex-col h-full">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-2xl font-bold text-nura-main dark:text-white mb-2 font-display">
             Qual é o seu objetivo principal?
           </h2>
         </div>
@@ -57,15 +60,17 @@ const PrimaryGoalStep: React.FC<StepProps> = ({
               onClick={() => handleSelect(goal.value)}
               className={`w-full text-left p-6 rounded-3xl border-2 transition-all transform hover:scale-[1.02] ${
                 isSelected(goal.value)
-                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-lg'
+                  ? 'border-primary bg-primary/10 dark:bg-primary/20 shadow-lg'
                   : `${goal.borderColor} ${goal.bgColor} hover:shadow-md`
               }`}
             >
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-white dark:bg-gray-700 rounded-2xl flex items-center justify-center text-4xl shadow-sm">
-                  {goal.icon}
+                <div className="w-16 h-16 bg-nura-card dark:bg-surface-dark rounded-2xl flex items-center justify-center shadow-sm">
+                  <span className={`material-symbols-outlined text-4xl ${goal.iconColor}`}>
+                    {goal.icon}
+                  </span>
                 </div>
-                <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                <span className="text-xl font-bold text-nura-main dark:text-white font-display">
                   {goal.label}
                 </span>
               </div>

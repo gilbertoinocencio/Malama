@@ -13,12 +13,12 @@ const ProgressTrackingStep: React.FC<StepProps> = ({
 }) => {
   // Sample data for the weight progress chart
   const progressData = [
-    { date: 'Jun 3', weight: 76, color: '#FF6B6B' },
-    { date: 'Jun 17', weight: 74, color: '#FFD93D' },
-    { date: 'Jul 1', weight: 72, color: '#F9E79F' },
-    { date: 'Jul 15', weight: 71, color: '#C1E1C1' },
-    { date: 'Jul 24', weight: 70, color: '#90EE90' },
-    { date: 'Jul 31', weight: 70, color: '#4ECDC4' },
+    { date: 'Jun 3', weight: 76, color: '#1F4E5F' },
+    { date: 'Jun 17', weight: 74, color: '#11c4d4' },
+    { date: 'Jul 1', weight: 72, color: '#11c4d4' },
+    { date: 'Jul 15', weight: 71, color: '#11c4d4' },
+    { date: 'Jul 24', weight: 70, color: '#11c4d4' },
+    { date: 'Jul 31', weight: 70, color: '#11c4d4' },
   ];
 
   const maxWeight = 80;
@@ -35,21 +35,22 @@ const ProgressTrackingStep: React.FC<StepProps> = ({
             transition={{ duration: 0.5 }}
             className="w-full max-w-md mb-8"
           >
-            <div className="bg-gradient-to-br from-pink-50 to-yellow-50 dark:from-pink-900/20 dark:to-yellow-900/20 rounded-3xl p-8 shadow-lg border-2 border-pink-100 dark:border-pink-800">
-              {/* Raccoon with hearts */}
+            <div className="bg-gradient-to-br from-nura-petrol-light/20 to-primary/10 dark:from-nura-petrol/20 dark:to-primary/20 rounded-3xl p-8 shadow-lg border-2 border-nura-petrol/20 dark:border-primary/30">
+              {/* Progress icon */}
               <div className="text-center mb-6">
                 <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
+                  animate={{ y: [0, -8, 0] }}
                   transition={{ duration: 2, repeat: Infinity }}
                   className="inline-block"
                 >
-                  <div className="text-6xl relative">
-                    🦝
-                    <span className="absolute -top-2 -right-2 text-3xl">😍</span>
+                  <div className="w-20 h-20 bg-gradient-to-br from-nura-petrol to-primary dark:from-nura-petrol/80 dark:to-primary rounded-full flex items-center justify-center shadow-xl mb-2">
+                    <span className="material-symbols-outlined text-white" style={{ fontSize: '48px', fontWeight: 300 }}>
+                      trending_down
+                    </span>
                   </div>
                   <div className="flex justify-center gap-2 mt-2">
-                    <span className="text-2xl">❤️</span>
-                    <span className="text-2xl">❤️</span>
+                    <span className="material-symbols-outlined text-primary text-xl">star</span>
+                    <span className="material-symbols-outlined text-primary text-xl">star</span>
                   </div>
                 </motion.div>
               </div>
@@ -57,14 +58,14 @@ const ProgressTrackingStep: React.FC<StepProps> = ({
               {/* Weight stats */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="text-center">
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Peso</div>
-                  <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                    76<span className="text-lg text-gray-500">kg</span>
+                  <div className="text-sm text-nura-muted dark:text-gray-400 mb-1">Peso</div>
+                  <div className="text-3xl font-bold text-nura-main dark:text-white font-display">
+                    76<span className="text-lg text-nura-muted dark:text-gray-400">kg</span>
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Progresso</div>
-                  <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                  <div className="text-sm text-nura-muted dark:text-gray-400 mb-1">Progresso</div>
+                  <div className="text-3xl font-bold text-primary dark:text-primary font-display">
                     -6<span className="text-lg">kg</span>
                   </div>
                 </div>
@@ -83,7 +84,7 @@ const ProgressTrackingStep: React.FC<StepProps> = ({
                       y2={i * 30}
                       stroke="currentColor"
                       strokeWidth="0.5"
-                      className="text-gray-300 dark:text-gray-600"
+                      className="text-nura-border dark:text-gray-600"
                       strokeDasharray="2,2"
                     />
                   ))}
@@ -99,20 +100,17 @@ const ProgressTrackingStep: React.FC<StepProps> = ({
                       return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
                     }).join(' ')}
                     fill="none"
-                    stroke="url(#gradient)"
+                    stroke="url(#nuraGradient)"
                     strokeWidth="3"
                     strokeLinecap="round"
                   />
 
-                  {/* Gradient definition */}
+                  {/* NURA gradient definition */}
                   <defs>
-                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#FF6B6B" />
-                      <stop offset="20%" stopColor="#FFD93D" />
-                      <stop offset="40%" stopColor="#F9E79F" />
-                      <stop offset="60%" stopColor="#C1E1C1" />
-                      <stop offset="80%" stopColor="#90EE90" />
-                      <stop offset="100%" stopColor="#4ECDC4" />
+                    <linearGradient id="nuraGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#1F4E5F" />
+                      <stop offset="50%" stopColor="#11c4d4" />
+                      <stop offset="100%" stopColor="#11c4d4" />
                     </linearGradient>
                   </defs>
 
@@ -138,7 +136,7 @@ const ProgressTrackingStep: React.FC<StepProps> = ({
                 </svg>
 
                 {/* Date labels */}
-                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <div className="flex justify-between text-xs text-nura-muted dark:text-gray-400 mt-2">
                   {progressData.map((point, index) => (
                     <span key={index} className={index % 2 === 0 ? '' : 'opacity-0'}>
                       {point.date}
@@ -151,21 +149,19 @@ const ProgressTrackingStep: React.FC<StepProps> = ({
         </div>
 
         <div className="pb-8">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-2">
+          <h2 className="text-2xl font-bold text-nura-main dark:text-white text-center mb-2 font-display">
             Veja resultados
           </h2>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-center text-nura-muted dark:text-gray-400 mb-6">
             Acompanhe seu progresso e celebre cada vitória
           </p>
 
           <button
             onClick={onNext}
-            className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 px-6 rounded-full font-semibold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-nura-petrol dark:bg-primary text-white py-4 px-6 rounded-full font-semibold text-lg hover:bg-nura-petrol/90 dark:hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
           >
             Próximo
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <span className="material-symbols-outlined text-xl">arrow_forward</span>
           </button>
         </div>
       </div>

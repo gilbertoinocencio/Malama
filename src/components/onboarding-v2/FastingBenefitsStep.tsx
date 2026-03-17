@@ -45,78 +45,69 @@ const FastingBenefitsStep: React.FC<StepProps> = ({
             transition={{ duration: 0.5 }}
             className="relative mb-8"
           >
-            <div className="w-80 h-80 bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/30 rounded-3xl flex flex-col items-center justify-center relative overflow-hidden p-8">
-              {/* Sleeping raccoon */}
-              <div className="text-7xl mb-4 relative z-10">
-                😴🦝
+            <div className="w-80 h-80 bg-gradient-to-br from-nura-brown/10 to-nura-pastel-orange/20 dark:from-nura-brown/20 dark:to-nura-pastel-orange/10 rounded-3xl flex flex-col items-center justify-center relative overflow-hidden p-8 border-2 border-nura-brown/20 dark:border-nura-brown/30 shadow-lg">
+              {/* Bedtime icon */}
+              <div className="mb-6 relative z-10">
+                <motion.div
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                  className="w-24 h-24 bg-gradient-to-br from-nura-brown to-nura-petrol dark:from-nura-brown/80 dark:to-nura-petrol rounded-full flex items-center justify-center shadow-xl"
+                >
+                  <span className="material-symbols-outlined text-white" style={{ fontSize: '64px', fontWeight: 300 }}>
+                    bedtime
+                  </span>
+                </motion.div>
               </div>
 
               {/* Progress bar */}
-              <div className="w-full bg-white dark:bg-gray-700 rounded-full h-4 mb-4 overflow-hidden shadow-inner relative z-10">
+              <div className="w-full bg-nura-card dark:bg-surface-dark rounded-full h-5 mb-4 overflow-hidden shadow-inner relative z-10 border-2 border-nura-border dark:border-gray-700">
                 <div className="flex h-full">
-                  {/* Green section (fasting) */}
+                  {/* Fasting section */}
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${progress * 0.3}%` }}
-                    className="bg-gradient-to-r from-green-400 to-green-500 flex items-center justify-center relative"
+                    className="bg-gradient-to-r from-nura-petrol to-primary flex items-center justify-center relative"
                   >
-                    <span className="absolute left-2">🌙</span>
+                    <span className="material-symbols-outlined text-white text-sm absolute left-1.5">nightlight</span>
                   </motion.div>
 
-                  {/* Gray section (remaining) */}
-                  <div className="flex-1 bg-gray-200 dark:bg-gray-600 flex items-center justify-end px-2">
-                    <span>🍽️</span>
+                  {/* Remaining section */}
+                  <div className="flex-1 bg-nura-border dark:bg-gray-600 flex items-center justify-end px-2">
+                    <span className="material-symbols-outlined text-nura-muted dark:text-gray-400 text-sm">restaurant</span>
                   </div>
 
                   {/* Flame icon */}
                   <div className="absolute right-2 flex items-center">
-                    <span>🔥</span>
+                    <span className="material-symbols-outlined text-primary text-sm">local_fire_department</span>
                   </div>
                 </div>
               </div>
 
               {/* Time display */}
-              <div className="text-5xl font-bold text-gray-900 dark:text-white mb-2 relative z-10">
+              <div className="text-5xl font-bold text-nura-main dark:text-white mb-2 relative z-10 font-display">
                 {formatTime(time)}
               </div>
 
-              {/* Background decoration - hills */}
-              <div className="absolute bottom-0 left-0 right-0">
-                <svg viewBox="0 0 400 200" className="w-full">
-                  {/* Dark green hill */}
-                  <path
-                    d="M 0 200 Q 100 100, 200 150 T 400 200 Z"
-                    fill="currentColor"
-                    className="text-green-600 dark:text-green-800 opacity-40"
-                  />
-                  {/* Light green hill */}
-                  <path
-                    d="M 0 200 Q 150 120, 300 170 T 400 200 Z"
-                    fill="currentColor"
-                    className="text-green-500 dark:text-green-700 opacity-30"
-                  />
-                </svg>
-              </div>
+              {/* Subtle background accent */}
+              <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-nura-brown/10 to-transparent dark:from-nura-brown/20"></div>
             </div>
           </motion.div>
         </div>
 
         <div className="pb-8">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-2">
+          <h2 className="text-2xl font-bold text-nura-main dark:text-white text-center mb-2 font-display">
             Aproveite o jejum
           </h2>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-center text-nura-muted dark:text-gray-400 mb-6">
             Crie um hábito saudável que você realmente vai gostar
           </p>
 
           <button
             onClick={onNext}
-            className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 px-6 rounded-full font-semibold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-nura-petrol dark:bg-primary text-white py-4 px-6 rounded-full font-semibold text-lg hover:bg-nura-petrol/90 dark:hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
           >
             Próximo
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <span className="material-symbols-outlined text-xl">arrow_forward</span>
           </button>
         </div>
       </div>

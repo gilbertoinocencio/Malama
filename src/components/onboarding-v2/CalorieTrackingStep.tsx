@@ -21,40 +21,53 @@ const CalorieTrackingStep: React.FC<StepProps> = ({
             transition={{ duration: 0.5 }}
             className="w-full max-w-md"
           >
-            {/* Raccoon with food */}
-            <div className="relative bg-gradient-to-br from-green-50 to-lime-100 dark:from-green-900/20 dark:to-lime-900/30 rounded-3xl p-8 shadow-lg border-2 border-green-200 dark:border-green-800 mb-8">
+            {/* Food tracking visualization */}
+            <div className="relative bg-gradient-to-br from-nura-petrol-light/20 to-primary/10 dark:from-nura-petrol/20 dark:to-primary/20 rounded-3xl p-8 shadow-lg border-2 border-nura-petrol/20 dark:border-primary/30 mb-8">
               <div className="text-center mb-6">
                 <motion.div
-                  animate={{ rotate: [0, 5, -5, 0] }}
+                  animate={{ scale: [1, 1.05, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="inline-block text-8xl"
+                  className="inline-block"
                 >
-                  🦝
+                  <div className="w-24 h-24 bg-gradient-to-br from-nura-petrol to-primary dark:from-nura-petrol/80 dark:to-primary rounded-full flex items-center justify-center shadow-xl">
+                    <span className="material-symbols-outlined text-white" style={{ fontSize: '64px', fontWeight: 300 }}>
+                      restaurant
+                    </span>
+                  </div>
                 </motion.div>
               </div>
 
-              {/* Food items floating around */}
-              <div className="relative h-32">
+              {/* Macro nutrients visualization */}
+              <div className="relative h-32 flex items-center justify-center gap-4">
                 <motion.div
-                  animate={{ y: [0, -10, 0], x: [0, 5, 0] }}
+                  animate={{ y: [0, -10, 0] }}
                   transition={{ duration: 2, repeat: Infinity, delay: 0 }}
-                  className="absolute top-0 left-8 text-4xl"
+                  className="flex flex-col items-center"
                 >
-                  🥗
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-green-500 dark:from-green-500/80 dark:to-green-600 flex items-center justify-center shadow-lg mb-1">
+                    <span className="material-symbols-outlined text-white text-2xl">ecg_heart</span>
+                  </div>
+                  <span className="text-xs text-nura-muted dark:text-gray-400 font-display">Proteína</span>
                 </motion.div>
                 <motion.div
-                  animate={{ y: [0, -15, 0], x: [0, -5, 0] }}
+                  animate={{ y: [0, -15, 0] }}
                   transition={{ duration: 2.5, repeat: Infinity, delay: 0.3 }}
-                  className="absolute top-4 right-8 text-4xl"
+                  className="flex flex-col items-center"
                 >
-                  🍎
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 dark:from-yellow-500/80 dark:to-orange-500 flex items-center justify-center shadow-lg mb-1">
+                    <span className="material-symbols-outlined text-white text-2xl">bolt</span>
+                  </div>
+                  <span className="text-xs text-nura-muted dark:text-gray-400 font-display">Carbo</span>
                 </motion.div>
                 <motion.div
-                  animate={{ y: [0, -12, 0], x: [0, 8, 0] }}
+                  animate={{ y: [0, -12, 0] }}
                   transition={{ duration: 2.2, repeat: Infinity, delay: 0.6 }}
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 text-4xl"
+                  className="flex flex-col items-center"
                 >
-                  🥑
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 dark:from-blue-500/80 dark:to-purple-500 flex items-center justify-center shadow-lg mb-1">
+                    <span className="material-symbols-outlined text-white text-2xl">water_drop</span>
+                  </div>
+                  <span className="text-xs text-nura-muted dark:text-gray-400 font-display">Gordura</span>
                 </motion.div>
               </div>
             </div>
@@ -65,14 +78,16 @@ const CalorieTrackingStep: React.FC<StepProps> = ({
                 initial={{ x: -50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-md flex items-start gap-3"
+                className="bg-nura-card dark:bg-surface-dark rounded-2xl p-4 shadow-md flex items-start gap-3 border-2 border-nura-border dark:border-gray-700"
               >
-                <div className="text-3xl">📸</div>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-nura-petrol to-primary flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-white text-xl">photo_camera</span>
+                </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                  <h4 className="font-semibold text-nura-main dark:text-white mb-1 font-display">
                     Registe com fotos
                   </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-nura-muted dark:text-gray-400">
                     Tire uma foto e deixe a IA fazer o resto
                   </p>
                 </div>
@@ -82,14 +97,16 @@ const CalorieTrackingStep: React.FC<StepProps> = ({
                 initial={{ x: -50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-md flex items-start gap-3"
+                className="bg-nura-card dark:bg-surface-dark rounded-2xl p-4 shadow-md flex items-start gap-3 border-2 border-nura-border dark:border-gray-700"
               >
-                <div className="text-3xl">🎯</div>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-nura-petrol to-primary flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-white text-xl">target</span>
+                </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                  <h4 className="font-semibold text-nura-main dark:text-white mb-1 font-display">
                     Atinja suas metas
                   </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-nura-muted dark:text-gray-400">
                     Acompanhe seu progresso diário
                   </p>
                 </div>
@@ -99,14 +116,16 @@ const CalorieTrackingStep: React.FC<StepProps> = ({
                 initial={{ x: -50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.7 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-md flex items-start gap-3"
+                className="bg-nura-card dark:bg-surface-dark rounded-2xl p-4 shadow-md flex items-start gap-3 border-2 border-nura-border dark:border-gray-700"
               >
-                <div className="text-3xl">💪</div>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-nura-petrol to-primary flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-white text-xl">favorite</span>
+                </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                  <h4 className="font-semibold text-nura-main dark:text-white mb-1 font-display">
                     Mantenha-se motivado
                   </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-nura-muted dark:text-gray-400">
                     Receba insights e dicas personalizadas
                   </p>
                 </div>
@@ -116,21 +135,19 @@ const CalorieTrackingStep: React.FC<StepProps> = ({
         </div>
 
         <div className="pb-8">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-2">
+          <h2 className="text-2xl font-bold text-nura-main dark:text-white text-center mb-2 font-display">
             Acompanhe calorias
           </h2>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-center text-nura-muted dark:text-gray-400 mb-6">
             Basta tirar uma foto e deixar a IA calcular
           </p>
 
           <button
             onClick={onNext}
-            className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 px-6 rounded-full font-semibold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-nura-petrol dark:bg-primary text-white py-4 px-6 rounded-full font-semibold text-lg hover:bg-nura-petrol/90 dark:hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
           >
             Próximo
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <span className="material-symbols-outlined text-xl">arrow_forward</span>
           </button>
         </div>
       </div>

@@ -21,56 +21,54 @@ const ReminderMotivationStep: React.FC<StepProps> = ({
             transition={{ duration: 0.5 }}
             className="w-full max-w-md"
           >
-            {/* Rainbow background card */}
-            <div className="relative bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 dark:from-pink-900/30 dark:via-purple-900/30 dark:to-blue-900/30 rounded-3xl p-8 shadow-lg border-2 border-pink-200 dark:border-pink-800 overflow-hidden">
-              {/* Rainbow arcs */}
-              <div className="absolute inset-0 pointer-events-none">
-                <svg viewBox="0 0 400 400" className="w-full h-full opacity-30">
-                  <path d="M 0 400 Q 100 300, 200 350 T 400 400" fill="currentColor" className="text-red-300" />
-                  <path d="M 0 400 Q 120 280, 240 330 T 400 400" fill="currentColor" className="text-orange-300" />
-                  <path d="M 0 400 Q 140 260, 280 310 T 400 400" fill="currentColor" className="text-yellow-300" />
-                  <path d="M 0 400 Q 160 240, 320 290 T 400 400" fill="currentColor" className="text-green-300" />
-                  <path d="M 0 400 Q 180 220, 360 270 T 400 400" fill="currentColor" className="text-blue-300" />
-                </svg>
-              </div>
-
-              {/* Raccoon mascot */}
+            {/* NURA notification card */}
+            <div className="relative bg-gradient-to-br from-nura-petrol-light/20 to-primary/10 dark:from-nura-petrol/20 dark:to-primary/20 rounded-3xl p-8 shadow-lg border-2 border-nura-petrol/20 dark:border-primary/30 overflow-hidden">
+              {/* Bell icon with animation */}
               <div className="relative z-10 text-center mb-6">
                 <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
+                  animate={{ rotate: [0, -15, 15, -15, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
                   className="inline-block"
                 >
-                  <div className="text-8xl mb-4">🦝</div>
+                  <div className="w-24 h-24 bg-gradient-to-br from-nura-petrol to-primary dark:from-nura-petrol/80 dark:to-primary rounded-full flex items-center justify-center shadow-xl mb-4">
+                    <span className="material-symbols-outlined text-white" style={{ fontSize: '64px', fontWeight: 300 }}>
+                      notifications_active
+                    </span>
+                  </div>
                 </motion.div>
               </div>
 
-              {/* Hearts/Lives display */}
-              <div className="relative z-10 bg-white dark:bg-gray-800 rounded-2xl p-6 mb-4 shadow-md">
+              {/* Progress indicators */}
+              <div className="relative z-10 bg-nura-card dark:bg-surface-dark rounded-2xl p-6 mb-4 shadow-md border-2 border-nura-border dark:border-gray-700">
                 <div className="flex items-center justify-center gap-3 mb-2">
-                  <motion.span
+                  <motion.div
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
-                    className="text-4xl"
+                    className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-nura-petrol flex items-center justify-center"
                   >
-                    ❤️
-                  </motion.span>
-                  <span className="text-4xl opacity-30">🤍</span>
-                  <span className="text-4xl opacity-30">🤍</span>
-                  <span className="text-4xl opacity-30">🤍</span>
+                    <span className="material-symbols-outlined text-white text-2xl">check</span>
+                  </motion.div>
+                  <div className="w-12 h-12 rounded-full border-2 border-nura-border dark:border-gray-600 bg-nura-bg dark:bg-gray-800 opacity-40"></div>
+                  <div className="w-12 h-12 rounded-full border-2 border-nura-border dark:border-gray-600 bg-nura-bg dark:bg-gray-800 opacity-40"></div>
+                  <div className="w-12 h-12 rounded-full border-2 border-nura-border dark:border-gray-600 bg-nura-bg dark:bg-gray-800 opacity-40"></div>
                 </div>
-                <p className="text-sm text-center text-gray-600 dark:text-gray-400">
-                  (1 restante)
+                <p className="text-sm text-center text-nura-muted dark:text-gray-400 font-display">
+                  1 de 4 refeições registradas
                 </p>
               </div>
 
-              {/* Message */}
-              <div className="relative z-10 bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-md">
+              {/* Message notification */}
+              <div className="relative z-10 bg-nura-card dark:bg-surface-dark rounded-2xl p-4 shadow-md border-2 border-nura-border dark:border-gray-700">
                 <div className="flex items-start gap-3">
-                  <div className="text-3xl">🦝</div>
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-nura-petrol to-primary flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-white text-xl">restaurant</span>
+                  </div>
                   <div className="flex-1">
-                    <p className="text-gray-800 dark:text-gray-200 font-medium">
-                      Não se esqueça de tirar uma foto da sua refeição 📸
+                    <p className="text-nura-main dark:text-white font-medium">
+                      Não se esqueça de registrar sua refeição
+                    </p>
+                    <p className="text-sm text-nura-muted dark:text-gray-400 mt-1">
+                      Manter o registro ajuda a alcançar seus objetivos
                     </p>
                   </div>
                 </div>
@@ -80,21 +78,19 @@ const ReminderMotivationStep: React.FC<StepProps> = ({
         </div>
 
         <div className="pb-8">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-2">
+          <h2 className="text-2xl font-bold text-nura-main dark:text-white text-center mb-2 font-display">
             Vamos te apoiar para continuar registrando
           </h2>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-center text-nura-muted dark:text-gray-400 mb-6">
             Receba lembretes amigáveis para manter o foco
           </p>
 
           <button
             onClick={onNext}
-            className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 px-6 rounded-full font-semibold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-nura-petrol dark:bg-primary text-white py-4 px-6 rounded-full font-semibold text-lg hover:bg-nura-petrol/90 dark:hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
           >
             Configurar lembretes
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <span className="material-symbols-outlined text-xl">arrow_forward</span>
           </button>
         </div>
       </div>
