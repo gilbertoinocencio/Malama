@@ -5,6 +5,8 @@
 
 -- Adicionar novos campos ao profiles
 ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS primary_goal TEXT,
+ADD COLUMN IF NOT EXISTS calorie_tracking_experience TEXT,
 ADD COLUMN IF NOT EXISTS additional_goals JSONB DEFAULT '[]',
 ADD COLUMN IF NOT EXISTS knows_intermittent_fasting BOOLEAN,
 ADD COLUMN IF NOT EXISTS reminder_schedule TEXT,
@@ -29,6 +31,8 @@ CREATE INDEX IF NOT EXISTS idx_profiles_diet_type
   ON profiles(diet_type);
 
 -- Comentários para documentação
+COMMENT ON COLUMN profiles.primary_goal IS 'Objetivo principal do usuário (lose_weight, maintain_weight, gain_weight)';
+COMMENT ON COLUMN profiles.calorie_tracking_experience IS 'Experiência com contagem de calorias (new, tried_quit, currently_tracking)';
 COMMENT ON COLUMN profiles.additional_goals IS 'Array de objetivos adicionais do usuário (ex: melhorar sono, reduzir stress)';
 COMMENT ON COLUMN profiles.knows_intermittent_fasting IS 'Se o usuário conhece jejum intermitente';
 COMMENT ON COLUMN profiles.reminder_schedule IS 'Horários de lembretes (comma-separated: manha,almoco,tarde,jantar)';
@@ -49,7 +53,7 @@ COMMENT ON COLUMN profiles.onboarding_completed IS 'Se o usuário completou o on
 DO $$
 BEGIN
   RAISE NOTICE '✅ Onboarding V2 migration completed successfully!';
-  RAISE NOTICE '📊 Added 14 new columns to profiles';
+  RAISE NOTICE '📊 Added 16 new columns to profiles';
   RAISE NOTICE '🔍 Created performance indexes';
   RAISE NOTICE '📝 Added column documentation';
 END $$;
