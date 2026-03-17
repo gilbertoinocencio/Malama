@@ -51,6 +51,49 @@ export const ProfileService = {
         return data;
     },
 
+    /**
+     * Migrates V1 profile (with goal field) to V2 format (with onboarding_completed)
+     * This is automatic and silent - user won't need to redo onboarding
+     */
+    async migrateV1ToV2Profile(userId: string, currentProfile: any) {
+        console.log('🔄 Migrating V1 profile to V2 format...', { userId, goal: currentProfile.goal });
+
+        // Map old goal format to new primary_goal format
+        let primaryGoal = 'lose_weight'; // default
+        const goal = currentProfile.goal?.toLowerCase() || '';
+
+        if (goal.includes('perder') || goal === 'aesthetic') {
+            primaryGoal = 'lose_weight';
+        } else if (goal.includes('manter') || goal === 'health') {
+            primaryGoal = 'maintain_weight';
+        } else if (goal.includes('ganhar') || goal === 'performance') {
+            primaryGoal = 'gain_weight';
+        }
+
+        // Update profile with V2 fields
+        const updates = {
+            primary_goal: primaryGoal,
+            onboarding_completed: true,
+            // Assume existing users are already tracking calories
+            calorie_tracking_experience: 'currently_tracking'
+        };
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', userId)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('❌ Error migrating profile:', error);
+            throw error;
+        }
+
+        console.log('✅ Profile migrated successfully to V2', { primaryGoal, onboardingCompleted: true });
+        return data;
+    },
+
     calculateTargets(
         weightKg: number,
         heightCm: number,

@@ -119,8 +119,9 @@ const App: React.FC = () => {
 
   // Onboarding Flow: User exists but hasn't set up profile
   // Now using visual onboarding (BitePal style) with Nura design
-  if (!profile?.goal) {
-    console.log('🎯 Onboarding required - no goal set. Profile:', profile);
+  // Check both onboarding_completed (V2) and goal (V1 fallback)
+  if (!profile?.onboarding_completed && !profile?.goal) {
+    console.log('🎯 Onboarding required - not completed. Profile:', profile);
     return (
       <Suspense fallback={<LoadingSpinner />}>
         <OnboardingFlowV2
@@ -133,7 +134,14 @@ const App: React.FC = () => {
     );
   }
 
-  console.log('✅ User authenticated with profile:', { userId: user.id, goal: profile.goal, biotype: profile.biotype });
+  console.log('✅ User authenticated with profile:', {
+    userId: user.id,
+    primaryGoal: profile.primary_goal,
+    onboardingCompleted: profile.onboarding_completed,
+    // Legacy V1 fields
+    goal: profile.goal,
+    biotype: profile.biotype
+  });
 
   return (
     <Layout
