@@ -2,39 +2,58 @@ import React from 'react';
 import { StepProps } from './types';
 import { StepContainer } from './StepContainer';
 
-interface GenderStepProps extends Omit<StepProps, 'data' | 'updateData'> {
-  data?: any;
-  updateData?: any;
-  onComplete?: () => void;
-}
-
-const GenderStep: React.FC<GenderStepProps> = ({
+const GenderStep: React.FC<StepProps> = ({
+  data,
+  updateData,
   onNext,
   onBack,
   currentStep,
   totalSteps,
 }) => {
+
+  const genders = [
+    { value: 'female', label: 'Feminino', icon: '👩' },
+    { value: 'male', label: 'Masculino', icon: '👨' },
+    { value: 'non_binary', label: 'Não-binário', icon: '🧑' },
+  ];
+
+  const handleSelect = (value: string) => {
+    updateData({ gender: value });
+    setTimeout(() => onNext(), 300);
+  };
+
   return (
-    <StepContainer
-      currentStep={currentStep}
-      totalSteps={totalSteps}
-      onBack={onBack}
-      showBack={true}
-    >
-      <div className="flex flex-col h-full justify-center items-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Gender
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-8">
-            Este passo será implementado
-          </p>
-          <button
-            onClick={onNext}
-            className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 px-8 rounded-full font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-          >
-            Seguinte →
-          </button>
+    <StepContainer currentStep={currentStep} totalSteps={totalSteps} onBack={onBack} showBack={true}>
+      <div className="flex flex-col h-full">
+        <div className="flex items-start gap-4 mb-12">
+          <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="text-3xl">🦝</span>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl px-6 py-4 shadow-sm flex-1">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Selecione o seu género</h2>
+          </div>
+        </div>
+
+        <div className="space-y-4 flex-1">
+          {genders.map((gender) => {
+            const isSelected = data.gender === gender.value;
+            return (
+              <button
+                key={gender.value}
+                onClick={() => handleSelect(gender.value)}
+                className={`w-full text-left px-6 py-5 rounded-2xl border-2 transition-all flex items-center gap-4 ${
+                  isSelected
+                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300'
+                }`}
+              >
+                <div className="w-14 h-14 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-3xl shadow-sm">
+                  {gender.icon}
+                </div>
+                <span className="text-lg font-semibold text-gray-900 dark:text-white flex-1">{gender.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </StepContainer>
