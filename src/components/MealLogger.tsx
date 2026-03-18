@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse } from '../types';
 import { analyzeTextLog, analyzeImageLog } from '../services/geminiService';
+import { UnifiedChatService } from '../services/unifiedChatService';
 import { PhotoScanResult } from './PhotoScanResult';
 import { USER_AVATAR } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
@@ -183,32 +184,66 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     }
   };
 
+  // Detect if text is a question/conversation vs a food log
+  const isQuestion = (text: string): boolean => {
+    const lower = text.toLowerCase().trim();
+    const questionIndicators = [
+      '?', 'como ', 'por que', 'porque', 'qual ', 'quais ', 'quando ', 'quanto ',
+      'o que ', 'o quê', 'dica', 'sugestão', 'sugestao', 'explica', 'explique',
+      'me fala', 'me diga', 'é importante', 'e importante', 'preciso de', 
+      'posso comer', 'devo comer', 'melhor para', 'é bom', 'e bom', 'faz bem',
+      'faz mal', 'benefício', 'beneficio', 'vitamina', 'proteína', 'proteina',
+      'emagrecer', 'engordar', 'ajuda', 'ajude', 'recomenda', 'pode me',
+      'substituir', 'substitua', 'trocar', 'diferença', 'diferenca',
+      'saudável', 'saudavel', 'caloria', 'dieta', 'jejum', 'metabolismo',
+      'treino', 'pré-treino', 'pós-treino', 'pre treino', 'pos treino',
+      'hidratação', 'hidratacao', 'água', 'agua', 'dormir', 'sono',
+      'oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'obrigado', 'obrigada', 'valeu'
+    ];
+    return questionIndicators.some(indicator => lower.includes(indicator));
+  };
+
   const handleSend = async () => {
     console.log('MealLogger: handleSend called', { input });
     if (!input.trim()) return;
 
     const userMsg: Message = { id: Date.now().toString(), type: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
+    const userText = input;
     setInput('');
     setLoading(true);
 
     try {
-      const result = await analyzeTextLog(userMsg.content, language);
+      if (isQuestion(userText) && user) {
+        // Route to Smart Agent (UnifiedChatService)
+        const agentResponse = await UnifiedChatService.sendMessage(user.id, userText);
+        
+        const aiTextMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai-text',
+          content: agentResponse.content
+        };
+        setMessages(prev => [...prev, aiTextMsg]);
+        // No draft meal for questions
+      } else {
+        // Route to Food Analysis (original behavior)
+        const result = await analyzeTextLog(userText, language);
 
-      const aiTextMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'ai-text',
-        content: t.mealLogger.analysisIntro
-      };
+        const aiTextMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai-text',
+          content: t.mealLogger.analysisIntro
+        };
 
-      const aiCardMsg: Message = {
-        id: (Date.now() + 2).toString(),
-        type: 'ai-card',
-        content: result
-      };
+        const aiCardMsg: Message = {
+          id: (Date.now() + 2).toString(),
+          type: 'ai-card',
+          content: result
+        };
 
-      setMessages(prev => [...prev, aiTextMsg, aiCardMsg]);
-      setDraftMeal(result);
+        setMessages(prev => [...prev, aiTextMsg, aiCardMsg]);
+        setDraftMeal(result);
+      }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : t.general.error;
       const errorMsg: Message = { id: Date.now().toString(), type: 'ai-text', content: `${t.general.error}: ${errorMessage}` };
