@@ -169,7 +169,8 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
       // Save onboarding data to user profile
       const { error } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          id: user.id, // Mandatory for upsert
           primary_goal: data.primaryGoal,
           calorie_tracking_experience: data.calorieTrackingExperience,
           age: data.age,
@@ -192,8 +193,7 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
           goal_speed_kg_per_week: data.goalSpeed,
           bmi: bmi,
           onboarding_completed: true,
-        })
-        .eq('id', user.id);
+        });
 
       if (error) throw error;
 
