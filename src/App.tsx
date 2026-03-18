@@ -8,6 +8,7 @@ import { useAuth } from './contexts/AuthContext';
 import { MealService } from './services/mealService';
 import { StatsService } from './services/statsService';
 import { NotificationService } from './services/notificationService';
+import { supabase } from './services/supabase';
 
 // Lazy Load Non-Critical Views
 // import { MealLogger } from './components/MealLogger';
@@ -125,9 +126,27 @@ const App: React.FC = () => {
     return (
       <Suspense fallback={<LoadingSpinner />}>
         <OnboardingFlowV2
-          onComplete={() => {
-            console.log('✅ Onboarding V2 completed, reloading app...');
-            window.location.reload();
+          onComplete={async () => {
+            console.log('✅ Onboarding V2 completed, refreshing profile...');
+            // Re-fetch the profile to update the state without a full page reload
+            // This avoids infinite reload loops if the save had issues
+            try {
+              const { data } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .maybeSingle();
+              if (data?.onboarding_completed) {
+                // Profile saved successfully, trigger re-render
+                window.location.reload();
+              } else {
+                console.error('❌ Onboarding data was not saved. Profile:', data);
+                alert('Erro ao salvar o onboarding. Tente novamente.');
+              }
+            } catch (err) {
+              console.error('❌ Error verifying onboarding:', err);
+              window.location.reload();
+            }
           }}
         />
       </Suspense>
