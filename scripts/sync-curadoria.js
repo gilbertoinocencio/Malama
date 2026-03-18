@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
+import { createRequire } from 'module';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -49,8 +50,27 @@ function chunkText(text, maxChars = 1000) {
 
 // Function to process a single file
 async function processFile(filePath, category) {
-    const content = fs.readFileSync(filePath, 'utf-8');
     const fileName = path.basename(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    
+    let content = '';
+    
+    // Handle different file types
+    if (ext === '.pdf') {
+        try {
+            const require = createRequire(import.meta.url);
+            const pdfParse = require('pdf-parse');
+            const dataBuffer = fs.readFileSync(filePath);
+            const pdfData = await pdfParse(dataBuffer);
+            content = pdfData.text;
+        } catch (err) {
+            console.error(`Failed to parse PDF ${fileName}:`, err.message);
+            console.log('  → Install pdf-parse: npm install pdf-parse');
+            return;
+        }
+    } else {
+        content = fs.readFileSync(filePath, 'utf-8');
+    }
     
     // Skip empty files
     if (!content.trim()) return;

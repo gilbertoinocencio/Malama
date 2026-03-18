@@ -280,7 +280,7 @@ Responda APENAS com o JSON, sem texto adicional.
   },
 
   /**
-   * Generate free chat response (não estruturado)
+   * Generate free chat response — uses V2 profile data + RAG + alerts
    */
   async generateChatResponse(
     userId: string,
@@ -290,13 +290,13 @@ Responda APENAS com o JSON, sem texto adicional.
     tokensUsed: number;
     context?: any;
   }> {
-    // Get user context (same as coachChatService)
     const context = await this.getContext(userId);
+    const profile = context.profile;
 
-    // Retrieve Relevant Guidelines (RAG)
-    const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+    // ── RAG: Retrieve Relevant Guidelines ──
     let guidelinesText = '';
     try {
+      const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
       const embedResult = await embeddingModel.embedContent(userMessage);
       const embedding = embedResult.embedding.values;
 
@@ -307,59 +307,131 @@ Responda APENAS com o JSON, sem texto adicional.
       });
       
       if (guidelines && guidelines.length > 0) {
-        guidelinesText = `\n**DIRETRIZES NUTRICIONAIS RELEVANTES (Referência Clínica):**\n` + 
-          guidelines.map((g: any) => `- [${g.category}] ${g.title}: ${g.content}`).join('\n');
+        guidelinesText = guidelines.map((g: any) => `- [${g.category}] ${g.title}: ${g.content}`).join('\n');
       }
     } catch (err) {
-      console.warn('RAG embedding failed:', err);
+      console.warn('RAG embedding lookup skipped:', err);
     }
+
+    // ── Build rich context from V2 profile ──
+    const goalMap: Record<string, string> = {
+      'lose_weight': 'Perder peso',
+      'maintain_weight': 'Manter peso',
+      'gain_weight': 'Ganhar peso / massa muscular',
+      'aesthetic': 'Emagrecimento estético',
+      'health': 'Saúde geral',
+      'performance': 'Performance esportiva',
+    };
+    const activityMap: Record<string, string> = {
+      'sedentary': 'Sedentário (pouca atividade)',
+      'light': 'Ligeiramente ativo (exercício leve 1-3x/sem)',
+      'moderate': 'Moderadamente ativo (exercício 3-5x/sem)',
+      'very': 'Muito ativo (exercício intenso 6-7x/sem)',
+      'intense': 'Extremamente ativo (atleta)',
+    };
+    const genderMap: Record<string, string> = {
+      'male': 'Masculino', 'female': 'Feminino', 'non_binary': 'Não-binário'
+    };
+
+    const primaryGoal = goalMap[profile.primary_goal] || profile.primary_goal || profile.goal || 'Não definido';
+    const gender = genderMap[profile.gender] || profile.gender || 'Não informado';
+    const activityLevel = activityMap[profile.activity_level] || profile.activity_level || 'Não informado';
+    const restrictions = Array.isArray(profile.dietary_restrictions) && profile.dietary_restrictions.length > 0
+      ? profile.dietary_restrictions.join(', ')
+      : 'Nenhuma';
+    const dietType = profile.diet_type || 'Variada';
+    const additionalGoals = Array.isArray(profile.additional_goals) && profile.additional_goals.length > 0
+      ? profile.additional_goals.join(', ')
+      : 'Nenhum';
+    const habitChanges = Array.isArray(profile.habit_changes) && profile.habit_changes.length > 0
+      ? profile.habit_changes.join(', ')
+      : 'Nenhum';
+
+    const targetCalories = profile.target_calories || 2000;
+    const targetProtein = profile.target_protein || 150;
+    const targetCarbs = profile.target_carbs || 200;
+    const targetFats = profile.target_fats || 65;
+
+    // Historical summary
+    const historicalBlock = context.historicalSummary
+      ? `\n## MEMÓRIA DE LONGO PRAZO\n${context.historicalSummary}`
+      : '';
+
+    // RAG block
+    const ragBlock = guidelinesText
+      ? `\n## DIRETRIZES CLÍNICAS RELEVANTES (BASE DE CONHECIMENTO)\n${guidelinesText}\n*Use estas diretrizes para fundamentar sua resposta quando relevante.*`
+      : '';
+
+    // Reactive alerts
+    const alertsBlock = context.dailyAlerts && context.dailyAlerts.length > 0
+      ? `\n## ⚠️ ALERTAS REATIVOS DO DIA\n${context.dailyAlerts.join('\n')}\n*Incorpore estes alertas na sua resposta de forma gentil e natural, sugerindo como compensar no resto do dia.*`
+      : '';
+
+    // Recent meals
+    const mealsBlock = context.recentMeals && context.recentMeals.length > 0
+      ? `\n## REFEIÇÕES RECENTES\n${context.recentMeals.map((m: any) => `- ${m.name || m.meal_name}: ${m.calories}kcal (${new Date(m.created_at).toLocaleDateString('pt-BR')})`).join('\n')}`
+      : '';
+
+    const systemPrompt = `Você é a **Nura**, uma nutricionista clínica virtual experiente, empática e acolhedora. Você acompanha este paciente de perto e conhece profundamente o perfil dele.
+
+## PERFIL COMPLETO DO PACIENTE
+- **Gênero:** ${gender}
+- **Idade:** ${profile.age || '?'} anos
+- **Peso atual:** ${profile.weight ? profile.weight + 'kg' : 'Não informado'}
+- **Altura:** ${profile.height ? profile.height + 'cm' : 'Não informada'}
+- **IMC:** ${profile.bmi ? Number(profile.bmi).toFixed(1) : 'N/A'}
+- **Peso alvo:** ${profile.target_weight_kg ? profile.target_weight_kg + 'kg' : 'Não definido'}
+- **Nível de atividade:** ${activityLevel}
+
+## OBJETIVO E DIETA
+- **Objetivo principal:** ${primaryGoal}
+- **Objetivos secundários:** ${additionalGoals}
+- **Tipo de dieta:** ${dietType}
+- **Restrições alimentares:** ${restrictions}
+- **Hábitos que quer mudar:** ${habitChanges}
+- **Refeições por dia:** ${profile.meals_per_day || 3}
+- **Janela alimentar:** ${profile.eating_window_start || '08:00'} - ${profile.eating_window_end || '20:00'}
+- **Onde costuma comer:** ${profile.eating_location || 'Não informado'}
+- **Conhece jejum intermitente:** ${profile.knows_intermittent_fasting === true ? 'Sim' : profile.knows_intermittent_fasting === false ? 'Não' : 'N/A'}
+- **Bebe água suficiente:** ${profile.drinks_enough_water || 'N/A'}
+
+## METAS NUTRICIONAIS DIÁRIAS
+- Calorias: ${targetCalories}kcal
+- Proteínas: ${targetProtein}g
+- Carboidratos: ${targetCarbs}g
+- Gorduras: ${targetFats}g
+${mealsBlock}${historicalBlock}${ragBlock}${alertsBlock}
+
+## REGRAS DE COMPORTAMENTO
+1. **Seja pessoal** — Use os dados do perfil para personalizar CADA resposta. Nunca dê respostas genéricas.
+2. **Seja empática** — Aja como uma profissional que realmente se importa com o paciente.
+3. **Seja concisa** — Máximo 3 parágrafos, a menos que o paciente peça detalhes.
+4. **Respeite SEMPRE** as restrições e o tipo de dieta do paciente.
+5. **Use emojis** com moderação (1-3 por mensagem).
+6. **Baseie-se em evidências** — Se houver diretrizes clínicas acima, use-as.
+7. **Mencione dados reais** — Faça referência ao peso, objetivo, ou metas do paciente quando relevante. Ex: "Como seu objetivo é perder peso e você está com IMC de 26.3..."
+8. **Responda em português do Brasil**, de forma natural e acessível.
+9. **Sugira ações práticas** — Sempre termine com uma sugestão concreta.`;
 
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
-    const profile = context.profile;
-    const onboarding = context.onboarding;
-    const restrictions = onboarding.restrictions || [];
-    const preferences = onboarding.preferences || [];
-    const goal = profile.goal || 'health';
-    const targetCalories = profile.target_calories || 2000;
-    const targetProtein = profile.target_protein || 150;
-    const historicalSummary = context.historicalSummary ? `\n**MEMÓRIA DO AGENTE (Histórico):**\n${context.historicalSummary}` : '';
-    const alertsText = context.dailyAlerts && context.dailyAlerts.length > 0
-      ? `\n**ALERTAS REATIVOS DO DIA:**\n${context.dailyAlerts.join('\n')}\n*Instrução: Adote uma postura de conscientização sutil sobre esses alertas na sua resposta, sugerindo correções de rota para o resto do dia se necessário.*`
-      : '';
-
-    const systemPrompt = `
-Você é uma nutricionista clínica experiente e empática.
-
-**PERFIL DO USUÁRIO:**
-- 🎯 Objetivo: ${goal === 'aesthetic' ? 'Emagrecimento' : goal === 'performance' ? 'Performance/Ganho de Massa' : 'Saúde'}
-- 📊 Metas: ${targetCalories}kcal | ${targetProtein}g proteína
-- 🚫 Restrições: ${restrictions.length > 0 ? restrictions.join(', ') : 'Nenhuma'}
-- ❤️ Preferências: ${preferences.length > 0 ? preferences.join(', ') : 'Variado'}${historicalSummary}${guidelinesText}${alertsText}
-
-**SEU PAPEL:**
-1. Responda de forma empática e personalizada
-2. Seja concisa (máx 3 parágrafos)
-3. Use emojis moderadamente
-4. SEMPRE respeite as restrições alimentares
-5. Baseie-se em evidências científicas e nas diretrizes fornecidas acima (se houver)
-
-Responda à mensagem do usuário de forma natural e útil.
-`;
-
     try {
-      const chat = model.startChat({
-        history: [
-          {
-            role: 'user',
-            parts: [{ text: systemPrompt }],
-          },
-          {
-            role: 'model',
-            parts: [{ text: 'Entendido! Pronta para ajudar. 💚' }],
-          },
-        ],
-      });
+      // Build conversation history from DB
+      const chatHistory = context.recentChatMessages || [];
+      const history: any[] = [
+        { role: 'user', parts: [{ text: systemPrompt }] },
+        { role: 'model', parts: [{ text: `Olá! Sou a Nura, sua nutricionista pessoal 💚 Estou aqui para te ajudar no seu objetivo de ${primaryGoal.toLowerCase()}. Como posso te ajudar?` }] },
+      ];
+
+      // Add recent conversation messages for continuity
+      for (const msg of chatHistory) {
+        history.push({
+          role: msg.role === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.content }],
+        });
+      }
+
+      const chat = model.startChat({ history });
 
       const result = await chat.sendMessage(userMessage);
       const response = await result.response;
@@ -368,7 +440,7 @@ Responda à mensagem do usuário de forma natural e útil.
       return {
         content: text,
         tokensUsed: Math.ceil((systemPrompt.length + userMessage.length + text.length) / 4),
-        context: { mode: 'chat', profile },
+        context: { mode: 'chat' },
       };
     } catch (error) {
       console.error('Error in chat:', error);
@@ -383,34 +455,25 @@ Responda à mensagem do usuário de forma natural e útil.
    * Get user context for personalization
    */
   async getContext(userId: string): Promise<any> {
-    // Get profile
+    // Get V2 profile (the single source of truth for user data)
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    // Get completed onboarding data
-    const { data: onboardingSession } = await supabase
-      .from('chat_sessions')
-      .select('onboarding_data')
-      .eq('user_id', userId)
-      .eq('session_type', 'onboarding')
-      .eq('onboarding_completed', true)
-      .single();
-
-    // Get recent meals
+    // Get recent meals (last 3 days)
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
     const { data: recentMeals } = await supabase
       .from('meals')
-      .select('meal_name, calories, created_at')
+      .select('name, calories, created_at')
       .eq('user_id', userId)
       .gte('created_at', threeDaysAgo.toISOString())
       .order('created_at', { ascending: false })
       .limit(10);
       
-    // Get latest historical summary (if any)
+    // Get latest historical summary (long-term memory)
     const { data: historicalSummaryRecords } = await supabase
       .from('historical_summaries')
       .select('summary')
@@ -422,8 +485,16 @@ Responda à mensagem do usuário de forma natural e útil.
       ? historicalSummaryRecords[0].summary 
       : null;
 
+    // Get recent chat messages for conversation continuity (last 10)
+    const { data: recentChatMessages } = await supabase
+      .from('chat_messages')
+      .select('role, content')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
     // Get daily stats for reactive alerts
-    let dailyAlerts = [];
+    let dailyAlerts: string[] = [];
     try {
       const { StatsService } = await import('./statsService');
       const stats = await StatsService.getDailyStats(userId, new Date());
@@ -443,8 +514,8 @@ Responda à mensagem do usuário de forma natural e útil.
 
     return {
       profile: profile || {},
-      onboarding: onboardingSession?.onboarding_data || {},
       recentMeals: recentMeals || [],
+      recentChatMessages: (recentChatMessages || []).reverse(), // chronological order
       historicalSummary,
       dailyAlerts
     };
