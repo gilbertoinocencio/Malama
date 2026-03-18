@@ -293,6 +293,27 @@ Responda APENAS com o JSON, sem texto adicional.
     // Get user context (same as coachChatService)
     const context = await this.getContext(userId);
 
+    // Retrieve Relevant Guidelines (RAG)
+    const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+    let guidelinesText = '';
+    try {
+      const embedResult = await embeddingModel.embedContent(userMessage);
+      const embedding = embedResult.embedding.values;
+
+      const { data: guidelines } = await supabase.rpc('match_guidelines', {
+        query_embedding: embedding,
+        match_threshold: 0.7,
+        match_count: 3
+      });
+      
+      if (guidelines && guidelines.length > 0) {
+        guidelinesText = `\n**DIRETRIZES NUTRICIONAIS RELEVANTES (Referência Clínica):**\n` + 
+          guidelines.map((g: any) => `- [${g.category}] ${g.title}: ${g.content}`).join('\n');
+      }
+    } catch (err) {
+      console.warn('RAG embedding failed:', err);
+    }
+
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
     const profile = context.profile;
@@ -302,6 +323,10 @@ Responda APENAS com o JSON, sem texto adicional.
     const goal = profile.goal || 'health';
     const targetCalories = profile.target_calories || 2000;
     const targetProtein = profile.target_protein || 150;
+    const historicalSummary = context.historicalSummary ? `\n**MEMÓRIA DO AGENTE (Histórico):**\n${context.historicalSummary}` : '';
+    const alertsText = context.dailyAlerts && context.dailyAlerts.length > 0
+      ? `\n**ALERTAS REATIVOS DO DIA:**\n${context.dailyAlerts.join('\n')}\n*Instrução: Adote uma postura de conscientização sutil sobre esses alertas na sua resposta, sugerindo correções de rota para o resto do dia se necessário.*`
+      : '';
 
     const systemPrompt = `
 Você é uma nutricionista clínica experiente e empática.
@@ -310,14 +335,14 @@ Você é uma nutricionista clínica experiente e empática.
 - 🎯 Objetivo: ${goal === 'aesthetic' ? 'Emagrecimento' : goal === 'performance' ? 'Performance/Ganho de Massa' : 'Saúde'}
 - 📊 Metas: ${targetCalories}kcal | ${targetProtein}g proteína
 - 🚫 Restrições: ${restrictions.length > 0 ? restrictions.join(', ') : 'Nenhuma'}
-- ❤️ Preferências: ${preferences.length > 0 ? preferences.join(', ') : 'Variado'}
+- ❤️ Preferências: ${preferences.length > 0 ? preferences.join(', ') : 'Variado'}${historicalSummary}${guidelinesText}${alertsText}
 
 **SEU PAPEL:**
 1. Responda de forma empática e personalizada
 2. Seja concisa (máx 3 parágrafos)
 3. Use emojis moderadamente
 4. SEMPRE respeite as restrições alimentares
-5. Baseie-se em evidências científicas
+5. Baseie-se em evidências científicas e nas diretrizes fornecidas acima (se houver)
 
 Responda à mensagem do usuário de forma natural e útil.
 `;
@@ -384,11 +409,44 @@ Responda à mensagem do usuário de forma natural e útil.
       .gte('created_at', threeDaysAgo.toISOString())
       .order('created_at', { ascending: false })
       .limit(10);
+      
+    // Get latest historical summary (if any)
+    const { data: historicalSummaryRecords } = await supabase
+      .from('historical_summaries')
+      .select('summary')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+      
+    const historicalSummary = historicalSummaryRecords && historicalSummaryRecords.length > 0 
+      ? historicalSummaryRecords[0].summary 
+      : null;
+
+    // Get daily stats for reactive alerts
+    let dailyAlerts = [];
+    try {
+      const { StatsService } = await import('./statsService');
+      const stats = await StatsService.getDailyStats(userId, new Date());
+      
+      if (stats.consumedCalories > stats.targetCalories * 1.1) {
+        dailyAlerts.push(`ALERTA DE SISTEMA: O usuário já ultrapassou a meta de calorias hoje (${Math.round(stats.consumedCalories)}kcal vs meta ${stats.targetCalories}kcal).`);
+      }
+      if (stats.macros.carbs > stats.targetMacros.carbs * 1.1) {
+        dailyAlerts.push(`ALERTA DE SISTEMA: O consumo de carboidratos está alto hoje (${Math.round(stats.macros.carbs)}g vs meta ${stats.targetMacros.carbs}g).`);
+      }
+      if (stats.macros.protein < stats.targetMacros.protein * 0.3 && new Date().getHours() > 18) {
+        dailyAlerts.push(`ALERTA DE SISTEMA: Fim do dia e consumo de proteína está muito baixo (${Math.round(stats.macros.protein)}g vs meta ${stats.targetMacros.protein}g). Incentive o consumo.`);
+      }
+    } catch (e) {
+      console.warn("Failed to generate daily alerts", e);
+    }
 
     return {
       profile: profile || {},
       onboarding: onboardingSession?.onboarding_data || {},
       recentMeals: recentMeals || [],
+      historicalSummary,
+      dailyAlerts
     };
   },
 
