@@ -18,55 +18,79 @@ const NuraMudanADeHBitos: React.FC<StepProps> = ({ data, updateData, onNext, onB
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body">
-      <header className="shrink-0 w-full z-10 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
-        <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all">
-          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
-        </button>
-        <div className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</div>
+    <div className="bg-background text-on-surface font-body min-h-screen flex flex-col">
+      {/* Leaf background decorations */}
+      <div className="leaf-bg fixed top-[10%] right-[-5%] w-[300px] h-[300px] bg-secondary-container opacity-10 blur-[80px] rounded-[40%_60%_70%_30%/40%_50%_60%_50%] z-[-1] pointer-events-none"></div>
+      <div className="leaf-bg-2 fixed bottom-[5%] left-[-10%] w-[400px] h-[400px] bg-primary opacity-5 blur-[100px] rounded-[60%_40%_30%_70%/50%_30%_70%_40%] z-[-1] pointer-events-none"></div>
+
+      {/* Progress Bar */}
+      <div className="fixed top-0 left-0 w-full h-1 z-[60] bg-surface-container-high">
+        <div className="h-full bg-secondary w-4/5 transition-all duration-700"></div>
+      </div>
+
+      <header className="bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl fixed top-0 w-full z-50 flex items-center justify-between px-8 h-20 w-full">
+        <div className="flex items-center gap-2">
+          <span onClick={onBack} className="material-symbols-outlined text-teal-900 dark:text-teal-500 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 p-2 rounded-full transition-all cursor-pointer">
+            close
+          </span>
+        </div>
+        <div className="text-2xl font-bold tracking-tighter text-teal-900 dark:text-teal-500 font-lexend">NURA</div>
         <div className="w-10"></div>
       </header>
 
-      <main className="flex-1 overflow-y-auto pt-6 pb-8 px-6 max-w-2xl mx-auto w-full">
-        <section className="mb-10">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline tracking-tight leading-tight mb-4">
-            Que hábitos quer mudar?
+      <main className="pt-32 pb-40 px-6 max-w-xl mx-auto min-h-screen flex flex-col justify-center">
+        <section className="mb-12">
+          <h1 className="font-lexend text-4xl md:text-5xl font-extrabold tracking-tight text-primary leading-tight mb-4">
+            Quais hábitos quer mudar?
           </h1>
-          <p className="text-on-surface-variant text-lg leading-relaxed max-w-md">
-            Selecione os hábitos que fazem sentido para o seu estilo de vida atual.
+          <p className="text-on-surface-variant text-lg leading-relaxed font-light">
+            Selecione todos os comportamentos que você deseja transformar nesta jornada.
           </p>
         </section>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-6">
           {habits.map((habit) => {
             const isSelected = (data.habitChanges || []).includes(habit.value);
             return (
-              <button
-                key={habit.value}
-                onClick={() => toggleHabit(habit.value)}
-                className={`w-full flex items-center gap-5 p-5 rounded-xl transition-all duration-300 ${
+              <label key={habit.value} className="group cursor-pointer relative">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggleHabit(habit.value)}
+                  className="peer hidden"
+                />
+                <div className={`bg-surface-container-low p-8 rounded-lg flex items-center justify-between transition-all duration-300 ease-in-out ${
                   isSelected
-                    ? 'bg-secondary-container/30 shadow-md border-2 border-secondary/30'
-                    : 'bg-surface-container-lowest shadow-[0_4px_16px_rgba(0,0,0,0.03)] border-2 border-transparent hover:bg-surface-container-low'
-                }`}
-              >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSelected ? 'bg-secondary/10' : 'bg-surface-container-high/50'}`}>
-                  <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-secondary' : 'text-on-surface-variant'}`} style={{ fontVariationSettings: "'FILL' 1" }}>{habit.icon}</span>
+                    ? 'peer-checked:bg-primary-fixed-dim peer-checked:shadow-xl'
+                    : 'hover:bg-surface-container-high'
+                }`}>
+                  <div className="flex items-center gap-6">
+                    <div className="w-14 h-14 rounded-full bg-surface-container-highest flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500">
+                      <span className="material-symbols-outlined text-3xl">{habit.icon}</span>
+                    </div>
+                    <span className="text-xl font-medium font-lexend text-on-surface">{habit.label}</span>
+                  </div>
+                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    isSelected
+                      ? 'bg-secondary border-secondary'
+                      : 'border-outline-variant'
+                  }`}>
+                    {isSelected && (
+                      <span className="material-symbols-outlined text-white text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+                    )}
+                  </div>
                 </div>
-                <span className={`font-headline text-lg font-semibold ${isSelected ? 'text-primary' : 'text-on-surface'}`}>{habit.label}</span>
-                {isSelected && (
-                  <span className="material-symbols-outlined text-secondary ml-auto" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                )}
-              </button>
+              </label>
             );
           })}
         </div>
       </main>
 
-      <footer className="shrink-0 w-full p-6 bg-surface/90 backdrop-blur-md z-10">
-        <div className="max-w-2xl mx-auto">
-          <button onClick={onNext} className="w-full h-16 rounded-xl bg-primary text-on-primary font-headline font-bold text-lg transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/10">
+      <footer className="fixed bottom-0 left-0 w-full p-8 bg-gradient-to-t from-background via-background to-transparent pointer-events-none">
+        <div className="max-w-xl mx-auto pointer-events-auto">
+          <button onClick={onNext} className="w-full h-16 bg-primary text-on-primary rounded-xl font-lexend font-bold text-xl tracking-tight shadow-2xl hover:bg-primary-container transition-all duration-300 active:scale-95 flex items-center justify-center gap-3">
             Continuar
+            <span className="material-symbols-outlined">arrow_forward</span>
           </button>
         </div>
       </footer>
