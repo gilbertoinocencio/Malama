@@ -2,119 +2,80 @@ import React, { useMemo } from 'react';
 import { StepProps } from '../onboarding-v2/types';
 
 const NuraVelocidadeDaMeta: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
-  const speedValue = data.goalSpeedKgPerWeek || 0.5;
-
-  const mapSpeedToSlider = (speed: number) => {
-    if (speed <= 0.25) return 1;
-    if (speed <= 0.375) return 2;
-    if (speed <= 0.5) return 3;
-    if (speed <= 0.625) return 4;
-    return 5;
-  };
-
-  const mapSliderToSpeed = (slider: number) => {
-    return 0.25 + (slider - 1) * 0.125;
-  };
-
-  const sliderValue = mapSpeedToSlider(speedValue);
+  const speed = data.goalSpeedKgPerWeek || 0.5;
 
   const weeksNeeded = useMemo(() => {
-    if (!data.currentWeight || !data.targetWeight || !speedValue) return null;
-    const weightDiff = Math.abs(data.currentWeight - data.targetWeight);
-    return Math.ceil(weightDiff / speedValue);
-  }, [data.currentWeight, data.targetWeight, speedValue]);
+    if (!data.currentWeight || !data.targetWeight || !speed) return null;
+    const diff = Math.abs(data.currentWeight - data.targetWeight);
+    return Math.ceil(diff / speed);
+  }, [data.currentWeight, data.targetWeight, speed]);
 
   return (
-    
-      <div className="flex flex-col h-full bg-surface text-on-surface overflow-hidden">
-        <header className="shrink-0 w-full z-50 px-6 py-4 flex items-center justify-between bg-surface/80 backdrop-blur-md">
-            <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all"><span className="material-symbols-outlined text-teal-900 dark:text-teal-500">arrow_back</span></button>
-            <div className="text-xl font-bold tracking-tighter text-teal-900 dark:text-teal-500 font-lexend">NURA</div>
-            <div className="w-10"></div>
-        </header>
-        
-        <main className="flex-grow overflow-y-auto pt-8 pb-32 px-6 max-w-2xl mx-auto w-full relative">
-          
-{/* Editorial Headline */}
-<div className="w-full mb-12 space-y-4">
-<h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight text-primary leading-tight">
-                Qual a velocidade do seu objetivo?
-            </h1>
-<p className="text-on-surface-variant text-lg max-w-md leading-relaxed">
-                Escolha o ritmo que melhor se adapta à sua rotina atual. Sustentabilidade é a chave para o sucesso.
-            </p>
-</div>
-{/* Asymmetric Visual Impact Display */}
-<div className="w-full grid grid-cols-2 gap-6 mb-16">
-<div className="bg-surface-container-lowest p-8 rounded-lg flex flex-col items-center justify-center space-y-4 shadow-[0_16px_32px_rgba(0,0,0,0.04)] transition-all duration-500 border-2 border-transparent">
-<span className="material-symbols-outlined text-5xl text-secondary/40" data-icon="turtle" style={{ fontVariationSettings: "'FILL' 0" }}>egg</span>
-<span className="font-headline text-sm font-medium text-on-surface-variant">Lento e sustentável</span>
-</div>
-<div className="bg-surface-container-lowest p-8 rounded-lg flex flex-col items-center justify-center space-y-4 shadow-[0_16px_32px_rgba(0,0,0,0.04)] transition-all duration-500 border-2 border-secondary/20 scale-105">
-<span className="material-symbols-outlined text-5xl text-secondary" data-icon="bolt" data-weight="fill" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-<span className="font-headline text-sm font-medium text-primary">Rápido e intenso</span>
-</div>
-</div>
-{/* Sophisticated Slider Section */}
-<div className="w-full px-4 mb-20">
-<div className="relative w-full py-8">
-<input 
-  className="w-full h-2 rounded-full appearance-none accent-primary bg-surface-container-highest cursor-pointer" 
-  max="5" min="1" step="1" type="range" 
-  value={sliderValue}
-  onChange={(e) => updateData({ goalSpeedKgPerWeek: mapSliderToSpeed(parseInt(e.target.value)) })}
-/>
-{/* Custom Scale Labels */}
-<div className="flex justify-between w-full mt-6 px-2">
-<div className="flex flex-col items-start">
-<span className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest font-headline">Ritmo</span>
-<span className="text-sm font-semibold text-secondary">Gradual</span>
-</div>
-<div className="flex flex-col items-end">
-<span className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest font-headline">Foco</span>
-<span className="text-sm font-semibold text-primary">Acelerado</span>
-</div>
-</div>
-</div>
-{/* Impact Summary Card */}
-<div className="mt-8 p-8 bg-secondary-container/20 rounded-xl flex items-center space-x-6">
-<div className="bg-secondary p-3 rounded-full">
-<span className="material-symbols-outlined text-white" data-icon="auto_awesome" data-weight="fill" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-</div>
-<div>
-<h3 className="font-headline font-semibold text-on-secondary-container">Impacto previsto</h3>
-<p className="text-on-surface-variant text-sm border-t border-transparent pt-1">
-  {weeksNeeded ? (
-    <>Este ritmo permite alcançar seu objetivo em aproximadamente <span className="font-bold text-secondary">{weeksNeeded} semanas</span> de forma consistente.</>
-  ) : (
-    <>Precisamos saber o seu peso atual e alvo para prever o tempo.</>
-  )}
-</p>
-</div>
-</div>
-</div>
-{/* Primary Action */}
-<div className="w-full mt-auto">
-<button onClick={onNext} className="w-full h-16 bg-primary rounded-xl text-on-primary font-headline font-semibold text-lg flex items-center justify-center group hover:bg-primary-container transition-all duration-500 shadow-xl shadow-primary/10">
-<span>Continuar</span>
-<span className="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
-</button>
-<button className="w-full mt-4 py-4 text-on-surface-variant font-medium text-sm hover:text-primary transition-colors">
-                Gostaria de ajuda para decidir?
-            </button>
-</div>
+    <div className="flex flex-col h-full bg-surface text-on-surface font-body">
+      <header className="shrink-0 w-full z-10 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
+        <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all">
+          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
+        </button>
+        <div className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</div>
+        <div className="w-10"></div>
+      </header>
 
-        </main>
-        
-        <footer className="shrink-0 w-full p-6 bg-surface/80 backdrop-blur-md z-40 p-6 relative z-40 bg-surface/80 backdrop-blur-md pb-8">
-          <div className="max-w-2xl mx-auto flex gap-4 w-full justify-end">
-             
-        Passo 6 de 8 • Goal Dynamics
-    
+      <main className="flex-1 overflow-y-auto pt-6 pb-8 px-6 max-w-2xl mx-auto w-full">
+        <section className="mb-12">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline tracking-tight leading-tight mb-4">
+            Velocidade da sua meta
+          </h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed max-w-md">
+            Escolha o ritmo. Sustentabilidade é a chave para resultados duradouros.
+          </p>
+        </section>
+
+        <div className="grid grid-cols-2 gap-6 mb-12">
+          <div className="bg-surface-container-lowest p-8 rounded-xl flex flex-col items-center justify-center space-y-4 shadow-[0_16px_32px_rgba(0,0,0,0.04)]">
+            <span className="material-symbols-outlined text-5xl text-secondary/40" style={{ fontVariationSettings: "'FILL' 0" }}>egg</span>
+            <span className="font-headline text-sm font-medium text-on-surface-variant">Lento e sustentável</span>
           </div>
-        </footer>
-      </div>
-  
+          <div className="bg-surface-container-lowest p-8 rounded-xl flex flex-col items-center justify-center space-y-4 shadow-[0_16px_32px_rgba(0,0,0,0.04)] border-2 border-secondary/20 scale-105">
+            <span className="material-symbols-outlined text-5xl text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+            <span className="font-headline text-sm font-medium text-primary">Rápido e intenso</span>
+          </div>
+        </div>
+
+        <div className="w-full px-4 mb-12">
+          <input
+            type="range"
+            min={25}
+            max={75}
+            step={5}
+            value={Math.round(speed * 100)}
+            onChange={(e) => updateData({ goalSpeedKgPerWeek: parseInt(e.target.value) / 100 })}
+            className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer range-refine"
+          />
+          <div className="flex justify-between mt-4 text-xs text-on-surface-variant font-headline">
+            <span>0.25 kg/sem</span>
+            <span className="font-bold text-primary text-base">{speed.toFixed(2)} kg/sem</span>
+            <span>0.75 kg/sem</span>
+          </div>
+        </div>
+
+        {weeksNeeded && (
+          <div className="bg-secondary-container/20 p-6 rounded-xl border border-secondary/10 flex items-center gap-4">
+            <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>calendar_month</span>
+            <p className="text-on-surface-variant text-sm font-headline">
+              Previsão: <strong className="text-primary">{weeksNeeded} semanas</strong> para atingir sua meta
+            </p>
+          </div>
+        )}
+      </main>
+
+      <footer className="shrink-0 w-full p-6 bg-surface/90 backdrop-blur-md z-10">
+        <div className="max-w-2xl mx-auto">
+          <button onClick={onNext} className="w-full h-16 rounded-xl bg-primary text-on-primary font-headline font-bold text-lg transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/10">
+            Continuar
+          </button>
+        </div>
+      </footer>
+    </div>
   );
 };
 

@@ -3,13 +3,13 @@ import { StepProps } from '../onboarding-v2/types';
 
 const NuraTipoDeDieta: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
   const dietTypes = [
-    { value: 'equilibrada', label: 'Equilibrada' },
-    { value: 'vegetariana', label: 'Vegetariana' },
-    { value: 'vegan', label: 'Vegan' },
-    { value: 'paleo', label: 'Paleo' },
-    { value: 'cetogenica', label: 'Cetogénica' },
-    { value: 'rica_proteina', label: 'Rica em proteína' },
-    { value: 'baixa_carboidratos', label: 'Baixa em carbo' }
+    { value: 'equilibrada', label: 'Equilibrada', icon: 'balance' },
+    { value: 'vegetariana', label: 'Vegetariana', icon: 'eco' },
+    { value: 'vegan', label: 'Vegan', icon: 'spa' },
+    { value: 'paleo', label: 'Paleo', icon: 'pets' },
+    { value: 'cetogenica', label: 'Cetogénica', icon: 'whatshot' },
+    { value: 'rica_proteina', label: 'Rica em proteína', icon: 'fitness_center' },
+    { value: 'baixa_carboidratos', label: 'Baixa em carbo', icon: 'remove_circle_outline' }
   ];
 
   const handleSelect = (value: string) => {
@@ -18,60 +18,63 @@ const NuraTipoDeDieta: React.FC<StepProps> = ({ data, updateData, onNext, onBack
   };
 
   return (
-      <div className="flex flex-col h-full bg-surface text-on-surface overflow-hidden">
-        <header className="shrink-0 w-full z-50 px-6 py-4 flex items-center justify-between bg-surface/80 backdrop-blur-md">
-            <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all"><span className="material-symbols-outlined text-teal-900 dark:text-teal-500">arrow_back</span></button>
-            <div className="text-xl font-bold tracking-tighter text-teal-900 dark:text-teal-500 font-lexend">NURA</div>
-            <div className="w-10"></div>
-        </header>
-        
-        <main className="flex-grow overflow-y-auto pt-8 pb-32 px-6 max-w-2xl mx-auto w-full relative">
-          <section className="mb-12">
-            <h1 className="headline-font text-4xl md:text-5xl font-bold text-primary tracking-tight leading-tight mb-4">
-              Que tipo de dieta prefere?
-            </h1>
-            <p className="text-on-surface-variant text-lg leading-relaxed max-w-md">
-              Personalize a sua experiência nutritiva selecionando o estilo que melhor se adapta ao seu estilo de vida.
-            </p>
-          </section>
+    <div className="flex flex-col h-full bg-surface text-on-surface font-body">
+      <header className="shrink-0 w-full z-10 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
+        <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all">
+          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
+        </button>
+        <div className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</div>
+        <div className="w-10"></div>
+      </header>
 
-          <div className="space-y-4">
-            {dietTypes.map((diet) => {
-              const isSelected = data.dietType === diet.value;
-              return (
-                <button
-                  key={diet.value}
-                  onClick={() => handleSelect(diet.value)}
-                  className={`w-full flex items-center justify-between p-8 rounded-lg text-left transition-all duration-300 ease-in-out group ${
-                    isSelected 
-                      ? 'bg-primary-fixed-dim shadow-sm' 
-                      : 'bg-surface-container-low hover:bg-surface-container-highest'
-                  }`}
-                >
-                  <span className={`headline-font text-xl font-medium ${isSelected ? 'text-primary' : 'text-on-surface-variant group-hover:text-primary'}`}>
+      <main className="flex-1 overflow-y-auto pt-6 pb-8 px-6 max-w-2xl mx-auto w-full">
+        <section className="mb-12">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline tracking-tight leading-tight mb-4">
+            Que tipo de dieta prefere?
+          </h1>
+          <p className="text-on-surface-variant text-lg leading-relaxed max-w-md">
+            Personalize a sua experiência nutritiva selecionando o estilo que melhor se adapta ao seu estilo de vida.
+          </p>
+        </section>
+
+        <div className="space-y-4">
+          {dietTypes.map((diet) => {
+            const isSelected = data.dietType === diet.value;
+            return (
+              <button
+                key={diet.value}
+                onClick={() => handleSelect(diet.value)}
+                className={`w-full flex items-center justify-between p-6 rounded-xl text-left transition-all duration-300 group ${
+                  isSelected
+                    ? 'bg-primary-fixed-dim shadow-md border-2 border-primary/20'
+                    : 'bg-surface-container-lowest shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:bg-surface-container-low border-2 border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSelected ? 'bg-primary/10' : 'bg-surface-container-high/50'}`}>
+                    <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-primary' : 'text-on-surface-variant'}`} style={{ fontVariationSettings: "'FILL' 1" }}>{diet.icon}</span>
+                  </div>
+                  <span className={`font-headline text-lg font-semibold ${isSelected ? 'text-primary' : 'text-on-surface group-hover:text-primary'}`}>
                     {diet.label}
                   </span>
-                  {isSelected ? (
-                    <span className="material-symbols-outlined text-secondary text-3xl" data-icon="check_circle" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                  ) : (
-                    <span className="material-symbols-outlined text-outline-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="circle">circle</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </main>
-        
-        <footer className="shrink-0 w-full p-6 bg-surface/80 backdrop-blur-md z-40 p-6 relative z-40 bg-surface/80 backdrop-blur-md pb-8">
-          <div className="max-w-2xl mx-auto flex gap-4 w-full justify-end">
-             <div className="max-w-2xl mx-auto flex justify-end">
-               <button onClick={onNext} className="bg-primary text-on-primary font-headline font-semibold py-4 px-12 rounded-xl text-lg hover:bg-primary-container transition-all duration-300 transform active:scale-95 shadow-xl shadow-primary/10 min-h-[4rem] min-w-[200px]">
-                 Continuar
-               </button>
-             </div>
-          </div>
-        </footer>
-      </div>
+                </div>
+                {isSelected && (
+                  <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </main>
+
+      <footer className="shrink-0 w-full p-6 bg-surface/90 backdrop-blur-md z-10">
+        <div className="max-w-2xl mx-auto">
+          <button onClick={onNext} className="w-full h-16 rounded-xl bg-primary text-on-primary font-headline font-bold text-lg transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/10">
+            Continuar
+          </button>
+        </div>
+      </footer>
+    </div>
   );
 };
 
