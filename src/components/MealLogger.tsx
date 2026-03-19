@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse } from '../types';
 import { analyzeTextLog, analyzeImageLog } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
-import { PhotoScanResult } from './PhotoScanResult';
+import { NuraAiScan } from './NuraAiScan';
 import { USER_AVATAR } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { MealService } from '../services/mealService';
@@ -333,14 +333,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   // If we have a scan result, show the new PhotoScanResult component
   if (scanResult && scannedImageUri) {
     return (
-      <PhotoScanResult
+      <NuraAiScan
         data={scanResult}
         imageUri={scannedImageUri}
-        onConfirm={() => handleConfirmLog(scanResult, 'ai-photo')}
-        onEdit={() => {
-          setScanResult(null);
-          setScannedImageUri(null);
-        }}
+        onConfirm={(finalData) => handleConfirmLog(finalData, 'ai-photo')}
         onBack={() => {
           setScanResult(null);
           setScannedImageUri(null);
@@ -503,7 +499,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                           </div>
                           <div>
                             <p className="text-nura-main dark:text-white text-sm font-semibold">{item.name}</p>
-                            <p className="text-nura-muted dark:text-slate-500 text-xs">{item.quantity}</p>
+                            <p className="text-nura-muted dark:text-slate-500 text-xs">{item.weightGrams}g</p>
                           </div>
                         </div>
                         <p className="text-nura-main dark:text-white text-sm font-medium">{item.calories} kcal</p>

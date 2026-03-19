@@ -156,7 +156,7 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
     goalSpeedKgPerWeek: 0.4,
   });
 
-  const totalSteps = 37; // Updated to include 9 new steps
+  const totalSteps = 27; // Updated onboarding flow with Nura components
 
   const updateData = (newData: Partial<OnboardingData>) => {
     setData((prev) => ({ ...prev, ...newData }));
@@ -239,91 +239,89 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
     };
 
     switch (currentStep) {
-      // New: Primary goal selection
+      // Calorie tracking experience
       case 0:
-        return <PrimaryGoalStep {...stepProps} />;
-      // New: Calorie tracking experience
-      case 1:
         return <NuraExperiNciaCalorias {...stepProps} />;
-      case 2:
+      // Additional goals
+      case 1:
         return <NuraObjetivosAdicionais {...stepProps} />;
-      case 3:
+      // Intermittent fasting knowledge
+      case 2:
         return <NuraConheceJejum {...stepProps} />;
-      case 4:
+      // Intermittent fasting education
+      case 3:
         return <NuraEducaOJejum {...stepProps} />;
-      // New: Fasting benefits visual
-      case 5:
+      // Fasting benefits
+      case 4:
         return <NuraBenefCiosJejum {...stepProps} />;
-      case 6:
+      // Reminder schedule
+      case 5:
         return <NuraLembretesERotina {...stepProps} />;
-      // New: Reminder motivation
-      case 7:
-        return <ReminderMotivationStep {...stepProps} />;
-      case 8:
+      // Meals per day
+      case 6:
         return <NuraRefeiEsDiRias {...stepProps} />;
-      case 9:
+      // Eating window
+      case 7:
         return <NuraJanelaAlimentar {...stepProps} />;
-      case 10:
+      // Eating location
+      case 8:
         return <NuraLocalDasRefeiEs {...stepProps} />;
-      case 11:
+      // Diet type
+      case 9:
         return <NuraTipoDeDieta {...stepProps} />;
-      case 12:
+      // Dietary restrictions
+      case 10:
         return <NuraRestriEsAlimentares {...stepProps} />;
-      case 13:
+      // Water intake
+      case 11:
         return <NuraConsumoDeGua {...stepProps} />;
-      case 14:
+      // Water education
+      case 12:
         return <NuraEducaOHidrataO {...stepProps} />;
-      // New: Water tracking visual
-      case 15:
-        return <WaterTrackingVisualStep {...stepProps} />;
-      case 16:
+      // Habit changes
+      case 13:
         return <NuraMudanADeHBitos {...stepProps} />;
-      case 17:
+      // Gender
+      case 14:
         return <GenderStep {...stepProps} />;
-      case 18:
+      // Age
+      case 15:
         return <AgeStep {...stepProps} />;
-      case 19:
+      // Activity level
+      case 16:
         return <ActivityLevelStep {...stepProps} />;
-      case 20:
+      // Height
+      case 17:
         return <HeightStep {...stepProps} />;
-      case 21:
+      // Current weight
+      case 18:
         return <CurrentWeightStep {...stepProps} />;
-      case 22:
+      // Biometric summary
+      case 19:
         return <NuraResumoBiomTrico {...stepProps} />;
-      case 23:
+      // Target weight
+      case 20:
         return <NuraPesoObjetivo {...stepProps} />;
-      case 24:
+      // Goal speed
+      case 21:
         return <NuraVelocidadeDaMeta {...stepProps} />;
-      // New: Progress tracking visual
-      case 25:
+      // Progress projection
+      case 22:
         return <NuraProjeODeSucesso {...stepProps} />;
-      case 26:
+      // Social proof
+      case 23:
         return <NuraProvaDeSucesso {...stepProps} />;
-      case 27:
+      // Creating plan
+      case 24:
         return <NuraCriandoPlano {...stepProps} />;
-      case 28:
-        return <GoalConfirmationStep {...stepProps} />;
-      case 29:
-        return <NutritionalRecommendationsStep {...stepProps} />;
-      // New: Calorie tracking step
-      case 30:
-        return <CalorieTrackingStep {...stepProps} />;
-      case 31:
+      // Personalized plan
+      case 25:
         return <NuraPlanoPersonalizado {...stepProps} />;
-      // New: Motivation step
-      case 32:
-        return <MotivationStep {...stepProps} />;
-      case 33:
-        return <SocialProofStep {...stepProps} />;
-      // New: Unique approach
-      case 34:
+      // Methodology
+      case 26:
         return <NuraMetodologiaFlow {...stepProps} />;
-      case 35:
-        return <PaywallFeaturesStep {...stepProps} />;
-      case 36:
-        return <PricingStep {...stepProps} onComplete={handleComplete} />;
       default:
-        return <PrimaryGoalStep {...stepProps} />;
+        return <NuraExperiNciaCalorias {...stepProps} />;
     }
   };
 

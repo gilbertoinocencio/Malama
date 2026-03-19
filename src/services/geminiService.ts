@@ -59,10 +59,13 @@ export const analyzeTextLog = async (text: string, language: string = 'pt'): Pro
                 type: SchemaType.OBJECT,
                 properties: {
                   name: { type: SchemaType.STRING },
-                  quantity: { type: SchemaType.STRING },
-                  calories: { type: SchemaType.NUMBER }
+                  weightGrams: { type: SchemaType.NUMBER },
+                  calories: { type: SchemaType.NUMBER },
+                  protein: { type: SchemaType.NUMBER },
+                  carbs: { type: SchemaType.NUMBER },
+                  fats: { type: SchemaType.NUMBER }
                 },
-                required: ["name", "quantity", "calories"]
+                required: ["name", "weightGrams", "calories", "protein", "carbs", "fats"]
               }
             },
             message: { type: SchemaType.STRING }
@@ -78,9 +81,9 @@ export const analyzeTextLog = async (text: string, language: string = 'pt'): Pro
     - foodName (string, overall summary name in ${langName})
     - calories (number, total)
     - macros (object with p, c, f as numbers for protein, carbs, fats in grams)
-    - items (array of objects with: name (string in ${langName}), quantity (string, e.g. '1 large', '100g'), calories (number))
+    - items (array of objects with: name (string in ${langName}), weightGrams (number), calories (number), protein (number), carbs (number), fats (number))
     - message (string, a short motivational phrase in ${langName} about maintaining the flow)
-    Approximate values if needed. Keep the tone encouraging and scientific but accessible. ALL text responses MUST be in ${langName}.`;
+    Approximate values if needed. All macro values should correspond to the estimated weightGrams. ALL text responses MUST be in ${langName}.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -112,10 +115,17 @@ export const analyzeImageLog = async (base64Image: string, language: string = 'p
       "foodName": string (in ${langName}), 
       "calories": number, 
       "macros": { "p": number, "c": number, "f": number }, 
-      "items": [{ "name": string (in ${langName}), "quantity": string, "calories": number }], 
+      "items": [{ 
+        "name": string (in ${langName}), 
+        "weightGrams": number, 
+        "calories": number,
+        "protein": number,
+        "carbs": number,
+        "fats": number
+      }], 
       "message": string (short motivational phrase in ${langName}) 
     }
-    ALL text responses MUST be in ${langName}.`;
+    All macro values per item should be calculated based on the estimated weightGrams. ALL text responses MUST be in ${langName}.`;
 
     const result = await model.generateContent([
       prompt,

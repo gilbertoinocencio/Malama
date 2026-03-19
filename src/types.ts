@@ -8,8 +8,12 @@ export interface MacroData {
 
 export interface MealItem {
   name: string;
-  quantity: string;
+  quantity?: string;
+  weightGrams?: number;
   calories: number;
+  protein?: number;
+  carbs?: number;
+  fats?: number;
 }
 
 export interface Meal {
