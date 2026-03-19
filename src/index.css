@@ -82,3 +82,15 @@ input[type="range"]::-moz-range-thumb:active {
 .animate-fade-in {
     animation: fadeIn 0.3s ease-out;
 }
+
+.headline-font {
+    font-family: 'Lexend', sans-serif;
+}
+
+.body-font {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.label-font {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}

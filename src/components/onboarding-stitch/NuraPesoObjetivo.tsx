@@ -9,14 +9,14 @@ const NuraPesoObjetivo: React.FC<StepProps> = ({ data, updateData, onNext, onBac
   };
 
   return (
-      <div className="flex flex-col h-full bg-surface text-on-surface">
-        <header className="fixed top-0 w-full z-50 px-6 py-4 flex items-center justify-between bg-surface/80 backdrop-blur-md">
+      <div className="flex flex-col h-full bg-surface text-on-surface overflow-hidden">
+        <header className="shrink-0 w-full z-50 px-6 py-4 flex items-center justify-between bg-surface/80 backdrop-blur-md">
             <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all"><span className="material-symbols-outlined text-teal-900 dark:text-teal-500">arrow_back</span></button>
             <div className="text-xl font-bold tracking-tighter text-teal-900 dark:text-teal-500 font-lexend">NURA</div>
             <div className="w-10"></div>
         </header>
         
-        <main className="flex-grow pt-24 pb-32 px-6 max-w-2xl mx-auto w-full relative">
+        <main className="flex-grow overflow-y-auto pt-8 pb-32 px-6 max-w-2xl mx-auto w-full relative relative">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-secondary-container opacity-10 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
           
           <div className="text-center mb-12">
@@ -80,7 +80,7 @@ const NuraPesoObjetivo: React.FC<StepProps> = ({ data, updateData, onNext, onBac
           </div>
         </main>
         
-        <footer className="fixed bottom-0 left-0 w-full p-6 bg-surface/80 backdrop-blur-md z-40">
+        <footer className="shrink-0 w-full p-6 bg-surface/80 backdrop-blur-md z-40 p-6 relative z-40 bg-surface/80 backdrop-blur-md pb-8">
           <div className="max-w-2xl mx-auto flex gap-4 w-full justify-end">
             <div className="max-w-md w-full">
               <button onClick={onNext} className="w-full h-16 bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline font-semibold text-lg rounded-xl shadow-[0_16px_32px_rgba(0,70,79,0.2)] hover:shadow-[0_16px_40px_rgba(0,70,79,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-500 ease-in-out flex items-center justify-center gap-3">

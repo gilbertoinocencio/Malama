@@ -4,14 +4,14 @@ import { StepProps } from '../onboarding-v2/types';
 const NuraBenefCiosJejum: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
   return (
     
-      <div className="flex flex-col h-full bg-surface text-on-surface">
-        <header className="fixed top-0 w-full z-50 px-6 py-4 flex items-center justify-between bg-surface/80 backdrop-blur-md">
+      <div className="flex flex-col h-full bg-surface text-on-surface overflow-hidden">
+        <header className="shrink-0 w-full z-50 px-6 py-4 flex items-center justify-between bg-surface/80 backdrop-blur-md">
             <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all"><span className="material-symbols-outlined text-teal-900 dark:text-teal-500">arrow_back</span></button>
             <div className="text-xl font-bold tracking-tighter text-teal-900 dark:text-teal-500 font-lexend">NURA</div>
             <div className="w-10"></div>
         </header>
         
-        <main className="flex-grow pt-24 pb-32 px-6 max-w-2xl mx-auto w-full">
+        <main className="flex-grow overflow-y-auto pt-8 pb-32 px-6 max-w-2xl mx-auto w-full relative">
           
 <div className="fixed top-40 right-[10%] opacity-20 pointer-events-none">
 <div className="w-64 h-64 rounded-full bg-secondary-container blur-[120px]"></div>
@@ -67,7 +67,7 @@ const NuraBenefCiosJejum: React.FC<StepProps> = ({ data, updateData, onNext, onB
 
         </main>
         
-        <footer className="fixed bottom-0 left-0 w-full p-6 bg-surface/80 backdrop-blur-md z-40">
+        <footer className="shrink-0 w-full p-6 bg-surface/80 backdrop-blur-md z-40 p-6 relative z-40 bg-surface/80 backdrop-blur-md pb-8">
           <div className="max-w-2xl mx-auto flex gap-4 w-full justify-end">
              
 <div className="hidden md:block">

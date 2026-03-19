@@ -4,14 +4,14 @@ import { StepProps } from '../onboarding-v2/types';
 const NuraRefeiEsDiRias: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
   return (
     
-      <div className="flex flex-col h-full bg-surface text-on-surface">
-        <header className="fixed top-0 w-full z-50 px-6 py-4 flex items-center justify-between bg-surface/80 backdrop-blur-md">
+      <div className="flex flex-col h-full bg-surface text-on-surface overflow-hidden">
+        <header className="shrink-0 w-full z-50 px-6 py-4 flex items-center justify-between bg-surface/80 backdrop-blur-md">
             <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all"><span className="material-symbols-outlined text-teal-900 dark:text-teal-500">arrow_back</span></button>
             <div className="text-xl font-bold tracking-tighter text-teal-900 dark:text-teal-500 font-lexend">NURA</div>
             <div className="w-10"></div>
         </header>
         
-        <main className="flex-grow pt-24 pb-32 px-6 max-w-2xl mx-auto w-full">
+        <main className="flex-grow overflow-y-auto pt-8 pb-32 px-6 max-w-2xl mx-auto w-full relative">
           
 {/* Header Section */}
 <header className="text-center mb-16 space-y-4">
@@ -73,9 +73,9 @@ const NuraRefeiEsDiRias: React.FC<StepProps> = ({ data, updateData, onNext, onBa
 </div>
 </div>
 {/* Sticky Footer Action */}
-<footer className="fixed bottom-0 left-0 w-full p-8 flex justify-center bg-gradient-to-t from-surface via-surface to-transparent">
+<footer className="shrink-0 w-full p-8 flex justify-center bg-gradient-to-t from-surface via-surface to-transparent p-6 relative z-40 bg-surface/80 backdrop-blur-md pb-8">
 <div className="max-w-md w-full">
-<button className="w-full h-16 rounded-xl bg-primary text-on-primary font-lexend font-bold text-lg flex items-center justify-center gap-2 shadow-xl hover:bg-primary-container hover:scale-[1.02] transition-all duration-500 active:scale-95 group">
+<button onClick={onNext} className="w-full h-16 rounded-xl bg-primary text-on-primary font-lexend font-bold text-lg flex items-center justify-center gap-2 shadow-xl hover:bg-primary-container hover:scale-[1.02] transition-all duration-500 active:scale-95 group">
                     Continuar
                     <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
 </button>
@@ -84,11 +84,11 @@ const NuraRefeiEsDiRias: React.FC<StepProps> = ({ data, updateData, onNext, onBa
 
         </main>
         
-        <footer className="fixed bottom-0 left-0 w-full p-6 bg-surface/80 backdrop-blur-md z-40">
+        <footer className="shrink-0 w-full p-6 bg-surface/80 backdrop-blur-md z-40 p-6 relative z-40 bg-surface/80 backdrop-blur-md pb-8">
           <div className="max-w-2xl mx-auto flex gap-4 w-full justify-end">
              
 <div className="max-w-md w-full">
-<button className="w-full h-16 rounded-xl bg-primary text-on-primary font-lexend font-bold text-lg flex items-center justify-center gap-2 shadow-xl hover:bg-primary-container hover:scale-[1.02] transition-all duration-500 active:scale-95 group">
+<button onClick={onNext} className="w-full h-16 rounded-xl bg-primary text-on-primary font-lexend font-bold text-lg flex items-center justify-center gap-2 shadow-xl hover:bg-primary-container hover:scale-[1.02] transition-all duration-500 active:scale-95 group">
                     Continuar
                     <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
 </button>

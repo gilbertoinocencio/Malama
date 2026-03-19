@@ -16,6 +16,9 @@ export default {
         epilogue: ['Epilogue', 'sans-serif'],
         jakarta: ['Plus Jakarta Sans', 'sans-serif'],
         inter: ['Inter', 'sans-serif'],
+        headline: ['Lexend', 'sans-serif'],
+        body: ['Plus Jakarta Sans', 'sans-serif'],
+        lexend: ['Lexend', 'sans-serif'],
       },
       colors: {
         // NURA Brand Palette (Light Mode)
