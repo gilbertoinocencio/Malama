@@ -15,18 +15,23 @@ const NuraResumoBiomTrico: React.FC<StepProps> = ({ data, updateData, onNext, on
   const bmiCategory = bmiNum < 18.5 ? 'Abaixo do peso' : bmiNum < 25 ? 'Peso Saudável' : bmiNum < 30 ? 'Sobrepeso' : 'Obesidade';
 
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body">
-      <header className="shrink-0 w-full z-10 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
+    <div className="bg-surface text-on-surface min-h-screen flex flex-col">
+      {/* Progress Bar */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+        <div className="h-full bg-secondary w-5/6 transition-all duration-700"></div>
+      </div>
+
+      <header className="fixed top-0 w-full z-50 bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
         <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all">
-          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
+          <span className="material-symbols-outlined text-teal-900">close</span>
         </button>
-        <h1 className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</h1>
+        <h1 className="text-2xl font-bold tracking-tighter text-teal-900 font-lexend">NURA</h1>
         <div className="w-10"></div>
       </header>
 
-      <main className="flex-1 overflow-y-auto pt-6 pb-8 px-6 max-w-xl mx-auto w-full">
+      <main className="flex-grow pt-32 pb-32 px-6 max-w-xl mx-auto w-full">
         <section className="mb-10 text-center md:text-left">
-          <h2 className="font-headline text-4xl font-bold text-primary tracking-tight leading-tight mb-4">
+          <h2 className="font-lexend text-4xl font-bold text-primary tracking-tight leading-tight mb-4">
             Seu Perfil Biométrico
           </h2>
           <p className="text-on-surface-variant text-lg leading-relaxed">
@@ -42,7 +47,7 @@ const NuraResumoBiomTrico: React.FC<StepProps> = ({ data, updateData, onNext, on
                 <circle cx="100" cy="100" fill="transparent" r="88" stroke="#006d36" strokeDasharray="552.9" strokeDashoffset="138" strokeLinecap="round" strokeWidth="12"></circle>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-headline text-5xl font-extrabold text-primary">{bmi}</span>
+                <span className="font-lexend text-5xl font-extrabold text-primary">{bmi}</span>
                 <span className="text-sm font-medium uppercase tracking-widest text-on-surface-variant">IMC</span>
               </div>
             </div>
@@ -55,7 +60,7 @@ const NuraResumoBiomTrico: React.FC<StepProps> = ({ data, updateData, onNext, on
             <span className="material-symbols-outlined text-primary text-3xl">straighten</span>
             <div>
               <span className="text-on-surface-variant text-sm block mb-1">Altura</span>
-              <h3 className="font-headline text-2xl font-bold text-primary">{height} <span className="text-base font-normal">cm</span></h3>
+              <h3 className="font-lexend text-2xl font-bold text-primary">{height} <span className="text-base font-normal">cm</span></h3>
             </div>
           </div>
 
@@ -63,13 +68,13 @@ const NuraResumoBiomTrico: React.FC<StepProps> = ({ data, updateData, onNext, on
             <span className="material-symbols-outlined text-primary text-3xl">monitor_weight</span>
             <div>
               <span className="text-on-surface-variant text-sm block mb-1">Peso Atual</span>
-              <h3 className="font-headline text-2xl font-bold text-primary">{weight} <span className="text-base font-normal">kg</span></h3>
+              <h3 className="font-lexend text-2xl font-bold text-primary">{weight} <span className="text-base font-normal">kg</span></h3>
             </div>
           </div>
 
           <div className="md:col-span-2 bg-surface-container-lowest p-8 rounded-xl shadow-sm">
             <div className="flex justify-between items-end mb-4">
-              <h4 className="font-headline font-semibold text-primary">Escala de Composição</h4>
+              <h4 className="font-lexend font-semibold text-primary">Escala de Composição</h4>
               <span className="text-xs text-on-surface-variant font-medium">18.5 — 24.9 Normal</span>
             </div>
             <div className="h-2 w-full bg-surface-container-highest rounded-full flex overflow-hidden">
@@ -90,8 +95,9 @@ const NuraResumoBiomTrico: React.FC<StepProps> = ({ data, updateData, onNext, on
         </div>
 
         <div className="mt-10 flex flex-col items-center">
-          <button onClick={onNext} className="w-full h-16 rounded-xl bg-primary text-on-primary font-headline font-bold text-lg shadow-lg active:scale-95 transition-all">
+          <button onClick={onNext} className="w-full h-16 rounded-xl bg-primary text-on-primary font-lexend font-bold text-lg shadow-xl shadow-primary/10 active:scale-95 transition-all flex items-center justify-center gap-3 group hover:scale-[1.02]">
             Continuar para Metas
+            <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </button>
           <p className="mt-4 text-xs text-on-surface-variant opacity-60">*Cálculos baseados na fórmula padrão da OMS</p>
         </div>

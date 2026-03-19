@@ -11,9 +11,9 @@ const NuraEducaOHidrataO: React.FC<StepProps> = ({ data, updateData, onNext, onB
 
       <header className="fixed top-0 w-full z-50 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
         <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-200/50 transition-all active:scale-95">
-          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
+          <span className="material-symbols-outlined text-teal-900">close</span>
         </button>
-        <span className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</span>
+        <span className="text-2xl font-bold tracking-tighter text-teal-900 font-lexend">NURA</span>
         <div className="w-10"></div>
       </header>
 
@@ -21,8 +21,8 @@ const NuraEducaOHidrataO: React.FC<StepProps> = ({ data, updateData, onNext, onB
         <div className="fixed -right-20 top-1/4 w-64 h-64 bg-secondary-container/20 rounded-full blur-3xl pointer-events-none z-0"></div>
 
         <section className="mb-12 space-y-4 relative z-10">
-          <span className="text-secondary font-headline font-semibold tracking-widest text-sm uppercase px-1">Fase 04 — Metabolismo</span>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline tracking-tight leading-tight">
+          <span className="text-secondary font-lexend font-semibold tracking-widest text-sm uppercase px-1">Fase 04 — Metabolismo</span>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-lexend tracking-tight leading-tight">
             Água como Combustível
           </h1>
           <p className="text-on-surface-variant text-lg leading-relaxed max-w-lg">
@@ -34,11 +34,11 @@ const NuraEducaOHidrataO: React.FC<StepProps> = ({ data, updateData, onNext, onB
           <div className="md:col-span-8 bg-surface-container-lowest rounded-xl p-8 shadow-[0_16px_32px_rgba(0,0,0,0.04)] relative overflow-hidden group">
             <div className="flex justify-between items-end mb-8">
               <div>
-                <h3 className="text-primary font-headline font-bold text-xl">Eficiência Metabólica</h3>
+                <h3 className="text-primary font-lexend font-bold text-xl">Eficiência Metabólica</h3>
                 <p className="text-sm text-on-surface-variant">Taxa de queima calórica basal</p>
               </div>
               <div className="text-right">
-                <span className="text-3xl font-bold text-secondary font-headline">+24%</span>
+                <span className="text-3xl font-bold text-secondary font-lexend">+24%</span>
                 <div className="flex items-center gap-1 text-secondary">
                   <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
                   <span className="text-xs font-bold uppercase tracking-tighter">Otimizado</span>
@@ -73,7 +73,7 @@ const NuraEducaOHidrataO: React.FC<StepProps> = ({ data, updateData, onNext, onB
             </div>
             <div>
               <span className="text-xs font-bold text-outline uppercase tracking-widest block mb-1">Volume Ideal</span>
-              <h4 className="text-2xl font-bold text-primary font-headline">500ml</h4>
+              <h4 className="text-2xl font-bold text-primary font-lexend">500ml</h4>
               <p className="text-xs text-on-surface-variant mt-2">Ingestão matinal aumenta o metabolismo em 30% nos primeiros 60 min.</p>
             </div>
           </div>
@@ -88,7 +88,7 @@ const NuraEducaOHidrataO: React.FC<StepProps> = ({ data, updateData, onNext, onB
               </div>
             </div>
             <div className="relative z-10 text-center md:text-left">
-              <h3 className="text-2xl font-headline font-bold mb-2">Combustão Celular</h3>
+              <h3 className="text-2xl font-lexend font-bold mb-2">Combustão Celular</h3>
               <p className="text-primary-fixed-dim opacity-90 max-w-xl leading-relaxed">
                 A água é essencial para a <span className="text-secondary-fixed-dim font-bold">lipólise</span> — o processo metabólico de queima de gordura. Sem ela, seu corpo reduz a velocidade de processamento.
               </p>
@@ -97,7 +97,7 @@ const NuraEducaOHidrataO: React.FC<StepProps> = ({ data, updateData, onNext, onB
         </div>
 
         <div className="mt-16 text-center relative z-10">
-          <button onClick={onNext} className="w-full md:w-auto min-w-[300px] h-16 bg-primary text-on-primary rounded-xl font-headline font-bold text-lg shadow-lg hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 px-12 group mx-auto">
+          <button onClick={onNext} className="w-full md:w-auto min-w-[300px] h-16 bg-primary text-on-primary rounded-xl font-lexend font-bold text-lg shadow-lg hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 px-12 group mx-auto">
             Entendi
             <span className="material-symbols-outlined group-hover:translate-x-2 transition-transform">arrow_forward</span>
           </button>
