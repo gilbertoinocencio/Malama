@@ -30,18 +30,41 @@ const NuraMetodologiaFlow: React.FC<StepProps> = ({ data, updateData, onNext, on
   ];
 
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body">
-      <header className="shrink-0 w-full z-10 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
-        <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all">
-          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
-        </button>
-        <span className="font-headline text-2xl font-bold tracking-tighter text-teal-900">NURA</span>
-        <div className="w-10"></div>
-      </header>
+    <div className="bg-surface text-on-surface font-body min-h-screen selection:bg-secondary-container">
+      {/* Sutil Flow Progress Bar */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+        <div className="h-full bg-secondary w-4/5"></div>
+      </div>
 
-      <main className="flex-1 overflow-y-auto pt-6 pb-8 px-6 max-w-4xl mx-auto w-full">
-        <section className="mb-12 space-y-6">
-          <h1 className="font-headline text-4xl md:text-5xl text-primary font-bold tracking-tight leading-tight">
+      {/* Top Navigation Anchor */}
+      <nav className="fixed top-0 w-full z-50 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20 w-full">
+        <div className="flex items-center gap-2">
+          <button onClick={onBack}>
+            <span className="material-symbols-outlined text-teal-900">close</span>
+          </button>
+        </div>
+        <span className="font-lexend tracking-tight font-medium text-2xl font-bold tracking-tighter text-teal-900">NURA</span>
+        <div className="w-10"></div>
+      </nav>
+
+      <main className="relative pt-32 pb-40 px-6 max-w-4xl mx-auto overflow-hidden">
+        {/* Background Elements */}
+        <div className="contextual-leaf w-64 h-64 -top-20 -left-20 absolute -z-10" style={{
+          filter: 'blur(40px)',
+          opacity: 0.15,
+          background: '#83fba5',
+          borderRadius: '40% 60% 70% 30% / 40% 50% 60% 50%'
+        }}></div>
+        <div className="contextual-leaf w-96 h-96 top-1/2 -right-32 absolute -z-10" style={{
+          filter: 'blur(40px)',
+          opacity: 0.15,
+          background: '#83fba5',
+          borderRadius: '40% 60% 70% 30% / 40% 50% 60% 50%'
+        }}></div>
+
+        {/* Header Section */}
+        <header className="mb-16 space-y-6">
+          <h1 className="font-lexend text-4xl md:text-5xl lg:text-6xl text-primary font-bold tracking-tight leading-tight">
             O que torna o <span className="text-secondary">NURA</span> diferente?
           </h1>
           <p className="text-on-surface-variant text-xl md:text-2xl font-light max-w-2xl leading-relaxed">

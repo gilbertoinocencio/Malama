@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Layout } from './components/Layout';
 import { FlowDashboard } from './components/FlowDashboard'; // Critical: Keep eager
 import { LoginView } from './components/LoginView'; // Critical: Keep eager

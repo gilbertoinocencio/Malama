@@ -3,18 +3,31 @@ import { StepProps } from '../onboarding-v2/types';
 
 const NuraProjeODeSucesso: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body">
-      <header className="shrink-0 w-full z-10 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
-        <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all">
-          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
-        </button>
-        <span className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</span>
-        <div className="w-10"></div>
+    <div className="bg-surface text-on-surface selection:bg-secondary-container">
+      {/* Progress Bar (Sutil Flow) */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+        <div className="h-full bg-secondary w-[85%] transition-all duration-1000 ease-in-out"></div>
+      </div>
+
+      {/* Header Navigation */}
+      <header className="fixed top-0 w-full z-50 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20 w-full">
+        <div className="flex items-center gap-2">
+          <button onClick={onBack}>
+            <span className="material-symbols-outlined text-teal-900">close</span>
+          </button>
+        </div>
+        <h1 className="text-2xl font-bold tracking-tighter text-teal-900 font-lexend">NURA</h1>
+        <div className="w-6"></div>
       </header>
 
-      <main className="flex-1 overflow-y-auto pt-6 pb-8 px-6 max-w-2xl mx-auto w-full">
-        <section className="mb-10">
-          <h2 className="text-4xl md:text-5xl font-extrabold font-headline text-primary leading-tight tracking-tight mb-4">
+      <main className="min-h-screen pt-28 pb-32 px-6 flex flex-col max-w-2xl mx-auto relative overflow-hidden">
+        {/* Contextual Leaf (Decorative Element) */}
+        <div className="absolute -right-20 top-40 w-64 h-64 bg-secondary-container/20 rounded-full blur-3xl -z-10"></div>
+        <div className="absolute -left-20 bottom-20 w-80 h-80 bg-primary-fixed/10 rounded-full blur-3xl -z-10"></div>
+
+        {/* Editorial Header */}
+        <section className="mb-12">
+          <h2 className="text-4xl md:text-5xl font-extrabold font-lexend text-primary leading-tight tracking-tight mb-4">
             Sua Projeção de Sucesso
           </h2>
           <p className="text-on-surface-variant text-lg leading-relaxed max-w-md">
@@ -22,36 +35,45 @@ const NuraProjeODeSucesso: React.FC<StepProps> = ({ data, updateData, onNext, on
           </p>
         </section>
 
+        {/* Main Chart Section (Bento Grid Style) */}
         <div className="grid grid-cols-1 gap-6">
-          <div className="bg-surface-container-lowest rounded-2xl p-8 shadow-[0_16px_32px_rgba(0,0,0,0.02)] border border-outline-variant/10 relative overflow-hidden">
+          {/* Elegant Projection Card */}
+          <div className="bg-surface-container-lowest rounded-lg p-8 shadow-[0_16px_32px_rgba(0,0,0,0.02)] border border-outline-variant/10 relative overflow-hidden">
             <div className="flex justify-between items-end mb-12">
               <div>
-                <p className="text-sm font-body uppercase tracking-widest text-on-surface-variant mb-1">Meta Estimada</p>
-                <p className="text-4xl font-headline font-bold text-secondary">-8.5kg</p>
+                <p className="text-sm font-label uppercase tracking-widest text-on-surface-variant mb-1">Meta Estimada</p>
+                <p className="text-4xl font-lexend font-bold text-secondary">-8.5kg</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-body text-on-surface-variant">Data Alvo</p>
-                <p className="text-xl font-headline font-medium text-primary">12 Semanas</p>
+                <p className="text-sm font-label text-on-surface-variant">Data Alvo</p>
+                <p className="text-xl font-lexend font-medium text-primary">12 Semanas</p>
               </div>
             </div>
 
-            <div className="relative h-48 w-full mt-8">
+            {/* Custom Visual Chart (SVG for Precision) */}
+            <div className="relative h-64 w-full mt-8">
               <svg className="w-full h-full drop-shadow-sm" viewBox="0 0 400 150">
-                <line stroke="#e2e3df" strokeDasharray="4" x1="0" x2="400" y1="20" y2="20"></line>
-                <line stroke="#e2e3df" strokeDasharray="4" x1="0" x2="400" y1="60" y2="60"></line>
-                <line stroke="#e2e3df" strokeDasharray="4" x1="0" x2="400" y1="100" y2="100"></line>
+                {/* Grid Lines */}
+                <line className="text-surface-container-highest" stroke="currentColor" strokeDasharray="4" x1="0" x2="400" y1="20" y2="20"></line>
+                <line className="text-surface-container-highest" stroke="currentColor" strokeDasharray="4" x1="0" x2="400" y1="60" y2="60"></line>
+                <line className="text-surface-container-highest" stroke="currentColor" strokeDasharray="4" x1="0" x2="400" y1="100" y2="100"></line>
+                {/* Gradient Fill */}
                 <defs>
                   <linearGradient id="chartGradient" x1="0%" x2="0%" y1="0%" y2="100%">
-                    <stop offset="0%" stopColor="#006d36" stopOpacity="0.15"></stop>
-                    <stop offset="100%" stopColor="#006d36" stopOpacity="0"></stop>
+                    <stop offset="0%" style={{ stopColor: 'var(--tw-secondary)', stopOpacity: 0.2 }}></stop>
+                    <stop offset="100%" style={{ stopColor: 'var(--tw-secondary)', stopOpacity: 0 }}></stop>
                   </linearGradient>
                 </defs>
+                {/* Path Area */}
                 <path d="M0,20 L50,25 L100,45 L150,55 L200,80 L250,90 L300,115 L350,125 L400,140 L400,150 L0,150 Z" fill="url(#chartGradient)"></path>
+                {/* Main Line */}
                 <path d="M0,20 L50,25 L100,45 L150,55 L200,80 L250,90 L300,115 L350,125 L400,140" fill="none" stroke="#006d36" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4"></path>
+                {/* Pulse Point (Current Target) */}
                 <circle className="fill-secondary shadow-lg" cx="400" cy="140" r="6"></circle>
                 <circle className="fill-secondary/20 animate-pulse" cx="400" cy="140" r="12"></circle>
               </svg>
-              <div className="flex justify-between mt-4 text-[10px] font-body text-stone-400 uppercase tracking-tighter">
+              {/* X-Axis Labels */}
+              <div className="flex justify-between mt-4 text-[10px] font-label text-stone-400 uppercase tracking-tighter">
                 <span>Hoje</span>
                 <span>Semana 4</span>
                 <span>Semana 8</span>
@@ -60,38 +82,44 @@ const NuraProjeODeSucesso: React.FC<StepProps> = ({ data, updateData, onNext, on
             </div>
           </div>
 
+          {/* Insight Stats Bento */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-surface-container-low p-6 rounded-xl flex flex-col gap-2">
+            <div className="bg-surface-container-low p-6 rounded-lg flex flex-col gap-2">
               <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-              <p className="text-xs font-body text-on-surface-variant">Metabolismo</p>
-              <p className="text-xl font-headline font-semibold text-primary">+14% Eficiência</p>
+              <p className="text-xs font-label text-on-surface-variant">Metabolismo</p>
+              <p className="text-xl font-lexend font-semibold text-primary">+14% Eficiência</p>
             </div>
-            <div className="bg-surface-container-low p-6 rounded-xl flex flex-col gap-2">
+            <div className="bg-surface-container-low p-6 rounded-lg flex flex-col gap-2">
               <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-              <p className="text-xs font-body text-on-surface-variant">Saúde Celular</p>
-              <p className="text-xl font-headline font-semibold text-primary">Nível Ótimo</p>
+              <p className="text-xs font-label text-on-surface-variant">Saúde Celular</p>
+              <p className="text-xl font-lexend font-semibold text-primary">Nível Ótimo</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 p-6 bg-primary-container/10 rounded-xl border border-primary-container/20">
+          {/* Goal Milestone Card */}
+          <div className="flex items-center gap-6 p-6 bg-primary-container/10 rounded-lg border border-primary-container/20">
             <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-primary-fixed text-3xl">auto_awesome</span>
             </div>
             <div>
-              <h4 className="font-headline font-bold text-primary">Seu "Novo Eu" em 90 dias</h4>
+              <h4 className="font-lexend font-bold text-primary">Seu "Novo Eu" em 90 dias</h4>
               <p className="text-sm text-on-surface-variant">72% dos usuários NURA alcançam a meta projetada mantendo a consistência sugerida.</p>
             </div>
           </div>
         </div>
+
+        {/* Spacer for FAB/Button Area */}
+        <div className="h-12"></div>
       </main>
 
-      <footer className="shrink-0 w-full p-6 bg-surface/90 backdrop-blur-md z-10">
+      {/* Fixed Action Footer */}
+      <footer className="fixed bottom-0 left-0 w-full p-6 bg-surface/80 backdrop-blur-md z-50">
         <div className="max-w-2xl mx-auto">
-          <button onClick={onNext} className="w-full h-16 bg-primary hover:bg-primary-container text-on-primary font-headline font-bold text-lg rounded-xl transition-all active:scale-95 shadow-xl shadow-primary/10 flex items-center justify-center gap-2 group">
+          <button onClick={onNext} className="w-full bg-primary hover:bg-primary-container text-on-primary font-lexend font-bold py-5 rounded-xl transition-all duration-300 transform active:scale-95 shadow-xl shadow-primary/10 flex items-center justify-center gap-2 group">
             Continuar
             <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </button>
-          <p className="text-center mt-4 text-xs font-body text-stone-400">
+          <p className="text-center mt-4 text-xs font-label text-stone-400">
             Dados baseados em modelos científicos de termogênese aplicada.
           </p>
         </div>
