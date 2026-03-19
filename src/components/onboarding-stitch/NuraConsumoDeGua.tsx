@@ -14,11 +14,17 @@ const NuraConsumoDeGua: React.FC<StepProps> = ({ data, updateData, onNext, onBac
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body overflow-x-hidden">
-      <nav className="shrink-0 w-full z-10 flex items-center justify-between px-8 h-20 bg-stone-50/70 backdrop-blur-xl">
-        <div className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</div>
+    <div className="bg-surface text-on-surface min-h-screen flex flex-col overflow-x-hidden">
+      {/* Progress Bar */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+        <div className="h-full bg-secondary w-3/4 transition-all duration-700 ease-in-out"></div>
+      </div>
+
+      {/* Top Navigation Shell */}
+      <nav className="fixed top-0 w-full z-50 flex items-center justify-between px-8 h-20 bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl">
+        <div className="text-2xl font-bold tracking-tighter text-teal-900 dark:text-teal-500 font-lexend">NURA</div>
         <button onClick={onBack} className="p-2 rounded-full hover:bg-stone-200/50 transition-all duration-300">
-          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
+          <span className="material-symbols-outlined text-teal-900 dark:text-teal-500">close</span>
         </button>
       </nav>
 
@@ -41,7 +47,7 @@ const NuraConsumoDeGua: React.FC<StepProps> = ({ data, updateData, onNext, onBac
           </div>
 
           <div className="text-center mb-16 px-4">
-            <h1 className="text-4xl md:text-5xl font-headline font-bold tracking-tight text-primary leading-tight">
+            <h1 className="text-4xl md:text-5xl font-lexend font-bold tracking-tight text-primary leading-tight">
               Bebe água suficiente?
             </h1>
             <p className="mt-6 text-on-surface-variant text-lg max-w-sm mx-auto leading-relaxed">
@@ -68,7 +74,7 @@ const NuraConsumoDeGua: React.FC<StepProps> = ({ data, updateData, onNext, onBac
                     }`}>
                       <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0" }}>{opt.icon}</span>
                     </div>
-                    <span className={`text-xl font-headline ${isSelected ? 'font-semibold text-primary' : 'font-medium text-on-surface'}`}>
+                    <span className={`text-xl font-lexend ${isSelected ? 'font-semibold text-primary' : 'font-medium text-on-surface'}`}>
                       {opt.label}
                     </span>
                   </div>
@@ -81,7 +87,7 @@ const NuraConsumoDeGua: React.FC<StepProps> = ({ data, updateData, onNext, onBac
           </div>
 
           <div className="mt-12 w-full">
-            <button onClick={onNext} className="w-full h-16 bg-primary text-on-primary rounded-xl font-headline font-semibold text-lg flex items-center justify-center gap-3 shadow-lg shadow-primary/10 hover:brightness-110 active:scale-[0.98] transition-all duration-300 group">
+            <button onClick={onNext} className="w-full h-16 bg-primary text-on-primary rounded-xl font-lexend font-semibold text-lg flex items-center justify-center gap-3 shadow-lg shadow-primary/10 hover:brightness-110 active:scale-[0.98] transition-all duration-300 group">
               Continuar
               <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
             </button>

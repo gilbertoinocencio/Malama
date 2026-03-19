@@ -29,7 +29,7 @@ const NuraLocalDasRefeiEs: React.FC<StepProps> = ({ data, updateData, onNext, on
       </nav>
 
       <header className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md flex items-center justify-between px-8 h-20 border-b border-outline-variant/20">
-        <div className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</div>
+        <div className="text-2xl font-bold tracking-tighter text-teal-900 font-lexend">NURA</div>
         <button onClick={onBack} className="p-2 hover:bg-surface-container-highest transition-all duration-300 ease-in-out rounded-full flex items-center justify-center">
           <span className="material-symbols-outlined text-on-surface">close</span>
         </button>
@@ -38,7 +38,7 @@ const NuraLocalDasRefeiEs: React.FC<StepProps> = ({ data, updateData, onNext, on
       <main className="flex-1 pt-32 pb-40 px-6 max-w-2xl mx-auto w-full z-10 flex flex-col justify-center min-h-screen">
         <div className="w-full">
           <section className="mb-12 text-center md:text-left">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline tracking-tight leading-tight mb-4">
+            <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-lexend tracking-tight leading-tight mb-4">
               Onde costuma comer?
             </h1>
             <p className="text-on-surface-variant text-lg leading-relaxed max-w-md mx-auto md:mx-0">
@@ -62,7 +62,7 @@ const NuraLocalDasRefeiEs: React.FC<StepProps> = ({ data, updateData, onNext, on
                   <span className="material-symbols-outlined text-4xl mb-4 text-primary" style={{ fontVariationSettings: isSelected ? "'FILL' 1" : "'FILL' 0" }}>
                     {loc.icon}
                   </span>
-                  <span className={`font-headline font-semibold text-lg ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
+                  <span className={`font-lexend font-semibold text-lg ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
                     {loc.label}
                   </span>
 
@@ -87,7 +87,7 @@ const NuraLocalDasRefeiEs: React.FC<StepProps> = ({ data, updateData, onNext, on
           <button onClick={onBack} className="text-on-surface-variant font-medium hover:text-primary transition-colors flex items-center gap-2 px-4 py-2 rounded-full hover:bg-surface-container-high">
             Voltar
           </button>
-          <button onClick={onNext} className="bg-primary text-on-primary font-headline font-semibold py-4 px-12 rounded-xl text-lg hover:bg-primary-container transition-all duration-300 transform active:scale-95 shadow-xl shadow-primary/10 min-w-[160px]">
+          <button onClick={onNext} className="bg-primary text-on-primary font-lexend font-semibold py-4 px-12 rounded-xl text-lg hover:bg-primary-container transition-all duration-300 transform active:scale-95 shadow-xl shadow-primary/10 min-w-[160px]">
             Continuar
           </button>
         </div>

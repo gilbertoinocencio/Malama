@@ -3,12 +3,10 @@ import { StepProps } from '../onboarding-v2/types';
 
 const NuraMudanADeHBitos: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
   const habits = [
-    { value: 'comer_mais_devagar', label: 'Comer mais devagar', icon: 'pace' },
-    { value: 'menos_acucar', label: 'Menos açúcar', icon: 'no_food' },
-    { value: 'mais_vegetais', label: 'Mais vegetais', icon: 'nutrition' },
-    { value: 'menos_processados', label: 'Menos processados', icon: 'block' },
-    { value: 'cozinhar_mais', label: 'Cozinhar mais', icon: 'skillet' },
-    { value: 'controlar_porcoes', label: 'Controlar porções', icon: 'straighten' },
+    { value: 'comer_noite', label: 'Comer à noite', icon: 'dark_mode' },
+    { value: 'beliscar', label: 'Beliscar o dia todo', icon: 'restaurant' },
+    { value: 'doces_excesso', label: 'Doces em excesso', icon: 'icecream' },
+    { value: 'sedentarismo', label: 'Sedentarismo', icon: 'directions_walk' },
   ];
 
   const toggleHabit = (value: string) => {

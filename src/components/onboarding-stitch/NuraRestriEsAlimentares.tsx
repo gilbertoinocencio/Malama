@@ -24,25 +24,32 @@ const NuraRestriEsAlimentares: React.FC<StepProps> = ({ data, updateData, onNext
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body overflow-hidden relative">
-      <div className="fixed top-40 -left-20 opacity-20 pointer-events-none transform -rotate-12 z-0">
-        <span className="material-symbols-outlined text-[20rem] text-secondary-container">eco</span>
-      </div>
-      <div className="fixed bottom-10 -right-20 opacity-10 pointer-events-none transform rotate-45 z-0">
-        <span className="material-symbols-outlined text-[25rem] text-tertiary-fixed">spa</span>
+    <div className="bg-surface text-on-surface min-h-screen flex flex-col overflow-hidden relative">
+      {/* Progress Bar */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+        <div className="h-full bg-secondary w-3/4 transition-all duration-700"></div>
       </div>
 
-      <header className="shrink-0 w-full z-10 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
+      {/* Decorative Elements */}
+      <div className="fixed top-40 -left-20 opacity-20 pointer-events-none transform -rotate-12 z-0">
+        <span className="material-symbols-outlined text-[20rem] text-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
+      </div>
+      <div className="fixed bottom-10 -right-20 opacity-10 pointer-events-none transform rotate-45 z-0">
+        <span className="material-symbols-outlined text-[25rem] text-tertiary-fixed" style={{ fontVariationSettings: "'FILL' 0" }}>spa</span>
+      </div>
+
+      {/* Top Navigation */}
+      <header className="fixed top-0 w-full z-50 bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
         <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all">
-          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
+          <span className="material-symbols-outlined text-teal-900">close</span>
         </button>
-        <div className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</div>
+        <div className="text-2xl font-bold tracking-tighter text-teal-900 font-lexend">NURA</div>
         <div className="w-10"></div>
       </header>
 
-      <main className="flex-1 overflow-y-auto pt-6 pb-8 px-6 max-w-2xl mx-auto w-full z-10">
+      <main className="flex-grow pt-32 pb-32 px-6 max-w-2xl mx-auto w-full z-10">
         <section className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline tracking-tight leading-tight mb-4">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-lexend tracking-tight leading-tight mb-4">
             Tem alguma restrição alimentar?
           </h1>
           <p className="text-on-surface-variant text-lg leading-relaxed max-w-md">
@@ -73,7 +80,7 @@ const NuraRestriEsAlimentares: React.FC<StepProps> = ({ data, updateData, onNext
                 }`}>
                   <span className="material-symbols-outlined text-tertiary text-2xl">{item.icon}</span>
                 </div>
-                <span className="text-xl font-headline font-medium text-primary mb-2">{item.label}</span>
+                <span className="text-xl font-lexend font-medium text-primary mb-2">{item.label}</span>
                 <span className="text-sm text-on-surface-variant leading-relaxed">{item.desc}</span>
               </button>
             );
@@ -81,10 +88,16 @@ const NuraRestriEsAlimentares: React.FC<StepProps> = ({ data, updateData, onNext
         </div>
 
         <div className="w-full mt-16 flex flex-col items-center gap-6">
-          <button onClick={onNext} className="w-full md:w-80 h-16 bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline font-medium text-lg rounded-xl shadow-lg shadow-primary/10 hover:shadow-xl hover:shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-300">
+          <button
+            onClick={onNext}
+            className="w-full md:w-80 h-16 bg-gradient-to-r from-primary to-primary-container text-on-primary font-lexend font-medium text-lg rounded-xl shadow-lg shadow-primary/10 hover:shadow-xl hover:shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-300"
+          >
             Continuar
           </button>
-          <button onClick={onNext} className="text-on-surface-variant font-medium hover:text-primary transition-colors py-2 px-6 rounded-full hover:bg-surface-container-high transition-all">
+          <button
+            onClick={onNext}
+            className="text-on-surface-variant font-medium hover:text-primary transition-colors py-2 px-6 rounded-full hover:bg-surface-container-high transition-all"
+          >
             Pular esta etapa
           </button>
         </div>
