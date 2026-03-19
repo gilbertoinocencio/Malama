@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-highest": "#e2e3df",
+                        "on-background": "#1a1c1a",
+                        "on-primary-container": "#90d6e4",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#66dd8b",
+                        "on-secondary-container": "#00743a",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#edeeea",
+                        "outline": "#6f797b",
+                        "secondary-container": "#83fba5",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#2e312f",
+                        "inverse-primary": "#8bd2df",
+                        "on-surface-variant": "#3f484a",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed-variant": "#005227",
+                        "tertiary-container": "#7d491f",
+                        "surface": "#f9faf6",
+                        "on-surface": "#1a1c1a",
+                        "primary": "#00464f",
+                        "primary-fixed-dim": "#8bd2df",
+                        "surface-tint": "#156874",
+                        "tertiary-fixed": "#ffdcc5",
+                        "surface-container-high": "#e7e9e5",
+                        "on-tertiary-fixed-variant": "#6b3a11",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "on-primary-fixed": "#001f24",
+                        "secondary": "#006d36",
+                        "on-primary-fixed-variant": "#004e59",
+                        "surface-dim": "#d9dad7",
+                        "on-tertiary-fixed": "#301400",
+                        "on-primary": "#ffffff",
+                        "background": "#f9faf6",
+                        "primary-container": "#005f6b",
+                        "tertiary": "#613309",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f3f4f0",
+                        "inverse-on-surface": "#f0f1ed",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#a7eefc",
+                        "surface-variant": "#e2e3df",
+                        "on-tertiary-container": "#ffbd8f",
+                        "secondary-fixed": "#83fba5",
+                        "on-secondary-fixed": "#00210c",
+                        "surface-bright": "#f9faf6",
+                        "outline-variant": "#bec8ca"
+                    },
+                    fontFamily: {
+                        "headline": ["Lexend"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-nura-pattern {
+            background-color: #f9faf6;
+            background-image: radial-gradient(circle at 2px 2px, #e2e3df 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-fixed selection:text-primary min-h-screen flex flex-col">
+<!-- Progress Bar (Sutil Flow) -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-secondary w-[85%] transition-all duration-1000 ease-out"></div>
+</div>
+<!-- Top Navigation Bar (JSON Anchor) -->
+<nav class="fixed top-0 w-full z-50 bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl flex items-center justify-between px-8 h-20 w-full no-border tonal-shift bg-stone-100/50 dark:bg-stone-900/50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-teal-900 dark:text-teal-500 text-2xl" data-icon="close">close</span>
+</div>
+<div class="text-2xl font-bold tracking-tighter text-teal-900 dark:text-teal-500 font-lexend tracking-tight font-medium">NURA</div>
+<div class="w-8"></div> <!-- Spacer for center alignment -->
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-grow pt-32 pb-40 px-6 max-w-5xl mx-auto w-full">
+<!-- Header Editorial -->
+<header class="mb-12 space-y-4">
+<h1 class="text-4xl md:text-5xl font-headline font-extrabold tracking-tight text-primary leading-tight">
+                Seu caminho para <br/>o equilíbrio está pronto.
+            </h1>
+<p class="text-on-surface-variant text-lg max-w-xl font-light leading-relaxed">
+                Desenhamos um plano de 90 dias baseado no seu perfil. Uma jornada gradual para transformar sua rotina em um ritual de bem-estar.
+            </p>
+</header>
+<!-- Bento Grid Layout for Phases -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 relative">
+<!-- Contextual Leaf Decoration (Absolute Position) -->
+<div class="absolute -right-20 top-40 opacity-20 pointer-events-none hidden lg:block">
+<span class="material-symbols-outlined text-[200px] text-secondary-container" data-icon="eco">eco</span>
+</div>
+<!-- Phase 1 Card -->
+<div class="bg-surface-container-lowest p-8 rounded-lg shadow-[0_16px_32px_rgba(0,0,0,0.04)] flex flex-col h-full border-b-4 border-tertiary-fixed transition-transform duration-300 hover:-translate-y-1">
+<div class="flex justify-between items-start mb-8">
+<span class="text-tertiary font-headline font-bold text-sm tracking-widest uppercase">Fase 1</span>
+<span class="material-symbols-outlined text-tertiary text-4xl" data-icon="energy_savings_leaf">energy_savings_leaf</span>
+</div>
+<h3 class="text-2xl font-headline font-bold text-primary mb-4">Adaptação</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed mb-8">
+                    Os primeiros 30 dias focam em identificar gatilhos e estabelecer micrometras sem pressão.
+                </p>
+<div class="mt-auto space-y-3">
+<div class="flex items-center gap-3 text-xs text-on-surface font-medium">
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        Mapeamento de rotina
+                    </div>
+<div class="flex items-center gap-3 text-xs text-on-surface font-medium">
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        Introdução ao Flow
+                    </div>
+</div>
+</div>
+<!-- Phase 2 Card (Featured) -->
+<div class="bg-primary text-on-primary p-8 rounded-lg shadow-[0_24px_48px_rgba(0,70,79,0.15)] flex flex-col h-full scale-105 z-10 relative overflow-hidden">
+<!-- Soft Glow Gradient -->
+<div class="absolute -top-10 -right-10 w-40 h-40 bg-primary-container rounded-full blur-3xl opacity-50"></div>
+<div class="flex justify-between items-start mb-8 relative z-20">
+<span class="text-primary-fixed font-headline font-bold text-sm tracking-widest uppercase">Fase 2</span>
+<span class="material-symbols-outlined text-primary-fixed text-4xl" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<h3 class="text-2xl font-headline font-bold text-surface-container-lowest mb-4 relative z-20">Flow</h3>
+<p class="text-primary-fixed-dim text-sm leading-relaxed mb-8 relative z-20">
+                    Do dia 31 ao 60, intensificamos as práticas. Você começará a sentir a clareza mental e a consistência.
+                </p>
+<div class="mt-auto space-y-3 relative z-20">
+<div class="flex items-center gap-3 text-xs text-on-primary font-medium">
+<span class="material-symbols-outlined text-secondary-fixed text-lg" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        Práticas avançadas
+                    </div>
+<div class="flex items-center gap-3 text-xs text-on-primary font-medium">
+<span class="material-symbols-outlined text-secondary-fixed text-lg" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        Otimização de sono
+                    </div>
+</div>
+</div>
+<!-- Phase 3 Card -->
+<div class="bg-surface-container-lowest p-8 rounded-lg shadow-[0_16px_32px_rgba(0,0,0,0.04)] flex flex-col h-full border-b-4 border-primary-fixed transition-transform duration-300 hover:-translate-y-1">
+<div class="flex justify-between items-start mb-8">
+<span class="text-primary font-headline font-bold text-sm tracking-widest uppercase">Fase 3</span>
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="verified">verified</span>
+</div>
+<h3 class="text-2xl font-headline font-bold text-primary mb-4">Consolidação</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed mb-8">
+                    Reta final. Transformação de hábitos em identidade. O bem-estar torna-se seu estado natural.
+                </p>
+<div class="mt-auto space-y-3">
+<div class="flex items-center gap-3 text-xs text-on-surface font-medium">
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        Sustentabilidade a longo prazo
+                    </div>
+<div class="flex items-center gap-3 text-xs text-on-surface font-medium">
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        Certificação NURA
+                    </div>
+</div>
+</div>
+</div>
+<!-- Summary Quote Section (Asymmetric) -->
+<div class="flex flex-col md:flex-row items-center gap-12 bg-surface-container-low p-10 rounded-xl mb-12">
+<div class="w-24 h-24 rounded-full bg-surface-container-highest flex-shrink-0 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait of a calm wellness expert" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlggZWaEqir0ImDHkfTiumB-KNT5cp--gG7qpuyD0ep2c3ftP8nMd9ZzF1WmR_FE3WnM1VV_aBpu5gCSvTmS63A5x9idCJSwuEhQINItETR-vhsZwvdlUPXoKd2uz2B9RC3Y1BMiVMbn6YFc98WOuK9zV8DB-rR6sZ6avjHdRa2V9RfOaS4I3becLc04NogNlTbahiVoXbVymAr-i-mnHJ5FKuJpQljtspVTcblGVn2Nvsmmlc1UbYUl-aRvx3dz5h6U61vIjjKSA"/>
+</div>
+<div class="space-y-2">
+<p class="text-xl font-body italic text-primary leading-snug">
+                    "O sucesso não vem da intensidade, mas da consistência. Este plano foi feito para você nunca mais precisar recomeçar."
+                </p>
+<p class="text-sm font-headline font-bold text-tertiary">Dra. Helena Souza, Head de Neurociência NURA</p>
+</div>
+</div>
+<!-- Action Section -->
+<div class="flex flex-col items-center gap-6">
+<button class="bg-primary text-on-primary font-headline font-bold text-lg px-12 py-5 rounded-xl transition-all duration-300 hover:shadow-2xl hover:scale-105 active:scale-95 w-full md:w-auto shadow-lg">
+                Começar Agora
+            </button>
+<p class="text-on-surface-variant text-xs font-medium tracking-wide">
+                *Você pode ajustar seu ritmo a qualquer momento.
+            </p>
+</div>
+</main>
+<!-- Bottom Navigation Bar (JSON Anchor - Suppressed for Focused Onboarding Journey as per rules, but included if top-level) -->
+<!-- Rule: suppress navigation shell if the page intent is linear/transactional (Onboarding). Navigation hidden for UX Goal. -->
+<!-- Placeholder for visual balance if needed -->
+<div class="h-10"></div>
+</body></html>

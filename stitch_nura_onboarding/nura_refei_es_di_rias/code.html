@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-highest": "#e2e3df",
+                        "on-background": "#1a1c1a",
+                        "on-primary-container": "#90d6e4",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#66dd8b",
+                        "on-secondary-container": "#00743a",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#edeeea",
+                        "outline": "#6f797b",
+                        "secondary-container": "#83fba5",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#2e312f",
+                        "inverse-primary": "#8bd2df",
+                        "on-surface-variant": "#3f484a",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed-variant": "#005227",
+                        "tertiary-container": "#7d491f",
+                        "surface": "#f9faf6",
+                        "on-surface": "#1a1c1a",
+                        "primary": "#00464f",
+                        "primary-fixed-dim": "#8bd2df",
+                        "surface-tint": "#156874",
+                        "tertiary-fixed": "#ffdcc5",
+                        "surface-container-high": "#e7e9e5",
+                        "on-tertiary-fixed-variant": "#6b3a11",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "on-primary-fixed": "#001f24",
+                        "secondary": "#006d36",
+                        "on-primary-fixed-variant": "#004e59",
+                        "surface-dim": "#d9dad7",
+                        "on-tertiary-fixed": "#301400",
+                        "on-primary": "#ffffff",
+                        "background": "#f9faf6",
+                        "primary-container": "#005f6b",
+                        "tertiary": "#613309",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f3f4f0",
+                        "inverse-on-surface": "#f0f1ed",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#a7eefc",
+                        "surface-variant": "#e2e3df",
+                        "on-tertiary-container": "#ffbd8f",
+                        "secondary-fixed": "#83fba5",
+                        "on-secondary-fixed": "#00210c",
+                        "surface-bright": "#f9faf6",
+                        "outline-variant": "#bec8ca"
+                    },
+                    fontFamily: {
+                        "headline": ["Lexend"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f9faf6;
+        }
+        h1, h2, h3, .font-lexend {
+            font-family: 'Lexend', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+<!-- Progress Indicator -->
+<nav class="fixed top-0 w-full z-50">
+<div class="h-1 w-full bg-surface-container-high">
+<div class="h-full bg-secondary w-3/4 transition-all duration-700"></div>
+</div>
+<div class="bg-stone-100/50 dark:bg-stone-900/50 backdrop-blur-xl flex items-center justify-between px-8 h-20 w-full">
+<button class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-stone-200/50 transition-all duration-300">
+<span class="material-symbols-outlined text-teal-900">close</span>
+</button>
+<span class="text-2xl font-bold tracking-tighter text-teal-900 font-lexend">NURA</span>
+<div class="w-12"></div>
+</div>
+</nav>
+<!-- Contextual Leaf Decoration -->
+<div class="fixed top-40 -right-20 opacity-20 pointer-events-none transform rotate-45">
+<span class="material-symbols-outlined text-[300px] text-secondary-container" style="font-variation-settings: 'FILL' 1;">eco</span>
+</div>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center px-6 pt-24 pb-32 max-w-2xl mx-auto w-full relative z-10">
+<!-- Header Section -->
+<header class="text-center mb-16 space-y-4">
+<h1 class="text-4xl md:text-5xl font-extrabold text-primary font-lexend tracking-tight leading-tight">
+                Quantas refeições faz por dia?
+            </h1>
+<p class="text-on-surface-variant text-lg md:text-xl font-medium max-w-md mx-auto leading-relaxed">
+                Ajustamos a densidade calórica de cada prato para o seu ritmo.
+            </p>
+</header>
+<!-- Stepper Component: The "Elegance" Selector -->
+<div class="w-full flex flex-col items-center space-y-12">
+<!-- Numerical Input Area -->
+<div class="relative flex items-center justify-center space-x-12">
+<!-- Visual Anchor Left -->
+<div class="hidden sm:block opacity-20 transform -scale-x-100">
+<span class="material-symbols-outlined text-tertiary text-6xl" data-icon="restaurant">restaurant</span>
+</div>
+<div class="flex items-center space-x-8">
+<button class="w-16 h-16 rounded-full bg-surface-container-lowest shadow-[0_16px_32px_rgba(0,0,0,0.04)] text-primary flex items-center justify-center hover:bg-surface-container-high transition-all duration-300 active:scale-90 border border-outline-variant/10">
+<span class="material-symbols-outlined text-3xl font-bold">remove</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="text-8xl md:text-9xl font-extrabold text-primary font-lexend tabular-nums tracking-tighter">
+                            3
+                        </span>
+<div class="w-24 h-1 bg-surface-container-highest rounded-full mt-2 overflow-hidden">
+<div class="h-full bg-primary w-full"></div>
+</div>
+</div>
+<button class="w-16 h-16 rounded-full bg-surface-container-lowest shadow-[0_16px_32px_rgba(0,0,0,0.04)] text-primary flex items-center justify-center hover:bg-surface-container-high transition-all duration-300 active:scale-90 border border-outline-variant/10">
+<span class="material-symbols-outlined text-3xl font-bold">add</span>
+</button>
+</div>
+<!-- Visual Anchor Right -->
+<div class="hidden sm:block opacity-20">
+<span class="material-symbols-outlined text-tertiary text-6xl" data-icon="restaurant">restaurant</span>
+</div>
+</div>
+<!-- Descriptive State Card (Bento-style Glassmorphism) -->
+<div class="w-full bg-surface-container-low rounded-lg p-8 flex items-center gap-6 border border-white/40 backdrop-blur-sm">
+<div class="w-14 h-14 rounded-full bg-tertiary-fixed-dim/30 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-tertiary text-2xl" style="font-variation-settings: 'FILL' 1;">set_meal</span>
+</div>
+<div>
+<h3 class="text-tertiary font-bold font-lexend text-lg">Padrão Nutritivo</h3>
+<p class="text-on-surface-variant text-sm font-medium">Café da manhã, almoço e jantar equilibrados.</p>
+</div>
+</div>
+</div>
+<!-- Sticky Footer Action -->
+<footer class="fixed bottom-0 left-0 w-full p-8 flex justify-center bg-gradient-to-t from-surface via-surface to-transparent">
+<div class="max-w-md w-full">
+<button class="w-full h-16 rounded-xl bg-primary text-on-primary font-lexend font-bold text-lg flex items-center justify-center gap-2 shadow-xl hover:bg-primary-container hover:scale-[1.02] transition-all duration-500 active:scale-95 group">
+                    Continuar
+                    <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</footer>
+</main>
+<!-- Bottom Margin for Fixed Nav -->
+<div class="h-32"></div>
+<!-- Material Design Anchor Shell (Bottom Navigation Mock for Consistency) -->
+<!-- Suppressed due to Transactional Focus rule -->
+</body></html>
