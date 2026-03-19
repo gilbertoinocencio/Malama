@@ -43,6 +43,30 @@ import ReminderMotivationStep from './onboarding-v2/ReminderMotivationStep';
 import CalorieTrackingStep from './onboarding-v2/CalorieTrackingStep';
 import UniqueApproachStep from './onboarding-v2/UniqueApproachStep';
 
+// Import NEW Stitch components
+import NuraTipoDeDieta from './onboarding-stitch/NuraTipoDeDieta';
+import NuraRestriEsAlimentares from './onboarding-stitch/NuraRestriEsAlimentares';
+import NuraJanelaAlimentar from './onboarding-stitch/NuraJanelaAlimentar';
+import NuraMudanADeHBitos from './onboarding-stitch/NuraMudanADeHBitos';
+import NuraPesoObjetivo from './onboarding-stitch/NuraPesoObjetivo';
+import NuraObjetivosAdicionais from './onboarding-stitch/NuraObjetivosAdicionais';
+import NuraConsumoDeGua from './onboarding-stitch/NuraConsumoDeGua';
+import NuraLocalDasRefeiEs from './onboarding-stitch/NuraLocalDasRefeiEs';
+import NuraVelocidadeDaMeta from './onboarding-stitch/NuraVelocidadeDaMeta';
+import NuraExperiNciaCalorias from './onboarding-stitch/NuraExperiNciaCalorias';
+import NuraConheceJejum from './onboarding-stitch/NuraConheceJejum';
+import NuraRefeiEsDiRias from './onboarding-stitch/NuraRefeiEsDiRias';
+import NuraLembretesERotina from './onboarding-stitch/NuraLembretesERotina';
+import NuraEducaOJejum from './onboarding-stitch/NuraEducaOJejum';
+import NuraBenefCiosJejum from './onboarding-stitch/NuraBenefCiosJejum';
+import NuraEducaOHidrataO from './onboarding-stitch/NuraEducaOHidrataO';
+import NuraProjeODeSucesso from './onboarding-stitch/NuraProjeODeSucesso';
+import NuraProvaDeSucesso from './onboarding-stitch/NuraProvaDeSucesso';
+import NuraCriandoPlano from './onboarding-stitch/NuraCriandoPlano';
+import NuraPlanoPersonalizado from './onboarding-stitch/NuraPlanoPersonalizado';
+import NuraMetodologiaFlow from './onboarding-stitch/NuraMetodologiaFlow';
+import NuraResumoBiomTrico from './onboarding-stitch/NuraResumoBiomTrico';
+
 export interface OnboardingData {
   // New fields
   primaryGoal?: string;
@@ -100,7 +124,7 @@ export interface OnboardingData {
   targetWeight: number;
 
   // Step 20: Goal speed
-  goalSpeed: number; // kg per week
+  goalSpeedKgPerWeek: number; // kg per week
 }
 
 interface OnboardingFlowV2Props {
@@ -129,7 +153,7 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
     currentWeight: 70,
     weightUnit: 'kg',
     targetWeight: 70,
-    goalSpeed: 0.4,
+    goalSpeedKgPerWeek: 0.4,
   });
 
   const totalSteps = 37; // Updated to include 9 new steps
@@ -190,7 +214,7 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
           knows_intermittent_fasting: data.knowsIntermittentFasting,
           drinks_enough_water: data.drinksEnoughWater,
           reminder_schedule: data.reminderSchedule,
-          goal_speed_kg_per_week: data.goalSpeed,
+          goal_speed_kg_per_week: data.goalSpeedKgPerWeek,
           bmi: bmi,
           onboarding_completed: true,
         });
@@ -220,40 +244,40 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
         return <PrimaryGoalStep {...stepProps} />;
       // New: Calorie tracking experience
       case 1:
-        return <CalorieTrackingExperienceStep {...stepProps} />;
+        return <NuraExperiNciaCalorias {...stepProps} />;
       case 2:
-        return <AdditionalGoalsStep {...stepProps} />;
+        return <NuraObjetivosAdicionais {...stepProps} />;
       case 3:
-        return <IntermittentFastingKnowledgeStep {...stepProps} />;
+        return <NuraConheceJejum {...stepProps} />;
       case 4:
-        return <IntermittentFastingEducationStep {...stepProps} />;
+        return <NuraEducaOJejum {...stepProps} />;
       // New: Fasting benefits visual
       case 5:
-        return <FastingBenefitsStep {...stepProps} />;
+        return <NuraBenefCiosJejum {...stepProps} />;
       case 6:
-        return <ReminderScheduleStep {...stepProps} />;
+        return <NuraLembretesERotina {...stepProps} />;
       // New: Reminder motivation
       case 7:
         return <ReminderMotivationStep {...stepProps} />;
       case 8:
-        return <MealsPerDayStep {...stepProps} />;
+        return <NuraRefeiEsDiRias {...stepProps} />;
       case 9:
-        return <EatingWindowStep {...stepProps} />;
+        return <NuraJanelaAlimentar {...stepProps} />;
       case 10:
-        return <EatingLocationStep {...stepProps} />;
+        return <NuraLocalDasRefeiEs {...stepProps} />;
       case 11:
-        return <DietTypeStep {...stepProps} />;
+        return <NuraTipoDeDieta {...stepProps} />;
       case 12:
-        return <DietaryRestrictionsStep {...stepProps} />;
+        return <NuraRestriEsAlimentares {...stepProps} />;
       case 13:
-        return <WaterIntakeStep {...stepProps} />;
+        return <NuraConsumoDeGua {...stepProps} />;
       case 14:
-        return <WaterEducationStep {...stepProps} />;
+        return <NuraEducaOHidrataO {...stepProps} />;
       // New: Water tracking visual
       case 15:
         return <WaterTrackingVisualStep {...stepProps} />;
       case 16:
-        return <HabitChangesStep {...stepProps} />;
+        return <NuraMudanADeHBitos {...stepProps} />;
       case 17:
         return <GenderStep {...stepProps} />;
       case 18:
@@ -265,18 +289,18 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
       case 21:
         return <CurrentWeightStep {...stepProps} />;
       case 22:
-        return <PersonalSummaryStep {...stepProps} />;
+        return <NuraResumoBiomTrico {...stepProps} />;
       case 23:
-        return <TargetWeightStep {...stepProps} />;
+        return <NuraPesoObjetivo {...stepProps} />;
       case 24:
-        return <GoalSpeedStep {...stepProps} />;
+        return <NuraVelocidadeDaMeta {...stepProps} />;
       // New: Progress tracking visual
       case 25:
-        return <ProgressTrackingStep {...stepProps} />;
+        return <NuraProjeODeSucesso {...stepProps} />;
       case 26:
-        return <GoalSuccessStep {...stepProps} />;
+        return <NuraProvaDeSucesso {...stepProps} />;
       case 27:
-        return <PersonalizingPlanStep {...stepProps} />;
+        return <NuraCriandoPlano {...stepProps} />;
       case 28:
         return <GoalConfirmationStep {...stepProps} />;
       case 29:
@@ -285,7 +309,7 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
       case 30:
         return <CalorieTrackingStep {...stepProps} />;
       case 31:
-        return <PersonalizedPlanStep {...stepProps} />;
+        return <NuraPlanoPersonalizado {...stepProps} />;
       // New: Motivation step
       case 32:
         return <MotivationStep {...stepProps} />;
@@ -293,7 +317,7 @@ export const OnboardingFlowV2: React.FC<OnboardingFlowV2Props> = ({ onComplete }
         return <SocialProofStep {...stepProps} />;
       // New: Unique approach
       case 34:
-        return <UniqueApproachStep {...stepProps} />;
+        return <NuraMetodologiaFlow {...stepProps} />;
       case 35:
         return <PaywallFeaturesStep {...stepProps} />;
       case 36:

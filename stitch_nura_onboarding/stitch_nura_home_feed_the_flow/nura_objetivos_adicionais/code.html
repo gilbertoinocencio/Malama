@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-PT"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-highest": "#e2e3df",
+              "on-background": "#1a1c1a",
+              "on-primary-container": "#90d6e4",
+              "on-tertiary": "#ffffff",
+              "on-error-container": "#93000a",
+              "secondary-fixed-dim": "#66dd8b",
+              "on-secondary-container": "#00743a",
+              "on-secondary": "#ffffff",
+              "surface-container": "#edeeea",
+              "outline": "#6f797b",
+              "secondary-container": "#83fba5",
+              "on-error": "#ffffff",
+              "inverse-surface": "#2e312f",
+              "inverse-primary": "#8bd2df",
+              "on-surface-variant": "#3f484a",
+              "error": "#ba1a1a",
+              "on-secondary-fixed-variant": "#005227",
+              "tertiary-container": "#7d491f",
+              "surface": "#f9faf6",
+              "on-surface": "#1a1c1a",
+              "primary": "#00464f",
+              "primary-fixed-dim": "#8bd2df",
+              "surface-tint": "#156874",
+              "tertiary-fixed": "#ffdcc5",
+              "surface-container-high": "#e7e9e5",
+              "on-tertiary-fixed-variant": "#6b3a11",
+              "tertiary-fixed-dim": "#ffb783",
+              "on-primary-fixed": "#001f24",
+              "secondary": "#006d36",
+              "on-primary-fixed-variant": "#004e59",
+              "surface-dim": "#d9dad7",
+              "on-tertiary-fixed": "#301400",
+              "on-primary": "#ffffff",
+              "background": "#f9faf6",
+              "primary-container": "#005f6b",
+              "tertiary": "#613309",
+              "error-container": "#ffdad6",
+              "surface-container-low": "#f3f4f0",
+              "inverse-on-surface": "#f0f1ed",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed": "#a7eefc",
+              "surface-variant": "#e2e3df",
+              "on-tertiary-container": "#ffbd8f",
+              "secondary-fixed": "#83fba5",
+              "on-secondary-fixed": "#00210c",
+              "surface-bright": "#f9faf6",
+              "outline-variant": "#bec8ca"
+            },
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-line { border: none !important; }
+        .tonal-shift { transition: background-color 0.3s ease; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-surface min-h-screen selection:bg-secondary-container">
+<!-- Progress Indicator (Sutil Flow) -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-secondary w-3/4 transition-all duration-1000 ease-in-out"></div>
+</div>
+<!-- Top Navigation Anchor -->
+<header class="fixed top-0 w-full z-50 bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl flex items-center justify-between px-8 h-20 w-full">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-stone-200/50 transition-all duration-300 active:scale-95">
+<span class="material-symbols-outlined text-teal-900" data-icon="close">close</span>
+</button>
+</div>
+<div class="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</div>
+<div class="w-10"></div> <!-- Spacer for center alignment -->
+</header>
+<main class="pt-32 pb-40 px-6 max-w-2xl mx-auto flex flex-col min-h-screen">
+<!-- Onboarding Hook -->
+<section class="mb-12">
+<h1 class="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tight leading-tight mb-4">
+                Algum objetivo adicional?
+            </h1>
+<p class="text-on-surface-variant text-lg max-w-md">
+                Personalizamos a sua jornada para focar no que realmente importa hoje.
+            </p>
+</section>
+<!-- Selection Grid -->
+<div class="space-y-4">
+<!-- Option 1: Selected State Example -->
+<div class="group relative flex items-center justify-between p-8 bg-primary-fixed-dim rounded-[1.5rem] cursor-pointer transition-all duration-300 ring-2 ring-secondary/20 shadow-lg shadow-primary/5">
+<div class="flex items-center gap-6">
+<div class="w-12 h-12 flex items-center justify-center rounded-2xl bg-secondary-container/30">
+<span class="material-symbols-outlined text-secondary" data-icon="restaurant">restaurant</span>
+</div>
+<div>
+<span class="text-xl font-medium text-primary block">Relação saudável com comida</span>
+</div>
+</div>
+<div class="flex items-center justify-center w-8 h-8 rounded-full bg-secondary text-on-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+<!-- Option 2 -->
+<div class="group relative flex items-center justify-between p-8 bg-surface-container-low rounded-[1.5rem] cursor-pointer hover:bg-surface-container-high transition-all duration-300">
+<div class="flex items-center gap-6">
+<div class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/60">
+<span class="material-symbols-outlined text-secondary" data-icon="spa">spa</span>
+</div>
+<div>
+<span class="text-xl font-medium text-primary block">Bem-estar geral</span>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-outline-variant opacity-40"></div>
+</div>
+<!-- Option 3 -->
+<div class="group relative flex items-center justify-between p-8 bg-surface-container-low rounded-[1.5rem] cursor-pointer hover:bg-surface-container-high transition-all duration-300">
+<div class="flex items-center gap-6">
+<div class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/60">
+<span class="material-symbols-outlined text-secondary" data-icon="psychology">psychology</span>
+</div>
+<div>
+<span class="text-xl font-medium text-primary block">Gerir stress</span>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-outline-variant opacity-40"></div>
+</div>
+<!-- Option 4 -->
+<div class="group relative flex items-center justify-between p-8 bg-surface-container-low rounded-[1.5rem] cursor-pointer hover:bg-surface-container-high transition-all duration-300">
+<div class="flex items-center gap-6">
+<div class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/60">
+<span class="material-symbols-outlined text-secondary" data-icon="bedtime">bedtime</span>
+</div>
+<div>
+<span class="text-xl font-medium text-primary block">Melhorar sono</span>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-outline-variant opacity-40"></div>
+</div>
+<!-- Option 5 -->
+<div class="group relative flex items-center justify-between p-8 bg-surface-container-low rounded-[1.5rem] cursor-pointer hover:bg-surface-container-high transition-all duration-300">
+<div class="flex items-center gap-6">
+<div class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/60">
+<span class="material-symbols-outlined text-secondary" data-icon="bolt">bolt</span>
+</div>
+<div>
+<span class="text-xl font-medium text-primary block">Aumentar energia</span>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-outline-variant opacity-40"></div>
+</div>
+</div>
+<!-- Sticky Bottom Action (Editorial Position) -->
+<div class="mt-auto pt-16 pb-8 flex flex-col gap-4">
+<button class="w-full bg-primary text-on-primary h-16 rounded-xl text-lg font-semibold tracking-wide flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all duration-300 shadow-xl shadow-primary/10">
+                Continuar
+                <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<button class="w-full h-12 text-on-surface-variant font-medium hover:text-primary transition-colors duration-300">
+                Talvez mais tarde
+            </button>
+</div>
+</main>
+<!-- Contextual Leaf (Decorative) -->
+<div class="fixed -bottom-20 -right-20 w-80 h-80 bg-secondary-container/10 blur-[100px] pointer-events-none rounded-full z-0"></div>
+<div class="fixed top-1/4 -left-20 w-60 h-60 bg-primary-container/5 blur-[80px] pointer-events-none rounded-full z-0"></div>
+</body></html>
