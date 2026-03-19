@@ -29,8 +29,6 @@ const FlowAdaptation = React.lazy<React.ComponentType<any>>(() => import('./comp
 const VisualEvolution = React.lazy<React.ComponentType<any>>(() => import('./components/VisualEvolution').then(m => ({ default: (m as any).VisualEvolution || (m as any).default })));
 const VisualShare = React.lazy<React.ComponentType<any>>(() => import('./components/VisualShare').then(m => ({ default: (m as any).VisualShare || (m as any).default })));
 const Integrations = React.lazy<React.ComponentType<any>>(() => import('./components/Integrations').then(m => ({ default: (m as any).Integrations || (m as any).default })));
-const OnboardingFlow = React.lazy<React.ComponentType<any>>(() => import('./components/OnboardingFlow').then(m => ({ default: (m as any).OnboardingFlow || (m as any).default })));
-const OnboardingFlowV2 = React.lazy<React.ComponentType<any>>(() => import('./components/OnboardingFlowV2').then(m => ({ default: (m as any).OnboardingFlowV2 || (m as any).default })));
 const UnifiedChatModal = React.lazy<React.ComponentType<any>>(() => import('./components/UnifiedChatModal').then(m => ({ default: (m as any).UnifiedChatModal || (m as any).default })));
 
 const App: React.FC = () => {
@@ -118,40 +116,6 @@ const App: React.FC = () => {
     return <LoginView />;
   }
 
-  // Onboarding Flow: User exists but hasn't set up profile
-  // Now using visual onboarding (BitePal style) with Nura design
-  // Check both onboarding_completed (V2) and goal (V1 fallback)
-  if (!profile?.onboarding_completed && !profile?.goal) {
-    console.log('🎯 Onboarding required - not completed. Profile:', profile);
-    return (
-      <Suspense fallback={<LoadingSpinner />}>
-        <OnboardingFlowV2
-          onComplete={async () => {
-            console.log('✅ Onboarding V2 completed, refreshing profile...');
-            // Re-fetch the profile to update the state without a full page reload
-            // This avoids infinite reload loops if the save had issues
-            try {
-              const { data } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .maybeSingle();
-              if (data?.onboarding_completed) {
-                // Profile saved successfully, trigger re-render
-                window.location.reload();
-              } else {
-                console.error('❌ Onboarding data was not saved. Profile:', data);
-                alert('Erro ao salvar o onboarding. Tente novamente.');
-              }
-            } catch (err) {
-              console.error('❌ Error verifying onboarding:', err);
-              window.location.reload();
-            }
-          }}
-        />
-      </Suspense>
-    );
-  }
 
   console.log('✅ User authenticated with profile:', {
     userId: user.id,
