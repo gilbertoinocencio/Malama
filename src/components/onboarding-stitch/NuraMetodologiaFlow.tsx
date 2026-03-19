@@ -70,9 +70,10 @@ const NuraMetodologiaFlow: React.FC<StepProps> = ({ data, updateData, onNext, on
           <p className="text-on-surface-variant text-xl md:text-2xl font-light max-w-2xl leading-relaxed">
             Nossa metodologia foi desenhada para quem busca harmonia, não restrição.
           </p>
-        </section>
+        </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        {/* Bento-style Grid for Methodology Features */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-16">
           {features.map((feat, i) => (
             <div
               key={i}
