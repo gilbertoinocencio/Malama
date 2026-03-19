@@ -5,23 +5,36 @@ const NuraRefeiEsDiRias: React.FC<StepProps> = ({ data, updateData, onNext, onBa
   const meals = data.mealsPerDay || 3;
 
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body">
-      <nav className="shrink-0 w-full z-10">
+    <div className="bg-surface text-on-surface min-h-screen flex flex-col">
+      {/* Progress Indicator */}
+      <nav className="fixed top-0 w-full z-50">
         <div className="h-1 w-full bg-surface-container-high">
           <div className="h-full bg-secondary w-3/4 transition-all duration-700"></div>
         </div>
-        <div className="bg-stone-100/50 backdrop-blur-xl flex items-center justify-between px-8 h-20 w-full">
+        <div className="bg-stone-100/50 dark:bg-stone-900/50 backdrop-blur-xl flex items-center justify-between px-8 h-20 w-full">
           <button onClick={onBack} className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-stone-200/50 transition-all duration-300">
-            <span className="material-symbols-outlined text-teal-900">arrow_back</span>
+            <span className="material-symbols-outlined text-teal-900">close</span>
           </button>
-          <span className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</span>
+          <span className="text-2xl font-bold tracking-tighter text-teal-900 font-lexend">NURA</span>
           <div className="w-12"></div>
         </div>
       </nav>
 
-      <main className="flex-1 overflow-y-auto pt-6 pb-8 px-6 max-w-2xl mx-auto w-full flex flex-col items-center">
-        <header className="text-center mb-16 space-y-4 w-full">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline tracking-tight leading-tight">
+      {/* Contextual Leaf Decoration */}
+      <div className="fixed top-40 -right-20 opacity-20 pointer-events-none transform rotate-45">
+        <span
+          className="material-symbols-outlined text-[300px] text-secondary-container"
+          style={{ fontVariationSettings: "'FILL' 1" }}
+        >
+          eco
+        </span>
+      </div>
+
+      {/* Main Content Canvas */}
+      <main className="flex-grow flex flex-col items-center justify-center px-6 pt-24 pb-32 max-w-2xl mx-auto w-full relative z-10">
+        {/* Header Section */}
+        <header className="text-center mb-16 space-y-4">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-lexend tracking-tight leading-tight">
             Quantas refeições faz por dia?
           </h1>
           <p className="text-on-surface-variant text-lg md:text-xl font-medium max-w-md mx-auto leading-relaxed">
@@ -73,14 +86,21 @@ const NuraRefeiEsDiRias: React.FC<StepProps> = ({ data, updateData, onNext, onBa
         </div>
       </main>
 
-      <footer className="shrink-0 w-full p-8 flex justify-center bg-surface/90 backdrop-blur-md">
+      {/* Sticky Footer Action */}
+      <footer className="fixed bottom-0 left-0 w-full p-8 flex justify-center bg-gradient-to-t from-surface via-surface to-transparent">
         <div className="max-w-md w-full">
-          <button onClick={onNext} className="w-full h-16 rounded-xl bg-primary text-on-primary font-headline font-bold text-lg flex items-center justify-center gap-2 shadow-xl hover:bg-primary-container hover:scale-[1.02] transition-all duration-500 active:scale-95 group">
+          <button
+            onClick={onNext}
+            className="w-full h-16 rounded-xl bg-primary text-on-primary font-lexend font-bold text-lg flex items-center justify-center gap-2 shadow-xl hover:bg-primary-container hover:scale-[1.02] transition-all duration-500 active:scale-95 group"
+          >
             Continuar
             <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </button>
         </div>
       </footer>
+
+      {/* Bottom Margin for Fixed Nav */}
+      <div className="h-32"></div>
     </div>
   );
 };

@@ -3,12 +3,11 @@ import { StepProps } from '../onboarding-v2/types';
 
 const NuraObjetivosAdicionais: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
   const goals = [
-    { value: 'melhorar_sono', label: 'Melhorar o Sono', icon: 'bedtime' },
-    { value: 'reduzir_stress', label: 'Reduzir Stress', icon: 'self_improvement' },
-    { value: 'mais_energia', label: 'Mais Energia', icon: 'bolt' },
-    { value: 'ganhar_massa', label: 'Ganhar Massa', icon: 'fitness_center' },
-    { value: 'saude_intestinal', label: 'Saúde Intestinal', icon: 'gastroenterology' },
-    { value: 'longevidade', label: 'Longevidade', icon: 'favorite' },
+    { value: 'relacao_comida', label: 'Relação saudável com comida', icon: 'restaurant' },
+    { value: 'bem_estar', label: 'Bem-estar geral', icon: 'spa' },
+    { value: 'gerir_stress', label: 'Gerir stress', icon: 'psychology' },
+    { value: 'melhorar_sono', label: 'Melhorar sono', icon: 'bedtime' },
+    { value: 'aumentar_energia', label: 'Aumentar energia', icon: 'bolt' },
   ];
 
   const toggleGoal = (value: string) => {
@@ -19,54 +18,110 @@ const NuraObjetivosAdicionais: React.FC<StepProps> = ({ data, updateData, onNext
     updateData({ additionalGoals: updated });
   };
 
+  const handleSkip = () => {
+    updateData({ additionalGoals: [] });
+    setTimeout(() => onNext(), 100);
+  };
+
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body">
-      <header className="shrink-0 w-full z-10 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
-        <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all">
-          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
-        </button>
+    <div className="flex flex-col h-full bg-background text-on-surface font-body min-h-screen selection:bg-secondary-container">
+      {/* Progress Indicator (Sutil Flow) */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+        <div className="h-full bg-secondary w-3/4 transition-all duration-1000 ease-in-out"></div>
+      </div>
+
+      {/* Top Navigation Anchor */}
+      <header className="fixed top-0 w-full z-50 bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl flex items-center justify-between px-8 h-20 w-full">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onBack}
+            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-stone-200/50 transition-all duration-300 active:scale-95"
+          >
+            <span className="material-symbols-outlined text-teal-900">close</span>
+          </button>
+        </div>
         <div className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</div>
         <div className="w-10"></div>
       </header>
 
-      <main className="flex-1 overflow-y-auto pt-6 pb-8 px-6 max-w-2xl mx-auto w-full">
-        <section className="mb-10">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline tracking-tight leading-tight mb-4">
-            Objetivos adicionais?
+      <main className="pt-32 pb-40 px-6 max-w-2xl mx-auto flex flex-col min-h-screen">
+        {/* Onboarding Hook */}
+        <section className="mb-12">
+          <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tight leading-tight mb-4">
+            Algum objetivo adicional?
           </h1>
-          <p className="text-on-surface-variant text-lg leading-relaxed max-w-md">
-            Selecione tudo o que você gostaria de melhorar além da nutrição.
+          <p className="text-on-surface-variant text-lg max-w-md">
+            Personalizamos a sua jornada para focar no que realmente importa hoje.
           </p>
         </section>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* Selection Grid */}
+        <div className="space-y-4">
           {goals.map((goal) => {
             const isSelected = (data.additionalGoals || []).includes(goal.value);
             return (
-              <button
+              <div
                 key={goal.value}
                 onClick={() => toggleGoal(goal.value)}
-                className={`flex flex-col items-center justify-center p-6 rounded-xl transition-all duration-300 ${
+                className={`group relative flex items-center justify-between p-8 rounded-[1.5rem] cursor-pointer transition-all duration-300 ${
                   isSelected
-                    ? 'bg-secondary-container/30 shadow-md border-2 border-secondary/30'
-                    : 'bg-surface-container-lowest shadow-[0_4px_16px_rgba(0,0,0,0.03)] border-2 border-transparent hover:bg-surface-container-low'
+                    ? 'bg-primary-fixed-dim ring-2 ring-secondary/20 shadow-lg shadow-primary/5'
+                    : 'bg-surface-container-low hover:bg-surface-container-high'
                 }`}
               >
-                <span className={`material-symbols-outlined text-3xl mb-3 ${isSelected ? 'text-secondary' : 'text-on-surface-variant'}`} style={{ fontVariationSettings: "'FILL' 1" }}>{goal.icon}</span>
-                <span className={`font-headline text-sm font-semibold text-center ${isSelected ? 'text-primary' : 'text-on-surface'}`}>{goal.label}</span>
-              </button>
+                <div className="flex items-center gap-6">
+                  <div className={`w-12 h-12 flex items-center justify-center rounded-2xl ${
+                    isSelected ? 'bg-secondary-container/30' : 'bg-white/60'
+                  }`}>
+                    <span
+                      className="material-symbols-outlined text-secondary"
+                      style={{ fontVariationSettings: "'FILL' 0" }}
+                    >
+                      {goal.icon}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-xl font-medium text-primary block">{goal.label}</span>
+                  </div>
+                </div>
+                <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                  isSelected ? 'bg-secondary text-on-secondary' : 'border-2 border-outline-variant opacity-40'
+                }`}>
+                  {isSelected && (
+                    <span
+                      className="material-symbols-outlined text-sm"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      check
+                    </span>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>
-      </main>
 
-      <footer className="shrink-0 w-full p-6 bg-surface/90 backdrop-blur-md z-10">
-        <div className="max-w-2xl mx-auto">
-          <button onClick={onNext} className="w-full h-16 rounded-xl bg-primary text-on-primary font-headline font-bold text-lg transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/10">
+        {/* Sticky Bottom Action (Editorial Position) */}
+        <div className="mt-auto pt-16 pb-8 flex flex-col gap-4">
+          <button
+            onClick={onNext}
+            className="w-full bg-primary text-on-primary h-16 rounded-xl text-lg font-semibold tracking-wide flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all duration-300 shadow-xl shadow-primary/10"
+          >
             Continuar
+            <span className="material-symbols-outlined">arrow_forward</span>
+          </button>
+          <button
+            onClick={handleSkip}
+            className="w-full h-12 text-on-surface-variant font-medium hover:text-primary transition-colors duration-300"
+          >
+            Talvez mais tarde
           </button>
         </div>
-      </footer>
+      </main>
+
+      {/* Contextual Leaf (Decorative) */}
+      <div className="fixed -bottom-20 -right-20 w-80 h-80 bg-secondary-container/10 blur-[100px] pointer-events-none rounded-full z-0"></div>
+      <div className="fixed top-1/4 -left-20 w-60 h-60 bg-primary-container/5 blur-[80px] pointer-events-none rounded-full z-0"></div>
     </div>
   );
 };
