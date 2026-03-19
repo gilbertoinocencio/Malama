@@ -3,9 +3,9 @@ import { StepProps } from '../onboarding-v2/types';
 
 const NuraConsumoDeGua: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
   const options = [
-    { value: 'sim', label: 'Sim', icon: 'check_circle', desc: 'Bebo pelo menos 2L por dia' },
-    { value: 'nao', label: 'Não', icon: 'close', desc: 'Sei que preciso melhorar' },
-    { value: 'nao_sei', label: 'Não tenho a certeza', icon: 'question_mark', desc: 'Nunca prestei atenção' },
+    { value: 'sim', label: 'Sim', icon: 'check_circle' },
+    { value: 'nao', label: 'Não', icon: 'close' },
+    { value: 'nao_sei', label: 'Não tenho a certeza', icon: 'question_mark' },
   ];
 
   const handleSelect = (value: string) => {
@@ -14,7 +14,7 @@ const NuraConsumoDeGua: React.FC<StepProps> = ({ data, updateData, onNext, onBac
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body">
+    <div className="flex flex-col h-full bg-surface text-on-surface font-body overflow-x-hidden">
       <nav className="shrink-0 w-full z-10 flex items-center justify-between px-8 h-20 bg-stone-50/70 backdrop-blur-xl">
         <div className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</div>
         <button onClick={onBack} className="p-2 rounded-full hover:bg-stone-200/50 transition-all duration-300">
@@ -22,8 +22,20 @@ const NuraConsumoDeGua: React.FC<StepProps> = ({ data, updateData, onNext, onBac
         </button>
       </nav>
 
-      <main className="flex-1 overflow-y-auto pt-6 pb-8 px-6 flex flex-col items-center justify-center">
-        <div className="w-full max-w-xl flex flex-col items-center">
+      <main 
+        className="flex-1 overflow-y-auto pt-6 pb-8 px-6 flex flex-col items-center justify-center relative"
+        style={{
+          backgroundImage: 'radial-gradient(at 0% 0%, rgba(0, 70, 79, 0.03) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(0, 109, 54, 0.03) 0px, transparent 50%)'
+        }}
+      >
+        <div className="fixed -top-20 -right-20 opacity-20 pointer-events-none z-0">
+          <span className="material-symbols-outlined text-[20rem] text-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
+        </div>
+        <div className="fixed -bottom-24 -left-24 opacity-10 pointer-events-none transform -rotate-45 z-0">
+          <span className="material-symbols-outlined text-[25rem] text-secondary" style={{ fontVariationSettings: "'FILL' 0" }}>spa</span>
+        </div>
+
+        <div className="w-full max-w-xl flex flex-col items-center z-10">
           <div className="mb-12 flex items-center justify-center w-24 h-24 rounded-full bg-surface-container-lowest shadow-[0_16px_32px_rgba(0,0,0,0.02)] border border-outline-variant/10">
             <span className="material-symbols-outlined text-5xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
           </div>
@@ -44,7 +56,7 @@ const NuraConsumoDeGua: React.FC<StepProps> = ({ data, updateData, onNext, onBac
                 <button
                   key={opt.value}
                   onClick={() => handleSelect(opt.value)}
-                  className={`group w-full flex items-center justify-between p-8 rounded-xl transition-all duration-300 ease-in-out text-left ${
+                  className={`group w-full flex items-center justify-between p-8 rounded-xl transition-all duration-300 ease-in-out text-left focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                     isSelected
                       ? 'bg-primary-fixed-dim/10 border-2 border-primary-fixed-dim'
                       : 'bg-surface-container-low hover:bg-surface-container-high border-2 border-transparent'
@@ -54,9 +66,11 @@ const NuraConsumoDeGua: React.FC<StepProps> = ({ data, updateData, onNext, onBac
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
                       isSelected ? 'bg-primary-fixed-dim' : 'bg-surface-container-lowest group-hover:bg-primary-container/10'
                     }`}>
-                      <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: isSelected ? "'FILL' 1" : "'FILL' 0" }}>{opt.icon}</span>
+                      <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0" }}>{opt.icon}</span>
                     </div>
-                    <span className={`text-xl font-headline ${isSelected ? 'font-semibold text-primary' : 'font-medium text-on-surface'}`}>{opt.label}</span>
+                    <span className={`text-xl font-headline ${isSelected ? 'font-semibold text-primary' : 'font-medium text-on-surface'}`}>
+                      {opt.label}
+                    </span>
                   </div>
                   {isSelected && (
                     <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>

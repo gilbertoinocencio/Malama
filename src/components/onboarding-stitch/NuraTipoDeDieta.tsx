@@ -3,13 +3,13 @@ import { StepProps } from '../onboarding-v2/types';
 
 const NuraTipoDeDieta: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
   const dietTypes = [
-    { value: 'equilibrada', label: 'Equilibrada', icon: 'balance' },
-    { value: 'vegetariana', label: 'Vegetariana', icon: 'eco' },
-    { value: 'vegan', label: 'Vegan', icon: 'spa' },
-    { value: 'paleo', label: 'Paleo', icon: 'pets' },
-    { value: 'cetogenica', label: 'Cetogénica', icon: 'whatshot' },
-    { value: 'rica_proteina', label: 'Rica em proteína', icon: 'fitness_center' },
-    { value: 'baixa_carboidratos', label: 'Baixa em carbo', icon: 'remove_circle_outline' }
+    { value: 'equilibrada', label: 'Equilibrada' },
+    { value: 'vegetariana', label: 'Vegetariana' },
+    { value: 'vegan', label: 'Vegan' },
+    { value: 'paleo', label: 'Paleo' },
+    { value: 'cetogenica', label: 'Cetogénica' },
+    { value: 'rica_proteina', label: 'Rica em proteína' },
+    { value: 'baixa_carboidratos', label: 'Baixa em carbo' }
   ];
 
   const handleSelect = (value: string) => {
@@ -18,16 +18,20 @@ const NuraTipoDeDieta: React.FC<StepProps> = ({ data, updateData, onNext, onBack
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body">
-      <header className="shrink-0 w-full z-10 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
-        <button onClick={onBack} className="p-2 hover:bg-stone-200/50 rounded-full transition-all">
-          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
-        </button>
+    <div className="flex flex-col h-full bg-surface text-on-surface font-body overflow-x-hidden relative">
+      <nav className="fixed top-0 left-0 w-full h-1 z-[60] flex">
+        <div className="h-full bg-secondary w-3/4"></div>
+        <div className="h-full bg-surface-container-high flex-1"></div>
+      </nav>
+
+      <header className="fixed top-0 w-full z-50 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
         <div className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</div>
-        <div className="w-10"></div>
+        <button onClick={onBack} className="p-2 hover:bg-stone-200/50 transition-all duration-300 ease-in-out rounded-full">
+          <span className="material-symbols-outlined text-teal-900">close</span>
+        </button>
       </header>
 
-      <main className="flex-1 overflow-y-auto pt-6 pb-8 px-6 max-w-2xl mx-auto w-full">
+      <main className="flex-1 overflow-y-auto pt-32 pb-40 px-6 max-w-2xl mx-auto w-full z-10">
         <section className="mb-12">
           <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline tracking-tight leading-tight mb-4">
             Que tipo de dieta prefere?
@@ -44,22 +48,19 @@ const NuraTipoDeDieta: React.FC<StepProps> = ({ data, updateData, onNext, onBack
               <button
                 key={diet.value}
                 onClick={() => handleSelect(diet.value)}
-                className={`w-full flex items-center justify-between p-6 rounded-xl text-left transition-all duration-300 group ${
+                className={`w-full flex items-center justify-between p-8 rounded-lg text-left transition-all duration-300 ease-in-out group ${
                   isSelected
-                    ? 'bg-primary-fixed-dim shadow-md border-2 border-primary/20'
-                    : 'bg-surface-container-lowest shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:bg-surface-container-low border-2 border-transparent'
+                    ? 'bg-primary-fixed-dim shadow-sm'
+                    : 'bg-surface-container-low hover:bg-surface-container-highest'
                 }`}
               >
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSelected ? 'bg-primary/10' : 'bg-surface-container-high/50'}`}>
-                    <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-primary' : 'text-on-surface-variant'}`} style={{ fontVariationSettings: "'FILL' 1" }}>{diet.icon}</span>
-                  </div>
-                  <span className={`font-headline text-lg font-semibold ${isSelected ? 'text-primary' : 'text-on-surface group-hover:text-primary'}`}>
-                    {diet.label}
-                  </span>
-                </div>
-                {isSelected && (
-                  <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                <span className={`font-headline text-xl font-medium ${isSelected ? 'text-primary' : 'text-on-surface-variant group-hover:text-primary'}`}>
+                  {diet.label}
+                </span>
+                {isSelected ? (
+                  <span className="material-symbols-outlined text-secondary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                ) : (
+                  <span className="material-symbols-outlined text-outline-variant opacity-0 group-hover:opacity-100 transition-opacity">circle</span>
                 )}
               </button>
             );
@@ -67,9 +68,11 @@ const NuraTipoDeDieta: React.FC<StepProps> = ({ data, updateData, onNext, onBack
         </div>
       </main>
 
-      <footer className="shrink-0 w-full p-6 bg-surface/90 backdrop-blur-md z-10">
-        <div className="max-w-2xl mx-auto">
-          <button onClick={onNext} className="w-full h-16 rounded-xl bg-primary text-on-primary font-headline font-bold text-lg transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/10">
+      <div className="fixed bottom-24 -right-12 w-64 h-64 bg-secondary-container opacity-20 blur-3xl rounded-full z-0 pointer-events-none"></div>
+
+      <footer className="fixed bottom-0 left-0 w-full p-8 bg-surface/80 backdrop-blur-md z-40">
+        <div className="max-w-2xl mx-auto flex justify-end">
+          <button onClick={onNext} className="bg-primary text-on-primary font-headline font-semibold py-4 px-12 rounded-xl text-lg hover:bg-primary-container transition-all duration-300 transform active:scale-95 shadow-xl shadow-primary/10 min-h-[4rem] min-w-[200px]">
             Continuar
           </button>
         </div>
