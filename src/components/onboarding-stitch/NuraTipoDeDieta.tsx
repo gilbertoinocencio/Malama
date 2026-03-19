@@ -18,28 +18,35 @@ const NuraTipoDeDieta: React.FC<StepProps> = ({ data, updateData, onNext, onBack
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body overflow-x-hidden relative">
-      <nav className="fixed top-0 left-0 w-full h-1 z-[60] flex">
-        <div className="h-full bg-secondary w-3/4"></div>
-        <div className="h-full bg-surface-container-high flex-1"></div>
-      </nav>
+    <div className="bg-surface text-on-surface min-h-screen flex flex-col">
+      {/* Progress Bar (Sutil Flow) */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+        <div className="h-full bg-secondary w-3/4 transition-all duration-700"></div>
+      </div>
 
-      <header className="fixed top-0 w-full z-50 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
-        <div className="text-2xl font-bold tracking-tighter text-teal-900 font-headline">NURA</div>
-        <button onClick={onBack} className="p-2 hover:bg-stone-200/50 transition-all duration-300 ease-in-out rounded-full">
-          <span className="material-symbols-outlined text-teal-900">close</span>
-        </button>
+      {/* Top Navigation Shell */}
+      <header className="bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl fixed top-0 w-full z-50 no-border tonal-shift bg-stone-100/50 dark:bg-stone-900/50">
+        <div className="flex items-center justify-between px-8 h-20 w-full">
+          <div className="text-2xl font-bold tracking-tighter text-teal-900 dark:text-teal-500 font-lexend">NURA</div>
+          <button onClick={onBack} className="p-2 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 transition-all duration-300 ease-in-out rounded-full">
+            <span className="material-symbols-outlined text-teal-900 dark:text-teal-500">close</span>
+          </button>
+        </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto pt-32 pb-40 px-6 max-w-2xl mx-auto w-full z-10">
+      {/* Main Content Canvas */}
+      <main className="flex-grow pt-32 pb-40 px-6 max-w-2xl mx-auto w-full">
+        {/* Editorial Headline */}
         <section className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline tracking-tight leading-tight mb-4">
+          <h1 className="font-lexend text-4xl md:text-5xl font-bold text-primary tracking-tight leading-tight mb-4">
             Que tipo de dieta prefere?
           </h1>
           <p className="text-on-surface-variant text-lg leading-relaxed max-w-md">
             Personalize a sua experiência nutritiva selecionando o estilo que melhor se adapta ao seu estilo de vida.
           </p>
         </section>
+
+        {/* Selection List (Elegance Selector) */}
 
         <div className="space-y-4">
           {dietTypes.map((diet) => {
@@ -54,7 +61,7 @@ const NuraTipoDeDieta: React.FC<StepProps> = ({ data, updateData, onNext, onBack
                     : 'bg-surface-container-low hover:bg-surface-container-highest'
                 }`}
               >
-                <span className={`font-headline text-xl font-medium ${isSelected ? 'text-primary' : 'text-on-surface-variant group-hover:text-primary'}`}>
+                <span className={`font-lexend text-xl font-medium ${isSelected ? 'text-primary' : 'text-on-surface-variant group-hover:text-primary'}`}>
                   {diet.label}
                 </span>
                 {isSelected ? (
@@ -68,11 +75,16 @@ const NuraTipoDeDieta: React.FC<StepProps> = ({ data, updateData, onNext, onBack
         </div>
       </main>
 
-      <div className="fixed bottom-24 -right-12 w-64 h-64 bg-secondary-container opacity-20 blur-3xl rounded-full z-0 pointer-events-none"></div>
+      {/* Contextual Leaf (Decorative Element) */}
+      <div className="fixed bottom-24 -right-12 w-64 h-64 bg-secondary-container opacity-20 blur-3xl rounded-full -z-10 pointer-events-none"></div>
 
+      {/* Action Footer */}
       <footer className="fixed bottom-0 left-0 w-full p-8 bg-surface/80 backdrop-blur-md z-40">
         <div className="max-w-2xl mx-auto flex justify-end">
-          <button onClick={onNext} className="bg-primary text-on-primary font-headline font-semibold py-4 px-12 rounded-xl text-lg hover:bg-primary-container transition-all duration-300 transform active:scale-95 shadow-xl shadow-primary/10 min-h-[4rem] min-w-[200px]">
+          <button
+            onClick={onNext}
+            className="bg-primary text-on-primary font-lexend font-semibold py-4 px-12 rounded-xl text-lg hover:bg-primary-container transition-all duration-300 transform active:scale-95 shadow-xl shadow-primary/10 min-h-[4rem] min-w-[200px]"
+          >
             Continuar
           </button>
         </div>

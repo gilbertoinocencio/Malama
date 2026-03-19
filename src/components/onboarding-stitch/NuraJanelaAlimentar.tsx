@@ -6,18 +6,35 @@ const NuraJanelaAlimentar: React.FC<StepProps> = ({ data, updateData, onNext, on
   const endTime = data.eatingWindowEnd || '20:00';
 
   return (
-    <div className="flex flex-col h-full bg-surface text-on-surface font-body overflow-x-hidden">
-      <header className="shrink-0 w-full z-10 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
+    <div className="bg-surface text-on-surface min-h-screen flex flex-col overflow-x-hidden">
+      {/* Progress Bar */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+        <div className="h-full bg-secondary w-3/4 transition-all duration-700 ease-in-out"></div>
+      </div>
+
+      {/* Top Navigation */}
+      <header className="fixed top-0 w-full z-50 bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl flex items-center justify-between px-8 h-20">
         <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-200/50 transition-all active:scale-95">
-          <span className="material-symbols-outlined text-teal-900">arrow_back</span>
+          <span className="material-symbols-outlined text-teal-900">close</span>
         </button>
-        <span className="font-headline text-2xl font-bold tracking-tighter text-teal-900">NURA</span>
+        <span className="font-lexend text-2xl font-bold tracking-tighter text-teal-900">NURA</span>
         <div className="w-10"></div>
       </header>
 
-      <main className="flex-1 overflow-y-auto flex flex-col items-center pt-8 px-6 pb-24 max-w-2xl mx-auto w-full">
-        <div className="text-center mb-10 space-y-4">
-          <h1 className="font-headline text-4xl md:text-5xl font-extrabold text-primary tracking-tight leading-tight">Sua Janela de Alimentação</h1>
+      {/* Main Content */}
+      <main className="flex-grow flex flex-col items-center justify-center pt-32 px-6 pb-32 max-w-2xl mx-auto w-full relative">
+        {/* Contextual Leaf Decoration */}
+        <div className="fixed -bottom-20 -left-20 opacity-10 pointer-events-none">
+          <span
+            className="material-symbols-outlined text-[25rem] text-secondary"
+            style={{ fontVariationSettings: "'FILL' 0" }}
+          >
+            spa
+          </span>
+        </div>
+
+        <div className="text-center mb-10 space-y-4 relative z-10">
+          <h1 className="font-lexend text-4xl md:text-5xl font-extrabold text-primary tracking-tight leading-tight">Sua Janela de Alimentação</h1>
           <p className="text-on-surface-variant text-lg max-w-md mx-auto leading-relaxed">
             O tempo entre a primeira e a última refeição é crucial para o seu metabolismo.
           </p>
@@ -64,9 +81,13 @@ const NuraJanelaAlimentar: React.FC<StepProps> = ({ data, updateData, onNext, on
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 w-full p-6 bg-surface/90 backdrop-blur-md z-40 border-t border-surface-container-highest">
-        <div className="max-w-2xl mx-auto">
-          <button onClick={onNext} className="w-full h-16 bg-primary text-on-primary rounded-xl font-headline font-bold text-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-primary/10 group">
+      {/* Bottom Navigation Bar */}
+      <footer className="fixed bottom-0 left-0 w-full bg-surface border-t border-outline-variant/10 z-50">
+        <div className="max-w-2xl mx-auto px-6 py-4">
+          <button
+            onClick={onNext}
+            className="w-full h-16 bg-primary text-on-primary rounded-xl font-lexend font-bold text-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-primary/10 group"
+          >
             Confirmar Janela
             <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </button>
