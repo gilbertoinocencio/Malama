@@ -3,208 +3,197 @@
 <html class="light" lang="pt-BR"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>NURA - Unique Approach</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "surface-container-highest": "#e2e3df",
-                        "on-background": "#1a1c1a",
-                        "on-primary-container": "#90d6e4",
-                        "on-tertiary": "#ffffff",
-                        "on-error-container": "#93000a",
-                        "secondary-fixed-dim": "#66dd8b",
-                        "on-secondary-container": "#00743a",
-                        "on-secondary": "#ffffff",
-                        "surface-container": "#edeeea",
-                        "outline": "#6f797b",
-                        "secondary-container": "#83fba5",
-                        "on-error": "#ffffff",
-                        "inverse-surface": "#2e312f",
-                        "inverse-primary": "#8bd2df",
-                        "on-surface-variant": "#3f484a",
-                        "error": "#ba1a1a",
-                        "on-secondary-fixed-variant": "#005227",
-                        "tertiary-container": "#7d491f",
-                        "surface": "#f9faf6",
-                        "on-surface": "#1a1c1a",
-                        "primary": "#00464f",
-                        "primary-fixed-dim": "#8bd2df",
-                        "surface-tint": "#156874",
-                        "tertiary-fixed": "#ffdcc5",
-                        "surface-container-high": "#e7e9e5",
-                        "on-tertiary-fixed-variant": "#6b3a11",
-                        "tertiary-fixed-dim": "#ffb783",
-                        "on-primary-fixed": "#001f24",
-                        "secondary": "#006d36",
-                        "on-primary-fixed-variant": "#004e59",
-                        "surface-dim": "#d9dad7",
-                        "on-tertiary-fixed": "#301400",
-                        "on-primary": "#ffffff",
-                        "background": "#f9faf6",
-                        "primary-container": "#005f6b",
-                        "tertiary": "#613309",
-                        "error-container": "#ffdad6",
-                        "surface-container-low": "#f3f4f0",
-                        "inverse-on-surface": "#f0f1ed",
-                        "surface-container-lowest": "#ffffff",
-                        "primary-fixed": "#a7eefc",
-                        "surface-variant": "#e2e3df",
-                        "on-tertiary-container": "#ffbd8f",
-                        "secondary-fixed": "#83fba5",
-                        "on-secondary-fixed": "#00210c",
-                        "surface-bright": "#f9faf6",
-                        "outline-variant": "#bec8ca"
-                    },
-                    fontFamily: {
-                        "headline": ["Lexend"],
-                        "body": ["Plus Jakarta Sans"],
-                        "label": ["Plus Jakarta Sans"]
-                    },
-                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
-                },
-            },
-        }
-    </script>
 <style>
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
-        .contextual-leaf {
-            position: absolute;
-            z-index: -1;
-            filter: blur(40px);
-            opacity: 0.15;
-            background: #83fba5;
-            border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f9faf6;
+            color: #1a1c1a;
+        }
+        .font-lexend {
+            font-family: 'Lexend', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 0px;
         }
     </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "tertiary-fixed": "#ffdcc5",
+                "on-secondary-fixed": "#00210c",
+                "on-secondary-container": "#00743a",
+                "primary-container": "#005f6b",
+                "on-primary-container": "#90d6e4",
+                "surface-container-high": "#e7e9e5",
+                "surface-container-low": "#f3f4f0",
+                "surface-dim": "#d9dad7",
+                "secondary-fixed-dim": "#66dd8b",
+                "error": "#ba1a1a",
+                "surface-tint": "#156874",
+                "secondary": "#006d36",
+                "on-background": "#1a1c1a",
+                "on-tertiary-container": "#ffbd8f",
+                "surface-container-highest": "#e2e3df",
+                "error-container": "#ffdad6",
+                "surface": "#f9faf6",
+                "primary-fixed-dim": "#8bd2df",
+                "primary": "#00464f",
+                "on-secondary": "#ffffff",
+                "tertiary-container": "#7d491f",
+                "on-primary-fixed-variant": "#004e59",
+                "tertiary-fixed-dim": "#ffb783",
+                "primary-fixed": "#a7eefc",
+                "surface-bright": "#f9faf6",
+                "inverse-surface": "#2e312f",
+                "secondary-fixed": "#83fba5",
+                "on-primary": "#ffffff",
+                "outline": "#6f797b",
+                "on-secondary-fixed-variant": "#005227",
+                "surface-container": "#edeeea",
+                "on-tertiary-fixed": "#301400",
+                "on-tertiary": "#ffffff",
+                "on-surface-variant": "#3f484a",
+                "on-error-container": "#93000a",
+                "surface-container-lowest": "#ffffff",
+                "outline-variant": "#bec8ca",
+                "inverse-on-surface": "#f0f1ed",
+                "on-error": "#ffffff",
+                "on-primary-fixed": "#001f24",
+                "inverse-primary": "#8bd2df",
+                "surface-variant": "#e2e3df",
+                "secondary-container": "#83fba5",
+                "on-surface": "#1a1c1a",
+                "background": "#f9faf6",
+                "on-tertiary-fixed-variant": "#6b3a11",
+                "tertiary": "#613309"
+              },
+              fontFamily: {
+                "headline": ["Lexend"],
+                "body": ["Plus Jakarta Sans"],
+                "label": ["Plus Jakarta Sans"]
+              },
+              borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
 <style>
     body {
       min-height: max(884px, 100dvh);
     }
   </style>
   </head>
-<body class="bg-surface text-on-surface font-body min-h-screen selection:bg-secondary-container">
-<!-- Sutil Flow Progress Bar -->
+<body class="bg-surface selection:bg-primary-fixed-dim selection:text-on-primary-fixed min-h-screen flex flex-col">
+<!-- Progress Bar (Sutil Flow) -->
 <div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
-<div class="h-full bg-secondary w-4/5"></div>
+<div class="h-full bg-secondary w-[94.6%] transition-all duration-700 ease-in-out"></div>
 </div>
-<!-- Top Navigation Anchor -->
-<nav class="fixed top-0 w-full z-50 bg-stone-50/70 backdrop-blur-xl flex items-center justify-between px-8 h-20 w-full">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-teal-900" data-icon="close">close</span>
-</div>
-<span class="font-lexend tracking-tight font-medium text-2xl font-bold tracking-tighter text-teal-900">NURA</span>
+<!-- Top Navigation Header -->
+<header class="fixed top-0 w-full z-50 bg-[#f5fcdf] dark:bg-slate-950 px-8 py-4">
+<div class="flex items-center justify-between w-full max-w-screen-xl mx-auto">
+<button class="flex items-center justify-center p-2 text-primary hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<h1 class="font-lexend text-2xl font-black text-[#005F6B] dark:text-[#008ba3] tracking-widest uppercase">NURA</h1>
 <div class="w-10"></div> <!-- Spacer for symmetry -->
-</nav>
-<main class="relative pt-32 pb-40 px-6 max-w-4xl mx-auto overflow-hidden">
-<!-- Background Elements -->
-<div class="contextual-leaf w-64 h-64 -top-20 -left-20"></div>
-<div class="contextual-leaf w-96 h-96 top-1/2 -right-32"></div>
-<!-- Header Section -->
-<header class="mb-16 space-y-6">
-<h1 class="font-headline text-4xl md:text-5xl lg:text-6xl text-primary font-bold tracking-tight leading-tight">
-                O que torna o <span class="text-secondary">NURA</span> diferente?
-            </h1>
-<p class="text-on-surface-variant text-xl md:text-2xl font-light max-w-2xl leading-relaxed">
-                Nossa metodologia foi desenhada para quem busca harmonia, não restrição.
-            </p>
+</div>
 </header>
-<!-- Bento-style Grid for Methodology Features -->
-<div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-16">
-<!-- Main Methodology Card -->
-<div class="md:col-span-12 bg-surface-container-lowest p-8 md:p-12 rounded-xl shadow-[0_16px_32px_rgba(0,0,0,0.02)] border border-outline-variant/10 relative overflow-hidden group">
-<div class="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
-<div class="flex-1">
-<div class="inline-flex items-center gap-2 bg-secondary-container/30 text-secondary px-4 py-1 rounded-full text-sm font-semibold mb-4">
-<span class="material-symbols-outlined text-sm" data-icon="auto_awesome">auto_awesome</span>
-                            METODOLOGIA NURA FLOW
-                        </div>
-<h2 class="font-headline text-3xl text-primary font-semibold mb-4">Nutrição sem rigidez, disciplina sem culpa.</h2>
-<p class="text-on-surface-variant text-lg leading-relaxed">
-                            O Flow não é uma dieta, é um ritmo. Criamos um sistema que se adapta ao seu estilo de vida, permitindo progresso real sem a ansiedade dos métodos tradicionais.
+<main class="flex-grow pt-24 pb-32 px-6 max-w-2xl mx-auto w-full relative">
+<!-- Contextual Leaf (Background Element) -->
+<div class="fixed top-1/4 -right-12 opacity-10 pointer-events-none transform rotate-12">
+<span class="material-symbols-outlined text-[300px] text-secondary" data-icon="eco">eco</span>
+</div>
+<!-- Editorial Hook Section -->
+<section class="relative z-10 mb-12">
+<span class="inline-block px-4 py-1.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant text-xs font-semibold tracking-wider uppercase mb-6">
+                Metodologia
+            </span>
+<h2 class="font-lexend text-4xl md:text-5xl font-extrabold text-primary leading-tight tracking-tight mb-4">
+                O que nos torna únicos
+            </h2>
+<p class="text-on-surface-variant text-lg leading-relaxed max-w-md">
+                Desenhamos um sistema que respeita sua biologia e sua rotina, garantindo que o progresso nunca seja um fardo.
+            </p>
+</section>
+<!-- Bento-style Methodology Grid -->
+<div class="grid grid-cols-1 gap-6 relative z-10">
+<!-- Pillar 1: Adaptação -->
+<div class="group relative overflow-hidden p-8 rounded-lg bg-surface-container-low transition-all duration-300 hover:bg-surface-container-lowest hover:shadow-[0_16px_32px_rgba(26,28,26,0.04)]">
+<div class="flex flex-col md:flex-row md:items-start gap-6">
+<div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined text-3xl" data-icon="psychology" style="font-variation-settings: 'FILL' 1;">psychology</span>
+</div>
+<div>
+<h3 class="font-lexend text-2xl font-bold text-primary mb-2">1. Adaptação (IA)</h3>
+<p class="text-on-surface-variant leading-relaxed">
+                            Nossa inteligência entende seus picos de energia e estresse. O plano muda em tempo real para te manter no jogo, não importa o quão caótico seja seu dia.
                         </p>
 </div>
-<div class="flex-shrink-0 flex justify-center">
-<div class="w-32 h-32 md:w-48 md:h-48 rounded-full border-4 border-secondary/10 flex items-center justify-center relative">
-<div class="absolute inset-0 border-t-4 border-secondary rounded-full animate-[spin_8s_linear_infinite]"></div>
-<span class="material-symbols-outlined text-6xl text-secondary" data-icon="water_drop">water_drop</span>
 </div>
+<!-- Decorative number -->
+<span class="absolute -bottom-6 -right-4 font-lexend text-[120px] font-black opacity-[0.03] select-none text-on-surface pointer-events-none">01</span>
 </div>
-</div>
-</div>
-<!-- Asymmetric Secondary Cards -->
-<div class="md:col-span-7 bg-primary-container text-on-primary-container p-8 rounded-xl flex flex-col justify-between min-h-[280px]">
-<span class="material-symbols-outlined text-4xl" data-icon="psychology">psychology</span>
-<div>
-<h3 class="font-headline text-2xl font-medium mb-2">Foco no Bem-estar Mental</h3>
-<p class="opacity-80 font-light">Eliminamos a obsessão calórica para focar na qualidade dos nutrientes e na sua relação com a comida.</p>
-</div>
-</div>
-<div class="md:col-span-5 bg-surface-container-high p-8 rounded-xl flex flex-col justify-between min-h-[280px]">
-<div class="flex -space-x-4">
-<div class="w-12 h-12 rounded-full bg-secondary-fixed-dim flex items-center justify-center border-2 border-surface">
-<span class="material-symbols-outlined text-on-secondary-fixed" data-icon="check">check</span>
-</div>
-<div class="w-12 h-12 rounded-full bg-secondary flex items-center justify-center border-2 border-surface">
-<span class="material-symbols-outlined text-on-secondary" data-icon="check">check</span>
-</div>
+<!-- Pillar 2: Flow -->
+<div class="group relative overflow-hidden p-8 rounded-lg bg-surface-container-low transition-all duration-300 hover:bg-surface-container-lowest hover:shadow-[0_16px_32px_rgba(26,28,26,0.04)]">
+<div class="flex flex-col md:flex-row md:items-start gap-6">
+<div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-tertiary-container flex items-center justify-center text-on-tertiary-container">
+<span class="material-symbols-outlined text-3xl" data-icon="waves" style="font-variation-settings: 'FILL' 1;">waves</span>
 </div>
 <div>
-<h3 class="font-headline text-2xl text-primary font-medium mb-2">Ritmos Flexíveis</h3>
-<p class="text-on-surface-variant font-light">Seu plano respira com você. Dias intensos pedem nutrição de suporte, não cobrança.</p>
+<h3 class="font-lexend text-2xl font-bold text-primary mb-2">2. Flow (Consistência sem culpa)</h3>
+<p class="text-on-surface-variant leading-relaxed">
+                            Substituímos a disciplina rígida pelo ritmo natural. Se você falha um dia, o NURA Flow recalibra a jornada sem punições ou sentimentos de derrota.
+                        </p>
 </div>
 </div>
-<!-- Numerical Depth Input (Contextual representation) -->
-<div class="md:col-span-12 flex flex-col items-center justify-center py-12 bg-surface-container-low rounded-xl">
-<p class="text-on-surface-variant mb-6 font-medium">Sua meta de equilíbrio atual</p>
-<div class="flex items-baseline gap-2 group cursor-pointer">
-<span class="font-headline text-7xl md:text-9xl text-primary font-extrabold tracking-tighter">85</span>
-<span class="text-3xl font-headline text-secondary font-bold">%</span>
+<span class="absolute -bottom-6 -right-4 font-lexend text-[120px] font-black opacity-[0.03] select-none text-on-surface pointer-events-none">02</span>
 </div>
-<div class="w-48 h-[2px] bg-surface-container-highest mt-2 relative overflow-hidden">
-<div class="absolute inset-0 bg-primary w-4/5"></div>
+<!-- Pillar 3: Consolidação -->
+<div class="group relative overflow-hidden p-8 rounded-lg bg-surface-container-low transition-all duration-300 hover:bg-surface-container-lowest hover:shadow-[0_16px_32px_rgba(26,28,26,0.04)]">
+<div class="flex flex-col md:flex-row md:items-start gap-6">
+<div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center text-on-secondary">
+<span class="material-symbols-outlined text-3xl" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
 </div>
-<p class="mt-8 text-sm text-on-surface-variant/60 max-w-xs text-center italic">
-                    "85% de constância no NURA Flow gera mais resultados do que 100% de perfeição em dietas temporárias."
-                </p>
+<div>
+<h3 class="font-lexend text-2xl font-bold text-primary mb-2">3. Consolidação</h3>
+<p class="text-on-surface-variant leading-relaxed">
+                            Não focamos em transformações efêmeras. Construímos rituais que se tornam parte de quem você é, garantindo resultados que duram a vida toda.
+                        </p>
 </div>
 </div>
-<!-- Call to Action -->
-<div class="flex flex-col gap-4 items-center">
-<button class="w-full max-w-md h-16 bg-primary text-on-primary font-headline font-semibold text-lg rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3">
-                Entendi o NURA Flow
+<span class="absolute -bottom-6 -right-4 font-lexend text-[120px] font-black opacity-[0.03] select-none text-on-surface pointer-events-none">03</span>
+</div>
+</div>
+<!-- Footer / Call to Action -->
+<div class="mt-16 relative z-10 flex flex-col items-center gap-6">
+<button class="w-full h-16 bg-primary text-on-primary rounded-lg font-lexend font-bold text-lg flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all duration-300 active:scale-[0.98]">
+                Entendi o Flow
                 <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
 </button>
-<button class="text-primary font-medium px-8 py-3 rounded-full hover:bg-surface-variant/40 transition-colors">
-                Saiba mais sobre a ciência
-            </button>
+<p class="text-on-surface-variant text-sm flex items-center gap-2 opacity-60">
+<span class="material-symbols-outlined text-sm" data-icon="lock">lock</span>
+                Seus dados estão protegidos pela IA NURA
+            </p>
 </div>
 </main>
-<!-- Bottom Navigation Shell (Contextual) -->
-<footer class="fixed bottom-0 left-0 w-full flex justify-around items-center px-6 pb-8 pt-4 bg-stone-50/80 backdrop-blur-2xl rounded-t-[3rem] z-50 shadow-[0_-16px_32px_rgba(0,0,0,0.04)]">
-<div class="flex flex-col items-center justify-center text-stone-400 py-3 px-6 hover:text-teal-700 transition-colors">
-<span class="material-symbols-outlined" data-icon="target">target</span>
-<span class="font-lexend text-xs font-light tracking-wide mt-1">Focus</span>
-</div>
-<div class="flex flex-col items-center justify-center bg-teal-50 text-teal-900 rounded-full py-3 px-6 transition-all duration-500">
-<span class="material-symbols-outlined" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-<span class="font-lexend text-xs font-semibold tracking-wide mt-1">Journey</span>
-</div>
-<div class="flex flex-col items-center justify-center text-stone-400 py-3 px-6 hover:text-teal-700 transition-colors">
-<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
-<span class="font-lexend text-xs font-light tracking-wide mt-1">Learn</span>
-</div>
-<div class="flex flex-col items-center justify-center text-stone-400 py-3 px-6 hover:text-teal-700 transition-colors">
-<span class="material-symbols-outlined" data-icon="person">person</span>
-<span class="font-lexend text-xs font-light tracking-wide mt-1">Profile</span>
-</div>
-</footer>
+<!-- Navigation Shell Placeholder (Suppressed for focused onboarding journey) -->
+<!-- Applying "Shell Visibility" rule: Onboarding screens should prioritize focused actions over global navigation -->
+<!-- Decorative Bottom Gradient for Depth -->
+<div class="fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-surface to-transparent pointer-events-none z-0"></div>
 </body></html>

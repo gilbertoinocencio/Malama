@@ -3,16 +3,16 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 import { motion } from 'framer-motion';
 
-const ProjecaoSucessoStep: React.FC<StepProps> = ({ data, onNext, onBack }) => {
+const ProjecaoSucessoStep: React.FC<StepProps> = ({ data, onNext, onBack, currentStep, totalSteps }) => {
   const target = data.targetWeight || 70;
   const current = data.weight || 78.5;
   const diff = (current - target).toFixed(1);
 
   return (
     <StepContainer
-      currentStep={17}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <section className="mb-12">

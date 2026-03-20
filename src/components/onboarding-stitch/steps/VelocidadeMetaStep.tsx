@@ -2,14 +2,14 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const VelocidadeMetaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
+const VelocidadeMetaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const speed = data.goalSpeed || 3;
 
   return (
     <StepContainer
-      currentStep={16}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <div className="w-full mb-12 space-y-4">

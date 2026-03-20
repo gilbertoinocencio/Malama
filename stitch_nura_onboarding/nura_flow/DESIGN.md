@@ -6,10 +6,12 @@ This design system moves away from the aggressive, high-density patterns of trad
 To break the "template" look, we utilize **Intentional Asymmetry**. Instead of centering every element, we use the Spacing Scale to create dynamic tension—placing primary actions in unexpected but ergonomic positions. Overlapping elements (e.g., a numerical input slightly bleeding over a soft-edged container) create a sense of tactile depth that feels bespoke and premium.
 
 ## 2. Colors: Tonal Depth & The "No-Line" Rule
-The palette is rooted in nature and prestige, using `surface` as a canvas and `primary` (Teal) and `secondary` (Emerald) as purposeful beacons.
+The palette is rooted in nature and prestige, using `surface` as a canvas and `primary` (Deep Teal) and `secondary` (Emerald) as purposeful beacons.
 
 *   **Primary (`#00464f`):** Use for high-intent actions and authoritative typography.
 *   **Secondary (`#006d36`):** Reserved for "Success" states, progress indicators, and moments of user delight.
+*   **Tertiary (`#6f3f18`):** An additional accent for highlights, badges, or decorative elements, contributing to the system's "soul."
+*   **Neutral (`#f5fcdf`):** A soft, natural base for backgrounds, surfaces, and non-chromatic elements.
 *   **The "No-Line" Rule:** 1px solid borders are strictly prohibited for sectioning. Boundaries must be defined through background color shifts. For example, a card should be `surface-container-lowest` sitting on a `surface` background. The change in hex code provides the edge, not a stroke.
 *   **The "Glass & Gradient" Rule:** To provide "soul," use a subtle linear gradient on primary buttons (transitioning from `primary` to `primary-container`). For floating modals or "Next" steps, apply a `backdrop-blur` of 12px-20px using a 70% opacity version of `surface-container-lowest` to create a frosted-glass effect.
 
@@ -30,7 +32,7 @@ Traditional shadows are replaced by **Tonal Layering**. We treat the UI as stack
 ## 5. Components: Fluidity & Negative Space
 
 ### Buttons
-*   **Primary:** Uses `xl` (3rem/48px) corner radius. Height should be a minimum of `12` on the spacing scale (4rem) to feel luxurious. Use `primary` background with `on-primary` text.
+*   **Primary:** Uses `moderate` (0.5rem/8px) corner radius. Height should be a minimum of `12` on the spacing scale (4rem) to feel luxurious. Use `primary` background with `on-primary` text.
 *   **Secondary/Tertiary:** No background. Use `primary` text and a `surface-variant` background only on hover/active states.
 
 ### Progress Bars
@@ -56,5 +58,5 @@ Traditional shadows are replaced by **Tonal Layering**. We treat the UI as stack
 
 ### Don't:
 *   **Don't use 100% Black:** Always use `on-surface` (`#1a1c1a`) for text to maintain the premium, soft-contrast look.
-*   **Don't use Sharp Corners:** Nothing in this system should have a radius smaller than `sm` (0.5rem).
+*   **Don't use Sharp Corners:** Nothing in this system should have a radius smaller than `moderate` (0.5rem).
 *   **Don't Overcrowd:** Limit screens to one primary question or action. If the user has to scroll significantly, split the content into two onboarding steps.

@@ -12,14 +12,14 @@ const DIETAS = [
   'Baixa em carbo',
 ];
 
-const TipoDietaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
+const TipoDietaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const selected = data.dietType;
 
   return (
     <StepContainer
-      currentStep={9}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <section className="mb-12">

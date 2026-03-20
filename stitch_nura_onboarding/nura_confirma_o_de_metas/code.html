@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NURA - Suas Metas do Flow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-container": "#ffdad6",
+              "outline": "#6f797b",
+              "on-secondary-container": "#00743a",
+              "surface": "#f9faf6",
+              "on-secondary": "#ffffff",
+              "on-secondary-fixed-variant": "#005227",
+              "primary": "#00464f",
+              "secondary-fixed": "#83fba5",
+              "tertiary-fixed-dim": "#ffb783",
+              "secondary-container": "#83fba5",
+              "on-surface-variant": "#3f484a",
+              "tertiary": "#613309",
+              "on-tertiary-fixed": "#301400",
+              "primary-fixed": "#a7eefc",
+              "on-surface": "#1a1c1a",
+              "on-error-container": "#93000a",
+              "secondary": "#006d36",
+              "surface-container-lowest": "#ffffff",
+              "tertiary-fixed": "#ffdcc5",
+              "surface-container-low": "#f3f4f0",
+              "on-primary": "#ffffff",
+              "on-secondary-fixed": "#00210c",
+              "primary-container": "#005f6b",
+              "on-primary-container": "#90d6e4",
+              "on-tertiary-container": "#ffbd8f",
+              "on-tertiary-fixed-variant": "#6b3a11",
+              "primary-fixed-dim": "#8bd2df",
+              "surface-bright": "#f9faf6",
+              "surface-tint": "#156874",
+              "on-primary-fixed": "#001f24",
+              "inverse-primary": "#8bd2df",
+              "surface-variant": "#e2e3df",
+              "on-error": "#ffffff",
+              "inverse-surface": "#2e312f",
+              "background": "#f9faf6",
+              "tertiary-container": "#7d491f",
+              "surface-container-highest": "#e2e3df",
+              "inverse-on-surface": "#f0f1ed",
+              "on-tertiary": "#ffffff",
+              "on-background": "#1a1c1a",
+              "surface-container-high": "#e7e9e5",
+              "error": "#ba1a1a",
+              "on-primary-fixed-variant": "#004e59",
+              "surface-container": "#edeeea",
+              "surface-dim": "#d9dad7",
+              "secondary-fixed-dim": "#66dd8b",
+              "outline-variant": "#bec8ca"
+            },
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #f9faf6;
+        color: #1a1c1a;
+      }
+      h1, h2, h3 {
+        font-family: 'Lexend', sans-serif;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex flex-col">
+<!-- Sutil Flow Progress Bar -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-secondary w-[78%]" style="transition: width 1s ease-in-out;"></div>
+</div>
+<!-- Top Navigation Suppression: Linear Journey (No TopAppBar/BottomNavBar) -->
+<main class="flex-grow flex flex-col px-6 pt-12 pb-32 max-w-lg mx-auto w-full relative">
+<!-- Contextual Leaf Decoration -->
+<div class="fixed -top-10 -right-10 w-64 h-64 bg-secondary-container opacity-20 blur-3xl rounded-full pointer-events-none"></div>
+<div class="fixed bottom-20 -left-10 w-48 h-48 bg-primary-container opacity-10 blur-3xl rounded-full pointer-events-none"></div>
+<!-- Editorial Header -->
+<header class="mb-10 mt-4 text-center">
+<span class="text-tertiary font-medium tracking-widest text-xs uppercase mb-2 block">Cálculo de IA Finalizado</span>
+<h1 class="text-primary text-4xl font-bold tracking-tight leading-tight">Suas Metas do Flow</h1>
+<p class="text-on-surface-variant mt-4 text-lg leading-relaxed">Com base no seu biotipo e rotina, este é o caminho ideal para sua transformação.</p>
+</header>
+<!-- Bento Grid Goal Confirmation -->
+<div class="grid grid-cols-2 gap-4">
+<!-- Target Weight Card -->
+<div class="col-span-2 bg-surface-container-lowest p-8 rounded-lg shadow-[0_16px_32px_0_rgba(26,28,26,0.04)] flex flex-col items-center justify-center relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-7xl" data-icon="monitor_weight">monitor_weight</span>
+</div>
+<p class="text-on-surface-variant font-medium uppercase tracking-widest text-xs mb-2">Peso Alvo</p>
+<div class="flex items-baseline gap-1">
+<span class="text-primary text-7xl font-bold tracking-tighter">70</span>
+<span class="text-primary-container text-2xl font-semibold uppercase">kg</span>
+</div>
+<div class="mt-4 h-[2px] w-24 bg-surface-container-highest"></div>
+</div>
+<!-- Estimated Time Card -->
+<div class="col-span-1 bg-primary text-on-primary p-6 rounded-lg flex flex-col justify-between h-48">
+<span class="material-symbols-outlined text-primary-fixed-dim text-3xl" data-icon="calendar_today">calendar_today</span>
+<div>
+<p class="text-[10px] uppercase tracking-widest text-primary-fixed-dim/70 font-bold mb-1">Prazo Estimado</p>
+<h3 class="text-3xl font-bold">12</h3>
+<p class="text-sm font-medium opacity-80">Semanas</p>
+</div>
+</div>
+<!-- Science Confirmation Card -->
+<div class="col-span-1 bg-tertiary text-on-tertiary p-6 rounded-lg flex flex-col justify-between h-48">
+<span class="material-symbols-outlined text-tertiary-fixed-dim text-3xl" data-icon="auto_awesome">auto_awesome</span>
+<div>
+<p class="text-[10px] uppercase tracking-widest text-tertiary-fixed-dim/70 font-bold mb-1">Taxa de Sucesso</p>
+<h3 class="text-3xl font-bold">94%</h3>
+<p class="text-sm font-medium opacity-80">IA Confidence</p>
+</div>
+</div>
+<!-- Simple Elegant Graph Overlay -->
+<div class="col-span-2 bg-surface-container-low p-6 rounded-lg flex flex-col gap-6">
+<div class="flex justify-between items-center">
+<h4 class="text-primary font-bold text-sm tracking-tight uppercase">Curva de Progressão</h4>
+<span class="text-secondary font-bold text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="trending_down">trending_down</span>
+                        Ritmo Sustentável
+                    </span>
+</div>
+<!-- Visualizing the Flow -->
+<div class="relative h-32 w-full flex items-end justify-between px-2">
+<div class="absolute inset-0 flex items-center justify-center opacity-5">
+<span class="material-symbols-outlined text-[8rem]" data-icon="waves">waves</span>
+</div>
+<!-- Simplified Bar Graph -->
+<div class="w-[8%] bg-primary/20 h-full rounded-t-full"></div>
+<div class="w-[8%] bg-primary/25 h-[85%] rounded-t-full"></div>
+<div class="w-[8%] bg-primary/30 h-[75%] rounded-t-full"></div>
+<div class="w-[8%] bg-primary/40 h-[60%] rounded-t-full"></div>
+<div class="w-[8%] bg-primary/50 h-[50%] rounded-t-full"></div>
+<div class="w-[8%] bg-primary/60 h-[40%] rounded-t-full"></div>
+<div class="w-[8%] bg-primary/70 h-[32%] rounded-t-full"></div>
+<div class="w-[8%] bg-primary/80 h-[25%] rounded-t-full"></div>
+<div class="w-[8%] bg-primary/90 h-[18%] rounded-t-full"></div>
+<div class="w-[8%] bg-secondary h-[12%] rounded-t-full"></div>
+</div>
+<div class="flex justify-between text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">
+<span>Início</span>
+<span>Semana 6</span>
+<span>Objetivo</span>
+</div>
+</div>
+<!-- Commitment Affirmation -->
+<div class="col-span-2 mt-2 px-2">
+<p class="text-on-surface-variant text-sm text-center italic font-body">
+                    "O Flow não é sobre pressa, é sobre ritmo sustentável e precisão biológica."
+                </p>
+</div>
+</div>
+<!-- Sticky Bottom Action (Editorial Style) -->
+<div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-surface via-surface to-transparent pt-12">
+<div class="max-w-lg mx-auto flex flex-col gap-4">
+<button class="w-full h-16 bg-primary text-on-primary rounded-lg font-bold text-lg shadow-xl shadow-primary/10 flex items-center justify-center gap-3 transition-all duration-300 active:scale-95 hover:bg-primary-container">
+                    Confirmar Metas
+                    <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<button class="w-full py-4 text-primary font-bold text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
+                    Ajustar Intensidade
+                </button>
+</div>
+</div>
+</main>
+<!-- Contextual Decorative Elements -->
+<div class="hidden lg:block fixed top-1/2 left-10 -translate-y-1/2 opacity-10 pointer-events-none">
+<img alt="" class="w-64 grayscale contrast-125" data-alt="Abstract water ripple texture background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHvmVVxUFyw-yXU3rjnpoN_3-3_4P8F4aBCxEXfSDBM9hV8Tszw5hDZq3sOdHYktihCcjlVCh1ZBQbIAVe7DyAV7wwasPFpB4Xlb9wh-4MGnN9DfYo-Gj9IML9S5d0c9DV0OQYg38M6LT7SG6LHklRdx0NybZmV6DsVNcHIvDnS6xGvBmnOQu-lZSZmWmfgquupJtWnuXOhQGtumViX049dsvIkpzGzrkBFnjOfbekLrsq2D2rU4ernuDd4aIuRGbATGIfYW-3usk"/>
+</div>
+</body></html>

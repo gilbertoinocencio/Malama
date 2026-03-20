@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 
-<html class="light" lang="pt-BR"><head>
+<html class="light" lang="pt-PT"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>NURA - Onboarding Water Intake</title>
+<title>NURA - Consumo de Água</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
@@ -14,60 +14,65 @@
             theme: {
                 extend: {
                     colors: {
-                        "surface-container-highest": "#e2e3df",
-                        "on-background": "#1a1c1a",
-                        "on-primary-container": "#90d6e4",
-                        "on-tertiary": "#ffffff",
-                        "on-error-container": "#93000a",
-                        "secondary-fixed-dim": "#66dd8b",
-                        "on-secondary-container": "#00743a",
+                        "on-secondary-fixed-variant": "#005227",
+                        "primary": "#00464f",
                         "on-secondary": "#ffffff",
-                        "surface-container": "#edeeea",
+                        "surface": "#f9faf6",
+                        "error-container": "#ffdad6",
                         "outline": "#6f797b",
+                        "on-secondary-container": "#00743a",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#006d36",
+                        "primary-fixed": "#a7eefc",
+                        "on-surface": "#1a1c1a",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#613309",
+                        "on-tertiary-fixed": "#301400",
                         "secondary-container": "#83fba5",
+                        "on-surface-variant": "#3f484a",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "secondary-fixed": "#83fba5",
+                        "surface-variant": "#e2e3df",
+                        "surface-bright": "#f9faf6",
+                        "surface-tint": "#156874",
+                        "on-primary-fixed": "#001f24",
+                        "inverse-primary": "#8bd2df",
+                        "on-tertiary-fixed-variant": "#6b3a11",
+                        "primary-fixed-dim": "#8bd2df",
+                        "on-tertiary-container": "#ffbd8f",
+                        "primary-container": "#005f6b",
+                        "on-primary-container": "#90d6e4",
+                        "on-secondary-fixed": "#00210c",
+                        "tertiary-fixed": "#ffdcc5",
+                        "surface-container-low": "#f3f4f0",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#edeeea",
+                        "surface-dim": "#d9dad7",
+                        "secondary-fixed-dim": "#66dd8b",
+                        "outline-variant": "#bec8ca",
+                        "surface-container-high": "#e7e9e5",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#004e59",
+                        "on-background": "#1a1c1a",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#f0f1ed",
                         "on-error": "#ffffff",
                         "inverse-surface": "#2e312f",
-                        "inverse-primary": "#8bd2df",
-                        "on-surface-variant": "#3f484a",
-                        "error": "#ba1a1a",
-                        "on-secondary-fixed-variant": "#005227",
-                        "tertiary-container": "#7d491f",
-                        "surface": "#f9faf6",
-                        "on-surface": "#1a1c1a",
-                        "primary": "#00464f",
-                        "primary-fixed-dim": "#8bd2df",
-                        "surface-tint": "#156874",
-                        "tertiary-fixed": "#ffdcc5",
-                        "surface-container-high": "#e7e9e5",
-                        "on-tertiary-fixed-variant": "#6b3a11",
-                        "tertiary-fixed-dim": "#ffb783",
-                        "on-primary-fixed": "#001f24",
-                        "secondary": "#006d36",
-                        "on-primary-fixed-variant": "#004e59",
-                        "surface-dim": "#d9dad7",
-                        "on-tertiary-fixed": "#301400",
-                        "on-primary": "#ffffff",
                         "background": "#f9faf6",
-                        "primary-container": "#005f6b",
-                        "tertiary": "#613309",
-                        "error-container": "#ffdad6",
-                        "surface-container-low": "#f3f4f0",
-                        "inverse-on-surface": "#f0f1ed",
-                        "surface-container-lowest": "#ffffff",
-                        "primary-fixed": "#a7eefc",
-                        "surface-variant": "#e2e3df",
-                        "on-tertiary-container": "#ffbd8f",
-                        "secondary-fixed": "#83fba5",
-                        "on-secondary-fixed": "#00210c",
-                        "surface-bright": "#f9faf6",
-                        "outline-variant": "#bec8ca"
+                        "tertiary-container": "#7d491f",
+                        "surface-container-highest": "#e2e3df"
                     },
                     fontFamily: {
                         "headline": ["Lexend"],
                         "body": ["Plus Jakarta Sans"],
                         "label": ["Plus Jakarta Sans"]
                     },
-                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "24px",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
                 },
             },
         }
@@ -76,11 +81,11 @@
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
-        .bg-mesh-gradient {
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #f9faf6;
-            background-image: radial-gradient(at 0% 0%, rgba(0, 70, 79, 0.03) 0px, transparent 50%),
-                              radial-gradient(at 100% 100%, rgba(0, 109, 54, 0.03) 0px, transparent 50%);
         }
+        .font-lexend { font-family: 'Lexend', sans-serif; }
     </style>
 <style>
     body {
@@ -88,82 +93,92 @@
     }
   </style>
   </head>
-<body class="bg-surface text-on-surface font-body selection:bg-primary-fixed selection:text-primary">
-<!-- Top Progress Bar -->
+<body class="flex flex-col min-h-screen text-on-surface">
+<!-- Sutil Flow Progress Bar -->
 <div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
-<div class="h-full bg-secondary w-3/4 transition-all duration-700 ease-in-out"></div>
+<div class="h-full bg-secondary transition-all duration-700 ease-in-out" style="width: 37.8%;"></div> <!-- Step 14 of 37 -->
 </div>
-<!-- Top Navigation Shell (Suppressed for focused onboarding journey) -->
-<nav class="fixed top-0 w-full z-50 flex items-center justify-between px-8 h-20 w-full bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl">
-<div class="text-2xl font-bold tracking-tighter text-teal-900 dark:text-teal-500 font-headline">NURA</div>
-<button class="p-2 rounded-full hover:bg-stone-200/50 transition-all duration-300">
-<span class="material-symbols-outlined text-teal-900" data-icon="close">close</span>
+<!-- TopAppBar -->
+<header class="bg-neutral-100/50 dark:bg-slate-800/50 backdrop-blur-md flex items-center justify-between px-6 h-20 w-full fixed top-0 z-50">
+<button class="text-[#00464f] dark:text-teal-400 hover:bg-[#00464f]/5 transition-colors duration-300 scale-95 active:scale-90 transition-transform p-2 rounded-full">
+<span class="material-symbols-outlined">arrow_back</span>
 </button>
-</nav>
-<main class="min-h-screen pt-28 pb-32 px-6 flex flex-col items-center justify-center bg-mesh-gradient overflow-x-hidden">
+<h1 class="font-lexend text-2xl font-black tracking-tighter text-[#00464f] dark:text-teal-500">NURA</h1>
+<div class="w-10"></div> <!-- Spacer for center alignment -->
+</header>
+<main class="flex-grow flex flex-col items-center justify-center px-6 pt-24 pb-32 max-w-2xl mx-auto w-full">
 <!-- Contextual Leaf Decoration -->
-<div class="fixed -top-20 -right-20 opacity-20 pointer-events-none">
-<span class="material-symbols-outlined text-[20rem] text-secondary-container" style="font-variation-settings: 'FILL' 1;">eco</span>
+<div class="fixed top-1/4 -right-20 opacity-20 pointer-events-none transform rotate-12">
+<span class="material-symbols-outlined text-[300px] text-secondary-container" style="font-variation-settings: 'FILL' 1;">eco</span>
 </div>
-<div class="w-full max-w-xl flex flex-col items-center">
-<!-- Subtle Water Drop Icon -->
-<div class="mb-12 flex items-center justify-center w-24 h-24 rounded-full bg-surface-container-lowest shadow-[0_16px_32px_rgba(0,0,0,0.02)] border border-outline-variant/10">
-<span class="material-symbols-outlined text-5xl text-primary" data-icon="water_drop" style="font-variation-settings: 'FILL' 1;">water_drop</span>
+<!-- Editorial Content -->
+<div class="w-full mb-12 relative z-10">
+<p class="font-lexend text-sm tracking-widest uppercase font-bold text-tertiary mb-2">Phase 4: Hydration</p>
+<h2 class="font-lexend text-4xl md:text-5xl font-bold text-primary leading-tight mb-4">Bebe água suficiente?</h2>
+<p class="text-on-surface-variant text-lg max-w-md">O NURA Flow adapta-se ao seu ritmo biológico. A hidratação é o combustível da clareza mental.</p>
 </div>
-<!-- Header Section -->
-<div class="text-center mb-16 px-4">
-<h1 class="text-4xl md:text-5xl font-headline font-bold tracking-tight text-primary leading-tight">
-                    Bebe água suficiente?
-                </h1>
-<p class="mt-6 text-on-surface-variant text-lg max-w-sm mx-auto leading-relaxed">
-                    A hidratação é o pilar invisível da sua performance cognitiva e física.
-                </p>
-</div>
-<!-- Elegance Selector Cards -->
-<div class="w-full space-y-4">
+<!-- Options Container (Selective Option Cards) -->
+<div class="w-full space-y-4 relative z-10">
 <!-- Option: Sim -->
-<button class="group w-full flex items-center justify-between p-8 rounded-xl bg-surface-container-low hover:bg-surface-container-high transition-all duration-300 ease-in-out text-left border border-transparent focus:outline-none focus:ring-2 focus:ring-primary/20">
+<button class="group w-full text-left bg-surface-container-lowest hover:bg-surface-container-low transition-all duration-300 p-8 rounded-lg flex items-center justify-between group">
 <div class="flex items-center gap-6">
-<div class="w-12 h-12 rounded-full bg-surface-container-lowest flex items-center justify-center transition-colors group-hover:bg-primary-container/10">
-<span class="material-symbols-outlined text-primary" data-icon="check_circle">check_circle</span>
+<div class="w-14 h-14 rounded-full bg-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">water_full</span>
 </div>
-<span class="text-xl font-headline font-medium text-on-surface">Sim</span>
+<div>
+<span class="font-lexend text-xl font-semibold text-primary block">Sim</span>
+<span class="text-sm text-on-surface-variant">Mantenho-me hidratado(a) regularmente.</span>
 </div>
+</div>
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant group-hover:border-secondary transition-colors"></div>
 </button>
-<!-- Option: Não -->
-<button class="group w-full flex items-center justify-between p-8 rounded-xl bg-primary-fixed-dim/10 border border-primary-fixed-dim transition-all duration-300 ease-in-out text-left focus:outline-none">
+<!-- Option: Não (Selected state simulation) -->
+<button class="w-full text-left bg-primary-fixed-dim/30 ring-2 ring-secondary p-8 rounded-lg flex items-center justify-between transition-all duration-300">
 <div class="flex items-center gap-6">
-<div class="w-12 h-12 rounded-full bg-primary-fixed-dim flex items-center justify-center">
-<span class="material-symbols-outlined text-primary" data-icon="close" style="font-variation-settings: 'FILL' 0;">close</span>
+<div class="w-14 h-14 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">water_medium</span>
 </div>
-<span class="text-xl font-headline font-semibold text-primary">Não</span>
+<div>
+<span class="font-lexend text-xl font-semibold text-primary block">Não</span>
+<span class="text-sm text-on-surface-variant">Esqueço-me de beber água com frequência.</span>
 </div>
-<span class="material-symbols-outlined text-secondary" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary text-lg" style="font-variation-settings: 'FILL' 0; font-weight: 700;">check</span>
+</div>
 </button>
 <!-- Option: Não tenho a certeza -->
-<button class="group w-full flex items-center justify-between p-8 rounded-xl bg-surface-container-low hover:bg-surface-container-high transition-all duration-300 ease-in-out text-left border border-transparent focus:outline-none focus:ring-2 focus:ring-primary/20">
+<button class="group w-full text-left bg-surface-container-lowest hover:bg-surface-container-low transition-all duration-300 p-8 rounded-lg flex items-center justify-between">
 <div class="flex items-center gap-6">
-<div class="w-12 h-12 rounded-full bg-surface-container-lowest flex items-center justify-center transition-colors group-hover:bg-primary-container/10">
-<span class="material-symbols-outlined text-primary" data-icon="question_mark">question_mark</span>
+<div class="w-14 h-14 rounded-full bg-tertiary/5 flex items-center justify-center text-tertiary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">question_mark</span>
 </div>
-<span class="text-xl font-headline font-medium text-on-surface">Não tenho a certeza</span>
+<div>
+<span class="font-lexend text-xl font-semibold text-primary block">Não tenho a certeza</span>
+<span class="text-sm text-on-surface-variant">Não costumo monitorizar o consumo.</span>
 </div>
+</div>
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant group-hover:border-secondary transition-colors"></div>
 </button>
 </div>
-<!-- Footer Action Section -->
-<div class="mt-20 w-full">
-<button class="w-full h-16 bg-primary text-on-primary rounded-xl font-headline font-semibold text-lg flex items-center justify-center gap-3 shadow-lg shadow-primary/10 hover:brightness-110 active:scale-[0.98] transition-all duration-300 group">
-                    Continuar
-                    <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
-</button>
-<p class="mt-6 text-center text-on-surface-variant/60 text-sm font-medium">
-                    Fase 4 de 6 • Hidratação &amp; Fluxo
-                </p>
-</div>
+<!-- Identity Footer Tag -->
+<div class="mt-16 text-center opacity-40 select-none">
+<span class="font-lexend text-xs tracking-[0.3em] uppercase font-light text-primary">NURA Flow Identity</span>
 </div>
 </main>
-<!-- Contextual Leaf (Bottom Left) -->
-<div class="fixed -bottom-24 -left-24 opacity-10 pointer-events-none transform -rotate-45">
-<span class="material-symbols-outlined text-[25rem] text-secondary" style="font-variation-settings: 'FILL' 0;">spa</span>
-</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-between items-center max-w-md mx-auto mb-6 gap-4 px-8 pb-10 pointer-events-none">
+<!-- Back Button (Inactive Style) -->
+<button class="pointer-events-auto flex flex-row items-center justify-center text-[#00464f] bg-[#f5fcdf]/80 backdrop-blur-xl rounded-full px-10 py-4 shadow-[0_-16px_32px_rgba(26,28,26,0.04)] hover:opacity-90 transition-opacity duration-300 active:scale-95 transition-all cubic-bezier(0.4, 0, 0.2, 1)">
+<span class="material-symbols-outlined mr-2">chevron_left</span>
+<span class="font-lexend text-[12px] font-medium uppercase tracking-wider">Back</span>
+</button>
+<!-- Continue Button (Active Style) -->
+<button class="pointer-events-auto flex flex-row items-center justify-center bg-[#00464f] text-[#f5fcdf] rounded-full px-10 py-4 shadow-lg hover:opacity-90 transition-opacity duration-300 active:scale-95 transition-all cubic-bezier(0.4, 0, 0.2, 1)">
+<span class="font-lexend text-[12px] font-medium uppercase tracking-wider mr-2">Continue</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</nav>
+<!-- Background texture layer -->
+<div class="fixed inset-0 -z-10 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/felt.png')]" data-alt="Subtle felt paper texture overlay"></div>
 </body></html>

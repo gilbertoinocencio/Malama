@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#005F6B", // Petrol Blue
+                        "background-nura": "#FCFDF5", // Off-white
+                        "accent-brown": "#7d491f", // Earthy Brown
+                        "surface": "#FCFDF5",
+                        "on-surface": "#1a1c1a",
+                        "on-surface-variant": "#3f484a",
+                        "outline-variant": "#bec8ca",
+                        "surface-container-low": "#f3f4f0",
+                        "surface-container-high": "#e7e9e5",
+                        "surface-container-lowest": "#ffffff"
+                    },
+                    fontFamily: {
+                        "headline": ["Lexend"],
+                        "body": ["Lexend"], // Updated to Lexend
+                        "label": ["Lexend"] // Updated to Lexend
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .card-radius {
+            border-radius: 24px;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+            background-color: #FCFDF5;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface min-h-screen flex flex-col">
+<!-- Progress Bar (Sutil Flow) -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-accent-brown transition-all duration-700 ease-in-out" style="width: 45.9%;"></div>
+</div>
+<!-- Top App Bar -->
+<header class="flex items-center justify-between px-6 h-20 w-full no-border bg-surface/50 backdrop-blur-md z-50">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-primary/5 transition-colors duration-300 scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-primary">arrow_back</span>
+</button>
+</div>
+<div class="font-headline text-2xl font-black tracking-tighter text-primary">NURA</div>
+<div class="w-10"></div>
+</header>
+<main class="flex-1 max-w-xl mx-auto px-6 pt-12 pb-32 w-full relative">
+<!-- Contextual Leaf Decoration -->
+<div class="absolute -top-10 -right-10 opacity-10 pointer-events-none select-none">
+<span class="material-symbols-outlined text-[180px] text-accent-brown">eco</span>
+</div>
+<div class="mb-10">
+<span class="font-headline text-sm font-bold uppercase tracking-[0.2em] text-accent-brown/70 mb-2 block">Habits — Step 17/37</span>
+<h1 class="font-headline text-4xl font-extrabold text-primary leading-tight tracking-tight">
+                Quais hábitos quer mudar?
+            </h1>
+<p class="mt-4 text-on-surface-variant font-medium">O NURA Flow adapta-se às suas necessidades para criar transformações duradouras.</p>
+</div>
+<!-- Choice Grid -->
+<div class="grid grid-cols-1 gap-4">
+<!-- Selected Card -->
+<button class="card-radius p-8 flex items-center justify-between bg-primary group transition-all duration-300 hover:shadow-lg text-left">
+<div class="flex flex-col gap-1">
+<span class="font-headline text-xl font-bold text-white">Comer à noite</span>
+<span class="text-sm font-medium text-white/80">Reduzir a ingestão calórica noturna</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</button>
+<!-- Unselected Cards -->
+<button class="card-radius p-8 flex items-center justify-between bg-surface-container-low group transition-all duration-300 hover:bg-surface-container-high text-left border border-outline-variant/20">
+<div class="flex flex-col gap-1">
+<span class="font-headline text-xl font-bold text-primary">Beliscar o dia todo</span>
+<span class="text-sm font-medium text-on-surface-variant">Controlar impulsos entre refeições</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-primary/30 group-hover:text-primary/50">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+</div>
+</button>
+<button class="card-radius p-8 flex items-center justify-between bg-surface-container-low group transition-all duration-300 hover:bg-surface-container-high text-left border border-outline-variant/20">
+<div class="flex flex-col gap-1">
+<span class="font-headline text-xl font-bold text-primary">Doces em excesso</span>
+<span class="text-sm font-medium text-on-surface-variant">Gerenciar o consumo de açúcar</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-primary/30 group-hover:text-primary/50">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+</div>
+</button>
+<button class="card-radius p-8 flex items-center justify-between bg-surface-container-low group transition-all duration-300 hover:bg-surface-container-high text-left border border-outline-variant/20">
+<div class="flex flex-col gap-1">
+<span class="font-headline text-xl font-bold text-primary">Sedentarismo</span>
+<span class="text-sm font-medium text-on-surface-variant">Incorporar movimento ao seu dia</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-primary/30 group-hover:text-primary/50">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+</div>
+</button>
+</div>
+<!-- Semantic Identity Mention -->
+<div class="mt-12 text-center p-6 bg-surface-container-lowest card-radius shadow-sm border border-outline-variant/20">
+<span class="material-symbols-outlined text-accent-brown mb-2 block">auto_awesome</span>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+                Suas escolhas definem como o <span class="font-bold text-primary">NURA Flow</span> irá sugerir novos caminhos para sua rotina.
+            </p>
+</div>
+</main>
+<!-- Bottom Navigation Shell -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-between items-center max-w-md mx-auto mb-6 gap-4 px-8 pb-10">
+<!-- Back Button -->
+<button class="flex flex-row items-center justify-center text-primary bg-surface-container-high backdrop-blur-xl rounded-full px-10 py-4 hover:opacity-90 transition-all active:scale-95">
+<span class="material-symbols-outlined mr-2">chevron_left</span>
+<span class="font-headline text-[12px] font-bold uppercase tracking-wider">Back</span>
+</button>
+<!-- Continue Button (Active State) -->
+<button class="flex flex-row items-center justify-center bg-primary text-white rounded-full px-10 py-4 shadow-lg hover:opacity-90 transition-all active:scale-95">
+<span class="font-headline text-[12px] font-bold uppercase tracking-wider mr-2">Continue</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</nav>
+</body></html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-lowest": "#ffffff",
+              "error-container": "#ffdad6",
+              "secondary-container": "#83fba5",
+              "on-surface": "#1a1c1a",
+              "on-secondary": "#ffffff",
+              "surface": "#f9faf6",
+              "surface-bright": "#f9faf6",
+              "primary-container": "#005f6b",
+              "inverse-on-surface": "#f0f1ed",
+              "secondary-fixed-dim": "#66dd8b",
+              "secondary-fixed": "#83fba5",
+              "surface-tint": "#156874",
+              "surface-container-highest": "#e2e3df",
+              "primary-fixed": "#a7eefc",
+              "surface-container-low": "#f3f4f0",
+              "on-error-container": "#93000a",
+              "on-primary-container": "#90d6e4",
+              "on-secondary-container": "#00743a",
+              "on-tertiary-fixed-variant": "#6b3a11",
+              "surface-container-high": "#e7e9e5",
+              "on-tertiary-fixed": "#301400",
+              "on-primary": "#ffffff",
+              "tertiary": "#613309",
+              "primary-fixed-dim": "#8bd2df",
+              "on-primary-fixed-variant": "#004e59",
+              "surface-dim": "#d9dad7",
+              "on-primary-fixed": "#001f24",
+              "background": "#f9faf6",
+              "primary": "#00464f",
+              "on-background": "#1a1c1a",
+              "tertiary-fixed": "#ffdcc5",
+              "outline-variant": "#bec8ca",
+              "outline": "#6f797b",
+              "on-error": "#ffffff",
+              "on-secondary-fixed-variant": "#005227",
+              "surface-container": "#edeeea",
+              "on-secondary-fixed": "#00210c",
+              "on-tertiary": "#ffffff",
+              "inverse-primary": "#8bd2df",
+              "on-surface-variant": "#3f484a",
+              "tertiary-fixed-dim": "#ffb783",
+              "surface-variant": "#e2e3df",
+              "on-tertiary-container": "#ffbd8f",
+              "secondary": "#006d36",
+              "error": "#ba1a1a",
+              "inverse-surface": "#2e312f",
+              "tertiary-container": "#7d491f"
+            },
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .editorial-shadow {
+            box-shadow: 0 16px 32px rgba(26, 28, 26, 0.04);
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f9faf6;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+<!-- Progress Bar (The Sutil Flow) -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-secondary w-[97.3%]"></div>
+</div>
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 flex items-center justify-between px-6 h-16 bg-[#f5fcdf] dark:bg-slate-950">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#005F6B] cursor-pointer scale-95 active:duration-200 transition-opacity duration-300 hover:opacity-80">close</span>
+</div>
+<h1 class="font-['Lexend'] font-bold text-[#005F6B] text-lg">NURA Premium</h1>
+<div class="w-6"></div> <!-- Spacer for center alignment -->
+</nav>
+<!-- Content Canvas -->
+<main class="flex-grow pt-24 pb-32 px-6 max-w-2xl mx-auto w-full">
+<!-- Header Section (Editorial Clarity) -->
+<header class="mb-12">
+<p class="font-headline font-semibold text-primary mb-2 tracking-widest uppercase text-xs">Passo 36 de 37</p>
+<h2 class="font-headline font-bold text-4xl text-on-surface leading-tight tracking-tight">
+                Eleve sua jornada <br/>ao nível <span class="text-primary">Premium.</span>
+</h2>
+<p class="font-body text-on-surface-variant mt-4 text-lg">Desbloqueie ferramentas exclusivas desenhadas para acelerar seus resultados com serenidade.</p>
+</header>
+<!-- Features Bento Grid / Asymmetric Layout -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+<!-- Feature 1: Coach de IA -->
+<div class="bg-surface-container-lowest p-8 rounded-lg editorial-shadow flex flex-col justify-between min-h-[220px] transition-all duration-300 hover:scale-[1.02]">
+<div class="h-12 w-12 bg-primary-container rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">psychology</span>
+</div>
+<div>
+<h3 class="font-headline font-bold text-xl text-primary mb-2">Coach de IA Personalizado</h3>
+<p class="font-body text-sm text-on-surface-variant">Orientação 24/7 ajustada ao seu ritmo e biotipo.</p>
+</div>
+</div>
+<!-- Feature 2: Scan de Fotos -->
+<div class="bg-primary p-8 rounded-lg editorial-shadow flex flex-col justify-between min-h-[220px] text-on-primary transition-all duration-300 hover:scale-[1.02]">
+<div class="h-12 w-12 bg-primary-fixed-dim rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-on-primary-fixed" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+</div>
+<div>
+<h3 class="font-headline font-bold text-xl mb-2">Scan de Fotos para Macros</h3>
+<p class="font-body text-sm opacity-80">Aponte a câmera, capture os nutrientes. Simples assim.</p>
+</div>
+</div>
+<!-- Feature 3: Planos Ilimitados -->
+<div class="md:col-span-2 bg-surface-container-low p-8 rounded-lg flex flex-col md:flex-row items-start md:items-center gap-6 transition-all duration-300">
+<div class="h-14 w-14 bg-secondary-container rounded-full flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-on-secondary-container text-3xl" style="font-variation-settings: 'FILL' 1;">restaurant_menu</span>
+</div>
+<div>
+<h3 class="font-headline font-bold text-xl text-primary mb-1">Planos Alimentares Ilimitados</h3>
+<p class="font-body text-on-surface-variant">Variedade gastronômica sem restrições de acesso.</p>
+</div>
+</div>
+<!-- Feature 4: Integrações -->
+<div class="md:col-span-2 bg-surface-container-highest p-8 rounded-lg flex flex-col md:flex-row items-start md:items-center gap-6 transition-all duration-300">
+<div class="h-14 w-14 bg-white rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-primary text-3xl">sync_saved_locally</span>
+</div>
+<div>
+<h3 class="font-headline font-bold text-xl text-primary mb-1">Integrações Premium</h3>
+<p class="font-body text-on-surface-variant">Sincronia perfeita com Apple Health, Google Fit e dispositivos wearable.</p>
+</div>
+</div>
+</div>
+<!-- Call to Action Section -->
+<div class="mt-16 flex flex-col items-center">
+<button class="group w-full md:w-auto md:min-w-[320px] h-16 px-12 bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline font-bold rounded-full shadow-lg transition-all duration-300 hover:opacity-90 active:scale-95 flex items-center justify-center gap-3">
+                Ver planos disponíveis
+                <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+<p class="mt-6 font-body text-sm text-on-surface-variant opacity-60">Cancele quando quiser. Sem taxas ocultas.</p>
+</div>
+</main>
+<!-- Contextual Decorative Leaf -->
+<div class="fixed -bottom-12 -right-12 w-64 h-64 bg-secondary-container opacity-10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+<div class="fixed top-1/4 -left-12 w-48 h-48 bg-primary-fixed-dim opacity-10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+<!-- BottomNavBar (The Anchor) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-8 pb-8 pt-4 bg-[#f5fcdf]/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-t-[2rem] shadow-[0_-16px_32px_rgba(26,28,26,0.04)]">
+<div class="flex flex-col items-center justify-center text-[#1a1c1a] opacity-60 px-6 py-2 transition-all duration-300 hover:bg-[#005F6B]/10 rounded-full cursor-pointer">
+<span class="material-symbols-outlined">calendar_view_month</span>
+<span class="font-['Lexend'] text-xs font-semibold tracking-wide mt-1">Monthly</span>
+</div>
+<!-- Active Tab: Assuming Premium discovery leads to Annual choice logic -->
+<div class="flex flex-col items-center justify-center bg-[#005F6B] text-white rounded-full px-6 py-2 transition-all duration-300 cursor-pointer">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-['Lexend'] text-xs font-semibold tracking-wide mt-1">Annual</span>
+</div>
+</nav>
+</body></html>

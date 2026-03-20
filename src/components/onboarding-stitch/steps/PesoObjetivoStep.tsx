@@ -2,17 +2,28 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
-  const target = data.targetWeight || 70;
+const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
+  const target = data.pesoObjetivo || data.targetWeight || 70;
 
-  const handleDecrement = () => updateData({ targetWeight: Math.max(30, target - 0.5) });
-  const handleIncrement = () => updateData({ targetWeight: Math.min(250, target + 0.5) });
+  const handleDecrement = () => {
+    const newValue = Math.max(30, target - 0.5);
+    updateData({ pesoObjetivo: newValue, targetWeight: newValue });
+  };
+
+  const handleIncrement = () => {
+    const newValue = Math.min(250, target + 0.5);
+    updateData({ pesoObjetivo: newValue, targetWeight: newValue });
+  };
+
+  const handleChange = (value: number) => {
+    updateData({ pesoObjetivo: value, targetWeight: value });
+  };
 
   return (
     <StepContainer
-      currentStep={15}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <div className="text-center mb-12">
@@ -29,11 +40,11 @@ const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
         <span className="text-tertiary font-headline font-semibold tracking-widest text-xs uppercase mb-8">Meta Desejada</span>
         <div className="flex items-end justify-center gap-2 mb-10">
           <div className="relative group">
-            <input 
+            <input
               className="w-48 bg-transparent border-none text-center font-headline text-8xl font-extrabold text-primary p-0 focus:ring-0 placeholder-surface-container-highest transition-all duration-300"
-              type="number" 
+              type="number"
               value={target}
-              onChange={(e) => updateData({ targetWeight: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => handleChange(parseFloat(e.target.value) || 0)}
               step="0.1"
             />
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-surface-container-highest group-focus-within:w-full group-focus-within:bg-secondary transition-all duration-500 rounded-full"></div>

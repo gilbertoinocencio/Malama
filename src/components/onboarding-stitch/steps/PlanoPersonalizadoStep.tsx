@@ -3,12 +3,12 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 import { motion } from 'framer-motion';
 
-const PlanoPersonalizadoStep: React.FC<StepProps> = ({ onNext, onBack }) => {
+const PlanoPersonalizadoStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, totalSteps }) => {
   return (
     <StepContainer
-      currentStep={21}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Começar Agora"
     >

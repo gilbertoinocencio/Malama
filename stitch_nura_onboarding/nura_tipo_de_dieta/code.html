@@ -1,88 +1,83 @@
 <!DOCTYPE html>
 
-<html lang="pt"><head>
+<html class="light" lang="pt-PT"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>NURA - Seleção de Dieta</title>
+<title>NURA - Diet Selection</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "surface-container-highest": "#e2e3df",
-                        "on-background": "#1a1c1a",
-                        "on-primary-container": "#90d6e4",
-                        "on-tertiary": "#ffffff",
-                        "on-error-container": "#93000a",
-                        "secondary-fixed-dim": "#66dd8b",
-                        "on-secondary-container": "#00743a",
-                        "on-secondary": "#ffffff",
-                        "surface-container": "#edeeea",
-                        "outline": "#6f797b",
-                        "secondary-container": "#83fba5",
-                        "on-error": "#ffffff",
-                        "inverse-surface": "#2e312f",
-                        "inverse-primary": "#8bd2df",
-                        "on-surface-variant": "#3f484a",
-                        "error": "#ba1a1a",
-                        "on-secondary-fixed-variant": "#005227",
-                        "tertiary-container": "#7d491f",
-                        "surface": "#f9faf6",
-                        "on-surface": "#1a1c1a",
-                        "primary": "#00464f",
-                        "primary-fixed-dim": "#8bd2df",
-                        "surface-tint": "#156874",
-                        "tertiary-fixed": "#ffdcc5",
-                        "surface-container-high": "#e7e9e5",
-                        "on-tertiary-fixed-variant": "#6b3a11",
-                        "tertiary-fixed-dim": "#ffb783",
-                        "on-primary-fixed": "#001f24",
-                        "secondary": "#006d36",
-                        "on-primary-fixed-variant": "#004e59",
-                        "surface-dim": "#d9dad7",
-                        "on-tertiary-fixed": "#301400",
-                        "on-primary": "#ffffff",
-                        "background": "#f9faf6",
-                        "primary-container": "#005f6b",
-                        "tertiary": "#613309",
-                        "error-container": "#ffdad6",
-                        "surface-container-low": "#f3f4f0",
-                        "inverse-on-surface": "#f0f1ed",
-                        "surface-container-lowest": "#ffffff",
-                        "primary-fixed": "#a7eefc",
-                        "surface-variant": "#e2e3df",
-                        "on-tertiary-container": "#ffbd8f",
-                        "secondary-fixed": "#83fba5",
-                        "on-secondary-fixed": "#00210c",
-                        "surface-bright": "#f9faf6",
-                        "outline-variant": "#bec8ca"
-                    },
-                    fontFamily: {
-                        "headline": ["Lexend"],
-                        "body": ["Plus Jakarta Sans"],
-                        "label": ["Plus Jakarta Sans"]
-                    },
-                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
-                },
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#301400",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed": "#83fba5",
+              "error": "#ba1a1a",
+              "on-error-container": "#93000a",
+              "surface-container-low": "#f3f4f0",
+              "on-error": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "surface": "#f9faf6",
+              "tertiary-fixed-dim": "#ffb783",
+              "on-secondary-fixed": "#00210c",
+              "outline-variant": "#bec8ca",
+              "primary-fixed": "#a7eefc",
+              "on-primary-fixed-variant": "#004e59",
+              "secondary-fixed-dim": "#66dd8b",
+              "primary-fixed-dim": "#8bd2df",
+              "on-primary-fixed": "#001f24",
+              "error-container": "#ffdad6",
+              "on-secondary-fixed-variant": "#005227",
+              "on-tertiary-container": "#ffbd8f",
+              "tertiary-container": "#7d491f",
+              "on-surface": "#1a1c1a",
+              "inverse-surface": "#2e312f",
+              "surface-container-highest": "#e2e3df",
+              "on-primary": "#ffffff",
+              "surface-variant": "#e2e3df",
+              "surface-dim": "#d9dad7",
+              "on-surface-variant": "#3f484a",
+              "inverse-primary": "#8bd2df",
+              "tertiary": "#613309",
+              "on-tertiary-fixed-variant": "#6b3a11",
+              "surface-tint": "#156874",
+              "on-background": "#1a1c1a",
+              "on-secondary-container": "#00743a",
+              "secondary-container": "#83fba5",
+              "on-primary-container": "#90d6e4",
+              "on-secondary": "#ffffff",
+              "surface-container-high": "#e7e9e5",
+              "primary": "#00464f",
+              "background": "#f9faf6",
+              "inverse-on-surface": "#f0f1ed",
+              "tertiary-fixed": "#ffdcc5",
+              "surface-bright": "#f9faf6",
+              "outline": "#6f797b",
+              "secondary": "#006d36",
+              "surface-container": "#edeeea",
+              "primary-container": "#005f6b"
             },
-        }
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
     </script>
 <style>
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f9faf6;
-        }
-        .headline-font {
-            font-family: 'Lexend', sans-serif;
-        }
+        .no-line-rule { border: none !important; }
+        .tonal-shift-only { background-color: rgba(245, 252, 223, 1); }
     </style>
 <style>
     body {
@@ -90,78 +85,100 @@
     }
   </style>
   </head>
-<body class="bg-surface text-on-surface min-h-screen flex flex-col">
-<!-- Progress Bar (Sutil Flow) -->
+<body class="bg-surface font-body text-on-surface antialiased overflow-x-hidden min-h-screen">
+<!-- Subtle Flow Progress Bar -->
 <div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
-<div class="h-full bg-secondary w-3/4"></div>
+<div class="h-full bg-secondary transition-all duration-500" style="width: 32.4%;"></div> <!-- Step 12 of 37 approx 32.4% -->
 </div>
-<!-- Top Navigation Shell -->
-<header class="bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl fixed top-0 w-full z-50 no-border tonal-shift bg-stone-100/50 dark:bg-stone-900/50">
-<div class="flex items-center justify-between px-8 h-20 w-full">
-<div class="text-2xl font-bold tracking-tighter text-teal-900 dark:text-teal-500 font-lexend">NURA</div>
-<button class="p-2 hover:bg-stone-200/50 dark:hover:bg-stone-800/50 transition-all duration-300 ease-in-out rounded-full">
-<span class="material-symbols-outlined text-teal-900 dark:text-teal-500" data-icon="close">close</span>
+<!-- Top Navigation Anchor -->
+<header class="fixed top-0 w-full z-50 bg-[#f5fcdf] dark:bg-stone-950 flex items-center justify-between px-6 h-16 w-full max-w-md mx-auto no-line-rule">
+<button class="text-[#005F6B] dark:text-[#008ba0] hover:opacity-80 transition-opacity duration-300 scale-95 duration-300 ease-in-out">
+<span class="material-symbols-outlined">arrow_back</span>
 </button>
-</div>
+<span class="font-['LexEND'] uppercase tracking-widest text-sm text-[#005F6B] dark:text-[#008ba0]">NURA</span>
+<div class="w-6"></div> <!-- Spacer for symmetry -->
 </header>
-<!-- Main Content Canvas -->
-<main class="flex-grow pt-32 pb-40 px-6 max-w-2xl mx-auto w-full">
-<!-- Editorial Headline -->
-<section class="mb-12">
-<h1 class="headline-font text-4xl md:text-5xl font-bold text-primary tracking-tight leading-tight mb-4">
-                Que tipo de dieta prefere?
-            </h1>
-<p class="text-on-surface-variant text-lg leading-relaxed max-w-md">
-                Personalize a sua experiência nutritiva selecionando o estilo que melhor se adapta ao seu estilo de vida.
-            </p>
-</section>
-<!-- Selection List (Elegance Selector) -->
+<main class="max-w-md mx-auto pt-24 pb-32 px-6 flex flex-col min-h-screen">
+<!-- Content Header -->
+<div class="mb-10 space-y-2">
+<p class="text-tertiary font-headline font-semibold text-xs tracking-widest uppercase">Passo 12 de 37</p>
+<h1 class="text-primary font-headline text-3xl font-bold leading-tight tracking-tight">Que tipo de dieta prefere?</h1>
+<p class="text-on-surface-variant text-sm font-medium">Personalize o seu percurso de nutrição consciente.</p>
+</div>
+<!-- Asymmetric Options List -->
 <div class="space-y-4">
-<!-- Option: Equilibrada (Selected State Example) -->
-<button class="w-full flex items-center justify-between p-8 bg-primary-fixed-dim rounded-lg text-left transition-all duration-300 ease-in-out group shadow-sm">
-<span class="headline-font text-xl font-medium text-primary">Equilibrada</span>
-<span class="material-symbols-outlined text-secondary text-3xl" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<!-- Option Card: Equilibrada (Selected State Example) -->
+<button class="w-full text-left bg-primary-fixed-dim rounded-lg p-6 flex justify-between items-center transition-all duration-300 shadow-sm">
+<div class="space-y-1">
+<span class="text-primary font-headline font-semibold text-lg">Equilibrada</span>
+<p class="text-on-primary-fixed-variant text-xs opacity-80">Uma abordagem completa e variada.</p>
+</div>
+<div class="w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
 </button>
-<!-- Option: Vegetariana -->
-<button class="w-full flex items-center justify-between p-8 bg-surface-container-low rounded-lg text-left transition-all duration-300 ease-in-out hover:bg-surface-container-highest group">
-<span class="headline-font text-xl font-medium text-on-surface-variant group-hover:text-primary">Vegetariana</span>
-<span class="material-symbols-outlined text-outline-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="circle">circle</span>
+<!-- Option Card: Vegetariana -->
+<button class="w-full text-left bg-surface-container-low hover:bg-surface-container-high rounded-lg p-6 flex justify-between items-center transition-all duration-300">
+<div class="space-y-1">
+<span class="text-on-surface font-headline font-semibold text-lg">Vegetariana</span>
+<p class="text-on-surface-variant text-xs">Focada em plantas, inclui ovos e laticínios.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant opacity-20">eco</span>
 </button>
-<!-- Option: Vegan -->
-<button class="w-full flex items-center justify-between p-8 bg-surface-container-low rounded-lg text-left transition-all duration-300 ease-in-out hover:bg-surface-container-highest group">
-<span class="headline-font text-xl font-medium text-on-surface-variant group-hover:text-primary">Vegan</span>
-<span class="material-symbols-outlined text-outline-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="circle">circle</span>
+<!-- Option Card: Vegan -->
+<button class="w-full text-left bg-surface-container-low hover:bg-surface-container-high rounded-lg p-6 flex justify-between items-center transition-all duration-300">
+<div class="space-y-1">
+<span class="text-on-surface font-headline font-semibold text-lg">Vegan</span>
+<p class="text-on-surface-variant text-xs">Exclusivamente à base de plantas.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant opacity-20">cannabis</span>
 </button>
-<!-- Option: Paleo -->
-<button class="w-full flex items-center justify-between p-8 bg-surface-container-low rounded-lg text-left transition-all duration-300 ease-in-out hover:bg-surface-container-highest group">
-<span class="headline-font text-xl font-medium text-on-surface-variant group-hover:text-primary">Paleo</span>
-<span class="material-symbols-outlined text-outline-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="circle">circle</span>
+<!-- Option Card: Paleo -->
+<button class="w-full text-left bg-surface-container-low hover:bg-surface-container-high rounded-lg p-6 flex justify-between items-center transition-all duration-300">
+<div class="space-y-1">
+<span class="text-on-surface font-headline font-semibold text-lg">Paleo</span>
+<p class="text-on-surface-variant text-xs">Focada em alimentos naturais e ancestrais.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant opacity-20">outdoor_grill</span>
 </button>
-<!-- Option: Cetogénica -->
-<button class="w-full flex items-center justify-between p-8 bg-surface-container-low rounded-lg text-left transition-all duration-300 ease-in-out hover:bg-surface-container-highest group">
-<span class="headline-font text-xl font-medium text-on-surface-variant group-hover:text-primary">Cetogénica</span>
-<span class="material-symbols-outlined text-outline-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="circle">circle</span>
+<!-- Option Card: Cetogénica -->
+<button class="w-full text-left bg-surface-container-low hover:bg-surface-container-high rounded-lg p-6 flex justify-between items-center transition-all duration-300">
+<div class="space-y-1">
+<span class="text-on-surface font-headline font-semibold text-lg">Cetogénica</span>
+<p class="text-on-surface-variant text-xs">Baixo carbo e alta gordura saudável.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant opacity-20">bolt</span>
 </button>
-<!-- Option: Rica em proteína -->
-<button class="w-full flex items-center justify-between p-8 bg-surface-container-low rounded-lg text-left transition-all duration-300 ease-in-out hover:bg-surface-container-highest group">
-<span class="headline-font text-xl font-medium text-on-surface-variant group-hover:text-primary">Rica em proteína</span>
-<span class="material-symbols-outlined text-outline-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="circle">circle</span>
+<!-- Option Card: Rica em proteína -->
+<button class="w-full text-left bg-surface-container-low hover:bg-surface-container-high rounded-lg p-6 flex justify-between items-center transition-all duration-300">
+<div class="space-y-1">
+<span class="text-on-surface font-headline font-semibold text-lg">Rica em proteína</span>
+<p class="text-on-surface-variant text-xs">Ideal para ganhos musculares e saciedade.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant opacity-20">fitness_center</span>
 </button>
-<!-- Option: Baixa em carbo -->
-<button class="w-full flex items-center justify-between p-8 bg-surface-container-low rounded-lg text-left transition-all duration-300 ease-in-out hover:bg-surface-container-highest group">
-<span class="headline-font text-xl font-medium text-on-surface-variant group-hover:text-primary">Baixa em carbo</span>
-<span class="material-symbols-outlined text-outline-variant opacity-0 group-hover:opacity-100 transition-opacity" data-icon="circle">circle</span>
+<!-- Option Card: Baixa em carbo -->
+<button class="w-full text-left bg-surface-container-low hover:bg-surface-container-high rounded-lg p-6 flex justify-between items-center transition-all duration-300">
+<div class="space-y-1">
+<span class="text-on-surface font-headline font-semibold text-lg">Baixa em carbo</span>
+<p class="text-on-surface-variant text-xs">Redução de açúcares e amidos.</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant opacity-20">nutrition</span>
 </button>
 </div>
-</main>
-<!-- Contextual Leaf (Decorative Element) -->
-<div class="fixed bottom-24 -right-12 w-64 h-64 bg-secondary-container opacity-20 blur-3xl rounded-full -z-10 pointer-events-none"></div>
-<!-- Action Footer -->
-<footer class="fixed bottom-0 left-0 w-full p-8 bg-surface/80 backdrop-blur-md z-40">
-<div class="max-w-2xl mx-auto flex justify-end">
-<button class="bg-primary text-on-primary font-headline font-semibold py-4 px-12 rounded-xl text-lg hover:bg-primary-container transition-all duration-300 transform active:scale-95 shadow-xl shadow-primary/10 min-h-[4rem] min-w-[200px]">
+<!-- Spacer for flow -->
+<div class="mt-12 mb-20 flex justify-center">
+<button class="h-14 px-12 bg-primary text-on-primary rounded-full font-headline font-semibold text-lg shadow-lg hover:opacity-90 transition-all duration-300">
                 Continuar
             </button>
 </div>
-</footer>
+</main>
+<!-- Contextual Leaf (Decorative background) -->
+<div class="fixed -bottom-20 -right-20 w-64 h-64 pointer-events-none opacity-10">
+<span class="material-symbols-outlined text-[12rem] text-secondary-container">spa</span>
+</div>
+<!-- Bottom Navigation Component (Suppressed by Task Logic, but defined in blueprint - Only visible on Top Level screens) -->
+<!-- The user is on Step 12 (Transactional Flow), therefore BottomNavBar is suppressed as per the "Linear/Transactional" suppression rule. -->
+<!-- Manual Shadow Overlay for Depth -->
+<div class="fixed inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(0,95,107,0.02)]"></div>
 </body></html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NURA - Metas e Projeções</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary-fixed": "#001f24",
+              "primary-fixed-dim": "#8bd2df",
+              "on-secondary": "#ffffff",
+              "surface-container-low": "#f3f4f0",
+              "on-error-container": "#93000a",
+              "error": "#ba1a1a",
+              "surface-tint": "#156874",
+              "outline": "#6f797b",
+              "on-tertiary-fixed-variant": "#6b3a11",
+              "on-secondary-container": "#00743a",
+              "surface-container-lowest": "#ffffff",
+              "on-primary": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "tertiary-fixed": "#ffdcc5",
+              "inverse-on-surface": "#f0f1ed",
+              "tertiary": "#613309",
+              "secondary-container": "#83fba5",
+              "surface-dim": "#d9dad7",
+              "on-surface-variant": "#3f484a",
+              "primary": "#00464f",
+              "on-primary-fixed-variant": "#004e59",
+              "background": "#f9faf6",
+              "surface-container-high": "#e7e9e5",
+              "error-container": "#ffdad6",
+              "tertiary-fixed-dim": "#ffb783",
+              "on-background": "#1a1c1a",
+              "on-primary-container": "#90d6e4",
+              "secondary-fixed-dim": "#66dd8b",
+              "surface-bright": "#f9faf6",
+              "on-tertiary-container": "#ffbd8f",
+              "surface-container-highest": "#e2e3df",
+              "secondary": "#006d36",
+              "surface-variant": "#e2e3df",
+              "surface-container": "#edeeea",
+              "inverse-primary": "#8bd2df",
+              "outline-variant": "#bec8ca",
+              "on-surface": "#1a1c1a",
+              "on-tertiary-fixed": "#301400",
+              "tertiary-container": "#7d491f",
+              "on-error": "#ffffff",
+              "inverse-surface": "#2e312f",
+              "primary-fixed": "#a7eefc",
+              "on-secondary-fixed": "#00210c",
+              "primary-container": "#005f6b",
+              "on-secondary-fixed-variant": "#005227",
+              "surface": "#f9faf6",
+              "secondary-fixed": "#83fba5"
+            },
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            background: #006d36;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 4px solid #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .chart-gradient {
+            background: linear-gradient(180deg, rgba(0, 109, 54, 0.1) 0%, rgba(249, 250, 246, 0) 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body selection:bg-secondary-fixed selection:text-on-secondary-fixed antialiased overflow-x-hidden">
+<!-- Sutil Flow Progress Bar -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-secondary w-4/5"></div>
+</div>
+<!-- Top Navigation Placeholder (Hidden for transactional flow) -->
+<!-- Suppression logic applied: This is a linear onboarding journey -->
+<main class="min-h-screen flex flex-col pt-12 pb-32 px-6 max-w-md mx-auto relative">
+<!-- Contextual Leaf Decoration -->
+<div class="fixed top-20 -right-12 w-48 h-48 bg-secondary-container opacity-20 blur-3xl rounded-full -z-10"></div>
+<div class="fixed bottom-40 -left-12 w-64 h-64 bg-tertiary-fixed opacity-10 blur-3xl rounded-full -z-10"></div>
+<!-- Section 24: Target Weight -->
+<section class="flex flex-col mb-24 min-h-[618px] justify-center">
+<header class="mb-12">
+<span class="text-secondary font-label font-bold tracking-widest text-xs uppercase mb-3 block">Objetivo</span>
+<h1 class="font-headline text-4xl font-extrabold tracking-tight text-primary leading-tight">
+                    Qual é o seu peso objetivo?
+                </h1>
+<p class="mt-4 text-on-surface-variant text-lg">Defina a sua linha de chegada.</p>
+</header>
+<div class="relative group">
+<div class="flex items-baseline justify-center">
+<input class="w-full bg-transparent border-none text-center font-headline font-black text-8xl text-primary focus:ring-0 placeholder:opacity-10 p-0" placeholder="70" type="number"/>
+<span class="font-headline font-bold text-2xl text-on-surface-variant ml-2">kg</span>
+</div>
+<div class="h-1 w-32 mx-auto bg-surface-container-highest mt-4 group-focus-within:w-48 group-focus-within:bg-primary transition-all duration-500 rounded-full"></div>
+</div>
+<div class="mt-16 bg-surface-container-low p-6 rounded-lg flex items-start gap-4">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">info</span>
+<p class="text-sm text-on-tertiary-fixed-variant leading-relaxed">
+                    Com base no seu IMC atual, uma meta saudável estaria entre <span class="font-bold">65kg e 72kg</span>.
+                </p>
+</div>
+</section>
+<!-- Section 25: Goal Speed -->
+<section class="flex flex-col mb-24 min-h-[618px] justify-center">
+<header class="mb-12">
+<span class="text-secondary font-label font-bold tracking-widest text-xs uppercase mb-3 block">Ritmo</span>
+<h2 class="font-headline text-4xl font-extrabold tracking-tight text-primary leading-tight">
+                    Qual a velocidade do seu objetivo?
+                </h2>
+<p class="mt-4 text-on-surface-variant text-lg">Equilibre sustentabilidade e velocidade.</p>
+</header>
+<div class="bg-surface-container-lowest p-8 rounded-lg shadow-sm">
+<div class="flex justify-between mb-8">
+<div class="text-center">
+<span class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Lento</span>
+<span class="material-symbols-outlined text-secondary text-3xl">nature</span>
+</div>
+<div class="text-center">
+<span class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Rápido</span>
+<span class="material-symbols-outlined text-primary text-3xl">bolt</span>
+</div>
+</div>
+<input class="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-secondary" max="100" min="1" type="range" value="50"/>
+<div class="mt-10 grid grid-cols-2 gap-4">
+<div class="p-4 rounded-lg bg-surface-container-low border border-transparent transition-all duration-300">
+<h4 class="font-headline font-bold text-primary text-sm mb-1">Sustentável</h4>
+<p class="text-xs text-on-surface-variant">Focado em hábitos de longo prazo e menor esforço inicial.</p>
+</div>
+<div class="p-4 rounded-lg bg-primary-fixed text-on-primary-fixed border border-transparent transition-all duration-300">
+<h4 class="font-headline font-bold text-sm mb-1">Intenso</h4>
+<p class="text-xs opacity-80">Resultados mais rápidos com plano alimentar mais rigoroso.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 26: Success Projection -->
+<section class="flex flex-col mb-24 min-h-[618px] justify-center">
+<header class="mb-10">
+<span class="text-secondary font-label font-bold tracking-widest text-xs uppercase mb-3 block">Previsão</span>
+<h2 class="font-headline text-4xl font-extrabold tracking-tight text-primary leading-tight">
+                    Sua jornada projetada
+                </h2>
+<p class="mt-4 text-on-surface-variant text-lg">Veja onde você estará em 12 semanas.</p>
+</header>
+<div class="relative bg-surface-container-lowest p-6 rounded-lg h-64 overflow-hidden border border-surface-container-high shadow-sm">
+<div class="absolute inset-0 chart-gradient"></div>
+<!-- Simple SVG Chart Representation -->
+<svg class="absolute bottom-0 left-0 w-full h-40" viewbox="0 0 400 200">
+<path d="M0,20 C50,25 100,50 150,80 C200,110 250,130 300,150 L400,180" fill="none" stroke="#006d36" stroke-linecap="round" stroke-width="4"></path>
+<circle cx="0" cy="20" fill="#006d36" r="6"></circle>
+<circle cx="395" cy="180" fill="#00464f" r="8"></circle>
+</svg>
+<div class="relative z-10 flex flex-col h-full justify-between">
+<div class="flex justify-between items-start">
+<div class="bg-white/80 backdrop-blur-md p-2 rounded-md border border-outline-variant/20">
+<p class="text-[10px] uppercase font-bold text-on-surface-variant">Peso Atual</p>
+<p class="font-headline font-black text-primary">85 kg</p>
+</div>
+<div class="bg-primary p-3 rounded-lg text-white shadow-lg text-right">
+<p class="text-[10px] uppercase font-bold opacity-70">Meta: Semana 12</p>
+<p class="font-headline font-black text-2xl">70 kg</p>
+</div>
+</div>
+<div class="flex justify-between text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">
+<span>Hoje</span>
+<span>Semana 4</span>
+<span>Semana 8</span>
+<span>Meta</span>
+</div>
+</div>
+</div>
+<div class="mt-8 flex gap-4 overflow-x-auto hide-scrollbar pb-4">
+<div class="min-w-[140px] bg-surface-container p-4 rounded-lg">
+<p class="text-[10px] uppercase font-bold text-on-surface-variant mb-1">Impacto</p>
+<p class="font-headline font-bold text-secondary">-15 kg</p>
+</div>
+<div class="min-w-[140px] bg-surface-container p-4 rounded-lg">
+<p class="text-[10px] uppercase font-bold text-on-surface-variant mb-1">Tempo</p>
+<p class="font-headline font-bold text-primary">3 meses</p>
+</div>
+<div class="min-w-[140px] bg-surface-container p-4 rounded-lg">
+<p class="text-[10px] uppercase font-bold text-on-surface-variant mb-1">Vantagem</p>
+<p class="font-headline font-bold text-tertiary-container">+Energia</p>
+</div>
+</div>
+</section>
+<!-- Section 27: Goal Success Motivation -->
+<section class="flex flex-col mb-12 min-h-[530px] justify-center items-center text-center">
+<div class="w-24 h-24 bg-secondary-container rounded-full flex items-center justify-center mb-8 relative">
+<span class="material-symbols-outlined text-secondary text-5xl" style="font-variation-settings: 'FILL' 1;">verified</span>
+<div class="absolute inset-0 animate-ping bg-secondary-container rounded-full opacity-20"></div>
+</div>
+<h2 class="font-headline text-5xl font-black text-primary tracking-tight mb-6">
+                87%
+            </h2>
+<p class="font-headline text-2xl font-bold text-on-surface leading-tight px-4">
+                das pessoas com o seu perfil atingem a meta com a NURA.
+            </p>
+<p class="mt-6 text-on-surface-variant max-w-xs">
+                Seu plano foi ajustado conforme sua fisiologia e ritmo preferido. Você está pronto.
+            </p>
+<div class="mt-12 flex -space-x-3">
+<img class="w-10 h-10 rounded-full border-2 border-background" data-alt="User profile portrait woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqaKRzvhQ08R2Pwx0hHQai01J_owwblZZ7XYTcsOJwZaaWaszt5Y9oBfo32fO7IErGFtS03voNXOVhfxpO2rjB2d5nvqur25XecALKPqn90BuLrB2FcOHwveMlSVr3YFRAr0EHwsD0sgwCXFmnHEkQjkgw4mbrEAmxPlJrSpw32Vt9XJJ0GS6-3x78ZtWvWf7MOb6MsW8xwpOaTgHLH3nxDU5GlIxB-NMcTPX67SXAPn2fBNtnZwO_amVQJXR1ruOWyNcWsoZsYrQ"/>
+<img class="w-10 h-10 rounded-full border-2 border-background" data-alt="User profile portrait man" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzibD3ewfxbaB0Ux6_AO1T4GoLXNLnsx4VAXPV2wEld2H44yvdUbwndtAzrZ-R37cNgWlH6wjIMLmH0ihBKlK6SIXzh_OLPjMzJnb0GYsGsc8VoHLnJx4_-Cm1k_lUsu-J_XHsxKevVuxIkymFhyatQlgRsrrhKdvCae-SNpxJxPtbFRmSjL08BIq2BAVZsj98NBLdp9oQlY_-4STcdX2jSL03thZNVrYxO_iKLJHjYjl4iHlCrGEvA5CEb4iGQTmwLqAPV0Nc40c"/>
+<img class="w-10 h-10 rounded-full border-2 border-background" data-alt="User profile portrait smiling woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDU4CYk3t_M2qVYHXTbgY7GPYK0cMKa0f_HouEwUyMtXwoLCGWpVLNyXYDGx50iWNZJC7LGpuxNWgGim4Dm7f-Ng-12mpswVfUaqfs0WYHXbPTMxwjWUSfJ5-ua0D3llAhsEG12tVja3bOS3UGcb8RuqDAHqMtH3H4QovSIkFPBlwo-3n7AW6BEcE0L1W70SRrtpmjZ9GJwF1wILlqCbn_DhS6RJE5xGinKt3y0JcGOMJiRNNJMjYmzniNLHnLl2W7x0PGc09Ixhdg"/>
+<div class="w-10 h-10 rounded-full border-2 border-background bg-surface-container-highest flex items-center justify-center text-[10px] font-bold text-on-surface-variant">
+                    +12k
+                </div>
+</div>
+<p class="mt-3 text-xs text-on-surface-variant font-medium">Junte-se à nossa comunidade</p>
+</section>
+<!-- Primary Action -->
+<div class="mt-auto pt-10">
+<button class="w-full h-16 bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline font-bold text-lg rounded-lg shadow-xl shadow-primary/10 flex items-center justify-center gap-3 active:scale-95 transition-all duration-300">
+                Confirmar Meu Plano
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<p class="text-center mt-6 text-sm text-on-surface-variant font-medium opacity-60">
+                Passo 6 de 7: Quase lá!
+            </p>
+</div>
+</main>
+<!-- Contextual FAB Suppression: Hiding on onboarding screens -->
+</body></html>

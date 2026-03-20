@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NURA - Janela de Alimentação</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#301400",
+              "surface-container-lowest": "#ffffff",
+              "secondary-fixed": "#83fba5",
+              "error": "#ba1a1a",
+              "on-error-container": "#93000a",
+              "surface-container-low": "#f3f4f0",
+              "on-error": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "surface": "#f9faf6",
+              "tertiary-fixed-dim": "#ffb783",
+              "on-secondary-fixed": "#00210c",
+              "outline-variant": "#bec8ca",
+              "primary-fixed": "#a7eefc",
+              "on-primary-fixed-variant": "#004e59",
+              "secondary-fixed-dim": "#66dd8b",
+              "primary-fixed-dim": "#8bd2df",
+              "on-primary-fixed": "#001f24",
+              "error-container": "#ffdad6",
+              "on-secondary-fixed-variant": "#005227",
+              "on-tertiary-container": "#ffbd8f",
+              "tertiary-container": "#7d491f",
+              "on-surface": "#1a1c1a",
+              "inverse-surface": "#2e312f",
+              "surface-container-highest": "#e2e3df",
+              "on-primary": "#ffffff",
+              "surface-variant": "#e2e3df",
+              "surface-dim": "#d9dad7",
+              "on-surface-variant": "#3f484a",
+              "inverse-primary": "#8bd2df",
+              "tertiary": "#613309",
+              "on-tertiary-fixed-variant": "#6b3a11",
+              "surface-tint": "#156874",
+              "on-background": "#1a1c1a",
+              "on-secondary-container": "#00743a",
+              "secondary-container": "#83fba5",
+              "on-primary-container": "#90d6e4",
+              "on-secondary": "#ffffff",
+              "surface-container-high": "#e7e9e5",
+              "primary": "#00464f",
+              "background": "#f9faf6",
+              "inverse-on-surface": "#f0f1ed",
+              "tertiary-fixed": "#ffdcc5",
+              "surface-bright": "#f9faf6",
+              "outline": "#6f797b",
+              "secondary": "#006d36",
+              "surface-container": "#edeeea",
+              "primary-container": "#005f6b"
+            },
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Custom progress bar flow */
+        .progress-flow {
+            height: 4px;
+            background: #e7e9e5;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #006d36;
+            width: 27%; /* Step 10 of 37 */
+        }
+
+        /* Decorative Leaf Element */
+        .contextual-leaf {
+            position: fixed;
+            bottom: -5%;
+            right: -5%;
+            width: 300px;
+            height: 300px;
+            background: #83fba5;
+            opacity: 0.1;
+            filter: blur(80px);
+            border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+            z-index: -1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface min-h-screen flex flex-col items-center">
+<!-- Progress Tracker -->
+<div class="progress-flow">
+<div class="progress-fill"></div>
+</div>
+<!-- Top Navigation Shell -->
+<header class="fixed top-0 w-full bg-[#f5fcdf] dark:bg-stone-950 flex items-center justify-between px-6 h-16 w-full max-w-md mx-auto z-50">
+<button class="text-[#005F6B] dark:text-[#008ba0] hover:opacity-80 transition-opacity duration-300">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<span class="font-['LexEND'] uppercase tracking-widest text-sm text-[#005F6B] dark:text-[#008ba0]">NURA Flow</span>
+<div class="w-6"></div> <!-- Spacer for symmetry -->
+</header>
+<!-- Decorative background -->
+<div class="contextual-leaf"></div>
+<main class="w-full max-w-md px-8 pt-24 pb-32 flex flex-col flex-grow items-start">
+<!-- Step Indicator -->
+<span class="text-on-surface-variant font-medium text-sm mb-2 tracking-widest uppercase">Passo 10 de 37</span>
+<!-- Headline -->
+<h1 class="font-headline text-3xl font-bold text-primary tracking-tight leading-tight mb-8">
+            Qual é a sua janela de alimentação?
+        </h1>
+<!-- Content Canvas -->
+<div class="w-full space-y-8">
+<!-- Elegant Timeline Picker -->
+<div class="relative bg-surface-container-lowest rounded-lg p-8 shadow-[0_16px_32px_rgba(26,28,26,0.04)]">
+<div class="flex justify-between items-end mb-12">
+<div class="flex flex-col">
+<span class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-2">Início</span>
+<div class="flex items-baseline space-x-1">
+<span class="font-headline text-5xl font-bold text-primary">08</span>
+<span class="font-headline text-2xl text-primary-container">:</span>
+<span class="font-headline text-5xl font-bold text-primary">00</span>
+</div>
+</div>
+<div class="h-10 w-px bg-surface-container-highest self-center"></div>
+<div class="flex flex-col items-end text-right">
+<span class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-2">Fim</span>
+<div class="flex items-baseline space-x-1">
+<span class="font-headline text-5xl font-bold text-primary">20</span>
+<span class="font-headline text-2xl text-primary-container">:</span>
+<span class="font-headline text-5xl font-bold text-primary">00</span>
+</div>
+</div>
+</div>
+<!-- Circular Visualizer Placeholder -->
+<div class="relative aspect-square w-full max-w-[240px] mx-auto mb-8 flex items-center justify-center">
+<!-- Outer track -->
+<div class="absolute inset-0 rounded-full border-[12px] border-surface-container-low"></div>
+<!-- Active range (12 hours visualized as 180 degrees) -->
+<div class="absolute inset-0 rounded-full border-[12px] border-primary border-t-transparent border-l-transparent transform rotate-45"></div>
+<!-- Handle Start -->
+<div class="absolute top-[4px] left-1/2 -translate-x-1/2 w-6 h-6 bg-white rounded-full shadow-md border-4 border-primary z-10"></div>
+<!-- Handle End -->
+<div class="absolute bottom-[4px] left-1/2 -translate-x-1/2 w-6 h-6 bg-white rounded-full shadow-md border-4 border-primary z-10"></div>
+<div class="text-center">
+<span class="block text-primary font-headline text-4xl font-bold leading-none">12h</span>
+<span class="text-on-surface-variant text-xs font-medium uppercase tracking-widest mt-1 block">Ativa</span>
+</div>
+</div>
+<!-- Timeline Slider -->
+<div class="relative w-full h-12 flex items-center px-2">
+<div class="absolute w-full h-2 bg-surface-container-high rounded-full"></div>
+<div class="absolute left-[33%] w-[50%] h-2 bg-primary rounded-full"></div>
+<!-- Slider thumbs -->
+<div class="absolute left-[33%] -translate-x-1/2 w-6 h-6 bg-white rounded-full shadow-lg ring-4 ring-primary/10"></div>
+<div class="absolute left-[83%] -translate-x-1/2 w-6 h-6 bg-white rounded-full shadow-lg ring-4 ring-primary/10"></div>
+</div>
+<div class="flex justify-between mt-4 text-[10px] font-bold text-on-surface-variant tracking-widest opacity-60">
+<span>00:00</span>
+<span>06:00</span>
+<span>12:00</span>
+<span>18:00</span>
+<span>24:00</span>
+</div>
+</div>
+<!-- Insight Card (Asymmetric Layout) -->
+<div class="bg-tertiary-fixed text-on-tertiary-fixed p-6 rounded-lg relative overflow-hidden flex flex-col gap-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary">spa</span>
+<span class="font-headline text-xs font-bold uppercase tracking-widest">Nura Insight</span>
+</div>
+<p class="text-sm leading-relaxed opacity-90 pr-12">
+                    Uma janela de 12 horas permite que o seu sistema digestivo descanse e otimize a queima metabólica durante o sono.
+                </p>
+<div class="absolute -right-6 -bottom-6 opacity-10">
+<span class="material-symbols-outlined text-9xl">energy_savings_leaf</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Fixed Primary Action -->
+<div class="fixed bottom-0 w-full max-w-md p-8 bg-surface/80 backdrop-blur-xl flex flex-col gap-4">
+<button class="w-full h-16 bg-primary text-white rounded-DEFAULT font-headline font-bold text-lg shadow-xl shadow-primary/10 flex items-center justify-center gap-2 hover:opacity-95 active:scale-[0.98] transition-all duration-300">
+            Continuar
+            <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<p class="text-center text-xs text-on-surface-variant font-medium opacity-60">
+            Você poderá ajustar isso em suas configurações mais tarde.
+        </p>
+</div>
+</body></html>

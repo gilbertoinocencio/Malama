@@ -8,14 +8,18 @@ const OPTIONS = [
   { id: 'incerto', label: 'Não tenho a certeza', icon: 'question_mark', isBinary: null },
 ];
 
-const ConsumoAguaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
-  const selected = data.waterIntakeAwareness;
+const ConsumoAguaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
+  const selected = data.drinksEnoughWater || data.waterIntakeAwareness;
+
+  const handleSelect = (value: string) => {
+    updateData({ drinksEnoughWater: value, waterIntakeAwareness: value });
+  };
 
   return (
     <StepContainer
-      currentStep={11}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <div className="w-full max-w-xl mx-auto flex flex-col items-center">
@@ -43,7 +47,7 @@ const ConsumoAguaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
             return (
               <button
                 key={opt.id}
-                onClick={() => updateData({ waterIntakeAwareness: opt.id })}
+                onClick={() => handleSelect(opt.id)}
                 className={`group w-full flex items-center justify-between p-8 rounded-xl transition-all duration-300 ease-in-out text-left border-2 ${
                   isSelected 
                     ? 'bg-primary-fixed-dim/30 border-primary-fixed-dim ring-2 ring-primary/5 shadow-md' 

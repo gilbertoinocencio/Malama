@@ -3,7 +3,7 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 import { motion } from 'framer-motion';
 
-const CriandoPlanoStep: React.FC<StepProps> = ({ onNext }) => {
+const CriandoPlanoStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onNext();
@@ -13,9 +13,9 @@ const CriandoPlanoStep: React.FC<StepProps> = ({ onNext }) => {
 
   return (
     <StepContainer
-      currentStep={20}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={() => {}} // Disabled for loading
       hideNavigation={true}
     >

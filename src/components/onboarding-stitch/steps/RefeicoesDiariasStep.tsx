@@ -2,7 +2,7 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const RefeicoesDiariasStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
+const RefeicoesDiariasStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const meals = data.mealsPerDay || 3;
 
   const handleDecrement = () => updateData({ mealsPerDay: Math.max(1, meals - 1) });
@@ -10,9 +10,9 @@ const RefeicoesDiariasStep: React.FC<StepProps> = ({ data, updateData, onNext, o
 
   return (
     <StepContainer
-      currentStep={7}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <header className="text-center mb-16 space-y-4">

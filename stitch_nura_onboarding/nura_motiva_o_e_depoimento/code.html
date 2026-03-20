@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed": "#ffdcc5",
+              "on-secondary-fixed": "#00210c",
+              "on-secondary-container": "#00743a",
+              "primary-container": "#005f6b",
+              "on-primary-container": "#90d6e4",
+              "surface-container-high": "#e7e9e5",
+              "surface-container-low": "#f3f4f0",
+              "surface-dim": "#d9dad7",
+              "secondary-fixed-dim": "#66dd8b",
+              "error": "#ba1a1a",
+              "surface-tint": "#156874",
+              "secondary": "#006d36",
+              "on-background": "#1a1c1a",
+              "on-tertiary-container": "#ffbd8f",
+              "surface-container-highest": "#e2e3df",
+              "error-container": "#ffdad6",
+              "surface": "#f9faf6",
+              "primary-fixed-dim": "#8bd2df",
+              "primary": "#00464f",
+              "on-secondary": "#ffffff",
+              "tertiary-container": "#7d491f",
+              "on-primary-fixed-variant": "#004e59",
+              "tertiary-fixed-dim": "#ffb783",
+              "primary-fixed": "#a7eefc",
+              "surface-bright": "#f9faf6",
+              "inverse-surface": "#2e312f",
+              "secondary-fixed": "#83fba5",
+              "on-primary": "#ffffff",
+              "outline": "#6f797b",
+              "on-secondary-fixed-variant": "#005227",
+              "surface-container": "#edeeea",
+              "on-tertiary-fixed": "#301400",
+              "on-tertiary": "#ffffff",
+              "on-surface-variant": "#3f484a",
+              "on-error-container": "#93000a",
+              "surface-container-lowest": "#ffffff",
+              "outline-variant": "#bec8ca",
+              "inverse-on-surface": "#f0f1ed",
+              "on-error": "#ffffff",
+              "on-primary-fixed": "#001f24",
+              "inverse-primary": "#8bd2df",
+              "surface-variant": "#e2e3df",
+              "secondary-container": "#83fba5",
+              "on-surface": "#1a1c1a",
+              "background": "#f9faf6",
+              "on-tertiary-fixed-variant": "#6b3a11",
+              "tertiary": "#613309"
+            },
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #f9faf6;
+      }
+      .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen flex flex-col">
+<!-- Progress Bar (Sutil Flow) -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-secondary transition-all duration-700 ease-out" style="width: 89.18%;"></div>
+</div>
+<!-- Header / TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#f5fcdf] dark:bg-slate-950 flex items-center justify-between px-8 py-4 w-full max-w-screen-xl mx-auto">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#005F6B] dark:text-[#008ba3]">menu</span>
+<span class="font-lexend text-2xl font-black text-[#005F6B] dark:text-[#008ba3] tracking-widest uppercase">NURA</span>
+</div>
+<div class="hidden md:flex gap-6 items-center">
+<span class="font-lexend text-[10px] font-medium tracking-wide text-[#005F6B] font-bold">Jornada</span>
+<span class="font-lexend text-[10px] font-medium tracking-wide text-[#1a1c1a]/60 dark:text-white/60">Comunidade</span>
+<span class="font-lexend text-[10px] font-medium tracking-wide text-[#1a1c1a]/60 dark:text-white/60">NURA Flow</span>
+<span class="font-lexend text-[10px] font-medium tracking-wide text-[#1a1c1a]/60 dark:text-white/60">Perfil</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow pt-24 pb-32 px-6 max-w-4xl mx-auto w-full flex flex-col items-center justify-center text-center relative overflow-hidden">
+<!-- Contextual Leaf (Decorative Background) -->
+<div class="absolute -top-20 -right-20 w-64 h-64 bg-secondary-container opacity-20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-20 -left-20 w-80 h-80 bg-tertiary-fixed opacity-10 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Editorial Hook Section -->
+<section class="mb-12 relative z-10">
+<h1 class="font-headline text-4xl md:text-5xl lg:text-6xl font-extrabold text-primary mb-6 tracking-tight">
+                Sua jornada começa agora
+            </h1>
+<p class="font-body text-lg md:text-xl text-on-surface-variant max-w-2xl mx-auto leading-relaxed">
+                Ouça como o NURA mudou a vida de quem já está no Flow
+            </p>
+</section>
+<!-- Video Testimonial / Inspiration Section (Bento Inspired Layout) -->
+<div class="w-full grid grid-cols-1 md:grid-cols-12 gap-6 items-start relative z-10">
+<!-- Primary Video Container (Large Glassmorphism Card) -->
+<div class="md:col-span-8 bg-surface-container-lowest rounded-lg overflow-hidden shadow-[0_16px_32px_rgba(26,28,26,0.04)] transition-transform duration-500 hover:scale-[1.01]">
+<div class="aspect-video bg-surface-container-highest relative group flex items-center justify-center">
+<img alt="Mulher sorrindo em um ambiente natural sereno" class="w-full h-full object-cover" data-alt="Mulher praticando mindfulness em um jardim iluminado pelo sol" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQddCzfPlOqRfTm-YdkyPmPrKfzDmXE-6Iu3iXXrv1lUR_ErakfEprk97O4-jRzjoGiPZ8Bd4oq--36TkEOp5jWwyQY3wM-remgEeBTcua3FznULoJeNPGvVG2kJ9reJX2zshN43KZU52YvA86euGi0shDgowlCAHFI4hBKyFYywpW-oBh6i9K5skGTNGWet1R2nqfZ_GBbJ3o68xf1pdUtV0EcVmjJsGA-7AHHL1HW0AOSprT8ARq85MdZruFh2eVD2eo1tvK3Cc"/>
+<div class="absolute inset-0 bg-primary/20 group-hover:bg-primary/10 transition-colors duration-300"></div>
+<button class="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center text-primary shadow-xl hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<!-- Floating Caption Inside Video -->
+<div class="absolute bottom-6 left-6 text-left glass-card p-4 rounded-lg">
+<span class="text-xs font-bold uppercase tracking-widest text-primary mb-1 block">História Real</span>
+<p class="font-headline text-on-surface font-semibold text-sm">"Recuperei meu equilíbrio em 30 dias"</p>
+</div>
+</div>
+</div>
+<!-- Side Card: Testimonial Highlight -->
+<div class="md:col-span-4 flex flex-col gap-6">
+<div class="bg-tertiary-container p-8 rounded-lg text-white text-left relative overflow-hidden h-full flex flex-col justify-between">
+<div class="relative z-10">
+<span class="material-symbols-outlined text-tertiary-fixed text-4xl mb-4">format_quote</span>
+<p class="font-body italic text-lg leading-relaxed mb-6">
+                            O NURA não é apenas um app, é um ritual diário de autocuidado que me permitiu silenciar o ruído.
+                        </p>
+</div>
+<div class="relative z-10 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed-dim"></div>
+<div>
+<p class="font-headline text-sm font-bold">Mariana Silva</p>
+<p class="text-xs opacity-80">Designer &amp; Mãe</p>
+</div>
+</div>
+<!-- Decorative background leaf for the card -->
+<span class="material-symbols-outlined absolute -right-4 -bottom-4 text-white/10 text-9xl">eco</span>
+</div>
+</div>
+</div>
+<!-- Intentional Asymmetry Progress Counter -->
+<div class="w-full mt-12 flex justify-start pl-4 md:pl-0">
+<div class="flex items-baseline gap-2">
+<span class="font-headline text-5xl font-black text-secondary/30">33</span>
+<span class="font-headline text-lg font-bold text-outline">/ 37</span>
+</div>
+</div>
+<!-- CTA Action -->
+<div class="mt-16 w-full max-w-sm">
+<button class="w-full h-16 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg font-headline font-bold text-lg shadow-[0_16px_32px_rgba(26,28,26,0.04)] hover:opacity-90 transition-all duration-300 active:scale-95 flex items-center justify-center gap-3">
+                Continuar
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<p class="mt-4 text-sm text-on-surface-variant font-medium">Você está a poucos passos do seu novo eu.</p>
+</div>
+</main>
+<!-- Navigation Shell (BottomNavBar for Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-6 pb-8 pt-4 bg-[#f5fcdf]/70 dark:bg-slate-900/70 backdrop-blur-xl z-50 rounded-t-3xl shadow-[0_-16px_32px_rgba(26,28,26,0.04)]">
+<div class="flex flex-col items-center justify-center bg-[#005F6B] text-white rounded-full p-3 transition-all duration-300">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-lexend text-[10px] font-medium tracking-wide">Jornada</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#6f3f18] dark:text-[#f5fcdf]/60 p-3 hover:bg-[#005F6B]/10 rounded-full transition-all">
+<span class="material-symbols-outlined">group</span>
+<span class="font-lexend text-[10px] font-medium tracking-wide">Comunidade</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#6f3f18] dark:text-[#f5fcdf]/60 p-3 hover:bg-[#005F6B]/10 rounded-full transition-all">
+<span class="material-symbols-outlined">waves</span>
+<span class="font-lexend text-[10px] font-medium tracking-wide">NURA Flow</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#6f3f18] dark:text-[#f5fcdf]/60 p-3 hover:bg-[#005F6B]/10 rounded-full transition-all">
+<span class="material-symbols-outlined">person</span>
+<span class="font-lexend text-[10px] font-medium tracking-wide">Perfil</span>
+</div>
+</nav>
+</body></html>

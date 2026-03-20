@@ -2,12 +2,12 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const ProvaSucessoStep: React.FC<StepProps> = ({ onNext, onBack }) => {
+const ProvaSucessoStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, totalSteps }) => {
   return (
     <StepContainer
-      currentStep={18}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <div className="fixed -top-10 -right-10 opacity-10 pointer-events-none">

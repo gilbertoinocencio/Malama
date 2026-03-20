@@ -8,14 +8,14 @@ const LOCAIS = [
   { id: 'restaurante', label: 'Restaurantes/Rua', icon: 'restaurant' },
 ];
 
-const LocalRefeicoesStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
+const LocalRefeicoesStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const selected = data.eatingLocation;
 
   return (
     <StepContainer
-      currentStep={8}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <div className="mb-12 space-y-4">

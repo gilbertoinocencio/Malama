@@ -2,7 +2,7 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const ConheceJejumStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
+const ConheceJejumStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const options = [
     { value: true, label: 'Sim', sublabel: 'Já pratiquei ou conheço os fundamentos.' },
     { value: false, label: 'Não', sublabel: 'Gostaria de aprender do zero.' },
@@ -12,9 +12,9 @@ const ConheceJejumStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
 
   return (
     <StepContainer
-      currentStep={3}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <section className="w-full text-center mb-16 space-y-6">

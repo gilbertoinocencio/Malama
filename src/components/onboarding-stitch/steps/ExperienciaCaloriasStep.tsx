@@ -2,7 +2,7 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const ExperienciaCaloriasStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
+const ExperienciaCaloriasStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const options = [
     { id: 'beginner', label: 'Iniciante', sub: '(nunca tentei)' },
     { id: 'intermediate', label: 'Intermédio', sub: '(já tentei)' },
@@ -13,9 +13,9 @@ const ExperienciaCaloriasStep: React.FC<StepProps> = ({ data, updateData, onNext
 
   return (
     <StepContainer
-      currentStep={22}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <div className="absolute -top-20 -right-20 w-64 h-64 bg-secondary-container opacity-20 rounded-full blur-3xl pointer-events-none"></div>

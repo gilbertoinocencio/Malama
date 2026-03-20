@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NURA - Nutritional Recommendations</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "error-container": "#ffdad6",
+                        "outline": "#6f797b",
+                        "on-secondary-container": "#00743a",
+                        "surface": "#f9faf6",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#005227",
+                        "primary": "#00464f",
+                        "secondary-fixed": "#83fba5",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "secondary-container": "#83fba5",
+                        "on-surface-variant": "#3f484a",
+                        "tertiary": "#613309",
+                        "on-tertiary-fixed": "#301400",
+                        "primary-fixed": "#a7eefc",
+                        "on-surface": "#1a1c1a",
+                        "on-error-container": "#93000a",
+                        "secondary": "#006d36",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#ffdcc5",
+                        "surface-container-low": "#f3f4f0",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#00210c",
+                        "primary-container": "#005f6b",
+                        "on-primary-container": "#90d6e4",
+                        "on-tertiary-container": "#ffbd8f",
+                        "on-tertiary-fixed-variant": "#6b3a11",
+                        "primary-fixed-dim": "#8bd2df",
+                        "surface-bright": "#f9faf6",
+                        "surface-tint": "#156874",
+                        "on-primary-fixed": "#001f24",
+                        "inverse-primary": "#8bd2df",
+                        "surface-variant": "#e2e3df",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#2e312f",
+                        "background": "#f9faf6",
+                        "tertiary-container": "#7d491f",
+                        "surface-container-highest": "#e2e3df",
+                        "inverse-on-surface": "#f0f1ed",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#1a1c1a",
+                        "surface-container-high": "#e7e9e5",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#004e59",
+                        "surface-container": "#edeeea",
+                        "surface-dim": "#d9dad7",
+                        "secondary-fixed-dim": "#66dd8b",
+                        "outline-variant": "#bec8ca"
+                    },
+                    fontFamily: {
+                        "headline": ["Lexend"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f9faf6;
+            color: #1a1c1a;
+        }
+        .editorial-shadow {
+            box-shadow: 0 16px 32px 0 rgba(26,28,26,0.04);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background min-h-screen pb-32">
+<!-- Progress Bar (The Serene Flow) -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-secondary transition-all duration-700 ease-in-out" style="width: 81%"></div>
+</div>
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-[#f5fcdf] dark:bg-stone-950 transition-colors duration-300">
+<div class="flex items-center gap-3">
+<button class="p-2 rounded-full hover:bg-stone-200/50 transition-colors duration-300">
+<span class="material-symbols-outlined text-[#00464f] dark:text-[#005F6B]">menu</span>
+</button>
+<h1 class="text-[#00464f] dark:text-[#005F6B] font-['Lexend'] font-black tracking-tighter text-2xl">NURA</h1>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden border-2 border-white">
+<img class="w-full h-full object-cover" data-alt="User profile photo showing a smiling woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9AKRJLvkvR1dSNLTqZsJ09OU6PvH2cGUHlXkFzMdieztDeya4-9jACKnJl8V5fhH2YkpOZUi3KmZQUBR7YUAgQ_JT-C4UxO-pVyjOQqcnuaAqG7svSi1Gx1Z40HmOH7OUPxwv5dJZeRejZa9JQkiDZd9PaKnfTJSW-zYZvDkis652PGyiNL0ynjfRMbVBfMMo_Ifb5qOF1nv8zDWfHKyNTTTJiMLRyv4Btf3GyQqv6C1lJkGole08jBbG_bAmfl7OIXPv8PsXBYQ"/>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-2xl mx-auto">
+<!-- Editorial Header -->
+<div class="mb-12">
+<span class="text-secondary font-headline font-semibold text-sm tracking-widest uppercase mb-2 block">Passo 30 de 37</span>
+<h2 class="text-primary font-headline font-bold text-4xl leading-tight tracking-tight mb-4">Suas Recomendações Nutricionais</h2>
+<p class="text-on-surface-variant font-body text-lg leading-relaxed">Com base no seu metabolismo basal e nível de atividade, desenhamos o equilíbrio perfeito para o seu fluxo.</p>
+</div>
+<!-- Bento Grid Layout for Macros -->
+<div class="grid grid-cols-1 md:grid-cols-6 gap-6 mb-12">
+<!-- Daily Calories Summary Card -->
+<div class="md:col-span-6 bg-surface-container-lowest rounded-lg p-8 editorial-shadow border border-outline-variant/10">
+<div class="flex justify-between items-end">
+<div>
+<p class="text-on-surface-variant font-label uppercase tracking-widest text-xs mb-1">Meta Diária</p>
+<h3 class="font-headline font-bold text-5xl text-primary">2.450 <span class="text-2xl font-normal opacity-60">kcal</span></h3>
+</div>
+<div class="text-right">
+<span class="inline-flex items-center px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm font-medium">
+<span class="material-symbols-outlined text-sm mr-1">trending_up</span>
+                            Equilibrado
+                        </span>
+</div>
+</div>
+<!-- Visual Flow Indicator -->
+<div class="mt-8 flex h-4 w-full rounded-full overflow-hidden bg-surface-container-high">
+<div class="h-full bg-[#00464f] transition-all duration-1000" style="width: 30%"></div>
+<div class="h-full bg-[#006d36] transition-all duration-1000" style="width: 40%"></div>
+<div class="h-full bg-[#6f3f18] transition-all duration-1000" style="width: 30%"></div>
+</div>
+<div class="mt-4 flex justify-between text-[10px] font-headline font-bold tracking-widest text-on-surface-variant uppercase">
+<span>Proteína (30%)</span>
+<span>Carbo (40%)</span>
+<span>Gordura (30%)</span>
+</div>
+</div>
+<!-- Protein Card -->
+<div class="md:col-span-3 bg-surface-container-low rounded-lg p-8 hover:bg-primary-fixed-dim transition-colors duration-500 group">
+<div class="flex flex-col h-full">
+<div class="bg-primary/5 p-3 rounded-full w-fit mb-6 group-hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-primary group-hover:text-primary">fitness_center</span>
+</div>
+<h4 class="font-headline font-bold text-2xl text-primary mb-2">Proteína</h4>
+<div class="mt-auto">
+<p class="font-headline font-black text-4xl text-primary">184<span class="text-lg font-medium opacity-60">g</span></p>
+<p class="text-on-surface-variant text-sm mt-2 group-hover:text-primary/70">Essencial para regeneração muscular e saciedade.</p>
+</div>
+</div>
+</div>
+<!-- Carbs Card -->
+<div class="md:col-span-3 bg-surface-container-low rounded-lg p-8 hover:bg-secondary-container transition-colors duration-500 group">
+<div class="flex flex-col h-full">
+<div class="bg-secondary/5 p-3 rounded-full w-fit mb-6 group-hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-secondary group-hover:text-secondary">bolt</span>
+</div>
+<h4 class="font-headline font-bold text-2xl text-secondary mb-2">Carbo</h4>
+<div class="mt-auto">
+<p class="font-headline font-black text-4xl text-secondary">245<span class="text-lg font-medium opacity-60">g</span></p>
+<p class="text-on-surface-variant text-sm mt-2 group-hover:text-secondary/70">Sua principal fonte de energia para o dia.</p>
+</div>
+</div>
+</div>
+<!-- Fat Card -->
+<div class="md:col-span-6 bg-surface-container-low rounded-lg p-8 hover:bg-tertiary-fixed transition-colors duration-500 group">
+<div class="flex items-center justify-between">
+<div class="max-w-[60%]">
+<div class="bg-tertiary/5 p-3 rounded-full w-fit mb-6 group-hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-tertiary group-hover:text-tertiary">water_drop</span>
+</div>
+<h4 class="font-headline font-bold text-2xl text-tertiary mb-2">Gordura</h4>
+<p class="text-on-surface-variant text-sm group-hover:text-tertiary/70">Suporte hormonal e absorção de vitaminas lipossolúveis.</p>
+</div>
+<div class="text-right">
+<p class="font-headline font-black text-6xl text-tertiary">82<span class="text-2xl font-medium opacity-60">g</span></p>
+<p class="text-tertiary/60 font-headline font-bold uppercase tracking-tighter mt-1">30% do Plano</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Micronutrients Micro-dashboard -->
+<div class="space-y-4 mb-12">
+<h5 class="text-primary font-headline font-bold text-xl px-2">Destaques Micronutrientes</h5>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="p-4 rounded-lg bg-surface-container border border-outline-variant/10 text-center">
+<span class="material-symbols-outlined text-primary mb-2">opacity</span>
+<p class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1">Fibras</p>
+<p class="font-headline font-bold text-lg text-primary">32g</p>
+</div>
+<div class="p-4 rounded-lg bg-surface-container border border-outline-variant/10 text-center">
+<span class="material-symbols-outlined text-primary mb-2">waves</span>
+<p class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1">Sódio</p>
+<p class="font-headline font-bold text-lg text-primary">&lt; 2.3g</p>
+</div>
+<div class="p-4 rounded-lg bg-surface-container border border-outline-variant/10 text-center">
+<span class="material-symbols-outlined text-primary mb-2">wb_sunny</span>
+<p class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1">Vit D</p>
+<p class="font-headline font-bold text-lg text-primary">20mcg</p>
+</div>
+<div class="p-4 rounded-lg bg-surface-container border border-outline-variant/10 text-center">
+<span class="material-symbols-outlined text-primary mb-2">eco</span>
+<p class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1">Zinco</p>
+<p class="font-headline font-bold text-lg text-primary">11mg</p>
+</div>
+</div>
+</div>
+<!-- Primary Action -->
+<div class="flex flex-col gap-4 mt-8">
+<button class="w-full h-16 bg-primary text-on-primary font-headline font-bold text-lg rounded-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2">
+                Confirmar Recomendações
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<button class="w-full h-16 text-primary font-headline font-bold text-lg rounded-lg hover:bg-surface-container-high transition-colors duration-300">
+                Ajustar Manualmente
+            </button>
+</div>
+</main>
+<!-- BottomNavBar (The Anchor) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-8 pb-6 pt-3 bg-[#f5fcdf]/70 dark:bg-stone-950/70 backdrop-blur-xl rounded-t-[2rem] shadow-[0_-16px_32px_0_rgba(26,28,26,0.04)]">
+<a class="flex flex-col items-center justify-center text-[#6f3f18] opacity-60 hover:opacity-100 transition-opacity" href="#">
+<span class="material-symbols-outlined mb-1">water_drop</span>
+<span class="font-['Lexend'] font-medium text-[10px] uppercase tracking-widest">Flow</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#00464f] text-[#f5fcdf] rounded-full w-12 h-12 transition-all duration-300 scale-95 shadow-lg" href="#">
+<span class="material-symbols-outlined">biotech</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#6f3f18] opacity-60 hover:opacity-100 transition-opacity" href="#">
+<span class="material-symbols-outlined mb-1">assignment</span>
+<span class="font-['Lexend'] font-medium text-[10px] uppercase tracking-widest">Plan</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#6f3f18] opacity-60 hover:opacity-100 transition-opacity" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-['Lexend'] font-medium text-[10px] uppercase tracking-widest">Profile</span>
+</a>
+</nav>
+<!-- Decorative "Contextual Leaf" -->
+<div class="fixed -bottom-10 -right-10 opacity-10 pointer-events-none select-none z-0">
+<span class="material-symbols-outlined text-[300px] text-secondary">eco</span>
+</div>
+</body></html>

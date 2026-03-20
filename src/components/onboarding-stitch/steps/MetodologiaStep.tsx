@@ -3,12 +3,12 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 import { motion } from 'framer-motion';
 
-const MetodologiaStep: React.FC<StepProps> = ({ onNext }) => {
+const MetodologiaStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) => {
   return (
     <StepContainer
-      currentStep={1}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       showBack={false}
       nextLabel="Entendi o NURA Flow"
     >

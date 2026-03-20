@@ -3,9 +3,14 @@ import { StitchOnboardingData, OnboardingStep } from './types';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
-// Step Components (to be implemented)
+// Step Components
+import ObjetivosPrincipaisStep from './steps/ObjetivosPrincipaisStep';
 import MetodologiaStep from './steps/MetodologiaStep';
 import ObjetivosAdicionaisStep from './steps/ObjetivosAdicionaisStep';
+import IdadeStep from './steps/IdadeStep';
+import GeneroStep from './steps/GeneroStep';
+import AlturaEPesoStep from './steps/AlturaEPesoStep';
+import NivelAtividadeStep from './steps/NivelAtividadeStep';
 import ConheceJejumStep from './steps/ConheceJejumStep';
 import BeneficiosJejumStep from './steps/BeneficiosJejumStep';
 import EducaJejumStep from './steps/EducaJejumStep';
@@ -15,11 +20,14 @@ import LocalRefeicoesStep from './steps/LocalRefeicoesStep';
 import TipoDietaStep from './steps/TipoDietaStep';
 import RestricoesAlimentaresStep from './steps/RestricoesAlimentaresStep';
 import ConsumoAguaStep from './steps/ConsumoAguaStep';
+import ImpactoAguaStep from './steps/ImpactoAguaStep';
 import EducaHidratacaoStep from './steps/EducaHidratacaoStep';
 import MudancaHabitosStep from './steps/MudancaHabitosStep';
+import ResumoIMCStep from './steps/ResumoIMCStep';
 import ResumoBiometricoStep from './steps/ResumoBiometricoStep';
 import PesoObjetivoStep from './steps/PesoObjetivoStep';
 import VelocidadeMetaStep from './steps/VelocidadeMetaStep';
+import ConfirmacaoMetasStep from './steps/ConfirmacaoMetasStep';
 import ProjecaoSucessoStep from './steps/ProjecaoSucessoStep';
 import ProvaSucessoStep from './steps/ProvaSucessoStep';
 import LembretesRotinaStep from './steps/LembretesRotinaStep';
@@ -86,10 +94,20 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
     };
 
     switch (currentStep) {
+      case OnboardingStep.OBJETIVOS_PRINCIPAIS:
+        return <ObjetivosPrincipaisStep {...props} />;
       case OnboardingStep.METODOLOGIA:
         return <MetodologiaStep {...props} />;
       case OnboardingStep.OBJETIVOS:
         return <ObjetivosAdicionaisStep {...props} />;
+      case OnboardingStep.IDADE:
+        return <IdadeStep {...props} />;
+      case OnboardingStep.GENERO:
+        return <GeneroStep {...props} />;
+      case OnboardingStep.ALTURA_PESO:
+        return <AlturaEPesoStep {...props} />;
+      case OnboardingStep.NIVEL_ATIVIDADE:
+        return <NivelAtividadeStep {...props} />;
       case OnboardingStep.CONHECE_JEJUM:
         return <ConheceJejumStep {...props} />;
       case OnboardingStep.BENEFICIOS_JEJUM:
@@ -108,16 +126,22 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         return <RestricoesAlimentaresStep {...props} />;
       case OnboardingStep.CONSUMO_AGUA:
         return <ConsumoAguaStep {...props} />;
+      case OnboardingStep.IMPACTO_AGUA:
+        return <ImpactoAguaStep {...props} />;
       case OnboardingStep.EDUCA_HIDRATACAO:
         return <EducaHidratacaoStep {...props} />;
       case OnboardingStep.MUDANCA_HABITOS:
         return <MudancaHabitosStep {...props} />;
+      case OnboardingStep.RESUMO_IMC:
+        return <ResumoIMCStep {...props} />;
       case OnboardingStep.RESUMO_BIOMÉTRICO:
         return <ResumoBiometricoStep {...props} />;
       case OnboardingStep.PESO_OBJETIVO:
         return <PesoObjetivoStep {...props} />;
       case OnboardingStep.VELOCIDADE_META:
         return <VelocidadeMetaStep {...props} />;
+      case OnboardingStep.CONFIRMACAO_METAS:
+        return <ConfirmacaoMetasStep {...props} />;
       case OnboardingStep.PROJECAO_SUCESSO:
         return <ProjecaoSucessoStep {...props} />;
       case OnboardingStep.PROVA_SUCESSO:
@@ -134,7 +158,6 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         return <NuraFlowStep {...props} />;
       case OnboardingStep.HOME_FEED:
         return <HomeFeedStep {...props} />;
-      // ... other cases will be added
       default:
         return (
           <div className="text-center p-12">

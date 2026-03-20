@@ -2,16 +2,16 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const JanelaAlimentarStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
+const JanelaAlimentarStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   // Use data to manage state if available, otherwise use defaults
   const start = data.eatingWindowStart || '08:00';
   const end = data.eatingWindowEnd || '20:00';
 
   return (
     <StepContainer
-      currentStep={6}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Confirmar Janela"
     >

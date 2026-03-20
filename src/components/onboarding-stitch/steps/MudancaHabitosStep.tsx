@@ -9,7 +9,7 @@ const HABITOS = [
   { id: 'sedentarismo', label: 'Sedentarismo', icon: 'directions_walk' },
 ];
 
-const MudancaHabitosStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
+const MudancaHabitosStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const selected = data.habitsToChange || [];
 
   const toggleHabit = (id: string) => {
@@ -21,9 +21,9 @@ const MudancaHabitosStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
 
   return (
     <StepContainer
-      currentStep={13}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <section className="mb-12">

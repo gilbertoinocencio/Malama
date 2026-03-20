@@ -2,15 +2,15 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const LembretesRotinaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
+const LembretesRotinaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const schedule = data.reminderSchedule || '08:30 - 20:00';
   const [start, end] = schedule.split(' - ');
 
   return (
     <StepContainer
-      currentStep={19}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Salvar e Continuar"
     >

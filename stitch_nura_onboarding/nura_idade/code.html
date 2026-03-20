@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed-variant": "#6b3a11",
+              "on-error-container": "#93000a",
+              "secondary": "#006d36",
+              "on-secondary-fixed-variant": "#005227",
+              "surface-container": "#edeeea",
+              "inverse-on-surface": "#f0f1ed",
+              "error-container": "#ffdad6",
+              "surface-bright": "#f9faf6",
+              "surface-variant": "#e2e3df",
+              "surface": "#f9faf6",
+              "on-primary": "#ffffff",
+              "surface-container-low": "#f3f4f0",
+              "outline": "#6f797b",
+              "error": "#ba1a1a",
+              "on-tertiary-container": "#ffbd8f",
+              "surface-dim": "#d9dad7",
+              "surface-container-highest": "#e2e3df",
+              "tertiary": "#613309",
+              "primary-fixed": "#a7eefc",
+              "on-primary-container": "#90d6e4",
+              "background": "#f9faf6",
+              "tertiary-fixed-dim": "#ffb783",
+              "on-background": "#1a1c1a",
+              "secondary-fixed": "#83fba5",
+              "primary-fixed-dim": "#8bd2df",
+              "tertiary-container": "#7d491f",
+              "on-secondary-fixed": "#00210c",
+              "tertiary-fixed": "#ffdcc5",
+              "outline-variant": "#bec8ca",
+              "on-primary-fixed-variant": "#004e59",
+              "primary-container": "#005f6b",
+              "on-primary-fixed": "#001f24",
+              "on-surface-variant": "#3f484a",
+              "on-secondary": "#ffffff",
+              "secondary-container": "#83fba5",
+              "on-secondary-container": "#00743a",
+              "on-error": "#ffffff",
+              "on-tertiary-fixed": "#301400",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary": "#ffffff",
+              "surface-container-high": "#e7e9e5",
+              "inverse-surface": "#2e312f",
+              "surface-tint": "#156874",
+              "secondary-fixed-dim": "#66dd8b",
+              "on-surface": "#1a1c1a",
+              "inverse-primary": "#8bd2df",
+              "primary": "#00464f"
+            },
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .scroller-mask {
+            mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface antialiased min-h-screen flex flex-col overflow-hidden">
+<!-- Progress Bar (Sutil Flow) -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-secondary w-[51.3%] transition-all duration-700 ease-in-out"></div>
+</div>
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 w-full z-50 flex items-center justify-between px-6 h-16 bg-[#f5fcdf] dark:bg-slate-900">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-[#005F6B] hover:bg-[#005F6B]/5 transition-all duration-300 active:scale-95">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="font-lexend font-bold text-[#005F6B] tracking-widest text-2xl">NURA</span>
+<div class="w-10"></div> <!-- Spacer for centering -->
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center px-8 pt-20 pb-32 max-w-2xl mx-auto w-full relative">
+<!-- Contextual Leaf (Decorative) -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-secondary-container/10 blur-[100px] -z-10 rounded-full"></div>
+<!-- Headline & Subtitle -->
+<div class="text-center mb-16 space-y-4">
+<h1 class="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tight">Qual é a sua idade?</h1>
+<p class="text-on-surface-variant text-lg font-medium max-w-xs mx-auto">A idade influencia seu ritmo metabólico.</p>
+</div>
+<!-- Sophisticated Scroller UI -->
+<div class="relative w-full max-w-xs flex flex-col items-center">
+<!-- Selected Area Highlight -->
+<div class="absolute top-1/2 -translate-y-1/2 w-full h-24 bg-surface-container-lowest shadow-[0_16px_32px_0_rgba(26,28,26,0.04)] rounded-lg -z-0"></div>
+<!-- Scrolling Numbers -->
+<div class="h-[300px] overflow-y-auto no-scrollbar scroller-mask snap-y snap-mandatory py-[110px] z-10 w-full text-center">
+<!-- Spacing at start for snap alignment -->
+<div class="h-24 snap-center flex items-center justify-center text-on-surface/10 font-headline text-5xl">23</div>
+<div class="h-24 snap-center flex items-center justify-center text-on-surface/20 font-headline text-5xl">24</div>
+<div class="h-24 snap-center flex items-center justify-center text-on-surface/40 font-headline text-6xl">25</div>
+<div class="h-24 snap-center flex items-center justify-center text-primary font-headline text-8xl font-bold">26</div>
+<div class="h-24 snap-center flex items-center justify-center text-on-surface/40 font-headline text-6xl">27</div>
+<div class="h-24 snap-center flex items-center justify-center text-on-surface/20 font-headline text-5xl">28</div>
+<div class="h-24 snap-center flex items-center justify-center text-on-surface/10 font-headline text-5xl">29</div>
+</div>
+<!-- Unit Label -->
+<div class="absolute right-4 top-1/2 -translate-y-1/2 font-headline text-primary/40 font-medium">ANOS</div>
+</div>
+<!-- Informative Badge (Asymmetric) -->
+<div class="mt-12 bg-surface-container-low px-6 py-4 rounded-lg flex items-center gap-4 self-end mr-[-10%] md:mr-0 transition-all hover:bg-surface-container">
+<div class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+</div>
+<p class="text-sm font-medium text-on-surface-variant max-w-[180px]">Personalizamos seu plano com base em dados biológicos.</p>
+</div>
+</main>
+<!-- Bottom Action Button -->
+<div class="fixed bottom-0 left-0 w-full p-8 flex flex-col items-center gap-4 bg-gradient-to-t from-surface via-surface/90 to-transparent">
+<button class="w-full max-w-md h-16 rounded-full bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline font-semibold text-lg shadow-[0_16px_32px_0_rgba(0,70,79,0.15)] active:scale-95 transition-all duration-300 flex items-center justify-center group">
+<span>Continuar</span>
+<span class="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</button>
+<p class="text-xs text-on-surface-variant/60 font-medium">Etapa 19 de 37</p>
+</div>
+<!-- Decorative Corner Element -->
+<div class="fixed bottom-[-5%] left-[-5%] w-64 h-64 bg-primary/5 blur-[80px] rounded-full pointer-events-none"></div>
+</body></html>

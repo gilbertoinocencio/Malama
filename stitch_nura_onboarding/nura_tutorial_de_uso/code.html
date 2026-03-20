@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NURA - Como manter seu Flow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-headline { font-family: 'Lexend', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .ring-gradient {
+            background: conic-gradient(from 0deg, #006d36 0%, #006d36 75%, #e2e3df 75%, #e2e3df 100%);
+        }
+        .glass-panel {
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.7);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "error-container": "#ffdad6",
+                        "outline": "#6f797b",
+                        "on-secondary-container": "#00743a",
+                        "surface": "#f9faf6",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#005227",
+                        "primary": "#00464f",
+                        "secondary-fixed": "#83fba5",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "secondary-container": "#83fba5",
+                        "on-surface-variant": "#3f484a",
+                        "tertiary": "#613309",
+                        "on-tertiary-fixed": "#301400",
+                        "primary-fixed": "#a7eefc",
+                        "on-surface": "#1a1c1a",
+                        "on-error-container": "#93000a",
+                        "secondary": "#006d36",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#ffdcc5",
+                        "surface-container-low": "#f3f4f0",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#00210c",
+                        "primary-container": "#005f6b",
+                        "on-primary-container": "#90d6e4",
+                        "on-tertiary-container": "#ffbd8f",
+                        "on-tertiary-fixed-variant": "#6b3a11",
+                        "primary-fixed-dim": "#8bd2df",
+                        "surface-bright": "#f9faf6",
+                        "surface-tint": "#156874",
+                        "on-primary-fixed": "#001f24",
+                        "inverse-primary": "#8bd2df",
+                        "surface-variant": "#e2e3df",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#2e312f",
+                        "background": "#f9faf6",
+                        "tertiary-container": "#7d491f",
+                        "surface-container-highest": "#e2e3df",
+                        "inverse-on-surface": "#f0f1ed",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#1a1c1a",
+                        "surface-container-high": "#e7e9e5",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#004e59",
+                        "surface-container": "#edeeea",
+                        "surface-dim": "#d9dad7",
+                        "secondary-fixed-dim": "#66dd8b",
+                        "outline-variant": "#bec8ca"
+                    },
+                    fontFamily: {
+                        "headline": ["Lexend"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+<!-- Progress Indicator (Sutil Flow) -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-secondary transition-all duration-500" style="width: 83.7%"></div>
+</div>
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-[#f5fcdf] dark:bg-stone-950">
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-200/50 transition-colors duration-300">
+<span class="material-symbols-outlined text-[#00464f] dark:text-[#005F6B]" data-icon="close">close</span>
+</button>
+</div>
+<div class="absolute left-1/2 -translate-x-1/2">
+<span class="text-[#00464f] dark:text-[#005F6B] font-['Lexend'] font-black tracking-tighter text-2xl">NURA</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-['Lexend'] font-bold text-xs text-[#6f3f18] uppercase tracking-widest">31 / 37</span>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 pt-24 pb-32 px-6 max-w-xl mx-auto w-full">
+<!-- Editorial Header -->
+<header class="mb-12 space-y-3">
+<h1 class="font-headline font-bold text-4xl text-primary leading-tight tracking-tight">
+                Como manter seu Flow
+            </h1>
+<p class="text-on-surface-variant text-lg leading-relaxed">
+                Registrar é simples, manter a constância é o segredo.
+            </p>
+</header>
+<!-- Tutorial Visualization Container -->
+<div class="relative w-full aspect-[4/5] rounded-lg overflow-hidden bg-surface-container-low shadow-[0_16px_32px_0_rgba(26,28,26,0.04)] mb-12">
+<!-- Simulated App Interface Decor -->
+<div class="absolute inset-0 p-8 flex flex-col items-center justify-center space-y-12">
+<!-- The "Anel de Calorias" (Calorie Ring) -->
+<div class="relative w-64 h-64 flex items-center justify-center">
+<!-- Outer Background Ring -->
+<div class="absolute inset-0 rounded-full border-[12px] border-surface-container-highest opacity-30"></div>
+<!-- Active Progress Ring (Conic Gradient) -->
+<div class="absolute inset-0 rounded-full ring-gradient p-[12px]">
+<div class="w-full h-full bg-surface-container-low rounded-full"></div>
+</div>
+<!-- Content Inside Ring -->
+<div class="relative text-center z-10">
+<span class="block font-headline font-extrabold text-5xl text-primary">1.450</span>
+<span class="block text-tertiary font-medium uppercase tracking-[0.2em] text-[10px] mt-1">kcal restantes</span>
+</div>
+<!-- Floating Contextual Leaf -->
+<div class="absolute -top-4 -right-2 w-16 h-16 bg-secondary-container/20 rounded-full blur-xl animate-pulse"></div>
+</div>
+<!-- Registration Actions (Bento Style Buttons) -->
+<div class="w-full grid grid-cols-2 gap-4">
+<!-- Photo Button -->
+<div class="group relative bg-surface-container-lowest p-6 rounded-lg flex flex-col items-center justify-center text-center transition-all duration-300 hover:bg-white hover:shadow-lg">
+<div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="photo_camera" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+</div>
+<span class="font-headline font-semibold text-sm text-primary">Foto Rápida</span>
+<span class="text-[10px] text-on-surface-variant uppercase tracking-widest mt-1">IA Instantânea</span>
+</div>
+<!-- Chat Button -->
+<div class="group relative bg-surface-container-lowest p-6 rounded-lg flex flex-col items-center justify-center text-center transition-all duration-300 hover:bg-white hover:shadow-lg">
+<div class="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-secondary text-3xl" data-icon="chat_bubble" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+</div>
+<span class="font-headline font-semibold text-sm text-primary">Relato Chat</span>
+<span class="text-[10px] text-on-surface-variant uppercase tracking-widest mt-1">Descrição Livre</span>
+</div>
+</div>
+<!-- Guidance Overlay -->
+<div class="absolute bottom-6 left-6 right-6 glass-panel p-4 rounded-lg flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-tertiary" data-icon="lightbulb">lightbulb</span>
+</div>
+<p class="text-xs font-medium text-on-surface-variant italic">
+                        "Tire uma foto do prato e a Nura calcula macros e calorias em segundos."
+                    </p>
+</div>
+</div>
+<!-- Background Image Texture -->
+<div class="absolute inset-0 -z-10 opacity-20">
+<img alt="" class="w-full h-full object-cover grayscale" data-alt="Soft focused healthy breakfast bowl background texture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkfHPsRCVutG7ypT29iFXkD02yhzUObvU6qZ0EYxDXEk10xFS_zRuX_WZePyIJAriMoN-Lk19jFCPyDzk6CaI_G7oUpG0LHT-2bXIqW5pXa565QovMasuTgkA6QG5KSMP2qNjP5fOT4pTEHe3xu31OePe7At6JNjvt8ZsckzarHfFSPA-1uKsG6kHf-KD05f1yElEmIJWg_VKw7HKq8nyuYamgaJT1MdNMX_GBsLQH5M-hUvAF_fsMPm2WgS0eJgul5oyQ9bJx4Ps"/>
+</div>
+</div>
+<!-- Call to Action Section -->
+<footer class="space-y-6">
+<button class="w-full h-16 bg-primary text-on-primary rounded-lg font-headline font-bold text-lg flex items-center justify-center gap-3 transition-all duration-300 hover:opacity-90 active:scale-95 shadow-xl shadow-primary/20">
+                Entendi, continuar
+                <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<p class="text-center text-sm text-on-surface-variant/70 font-medium">
+                Você está a 6 passos de concluir seu perfil.
+            </p>
+</footer>
+</main>
+<!-- Bottom Navigation Shell (Suppressed based on Task Context: Tutorial/Onboarding) -->
+<!-- We prioritize the content canvas for focused journey -->
+<!-- Decorative Elements -->
+<div class="fixed top-1/3 -left-20 w-64 h-64 bg-secondary-container/10 rounded-full blur-3xl -z-50 pointer-events-none"></div>
+<div class="fixed bottom-1/4 -right-20 w-80 h-80 bg-primary-fixed/10 rounded-full blur-3xl -z-50 pointer-events-none"></div>
+</body></html>

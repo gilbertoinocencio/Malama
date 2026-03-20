@@ -2,20 +2,20 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const BeneficiosJejumStep: React.FC<StepProps> = ({ onNext, onBack }) => {
+const BeneficiosJejumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, totalSteps }) => {
   const BENEFITS = [
-    { 
-      title: 'Autofagia', 
+    {
+      title: 'Autofagia',
       desc: 'A reciclagem celular inteligente. Seu corpo identifica e remove componentes danificados, promovendo a renovação biológica.',
       icon: 'repeat'
     },
-    { 
-      title: 'Queima de Gordura', 
+    {
+      title: 'Queima de Gordura',
       desc: 'A transição metabólica para a cetose. Sua reserva de gordura torna-se a principal fonte de energia limpa e constante.',
       icon: 'local_fire_department'
     },
-    { 
-      title: 'Clareza Mental', 
+    {
+      title: 'Clareza Mental',
       desc: 'Redução da névoa cerebral. O aumento do BDNF protege seus neurônios e potencializa seu foco e desempenho cognitivo.',
       icon: 'psychology'
     }
@@ -23,9 +23,9 @@ const BeneficiosJejumStep: React.FC<StepProps> = ({ onNext, onBack }) => {
 
   return (
     <StepContainer
-      currentStep={4}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Continuar Jornada"
     >

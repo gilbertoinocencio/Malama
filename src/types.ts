@@ -91,4 +91,5 @@ export interface Profile {
   age?: number;
   gender?: string;
   body_fat?: number;
+  onboarding_completed?: boolean;
 }

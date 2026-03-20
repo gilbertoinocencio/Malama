@@ -10,7 +10,7 @@ const OBJETIVOS = [
   { id: 'aumentar_energia', label: 'Aumentar energia', icon: 'bolt' },
 ];
 
-const ObjetivosAdicionaisStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
+const ObjetivosAdicionaisStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const selectedGoals = data.additionalGoals || [];
 
   const toggleGoal = (goalId: string) => {
@@ -22,9 +22,9 @@ const ObjetivosAdicionaisStep: React.FC<StepProps> = ({ data, updateData, onNext
 
   return (
     <StepContainer
-      currentStep={2}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <section className="mb-12">

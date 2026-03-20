@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;family=Plus+Jakarta+Sans:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed": "#ffdcc5",
+              "on-secondary-fixed": "#00210c",
+              "on-secondary-container": "#00743a",
+              "primary-container": "#005f6b",
+              "on-primary-container": "#90d6e4",
+              "surface-container-high": "#e7e9e5",
+              "surface-container-low": "#f3f4f0",
+              "surface-dim": "#d9dad7",
+              "secondary-fixed-dim": "#66dd8b",
+              "error": "#ba1a1a",
+              "surface-tint": "#156874",
+              "secondary": "#006d36",
+              "on-background": "#1a1c1a",
+              "on-tertiary-container": "#ffbd8f",
+              "surface-container-highest": "#e2e3df",
+              "error-container": "#ffdad6",
+              "surface": "#f9faf6",
+              "primary-fixed-dim": "#8bd2df",
+              "primary": "#00464f",
+              "on-secondary": "#ffffff",
+              "tertiary-container": "#7d491f",
+              "on-primary-fixed-variant": "#004e59",
+              "tertiary-fixed-dim": "#ffb783",
+              "primary-fixed": "#a7eefc",
+              "surface-bright": "#f9faf6",
+              "inverse-surface": "#2e312f",
+              "secondary-fixed": "#83fba5",
+              "on-primary": "#ffffff",
+              "outline": "#6f797b",
+              "on-secondary-fixed-variant": "#005227",
+              "surface-container": "#edeeea",
+              "on-tertiary-fixed": "#301400",
+              "on-tertiary": "#ffffff",
+              "on-surface-variant": "#3f484a",
+              "on-error-container": "#93000a",
+              "surface-container-lowest": "#ffffff",
+              "outline-variant": "#bec8ca",
+              "inverse-on-surface": "#f0f1ed",
+              "on-error": "#ffffff",
+              "on-primary-fixed": "#001f24",
+              "inverse-primary": "#8bd2df",
+              "surface-variant": "#e2e3df",
+              "secondary-container": "#83fba5",
+              "on-surface": "#1a1c1a",
+              "background": "#f9faf6",
+              "on-tertiary-fixed-variant": "#6b3a11",
+              "tertiary": "#613309"
+            },
+            fontFamily: {
+              "headline": ["Lexend"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-effect {
+            backdrop-filter: blur(20px);
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f9faf6;
+            color: #1a1c1a;
+        }
+        h1, h2, h3 {
+            font-family: 'Lexend', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface">
+<!-- Sutil Flow Progress Bar -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-secondary w-[92%] transition-all duration-500"></div>
+</div>
+<!-- Top Navigation (Shell suppressed for transaction focus, using simple brand header) -->
+<header class="fixed top-0 w-full z-50 bg-[#f5fcdf] dark:bg-slate-950 no-line-rule bg-surface-container-low">
+<div class="flex items-center justify-between px-8 py-6 w-full max-w-screen-xl mx-auto">
+<div class="font-lexend text-2xl font-black text-[#005F6B] dark:text-[#008ba3] tracking-widest uppercase">NURA</div>
+<button class="p-2 hover:opacity-80 transition-opacity duration-300">
+<span class="material-symbols-outlined text-primary">close</span>
+</button>
+</div>
+</header>
+<main class="pt-32 pb-40 px-6 max-w-screen-xl mx-auto overflow-x-hidden">
+<!-- Hero Section -->
+<section class="mb-16 md:mb-24 text-center md:text-left">
+<span class="text-tertiary font-headline font-bold tracking-widest uppercase text-sm mb-4 block">COMUNIDADE</span>
+<h1 class="text-5xl md:text-7xl text-primary font-black leading-tight tracking-tighter mb-8 max-w-3xl">
+                Resultados que inspiram
+            </h1>
+<p class="text-on-surface-variant text-lg md:text-xl max-w-2xl font-body leading-relaxed">
+                Nossa jornada é construída por histórias reais. Explore o fluxo de transformação de quem escolheu viver o equilíbrio NURA.
+            </p>
+</section>
+<!-- Aesthetic Bento Gallery -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+<!-- Large Focus Card -->
+<div class="md:col-span-7 bg-surface-container-lowest rounded-lg overflow-hidden group">
+<div class="relative aspect-[4/5] md:aspect-[16/10] overflow-hidden">
+<img alt="Transformação estética" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Mulher sorrindo mostrando progresso físico em ambiente natural" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJ3GIqFnkbAamy9LBtj7-hwUIZK2EVPQHCMxjQlca9y9s-bsIayW0Drn_xneKnb5rdTEpcudhQykEVxfwbvnJaKckXpym_PUA7QAAV0rWMMRvx0xpWZNDBoIYWkRmKvl_MUiai_ImUUWTghSKwRhQ0tYWzJVvD_6C5JF3neLhZb4ESDAJdt98igFNRqoH8X8CJoMJHxFF_dSFGq6SrfRBSY5QjSRKmGSs7-TLHRTCH3dCo7Pj87iqBCLnTMEj6ZjK7pfuZuFe9aK0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent"></div>
+<div class="absolute bottom-8 left-8 text-white">
+<span class="bg-secondary/90 backdrop-blur-md px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-3 inline-block">Sucesso</span>
+<h3 class="text-3xl font-headline font-bold">Perda sustentável</h3>
+</div>
+</div>
+<div class="p-10">
+<p class="text-on-surface-variant text-lg leading-relaxed italic mb-6">
+                        "Não foi apenas o peso, foi a leveza que ganhei na alma. O NURA Flow me ensinou que consistência é um ato de amor próprio, não uma obrigação."
+                    </p>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center">
+<span class="text-on-primary-container font-headline font-bold">ML</span>
+</div>
+<div>
+<p class="font-headline font-bold text-primary">Mariana Lins</p>
+<p class="text-sm text-outline">Há 8 meses na jornada</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Side Card 1 -->
+<div class="md:col-span-5 bg-surface-container-low rounded-lg p-1 transition-all duration-300">
+<div class="bg-surface-container-lowest rounded-lg overflow-hidden h-full">
+<div class="aspect-square relative">
+<img alt="Yoga progresso" class="w-full h-full object-cover" data-alt="Pessoa praticando yoga em um estúdio minimalista com luz natural" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDoOuxP9lCAM8EP77vi0tWOjfgnE12kGbcWDK30UZj9AaB_-dr0IQOtPYOABIun4eRsOrGOj5t_B43ZCb1jkni5yxNEjQJ7qrNwmVcMS6oUMvEezH41tqcHYDnL5zxNFXmbrGHilx4mdNCJyPthtXqhiRmYMvrN3kwp41-jxuNDLnUWhTLU8jlRqaz3ONmEicNcp_d8mGuNJZ8n0lTYFJ6jCvYSaiw_G3viAqEyyCrh_2QZdtdsN0lpXnRLiZsEVny5rQRIZSIRRBE"/>
+<div class="absolute top-4 right-4 glass-effect px-4 py-2 rounded-full shadow-sm">
+<span class="text-tertiary font-bold text-sm">+ Energia</span>
+</div>
+</div>
+<div class="p-8">
+<h3 class="text-2xl font-headline font-bold text-primary mb-4">Foco &amp; Vitalidade</h3>
+<p class="text-on-surface-variant leading-relaxed mb-4">
+                            "Recuperei a disposição para brincar com meus filhos. O Brown Sugar Ritual mudou minhas manhãs."
+                        </p>
+<p class="text-sm font-bold text-primary">— Ricardo A.</p>
+</div>
+</div>
+</div>
+<!-- Floating Decorative "Contextual Leaf" -->
+<div class="hidden md:block absolute right-10 top-1/2 opacity-20 -z-10 transform -rotate-12">
+<span class="material-symbols-outlined text-[300px] text-secondary">eco</span>
+</div>
+<!-- Smaller Gallery Items -->
+<div class="md:col-span-4 bg-surface-container-low rounded-lg group">
+<div class="p-8 h-full flex flex-col">
+<div class="mb-6 overflow-hidden rounded-lg aspect-video">
+<img alt="Alimentação consciente" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Prato colorido de comida saudável com estética editorial" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJC6bxc-XBJ5NEG1DeEvv8WoACeCqmsABME8yLGWv0Dv2tV6QG8iYAxTppjfQ_W_X1p-8XfXEfKwVLdaW9oxFUKcrOsKq2OGJgjSENliHbBBrO1271K-NSNCtLif_4O4NxSe_RRJoSY42RFusOsQq1ObDFSCX8Cx7w5VcgB1FkqyzTg6hyODKGKOtFYVeYtLuJKjoz2SOXFUdlXtKmcRKEXjfdg1gPq7P60fShFh2Lbbni9T9TMH2gxdWPtDYpOCIO3HeqQEweq9Y"/>
+</div>
+<h4 class="text-xl font-headline font-bold text-tertiary mb-2">Pele Radiante</h4>
+<p class="text-on-surface-variant text-sm leading-relaxed mb-6">Resultados visíveis em 4 semanas de detox guiado.</p>
+<div class="mt-auto flex justify-between items-center">
+<span class="text-xs font-bold text-outline">@juliana_medeiros</span>
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+</div>
+<div class="md:col-span-4 bg-primary text-white rounded-lg p-10 flex flex-col justify-center">
+<span class="material-symbols-outlined text-5xl mb-6 text-primary-fixed">format_quote</span>
+<p class="text-2xl font-headline leading-relaxed mb-8">
+                    "O design do app me acalma, mas os resultados me mantêm aqui."
+                </p>
+<p class="font-bold opacity-70">— Comunidade NURA</p>
+</div>
+<div class="md:col-span-4 bg-surface-container-highest rounded-lg overflow-hidden flex flex-col">
+<div class="flex-grow flex items-center justify-center p-12">
+<div class="text-center">
+<span class="text-5xl font-black font-headline text-primary mb-2 block">2.4k+</span>
+<span class="text-tertiary font-bold tracking-widest uppercase text-xs">Vidas Transformadas</span>
+</div>
+</div>
+<div class="h-1/2 bg-cover bg-center" data-alt="Grupo de pessoas sorrindo em um ambiente de bem-estar coletivo" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZrgEUdbvUatz5QbV60-tRMk461EfrXBpergGPUcB62uVWp0zin4PKpH-tvqwAMbFpuuy42WyGxRGlcCmkeYLXN-qwALzBrHOaPg80Ai0BZYcpCjBK9c619jmHcCnSUPteNAYlB90EmsLgSLea7UHPRHKG_7PAGhh59wkFxmkccEG4wp9owUx48kQycEa946TN89WJerZc1BZzlz2Lx-yUVbQK8kVQkJ8i_6qtMndFY4HWq85DxQsc7x5KW7MEhCIZQg5E2ij-suQ')">
+</div>
+</div>
+</div>
+<!-- CTA Floating Action Area -->
+<div class="mt-24 text-center">
+<h2 class="text-3xl font-headline font-bold text-primary mb-10">Pronto para escrever sua história?</h2>
+<div class="relative inline-block">
+<button class="bg-primary text-on-primary font-headline font-bold text-xl px-12 py-6 rounded-lg shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 relative z-10">
+                    Quero esses resultados
+                </button>
+<!-- Aesthetic shadow element -->
+<div class="absolute inset-0 bg-primary opacity-20 blur-2xl translate-y-4 rounded-lg"></div>
+</div>
+<p class="mt-8 text-outline text-sm font-medium">
+                Junte-se a 12.000+ membros ativos esta semana.
+            </p>
+</div>
+</main>
+<!-- Bottom Navigation Shell (Label & Icon Type) -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-6 pb-8 pt-4 bg-[#f5fcdf]/70 dark:bg-slate-900/70 backdrop-blur-xl z-50 rounded-t-3xl shadow-[0_-16px_32px_rgba(26,28,26,0.04)]">
+<a class="flex flex-col items-center justify-center text-[#6f3f18] dark:text-[#f5fcdf]/60 p-3 hover:bg-[#005F6B]/10 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined mb-1">auto_awesome</span>
+<span class="font-lexend text-[10px] font-medium tracking-wide">Jornada</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#005F6B] text-white rounded-full p-3 transition-all duration-300 scale-100" href="#">
+<span class="material-symbols-outlined mb-1">group</span>
+<span class="font-lexend text-[10px] font-medium tracking-wide">Comunidade</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#6f3f18] dark:text-[#f5fcdf]/60 p-3 hover:bg-[#005F6B]/10 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined mb-1">waves</span>
+<span class="font-lexend text-[10px] font-medium tracking-wide">NURA Flow</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#6f3f18] dark:text-[#f5fcdf]/60 p-3 hover:bg-[#005F6B]/10 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-lexend text-[10px] font-medium tracking-wide">Perfil</span>
+</a>
+</nav>
+</body></html>

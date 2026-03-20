@@ -2,28 +2,28 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const ResumoBiometricoStep: React.FC<StepProps> = ({ data, onNext, onBack }) => {
+const ResumoBiometricoStep: React.FC<StepProps> = ({ data, onNext, onBack, currentStep, totalSteps }) => {
   // Height in cm, weight in kg
   const height = data.height || 178;
   const weight = data.weight || 71.0;
-  
+
   // BMI calculation
   const heightInMeters = height / 100;
   const bmi = weight / (heightInMeters * heightInMeters);
   const bmiFormatted = bmi.toFixed(1);
 
   // Gauge calculation (Normal range is 18.5 - 24.9)
-  // We'll map BMI to a stroke-dashoffset. 
-  // Full circle (r=88) is 552.9. 
+  // We'll map BMI to a stroke-dashoffset.
+  // Full circle (r=88) is 552.9.
   // Roughly map 15-35 range to 0-100% of the gauge.
   const percentage = Math.min(Math.max((bmi - 15) / (35 - 15), 0), 1);
   const dashoffset = 552.9 * (1 - percentage);
 
   return (
     <StepContainer
-      currentStep={14}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Continuar para Metas"
     >

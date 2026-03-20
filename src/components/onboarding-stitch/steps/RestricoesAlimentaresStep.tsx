@@ -9,7 +9,7 @@ const RESTRICOES = [
   { id: 'alergias', label: 'Alergias', desc: 'Amendoim, frutos do mar, ovos ou outros específicos.', icon: 'warning' },
 ];
 
-const RestricoesAlimentaresStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack }) => {
+const RestricoesAlimentaresStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const selected = data.dietaryRestrictions || [];
 
   const toggleRestriction = (id: string) => {
@@ -21,9 +21,9 @@ const RestricoesAlimentaresStep: React.FC<StepProps> = ({ data, updateData, onNe
 
   return (
     <StepContainer
-      currentStep={10}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
       <header className="w-full mb-12 space-y-4">

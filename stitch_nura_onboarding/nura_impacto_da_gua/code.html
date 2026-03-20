@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NURA - Impacto da Água</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-secondary-fixed-variant": "#005227",
+                        "primary": "#00464f",
+                        "on-secondary": "#ffffff",
+                        "surface": "#f9faf6",
+                        "error-container": "#ffdad6",
+                        "outline": "#6f797b",
+                        "on-secondary-container": "#00743a",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#006d36",
+                        "primary-fixed": "#a7eefc",
+                        "on-surface": "#1a1c1a",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#613309",
+                        "on-tertiary-fixed": "#301400",
+                        "secondary-container": "#83fba5",
+                        "on-surface-variant": "#3f484a",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "secondary-fixed": "#83fba5",
+                        "surface-variant": "#e2e3df",
+                        "surface-bright": "#f9faf6",
+                        "surface-tint": "#156874",
+                        "on-primary-fixed": "#001f24",
+                        "inverse-primary": "#8bd2df",
+                        "on-tertiary-fixed-variant": "#6b3a11",
+                        "primary-fixed-dim": "#8bd2df",
+                        "on-tertiary-container": "#ffbd8f",
+                        "primary-container": "#005f6b",
+                        "on-primary-container": "#90d6e4",
+                        "on-secondary-fixed": "#00210c",
+                        "tertiary-fixed": "#ffdcc5",
+                        "surface-container-low": "#f3f4f0",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#edeeea",
+                        "surface-dim": "#d9dad7",
+                        "secondary-fixed-dim": "#66dd8b",
+                        "outline-variant": "#bec8ca",
+                        "surface-container-high": "#e7e9e5",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#004e59",
+                        "on-background": "#1a1c1a",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#f0f1ed",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#2e312f",
+                        "background": "#f9faf6",
+                        "tertiary-container": "#7d491f",
+                        "surface-container-highest": "#e2e3df"
+                    },
+                    fontFamily: {
+                        "headline": ["Lexend"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-lexend { font-family: 'Lexend', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface selection:bg-secondary-container">
+<!-- Progressive Bar -->
+<div class="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
+<div class="h-full bg-secondary transition-all duration-700 ease-in-out" style="width: 43.2%;"></div> <!-- Step 16 of 37 -->
+</div>
+<!-- TopAppBar -->
+<header class="flex items-center justify-between px-6 h-20 w-full fixed top-0 z-50 no-border bg-neutral-100/50 dark:bg-slate-800/50 backdrop-blur-md">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#00464f] dark:text-teal-400 scale-95 active:scale-90 transition-transform cursor-pointer">arrow_back</span>
+</div>
+<h1 class="font-lexend text-2xl font-black tracking-tighter text-[#00464f] dark:text-teal-500">NURA</h1>
+<div class="w-10"></div> <!-- Spacer for balance -->
+</header>
+<main class="min-h-screen pt-28 pb-32 px-6 max-w-md mx-auto flex flex-col items-center">
+<!-- Background Decorative Leaf -->
+<div class="fixed -right-20 top-40 opacity-10 pointer-events-none rotate-12">
+<span class="material-symbols-outlined text-[300px] text-secondary">eco</span>
+</div>
+<!-- Editorial Header Section -->
+<section class="w-full mb-12 animate-fade-in">
+<p class="font-lexend text-xs uppercase tracking-[0.2em] text-on-surface-variant mb-3 font-semibold">NURA Flow Identity</p>
+<h2 class="font-lexend text-4xl font-extrabold tracking-tight text-primary leading-tight">
+                O impacto visual <br/>da água
+            </h2>
+<p class="text-on-surface-variant mt-4 text-lg font-medium leading-relaxed">
+                Manter-se hidratado não é apenas sobre sede. É o combustível silencioso do seu metabolismo.
+            </p>
+</section>
+<!-- Bento Grid Visualization Card -->
+<div class="w-full space-y-6">
+<!-- Impact Visualization Card -->
+<div class="bg-surface-container-lowest rounded-lg p-8 shadow-[0_16px_32px_rgba(26,28,26,0.04)] relative overflow-hidden group">
+<div class="flex justify-between items-start mb-10">
+<div>
+<h3 class="font-lexend text-xl font-bold text-primary">Taxa Metabólica</h3>
+<p class="text-sm text-on-surface-variant">Aumento calórico por hidratação</p>
+</div>
+<div class="bg-secondary-container/30 p-3 rounded-full">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+</div>
+<!-- Abstract Aesthetic Chart -->
+<div class="relative h-48 w-full flex items-end justify-between gap-2 px-2">
+<!-- Chart Bars with Gradient -->
+<div class="w-full bg-surface-container-high rounded-full h-[30%] transition-all duration-1000 group-hover:h-[40%]"></div>
+<div class="w-full bg-surface-container-high rounded-full h-[45%] transition-all duration-1000 group-hover:h-[55%]"></div>
+<div class="w-full bg-secondary/20 rounded-full h-[60%] transition-all duration-1000 group-hover:h-[75%]"></div>
+<div class="w-full bg-secondary/40 rounded-full h-[75%] transition-all duration-1000 group-hover:h-[85%]"></div>
+<div class="w-full bg-secondary/70 rounded-full h-[85%] transition-all duration-1000 group-hover:h-[95%]"></div>
+<div class="w-full bg-primary rounded-full h-[95%] transition-all duration-1000 group-hover:h-[100%]"></div>
+<!-- Glow effect under the primary bar -->
+<div class="absolute right-0 bottom-0 w-8 h-8 bg-primary/20 blur-xl rounded-full"></div>
+</div>
+<div class="mt-8 flex items-center justify-between border-t border-outline-variant/15 pt-6">
+<div class="text-center">
+<span class="block font-lexend text-2xl font-bold text-primary">24%</span>
+<span class="text-[10px] uppercase tracking-wider text-on-surface-variant">Aumento médio</span>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant/30"></div>
+<div class="text-center">
+<span class="block font-lexend text-2xl font-bold text-secondary">400ml</span>
+<span class="text-[10px] uppercase tracking-wider text-on-surface-variant">Dose ideal</span>
+</div>
+</div>
+</div>
+<!-- Contextual Insight Box -->
+<div class="bg-primary/5 rounded-lg p-6 flex gap-4 items-start border-l-4 border-primary">
+<span class="material-symbols-outlined text-primary mt-1">info</span>
+<p class="text-sm leading-relaxed text-on-surface-variant">
+                    Estudos mostram que beber <span class="text-primary font-bold">500ml</span> de água pode elevar temporariamente o metabolismo em até <span class="text-primary font-bold">30%</span> nos 60 minutos seguintes.
+                </p>
+</div>
+</div>
+<!-- Decorative Floating Elements -->
+<div class="mt-12 flex justify-center gap-2 opacity-40">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<div class="w-2 h-2 rounded-full bg-secondary/60"></div>
+<div class="w-2 h-2 rounded-full bg-secondary/30"></div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-between items-center max-w-md mx-auto mb-6 gap-4 px-8 pb-10">
+<!-- Back Button (Inactive) -->
+<button class="flex flex-row items-center justify-center text-[#00464f] bg-[#f5fcdf]/80 backdrop-blur-xl rounded-full px-10 py-4 hover:opacity-90 transition-opacity duration-300 Active: scale-98 transition-all cubic-bezier(0.4, 0, 0.2, 1)">
+<span class="material-symbols-outlined mr-2">chevron_left</span>
+<span class="font-lexend text-[12px] font-medium uppercase tracking-wider">Back</span>
+</button>
+<!-- Continue Button (Active) -->
+<button class="flex flex-row items-center justify-center bg-[#00464f] text-[#f5fcdf] rounded-full px-10 py-4 shadow-lg hover:opacity-90 transition-opacity duration-300 Active: scale-98 transition-all cubic-bezier(0.4, 0, 0.2, 1)">
+<span class="font-lexend text-[12px] font-medium uppercase tracking-wider">Continue</span>
+<span class="material-symbols-outlined ml-2">arrow_forward</span>
+</button>
+</nav>
+<!-- Background Decoration -->
+<div class="fixed inset-0 -z-10 bg-surface overflow-hidden">
+<div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-secondary/5 blur-[120px] rounded-full"></div>
+<div class="absolute bottom-[-5%] right-[-5%] w-[40%] h-[40%] bg-primary/5 blur-[100px] rounded-full"></div>
+</div>
+</body></html>

@@ -127,8 +127,9 @@ const App: React.FC = () => {
     biotype: profile?.biotype
   });
 
-  // Show onboarding if not completed
-  if (!profile?.onboarding_completed) {
+  // Show onboarding if not explicitly completed
+  // If we have a user but no profile yet, wait for profile or show onboarding
+  if (profile?.onboarding_completed !== true) {
     return <OnboardingFlow onComplete={() => loadStats()} />;
   }
 

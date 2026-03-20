@@ -3,12 +3,12 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 import { motion } from 'framer-motion';
 
-const EducaJejumStep: React.FC<StepProps> = ({ onNext, onBack }) => {
+const EducaJejumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, totalSteps }) => {
   return (
     <StepContainer
-      currentStep={5}
-      totalSteps={24}
-      onNext={onNext}
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Entendi, continuar jornada"
     >
