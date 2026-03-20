@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Layout } from './components/Layout';
 import { FlowDashboard } from './components/FlowDashboard'; // Critical: Keep eager
 import { LoginView } from './components/LoginView'; // Critical: Keep eager
+import { OnboardingFlow } from './components/onboarding-stitch/OnboardingFlow';
 import { AppView, DailyStats, Meal } from './types';
 import { INITIAL_STATS } from './constants';
 import { useAuth } from './contexts/AuthContext';
@@ -119,12 +120,17 @@ const App: React.FC = () => {
 
   console.log('✅ User authenticated with profile:', {
     userId: user.id,
-    primaryGoal: profile.primary_goal,
-    onboardingCompleted: profile.onboarding_completed,
+    primaryGoal: profile?.primary_goal,
+    onboardingCompleted: profile?.onboarding_completed,
     // Legacy V1 fields
-    goal: profile.goal,
-    biotype: profile.biotype
+    goal: profile?.goal,
+    biotype: profile?.biotype
   });
+
+  // Show onboarding if not completed
+  if (!profile?.onboarding_completed) {
+    return <OnboardingFlow onComplete={() => loadStats()} />;
+  }
 
   return (
     <Layout

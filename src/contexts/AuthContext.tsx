@@ -29,8 +29,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
-            if (session?.user) fetchProfile(session.user.id);
-            setLoading(false);
+            if (session?.user) {
+                fetchProfile(session.user.id).finally(() => setLoading(false));
+            } else {
+                setLoading(false);
+            }
         }).catch((err) => {
             console.error('Error getting session:', err);
             setLoading(false);
