@@ -127,9 +127,17 @@ const App: React.FC = () => {
     biotype: profile?.biotype
   });
 
+  // Wait for profile to load before making decisions
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-nura-bg dark:bg-background-dark">
+        <div className="w-16 h-16 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   // Show onboarding if not explicitly completed
-  // If we have a user but no profile yet, wait for profile or show onboarding
-  if (profile?.onboarding_completed !== true) {
+  if (profile.onboarding_completed !== true) {
     return <OnboardingFlow onComplete={() => loadStats()} />;
   }
 
