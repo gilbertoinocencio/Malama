@@ -40,7 +40,19 @@ import HomeFeedStep from './steps/HomeFeedStep';
 export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const { user } = useAuth();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [data, setData] = useState<StitchOnboardingData>({});
+  const [data, setData] = useState<StitchOnboardingData>({
+    // Initialize with safe defaults to prevent null errors
+    primary_goal: 'perder_peso',
+    idade: 25,
+    genero: 'masculino',
+    altura: 170,
+    peso: 70,
+    pesoObjetivo: 65,
+    nivelAtividade: 'moderado',
+    additionalGoals: [],
+    dietaryRestrictions: [],
+    habitsToChange: []
+  });
 
   const steps = Object.values(OnboardingStep);
   const currentStep = steps[currentStepIndex];
