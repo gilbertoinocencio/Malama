@@ -13,7 +13,8 @@
       "Bash(git add vite.config.ts)",
       "Bash(git commit -m \"fix: force PWA service worker update to clear old cache\n\n- Add skipWaiting: true to force immediate SW activation\n- Add clientsClaim: true to take control of clients immediately\n- Fixes issue where app only works in incognito mode due to cached old version\n- Ensures new Stitch onboarding layout is served instead of old cached version\n\nUsers may need to:\n1. Hard refresh (Ctrl+Shift+R / Cmd+Shift+R)\n2. Clear application cache in DevTools\n3. Or use incognito until cache updates\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
       "Bash(git add src/components/onboarding-stitch/types.ts)",
-      "Bash(git commit -m \"fix: reorder onboarding steps to start with Metodologia screen\n\n- Move METODOLOGIA to be first step (was 2nd)\n- Move OBJETIVOS to be second step  \n- Move OBJETIVOS_PRINCIPAIS to third step\n- Fixes issue where old ''objetivo principal'' screen was showing first\n- Now shows correct Stitch design: Metodologia Flow → Objetivos Adicionais → Objetivo Principal\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
+      "Bash(git commit -m \"fix: reorder onboarding steps to start with Metodologia screen\n\n- Move METODOLOGIA to be first step (was 2nd)\n- Move OBJETIVOS to be second step  \n- Move OBJETIVOS_PRINCIPAIS to third step\n- Fixes issue where old ''objetivo principal'' screen was showing first\n- Now shows correct Stitch design: Metodologia Flow → Objetivos Adicionais → Objetivo Principal\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
+      "Bash(dir /b *.tsx)"
     ],
     "deny": [],
     "ask": []
