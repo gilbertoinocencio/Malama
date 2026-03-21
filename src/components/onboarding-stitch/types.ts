@@ -46,9 +46,9 @@ export interface StepProps {
 }
 
 export enum OnboardingStep {
-  OBJETIVOS_PRINCIPAIS = 'objetivos_principais',
   METODOLOGIA = 'metodologia',
   OBJETIVOS = 'objetivos',
+  OBJETIVOS_PRINCIPAIS = 'objetivos_principais',
   IDADE = 'idade',
   GENERO = 'genero',
   ALTURA_PESO = 'altura_peso',
