@@ -12,6 +12,7 @@ const RefeicoesDiariasStep: React.FC<StepProps> = ({ data, updateData, onNext, o
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >

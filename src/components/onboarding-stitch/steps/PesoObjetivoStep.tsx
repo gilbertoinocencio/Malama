@@ -23,6 +23,7 @@ const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >

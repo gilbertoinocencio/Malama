@@ -7,6 +7,7 @@ const ProvaSucessoStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, to
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >

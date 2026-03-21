@@ -8,6 +8,7 @@ const MetodologiaStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps 
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       showBack={false}
       nextLabel="Entendi o NURA Flow"

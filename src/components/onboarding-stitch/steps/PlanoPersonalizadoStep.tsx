@@ -8,6 +8,7 @@ const PlanoPersonalizadoStep: React.FC<StepProps> = ({ onNext, onBack, currentSt
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Começar Agora"

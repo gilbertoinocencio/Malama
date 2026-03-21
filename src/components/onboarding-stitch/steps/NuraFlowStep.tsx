@@ -8,6 +8,7 @@ const NuraFlowStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) 
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={() => {}} // Transition screen
       nextLabel="Entrar no Flow"

@@ -23,6 +23,7 @@ const ResumoBiometricoStep: React.FC<StepProps> = ({ data, onNext, onBack, curre
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Continuar para Metas"

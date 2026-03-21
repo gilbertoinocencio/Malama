@@ -8,6 +8,7 @@ const EducaJejumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tota
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Entendi, continuar jornada"

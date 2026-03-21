@@ -9,6 +9,7 @@ const VelocidadeMetaStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >

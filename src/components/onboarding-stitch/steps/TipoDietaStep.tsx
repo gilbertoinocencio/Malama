@@ -19,6 +19,7 @@ const TipoDietaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >

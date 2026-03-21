@@ -12,6 +12,7 @@ const ProjecaoSucessoStep: React.FC<StepProps> = ({ data, onNext, onBack, curren
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >

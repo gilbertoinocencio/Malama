@@ -10,6 +10,7 @@ const LembretesRotinaStep: React.FC<StepProps> = ({ data, updateData, onNext, on
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Salvar e Continuar"

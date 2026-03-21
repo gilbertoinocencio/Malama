@@ -15,6 +15,7 @@ const ExperienciaCaloriasStep: React.FC<StepProps> = ({ data, updateData, onNext
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >

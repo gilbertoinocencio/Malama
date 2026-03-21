@@ -25,6 +25,7 @@ const BeneficiosJejumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep,
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
+      onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Continuar Jornada"
