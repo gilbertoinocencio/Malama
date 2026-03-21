@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
+  const [statsLoaded, setStatsLoaded] = useState(false);
 
   // Default to false for the Original Light Mode Theme
   const [darkMode, setDarkMode] = useState(false);
@@ -62,16 +63,10 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch Stats on Load
-  useEffect(() => {
-    if (user) {
-      loadStats();
-    }
-  }, [user]);
-
   const loadStats = async () => {
-    if (!user) return;
+    if (!user || statsLoaded) return;
     try {
+      setStatsLoaded(true);
       const dailyStats = await StatsService.getDailyStats(user.id);
       setStats(dailyStats);
 
@@ -79,8 +74,16 @@ const App: React.FC = () => {
       setMeals(dailyMeals);
     } catch (error) {
       console.error('Error loading stats:', error);
+      setStatsLoaded(false); // Reset on error to allow retry
     }
   };
+
+  // Fetch Stats on Load - only once when user is authenticated and has completed onboarding
+  useEffect(() => {
+    if (user && profile?.onboarding_completed && !statsLoaded) {
+      loadStats();
+    }
+  }, [user, profile?.onboarding_completed, statsLoaded]);
 
   const handleLogMeal = (meal: Meal) => {
     // Optimistic Update
@@ -128,7 +131,8 @@ const App: React.FC = () => {
   });
 
   // Wait for profile to load before making decisions
-  if (!profile) {
+  // Profile must have an id property to be considered loaded
+  if (!profile || !profile.id) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-nura-bg dark:bg-background-dark">
         <div className="w-16 h-16 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -138,7 +142,10 @@ const App: React.FC = () => {
 
   // Show onboarding if not explicitly completed
   if (profile.onboarding_completed !== true) {
-    return <OnboardingFlow onComplete={() => loadStats()} />;
+    return <OnboardingFlow onComplete={() => {
+      setStatsLoaded(false); // Reset flag to allow stats loading
+      loadStats();
+    }} />;
   }
 
   return (

@@ -21,10 +21,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [session, setSession] = useState<Session | null>(null);
     const [profile, setProfile] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
+    const fetchingProfileRef = React.useRef(false);
 
     useEffect(() => {
-
-
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
@@ -55,39 +54,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const fetchProfile = async (userId: string) => {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
-
-        if (error) {
-            console.error('Error fetching profile:', error);
+        // Prevent concurrent fetches
+        if (fetchingProfileRef.current) {
+            console.log('⏭️ Skipping profile fetch - already in progress');
             return;
         }
 
-        if (data) {
-            // Check if this is a V1 profile that needs migration
-            // V1 profiles have 'goal' but not 'onboarding_completed'
-            if (data.goal && !data.onboarding_completed) {
-                console.log('🔄 Detected V1 profile, migrating to V2...');
-                try {
-                    const { ProfileService } = await import('../services/profileService');
-                    const migratedProfile = await ProfileService.migrateV1ToV2Profile(userId, data);
-                    setProfile(migratedProfile);
-                    console.log('✅ V1 profile migrated successfully');
-                } catch (migrateError) {
-                    console.error('❌ Error migrating V1 profile:', migrateError);
-                    // Still set the profile even if migration fails
+        fetchingProfileRef.current = true;
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+
+            if (error) {
+                console.error('Error fetching profile:', error);
+                return;
+            }
+
+            if (data) {
+                // Check if this is a V1 profile that needs migration
+                // V1 profiles have 'goal' but not 'onboarding_completed'
+                if (data.goal && !data.onboarding_completed) {
+                    console.log('🔄 Detected V1 profile, migrating to V2...');
+                    try {
+                        const { ProfileService } = await import('../services/profileService');
+                        const migratedProfile = await ProfileService.migrateV1ToV2Profile(userId, data);
+                        setProfile(migratedProfile);
+                        console.log('✅ V1 profile migrated successfully');
+                    } catch (migrateError) {
+                        console.error('❌ Error migrating V1 profile:', migrateError);
+                        // Still set the profile even if migration fails
+                        setProfile(data);
+                    }
+                } else {
                     setProfile(data);
                 }
             } else {
-                setProfile(data);
+                // Profile doesn't exist yet, create a minimal one
+                console.log('Profile not found, will be created on first update');
+                setProfile({ id: userId }); // Set minimal profile to avoid null checks
             }
-        } else {
-            // Profile doesn't exist yet, create a minimal one
-            console.log('Profile not found, will be created on first update');
-            setProfile({ id: userId }); // Set minimal profile to avoid null checks
+        } finally {
+            fetchingProfileRef.current = false;
         }
     };
 

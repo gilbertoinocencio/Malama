@@ -88,6 +88,11 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         .eq('id', user.id);
 
       if (error) throw error;
+
+      // Wait for Supabase to finish updating before triggering completion
+      // This prevents race conditions with AuthContext re-fetching profile
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       onComplete();
     } catch (err) {
       console.error('Error finishing onboarding:', err);
