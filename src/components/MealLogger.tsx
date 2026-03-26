@@ -190,15 +190,20 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     const questionIndicators = [
       '?', 'como ', 'por que', 'porque', 'qual ', 'quais ', 'quando ', 'quanto ',
       'o que ', 'o quê', 'dica', 'sugestão', 'sugestao', 'explica', 'explique',
-      'me fala', 'me diga', 'é importante', 'e importante', 'preciso de', 
+      'me fala', 'me diga', 'é importante', 'e importante', 'preciso de',
       'posso comer', 'devo comer', 'melhor para', 'é bom', 'e bom', 'faz bem',
       'faz mal', 'benefício', 'beneficio', 'vitamina', 'proteína', 'proteina',
       'emagrecer', 'engordar', 'ajuda', 'ajude', 'recomenda', 'pode me',
-      'substituir', 'substitua', 'trocar', 'diferença', 'diferenca',
+      'substituir', 'substitua', 'trocar', 'troque', 'trocar por', 'diferença', 'diferenca',
       'saudável', 'saudavel', 'caloria', 'dieta', 'jejum', 'metabolismo',
       'treino', 'pré-treino', 'pós-treino', 'pre treino', 'pos treino',
       'hidratação', 'hidratacao', 'água', 'agua', 'dormir', 'sono',
-      'oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'obrigado', 'obrigada', 'valeu'
+      'oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'obrigado', 'obrigada', 'valeu',
+      'sugira', 'sugerir', 'me sugira', 'sugere', 'me sugere', 'me sugira',
+      'outra opção', 'outra opcao', 'outra alternativa', 'outro ingrediente',
+      'recomend', 'poderia sugerir', 'lanche saudavel', 'lanche rapido', 'lanche rápido',
+      'me indica', 'opção diferente', 'opcao diferente', 'quero a opção', 'quero a opcao',
+      'quero opção', 'prefiro', 'escolho', 'vou de', 'pode ser'
     ];
     return questionIndicators.some(indicator => lower.includes(indicator));
   };
@@ -216,15 +221,31 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     try {
       if (isQuestion(userText) && user) {
         // Route to Smart Agent (UnifiedChatService)
-        const agentResponse = await UnifiedChatService.sendMessage(user.id, userText);
-        
-        const aiTextMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'ai-text',
-          content: agentResponse.content
-        };
-        setMessages(prev => [...prev, aiTextMsg]);
-        // No draft meal for questions
+        // Inject current meal context so the agent knows which meal is being discussed
+        const mealContext = draftMeal
+          ? `[Contexto da refeição atual: ${draftMeal.foodName} — ${(draftMeal.items || []).map(i => `${i.name} ${i.weightGrams}g (${i.calories}kcal)`).join(', ')}]\n\n`
+          : '';
+        const agentResponse = await UnifiedChatService.sendMessage(user.id, mealContext + userText);
+
+        // Check if response contains a structured meal JSON block
+        const mealJsonMatch = agentResponse.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/);
+        if (mealJsonMatch) {
+          try {
+            const cleanText = agentResponse.content.replace(/<meal_json>[\s\S]*?<\/meal_json>/, '').trim();
+            const parsedMeal: AIResponse = JSON.parse(mealJsonMatch[1]);
+            setMessages(prev => [...prev,
+              { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanText },
+              { id: (Date.now() + 2).toString(), type: 'ai-card', content: parsedMeal }
+            ]);
+            setDraftMeal(parsedMeal);
+          } catch {
+            // If JSON parse fails, fall back to plain text
+            setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: agentResponse.content }]);
+          }
+        } else {
+          setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: agentResponse.content }]);
+        }
+        // draft meal only set if meal_json was found above
       } else {
         // Route to Food Analysis (original behavior)
         const result = await analyzeTextLog(userText, language);

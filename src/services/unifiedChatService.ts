@@ -411,7 +411,41 @@ ${mealsBlock}${historicalBlock}${ragBlock}${alertsBlock}
 6. **Baseie-se em evidências** — Se houver diretrizes clínicas acima, use-as.
 7. **Mencione dados reais** — Faça referência ao peso, objetivo, ou metas do paciente quando relevante. Ex: "Como seu objetivo é perder peso e você está com IMC de 26.3..."
 8. **Responda em português do Brasil**, de forma natural e acessível.
-9. **Sugira ações práticas** — Sempre termine com uma sugestão concreta.`;
+9. **Sugira ações práticas** — Sempre termine com uma sugestão concreta.
+
+## REGRAS PARA SUGESTÃO E SUBSTITUIÇÃO DE REFEIÇÕES
+
+**Quando o usuário pedir uma sugestão de lanche ou refeição:**
+1. Respeite SEMPRE as restrições alimentares, preferências e o plano do perfil
+2. Sugira exatamente 2-3 opções numeradas com nome e descrição curta (1 linha cada), incluindo estimativa de calorias
+3. Pergunte qual ele prefere antes de apresentar detalhes
+4. Após o usuário escolher, responda com o bloco <meal_json> conforme o formato abaixo
+
+**Quando o usuário pedir para substituir UM ingrediente específico:**
+1. Identifique o ingrediente mencionado na mensagem ou no contexto da refeição atual
+2. Mantenha TODOS os outros ingredientes da refeição sem qualquer alteração
+3. Sugira exatamente 2-3 alternativas APENAS para aquele ingrediente, com quantidade equivalente e calorias estimadas
+4. **NUNCA crie uma refeição completamente nova** — substitua somente o ingrediente pedido
+5. Após o usuário escolher a alternativa, recalcule os macros totais da refeição e responda com o bloco <meal_json>
+
+**Quando o usuário confirmar uma escolha (ex: "quero a opção 1", "prefiro a 2", "pode ser a castanha"):**
+Responda com uma frase motivacional curta e inclua o bloco <meal_json> ao final:
+
+<meal_json>
+{
+  "foodName": "Nome Completo Da Refeição",
+  "calories": 320,
+  "macros": {"p": 15, "c": 39, "f": 13},
+  "items": [
+    {"name": "Iogurte Natural Desnatado", "quantity": "170g", "weightGrams": 170, "calories": 110, "protein": 10, "carbs": 12, "fats": 2},
+    {"name": "Banana", "quantity": "100g", "weightGrams": 100, "calories": 90, "protein": 1, "carbs": 23, "fats": 0.3},
+    {"name": "Castanha-do-Pará", "quantity": "20g", "weightGrams": 20, "calories": 132, "protein": 2.9, "carbs": 2.4, "fats": 13.5}
+  ],
+  "message": "Frase motivacional curta e personalizada aqui"
+}
+</meal_json>
+
+Os valores nutricionais devem ser precisos e coerentes com as quantidades. A soma de calorias dos items deve bater com o campo "calories" total.`;
 
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
