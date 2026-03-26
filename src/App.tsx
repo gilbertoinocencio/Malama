@@ -30,8 +30,6 @@ const FlowAdaptation = React.lazy<React.ComponentType<any>>(() => import('./comp
 const VisualEvolution = React.lazy<React.ComponentType<any>>(() => import('./components/VisualEvolution').then(m => ({ default: (m as any).VisualEvolution || (m as any).default })));
 const VisualShare = React.lazy<React.ComponentType<any>>(() => import('./components/VisualShare').then(m => ({ default: (m as any).VisualShare || (m as any).default })));
 const Integrations = React.lazy<React.ComponentType<any>>(() => import('./components/Integrations').then(m => ({ default: (m as any).Integrations || (m as any).default })));
-const UnifiedChatModal = React.lazy<React.ComponentType<any>>(() => import('./components/UnifiedChatModal').then(m => ({ default: (m as any).UnifiedChatModal || (m as any).default })));
-
 const App: React.FC = () => {
   const { user, profile, loading } = useAuth();
   const [view, setView] = useState<AppView>(AppView.HOME);

@@ -60,7 +60,7 @@ export const UnifiedChatService = {
       .select('*')
       .eq('user_id', userId)
       .eq('session_type', 'onboarding')
-      .single();
+      .maybeSingle();
 
     // If onboarding exists and is completed, get/create chat session
     if (onboardingSession?.onboarding_completed) {
@@ -69,7 +69,7 @@ export const UnifiedChatService = {
         .select('*')
         .eq('user_id', userId)
         .eq('session_type', 'chat')
-        .single();
+        .maybeSingle();
 
       if (!chatSession) {
         // Create chat session
@@ -460,7 +460,7 @@ ${mealsBlock}${historicalBlock}${ragBlock}${alertsBlock}
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     // Get recent meals (last 3 days)
     const threeDaysAgo = new Date();
@@ -558,7 +558,7 @@ ${mealsBlock}${historicalBlock}${ragBlock}${alertsBlock}
       .select('onboarding_completed')
       .eq('user_id', userId)
       .eq('session_type', 'onboarding')
-      .single();
+      .maybeSingle();
 
     return data?.onboarding_completed || false;
   },
@@ -572,7 +572,7 @@ ${mealsBlock}${historicalBlock}${ragBlock}${alertsBlock}
       .select('onboarding_data')
       .eq('user_id', userId)
       .eq('session_type', 'onboarding')
-      .single();
+      .maybeSingle();
 
     return data?.onboarding_data || {};
   },
