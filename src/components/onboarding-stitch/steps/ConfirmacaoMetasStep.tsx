@@ -14,10 +14,11 @@ const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, updateData, onNext, o
 
   return (
     <StepContainer
-      progress={(currentStep / totalSteps) * 100}
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}
+      onNext={handleConfirm}
+      nextLabel="Confirmar Metas"
     >
       <main className="flex-grow flex flex-col px-6 pt-12 pb-32 max-w-lg mx-auto w-full relative">
         {/* Contextual Leaf Decoration */}
@@ -126,26 +127,6 @@ const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, updateData, onNext, o
           </div>
         </div>
 
-        {/* Sticky Bottom Action (Editorial Style) */}
-        <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-surface via-surface to-transparent pt-12">
-          <div className="max-w-lg mx-auto flex flex-col gap-4">
-            <button
-              onClick={handleConfirm}
-              className="w-full h-16 bg-primary text-on-primary rounded-lg font-bold text-lg shadow-xl shadow-primary/10 flex items-center justify-center gap-3 transition-all duration-300 active:scale-95 hover:bg-primary-container"
-            >
-              Confirmar Metas
-              <span className="material-symbols-outlined" data-icon="arrow_forward">
-                arrow_forward
-              </span>
-            </button>
-            <button
-              onClick={onBack}
-              className="w-full py-4 text-primary font-bold text-sm uppercase tracking-widest hover:opacity-70 transition-opacity"
-            >
-              Ajustar Intensidade
-            </button>
-          </div>
-        </div>
       </main>
     </StepContainer>
   );

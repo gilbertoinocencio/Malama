@@ -21,10 +21,10 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
 
   return (
     <StepContainer
-      progress={(currentStep / totalSteps) * 100}
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}
+      onNext={handleContinue}
     >
       <main className="flex-grow pt-24 pb-32 px-6 max-w-xl mx-auto w-full flex flex-col items-center justify-center relative">
         {/* Contextual Leaf Decoration */}
@@ -130,24 +130,6 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
         </p>
       </main>
 
-      {/* Navigation Action Area */}
-      <div className="fixed bottom-0 left-0 w-full p-8 z-[50] flex flex-col items-center">
-        {/* Prominent 'Continuar' Button */}
-        <button
-          onClick={handleContinue}
-          className="w-full max-w-xl bg-primary text-on-primary font-headline font-bold h-16 rounded-lg shadow-xl shadow-primary/10 flex items-center justify-center gap-3 hover:bg-primary-container transition-all duration-500 active:scale-95 group overflow-hidden relative"
-        >
-          <span className="relative z-10">Continuar</span>
-          <span className="material-symbols-outlined relative z-10 group-hover:translate-x-1 transition-transform duration-300">
-            chevron_right
-          </span>
-          {/* Glossy Hover Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-        </button>
-      </div>
-
-      {/* Decorative Bottom Wave (Subtle Glass Effect) */}
-      <div className="fixed bottom-0 left-0 w-full h-24 bg-surface/70 backdrop-blur-xl pointer-events-none -z-10 rounded-t-[2rem]"></div>
     </StepContainer>
   );
 };

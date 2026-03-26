@@ -37,10 +37,10 @@ const IdadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, curr
 
   return (
     <StepContainer
-      progress={(currentStep / totalSteps) * 100}
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}
+      onNext={handleContinue}
     >
       {/* Main Content */}
       <main className="flex-grow flex flex-col items-center justify-center px-8 pt-20 pb-32 max-w-2xl mx-auto w-full relative">
@@ -108,25 +108,6 @@ const IdadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, curr
           </p>
         </div>
       </main>
-
-      {/* Bottom Action Button */}
-      <div className="fixed bottom-0 left-0 w-full p-8 flex flex-col items-center gap-4 bg-gradient-to-t from-surface via-surface/90 to-transparent">
-        <button
-          onClick={handleContinue}
-          className="w-full max-w-md h-16 rounded-full bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline font-semibold text-lg shadow-[0_16px_32px_0_rgba(0,70,79,0.15)] active:scale-95 transition-all duration-300 flex items-center justify-center group"
-        >
-          <span>Continuar</span>
-          <span className="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform">
-            chevron_right
-          </span>
-        </button>
-        <p className="text-xs text-on-surface-variant/60 font-medium">
-          Etapa {currentStep} de {totalSteps}
-        </p>
-      </div>
-
-      {/* Decorative Corner Element */}
-      <div className="fixed bottom-[-5%] left-[-5%] w-64 h-64 bg-primary/5 blur-[80px] rounded-full pointer-events-none"></div>
 
       <style jsx>{`
         .no-scrollbar::-webkit-scrollbar {

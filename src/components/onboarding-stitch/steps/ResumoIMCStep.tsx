@@ -31,10 +31,10 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
 
   return (
     <StepContainer
-      progress={(currentStep / totalSteps) * 100}
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}
+      onNext={handleContinue}
     >
       <main className="pt-24 pb-32 px-6 max-w-lg mx-auto min-h-screen flex flex-col">
         {/* Header Section */}
@@ -106,18 +106,6 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
         </div>
       </main>
 
-      {/* Action Button */}
-      <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-surface via-surface to-transparent">
-        <div className="max-w-lg mx-auto">
-          <button
-            onClick={handleContinue}
-            className="w-full h-16 bg-primary text-on-primary font-headline font-bold text-lg rounded-lg shadow-lg hover:opacity-90 transition-all duration-300 flex items-center justify-center gap-2"
-          >
-            Continuar
-            <span className="material-symbols-outlined">arrow_forward</span>
-          </button>
-        </div>
-      </div>
     </StepContainer>
   );
 };

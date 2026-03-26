@@ -45,10 +45,10 @@ const NivelAtividadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
 
   return (
     <StepContainer
-      progress={(currentStep / totalSteps) * 100}
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}
+      onNext={handleContinue}
     >
       {/* Main Content Canvas */}
       <main className="flex-grow pt-24 pb-32 px-6 max-w-2xl mx-auto w-full">
@@ -124,29 +124,6 @@ const NivelAtividadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
         </div>
       </main>
 
-      {/* Contextual Footer Actions */}
-      <div className="fixed bottom-0 left-0 w-full p-6 md:px-12 md:pb-12 bg-gradient-to-t from-background via-background/90 to-transparent flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="hidden md:flex items-center gap-2 text-on-surface-variant text-sm font-medium">
-          <span className="material-symbols-outlined text-lg" data-icon="info">
-            info
-          </span>
-          Sua seleção ajuda a personalizar seu plano metabólico.
-        </div>
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <button
-            onClick={onBack}
-            className="flex-1 md:flex-none h-14 px-8 rounded-lg font-label font-semibold text-primary hover:bg-surface-container transition-all duration-300"
-          >
-            Voltar
-          </button>
-          <button
-            onClick={handleContinue}
-            className="flex-[2] md:flex-none h-16 px-12 rounded-lg font-headline font-bold text-on-primary bg-primary bg-gradient-to-r from-primary to-primary-container shadow-xl shadow-primary/10 hover:shadow-primary/20 hover:scale-[1.02] transition-all duration-300"
-          >
-            Continuar
-          </button>
-        </div>
-      </div>
 
       {/* Decorative Leaf Element (Background Context) */}
       <div className="fixed top-1/4 -right-24 w-64 h-64 bg-secondary-container/10 rounded-full blur-[100px] pointer-events-none -z-10"></div>
