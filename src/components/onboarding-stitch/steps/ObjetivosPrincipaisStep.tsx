@@ -42,6 +42,7 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}
+      onNext={onNext}
     >
       {/* Main Content Canvas */}
       <main className="flex-1 flex flex-col px-6 pt-28 pb-32 max-w-lg mx-auto w-full relative overflow-hidden">
@@ -109,25 +110,6 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
         </div>
       </main>
 
-      {/* Fixed Action Bottom Bar (Onboarding Version) */}
-      <div className="fixed bottom-0 left-0 w-full p-6 glass-effect z-50">
-        <div className="max-w-lg mx-auto">
-          <button
-            onClick={handleContinue}
-            className="w-full h-16 bg-primary text-on-primary font-headline font-bold text-lg rounded-lg shadow-lg hover:opacity-90 transition-all duration-300 flex items-center justify-center gap-2"
-          >
-            Continuar
-            <span className="material-symbols-outlined">arrow_forward</span>
-          </button>
-        </div>
-      </div>
-
-      <style jsx>{`
-        .glass-effect {
-          backdrop-filter: blur(20px);
-          background: rgba(255, 255, 255, 0.7);
-        }
-      `}</style>
     </StepContainer>
   );
 };
