@@ -45,7 +45,7 @@ export const StatsService = {
             .from('profiles')
             .select('target_calories, target_protein, target_carbs, target_fats')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         const targets = profile || {
             target_calories: 2000,
