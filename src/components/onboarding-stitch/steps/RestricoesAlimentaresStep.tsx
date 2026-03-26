@@ -23,8 +23,9 @@ const RestricoesAlimentaresStep: React.FC<StepProps> = ({ data, updateData, onNe
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
-      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
+      onNext={onNext}
+      nextLabel={selected.length === 0 ? 'Não tenho restrições' : 'Isso é tudo'}
     >
       <header className="w-full mb-12 space-y-4">
         <h1 className="font-headline text-4xl md:text-5xl text-primary font-bold leading-tight tracking-tight">
@@ -69,14 +70,6 @@ const RestricoesAlimentaresStep: React.FC<StepProps> = ({ data, updateData, onNe
         })}
       </div>
       
-      <div className="w-full mt-12 flex justify-center">
-        <button 
-          onClick={onNext}
-          className="text-on-surface-variant font-medium hover:text-primary transition-colors py-2 px-6 rounded-full hover:bg-surface-container-high"
-        >
-          {selected.length === 0 ? 'Não tenho restrições' : 'Isso é tudo'}
-        </button>
-      </div>
     </StepContainer>
   );
 };
