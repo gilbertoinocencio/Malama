@@ -62,8 +62,8 @@ export const UnifiedChatService = {
       .eq('session_type', 'onboarding')
       .maybeSingle();
 
-    // If onboarding exists and is completed, get/create chat session
-    if (onboardingSession?.onboarding_completed) {
+    // Helper: get or create a chat session and return it
+    const getOrCreateChatSession = async (): Promise<ChatSession> => {
       let { data: chatSession } = await supabase
         .from('chat_sessions')
         .select('*')
@@ -72,20 +72,38 @@ export const UnifiedChatService = {
         .maybeSingle();
 
       if (!chatSession) {
-        // Create chat session
         const { data: newChatSession } = await supabase
           .from('chat_sessions')
-          .insert({
-            user_id: userId,
-            session_type: 'chat',
-          })
+          .insert({ user_id: userId, session_type: 'chat' })
           .select()
           .single();
-
         chatSession = newChatSession;
       }
-
       return chatSession as ChatSession;
+    };
+
+    // If onboarding session exists and is completed → chat mode
+    if (onboardingSession?.onboarding_completed) {
+      return getOrCreateChatSession();
+    }
+
+    // Fallback: check the profile directly — users who completed onboarding
+    // via another flow (profile setup) may not have a chat_sessions record yet
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profile?.onboarding_completed) {
+      // Mark onboarding session as completed if it exists, then return chat session
+      if (onboardingSession) {
+        await supabase
+          .from('chat_sessions')
+          .update({ onboarding_completed: true })
+          .eq('id', onboardingSession.id);
+      }
+      return getOrCreateChatSession();
     }
 
     // If no onboarding session, create one
