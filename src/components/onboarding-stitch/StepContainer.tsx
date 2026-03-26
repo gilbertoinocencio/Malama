@@ -9,8 +9,11 @@ interface StepContainerProps {
   onBack?: () => void;
   showBack?: boolean;
   nextLabel?: string;
+  secondaryLabel?: string;
   showFooter?: boolean;
+  showHeader?: boolean;
   isLoading?: boolean;
+  progress?: number;
 }
 
 export const StepContainer: React.FC<StepContainerProps> = ({
@@ -21,16 +24,19 @@ export const StepContainer: React.FC<StepContainerProps> = ({
   onBack,
   showBack = true,
   nextLabel = 'Continuar',
+  secondaryLabel,
   showFooter = true,
+  showHeader = true,
   isLoading = false,
+  progress: progressProp,
 }) => {
-  const progress = (currentStep / totalSteps) * 100;
+  const progress = progressProp ?? (currentStep / totalSteps) * 100;
 
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface antialiased flex flex-col relative overflow-hidden">
       {/* Progress Bar (Sutil Flow) */}
       <div className="fixed top-0 left-0 w-full h-1 bg-surface-container-high z-[60]">
-        <motion.div 
+        <motion.div
           className="h-full bg-secondary"
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
@@ -39,33 +45,30 @@ export const StepContainer: React.FC<StepContainerProps> = ({
       </div>
 
       {/* Top Navigation */}
-      <header className="fixed top-0 w-full z-50 bg-surface/70 backdrop-blur-xl flex items-center justify-between px-8 h-20 transition-colors">
-        {showBack ? (
-          <button 
-            onClick={onBack}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-all duration-300 active:scale-95"
-          >
-            <span className="material-symbols-outlined text-primary">arrow_back</span>
-          </button>
-        ) : (
+      {showHeader && (
+        <header className="fixed top-0 w-full z-50 bg-[#f5fcdf] flex items-center justify-between px-8 h-16 transition-colors">
+          {showBack ? (
+            <button
+              onClick={onBack}
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-all duration-300 active:scale-95"
+            >
+              <span className="material-symbols-outlined text-primary">arrow_back</span>
+            </button>
+          ) : (
+            <div className="w-10" />
+          )}
+
+          <span className="font-headline tracking-tighter text-2xl font-bold text-primary">NURA</span>
+
           <div className="w-10" />
-        )}
-        
-        <span className="font-headline tracking-tighter text-2xl font-bold text-primary">NURA</span>
-        
-        <button 
-          onClick={() => window.location.reload()} // Placeholder for "Exit"
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-all duration-300 active:scale-95"
-        >
-          <span className="material-symbols-outlined text-primary">close</span>
-        </button>
-      </header>
+        </header>
+      )}
 
       {/* Main Content Canvas */}
-      <main className="flex-grow flex flex-col items-center justify-center px-6 pt-24 pb-32 max-w-2xl mx-auto w-full relative z-10">
+      <main className={`flex-grow flex flex-col items-center justify-center px-6 ${showHeader ? 'pt-24' : 'pt-6'} pb-32 max-w-2xl mx-auto w-full relative z-10`}>
         {/* Contextual Leaf (Decorative Element) */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-secondary-container opacity-10 rounded-full blur-[100px] -z-10 pointer-events-none" />
-        
+
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -84,22 +87,27 @@ export const StepContainer: React.FC<StepContainerProps> = ({
       {showFooter && !isLoading && (
         <footer className="fixed bottom-0 left-0 w-full p-8 flex justify-center items-center z-50 bg-gradient-to-t from-surface to-transparent pt-12">
           <div className="max-w-md w-full">
-            <button 
+            <button
               onClick={onNext}
-              className="w-full h-16 bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline font-semibold text-lg rounded-xl shadow-[0_16px_32px_rgba(0,70,79,0.2)] hover:shadow-[0_16px_40px_rgba(0,70,79,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-500 ease-in-out flex items-center justify-center gap-3"
+              className="w-full h-16 bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline font-semibold text-lg rounded-full shadow-[0_16px_32px_rgba(0,70,79,0.2)] hover:shadow-[0_16px_40px_rgba(0,70,79,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-500 ease-in-out flex items-center justify-center gap-3"
             >
               <span>{nextLabel}</span>
-              <span className="material-symbols-outlined text-xl">arrow_forward</span>
+              <span className="material-symbols-outlined text-xl">chevron_right</span>
             </button>
+            {secondaryLabel && (
+              <button onClick={onBack} className="w-full py-4 text-primary font-bold text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
+                {secondaryLabel}
+              </button>
+            )}
           </div>
         </footer>
       )}
 
       {/* Background Decoration Image (Optional, can be toggled per step) */}
       <div className="fixed top-0 right-0 -z-20 opacity-10 pointer-events-none w-1/3 h-full overflow-hidden hidden md:block">
-        <img 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDT_Z3n6qttWS317YYGfR-iInypIAsgBt-dPOGGH7yePbEfqdHspUUkgEh12YN_EV1fgpSvogyCVjZOuAb5k3GUQJg-TbCb8u7G5iXezV4K_1IKOTo4eFpkjs821yWL7rPk38KN-aMa-He87Ra9GXouLp62gyEeiHV5usP9ng0gKtj_1YMccvsqPOyoD3tr8ywkR0wuzpZJFx1dssikgPOmrCTnEWCDQR7Cwefz4nhkryI5_NnvRfkm1BkLdmwZ77LgF7Q3t5TVL24" 
-          alt="Decoration" 
+        <img
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDT_Z3n6qttWS317YYGfR-iInypIAsgBt-dPOGGH7yePbEfqdHspUUkgEh12YN_EV1fgpSvogyCVjZOuAb5k3GUQJg-TbCb8u7G5iXezV4K_1IKOTo4eFpkjs821yWL7rPk38KN-aMa-He87Ra9GXouLp62gyEeiHV5usP9ng0gKtj_1YMccvsqPOyoD3tr8ywkR0wuzpZJFx1dssikgPOmrCTnEWCDQR7Cwefz4nhkryI5_NnvRfkm1BkLdmwZ77LgF7Q3t5TVL24"
+          alt="Decoration"
           className="object-cover h-full w-full grayscale"
         />
       </div>

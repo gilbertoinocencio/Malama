@@ -49,6 +49,7 @@ const NivelAtividadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
       totalSteps={totalSteps}
       onBack={onBack}
       onNext={handleContinue}
+      showFooter={false}
     >
       {/* Main Content Canvas */}
       <main className="flex-grow pt-24 pb-32 px-6 max-w-2xl mx-auto w-full">
@@ -128,6 +129,24 @@ const NivelAtividadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
       {/* Decorative Leaf Element (Background Context) */}
       <div className="fixed top-1/4 -right-24 w-64 h-64 bg-secondary-container/10 rounded-full blur-[100px] pointer-events-none -z-10"></div>
       <div className="fixed bottom-1/4 -left-24 w-48 h-48 bg-primary-container/5 rounded-full blur-[80px] pointer-events-none -z-10"></div>
+
+      {/* Contextual Footer Actions */}
+      <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-surface via-surface/90 to-transparent flex items-center justify-end gap-4">
+        <div className="flex items-center gap-4 w-full max-w-2xl justify-end">
+          <button
+            onClick={onBack}
+            className="h-14 px-8 rounded-lg font-label font-semibold text-primary hover:bg-surface-container transition-all duration-300"
+          >
+            Voltar
+          </button>
+          <button
+            onClick={handleContinue}
+            className="h-16 px-12 rounded-lg font-headline font-bold text-on-primary bg-gradient-to-r from-primary to-primary-container shadow-xl shadow-primary/10 hover:shadow-primary/20 hover:scale-[1.02] transition-all duration-300"
+          >
+            Continuar
+          </button>
+        </div>
+      </div>
     </StepContainer>
   );
 };

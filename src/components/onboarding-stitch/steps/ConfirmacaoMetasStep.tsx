@@ -6,7 +6,7 @@ const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, updateData, onNext, o
   // Calculate target weight based on data
   const pesoObjetivo = data.pesoObjetivo || 70;
   const peso = data.peso || 75;
-  const semanas = Math.round(Math.abs(peso - pesoObjetivo) * 2); // Estimate
+  const semanas = Math.max(1, Math.round(Math.abs(peso - pesoObjetivo) * 2)); // Estimate, mínimo 1 semana
 
   const handleConfirm = () => {
     onNext();
@@ -19,8 +19,10 @@ const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, updateData, onNext, o
       onBack={onBack}
       onNext={handleConfirm}
       nextLabel="Confirmar Metas"
+      showHeader={false}
+      secondaryLabel="Ajustar Intensidade"
     >
-      <main className="flex-grow flex flex-col px-6 pt-12 pb-32 max-w-lg mx-auto w-full relative">
+      <main className="flex-grow flex flex-col px-6 pb-32 max-w-lg mx-auto w-full relative">
         {/* Contextual Leaf Decoration */}
         <div className="fixed -top-10 -right-10 w-64 h-64 bg-secondary-container opacity-20 blur-3xl rounded-full pointer-events-none"></div>
         <div className="fixed bottom-20 -left-10 w-48 h-48 bg-primary-container opacity-10 blur-3xl rounded-full pointer-events-none"></div>

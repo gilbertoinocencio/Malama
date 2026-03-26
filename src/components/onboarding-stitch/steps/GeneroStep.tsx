@@ -22,6 +22,7 @@ const GeneroStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, cur
       totalSteps={totalSteps}
       onBack={onBack}
       onNext={handleContinue}
+      showFooter={false}
     >
       {/* Contextual Leaf (Decorative background) */}
       <div className="fixed top-1/4 -right-20 w-64 h-64 bg-secondary-container opacity-20 blur-3xl rounded-full pointer-events-none"></div>
@@ -110,6 +111,26 @@ const GeneroStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, cur
           </button>
         </div>
       </main>
+
+      {/* Footer Action */}
+      <div className="fixed bottom-0 left-0 w-full p-8 flex justify-center items-center pointer-events-none">
+        <div className="w-full max-w-2xl flex justify-between items-center pointer-events-auto">
+          <button
+            onClick={onBack}
+            className="text-primary font-semibold py-4 px-8 rounded-full hover:bg-surface-container-low transition-all duration-300"
+          >
+            Anterior
+          </button>
+          <button
+            onClick={handleContinue}
+            disabled={!genero}
+            className="bg-primary hover:bg-primary-container text-on-primary font-headline font-bold py-5 px-14 rounded-lg shadow-lg shadow-primary/10 transition-all duration-300 active:scale-95 flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100"
+          >
+            Continuar
+            <span className="material-symbols-outlined">arrow_forward</span>
+          </button>
+        </div>
+      </div>
 
     </StepContainer>
   );

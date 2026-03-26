@@ -13,15 +13,28 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
   // Determine BMI category
   let category = 'PESO NORMAL';
   let categoryColor = 'secondary';
+  let statusLabel = 'Saudável';
+  let insightTitle = 'Ótimo começo!';
+  let insightText = 'Seu IMC está dentro da faixa recomendada pela OMS. Isso indica um equilíbrio positivo entre sua altura e peso atual.';
+
   if (bmi < 18.5) {
     category = 'ABAIXO DO PESO';
     categoryColor = 'tertiary';
+    statusLabel = 'Abaixo do peso';
+    insightTitle = 'Atenção!';
+    insightText = 'Seu IMC está abaixo do ideal. Vamos trabalhar juntos para atingir um peso saudável com nosso plano personalizado.';
   } else if (bmi >= 25 && bmi < 30) {
     category = 'SOBREPESO';
     categoryColor = 'tertiary';
+    statusLabel = 'Sobrepeso';
+    insightTitle = 'Você está no caminho!';
+    insightText = 'Com ajustes na alimentação e rotina, você pode atingir o peso ideal. Nosso plano vai te guiar.';
   } else if (bmi >= 30) {
     category = 'OBESIDADE';
     categoryColor = 'error';
+    statusLabel = 'Obesidade';
+    insightTitle = 'Vamos trabalhar juntos!';
+    insightText = 'Nosso plano personalizado vai te ajudar a alcançar um peso mais saudável de forma gradual e sustentável.';
   }
 
   const handleContinue = () => {
@@ -35,6 +48,7 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
       totalSteps={totalSteps}
       onBack={onBack}
       onNext={handleContinue}
+      secondaryLabel="Revisar medidas anteriores"
     >
       <main className="pt-24 pb-32 px-6 max-w-lg mx-auto min-h-screen flex flex-col">
         {/* Header Section */}
@@ -47,15 +61,11 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
           </h2>
         </section>
 
-        {/* BMI Display (The "Elegance" Canvas) */}
+        {/* BMI Display */}
         <section className="relative mb-8">
           <div className="bg-surface-container-lowest rounded-lg p-10 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_16px_32px_0_rgba(26,28,26,0.04)]">
-            {/* Background Decorative Element (The Contextual Leaf) */}
             <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-secondary-container opacity-20 blur-3xl"></div>
-
-            <span className="text-on-surface-variant font-medium text-sm tracking-widest uppercase mb-2">
-              Seu IMC Atual
-            </span>
+            <span className="text-on-surface-variant font-medium text-sm tracking-widest uppercase mb-2">Seu IMC Atual</span>
             <div className="flex items-baseline gap-1">
               <span className="font-headline text-7xl font-extrabold text-primary">{bmiFormatted}</span>
               <span className="font-headline text-xl font-medium text-on-surface-variant">kg/m²</span>
@@ -66,44 +76,48 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
           </div>
         </section>
 
-        {/* BMI Scale Visualization */}
+        {/* Gauge Scale */}
         <section className="mb-8">
-          <div className="bg-surface-container-low rounded-lg p-6 space-y-4">
-            <h3 className="font-headline font-bold text-lg text-primary mb-4">Escala de Referência</h3>
-
-            {/* Visual Scale */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-tertiary"></div>
-                <span className="text-sm text-on-surface-variant flex-1">Abaixo do peso</span>
-                <span className="text-sm font-medium text-on-surface">&lt; 18.5</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-secondary"></div>
-                <span className="text-sm text-on-surface-variant flex-1">Peso normal</span>
-                <span className="text-sm font-medium text-on-surface">18.5 - 24.9</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-tertiary"></div>
-                <span className="text-sm text-on-surface-variant flex-1">Sobrepeso</span>
-                <span className="text-sm font-medium text-on-surface">25.0 - 29.9</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-error"></div>
-                <span className="text-sm text-on-surface-variant flex-1">Obesidade</span>
-                <span className="text-sm font-medium text-on-surface">≥ 30.0</span>
-              </div>
+          <div className="relative pt-8 px-2">
+            <div className="absolute top-0 left-0 w-full flex justify-between text-[10px] font-bold text-on-surface-variant/40 tracking-wider">
+              <span>18.5</span><span>24.9</span><span>29.9</span><span>34.9</span>
+            </div>
+            <div className="h-3 w-full bg-surface-container-highest rounded-full flex overflow-hidden">
+              <div className="h-full bg-tertiary-fixed-dim w-[20%]"></div>
+              <div className="h-full bg-secondary w-[30%] border-x-4 border-surface-container-lowest"></div>
+              <div className="h-full bg-tertiary-container w-[25%] border-r-4 border-surface-container-lowest"></div>
+              <div className="h-full bg-error-container w-[25%]"></div>
+            </div>
+            <div className="absolute -bottom-4 flex flex-col items-center" style={{ left: `${Math.min(Math.max(((bmi - 15) / 25) * 100, 2), 98)}%`, transform: 'translateX(-50%)' }}>
+              <div className="w-3 h-3 bg-primary rounded-full ring-4 ring-surface-container-lowest"></div>
             </div>
           </div>
         </section>
 
-        {/* Informational Note */}
-        <div className="bg-primary-fixed-dim/20 rounded-lg p-6 flex items-start gap-4">
-          <span className="material-symbols-outlined text-primary text-2xl flex-shrink-0">info</span>
-          <p className="text-sm text-on-surface-variant leading-relaxed">
-            O IMC é uma referência inicial. A NURA vai além, considerando composição corporal, metabolismo e estilo de vida para criar seu plano personalizado.
-          </p>
-        </div>
+        {/* Two Info Cards */}
+        <section className="mb-8 mt-6">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-4 rounded-lg bg-surface-container-low flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase">Intervalo Ideal</span>
+              <span className="font-headline font-bold text-on-surface">18.5 — 24.9</span>
+            </div>
+            <div className="p-4 rounded-lg bg-surface-container-low flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase">Status Global</span>
+              <span className={`font-headline font-bold text-${categoryColor}`}>{statusLabel}</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Insight Card */}
+        <section className="mb-8 bg-tertiary-fixed text-tertiary rounded-lg p-6 flex gap-4 items-start">
+          <div className="bg-tertiary-container/10 p-2 rounded-lg flex-shrink-0">
+            <span className="material-symbols-outlined text-tertiary-container">colors_spark</span>
+          </div>
+          <div>
+            <p className="font-headline font-bold text-lg mb-1">{insightTitle}</p>
+            <p className="text-sm leading-relaxed text-on-tertiary-fixed-variant">{insightText}</p>
+          </div>
+        </section>
       </main>
 
     </StepContainer>

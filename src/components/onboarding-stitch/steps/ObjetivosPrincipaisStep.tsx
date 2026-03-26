@@ -42,7 +42,7 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}
-      onNext={onNext}
+      onNext={handleContinue}
     >
       {/* Main Content Canvas */}
       <main className="flex-1 flex flex-col px-6 pt-28 pb-32 max-w-lg mx-auto w-full relative overflow-hidden">

@@ -11,154 +11,62 @@ const ImpactoAguaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
       onNext={onNext}
       nextLabel="Entendi"
     >
-      {/* Background Decorative Leaf */}
-      <div className="fixed -right-20 top-40 opacity-10 pointer-events-none rotate-12">
-        <span
-          className="material-symbols-outlined text-[300px] text-secondary"
-          style={{ fontVariationSettings: "'FILL' 1" }}
-        >
-          eco
-        </span>
-      </div>
+      <main className="flex-grow pt-24 pb-32 px-6 max-w-md mx-auto w-full flex flex-col">
+        {/* Background Decorative */}
+        <div className="fixed -right-20 top-40 opacity-10 pointer-events-none rotate-12">
+          <span className="material-symbols-outlined text-[300px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
+        </div>
 
-      <main className="min-h-screen pt-28 pb-32 px-6 max-w-md mx-auto flex flex-col items-center">
-        {/* Editorial Header Section */}
-        <section className="w-full mb-12 animate-fade-in">
-          <p className="font-headline text-xs uppercase tracking-[0.2em] text-on-surface-variant mb-3 font-semibold">
-            NURA Flow Identity
-          </p>
+        {/* Header */}
+        <section className="w-full mb-12">
+          <p className="font-headline text-xs uppercase tracking-[0.2em] text-on-surface-variant mb-3 font-semibold">NURA Flow Identity</p>
           <h2 className="font-headline text-4xl font-extrabold tracking-tight text-primary leading-tight">
-            O impacto visual <br />
-            da água
+            O impacto visual <br />da água
           </h2>
           <p className="text-on-surface-variant mt-4 text-lg font-medium leading-relaxed">
             Manter-se hidratado não é apenas sobre sede. É o combustível silencioso do seu metabolismo.
           </p>
         </section>
 
-        {/* Bento Grid Visualization Cards */}
-        <div className="w-full space-y-6">
-          {/* Card 1: Mental Clarity */}
-          <div className="bg-primary p-8 rounded-xl text-on-primary relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div className="absolute top-0 right-0 opacity-10">
-              <span
-                className="material-symbols-outlined text-[120px]"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                psychology
-              </span>
+        {/* Main Visualization Card */}
+        <div className="bg-surface-container-lowest rounded-lg p-8 shadow-[0_16px_32px_rgba(26,28,26,0.04)] relative overflow-hidden group mb-6">
+          <div className="flex justify-between items-start mb-10">
+            <div>
+              <h3 className="font-headline text-xl font-bold text-primary">Taxa Metabólica</h3>
+              <p className="text-sm text-on-surface-variant">Aumento calórico por hidratação</p>
             </div>
-            <div className="relative z-10">
-              <div className="mb-4">
-                <span
-                  className="material-symbols-outlined text-4xl text-primary-fixed-dim"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  neurology
-                </span>
-              </div>
-              <h3 className="font-headline font-bold text-2xl mb-3">Clareza Mental</h3>
-              <p className="text-primary-fixed-dim text-sm leading-relaxed">
-                Apenas 2% de desidratação pode reduzir sua capacidade cognitiva em até 30%.
-              </p>
+            <div className="bg-secondary-container/30 p-3 rounded-full">
+              <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
             </div>
           </div>
-
-          {/* Card 2: Energy Boost */}
-          <div className="bg-surface-container-lowest p-8 rounded-xl relative overflow-hidden group border border-outline-variant/10 hover:shadow-lg transition-shadow duration-300">
-            <div className="absolute top-0 right-0 opacity-5">
-              <span
-                className="material-symbols-outlined text-[120px] text-secondary"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                bolt
-              </span>
-            </div>
-            <div className="relative z-10">
-              <div className="mb-4">
-                <span
-                  className="material-symbols-outlined text-4xl text-secondary"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  energy_savings_leaf
-                </span>
-              </div>
-              <h3 className="font-headline font-bold text-2xl mb-3 text-primary">Energia Sustentada</h3>
-              <p className="text-on-surface-variant text-sm leading-relaxed">
-                Hidratação adequada melhora a oxigenação celular e aumenta seus níveis de energia em até 25%.
-              </p>
-            </div>
+          {/* Bar Chart */}
+          <div className="relative h-36 w-full flex items-end justify-between gap-2 px-2">
+            <div className="w-full bg-surface-container-high rounded-full h-[30%]"></div>
+            <div className="w-full bg-surface-container-high rounded-full h-[45%]"></div>
+            <div className="w-full bg-secondary/20 rounded-full h-[60%]"></div>
+            <div className="w-full bg-secondary/40 rounded-full h-[75%]"></div>
+            <div className="w-full bg-secondary/70 rounded-full h-[85%]"></div>
+            <div className="w-full bg-primary rounded-full h-[95%]"></div>
           </div>
-
-          {/* Card 3: Metabolism */}
-          <div className="bg-tertiary-fixed p-8 rounded-xl relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div className="absolute top-0 right-0 opacity-10">
-              <span
-                className="material-symbols-outlined text-[120px] text-tertiary"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                local_fire_department
-              </span>
+          <div className="mt-8 flex items-center justify-between border-t border-outline-variant/15 pt-6">
+            <div className="text-center">
+              <span className="block font-headline text-2xl font-bold text-primary">24%</span>
+              <span className="text-[10px] uppercase tracking-wider text-on-surface-variant">Aumento médio</span>
             </div>
-            <div className="relative z-10">
-              <div className="mb-4">
-                <span
-                  className="material-symbols-outlined text-4xl text-tertiary"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  whatshot
-                </span>
-              </div>
-              <h3 className="font-headline font-bold text-2xl mb-3 text-on-tertiary-fixed">
-                Aceleração Metabólica
-              </h3>
-              <p className="text-on-tertiary-fixed/80 text-sm leading-relaxed">
-                Beber água aumenta temporariamente seu metabolismo em até 30% nas próximas 1-2 horas.
-              </p>
-            </div>
-          </div>
-
-          {/* Card 4: Recovery */}
-          <div className="bg-secondary-container/30 p-8 rounded-xl relative overflow-hidden group border border-secondary/20 hover:border-secondary/40 transition-colors duration-300">
-            <div className="absolute top-0 right-0 opacity-5">
-              <span
-                className="material-symbols-outlined text-[120px] text-secondary"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                spa
-              </span>
-            </div>
-            <div className="relative z-10">
-              <div className="mb-4">
-                <span
-                  className="material-symbols-outlined text-4xl text-secondary"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  self_improvement
-                </span>
-              </div>
-              <h3 className="font-headline font-bold text-2xl mb-3 text-on-secondary-container">
-                Recuperação Muscular
-              </h3>
-              <p className="text-on-surface-variant text-sm leading-relaxed">
-                A água transporta nutrientes essenciais para reparar e construir tecido muscular após exercícios.
-              </p>
+            <div className="h-8 w-px bg-outline-variant/30"></div>
+            <div className="text-center">
+              <span className="block font-headline text-2xl font-bold text-secondary">400ml</span>
+              <span className="text-[10px] uppercase tracking-wider text-on-surface-variant">Dose ideal</span>
             </div>
           </div>
         </div>
 
-        {/* Scientific Footer Note */}
-        <div className="mt-12 w-full p-6 bg-surface-container-low rounded-lg border border-outline-variant/10">
-          <div className="flex items-start gap-4">
-            <span className="material-symbols-outlined text-primary text-2xl flex-shrink-0">science</span>
-            <div>
-              <h4 className="font-headline font-semibold text-sm text-primary mb-2">Baseado em ciência</h4>
-              <p className="text-on-surface-variant text-xs leading-relaxed">
-                Estudos mostram que a hidratação ideal varia entre 2-3 litros por dia, dependendo do peso corporal,
-                atividade física e clima.
-              </p>
-            </div>
-          </div>
+        {/* Scientific Note */}
+        <div className="bg-surface-container-low rounded-lg p-6 flex items-start gap-4">
+          <span className="material-symbols-outlined text-primary text-xl flex-shrink-0">science</span>
+          <p className="text-xs text-on-surface-variant leading-relaxed">
+            Estudos mostram que beber 500ml de água pode elevar temporariamente o metabolismo em até 30% nos 60 minutos seguintes.
+          </p>
         </div>
       </main>
 
