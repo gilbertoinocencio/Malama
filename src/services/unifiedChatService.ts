@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
-const MODEL_NAME = "gemini-2.0-flash-exp";
+const MODEL_NAME = "gemini-1.5-flash";
 
 // Onboarding Stages (mesma estrutura do nutritionistAgentService)
 export type OnboardingStage =
