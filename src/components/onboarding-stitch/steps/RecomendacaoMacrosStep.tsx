@@ -17,17 +17,17 @@ const RecomendacaoMacrosStep: React.FC<StepProps> = ({ data, onNext, onBack, cur
   const nivel   = data.nivelAtividade || 'moderado';
   const goal    = data.primary_goal || 'perder_peso';
 
-  // Mifflin-St Jeor BMR
+  // Harris-Benedict (Revisada) — mesma fórmula usada no profileService
   const bmr = genero === 'feminino'
-    ? 10 * peso + 6.25 * altura - 5 * idade - 161
-    : 10 * peso + 6.25 * altura - 5 * idade + 5;
+    ? 447.593 + (9.247 * peso) + (3.098 * altura) - (4.330 * idade)
+    : 88.362 + (13.397 * peso) + (4.799 * altura) - (5.677 * idade);
 
   const multiplier = ACTIVITY_MULTIPLIER[nivel] ?? 1.55;
   let tdee = Math.round(bmr * multiplier);
 
-  // Adjust for goal
-  if (goal === 'perder_peso')  tdee = Math.round(tdee * 0.85);
-  if (goal === 'ganhar_peso')  tdee = Math.round(tdee * 1.10);
+  // Ajuste por objetivo — alinhado com profileService
+  if (goal === 'perder_peso')  tdee -= 300;  // Déficit calórico
+  if (goal === 'ganhar_peso')  tdee += 200;  // Superávit calórico
 
   // Macros: 30% protein, 40% carbs, 30% fat
   const protein = Math.round((tdee * 0.30) / 4);
