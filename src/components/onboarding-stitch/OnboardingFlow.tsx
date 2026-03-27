@@ -33,6 +33,8 @@ import ProvaSucessoStep from './steps/ProvaSucessoStep';
 import LembretesRotinaStep from './steps/LembretesRotinaStep';
 import CriandoPlanoStep from './steps/CriandoPlanoStep';
 import PlanoPersonalizadoStep from './steps/PlanoPersonalizadoStep';
+import RecomendacaoMacrosStep from './steps/RecomendacaoMacrosStep';
+import VantagensPremiumStep from './steps/VantagensPremiumStep';
 import ExperienciaCaloriasStep from './steps/ExperienciaCaloriasStep';
 import NuraFlowStep from './steps/NuraFlowStep';
 import HomeFeedStep from './steps/HomeFeedStep';
@@ -169,6 +171,10 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         return <CriandoPlanoStep {...props} />;
       case OnboardingStep.PLANO_PERSONALIZADO:
         return <PlanoPersonalizadoStep {...props} />;
+      case OnboardingStep.RECOMENDACAO_MACROS:
+        return <RecomendacaoMacrosStep {...props} />;
+      case OnboardingStep.VANTAGENS_PREMIUM:
+        return <VantagensPremiumStep {...props} />;
       case OnboardingStep.EXPERIENCIA_CALORIAS:
         return <ExperienciaCaloriasStep {...props} />;
       case OnboardingStep.FLOW:
