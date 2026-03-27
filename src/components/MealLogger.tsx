@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Meal, AIResponse } from '../types';
+import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
 import { NuraAiScan } from './NuraAiScan';
@@ -116,6 +116,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draftMeal, setDraftMeal] = useState<AIResponse | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editItems, setEditItems] = useState<MealItem[]>([]);
 
   // Photo Mode State
   const [scanResult, setScanResult] = useState<AIResponse | null>(null);
@@ -344,6 +346,38 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     }
   };
 
+  const handleOpenEdit = () => {
+    if (!draftMeal) return;
+    setEditItems(draftMeal.items ? draftMeal.items.map((i: MealItem) => ({ ...i })) : []);
+    setEditMode(true);
+  };
+
+  const handleRecalculate = async () => {
+    if (!editItems.length) return;
+    setEditMode(false);
+    setLoading(true);
+    try {
+      const description = editItems
+        .map((i: MealItem) => `${i.quantity ? i.quantity + ' de ' : ''}${i.name}${i.weightGrams ? ' ' + i.weightGrams + 'g' : ''}`)
+        .join(', ');
+      const result = await analyzeTextLog(description, language);
+      setDraftMeal(result);
+      setMessages((prev: Message[]) => {
+        // Replace the last ai-card message with the updated one
+        const lastCardIdx = [...prev].reverse().findIndex((m: Message) => m.type === 'ai-card');
+        if (lastCardIdx === -1) return [...prev, { id: Date.now().toString(), type: 'ai-card', content: result }];
+        const idx = prev.length - 1 - lastCardIdx;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], content: result };
+        return updated;
+      });
+    } catch (e) {
+      console.error('Recalculate failed:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     console.log('MealLogger: handleKeyDown', e.key);
     if (e.key === 'Enter' && !loading) {
@@ -520,7 +554,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                           </div>
                           <div>
                             <p className="text-nura-main dark:text-white text-sm font-semibold">{item.name}</p>
-                            <p className="text-nura-muted dark:text-slate-500 text-xs">{item.weightGrams}g</p>
+                            <p className="text-nura-muted dark:text-slate-500 text-xs">
+                              {item.quantity ? `${item.quantity} · ` : ''}{item.weightGrams}g
+                            </p>
                           </div>
                         </div>
                         <p className="text-nura-main dark:text-white text-sm font-medium">{item.calories} kcal</p>
@@ -572,7 +608,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                 {t.mealLogger.cancel}
               </button>
               <button
-                onClick={() => setDraftMeal(null)}
+                onClick={handleOpenEdit}
                 className="flex-1 h-12 rounded-xl border border-nura-border dark:border-white/10 bg-transparent flex items-center justify-center gap-2 text-nura-main dark:text-white font-semibold text-sm hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-95"
               >
                 <span className="material-symbols-outlined text-base">edit</span>
@@ -589,8 +625,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           )}
 
           {/* Sleek Input Bar */}
-          {!draftMeal && (
-            <div className="relative w-full">
+          <div className="relative w-full">
               <input
                 type="file"
                 accept="image/*"
@@ -654,12 +689,103 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                 </button>
               </div>
             </div>
-          )}
 
           {/* Home Indicator Safe Area Space */}
           <div className="h-1"></div>
         </div>
       </div>
+      {/* Edit Panel — full-screen slide-in sheet */}
+      {editMode && (
+        <div className="absolute inset-0 z-30 bg-nura-bg dark:bg-background-dark flex flex-col animate-fade-in">
+          {/* Header */}
+          <header className="flex items-center gap-3 p-4 border-b border-nura-border dark:border-white/5">
+            <button
+              onClick={() => setEditMode(false)}
+              className="size-10 flex items-center justify-center rounded-full hover:bg-nura-pastel-orange dark:hover:bg-white/5 transition-colors text-nura-petrol dark:text-slate-300"
+            >
+              <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+            <div>
+              <h2 className="font-bold text-nura-main dark:text-white text-base">Editar refeição</h2>
+              <p className="text-xs text-nura-muted dark:text-slate-500">Ajuste ingredientes e quantidades</p>
+            </div>
+          </header>
+
+          {/* Items list */}
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 pb-36">
+            {editItems.map((item: MealItem, idx: number) => (
+              <div key={idx} className="bg-white dark:bg-surface-dark rounded-2xl p-4 border border-nura-border dark:border-white/5 shadow-sm flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 flex flex-col gap-2">
+                    <input
+                      value={item.name}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const updated = [...editItems];
+                        updated[idx] = { ...updated[idx], name: e.target.value };
+                        setEditItems(updated);
+                      }}
+                      className="w-full text-sm font-semibold text-nura-main dark:text-white bg-nura-bg dark:bg-white/5 rounded-xl px-3 py-2 border border-nura-border dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary"
+                      placeholder="Nome do ingrediente"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        value={item.quantity ?? ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const updated = [...editItems];
+                          updated[idx] = { ...updated[idx], quantity: e.target.value };
+                          setEditItems(updated);
+                        }}
+                        className="flex-1 text-sm text-nura-main dark:text-white bg-nura-bg dark:bg-white/5 rounded-xl px-3 py-2 border border-nura-border dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary"
+                        placeholder="Quantidade (ex: 3 unidades)"
+                      />
+                      <input
+                        type="number"
+                        value={item.weightGrams ?? ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const updated = [...editItems];
+                          updated[idx] = { ...updated[idx], weightGrams: Number(e.target.value) || undefined };
+                          setEditItems(updated);
+                        }}
+                        className="w-24 text-sm text-nura-main dark:text-white bg-nura-bg dark:bg-white/5 rounded-xl px-3 py-2 border border-nura-border dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary"
+                        placeholder="Peso (g)"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setEditItems((prev: MealItem[]) => prev.filter((_: MealItem, i: number) => i !== idx))}
+                    className="size-9 flex items-center justify-center rounded-xl text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0 mt-1"
+                  >
+                    <span className="material-symbols-outlined text-lg">delete</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* Add ingredient button */}
+            <button
+              onClick={() => setEditItems((prev: MealItem[]) => [...prev, { name: '', calories: 0 }])}
+              className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl border-2 border-dashed border-nura-petrol/30 dark:border-primary/30 text-nura-petrol dark:text-primary font-semibold text-sm hover:bg-nura-petrol/5 dark:hover:bg-primary/5 transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">add</span>
+              Adicionar ingrediente
+            </button>
+          </div>
+
+          {/* Footer action */}
+          <div className="fixed bottom-0 left-0 w-full bg-white/80 dark:bg-background-dark/90 backdrop-blur-xl border-t border-nura-border dark:border-white/5 p-4 z-40">
+            <div className="max-w-lg mx-auto">
+              <button
+                onClick={handleRecalculate}
+                disabled={editItems.length === 0}
+                className="w-full h-14 rounded-2xl bg-nura-petrol dark:bg-primary text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-nura-petrol/25 dark:shadow-primary/25 hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined">calculate</span>
+                Recalcular macros
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
