@@ -1,12 +1,9 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView } from '../types';
 import { PlanService, QuarterlyPlanData } from '../services/planService';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
 import { PlanRoadmap } from './PlanRoadmap';
-
-// Lazy load the chat component
-const NutritionistChat = React.lazy(() => import('./NutritionistChat'));
 
 interface QuarterlyPlanProps {
   onBack: () => void;
@@ -20,7 +17,6 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [activated, setActivated] = useState(false);
-  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     if (user) loadPlan();
@@ -40,25 +36,19 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
     }
   };
 
-  const handleGenerate = async (onboardingId?: string) => {
+  const handleGenerate = async () => {
     if (!user) return;
     setGenerating(true);
     try {
-      const newPlan = await PlanService.generatePlan(user.id, onboardingId);
+      const newPlan = await PlanService.generatePlan(user.id);
       setPlan(newPlan);
       setActivated(true);
-      setShowChat(false); // Close chat after generating plan
     } catch (e) {
       console.error(e);
       alert(t.general.error);
     } finally {
       setGenerating(false);
     }
-  };
-
-  const handleChatComplete = async (sessionId: string) => {
-    // Generate plan using the onboarding data
-    await handleGenerate(sessionId);
   };
 
   const handleActivate = () => {
@@ -75,23 +65,6 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
   );
 
   // If no plan exists and showChat is true, show the Nutritionist Chat
-  if (!plan && showChat) {
-    return (
-      <Suspense
-        fallback={
-          <div className="flex justify-center items-center h-screen bg-nura-bg dark:bg-background-dark">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-nura-petrol dark:border-primary"></div>
-          </div>
-        }
-      >
-        <NutritionistChat
-          onComplete={handleChatComplete}
-          onBack={() => setShowChat(false)}
-        />
-      </Suspense>
-    );
-  }
-
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-nura-bg dark:bg-background-dark text-nura-main dark:text-white font-display animate-fade-in transition-colors duration-300">
 
@@ -119,21 +92,26 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
       <main className="flex-1 flex flex-col items-center px-6 pb-32">
 
         {!plan ? (
-          /* ═══ Empty State — Start Chat ═══ */
+          /* ═══ Empty State ═══ */
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="bg-nura-petrol/10 dark:bg-primary/10 p-6 rounded-full mb-6">
-              <span className="material-symbols-outlined text-4xl text-nura-petrol dark:text-primary">psychology</span>
+              <span className="material-symbols-outlined text-4xl text-nura-petrol dark:text-primary">bar_chart</span>
             </div>
-            <h2 className="text-2xl font-bold mb-2">Plano Personalizado de 3 Meses</h2>
+            <h2 className="text-2xl font-bold mb-2">Seu plano está sendo preparado</h2>
             <p className="text-nura-muted dark:text-slate-500 mb-8 max-w-xs">
-              Converse com nossa nutricionista virtual para criar um plano alimentar sob medida para você.
+              Complete seu perfil para receber um plano nutricional personalizado de 3 meses.
             </p>
             <button
-              onClick={() => setShowChat(true)}
-              className="bg-nura-petrol dark:bg-primary text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-nura-petrol/30 dark:shadow-primary/30 active:scale-95 transition-all flex items-center gap-2"
+              onClick={handleGenerate}
+              disabled={generating}
+              className="bg-nura-petrol dark:bg-primary text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-nura-petrol/30 dark:shadow-primary/30 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-60"
             >
-              <span className="material-symbols-outlined">chat</span>
-              <span>Conversar com Nutricionista</span>
+              {generating ? (
+                <span className="animate-spin material-symbols-outlined">refresh</span>
+              ) : (
+                <span className="material-symbols-outlined">auto_awesome</span>
+              )}
+              <span>{generating ? 'Gerando plano...' : 'Gerar meu plano'}</span>
             </button>
           </div>
         ) : (

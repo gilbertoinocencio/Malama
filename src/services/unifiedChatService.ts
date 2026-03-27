@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
-const MODEL_NAME = "gemini-1.5-flash";
+const MODEL_NAME = "gemini-2.5-flash";
 
 // Onboarding Stages (mesma estrutura do nutritionistAgentService)
 export type OnboardingStage =
@@ -156,13 +156,13 @@ export const UnifiedChatService = {
       console.log('📍 Current session:', session.session_type, session.current_stage);
 
       // Save user message (fire-and-forget — don't block on DB errors)
-      supabase.from('chat_messages').insert({
+      Promise.resolve(supabase.from('chat_messages').insert({
         user_id: userId,
         role: 'user',
         content: userMessage,
         stage: session.current_stage,
         onboarding_data: session.onboarding_data || {},
-      }).then(() => {}).catch(() => {});
+      })).catch(() => {});
 
       // Generate AI response based on mode
       let aiResponse;
@@ -173,7 +173,7 @@ export const UnifiedChatService = {
       }
 
       // Save AI message (fire-and-forget — don't block on DB errors)
-      supabase.from('chat_messages').insert({
+      Promise.resolve(supabase.from('chat_messages').insert({
         user_id: userId,
         role: 'agent',
         content: aiResponse.content,
@@ -181,17 +181,17 @@ export const UnifiedChatService = {
         onboarding_data: aiResponse.updatedData || session.onboarding_data,
         tokens_used: aiResponse.tokensUsed,
         context_data: aiResponse.context,
-      }).then(() => {}).catch(() => {});
+      })).catch(() => {});
 
       // Update session if needed (fire-and-forget)
       if (aiResponse.nextStage && session.id) {
-        supabase.from('chat_sessions').update({
+        Promise.resolve(supabase.from('chat_sessions').update({
           current_stage: aiResponse.nextStage,
           onboarding_data: aiResponse.updatedData,
           onboarding_completed: aiResponse.nextStage === 'COMPLETED',
           completed_at: aiResponse.nextStage === 'COMPLETED' ? new Date().toISOString() : null,
           last_activity_at: new Date().toISOString(),
-        }).eq('id', session.id).then(() => {}).catch(() => {});
+        }).eq('id', session.id)).catch(() => {});
       }
 
       // Return synthetic ChatMessage so caller always gets a valid object
