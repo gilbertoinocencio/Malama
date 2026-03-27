@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StitchOnboardingData, OnboardingStep } from './types';
+import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Step Components
@@ -40,7 +41,7 @@ import NuraFlowStep from './steps/NuraFlowStep';
 import HomeFeedStep from './steps/HomeFeedStep';
 
 export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
-  const { user, updateProfile } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [data, setData] = useState<StitchOnboardingData>({
     // Initialize with safe defaults to prevent null errors
@@ -87,18 +88,23 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         muito_ativo: 'intense',
       };
 
-      await updateProfile({
+      await supabase.from('profiles').upsert({
+        id: user.id,
         age: data.idade,
         gender: data.genero,
         height: data.altura,
         weight: data.peso,
         activity_level: activityMap[data.nivelAtividade ?? ''] ?? 'moderate',
         onboarding_completed: true,
+        updated_at: new Date().toISOString(),
       });
 
-      onComplete();
+      // Re-fetch profile so AuthContext reflects onboarding_completed = true
+      await refreshProfile();
     } catch (err) {
       console.error('Error finishing onboarding:', err);
+    } finally {
+      onComplete();
     }
   };
 
