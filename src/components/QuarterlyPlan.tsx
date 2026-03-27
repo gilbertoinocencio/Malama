@@ -27,8 +27,24 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
     setLoading(true);
     try {
       const activePlan = await PlanService.getActivePlan(user.id);
-      setPlan(activePlan);
-      if (activePlan) setActivated(true);
+      if (activePlan) {
+        setPlan(activePlan);
+        setActivated(true);
+      } else {
+        // No plan yet — auto-generate using profile data from onboarding
+        setLoading(false);
+        setGenerating(true);
+        try {
+          const newPlan = await PlanService.generatePlan(user.id);
+          setPlan(newPlan);
+          setActivated(true);
+        } catch (e) {
+          console.error('Auto-generate plan failed:', e);
+        } finally {
+          setGenerating(false);
+        }
+        return;
+      }
     } catch (e) {
       console.error(e);
     } finally {
