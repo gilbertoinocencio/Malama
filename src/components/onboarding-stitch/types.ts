@@ -48,8 +48,8 @@ export interface StepProps {
 export enum OnboardingStep {
   EXPERIENCIA_CALORIAS = 'experiencia_calorias',
   METODOLOGIA = 'metodologia',
-  OBJETIVOS = 'objetivos',
   OBJETIVOS_PRINCIPAIS = 'objetivos_principais',
+  OBJETIVOS = 'objetivos',
   IDADE = 'idade',
   GENERO = 'genero',
   ALTURA_PESO = 'altura_peso',
