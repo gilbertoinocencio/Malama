@@ -80,19 +80,28 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
   const finishOnboarding = async () => {
     if (!user) return;
     try {
+      const activityMap: Record<string, string> = {
+        sedentario: 'sedentary',
+        leve: 'sedentary',
+        moderado: 'moderate',
+        muito_ativo: 'intense',
+      };
+
       const { error } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
-          ...data,
+          age: data.idade,
+          gender: data.genero,
+          height: data.altura,
+          weight: data.peso,
+          activity_level: activityMap[data.nivelAtividade ?? ''] ?? 'moderate',
           onboarding_completed: true,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         });
 
       if (error) throw error;
 
-      // Wait for Supabase to finish updating before triggering completion
-      // This prevents race conditions with AuthContext re-fetching profile
       await new Promise(resolve => setTimeout(resolve, 500));
 
       onComplete();
