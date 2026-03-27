@@ -147,36 +147,33 @@ export const UnifiedChatService = {
    * Send message and get AI response (auto-detects mode)
    */
   async sendMessage(userId: string, userMessage: string): Promise<ChatMessage> {
-    // Get current session
-    const session = await this.getOrCreateSession(userId);
+    try {
+      // Get current session
+      const session = await this.getOrCreateSession(userId);
 
-    console.log('📍 Current session:', session.session_type, session.current_stage);
+      if (!session) throw new Error('Could not get or create session');
 
-    // Save user message
-    const { data: userMsg } = await supabase
-      .from('chat_messages')
-      .insert({
+      console.log('📍 Current session:', session.session_type, session.current_stage);
+
+      // Save user message (fire-and-forget — don't block on DB errors)
+      supabase.from('chat_messages').insert({
         user_id: userId,
         role: 'user',
         content: userMessage,
         stage: session.current_stage,
         onboarding_data: session.onboarding_data || {},
-      })
-      .select()
-      .single();
+      }).then(() => {}).catch(() => {});
 
-    // Generate AI response based on mode
-    let aiResponse;
-    if (session.session_type === 'onboarding' && !session.onboarding_completed) {
-      aiResponse = await this.generateOnboardingResponse(userId, userMessage, session);
-    } else {
-      aiResponse = await this.generateChatResponse(userId, userMessage);
-    }
+      // Generate AI response based on mode
+      let aiResponse;
+      if (session.session_type === 'onboarding' && !session.onboarding_completed) {
+        aiResponse = await this.generateOnboardingResponse(userId, userMessage, session);
+      } else {
+        aiResponse = await this.generateChatResponse(userId, userMessage);
+      }
 
-    // Save AI message
-    const { data: agentMsg } = await supabase
-      .from('chat_messages')
-      .insert({
+      // Save AI message (fire-and-forget — don't block on DB errors)
+      supabase.from('chat_messages').insert({
         user_id: userId,
         role: 'agent',
         content: aiResponse.content,
@@ -184,25 +181,38 @@ export const UnifiedChatService = {
         onboarding_data: aiResponse.updatedData || session.onboarding_data,
         tokens_used: aiResponse.tokensUsed,
         context_data: aiResponse.context,
-      })
-      .select()
-      .single();
+      }).then(() => {}).catch(() => {});
 
-    // Update session if needed
-    if (aiResponse.nextStage) {
-      await supabase
-        .from('chat_sessions')
-        .update({
+      // Update session if needed (fire-and-forget)
+      if (aiResponse.nextStage && session.id) {
+        supabase.from('chat_sessions').update({
           current_stage: aiResponse.nextStage,
           onboarding_data: aiResponse.updatedData,
           onboarding_completed: aiResponse.nextStage === 'COMPLETED',
           completed_at: aiResponse.nextStage === 'COMPLETED' ? new Date().toISOString() : null,
           last_activity_at: new Date().toISOString(),
-        })
-        .eq('id', session.id);
-    }
+        }).eq('id', session.id).then(() => {}).catch(() => {});
+      }
 
-    return agentMsg as ChatMessage;
+      // Return synthetic ChatMessage so caller always gets a valid object
+      return {
+        id: Date.now().toString(),
+        user_id: userId,
+        role: 'agent',
+        content: aiResponse.content,
+        created_at: new Date().toISOString(),
+      } as ChatMessage;
+
+    } catch (error) {
+      console.error('sendMessage error:', error);
+      return {
+        id: Date.now().toString(),
+        user_id: userId,
+        role: 'agent',
+        content: 'Desculpe, estou com dificuldades técnicas. Tente novamente! 💙',
+        created_at: new Date().toISOString(),
+      } as ChatMessage;
+    }
   },
 
   /**
