@@ -6,7 +6,8 @@ interface AuthContextType {
     user: User | null;
     session: Session | null;
     profile: any | null;
-    loading: boolean;
+    loading: boolean;          // true only while checking if user is logged in (fast)
+    profileLoading: boolean;   // true while fetching profile from DB
     updateProfile: (updates: any) => Promise<void>;
     refreshProfile: () => Promise<void>;
     signInWithGoogle: () => Promise<void>;
@@ -22,19 +23,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [session, setSession] = useState<Session | null>(null);
     const [profile, setProfile] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
+    const [profileLoading, setProfileLoading] = useState(false);
 
     const mountedRef = useRef(true);
     const profileFetchId = useRef(0);
-    const initCompleteRef = useRef(false);
 
     const fetchProfile = useCallback(async (userId: string) => {
         const fetchId = ++profileFetchId.current;
+        setProfileLoading(true);
+
         try {
-            const { data, error } = await supabase
+            const query = supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
                 .maybeSingle();
+
+            // Hard timeout: if Supabase doesn't respond in 8s, use minimal profile
+            const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+                setTimeout(() => resolve({ data: null, error: { message: 'Profile fetch timeout' } }), 8000)
+            );
+
+            const { data, error } = await Promise.race([query, timeoutPromise]);
 
             if (!mountedRef.current || fetchId !== profileFetchId.current) return;
 
@@ -59,10 +69,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else {
                 setProfile({ id: userId });
             }
-        } catch (err) {
-            console.error('fetchProfile error:', err);
+        } catch (err: any) {
+            if (err?.name === 'AbortError') {
+                console.warn('Profile fetch timed out');
+            } else {
+                console.error('fetchProfile error:', err);
+            }
             if (mountedRef.current && fetchId === profileFetchId.current) {
                 setProfile((prev: any) => prev || { id: userId });
+            }
+        } finally {
+            if (mountedRef.current && fetchId === profileFetchId.current) {
+                setProfileLoading(false);
             }
         }
     }, []);
@@ -70,52 +88,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         mountedRef.current = true;
 
-        // ── STEP 1: Initial load using getSession (awaited, no race) ──
-        const init = async () => {
-            try {
-                const { data: { session: s } } = await supabase.auth.getSession();
-                if (!mountedRef.current) return;
+        // Step 1: Check session from LOCAL cache (instant — no network needed)
+        supabase.auth.getSession().then(({ data: { session: s } }) => {
+            if (!mountedRef.current) return;
 
-                setSession(s);
-                setUser(s?.user ?? null);
+            setSession(s);
+            setUser(s?.user ?? null);
 
-                if (s?.user) {
-                    await fetchProfile(s.user.id);
-                }
-            } catch (err) {
-                console.error('Auth init error:', err);
-            } finally {
-                if (mountedRef.current) {
-                    initCompleteRef.current = true;
-                    setLoading(false);
-                }
+            // STOP the main spinner immediately — we know if user is logged in or not
+            setLoading(false);
+
+            // Step 2: Fetch profile in background (non-blocking)
+            if (s?.user) {
+                fetchProfile(s.user.id);
             }
-        };
+        }).catch((err) => {
+            console.error('getSession error:', err);
+            if (mountedRef.current) setLoading(false);
+        });
 
-        init();
-
-        // ── STEP 2: Listen for SUBSEQUENT changes only (sign-in, sign-out, token refresh) ──
+        // Step 3: Listen for subsequent auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, newSession) => {
+            (event, newSession) => {
                 if (!mountedRef.current) return;
-
-                // Skip INITIAL_SESSION — we already handled it in init()
+                // Skip INITIAL_SESSION — already handled above
                 if (event === 'INITIAL_SESSION') return;
 
-                console.log('Auth event:', event);
                 setSession(newSession);
                 setUser(newSession?.user ?? null);
 
                 if (newSession?.user) {
-                    await fetchProfile(newSession.user.id);
+                    fetchProfile(newSession.user.id);
                 } else {
                     setProfile(null);
-                }
-
-                // If init somehow hasn't finished yet, mark it done
-                if (!initCompleteRef.current) {
-                    initCompleteRef.current = true;
-                    setLoading(false);
                 }
             }
         );
@@ -162,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return (
         <AuthContext.Provider value={{
-            user, session, profile, loading,
+            user, session, profile, loading, profileLoading,
             updateProfile, refreshProfile,
             signInWithGoogle, signInWithEmail, signUpWithEmail, signOut
         }}>

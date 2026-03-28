@@ -31,7 +31,7 @@ const VisualEvolution = React.lazy<React.ComponentType<any>>(() => import('./com
 const VisualShare = React.lazy<React.ComponentType<any>>(() => import('./components/VisualShare').then(m => ({ default: (m as any).VisualShare || (m as any).default })));
 const Integrations = React.lazy<React.ComponentType<any>>(() => import('./components/Integrations').then(m => ({ default: (m as any).Integrations || (m as any).default })));
 const App: React.FC = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, profileLoading } = useAuth();
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -119,27 +119,19 @@ const App: React.FC = () => {
   }
 
 
-  console.log('✅ User authenticated with profile:', {
-    userId: user.id,
-    primaryGoal: profile?.primary_goal,
-    onboardingCompleted: profile?.onboarding_completed,
-    // Legacy V1 fields
-    goal: profile?.goal,
-    biotype: profile?.biotype
-  });
-
-  // If profile hasn't loaded yet (e.g. minimal profile from timeout), treat as needing onboarding
-  if (!profile || !profile.id) {
-    return <OnboardingFlow onComplete={() => {
-      setStatsLoaded(false);
-      loadStats();
-    }} />;
+  // Profile still loading from Supabase — show brief spinner (NOT onboarding)
+  if (profileLoading || (!profile && user)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-nura-bg dark:bg-background-dark">
+        <div className="w-12 h-12 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
-  // Show onboarding if not explicitly completed
-  if (profile.onboarding_completed !== true) {
+  // Profile loaded but onboarding not completed
+  if (!profile?.onboarding_completed) {
     return <OnboardingFlow onComplete={() => {
-      setStatsLoaded(false); // Reset flag to allow stats loading
+      setStatsLoaded(false);
       loadStats();
     }} />;
   }
