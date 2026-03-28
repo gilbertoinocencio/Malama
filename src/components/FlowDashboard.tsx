@@ -112,7 +112,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const gaugeOffset = circumference - (flowScore / 100) * circumference;
 
   // Calorie progress for Day view
-  const caloriePercent = Math.min((stats.consumedCalories / stats.targetCalories) * 100, 100);
+  const caloriePercent = Math.min(((stats.consumedCalories ?? 0) / (stats.targetCalories || 1)) * 100, 100);
 
   const getLevelLabel = (level: string) => {
     const levels: Record<string, string> = {
@@ -313,10 +313,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                   <span className="text-4xl font-bold tracking-tighter text-nura-main dark:text-white">
-                    {stats.consumedCalories.toLocaleString()}
+                    {(stats.consumedCalories ?? 0).toLocaleString()}
                   </span>
                   <span className="text-sm font-medium text-nura-muted dark:text-slate-400 mt-1">
-                    / {stats.targetCalories.toLocaleString()} {t.dashboard.kcal}
+                    / {(stats.targetCalories ?? 0).toLocaleString()} {t.dashboard.kcal}
                   </span>
                 </div>
               </div>

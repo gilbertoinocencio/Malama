@@ -58,7 +58,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
           {/* Main Metric */}
           <div className="flex flex-col items-center">
             <h1 className="text-7xl sm:text-8xl font-extrabold text-[#1a1a1a] tracking-tighter leading-[0.8] font-display">
-              {stats.consumedCalories.toLocaleString()}
+              {(stats.consumedCalories ?? 0).toLocaleString()}
             </h1>
             <div className="h-1 w-12 bg-primary mt-4 mb-2"></div>
             <p className="text-primary text-xs sm:text-sm font-bold tracking-[0.3em] uppercase">Calories</p>
@@ -107,13 +107,13 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
 
   const renderGlassCard = () => {
     // Glass/Story Template Logic
-    const progress = Math.min((stats.consumedCalories / stats.targetCalories) * 100, 100);
+    const progress = Math.min(((stats.consumedCalories ?? 0) / (stats.targetCalories || 1)) * 100, 100);
     const circumference = 2 * Math.PI * 45;
     const offset = circumference - (progress / 100) * circumference;
 
-    const pPct = Math.min((stats.macros.protein / stats.targetMacros.protein) * 100, 100);
-    const cPct = Math.min((stats.macros.carbs / stats.targetMacros.carbs) * 100, 100);
-    const fPct = Math.min((stats.macros.fats / stats.targetMacros.fats) * 100, 100);
+    const pPct = Math.min(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100, 100);
+    const cPct = Math.min(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100, 100);
+    const fPct = Math.min(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100, 100);
 
     return (
       <div className="relative w-full aspect-[9/16] bg-[#f6f8f6] overflow-hidden shadow-2xl rounded-xl font-epilogue">
@@ -141,8 +141,8 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
                 </svg>
                 <div className="flex flex-col items-center text-center z-10">
                   <span className="material-symbols-outlined text-[#11d421] text-2xl mb-1">local_fire_department</span>
-                  <p className="text-[#102212] text-3xl font-bold tracking-tighter">{stats.consumedCalories}</p>
-                  <p className="text-[#102212]/60 text-[10px] font-medium uppercase tracking-wide mt-1">kcal / {stats.targetCalories}</p>
+                  <p className="text-[#102212] text-3xl font-bold tracking-tighter">{stats.consumedCalories ?? 0}</p>
+                  <p className="text-[#102212]/60 text-[10px] font-medium uppercase tracking-wide mt-1">kcal / {stats.targetCalories ?? 0}</p>
                 </div>
               </div>
 

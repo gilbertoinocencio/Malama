@@ -47,11 +47,11 @@ export const StatsService = {
             .eq('id', userId)
             .maybeSingle();
 
-        const targets = profile || {
-            target_calories: 2000,
-            target_protein: 150,
-            target_carbs: 200,
-            target_fats: 65
+        const targets = {
+            target_calories: profile?.target_calories ?? 2000,
+            target_protein: profile?.target_protein ?? 150,
+            target_carbs: profile?.target_carbs ?? 200,
+            target_fats: profile?.target_fats ?? 65
         };
 
         const consumed = meals.reduce((acc, meal) => ({

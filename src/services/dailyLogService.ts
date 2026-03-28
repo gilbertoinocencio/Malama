@@ -22,10 +22,9 @@ export const DailyLogService = {
             .select('*')
             .eq('user_id', userId)
             .eq('date', formattedDate)
-            .single();
+            .maybeSingle();
 
         if (error) {
-            if (error.code === 'PGRST116') return null;
             console.error('Error fetching daily log:', error);
             return null;
         }
