@@ -170,6 +170,31 @@ export const UnifiedChatService = {
         aiResponse = await this.generateOnboardingResponse(userId, userMessage, session);
       } else {
         aiResponse = await this.generateChatResponse(userId, userMessage);
+        
+        // --- WATER INGESTION INTERCEPTOR ---
+        const waterMatch = aiResponse.content.match(/<water_json>([\s\S]*?)<\/water_json>/);
+        if (waterMatch) {
+          try {
+            const parsed = JSON.parse(waterMatch[1]);
+            const ml = Number(parsed.ml);
+            if (!isNaN(ml) && ml > 0) {
+              const { CoachService } = await import('./coachService');
+              const todayMissions = await CoachService.getTodayMissions(userId);
+              const hydrationMission = todayMissions.find(m => m.mission_type === 'hydration');
+              if (hydrationMission && hydrationMission.id) {
+                await CoachService.updateMissionProgress(
+                  userId, 
+                  hydrationMission.id, 
+                  (hydrationMission.current_value || 0) + ml
+                );
+              }
+            }
+            // Strip the JSON block from the text message to the user
+            aiResponse.content = aiResponse.content.replace(/<water_json>[\s\S]*?<\/water_json>/, '').trim();
+          } catch (e) {
+            console.error('Failed to parse or log water JSON:', e);
+          }
+        }
       }
 
       // Save AI message (fire-and-forget — don't block on DB errors)
@@ -661,6 +686,13 @@ Responda com uma frase motivacional curta e inclua o bloco <meal_json> ao final:
 </meal_json>
 
 Os valores nutricionais devem ser precisos e coerentes com as quantidades. A soma de calorias dos items deve bater com o campo "calories" total.
+
+**Quando o usuário relatar que ingeriu água (ex: "bebi 500ml", "tomei 1 litro"):**
+Celebre a ação e extraia a quantidade em mililitros (ml). Inclua EXATAMENTE o seguinte bloco ao final:
+
+<water_json>
+{"ml": 500}
+</water_json>
 
 ## CHECK-IN CONVERSACIONAL IMPLÍCITO
 

@@ -150,7 +150,9 @@ export const GamificationService = {
             // Real logic requires separate xp_ledger table, but for MVP we estimate
             const estimatedXP = (totalFlowDays * 100) + (profile.total_xp || 0); // Incremental update is better in future
 
-            const level = this.calculateLevel(estimatedXP);
+            const levelStr = this.calculateLevel(estimatedXP);
+            const levelMap: Record<UserLevel, number> = { seed: 1, root: 2, stem: 3, flower: 4, fruit: 5 };
+            const levelInt = levelMap[levelStr] || 1;
 
             // 5. Update Profile
             const { error: updateError } = await supabase.from('profiles').update({
@@ -158,7 +160,7 @@ export const GamificationService = {
                 longest_streak: longestStreak,
                 total_flow_days: totalFlowDays,
                 total_xp: estimatedXP,
-                level: level
+                level: levelInt as any
             }).eq('id', userId);
 
             if (updateError) throw updateError;
@@ -167,7 +169,7 @@ export const GamificationService = {
                 currentStreak,
                 longestStreak,
                 totalFlowDays,
-                level,
+                level: levelStr,
                 xp: estimatedXP
             };
 
