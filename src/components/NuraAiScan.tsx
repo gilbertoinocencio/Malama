@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIResponse, MealItem } from '../types';
+import { analyzeTextLog } from '../services/geminiService';
+import { useLanguage } from '../i18n';
 
 interface NuraAiScanProps {
     data: AIResponse;
@@ -9,6 +11,15 @@ interface NuraAiScanProps {
     onBack: () => void;
 }
 
+// Recalculate totals from items — pure function, no side effects
+const recalcTotals = (items: MealItem[]): { calories: number; macros: { p: number; c: number; f: number } } => {
+    const calories = Math.round(items.reduce((s, i) => s + (i.calories || 0), 0));
+    const p = Math.round(items.reduce((s, i) => s + (i.protein || 0), 0));
+    const c = Math.round(items.reduce((s, i) => s + (i.carbs || 0), 0));
+    const f = Math.round(items.reduce((s, i) => s + (i.fats || 0), 0));
+    return { calories, macros: { p, c, f } };
+};
+
 export const NuraAiScan: React.FC<NuraAiScanProps> = ({
     data,
     imageUri,
@@ -16,66 +27,127 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
     onBack
 }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [editedData, setEditedData] = useState<AIResponse>({ ...data });
+    const [items, setItems] = useState<MealItem[]>(() => data.items.map(i => ({ ...i })));
+    const [foodName, setFoodName] = useState(data.foodName);
+    const [confirming, setConfirming] = useState(false);
+    const [lookingUp, setLookingUp] = useState<number | null>(null); // index of item being looked up
+    const lookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const { language } = useLanguage();
 
-    // Recalculate totals when items change
-    useEffect(() => {
-        const totalCalories = editedData.items.reduce((sum, item) => sum + (item.calories || 0), 0);
-        const totalP = editedData.items.reduce((sum, item) => sum + (item.protein || 0), 0);
-        const totalC = editedData.items.reduce((sum, item) => sum + (item.carbs || 0), 0);
-        const totalF = editedData.items.reduce((sum, item) => sum + (item.fats || 0), 0);
+    // Derive totals from items (no useEffect needed)
+    const { calories, macros } = recalcTotals(items);
 
-        setEditedData(prev => ({
-            ...prev,
-            calories: Math.round(totalCalories),
-            macros: {
-                p: Math.round(totalP),
-                c: Math.round(totalC),
-                f: Math.round(totalF)
+    // Original items for ratio-based weight scaling
+    const originalItems = useRef<MealItem[]>(data.items.map(i => ({ ...i })));
+
+    const updateItem = useCallback((index: number, field: keyof MealItem, value: any) => {
+        setItems(prev => {
+            const newItems = [...prev];
+            newItems[index] = { ...newItems[index], [field]: value };
+
+            // Scale macros proportionally when weight changes
+            if (field === 'weightGrams' && typeof value === 'number') {
+                const orig = originalItems.current[index];
+                if (orig && orig.weightGrams) {
+                    const ratio = value / orig.weightGrams;
+                    newItems[index].calories = Math.round((orig.calories || 0) * ratio);
+                    newItems[index].protein = Math.round((orig.protein || 0) * ratio);
+                    newItems[index].carbs = Math.round((orig.carbs || 0) * ratio);
+                    newItems[index].fats = Math.round((orig.fats || 0) * ratio);
+                }
             }
-        }));
-    }, [editedData.items]);
+            return newItems;
+        });
+    }, []);
 
-    const handleItemChange = (index: number, field: keyof MealItem, value: any) => {
-        const newItems = [...editedData.items];
-        newItems[index] = { ...newItems[index], [field]: value };
-        
-        // If weight changes, we should ideally scale macros, but for now we let user edit them manually as requested
-        // Or we could do a simple scaling logic if we had per-100g data. 
-        // Given the request "usuário corrigir os itens e a gramatura... após isso o app recalcula", 
-        // I will implement a basic multiplier logic if weight changes.
-        if (field === 'weightGrams' && typeof value === 'number' && editedData.items[index].weightGrams) {
-            const ratio = value / (data.items[index].weightGrams || 1);
-            newItems[index].calories = Math.round((data.items[index].calories || 0) * ratio);
-            newItems[index].protein = Math.round((data.items[index].protein || 0) * ratio);
-            newItems[index].carbs = Math.round((data.items[index].carbs || 0) * ratio);
-            newItems[index].fats = Math.round((data.items[index].fats || 0) * ratio);
+    // Lookup nutritional data for a new/renamed item via Gemini
+    const lookupItemNutrition = useCallback(async (index: number, name: string, weightGrams: number) => {
+        setLookingUp(index);
+        try {
+            const result = await analyzeTextLog(`${name} ${weightGrams}g`, language);
+            // Use the first item's macros from the result
+            const found = result.items?.[0];
+            if (found) {
+                setItems(prev => {
+                    const newItems = [...prev];
+                    newItems[index] = {
+                        ...newItems[index],
+                        name: found.name || name,
+                        weightGrams: weightGrams,
+                        calories: found.calories || 0,
+                        protein: found.protein || 0,
+                        carbs: found.carbs || 0,
+                        fats: found.fats || 0,
+                    };
+                    // Also update the original ref so weight scaling works for this new item
+                    originalItems.current[index] = { ...newItems[index] };
+                    return newItems;
+                });
+            }
+        } catch (e) {
+            console.error('Nutrition lookup failed:', e);
+        } finally {
+            setLookingUp(null);
         }
+    }, [language]);
 
-        setEditedData(prev => ({ ...prev, items: newItems }));
-    };
+    // Debounced name change — triggers nutrition lookup after 1.2s of no typing
+    const handleNameChange = useCallback((index: number, newName: string) => {
+        setItems(prev => {
+            const newItems = [...prev];
+            newItems[index] = { ...newItems[index], name: newName };
+            return newItems;
+        });
+        if (lookupTimerRef.current) clearTimeout(lookupTimerRef.current);
+        lookupTimerRef.current = setTimeout(() => {
+            const trimmed = newName.trim();
+            if (trimmed && trimmed !== 'Novo Item') {
+                const currentWeight = items[index]?.weightGrams || 100;
+                lookupItemNutrition(index, trimmed, currentWeight);
+            }
+        }, 1200);
+    }, [items, lookupItemNutrition]);
 
     const addItem = () => {
         const newItem: MealItem = {
-            name: 'Novo Item',
+            name: '',
             weightGrams: 100,
             calories: 0,
             protein: 0,
             carbs: 0,
             fats: 0
         };
-        setEditedData(prev => ({ ...prev, items: [...prev.items, newItem] }));
+        setItems(prev => [...prev, newItem]);
+        originalItems.current.push({ ...newItem });
+        // Go to edit mode automatically
+        setIsEditing(true);
     };
 
     const removeItem = (index: number) => {
-        setEditedData(prev => ({
-            ...prev,
-            items: prev.items.filter((_, i) => i !== index)
-        }));
+        setItems(prev => prev.filter((_, i) => i !== index));
+        originalItems.current = originalItems.current.filter((_, i) => i !== index);
+    };
+
+    const handleConfirm = async () => {
+        if (confirming) return;
+        setConfirming(true);
+        try {
+            const finalData: AIResponse = {
+                foodName,
+                calories,
+                macros,
+                items,
+                message: data.message,
+            };
+            onConfirm(finalData);
+        } catch (e) {
+            console.error('Confirm failed:', e);
+            setConfirming(false);
+        }
     };
 
     // Calculate width percentages for macro bars
-    const totalMacros = editedData.macros.p + editedData.macros.c + editedData.macros.f;
+    const totalMacros = macros.p + macros.c + macros.f;
     const getPercent = (val: number) => totalMacros > 0 ? (val / totalMacros) * 100 : 0;
 
     return (
@@ -127,7 +199,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                         <div className="flex-1 min-w-0 pr-4">
                                             <span className="block text-[10px] font-black text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-widest">REFEIÇÃO</span>
                                             <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight truncate">
-                                                {editedData.foodName}
+                                                {foodName}
                                             </h1>
                                         </div>
                                         <div className="bg-[#0CC2C2] size-12 rounded-full flex items-center justify-center shadow-lg shadow-[#0CC2C2]/40 shrink-0">
@@ -143,7 +215,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                     <div className="flex flex-col">
                                         <span className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Energy</span>
                                         <div className="flex items-baseline gap-1">
-                                            <span className="text-5xl font-light text-slate-900 dark:text-white">{editedData.calories}</span>
+                                            <span className="text-5xl font-light text-slate-900 dark:text-white">{calories}</span>
                                             <span className="text-lg font-medium text-slate-400 tracking-tight">kcal</span>
                                         </div>
                                     </div>
@@ -166,33 +238,33 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                 <div className="grid grid-cols-3 gap-6">
                                     <div className="flex flex-col gap-2">
                                         <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">PROTEIN</span>
-                                        <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tighter">{editedData.macros.p}g</span>
+                                        <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tighter">{macros.p}g</span>
                                         <div className="h-1.5 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
                                             <motion.div 
                                                 initial={{ width: 0 }}
-                                                animate={{ width: `${getPercent(editedData.macros.p)}%` }}
+                                                animate={{ width: `${getPercent(macros.p)}%` }}
                                                 className="h-full bg-[#0CC2C2] rounded-full" 
                                             />
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">CARBS</span>
-                                        <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tighter">{editedData.macros.c}g</span>
+                                        <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tighter">{macros.c}g</span>
                                         <div className="h-1.5 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
                                             <motion.div 
                                                 initial={{ width: 0 }}
-                                                animate={{ width: `${getPercent(editedData.macros.c)}%` }}
+                                                animate={{ width: `${getPercent(macros.c)}%` }}
                                                 className="h-full bg-orange-400 rounded-full" 
                                             />
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">FAT</span>
-                                        <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tighter">{editedData.macros.f}g</span>
+                                        <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tighter">{macros.f}g</span>
                                         <div className="h-1.5 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
                                             <motion.div 
                                                 initial={{ width: 0 }}
-                                                animate={{ width: `${getPercent(editedData.macros.f)}%` }}
+                                                animate={{ width: `${getPercent(macros.f)}%` }}
                                                 className="h-full bg-purple-400 rounded-full" 
                                             />
                                         </div>
@@ -219,30 +291,33 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                 </button>
                             </div>
 
-                            {editedData.items.map((item, idx) => (
+                            {items.map((item, idx) => (
                                 <div key={idx} className="bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex flex-col gap-3">
                                     <div className="flex items-center justify-between">
                                         <input
                                             value={item.name}
-                                            onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
+                                            onChange={(e) => handleNameChange(idx, e.target.value)}
                                             className="bg-transparent border-none p-0 text-slate-900 dark:text-white font-bold focus:ring-0 w-full"
-                                            placeholder="Nome do item"
+                                            placeholder="Nome do ingrediente"
                                         />
-                                        <button 
+                                        {lookingUp === idx && (
+                                            <div className="w-5 h-5 border-2 border-[#0CC2C2] border-t-transparent rounded-full animate-spin shrink-0 mr-2" />
+                                        )}
+                                        <button
                                             onClick={() => removeItem(idx)}
-                                            className="text-slate-400 hover:text-red-500 transition-colors"
+                                            className="text-slate-400 hover:text-red-500 transition-colors shrink-0"
                                         >
                                             <span className="material-symbols-outlined text-xl">delete</span>
                                         </button>
                                     </div>
-                                    
+
                                     <div className="grid grid-cols-5 gap-2">
                                         <div className="col-span-1 flex flex-col gap-1">
                                             <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">GRAMAS</label>
                                             <input
                                                 type="number"
                                                 value={item.weightGrams || 0}
-                                                onChange={(e) => handleItemChange(idx, 'weightGrams', parseInt(e.target.value) || 0)}
+                                                onChange={(e) => updateItem(idx, 'weightGrams', parseInt(e.target.value) || 0)}
                                                 className="bg-gray-50 dark:bg-white/5 border-none rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-[#0CC2C2]/50"
                                             />
                                         </div>
@@ -251,7 +326,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                             <input
                                                 type="number"
                                                 value={item.calories || 0}
-                                                onChange={(e) => handleItemChange(idx, 'calories', parseInt(e.target.value) || 0)}
+                                                onChange={(e) => updateItem(idx, 'calories', parseInt(e.target.value) || 0)}
                                                 className="bg-gray-50 dark:bg-white/5 border-none rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-[#0CC2C2]/50"
                                             />
                                         </div>
@@ -260,7 +335,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                             <input
                                                 type="number"
                                                 value={item.protein || 0}
-                                                onChange={(e) => handleItemChange(idx, 'protein', parseInt(e.target.value) || 0)}
+                                                onChange={(e) => updateItem(idx, 'protein', parseInt(e.target.value) || 0)}
                                                 className="bg-gray-50 dark:bg-white/5 border-none rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-[#0CC2C2]/50"
                                             />
                                         </div>
@@ -269,7 +344,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                             <input
                                                 type="number"
                                                 value={item.carbs || 0}
-                                                onChange={(e) => handleItemChange(idx, 'carbs', parseInt(e.target.value) || 0)}
+                                                onChange={(e) => updateItem(idx, 'carbs', parseInt(e.target.value) || 0)}
                                                 className="bg-gray-50 dark:bg-white/5 border-none rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-[#0CC2C2]/50"
                                             />
                                         </div>
@@ -278,7 +353,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                             <input
                                                 type="number"
                                                 value={item.fats || 0}
-                                                onChange={(e) => handleItemChange(idx, 'fats', parseInt(e.target.value) || 0)}
+                                                onChange={(e) => updateItem(idx, 'fats', parseInt(e.target.value) || 0)}
                                                 className="bg-gray-50 dark:bg-white/5 border-none rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-[#0CC2C2]/50"
                                             />
                                         </div>
@@ -302,11 +377,18 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                 Editar
                             </button>
                             <button
-                                onClick={() => onConfirm(editedData)}
-                                className="flex-[2] h-16 rounded-[20px] bg-[#0CC2C2] text-white font-black shadow-lg shadow-[#0CC2C2]/30 flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-95"
+                                onClick={handleConfirm}
+                                disabled={confirming}
+                                className="flex-[2] h-16 rounded-[20px] bg-[#0CC2C2] text-white font-black shadow-lg shadow-[#0CC2C2]/30 flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-95 disabled:opacity-50"
                             >
-                                <span className="material-symbols-outlined font-black">check</span>
-                                Confirmar
+                                {confirming ? (
+                                    <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <span className="material-symbols-outlined font-black">check</span>
+                                        Confirmar
+                                    </>
+                                )}
                             </button>
                         </>
                     ) : (
