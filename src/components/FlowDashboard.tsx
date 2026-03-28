@@ -294,63 +294,101 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
             </div>
 
             {/* Macro Stats */}
-            <div className="grid grid-cols-3 gap-3 w-full px-6">
+            <div className="grid grid-cols-3 gap-2 w-full px-6">
               {/* Protein */}
-              <div className="bg-white dark:bg-surface-dark rounded-xl p-4 flex flex-col gap-3 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300">
-                <div className="flex justify-between items-end">
-                  <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wider">{t.dashboard.protein}</span>
+              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.protein}</span>
                   <span className="text-[10px] text-nura-petrol dark:text-primary font-bold">
-                    {Math.round((stats.macros.protein / stats.targetMacros.protein) * 100)}%
+                    {Math.round(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100)}%
                   </span>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-lg font-bold text-nura-main dark:text-white">
-                    {Math.round(stats.macros.protein)}
-                    <span className="text-xs font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.protein}g</span>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <span className="text-base font-bold text-nura-main dark:text-white leading-none">
+                    {Math.round(stats.macros.protein ?? 0)}
+                    <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.protein}g</span>
                   </span>
                   <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
-                    <div className="h-full bg-nura-petrol dark:bg-primary rounded-full" style={{ width: `${Math.min((stats.macros.protein / stats.targetMacros.protein) * 100, 100)}%` }} />
+                    <div className="h-full bg-nura-petrol dark:bg-primary rounded-full" style={{ width: `${Math.min(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100, 100)}%` }} />
                   </div>
                 </div>
               </div>
 
               {/* Carbs */}
-              <div className="bg-white dark:bg-surface-dark rounded-xl p-4 flex flex-col gap-3 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300">
-                <div className="flex justify-between items-end">
-                  <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wider">{t.dashboard.carbs}</span>
+              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.carbs}</span>
                   <span className="text-[10px] text-orange-400 font-bold">
-                    {Math.round((stats.macros.carbs / stats.targetMacros.carbs) * 100)}%
+                    {Math.round(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100)}%
                   </span>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-lg font-bold text-nura-main dark:text-white">
-                    {Math.round(stats.macros.carbs)}
-                    <span className="text-xs font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.carbs}g</span>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <span className="text-base font-bold text-nura-main dark:text-white leading-none">
+                    {Math.round(stats.macros.carbs ?? 0)}
+                    <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.carbs}g</span>
                   </span>
                   <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
-                    <div className="h-full bg-orange-400 rounded-full" style={{ width: `${Math.min((stats.macros.carbs / stats.targetMacros.carbs) * 100, 100)}%` }} />
+                    <div className="h-full bg-orange-400 rounded-full" style={{ width: `${Math.min(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100, 100)}%` }} />
                   </div>
                 </div>
               </div>
 
-              {/* Fats (pink instead of purple per P2 fix) */}
-              <div className="bg-white dark:bg-surface-dark rounded-xl p-4 flex flex-col gap-3 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300">
-                <div className="flex justify-between items-end">
-                  <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wider">{t.dashboard.fats}</span>
+              {/* Fats */}
+              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.fats}</span>
                   <span className="text-[10px] text-pink-400 font-bold">
-                    {Math.round((stats.macros.fats / stats.targetMacros.fats) * 100)}%
+                    {Math.round(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100)}%
                   </span>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-lg font-bold text-nura-main dark:text-white">
-                    {Math.round(stats.macros.fats)}
-                    <span className="text-xs font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.fats}g</span>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <span className="text-base font-bold text-nura-main dark:text-white leading-none">
+                    {Math.round(stats.macros.fats ?? 0)}
+                    <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.fats}g</span>
                   </span>
                   <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
-                    <div className="h-full bg-pink-400 rounded-full" style={{ width: `${Math.min((stats.macros.fats / stats.targetMacros.fats) * 100, 100)}%` }} />
+                    <div className="h-full bg-pink-400 rounded-full" style={{ width: `${Math.min(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100, 100)}%` }} />
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Hydration Card */}
+            <div className="px-6">
+              {(() => {
+                const waterGoal = 2500;
+                const waterPct = Math.min(Math.round((waterIntake / waterGoal) * 100), 100);
+                const glassesTotal = 8;
+                const glassesFilled = Math.round((waterIntake / waterGoal) * glassesTotal);
+                return (
+                  <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sky-400 text-xl">water_drop</span>
+                        <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Hidratação</span>
+                      </div>
+                      <span className="text-xs text-sky-400 font-bold">{waterPct}%</span>
+                    </div>
+                    <div className="flex items-end gap-3">
+                      <span className="text-2xl font-bold text-nura-main dark:text-white leading-none">
+                        {waterIntake}
+                        <span className="text-xs font-normal text-nura-muted dark:text-slate-500 ml-1">/{waterGoal} ml</span>
+                      </span>
+                    </div>
+                    <div className="mt-3 flex gap-1.5">
+                      {Array.from({ length: glassesTotal }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`flex-1 h-2 rounded-full transition-colors duration-300 ${i < glassesFilled ? 'bg-sky-400' : 'bg-nura-pastel-orange dark:bg-slate-700/50'}`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-nura-muted dark:text-slate-500 mt-1.5">
+                      {glassesFilled} de {glassesTotal} copos · meta diária
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           </>
         ) : (
