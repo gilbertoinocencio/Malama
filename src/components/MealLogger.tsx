@@ -618,21 +618,50 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2 mt-2">
                     {data.items?.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-nura-bg dark:bg-[#152226] border border-transparent hover:border-nura-petrol/20 dark:hover:border-primary/20 transition-all">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-nura-border dark:bg-white/10 rounded-lg size-10 shadow-sm flex items-center justify-center">
-                            <span className="material-symbols-outlined text-nura-muted dark:text-slate-500 text-sm">lunch_dining</span>
+                      <div key={idx} className="p-3 rounded-xl bg-nura-bg dark:bg-[#152226] border border-transparent hover:border-nura-petrol/20 dark:hover:border-primary/20 transition-all">
+                        {/* Top row: icon + name + calories */}
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="bg-nura-border dark:bg-white/10 rounded-lg size-9 shrink-0 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-nura-muted dark:text-slate-500 text-sm">lunch_dining</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-nura-main dark:text-white text-sm font-semibold truncate">{item.name}</p>
+                              <p className="text-nura-muted dark:text-slate-500 text-xs">
+                                {item.quantity ? `${item.quantity}` : ''}{item.weightGrams ? ` · ${item.weightGrams}g` : ''}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-nura-main dark:text-white text-sm font-semibold">{item.name}</p>
-                            <p className="text-nura-muted dark:text-slate-500 text-xs">
-                              {item.quantity ? `${item.quantity} · ` : ''}{item.weightGrams}g
-                            </p>
-                          </div>
+                          <span className="text-nura-petrol dark:text-primary text-sm font-bold shrink-0">{item.calories} kcal</span>
                         </div>
-                        <p className="text-nura-main dark:text-white text-sm font-medium">{item.calories} kcal</p>
+                        {/* Bottom row: macros */}
+                        {(item.protein != null || item.carbs != null || item.fats != null) && (
+                          <div className="flex gap-2 pl-12">
+                            {item.protein != null && (
+                              <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-accent-protein inline-block"></span>
+                                <span className="text-nura-muted dark:text-slate-400">P</span>
+                                <span className="text-nura-main dark:text-white">{item.protein}g</span>
+                              </span>
+                            )}
+                            {item.carbs != null && (
+                              <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-accent-carbs inline-block"></span>
+                                <span className="text-nura-muted dark:text-slate-400">C</span>
+                                <span className="text-nura-main dark:text-white">{item.carbs}g</span>
+                              </span>
+                            )}
+                            {item.fats != null && (
+                              <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-accent-fat inline-block"></span>
+                                <span className="text-nura-muted dark:text-slate-400">G</span>
+                                <span className="text-nura-main dark:text-white">{item.fats}g</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
