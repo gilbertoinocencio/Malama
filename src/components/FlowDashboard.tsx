@@ -36,6 +36,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const [period, setPeriod] = useState<PeriodTab>('week');
   const [gameStats, setGameStats] = useState<GamificationStats | null>(null);
   const [waterIntake, setWaterIntake] = useState(0);
+  const [waterGoalState, setWaterGoalState] = useState(0);
   const [weeklyScores, setWeeklyScores] = useState<{ date: string, score: number }[]>([]);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
 
@@ -62,19 +63,33 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     }
   }, [user]);
 
+  // Calculate daily water goal aligned with plan recommendation (3-4L/day):
+  // base = max(3000, weight × 35ml/kg) + activity bonus
+  const calcWaterGoal = (p: typeof profile): number => {
+    const weight = p?.weight || 70;
+    const base = Math.max(3000, Math.round(weight * 35)); // floor of 3L per plan
+    const activityBonus = p?.activity_level === 'intense' ? 600 : p?.activity_level === 'moderate' ? 300 : 0;
+    return base + activityBonus;
+  };
+
   const loadDailyData = async () => {
     if (!user) return;
     try {
       const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('daily_logs')
-        .select('water_intake')
+        .select('water_intake, water_goal')
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle();
-      if (!error && data) setWaterIntake(data.water_intake || 0);
+      if (!error && data) {
+        setWaterIntake(data.water_intake || 0);
+        setWaterGoalState(data.water_goal || calcWaterGoal(profile));
+      } else {
+        setWaterGoalState(calcWaterGoal(profile));
+      }
     } catch {
-      // daily_logs table may not exist yet — ignore silently
+      setWaterGoalState(calcWaterGoal(profile));
     }
   };
 
@@ -356,7 +371,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
             {/* Hydration Card */}
             <div className="px-6">
               {(() => {
-                const waterGoal = 2500;
+                const waterGoal = waterGoalState || calcWaterGoal(profile);
                 const waterPct = Math.min(Math.round((waterIntake / waterGoal) * 100), 100);
                 const glassesTotal = 8;
                 const glassesFilled = Math.round((waterIntake / waterGoal) * glassesTotal);

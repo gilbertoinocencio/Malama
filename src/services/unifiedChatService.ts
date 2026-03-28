@@ -178,13 +178,44 @@ export const UnifiedChatService = {
             const parsed = JSON.parse(waterMatch[1]);
             const ml = Number(parsed.ml);
             if (!isNaN(ml) && ml > 0) {
+              // 1. Update daily_logs.water_intake (source of truth for dashboard)
+              const today = new Date().toISOString().split('T')[0];
+              const { data: existingLog } = await supabase
+                .from('daily_logs')
+                .select('id, water_intake, water_goal')
+                .eq('user_id', userId)
+                .eq('date', today)
+                .maybeSingle();
+
+              if (existingLog) {
+                await supabase
+                  .from('daily_logs')
+                  .update({ water_intake: (existingLog.water_intake || 0) + ml })
+                  .eq('id', existingLog.id);
+              } else {
+                // Fetch profile to calculate personalised water goal
+                const { data: profileData } = await supabase
+                  .from('profiles')
+                  .select('weight, activity_level')
+                  .eq('id', userId)
+                  .maybeSingle();
+                const weight = profileData?.weight || 70;
+                const activityBonus = profileData?.activity_level === 'intense' ? 600 : profileData?.activity_level === 'moderate' ? 300 : 0;
+                const waterGoal = Math.max(3000, Math.round(weight * 35)) + activityBonus;
+
+                await supabase
+                  .from('daily_logs')
+                  .insert({ user_id: userId, date: today, water_intake: ml, water_goal: waterGoal });
+              }
+
+              // 2. Also update hydration mission progress (gamification)
               const { CoachService } = await import('./coachService');
               const todayMissions = await CoachService.getTodayMissions(userId);
               const hydrationMission = todayMissions.find(m => m.mission_type === 'hydration');
               if (hydrationMission && hydrationMission.id) {
                 await CoachService.updateMissionProgress(
-                  userId, 
-                  hydrationMission.id, 
+                  userId,
+                  hydrationMission.id,
                   (hydrationMission.current_value || 0) + ml
                 );
               }
