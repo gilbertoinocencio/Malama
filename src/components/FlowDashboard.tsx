@@ -9,7 +9,6 @@ import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Confetti } from './Confetti';
 import { TodayMissionsCard } from './TodayMissionsCard';
 import { DailyCheckinModal } from './DailyCheckinModal';
-import { MealSuggestionsCarousel } from './MealSuggestionsCarousel';
 import { BodyScanner } from './BodyScanner';
 import { BodyProgressTimeline } from './BodyProgressTimeline';
 
@@ -262,11 +261,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
             {/* Today's Missions Card */}
             <div className="px-6">
               <TodayMissionsCard />
-            </div>
-
-            {/* Meal Suggestions Carousel */}
-            <div className="px-6">
-              <MealSuggestionsCarousel />
             </div>
 
             {/* Body Scan Quick Access */}

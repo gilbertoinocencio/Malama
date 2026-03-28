@@ -4,6 +4,7 @@ import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { FoodService, FoodItem as ServiceFoodItem } from '../services/foodService';
 import { MealService } from '../services/mealService';
+import { MealSuggestionsCarousel } from './MealSuggestionsCarousel';
 
 interface FoodGuideProps {
     onBack: () => void;
@@ -174,6 +175,11 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate }) => {
                     <p className="text-nura-muted dark:text-gray-400 text-sm font-medium">
                         {t.foodGuide.heroSubtitle}
                     </p>
+                </div>
+
+                {/* Meal Suggestions Carousel */}
+                <div className="mb-6">
+                    <MealSuggestionsCarousel />
                 </div>
 
                 {/* Budget Tier Selector */}
