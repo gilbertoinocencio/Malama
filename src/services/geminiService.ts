@@ -59,6 +59,7 @@ export const analyzeTextLog = async (text: string, language: string = 'pt'): Pro
                 type: SchemaType.OBJECT,
                 properties: {
                   name: { type: SchemaType.STRING },
+                  quantity: { type: SchemaType.STRING },
                   weightGrams: { type: SchemaType.NUMBER },
                   calories: { type: SchemaType.NUMBER },
                   protein: { type: SchemaType.NUMBER },
@@ -76,14 +77,29 @@ export const analyzeTextLog = async (text: string, language: string = 'pt'): Pro
     });
 
     const langName = LANG_NAMES[language] || LANG_NAMES.pt;
-    const prompt = `You are NURA, a lifestyle nutrition coach focused on consistency and flow. Analyze this food log: "${text}". 
-    Return a JSON object with:
-    - foodName (string, overall summary name in ${langName})
-    - calories (number, total)
-    - macros (object with p, c, f as numbers for protein, carbs, fats in grams)
-    - items (array of objects with: name (string in ${langName}), weightGrams (number), calories (number), protein (number), carbs (number), fats (number))
-    - message (string, a short motivational phrase in ${langName} about maintaining the flow)
-    Approximate values if needed. All macro values should correspond to the estimated weightGrams. ALL text responses MUST be in ${langName}.`;
+    const prompt = `You are NURA, a clinical-grade nutrition analysis engine. Analyze this food log: "${text}".
+
+## NUTRITIONAL DATABASE PRIORITY
+Use values from these databases in order of priority:
+1. **TACO (Tabela Brasileira de Composição de Alimentos)** — preferred for Brazilian foods (feijão, arroz, carne de sol, pão francês, coxinha, açaí, tapioca, etc.)
+2. **USDA FoodData Central (SR Legacy / Foundation Foods)** — for international foods or when TACO has no entry
+3. **IBGE POF** — for typical Brazilian portion sizes
+
+## RULES
+- Calculate macros per item based on the **exact weightGrams** informed or estimated. Use the per-100g values from the databases above and scale proportionally.
+- For composite dishes (e.g. "omelete de 3 ovos com queijo"), break down into individual ingredients with their respective weights and macros.
+- Include the "quantity" field in each item when applicable (e.g. "3 unidades", "1 concha média", "2 fatias").
+- Round all numeric values to the nearest integer.
+- The total calories and macros must equal the sum of all items.
+
+Return a JSON object with:
+- foodName (string, overall summary name in ${langName})
+- calories (number, total kcal)
+- macros (object with p, c, f as numbers for protein, carbs, fats in grams)
+- items (array of objects with: name (string in ${langName}), quantity (string, e.g. "2 unidades" — optional), weightGrams (number), calories (number), protein (number), carbs (number), fats (number))
+- message (string, a short motivational phrase in ${langName} about maintaining the flow)
+
+ALL text responses MUST be in ${langName}.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -109,23 +125,39 @@ export const analyzeImageLog = async (base64Image: string, language: string = 'p
     const model = getGenAI().getGenerativeModel({ model: MODEL_NAME });
 
     const langName = LANG_NAMES[language] || LANG_NAMES.pt;
-    const prompt = `You are NURA, a lifestyle nutrition coach. Identify the food in this image. 
-    Return a STRICT JSON string with this structure:
-    { 
-      "foodName": string (in ${langName}), 
-      "calories": number, 
-      "macros": { "p": number, "c": number, "f": number }, 
-      "items": [{ 
-        "name": string (in ${langName}), 
-        "weightGrams": number, 
-        "calories": number,
-        "protein": number,
-        "carbs": number,
-        "fats": number
-      }], 
-      "message": string (short motivational phrase in ${langName}) 
-    }
-    All macro values per item should be calculated based on the estimated weightGrams. ALL text responses MUST be in ${langName}.`;
+    const prompt = `You are NURA, a clinical-grade nutrition analysis engine. Identify ALL food items visible in this image.
+
+## NUTRITIONAL DATABASE PRIORITY
+Use values from these databases in order of priority:
+1. **TACO (Tabela Brasileira de Composição de Alimentos)** — preferred for Brazilian foods
+2. **USDA FoodData Central (SR Legacy / Foundation Foods)** — for international foods
+3. **IBGE POF** — for typical Brazilian portion sizes
+
+## RULES
+- Estimate the weight of each visible item based on visual portion size (use common plate/bowl sizes as reference).
+- Calculate macros per item using **per-100g values** from the databases above, scaled to the estimated weight.
+- For composite items, break them into individual ingredients when possible.
+- Include a "quantity" field (e.g. "1 filé médio", "2 conchas", "1 bowl pequeno").
+- Round all numeric values to the nearest integer.
+- The total calories and macros must equal the sum of all items.
+
+Return a STRICT JSON string with this structure:
+{
+  "foodName": string (overall meal name in ${langName}),
+  "calories": number (total kcal),
+  "macros": { "p": number, "c": number, "f": number },
+  "items": [{
+    "name": string (in ${langName}),
+    "quantity": string (e.g. "1 unidade média"),
+    "weightGrams": number,
+    "calories": number,
+    "protein": number,
+    "carbs": number,
+    "fats": number
+  }],
+  "message": string (short motivational phrase in ${langName})
+}
+ALL text responses MUST be in ${langName}.`;
 
     const result = await model.generateContent([
       prompt,
