@@ -47,11 +47,33 @@ export const StatsService = {
             .eq('id', userId)
             .maybeSingle();
 
+        // Check if there is an active AI-generated plan to override targets
+        const { data: activePlan } = await supabase
+            .from('quarterly_plans')
+            .select('content')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        let target_calories = profile?.target_calories ?? 2000;
+        let target_protein = profile?.target_protein ?? 150;
+        let target_carbs = profile?.target_carbs ?? 200;
+        let target_fats = profile?.target_fats ?? 65;
+
+        if (activePlan?.content) {
+            target_calories = activePlan.content.calories || target_calories;
+            target_protein = activePlan.content.macros?.protein || target_protein;
+            target_carbs = activePlan.content.macros?.carbs || target_carbs;
+            target_fats = activePlan.content.macros?.fats || target_fats;
+        }
+
         const targets = {
-            target_calories: profile?.target_calories ?? 2000,
-            target_protein: profile?.target_protein ?? 150,
-            target_carbs: profile?.target_carbs ?? 200,
-            target_fats: profile?.target_fats ?? 65
+            target_calories,
+            target_protein,
+            target_carbs,
+            target_fats
         };
 
         const consumed = meals.reduce((acc, meal) => ({

@@ -93,6 +93,17 @@ export const PlanService = {
 
         if (saveError) throw saveError;
 
+        // 6. Update user profile targets so they reflect on the Home/Flow dashboard
+        await supabase
+            .from('profiles')
+            .update({
+                target_calories: planContent.calories,
+                target_protein: planContent.macros.protein,
+                target_carbs: planContent.macros.carbs,
+                target_fats: planContent.macros.fats
+            })
+            .eq('id', userId);
+
         return {
             id: newPlan.id,
             ...newPlan.content,
