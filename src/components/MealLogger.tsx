@@ -64,6 +64,79 @@ interface Message {
   content: any; // Text string or AIResponse object
 }
 
+// Simple markdown renderer for chat messages (bold, italic, line breaks, numbered/bullet lists)
+const renderMarkdown = (text: string): React.ReactNode[] => {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+
+  const formatInline = (line: string, key: string): React.ReactNode => {
+    // Split by bold (**text**) and italic (*text*) markers
+    const parts: React.ReactNode[] = [];
+    const regex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+    let lastIndex = 0;
+    let match;
+    let partIdx = 0;
+
+    while ((match = regex.exec(line)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(line.slice(lastIndex, match.index));
+      }
+      if (match[2]) {
+        // Bold
+        parts.push(<strong key={`${key}-b${partIdx}`} className="font-semibold">{match[2]}</strong>);
+      } else if (match[3]) {
+        // Italic
+        parts.push(<em key={`${key}-i${partIdx}`}>{match[3]}</em>);
+      }
+      lastIndex = match.index + match[0].length;
+      partIdx++;
+    }
+    if (lastIndex < line.length) {
+      parts.push(line.slice(lastIndex));
+    }
+    return parts.length > 0 ? <>{parts}</> : line;
+  };
+
+  lines.forEach((line, i) => {
+    const trimmed = line.trim();
+
+    // Empty line = paragraph break
+    if (!trimmed) {
+      elements.push(<div key={`br-${i}`} className="h-2" />);
+      return;
+    }
+
+    // Numbered list: "1. ", "2. " etc.
+    const numberedMatch = trimmed.match(/^(\d+)\.\s+(.+)/);
+    if (numberedMatch) {
+      elements.push(
+        <div key={`li-${i}`} className="flex gap-2 mt-1">
+          <span className="text-nura-petrol dark:text-primary font-bold shrink-0">{numberedMatch[1]}.</span>
+          <span>{formatInline(numberedMatch[2], `li-${i}`)}</span>
+        </div>
+      );
+      return;
+    }
+
+    // Bullet list: "- " or "• "
+    const bulletMatch = trimmed.match(/^[-•]\s+(.+)/);
+    if (bulletMatch) {
+      elements.push(
+        <div key={`bl-${i}`} className="flex gap-2 mt-1">
+          <span className="text-nura-petrol dark:text-primary shrink-0">•</span>
+          <span>{formatInline(bulletMatch[1], `bl-${i}`)}</span>
+        </div>
+      );
+      return;
+    }
+
+    // Regular paragraph
+    elements.push(<p key={`p-${i}`} className={i > 0 ? 'mt-1' : ''}>{formatInline(trimmed, `p-${i}`)}</p>);
+  });
+
+  return elements;
+};
+
 // Helper for image resizing to stay within AI limits (usually 2000px)
 const resizeImage = (base64Str: string, maxDim = 1200): Promise<string> => {
   return new Promise((resolve) => {
@@ -480,7 +553,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                   <div className="flex flex-col gap-1 items-start max-w-[95%]">
                     <span className="text-nura-muted dark:text-slate-400 text-[11px] font-medium pl-1">NURA AI</span>
                     <div className="bg-white dark:bg-surface-dark text-nura-main dark:text-slate-200 text-base font-normal leading-relaxed rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm border border-nura-border dark:border-white/5">
-                      <p>{msg.content}</p>
+                      {renderMarkdown(msg.content)}
                     </div>
                   </div>
                 </div>

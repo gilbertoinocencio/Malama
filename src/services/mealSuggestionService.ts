@@ -4,7 +4,7 @@ import { MealSuggestion } from './coachService';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
-const MODEL_NAME = "gemini-1.5-flash";
+const MODEL_NAME = "gemini-2.5-flash";
 
 export const MealSuggestionService = {
   /**
