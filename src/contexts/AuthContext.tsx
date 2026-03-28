@@ -25,19 +25,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const fetchingProfileRef = React.useRef(false);
 
     useEffect(() => {
+        let initialLoadDone = false;
+
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
             if (session?.user) {
-                fetchProfile(session.user.id).finally(() => setLoading(false));
+                fetchProfile(session.user.id).finally(() => {
+                    initialLoadDone = true;
+                    setLoading(false);
+                });
             } else {
+                initialLoadDone = true;
                 setLoading(false);
             }
         }).catch((err) => {
             console.error('Error getting session:', err);
+            initialLoadDone = true;
             setLoading(false);
         });
+
+        // Safety timeout: never stay loading for more than 8 seconds
+        const safetyTimer = setTimeout(() => {
+            if (!initialLoadDone) {
+                console.warn('⚠️ Auth loading timed out — forcing load complete');
+                setLoading(false);
+            }
+        }, 8000);
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -51,7 +66,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            clearTimeout(safetyTimer);
+            subscription.unsubscribe();
+        };
     }, []);
 
     const fetchProfile = async (userId: string) => {
@@ -71,6 +89,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (error) {
                 console.error('Error fetching profile:', error);
+                // Still set minimal profile so the app doesn't get stuck on spinner
+                setProfile((prev: any) => prev || { id: userId });
                 return;
             }
 
