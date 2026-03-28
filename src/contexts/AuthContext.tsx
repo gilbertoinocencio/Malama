@@ -25,49 +25,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const fetchingProfileRef = React.useRef(false);
 
     useEffect(() => {
-        let initialLoadDone = false;
+        let mounted = true;
 
-        // Check active session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchProfile(session.user.id).finally(() => {
-                    initialLoadDone = true;
-                    setLoading(false);
-                });
-            } else {
-                initialLoadDone = true;
-                setLoading(false);
+        // Single init: get session + profile, then stop loading
+        const init = async () => {
+            try {
+                const { data: { session: currentSession } } = await supabase.auth.getSession();
+                if (!mounted) return;
+
+                setSession(currentSession);
+                setUser(currentSession?.user ?? null);
+
+                if (currentSession?.user) {
+                    await fetchProfile(currentSession.user.id);
+                }
+            } catch (err) {
+                console.error('Error during auth init:', err);
+            } finally {
+                if (mounted) setLoading(false);
             }
-        }).catch((err) => {
-            console.error('Error getting session:', err);
-            initialLoadDone = true;
-            setLoading(false);
-        });
+        };
 
-        // Safety timeout: never stay loading for more than 8 seconds
-        const safetyTimer = setTimeout(() => {
-            if (!initialLoadDone) {
-                console.warn('⚠️ Auth loading timed out — forcing load complete');
-                setLoading(false);
-            }
-        }, 8000);
+        init();
 
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                await fetchProfile(session.user.id);
+        // Listen for subsequent auth changes (sign-in, sign-out, token refresh)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+            if (!mounted) return;
+            setSession(newSession);
+            setUser(newSession?.user ?? null);
+
+            if (newSession?.user) {
+                // Reset the guard so profile can be re-fetched
+                fetchingProfileRef.current = false;
+                await fetchProfile(newSession.user.id);
             } else {
                 setProfile(null);
             }
-            setLoading(false);
         });
 
         return () => {
-            clearTimeout(safetyTimer);
+            mounted = false;
             subscription.unsubscribe();
         };
     }, []);

@@ -128,14 +128,12 @@ const App: React.FC = () => {
     biotype: profile?.biotype
   });
 
-  // Wait for profile to load before making decisions
-  // Profile must have an id property to be considered loaded
+  // If profile hasn't loaded yet (e.g. minimal profile from timeout), treat as needing onboarding
   if (!profile || !profile.id) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-nura-bg dark:bg-background-dark">
-        <div className="w-16 h-16 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <OnboardingFlow onComplete={() => {
+      setStatsLoaded(false);
+      loadStats();
+    }} />;
   }
 
   // Show onboarding if not explicitly completed
