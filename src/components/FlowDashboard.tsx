@@ -9,8 +9,6 @@ import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Confetti } from './Confetti';
 import { TodayMissionsCard } from './TodayMissionsCard';
 import { DailyCheckinModal } from './DailyCheckinModal';
-import { BodyScanner } from './BodyScanner';
-import { BodyProgressTimeline } from './BodyProgressTimeline';
 
 interface FlowDashboardProps {
   stats: DailyStats;
@@ -40,8 +38,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const [waterIntake, setWaterIntake] = useState(0);
   const [weeklyScores, setWeeklyScores] = useState<{ date: string, score: number }[]>([]);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
-  const [showBodyScanner, setShowBodyScanner] = useState(false);
-  const [showBodyProgress, setShowBodyProgress] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -263,33 +259,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               <TodayMissionsCard />
             </div>
 
-            {/* Body Scan Quick Access */}
-            <div className="px-6 mb-4">
-              <div
-                onClick={() => setShowBodyProgress(true)}
-                className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 dark:from-purple-500/20 dark:to-pink-500/20 border border-purple-500/20 rounded-2xl p-4 cursor-pointer hover:border-purple-500/40 transition-all group"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="size-14 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/30 transition-colors">
-                    <span className="material-symbols-outlined text-purple-400 text-2xl">photo_camera</span>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-white font-bold text-sm mb-1">Body Scan AI</h3>
-                    <p className="text-white/60 text-xs leading-relaxed">Analise seu progresso corporal com IA</p>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowBodyScanner(true);
-                    }}
-                    className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
-                  >
-                    <span className="material-symbols-outlined text-sm">add_photo_alternate</span>
-                    Scan
-                  </button>
-                </div>
-              </div>
-            </div>
 
             <div className="flex flex-col items-center justify-center px-6 py-4">
               <div className="relative size-64">
@@ -597,27 +566,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
         />
       )}
 
-      {/* Body Scanner Modal */}
-      {showBodyScanner && (
-        <BodyScanner
-          onClose={() => setShowBodyScanner(false)}
-          onScanComplete={() => {
-            setShowBodyScanner(false);
-            setShowBodyProgress(true);
-          }}
-        />
-      )}
-
-      {/* Body Progress Timeline Modal */}
-      {showBodyProgress && (
-        <BodyProgressTimeline
-          onClose={() => setShowBodyProgress(false)}
-          onNewScan={() => {
-            setShowBodyProgress(false);
-            setShowBodyScanner(true);
-          }}
-        />
-      )}
 
 
     </div>

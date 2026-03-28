@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { BodyScanner } from './BodyScanner';
+import { BodyProgressTimeline } from './BodyProgressTimeline';
 import { AppView } from '../types';
 import { USER_AVATAR, LANGUAGES } from '../constants';
 import { useLanguage } from '../i18n';
@@ -29,6 +31,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const { language, setLanguage, t } = useLanguage();
   const { profile, user, signOut } = useAuth();
 
+  const [showBodyScanner, setShowBodyScanner] = useState(false);
+  const [showBodyProgress, setShowBodyProgress] = useState(false);
   const [gamification, setGamification] = useState<GamificationStats | null>(null);
   const [totalMeals, setTotalMeals] = useState(0);
   const [heatmapData, setHeatmapData] = useState<HeatmapDay[]>([]);
@@ -355,6 +359,34 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </section>
 
+        {/* Body Scan AI */}
+        <section className="w-full px-6 mb-8">
+          <div
+            onClick={() => setShowBodyProgress(true)}
+            className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 dark:from-purple-500/20 dark:to-pink-500/20 border border-purple-500/20 rounded-2xl p-4 cursor-pointer hover:border-purple-500/40 transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="size-14 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/30 transition-colors">
+                <span className="material-symbols-outlined text-purple-400 text-2xl">photo_camera</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-nura-main dark:text-white font-bold text-sm mb-1">Body Scan AI</h3>
+                <p className="text-nura-muted dark:text-gray-400 text-xs leading-relaxed">Analise seu progresso corporal com IA</p>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowBodyScanner(true);
+                }}
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-sm">add_photo_alternate</span>
+                Scan
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* Achievements Section */}
         <section className="w-full px-6 mb-8">
           <h3 className="text-nura-main dark:text-white text-lg font-bold leading-tight mb-4">{t.profile.recentAchievements}</h3>
@@ -391,6 +423,28 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </button>
         </section>
       </main>
+
+      {/* Body Scanner Modal */}
+      {showBodyScanner && (
+        <BodyScanner
+          onClose={() => setShowBodyScanner(false)}
+          onScanComplete={() => {
+            setShowBodyScanner(false);
+            setShowBodyProgress(true);
+          }}
+        />
+      )}
+
+      {/* Body Progress Timeline Modal */}
+      {showBodyProgress && (
+        <BodyProgressTimeline
+          onClose={() => setShowBodyProgress(false)}
+          onNewScan={() => {
+            setShowBodyProgress(false);
+            setShowBodyScanner(true);
+          }}
+        />
+      )}
     </div>
   );
 };
