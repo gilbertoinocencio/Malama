@@ -183,11 +183,49 @@ const resizeImage = (base64Str: string, maxDim = 1200): Promise<string> => {
   });
 };
 
+// Convert DB chat history to local Message format
+const historyToMessages = (history: any[]): Message[] => {
+  const result: Message[] = [];
+  for (const msg of history) {
+    if (msg.role === 'user' || msg.role === 'system') {
+      result.push({ id: msg.id, type: 'user', content: msg.content });
+    } else {
+      // agent — check for embedded meal card
+      const mealMatch = msg.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/);
+      if (mealMatch) {
+        try {
+          const cleanText = msg.content.replace(/<meal_json>[\s\S]*?<\/meal_json>/, '').trim();
+          const parsedMeal: AIResponse = JSON.parse(mealMatch[1]);
+          if (cleanText) result.push({ id: msg.id + '-text', type: 'ai-text', content: cleanText });
+          result.push({ id: msg.id + '-card', type: 'ai-card', content: parsedMeal });
+        } catch {
+          result.push({ id: msg.id, type: 'ai-text', content: msg.content });
+        }
+      } else {
+        result.push({ id: msg.id, type: 'ai-text', content: msg.content });
+      }
+    }
+  }
+  return result;
+};
+
+// Group messages by calendar date for date separators
+const getDateLabel = (isoDate: string): string => {
+  const d = new Date(isoDate);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return 'Hoje';
+  if (d.toDateString() === yesterday.toDateString()) return 'Ontem';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+};
+
 export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
-  console.log('MealLogger: COMPONENT RENDERED');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [messageDates, setMessageDates] = useState<Record<string, string>>({});
   const [draftMeal, setDraftMeal] = useState<AIResponse | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editItems, setEditItems] = useState<MealItem[]>([]);
@@ -205,6 +243,27 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   const { t, speechLang, language } = useLanguage();
   const { user } = useAuth();
+
+  // Load persistent chat history on mount
+  useEffect(() => {
+    if (!user) { setLoadingHistory(false); return; }
+    UnifiedChatService.getChatHistory(user.id, 200).then((history) => {
+      // Filter only 'chat' session messages (exclude onboarding)
+      const chatOnly = history.filter((m: any) => !m.stage || m.stage === null);
+      const converted = historyToMessages(chatOnly);
+      // Build date map: messageId → ISO date string
+      const dates: Record<string, string> = {};
+      history.forEach((m: any) => {
+        dates[m.id] = m.created_at;
+      });
+      setMessageDates(dates);
+      setMessages(converted);
+    }).catch(() => {
+      // On error, start with empty chat
+    }).finally(() => {
+      setLoadingHistory(false);
+    });
+  }, [user]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -473,6 +532,149 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     );
   }
 
+  const renderMessage = (msg: Message) => {
+    if (msg.type === 'user') {
+      return (
+        <div key={msg.id} className="flex items-end gap-3 justify-end w-full animate-fade-in-up">
+          <div className="flex flex-col gap-1 items-end max-w-[85%]">
+            <div className="bg-nura-petrol dark:bg-primary text-white text-base font-normal leading-relaxed rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm">
+              {msg.content}
+            </div>
+            <span className="text-nura-muted dark:text-slate-400 text-[11px] font-medium pr-1">Você</span>
+          </div>
+          <div
+            className="bg-center bg-no-repeat bg-cover rounded-full w-8 h-8 shrink-0 border border-nura-border dark:border-white/10"
+            style={{ backgroundImage: `url("${USER_AVATAR}")` }}
+          />
+        </div>
+      );
+    }
+
+    if (msg.type === 'ai-text') {
+      return (
+        <div key={msg.id} className="flex gap-3 w-full max-w-full animate-fade-in-up">
+          <div className="shrink-0 flex flex-col justify-end pb-6">
+            <div className="bg-gradient-to-br from-nura-petrol to-[#0a90bd] dark:from-primary dark:to-[#0a90bd] flex items-center justify-center rounded-full w-8 h-8 shrink-0 shadow-lg shadow-nura-petrol/20 dark:shadow-primary/20">
+              <span className="material-symbols-outlined text-white text-sm">smart_toy</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 flex-1 min-w-0">
+            <div className="flex flex-col gap-1 items-start max-w-[95%]">
+              <span className="text-nura-muted dark:text-slate-400 text-[11px] font-medium pl-1">NURA AI</span>
+              <div className="bg-white dark:bg-surface-dark text-nura-main dark:text-slate-200 text-base font-normal leading-relaxed rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm border border-nura-border dark:border-white/5">
+                {renderMarkdown(msg.content)}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (msg.type === 'ai-card') {
+      const data = msg.content as AIResponse;
+      const totalMacros = data.macros.p + data.macros.c + data.macros.f;
+      const pPct = (data.macros.p / totalMacros) * 100;
+      const cPct = (data.macros.c / totalMacros) * 100;
+      const gradientStyle = {
+        background: `conic-gradient(var(--tw-colors-accent-protein) 0% ${pPct}%, var(--tw-colors-accent-carbs) ${pPct}% ${pPct + cPct}%, var(--tw-colors-accent-fat) ${pPct + cPct}% 100%)`
+      };
+
+      return (
+        <div key={msg.id} className="flex gap-3 w-full max-w-full animate-fade-in-up pl-11">
+          <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-lg border border-nura-border dark:border-white/5 w-full overflow-hidden relative group">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-nura-petrol/10 dark:bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex justify-between items-start mb-6 relative z-10">
+              <div>
+                <h3 className="text-nura-main dark:text-white text-lg font-bold">{t.mealLogger.summary}</h3>
+                <p className="text-nura-muted dark:text-slate-500 text-sm capitalize">{data.foodName}</p>
+              </div>
+              <div className="text-right">
+                <span className="block text-2xl font-bold text-nura-petrol dark:text-primary tracking-tight">{data.calories}</span>
+                <span className="text-xs text-nura-muted dark:text-slate-400 uppercase tracking-wider font-semibold">{t.mealLogger.kcalTotal}</span>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center gap-6 mb-6">
+              <div className="relative shrink-0 size-24 rounded-full flex items-center justify-center" style={gradientStyle}>
+                <div className="absolute inset-0 rounded-full bg-white dark:bg-surface-dark m-[10px] flex items-center justify-center">
+                  <span className="material-symbols-outlined text-nura-muted dark:text-slate-400">restaurant</span>
+                </div>
+              </div>
+              <div className="flex-1 grid grid-cols-3 sm:grid-cols-1 gap-2 w-full">
+                {[
+                  { label: t.macros.prot, value: data.macros.p, color: 'bg-accent-protein' },
+                  { label: t.macros.carb, value: data.macros.c, color: 'bg-accent-carbs' },
+                  { label: t.macros.fat,  value: data.macros.f, color: 'bg-accent-fat' },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-nura-bg dark:bg-white/5 p-2 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${color}`} />
+                      <span className="text-xs text-nura-muted dark:text-slate-400 font-medium">{label}</span>
+                    </div>
+                    <span className="text-sm font-bold text-nura-main dark:text-white">{value}g</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 mt-2">
+              {data.items?.map((item, idx) => (
+                <div key={idx} className="p-3 rounded-xl bg-nura-bg dark:bg-[#152226] border border-transparent hover:border-nura-petrol/20 dark:hover:border-primary/20 transition-all">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="bg-nura-border dark:bg-white/10 rounded-lg size-9 shrink-0 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-nura-muted dark:text-slate-500 text-sm">lunch_dining</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-nura-main dark:text-white text-sm font-semibold truncate">{item.name}</p>
+                        <p className="text-nura-muted dark:text-slate-500 text-xs">
+                          {item.quantity ?? ''}{item.weightGrams ? ` · ${item.weightGrams}g` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-nura-petrol dark:text-primary text-sm font-bold shrink-0">{item.calories} kcal</span>
+                  </div>
+                  {(item.protein != null || item.carbs != null || item.fats != null) && (
+                    <div className="flex gap-2 pl-12">
+                      {item.protein != null && (
+                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent-protein inline-block" />
+                          <span className="text-nura-muted dark:text-slate-400">P</span>
+                          <span className="text-nura-main dark:text-white">{item.protein}g</span>
+                        </span>
+                      )}
+                      {item.carbs != null && (
+                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent-carbs inline-block" />
+                          <span className="text-nura-muted dark:text-slate-400">C</span>
+                          <span className="text-nura-main dark:text-white">{item.carbs}g</span>
+                        </span>
+                      )}
+                      {item.fats != null && (
+                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent-fat inline-block" />
+                          <span className="text-nura-muted dark:text-slate-400">G</span>
+                          <span className="text-nura-main dark:text-white">{item.fats}g</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {data.message && (
+              <div className="mt-4 pt-4 border-t border-nura-border dark:border-white/10">
+                <div className="flex items-center gap-2 text-nura-petrol dark:text-primary">
+                  <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                  <p className="text-sm font-medium italic">{data.message}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-nura-bg dark:bg-background-dark text-nura-main dark:text-white flex flex-col font-display animate-fade-in">
 
@@ -499,15 +701,25 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       {/* Chat Area */}
       <main ref={scrollRef} className="flex-1 overflow-y-auto hide-scrollbar p-4 flex flex-col gap-6 pb-40">
 
-        {/* Timestamp */}
-        <div className="flex justify-center">
-          <span className="text-xs font-medium text-nura-muted dark:text-slate-500 bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-full">
-            {t.mealLogger.today} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        </div>
+        {/* Loading history skeleton */}
+        {loadingHistory && (
+          <div className="flex flex-col gap-4 mt-4 animate-pulse">
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-white/10 shrink-0" />
+              <div className="flex flex-col gap-1 flex-1">
+                <div className="h-4 bg-gray-200 dark:bg-white/10 rounded-full w-2/3" />
+                <div className="h-4 bg-gray-200 dark:bg-white/10 rounded-full w-1/2" />
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <div className="h-10 bg-gray-200 dark:bg-white/10 rounded-2xl w-1/2" />
+              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-white/10 shrink-0" />
+            </div>
+          </div>
+        )}
 
-        {/* Initial Prompt if Empty */}
-        {messages.length === 0 && (
+        {/* Empty state after history loaded */}
+        {!loadingHistory && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full opacity-50 mt-10 text-nura-muted dark:text-slate-500">
             <span className="material-symbols-outlined text-4xl mb-2">nutrition</span>
             <p>{t.mealLogger.describeMeal}</p>
@@ -522,165 +734,32 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           </div>
         )}
 
-        {/* Messages */}
-        {messages.map((msg) => {
-          if (msg.type === 'user') {
-            return (
-              <div key={msg.id} className="flex items-end gap-3 justify-end w-full animate-fade-in-up">
-                <div className="flex flex-col gap-1 items-end max-w-[85%]">
-                  <div className="bg-nura-petrol dark:bg-primary text-white text-base font-normal leading-relaxed rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm">
-                    {msg.content}
-                  </div>
-                  <span className="text-nura-muted dark:text-slate-400 text-[11px] font-medium pr-1">Você</span>
-                </div>
-                <div
-                  className="bg-center bg-no-repeat bg-cover rounded-full w-8 h-8 shrink-0 border border-nura-border dark:border-white/10"
-                  style={{ backgroundImage: `url("${USER_AVATAR}")` }}
-                ></div>
-              </div>
-            );
-          }
-
-          if (msg.type === 'ai-text') {
-            return (
-              <div key={msg.id} className="flex gap-3 w-full max-w-full animate-fade-in-up">
-                <div className="shrink-0 flex flex-col justify-end pb-6">
-                  <div className="bg-gradient-to-br from-nura-petrol to-[#0a90bd] dark:from-primary dark:to-[#0a90bd] flex items-center justify-center rounded-full w-8 h-8 shrink-0 shadow-lg shadow-nura-petrol/20 dark:shadow-primary/20">
-                    <span className="material-symbols-outlined text-white text-sm">smart_toy</span>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3 flex-1 min-w-0">
-                  <div className="flex flex-col gap-1 items-start max-w-[95%]">
-                    <span className="text-nura-muted dark:text-slate-400 text-[11px] font-medium pl-1">NURA AI</span>
-                    <div className="bg-white dark:bg-surface-dark text-nura-main dark:text-slate-200 text-base font-normal leading-relaxed rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm border border-nura-border dark:border-white/5">
-                      {renderMarkdown(msg.content)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          if (msg.type === 'ai-card') {
-            const data = msg.content as AIResponse;
-            const totalMacros = data.macros.p + data.macros.c + data.macros.f;
-            const pPct = (data.macros.p / totalMacros) * 100;
-            const cPct = (data.macros.c / totalMacros) * 100;
-
-            const gradientStyle = {
-              background: `conic-gradient(var(--tw-colors-accent-protein) 0% ${pPct}%, var(--tw-colors-accent-carbs) ${pPct}% ${pPct + cPct}%, var(--tw-colors-accent-fat) ${pPct + cPct}% 100%)`
-            };
+        {/* Messages with date separators */}
+        {(() => {
+          let lastDateLabel = '';
+          return messages.map((msg) => {
+            // Determine date label for this message
+            const rawId = msg.id.replace(/-text$|-card$/, '');
+            const isoDate = messageDates[rawId];
+            const dateLabel = isoDate ? getDateLabel(isoDate) : '';
+            const showSeparator = dateLabel && dateLabel !== lastDateLabel;
+            if (showSeparator) lastDateLabel = dateLabel;
 
             return (
-              <div key={msg.id} className="flex gap-3 w-full max-w-full animate-fade-in-up pl-11">
-                <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-lg border border-nura-border dark:border-white/5 w-full overflow-hidden relative group">
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-nura-petrol/10 dark:bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                  <div className="flex justify-between items-start mb-6 relative z-10">
-                    <div>
-                      <h3 className="text-nura-main dark:text-white text-lg font-bold">{t.mealLogger.summary}</h3>
-                      <p className="text-nura-muted dark:text-slate-500 text-sm capitalize">{data.foodName}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="block text-2xl font-bold text-nura-petrol dark:text-primary tracking-tight">{data.calories}</span>
-                      <span className="text-xs text-nura-muted dark:text-slate-400 uppercase tracking-wider font-semibold">{t.mealLogger.kcalTotal}</span>
-                    </div>
+              <React.Fragment key={msg.id}>
+                {showSeparator && (
+                  <div className="flex justify-center">
+                    <span className="text-xs font-medium text-nura-muted dark:text-slate-500 bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-full">
+                      {dateLabel}
+                    </span>
                   </div>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-6 mb-6">
-                    <div className="relative shrink-0 size-24 rounded-full flex items-center justify-center" style={gradientStyle}>
-                      <div className="absolute inset-0 rounded-full bg-white dark:bg-surface-dark m-[10px] flex items-center justify-center">
-                        <span className="material-symbols-outlined text-nura-muted dark:text-slate-400">restaurant</span>
-                      </div>
-                    </div>
-                    <div className="flex-1 grid grid-cols-3 sm:grid-cols-1 gap-2 w-full">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-nura-bg dark:bg-white/5 p-2 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-accent-protein"></div>
-                          <span className="text-xs text-nura-muted dark:text-slate-400 font-medium">{t.macros.prot}</span>
-                        </div>
-                        <span className="text-sm font-bold text-nura-main dark:text-white">{data.macros.p}g</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-nura-bg dark:bg-white/5 p-2 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-accent-carbs"></div>
-                          <span className="text-xs text-nura-muted dark:text-slate-400 font-medium">{t.macros.carb}</span>
-                        </div>
-                        <span className="text-sm font-bold text-nura-main dark:text-white">{data.macros.c}g</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-nura-bg dark:bg-white/5 p-2 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-accent-fat"></div>
-                          <span className="text-xs text-nura-muted dark:text-slate-400 font-medium">{t.macros.fat}</span>
-                        </div>
-                        <span className="text-sm font-bold text-nura-main dark:text-white">{data.macros.f}g</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 mt-2">
-                    {data.items?.map((item, idx) => (
-                      <div key={idx} className="p-3 rounded-xl bg-nura-bg dark:bg-[#152226] border border-transparent hover:border-nura-petrol/20 dark:hover:border-primary/20 transition-all">
-                        {/* Top row: icon + name + calories */}
-                        <div className="flex items-center justify-between gap-3 mb-2">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="bg-nura-border dark:bg-white/10 rounded-lg size-9 shrink-0 flex items-center justify-center">
-                              <span className="material-symbols-outlined text-nura-muted dark:text-slate-500 text-sm">lunch_dining</span>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-nura-main dark:text-white text-sm font-semibold truncate">{item.name}</p>
-                              <p className="text-nura-muted dark:text-slate-500 text-xs">
-                                {item.quantity ? `${item.quantity}` : ''}{item.weightGrams ? ` · ${item.weightGrams}g` : ''}
-                              </p>
-                            </div>
-                          </div>
-                          <span className="text-nura-petrol dark:text-primary text-sm font-bold shrink-0">{item.calories} kcal</span>
-                        </div>
-                        {/* Bottom row: macros */}
-                        {(item.protein != null || item.carbs != null || item.fats != null) && (
-                          <div className="flex gap-2 pl-12">
-                            {item.protein != null && (
-                              <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-accent-protein inline-block"></span>
-                                <span className="text-nura-muted dark:text-slate-400">P</span>
-                                <span className="text-nura-main dark:text-white">{item.protein}g</span>
-                              </span>
-                            )}
-                            {item.carbs != null && (
-                              <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-accent-carbs inline-block"></span>
-                                <span className="text-nura-muted dark:text-slate-400">C</span>
-                                <span className="text-nura-main dark:text-white">{item.carbs}g</span>
-                              </span>
-                            )}
-                            {item.fats != null && (
-                              <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-accent-fat inline-block"></span>
-                                <span className="text-nura-muted dark:text-slate-400">G</span>
-                                <span className="text-nura-main dark:text-white">{item.fats}g</span>
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Coach Message */}
-                  {data.message && (
-                    <div className="mt-4 pt-4 border-t border-nura-border dark:border-white/10">
-                      <div className="flex items-center gap-2 text-nura-petrol dark:text-primary">
-                        <span className="material-symbols-outlined text-lg">auto_awesome</span>
-                        <p className="text-sm font-medium italic">{data.message}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+                )}
+                {renderMessage(msg)}
+              </React.Fragment>
             );
-          }
-          return null;
-        })}
+          });
+        })()}
+
 
         {loading && messages.length > 0 && (
           <div className="flex gap-3 animate-pulse pl-11">
