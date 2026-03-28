@@ -114,6 +114,71 @@ ALL text responses MUST be in ${langName}.`;
   }
 };
 
+/**
+ * Lookup nutritional data for a SINGLE specific food item.
+ * Unlike analyzeTextLog, this does NOT reinterpret the food name.
+ * It returns macros for the exact food as described by the user.
+ */
+export interface SingleItemNutrition {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+}
+
+export const lookupSingleItem = async (
+  foodName: string,
+  weightGrams: number,
+  language: string = 'pt'
+): Promise<SingleItemNutrition> => {
+  if (!apiKey) throw new Error("API Key missing");
+
+  const model = getGenAI().getGenerativeModel({
+    model: MODEL_NAME,
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: SchemaType.OBJECT,
+        properties: {
+          calories: { type: SchemaType.NUMBER },
+          protein: { type: SchemaType.NUMBER },
+          carbs: { type: SchemaType.NUMBER },
+          fats: { type: SchemaType.NUMBER },
+        },
+        required: ["calories", "protein", "carbs", "fats"]
+      }
+    }
+  });
+
+  const langName = LANG_NAMES[language] || LANG_NAMES.pt;
+  const prompt = `You are a nutritional database lookup engine. Return the macronutrient values for EXACTLY the food described below. Do NOT substitute or generalize the food.
+
+FOOD: "${foodName}"
+WEIGHT: ${weightGrams}g
+
+## CRITICAL RULES
+- Return macros for THIS EXACT food, not a generic version.
+- "${foodName}" is the food as the user described it. Respect the specific variety, preparation method, and seasoning.
+  Examples of distinctions you MUST respect:
+  - "arroz japonês" ≠ "arroz branco" (Japanese rice is stickier, slightly more caloric per gram)
+  - "sunomono" ≠ "pepino cru" (sunomono includes rice vinegar, sugar, sesame — more carbs)
+  - "batata doce assada" ≠ "batata doce cozida" (different water content, different caloric density)
+  - "frango grelhado" ≠ "frango frito" (very different fat content)
+- Use TACO (Tabela Brasileira de Composição de Alimentos) for Brazilian foods, USDA FoodData Central for international foods.
+- Calculate values proportionally from per-100g reference data scaled to ${weightGrams}g.
+- Round all values to the nearest integer.
+
+Return JSON: { "calories": number, "protein": number, "carbs": number, "fats": number }
+All values in grams except calories (kcal). Language for any text: ${langName}.`;
+
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const jsonStr = response.text();
+  if (!jsonStr) throw new Error("Empty response");
+
+  return JSON.parse(cleanJsonString(jsonStr)) as SingleItemNutrition;
+};
+
 export const analyzeImageLog = async (base64Image: string, language: string = 'pt'): Promise<AIResponse> => {
   if (!apiKey) throw new Error("API Key missing");
 

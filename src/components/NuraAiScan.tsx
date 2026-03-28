@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIResponse, MealItem } from '../types';
-import { analyzeTextLog } from '../services/geminiService';
+import { lookupSingleItem } from '../services/geminiService';
 import { useLanguage } from '../i18n';
 
 interface NuraAiScanProps {
@@ -64,22 +64,20 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
     const lookupItemNutrition = useCallback(async (index: number, name: string, weightGrams: number) => {
         setLookingUp(index);
         try {
-            const result = await analyzeTextLog(`${name} ${weightGrams}g`, language);
-            // Use the first item's macros from the result
-            const found = result.items?.[0];
-            if (found) {
+            const result = await lookupSingleItem(name, weightGrams, language);
+
+            if (result.calories > 0) {
                 setItems(prev => {
                     const newItems = [...prev];
                     newItems[index] = {
                         ...newItems[index],
-                        name: found.name || name,
-                        weightGrams: weightGrams,
-                        calories: found.calories || 0,
-                        protein: found.protein || 0,
-                        carbs: found.carbs || 0,
-                        fats: found.fats || 0,
+                        // Keep the user's typed name — never overwrite
+                        weightGrams,
+                        calories: Math.round(result.calories),
+                        protein: Math.round(result.protein),
+                        carbs: Math.round(result.carbs),
+                        fats: Math.round(result.fats),
                     };
-                    // Also update the original ref so weight scaling works for this new item
                     originalItems.current[index] = { ...newItems[index] };
                     return newItems;
                 });
