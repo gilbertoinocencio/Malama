@@ -23,13 +23,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [profile, setProfile] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Guards
     const mountedRef = useRef(true);
-    const profileFetchId = useRef(0); // incremented per fetch to discard stale results
+    const profileFetchId = useRef(0);
+    const initCompleteRef = useRef(false);
 
     const fetchProfile = useCallback(async (userId: string) => {
         const fetchId = ++profileFetchId.current;
-
         try {
             const { data, error } = await supabase
                 .from('profiles')
@@ -37,7 +36,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .eq('id', userId)
                 .maybeSingle();
 
-            // Discard if component unmounted or a newer fetch started
             if (!mountedRef.current || fetchId !== profileFetchId.current) return;
 
             if (error) {
@@ -48,17 +46,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (data) {
                 if (data.goal && !data.onboarding_completed) {
-                    // V1 → V2 migration
                     try {
                         const { ProfileService } = await import('../services/profileService');
                         const migrated = await ProfileService.migrateV1ToV2Profile(userId, data);
-                        if (mountedRef.current && fetchId === profileFetchId.current) {
-                            setProfile(migrated);
-                        }
+                        if (mountedRef.current && fetchId === profileFetchId.current) setProfile(migrated);
                     } catch {
-                        if (mountedRef.current && fetchId === profileFetchId.current) {
-                            setProfile(data);
-                        }
+                        if (mountedRef.current && fetchId === profileFetchId.current) setProfile(data);
                     }
                 } else {
                     setProfile(data);
@@ -67,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setProfile({ id: userId });
             }
         } catch (err) {
-            console.error('fetchProfile crash:', err);
+            console.error('fetchProfile error:', err);
             if (mountedRef.current && fetchId === profileFetchId.current) {
                 setProfile((prev: any) => prev || { id: userId });
             }
@@ -76,15 +69,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         mountedRef.current = true;
-        let initialDone = false;
 
-        // Use onAuthStateChange as the SINGLE source of truth.
-        // Supabase fires INITIAL_SESSION synchronously on subscribe,
-        // so we don't need a separate getSession() call.
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (_event, newSession) => {
+        // ── STEP 1: Initial load using getSession (awaited, no race) ──
+        const init = async () => {
+            try {
+                const { data: { session: s } } = await supabase.auth.getSession();
                 if (!mountedRef.current) return;
 
+                setSession(s);
+                setUser(s?.user ?? null);
+
+                if (s?.user) {
+                    await fetchProfile(s.user.id);
+                }
+            } catch (err) {
+                console.error('Auth init error:', err);
+            } finally {
+                if (mountedRef.current) {
+                    initCompleteRef.current = true;
+                    setLoading(false);
+                }
+            }
+        };
+
+        init();
+
+        // ── STEP 2: Listen for SUBSEQUENT changes only (sign-in, sign-out, token refresh) ──
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, newSession) => {
+                if (!mountedRef.current) return;
+
+                // Skip INITIAL_SESSION — we already handled it in init()
+                if (event === 'INITIAL_SESSION') return;
+
+                console.log('Auth event:', event);
                 setSession(newSession);
                 setUser(newSession?.user ?? null);
 
@@ -94,27 +112,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setProfile(null);
                 }
 
-                // First event = initial load complete
-                if (!initialDone) {
-                    initialDone = true;
-                    if (mountedRef.current) setLoading(false);
+                // If init somehow hasn't finished yet, mark it done
+                if (!initCompleteRef.current) {
+                    initCompleteRef.current = true;
+                    setLoading(false);
                 }
             }
         );
 
-        // Safety net: if onAuthStateChange never fires (e.g. network down),
-        // stop the spinner after 5s so the user sees the login page.
-        const safety = setTimeout(() => {
-            if (!initialDone && mountedRef.current) {
-                console.warn('⚠️ Auth timeout — stopping spinner');
-                initialDone = true;
-                setLoading(false);
-            }
-        }, 5000);
-
         return () => {
             mountedRef.current = false;
-            clearTimeout(safety);
             subscription.unsubscribe();
         };
     }, [fetchProfile]);
@@ -125,14 +132,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const updateProfile = useCallback(async (updates: any) => {
         if (!user) return;
-        try {
-            const { ProfileService } = await import('../services/profileService');
-            const updatedProfile = await ProfileService.updateProfile(user.id, updates);
-            if (mountedRef.current) setProfile(updatedProfile);
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            throw error;
-        }
+        const { ProfileService } = await import('../services/profileService');
+        const updatedProfile = await ProfileService.updateProfile(user.id, updates);
+        if (mountedRef.current) setProfile(updatedProfile);
     }, [user]);
 
     const signInWithGoogle = useCallback(async () => {
