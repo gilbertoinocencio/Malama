@@ -158,8 +158,7 @@ export const GamificationService = {
                 longest_streak: longestStreak,
                 total_flow_days: totalFlowDays,
                 total_xp: estimatedXP,
-                level: level,
-                last_activity_date: new Date().toISOString()
+                level: level
             }).eq('id', userId);
 
             if (updateError) throw updateError;

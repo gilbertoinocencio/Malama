@@ -69,14 +69,18 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
   const loadDailyData = async () => {
     if (!user) return;
-    const today = new Date().toISOString().split('T')[0];
-    const { data } = await supabase
-      .from('daily_logs')
-      .select('water_intake')
-      .eq('user_id', user.id)
-      .eq('date', today)
-      .single();
-    if (data) setWaterIntake(data.water_intake || 0);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('daily_logs')
+        .select('water_intake')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .maybeSingle();
+      if (!error && data) setWaterIntake(data.water_intake || 0);
+    } catch {
+      // daily_logs table may not exist yet — ignore silently
+    }
   };
 
   const loadWeeklyScores = async () => {
