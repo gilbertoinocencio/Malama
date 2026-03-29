@@ -259,6 +259,53 @@ export const CoachService = {
   },
 
   /**
+   * Sync active missions progress with latest daily stats (hydration, protein)
+   */
+  async syncMissionsProgress(userId: string): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+    const { data: missions } = await supabase
+      .from('daily_missions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('mission_date', today);
+
+    if (!missions || missions.length === 0) return;
+
+    try {
+      // 1. Sync Hydration
+      const hydroMission = missions.find(m => m.mission_type === 'hydration');
+      if (hydroMission && !hydroMission.completed) {
+        const { data: dailyLog } = await supabase
+          .from('daily_logs')
+          .select('water_intake')
+          .eq('user_id', userId)
+          .eq('date', today)
+          .maybeSingle();
+
+        const currentHydration = dailyLog?.water_intake || 0;
+        if (currentHydration > (hydroMission.current_value || 0)) {
+          await this.updateMissionProgress(userId, hydroMission.id, currentHydration);
+        }
+      }
+
+      // 2. Sync Protein
+      const proteinMission = missions.find(m => m.mission_type === 'protein_intake');
+      if (proteinMission && !proteinMission.completed) {
+        // Late import to prevent circular dependency
+        const { MealService } = await import('./mealService');
+        const meals = await MealService.getMeals(userId, new Date());
+        const currentProtein = Math.round(meals.reduce((acc, meal) => acc + meal.macros.protein, 0));
+
+        if (currentProtein > (proteinMission.current_value || 0)) {
+          await this.updateMissionProgress(userId, proteinMission.id, currentProtein);
+        }
+      }
+    } catch (e) {
+      console.error('Error syncing missions:', e);
+    }
+  },
+
+  /**
    * Submit daily check-in
    */
   async submitCheckin(userId: string, checkinData: Partial<DailyCheckin>): Promise<DailyCheckin> {

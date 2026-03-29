@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { CoachService, DailyMission } from '../services/coachService';
 import { useAuth } from '../contexts/AuthContext';
+import { AppView } from '../types';
 
-export const TodayMissionsCard: React.FC = () => {
+interface TodayMissionsCardProps {
+  onNavClick?: (view: AppView) => void;
+  onFabClick?: () => void;
+}
+
+export const TodayMissionsCard: React.FC<TodayMissionsCardProps> = ({ onNavClick, onFabClick }) => {
   const { user } = useAuth();
   const [missions, setMissions] = useState<DailyMission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +23,7 @@ export const TodayMissionsCard: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
+      await CoachService.syncMissionsProgress(user.id);
       const todayMissions = await CoachService.getTodayMissions(user.id);
       setMissions(todayMissions);
     } catch (error) {
@@ -26,13 +33,34 @@ export const TodayMissionsCard: React.FC = () => {
     }
   };
 
-  const handleCompleteMission = async (missionId: string) => {
+  const handleMissionClick = async (mission: DailyMission) => {
     if (!user) return;
-    try {
-      await CoachService.completeMission(user.id, missionId);
-      await loadMissions(); // Reload to get updated state
-    } catch (error) {
-      console.error('Error completing mission:', error);
+    
+    // Se a missão for baseada em meta/progresso, navega para a ação correta
+    if (mission.mission_type === 'hydration') {
+      if (onNavClick) onNavClick(AppView.HYDRATION);
+      return;
+    }
+    
+    if (mission.mission_type === 'protein_intake' || mission.mission_type === 'meal_timing') {
+      if (onFabClick) onFabClick();
+      return;
+    }
+
+    if (mission.mission_type === 'checkin') {
+      // Como não temos um view específico para checkin aqui (ou é aberto via Fab),
+      // enviamos o usuário para o diário ou deixamos ele completar via botão se for o caso.
+      // Neste caso, vamos apenas tentar completar diretamente por enquanto, ou se tiver checkin modal, abrilo.
+    }
+
+    // Para missões simples (exercício, sono, custom) que só exigem um 'check' manual:
+    if (!mission.completed && mission.id) {
+      try {
+        await CoachService.completeMission(user.id, mission.id);
+        await loadMissions(); // Reload to get updated state
+      } catch (error) {
+        console.error('Error completing mission:', error);
+      }
     }
   };
 
@@ -101,7 +129,7 @@ export const TodayMissionsCard: React.FC = () => {
           <MissionItem
             key={mission.id}
             mission={mission}
-            onComplete={() => mission.id && handleCompleteMission(mission.id)}
+            onComplete={() => handleMissionClick(mission)}
           />
         ))}
       </div>

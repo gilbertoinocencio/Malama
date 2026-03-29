@@ -271,7 +271,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
           <>
             {/* Today's Missions Card */}
             <div className="px-6">
-              <TodayMissionsCard />
+              <TodayMissionsCard onNavClick={onNavClick} onFabClick={onFabClick} />
             </div>
 
 
