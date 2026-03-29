@@ -497,10 +497,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 <svg className="size-full -rotate-90 transform" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round"
                     className="text-gray-200 dark:text-[#1f2f36]" />
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="#0a90bd" strokeWidth="6" strokeLinecap="round"
+                  <circle cx="50" cy="50" r="42" fill="none" strokeWidth="6" strokeLinecap="round"
                     strokeDasharray={circumference}
                     strokeDashoffset={gaugeOffset}
-                    className="drop-shadow-[0_0_8px_rgba(10,144,189,0.8)] transition-all duration-1000" />
+                    className="stroke-[#6b21a8] dark:stroke-[#a855f7] drop-shadow-[0_0_8px_rgba(107,33,168,0.8)] dark:drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] transition-all duration-1000" />
                   {/* Decorative inner ring */}
                   <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
                 </svg>
@@ -508,7 +508,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 {/* Center Text */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                   <span className="text-nura-muted dark:text-white/50 text-sm font-medium tracking-widest uppercase mb-1">{t.flowScore.flowScore}</span>
-                  <span className="text-6xl font-bold text-nura-main dark:text-white tracking-tighter" style={{ textShadow: isDarkMode ? '0 0 10px rgba(10, 144, 189, 0.5)' : 'none' }}>
+                  <span className="text-6xl font-bold text-nura-main dark:text-white tracking-tighter" style={{ textShadow: isDarkMode ? '0 0 10px rgba(168, 85, 247, 0.5)' : 'none' }}>
                     {flowScore}
                   </span>
                   {scoreIsOptimized && (
@@ -560,8 +560,8 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   <svg className="w-full h-full overflow-visible" viewBox="0 0 350 150" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="gradient-fill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#0a90bd" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#0a90bd" stopOpacity="0" />
+                        <stop offset="0%" stopColor="currentColor" stopOpacity="0.3" className="text-[#6b21a8] dark:text-[#a855f7]" />
+                        <stop offset="100%" stopColor="currentColor" stopOpacity="0" className="text-[#6b21a8] dark:text-[#a855f7]" />
                       </linearGradient>
                       <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                         <feGaussianBlur stdDeviation="3" result="blur" />
@@ -574,7 +574,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                     {/* Area fill */}
                     <path d={chartPaths.area} fill="url(#gradient-fill)" />
                     {/* Line */}
-                    <path d={chartPaths.line} fill="none" stroke="#0a90bd" strokeWidth="3" strokeLinecap="round" filter="url(#glow)" />
+                    <path d={chartPaths.line} fill="none" strokeWidth="3" strokeLinecap="round" filter="url(#glow)" className="stroke-[#6b21a8] dark:stroke-[#a855f7]" />
                     {/* Current Point */}
                     {weeklyScores.length > 0 && (() => {
                       const lastScore = weeklyScores[weeklyScores.length - 1].score;
