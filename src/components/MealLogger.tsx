@@ -321,6 +321,26 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   // Detect if text is a question/conversation vs a food log
   const isQuestion = (text: string): boolean => {
     const lower = text.toLowerCase().trim();
+
+    // Emotional state, cravings, satiety, humor — always route to chat agent
+    const emotionAndCravingIndicators = [
+      'sem fome', 'não estou com fome', 'nao estou com fome', 'não tô com fome', 'nao to com fome',
+      'tô cheio', 'to cheio', 'estou cheio', 'estou satisfeito', 'tô satisfeito',
+      'vontade de comer', 'vontade de tomar', 'vontade de beber',
+      'com vontade', 'tô com vontade', 'to com vontade', 'estou com vontade',
+      'pensei em comer', 'pensando em comer', 'quero comer', 'queria comer',
+      'quero tomar', 'queria tomar', 'quero beber', 'bateu uma vontade',
+      'tô cansado', 'to cansado', 'estou cansado', 'sem energia', 'sem animo', 'sem ânimo',
+      'tô bem', 'to bem', 'estou bem', 'tô mal', 'to mal', 'estou mal',
+      'tô ansioso', 'to ansioso', 'estou ansioso', 'tô estressado', 'estou estressado',
+      'tô feliz', 'to feliz', 'tô triste', 'to triste', 'estou triste',
+      'mal dormi', 'dormi mal', 'não dormi', 'acordei cedo',
+      'comi demais', 'exagerei', 'vacilei', 'escoreguei', 'saí do plano', 'sai do plano',
+      'minha dieta', 'foi pro espaço', 'foi pro espaco', 'largar tudo',
+      'haha', 'kkkk', 'rsrs', 'kkk', 'lol', 'brincando', 'só brincando', 'so brincando',
+    ];
+    if (emotionAndCravingIndicators.some(i => lower.includes(i))) return true;
+
     const questionIndicators = [
       '?', 'como ', 'por que', 'porque', 'qual ', 'quais ', 'quando ', 'quanto ',
       'o que ', 'o quê', 'dica', 'sugestão', 'sugestao', 'explica', 'explique',
@@ -361,8 +381,13 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           : '';
         const agentResponse = await UnifiedChatService.sendMessage(user.id, mealContext + userText);
 
+        // Guard: only show meal card if user message contains a past-tense intake verb
+        const hasPastIntakeVerb = /\b(comi|tomei|bebi|almocei|almoçei|jantei|lancei|lanchei|ingeri|engoli|consumi)\b/i.test(userText);
+
         // Check if response contains a structured meal JSON block
-        const mealJsonMatch = agentResponse.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/);
+        const mealJsonMatch = hasPastIntakeVerb
+          ? agentResponse.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/)
+          : null;
         if (mealJsonMatch) {
           try {
             const cleanText = agentResponse.content.replace(/<meal_json>[\s\S]*?<\/meal_json>/, '').trim();
@@ -377,7 +402,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: agentResponse.content }]);
           }
         } else {
-          setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: agentResponse.content }]);
+          // Strip any <meal_json> block from the text if the guard blocked it
+          const cleanContent = agentResponse.content.replace(/<meal_json>[\s\S]*?<\/meal_json>/, '').trim();
+          setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanContent || agentResponse.content }]);
         }
         // draft meal only set if meal_json was found above
       } else {
