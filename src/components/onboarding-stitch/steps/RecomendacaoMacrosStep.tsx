@@ -49,7 +49,7 @@ const RecomendacaoMacrosStep: React.FC<StepProps> = ({ data, onNext, onBack, cur
         <span className="text-secondary font-headline font-semibold text-sm tracking-widest uppercase mb-2 block">
           Passo {currentStep} de {totalSteps}
         </span>
-        <h2 className="text-primary font-headline font-bold text-4xl leading-tight tracking-tight mb-4">
+        <h2 className="text-tertiary font-headline font-bold text-4xl leading-tight tracking-tight mb-4">
           Suas Recomendações Nutricionais
         </h2>
         <p className="text-on-surface-variant font-body text-lg leading-relaxed">
@@ -65,7 +65,7 @@ const RecomendacaoMacrosStep: React.FC<StepProps> = ({ data, onNext, onBack, cur
           <div className="flex justify-between items-end">
             <div>
               <p className="text-on-surface-variant font-label uppercase tracking-widest text-xs mb-1">Meta Diária</p>
-              <h3 className="font-headline font-bold text-5xl text-primary">
+              <h3 className="font-headline font-bold text-5xl text-tertiary">
                 {calories} <span className="text-2xl font-normal opacity-60">kcal</span>
               </h3>
             </div>
@@ -76,7 +76,7 @@ const RecomendacaoMacrosStep: React.FC<StepProps> = ({ data, onNext, onBack, cur
           </div>
           {/* Macro split bar */}
           <div className="mt-6 flex h-3 w-full rounded-full overflow-hidden bg-surface-container-high">
-            <div className="h-full bg-primary transition-all duration-1000" style={{ width: '30%' }}></div>
+            <div className="h-full bg-tertiary transition-all duration-1000" style={{ width: '30%' }}></div>
             <div className="h-full bg-secondary transition-all duration-1000" style={{ width: '40%' }}></div>
             <div className="h-full bg-tertiary transition-all duration-1000" style={{ width: '30%' }}></div>
           </div>
@@ -88,12 +88,12 @@ const RecomendacaoMacrosStep: React.FC<StepProps> = ({ data, onNext, onBack, cur
         </div>
 
         {/* Protein */}
-        <div className="col-span-1 bg-surface-container-low rounded-lg p-6 hover:bg-primary-fixed-dim transition-colors duration-500 group flex flex-col">
-          <div className="bg-primary/5 p-3 rounded-full w-fit mb-4 group-hover:bg-white/20 transition-colors">
-            <span className="material-symbols-outlined text-primary">fitness_center</span>
+        <div className="col-span-1 bg-surface-container-low rounded-lg p-6 hover:bg-tertiary-fixed-dim transition-colors duration-500 group flex flex-col">
+          <div className="bg-tertiary/5 p-3 rounded-full w-fit mb-4 group-hover:bg-white/20 transition-colors">
+            <span className="material-symbols-outlined text-tertiary">fitness_center</span>
           </div>
-          <h4 className="font-headline font-bold text-xl text-primary mb-1">Proteína</h4>
-          <p className="font-headline font-black text-4xl text-primary mt-auto">
+          <h4 className="font-headline font-bold text-xl text-tertiary mb-1">Proteína</h4>
+          <p className="font-headline font-black text-4xl text-tertiary mt-auto">
             {protein}<span className="text-base font-medium opacity-60">g</span>
           </p>
           <p className="text-on-surface-variant text-xs mt-2">Regeneração muscular e saciedade.</p>
@@ -131,7 +131,7 @@ const RecomendacaoMacrosStep: React.FC<StepProps> = ({ data, onNext, onBack, cur
 
       {/* Micronutrients */}
       <div className="w-full space-y-4">
-        <h5 className="text-primary font-headline font-bold text-lg">Destaques Micronutrientes</h5>
+        <h5 className="text-tertiary font-headline font-bold text-lg">Destaques Micronutrientes</h5>
         <div className="grid grid-cols-4 gap-3">
           {[
             { icon: 'opacity',  label: 'Fibras',  value: '32g'    },
@@ -140,9 +140,9 @@ const RecomendacaoMacrosStep: React.FC<StepProps> = ({ data, onNext, onBack, cur
             { icon: 'eco',      label: 'Zinco',   value: '11mg'   },
           ].map(({ icon, label, value }) => (
             <div key={label} className="p-4 rounded-lg bg-surface-container border border-outline-variant/10 text-center flex flex-col items-center gap-1">
-              <span className="material-symbols-outlined text-primary">{icon}</span>
+              <span className="material-symbols-outlined text-tertiary">{icon}</span>
               <p className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant">{label}</p>
-              <p className="font-headline font-bold text-base text-primary">{value}</p>
+              <p className="font-headline font-bold text-base text-tertiary">{value}</p>
             </div>
           ))}
         </div>

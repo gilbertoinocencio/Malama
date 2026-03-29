@@ -28,7 +28,7 @@ const MudancaHabitosStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
       onBack={onBack}
     >
       <section className="mb-12">
-        <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tight text-primary leading-tight mb-4">
+        <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tight text-tertiary leading-tight mb-4">
           Quais hábitos quer mudar?
         </h1>
         <p className="text-on-surface-variant text-lg leading-relaxed font-light">
@@ -45,17 +45,17 @@ const MudancaHabitosStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
               onClick={() => toggleHabit(habit.id)}
               className={`group w-full p-8 rounded-lg flex items-center justify-between transition-all duration-300 ease-in-out border-2 ${
                 isSelected 
-                  ? 'bg-primary-fixed-dim border-secondary/20 shadow-xl' 
+                  ? 'bg-tertiary-fixed-dim border-secondary/20 shadow-xl' 
                   : 'bg-surface-container-low border-transparent hover:bg-surface-container-high'
               }`}
             >
               <div className="flex items-center gap-6">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500 ${isSelected ? 'bg-surface-container-lowest' : 'bg-surface-container-highest'}`}>
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center text-tertiary group-hover:scale-110 transition-transform duration-500 ${isSelected ? 'bg-surface-container-lowest' : 'bg-surface-container-highest'}`}>
                   <span className="material-symbols-outlined text-3xl">
                     {habit.icon}
                   </span>
                 </div>
-                <span className={`text-xl font-medium font-headline ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
+                <span className={`text-xl font-medium font-headline ${isSelected ? 'text-tertiary' : 'text-on-surface'}`}>
                   {habit.label}
                 </span>
               </div>

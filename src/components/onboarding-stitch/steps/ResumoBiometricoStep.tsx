@@ -29,7 +29,7 @@ const ResumoBiometricoStep: React.FC<StepProps> = ({ data, onNext, onBack, curre
       nextLabel="Continuar para Metas"
     >
       <header className="mb-12 text-center md:text-left">
-        <h2 className="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tight leading-tight mb-4">
+        <h2 className="font-headline text-4xl md:text-5xl font-bold text-tertiary tracking-tight leading-tight mb-4">
           Seu Perfil Biométrico
         </h2>
         <p className="text-on-surface-variant text-lg leading-relaxed font-body">
@@ -58,7 +58,7 @@ const ResumoBiometricoStep: React.FC<StepProps> = ({ data, onNext, onBack, curre
                 ></circle>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-headline text-5xl font-extrabold text-primary">{bmiFormatted}</span>
+                <span className="font-headline text-5xl font-extrabold text-tertiary">{bmiFormatted}</span>
                 <span className="text-sm font-medium uppercase tracking-widest text-on-surface-variant">IMC</span>
               </div>
             </div>
@@ -75,27 +75,27 @@ const ResumoBiometricoStep: React.FC<StepProps> = ({ data, onNext, onBack, curre
 
         <div className="bg-surface-container-low p-8 rounded-xl flex flex-col justify-between transition-all duration-300 hover:bg-surface-container">
           <div className="mb-4">
-            <span className="material-symbols-outlined text-primary text-3xl">straighten</span>
+            <span className="material-symbols-outlined text-tertiary text-3xl">straighten</span>
           </div>
           <div>
             <span className="text-on-surface-variant text-sm block mb-1">Altura</span>
-            <h3 className="font-headline text-2xl font-bold text-primary">{Math.round(height)} <span className="text-base font-normal">cm</span></h3>
+            <h3 className="font-headline text-2xl font-bold text-tertiary">{Math.round(height)} <span className="text-base font-normal">cm</span></h3>
           </div>
         </div>
 
         <div className="bg-surface-container-low p-8 rounded-xl flex flex-col justify-between transition-all duration-300 hover:bg-surface-container">
           <div className="mb-4">
-            <span className="material-symbols-outlined text-primary text-3xl">monitor_weight</span>
+            <span className="material-symbols-outlined text-tertiary text-3xl">monitor_weight</span>
           </div>
           <div>
             <span className="text-on-surface-variant text-sm block mb-1">Peso Atual</span>
-            <h3 className="font-headline text-2xl font-bold text-primary">{weight.toFixed(1)} <span className="text-base font-normal">kg</span></h3>
+            <h3 className="font-headline text-2xl font-bold text-tertiary">{weight.toFixed(1)} <span className="text-base font-normal">kg</span></h3>
           </div>
         </div>
 
         <div className="md:col-span-2 bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-surface-container-highest">
           <div className="flex justify-between items-end mb-4">
-            <h4 className="font-headline font-semibold text-primary">Escala de Composição</h4>
+            <h4 className="font-headline font-semibold text-tertiary">Escala de Composição</h4>
             <span className="text-xs text-on-surface-variant font-medium">18.5 — 24.9 Normal</span>
           </div>
           <div className="h-2 w-full bg-surface-container-highest rounded-full flex overflow-hidden">

@@ -28,7 +28,7 @@ const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
       onBack={onBack}
     >
       <div className="text-center mb-12">
-        <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tight mb-4">
+        <h1 className="font-headline text-4xl md:text-5xl font-bold text-tertiary tracking-tight mb-4">
           Qual é o seu peso objetivo?
         </h1>
         <p className="text-on-surface-variant text-lg max-w-md mx-auto leading-relaxed">
@@ -42,7 +42,7 @@ const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
         <div className="flex items-end justify-center gap-2 mb-10">
           <div className="relative group">
             <input
-              className="w-48 bg-transparent border-none text-center font-headline text-8xl font-extrabold text-primary p-0 focus:ring-0 placeholder-surface-container-highest transition-all duration-300"
+              className="w-48 bg-transparent border-none text-center font-headline text-8xl font-extrabold text-tertiary p-0 focus:ring-0 placeholder-surface-container-highest transition-all duration-300"
               type="number"
               value={target}
               onChange={(e) => handleChange(parseFloat(e.target.value) || 0)}
@@ -67,13 +67,13 @@ const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
         <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4">
           <button 
             onClick={handleIncrement}
-            className="w-12 h-12 flex items-center justify-center bg-surface-container-high rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300 active:scale-90 shadow-sm"
+            className="w-12 h-12 flex items-center justify-center bg-surface-container-high rounded-full text-tertiary hover:bg-tertiary hover:text-white transition-all duration-300 active:scale-90 shadow-sm"
           >
             <span className="material-symbols-outlined">add</span>
           </button>
           <button 
             onClick={handleDecrement}
-            className="w-12 h-12 flex items-center justify-center bg-surface-container-high rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300 active:scale-90 shadow-sm"
+            className="w-12 h-12 flex items-center justify-center bg-surface-container-high rounded-full text-tertiary hover:bg-tertiary hover:text-white transition-all duration-300 active:scale-90 shadow-sm"
           >
             <span className="material-symbols-outlined">remove</span>
           </button>

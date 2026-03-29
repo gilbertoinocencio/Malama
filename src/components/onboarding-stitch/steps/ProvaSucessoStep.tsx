@@ -20,7 +20,7 @@ const ProvaSucessoStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, to
           <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
           PERFIL ANALISADO
         </span>
-        <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-primary tracking-tight leading-tight">
+        <h1 className="text-4xl md:text-5xl font-extrabold font-headline text-tertiary tracking-tight leading-tight">
           Tudo pronto para sua jornada.
         </h1>
         <p className="text-on-surface-variant text-lg max-w-md mx-auto leading-relaxed">
@@ -49,11 +49,11 @@ const ProvaSucessoStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, to
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-surface-container-lowest p-8 rounded-xl flex items-start gap-4 transition-all duration-300 hover:bg-surface-container border border-surface-container-highest">
-            <div className="p-3 bg-primary/5 rounded-lg shrink-0">
-              <span className="material-symbols-outlined text-primary">bolt</span>
+            <div className="p-3 bg-tertiary/5 rounded-lg shrink-0">
+              <span className="material-symbols-outlined text-tertiary">bolt</span>
             </div>
             <div>
-              <h3 className="font-headline font-bold text-primary mb-1">Início Imediato</h3>
+              <h3 className="font-headline font-bold text-tertiary mb-1">Início Imediato</h3>
               <p className="text-sm text-on-surface-variant leading-relaxed">Seu primeiro passo começa agora com uma rotina adaptada.</p>
             </div>
           </div>

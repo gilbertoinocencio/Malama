@@ -55,7 +55,7 @@ const AssinaturasStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tot
     >
       {/* Decorative blurs */}
       <div className="fixed -right-20 top-40 w-64 h-64 bg-secondary-container opacity-20 rounded-full blur-3xl -z-10 pointer-events-none"></div>
-      <div className="fixed -left-20 bottom-40 w-80 h-80 bg-primary-fixed opacity-20 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+      <div className="fixed -left-20 bottom-40 w-80 h-80 bg-tertiary-fixed opacity-20 rounded-full blur-3xl -z-10 pointer-events-none"></div>
 
       <div className="w-full max-w-2xl">
         {/* Header */}
@@ -63,7 +63,7 @@ const AssinaturasStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tot
           <p className="font-headline text-secondary font-semibold tracking-widest text-xs mb-4 uppercase">
             Passo {currentStep} de {totalSteps}
           </p>
-          <h2 className="font-headline text-4xl font-bold text-primary leading-tight mb-4">
+          <h2 className="font-headline text-4xl font-bold text-tertiary leading-tight mb-4">
             Escolha o seu fluxo <br />
             <span className="text-secondary">de bem-estar.</span>
           </h2>
@@ -80,9 +80,9 @@ const AssinaturasStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tot
               onClick={() => setSelected(plan.id)}
               className={`relative flex flex-col p-8 rounded-lg text-left transition-all duration-300 ${
                 plan.highlight
-                  ? 'bg-primary-container shadow-2xl md:scale-105 z-10 overflow-hidden'
+                  ? 'bg-tertiary-container shadow-2xl md:scale-105 z-10 overflow-hidden'
                   : selected === plan.id
-                  ? 'bg-surface-container border-2 border-primary/30'
+                  ? 'bg-surface-container border-2 border-tertiary/30'
                   : 'bg-surface-container-low hover:bg-surface-container'
               }`}
             >
@@ -94,19 +94,19 @@ const AssinaturasStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tot
 
               <div className="mb-6">
                 <span
-                  className={`material-symbols-outlined text-3xl ${plan.highlight ? 'text-secondary-fixed' : 'text-primary'}`}
+                  className={`material-symbols-outlined text-3xl ${plan.highlight ? 'text-secondary-fixed' : 'text-tertiary'}`}
                   style={plan.id === 'anual' ? { fontVariationSettings: "'FILL' 1" } : undefined}
                 >
                   {plan.icon}
                 </span>
               </div>
 
-              <h3 className={`font-headline font-bold mb-2 ${plan.highlight ? 'text-white text-3xl' : 'text-primary text-2xl'}`}>
+              <h3 className={`font-headline font-bold mb-2 ${plan.highlight ? 'text-white text-3xl' : 'text-tertiary text-2xl'}`}>
                 {plan.title}
               </h3>
 
               {plan.highlight && (
-                <p className="text-on-primary-container/80 text-sm mb-4 leading-relaxed">
+                <p className="text-on-tertiary-container/80 text-sm mb-4 leading-relaxed">
                   Acesso total a todas as funcionalidades premium.
                 </p>
               )}
@@ -119,7 +119,7 @@ const AssinaturasStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tot
                   <p className="text-on-surface-variant text-sm mb-1">{plan.subtitle}</p>
                 )}
                 <div className="flex items-baseline gap-1">
-                  <span className={`font-bold ${plan.highlight ? 'text-secondary-fixed text-4xl' : 'text-primary text-3xl'}`}>
+                  <span className={`font-bold ${plan.highlight ? 'text-secondary-fixed text-4xl' : 'text-tertiary text-3xl'}`}>
                     {plan.price}
                   </span>
                   {plan.period && (
@@ -127,7 +127,7 @@ const AssinaturasStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tot
                   )}
                 </div>
                 {plan.highlight && (
-                  <p className="text-on-primary-container font-medium text-xs mt-2">{plan.subtitle}</p>
+                  <p className="text-on-tertiary-container font-medium text-xs mt-2">{plan.subtitle}</p>
                 )}
               </div>
 

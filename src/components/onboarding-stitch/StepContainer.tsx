@@ -52,13 +52,13 @@ export const StepContainer: React.FC<StepContainerProps> = ({
               onClick={onBack}
               className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-all duration-300 active:scale-95"
             >
-              <span className="material-symbols-outlined text-primary">arrow_back</span>
+              <span className="material-symbols-outlined text-tertiary">arrow_back</span>
             </button>
           ) : (
             <div className="w-10" />
           )}
 
-          <span className="font-headline tracking-tighter text-2xl font-bold text-primary">NURA</span>
+          <span className="font-headline tracking-tighter text-2xl font-bold text-tertiary">NURA</span>
 
           <div className="w-10" />
         </header>
@@ -89,13 +89,13 @@ export const StepContainer: React.FC<StepContainerProps> = ({
           <div className="max-w-md w-full">
             <button
               onClick={onNext}
-              className="w-full h-16 bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline font-semibold text-lg rounded-full shadow-[0_16px_32px_rgba(0,70,79,0.2)] hover:shadow-[0_16px_40px_rgba(0,70,79,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-500 ease-in-out flex items-center justify-center gap-3"
+              className="w-full h-16 bg-gradient-to-r from-tertiary to-tertiary-container text-on-tertiary font-headline font-semibold text-lg rounded-full shadow-[0_16px_32px_rgba(0,70,79,0.2)] hover:shadow-[0_16px_40px_rgba(0,70,79,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-500 ease-in-out flex items-center justify-center gap-3"
             >
               <span>{nextLabel}</span>
               <span className="material-symbols-outlined text-xl">chevron_right</span>
             </button>
             {secondaryLabel && (
-              <button onClick={onBack} className="w-full py-4 text-primary font-bold text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
+              <button onClick={onBack} className="w-full py-4 text-tertiary font-bold text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
                 {secondaryLabel}
               </button>
             )}

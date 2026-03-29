@@ -49,7 +49,7 @@ const IdadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, curr
 
         {/* Headline & Subtitle */}
         <div className="text-center mb-16 space-y-4">
-          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tight">
+          <h1 className="font-headline text-4xl md:text-5xl font-bold text-tertiary tracking-tight">
             Qual é a sua idade?
           </h1>
           <p className="text-on-surface-variant text-lg font-medium max-w-xs mx-auto">
@@ -73,7 +73,7 @@ const IdadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, curr
               let className = "h-24 snap-center flex items-center justify-center font-headline";
 
               if (age === idade) {
-                className += " text-primary text-8xl font-bold";
+                className += " text-tertiary text-8xl font-bold";
               } else if (distance === 1) {
                 className += " text-on-surface/40 text-6xl";
               } else if (distance === 2) {
@@ -91,7 +91,7 @@ const IdadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, curr
           </div>
 
           {/* Unit Label */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 font-headline text-primary/40 font-medium">
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 font-headline text-tertiary/40 font-medium">
             ANOS
           </div>
         </div>

@@ -55,10 +55,10 @@ const NivelAtividadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
       <main className="flex-grow pt-24 pb-32 px-6 max-w-2xl mx-auto w-full">
         {/* Header Section */}
         <div className="mb-12 space-y-4">
-          <p className="text-sm font-label font-medium text-primary uppercase tracking-[0.2em] opacity-60">
+          <p className="text-sm font-label font-medium text-tertiary uppercase tracking-[0.2em] opacity-60">
             Passo {currentStep} de {totalSteps}
           </p>
-          <h1 className="font-headline text-4xl font-bold tracking-tight text-primary leading-tight">
+          <h1 className="font-headline text-4xl font-bold tracking-tight text-tertiary leading-tight">
             Nível de atividade física
           </h1>
           <p className="text-on-surface-variant text-lg font-body">Como é o seu dia a dia?</p>
@@ -72,14 +72,14 @@ const NivelAtividadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
               onClick={() => handleSelect(activity.id)}
               className={`group relative flex items-center p-6 rounded-lg transition-all duration-300 active:scale-[0.98] text-left ${
                 nivel === activity.id
-                  ? 'bg-primary-fixed-dim shadow-md'
+                  ? 'bg-tertiary-fixed-dim shadow-md'
                   : 'bg-surface-container-low hover:bg-surface-container-highest border-2 border-transparent hover:border-outline-variant/10'
               }`}
             >
               <div
                 className={`flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center mr-6 shadow-sm ${
                   nivel === activity.id
-                    ? 'bg-on-primary'
+                    ? 'bg-on-tertiary'
                     : 'bg-surface-container-lowest group-hover:bg-white'
                 }`}
               >
@@ -97,7 +97,7 @@ const NivelAtividadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
                 <div className="flex items-center justify-between">
                   <h3
                     className={`font-headline font-semibold text-xl mb-1 ${
-                      nivel === activity.id ? 'text-primary' : 'text-primary'
+                      nivel === activity.id ? 'text-tertiary' : 'text-tertiary'
                     }`}
                   >
                     {activity.title}
@@ -114,7 +114,7 @@ const NivelAtividadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
                 </div>
                 <p
                   className={`text-sm leading-relaxed ${
-                    nivel === activity.id ? 'text-primary/70 font-medium' : 'text-on-surface-variant'
+                    nivel === activity.id ? 'text-tertiary/70 font-medium' : 'text-on-surface-variant'
                   }`}
                 >
                   {activity.description}
@@ -128,20 +128,20 @@ const NivelAtividadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
 
       {/* Decorative Leaf Element (Background Context) */}
       <div className="fixed top-1/4 -right-24 w-64 h-64 bg-secondary-container/10 rounded-full blur-[100px] pointer-events-none -z-10"></div>
-      <div className="fixed bottom-1/4 -left-24 w-48 h-48 bg-primary-container/5 rounded-full blur-[80px] pointer-events-none -z-10"></div>
+      <div className="fixed bottom-1/4 -left-24 w-48 h-48 bg-tertiary-container/5 rounded-full blur-[80px] pointer-events-none -z-10"></div>
 
       {/* Contextual Footer Actions */}
       <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-surface via-surface/90 to-transparent flex items-center justify-end gap-4">
         <div className="flex items-center gap-4 w-full max-w-2xl justify-end">
           <button
             onClick={onBack}
-            className="h-14 px-8 rounded-lg font-label font-semibold text-primary hover:bg-surface-container transition-all duration-300"
+            className="h-14 px-8 rounded-lg font-label font-semibold text-tertiary hover:bg-surface-container transition-all duration-300"
           >
             Voltar
           </button>
           <button
             onClick={handleContinue}
-            className="h-16 px-12 rounded-lg font-headline font-bold text-on-primary bg-gradient-to-r from-primary to-primary-container shadow-xl shadow-primary/10 hover:shadow-primary/20 hover:scale-[1.02] transition-all duration-300"
+            className="h-16 px-12 rounded-lg font-headline font-bold text-on-tertiary bg-gradient-to-r from-tertiary to-tertiary-container shadow-xl shadow-tertiary/10 hover:shadow-tertiary/20 hover:scale-[1.02] transition-all duration-300"
           >
             Continuar
           </button>

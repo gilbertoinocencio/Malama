@@ -24,7 +24,7 @@ const HomeFeedStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) 
           <span className="material-symbols-outlined text-secondary text-6xl" style={{ fontVariationSettings: "'FILL' 1" }}>
             check_circle
           </span>
-          <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary">Tudo pronto!</h1>
+          <h1 className="text-4xl md:text-5xl font-headline font-bold text-tertiary">Tudo pronto!</h1>
           <p className="text-on-surface-variant text-lg max-w-md mx-auto">
             Configuramos seu feed personalizado. Prepare-se para vivenciar o seu melhor estado de saúde.
           </p>
@@ -37,11 +37,11 @@ const HomeFeedStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) 
           
           <div className="space-y-6 relative z-10">
             <div className="flex items-center gap-4 text-left">
-              <div className="w-12 h-12 rounded-full bg-primary-fixed-dim flex items-center justify-center">
-                <span className="material-symbols-outlined text-primary">feed</span>
+              <div className="w-12 h-12 rounded-full bg-tertiary-fixed-dim flex items-center justify-center">
+                <span className="material-symbols-outlined text-tertiary">feed</span>
               </div>
               <div>
-                <h4 className="font-bold text-primary">Feed Inteligente</h4>
+                <h4 className="font-bold text-tertiary">Feed Inteligente</h4>
                 <p className="text-xs text-on-surface-variant">Recomendações baseadas no seu ritmo único.</p>
               </div>
             </div>
@@ -53,7 +53,7 @@ const HomeFeedStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) 
                 <span className="material-symbols-outlined text-secondary">insights</span>
               </div>
               <div>
-                <h4 className="font-bold text-primary">Acompanhamento Flow</h4>
+                <h4 className="font-bold text-tertiary">Acompanhamento Flow</h4>
                 <p className="text-xs text-on-surface-variant">Insights automáticos sobre sua bio-sincronização.</p>
               </div>
             </div>

@@ -24,7 +24,7 @@ const TipoDietaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
       onBack={onBack}
     >
       <section className="mb-12">
-        <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tight leading-tight mb-4">
+        <h1 className="font-headline text-4xl md:text-5xl font-bold text-tertiary tracking-tight leading-tight mb-4">
           Que tipo de dieta prefere?
         </h1>
         <p className="text-on-surface-variant text-lg leading-relaxed max-w-md">
@@ -41,11 +41,11 @@ const TipoDietaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
               onClick={() => updateData({ dietType: dieta })}
               className={`w-full flex items-center justify-between p-8 rounded-lg text-left transition-all duration-300 ease-in-out group border-2 ${
                 isSelected 
-                  ? 'bg-primary-fixed-dim border-secondary/20 shadow-md ring-2 ring-secondary/10' 
+                  ? 'bg-tertiary-fixed-dim border-secondary/20 shadow-md ring-2 ring-secondary/10' 
                   : 'bg-surface-container-low border-transparent hover:bg-surface-container-highest'
               }`}
             >
-              <span className={`font-headline text-xl font-medium ${isSelected ? 'text-primary' : 'text-primary/70 group-hover:text-primary'}`}>
+              <span className={`font-headline text-xl font-medium ${isSelected ? 'text-tertiary' : 'text-tertiary/70 group-hover:text-tertiary'}`}>
                 {dieta}
               </span>
               <div className={`transition-all duration-300 ${isSelected ? 'text-secondary scale-110' : 'text-outline-variant opacity-0 group-hover:opacity-100'}`}>

@@ -20,7 +20,7 @@ const CriandoPlanoStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps
       hideNavigation={true}
     >
       <div className="absolute -top-20 -right-20 w-96 h-96 bg-secondary-container opacity-10 rounded-full blur-[100px] pointer-events-none"></div>
-      <div className="absolute -bottom-40 -left-20 w-[30rem] h-[30rem] bg-primary-fixed-dim opacity-10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute -bottom-40 -left-20 w-[30rem] h-[30rem] bg-tertiary-fixed-dim opacity-10 rounded-full blur-[120px] pointer-events-none"></div>
 
       <div className="flex flex-col items-center justify-center min-h-[60vh] relative z-10 w-full">
         {/* AI Core Visual */}
@@ -37,7 +37,7 @@ const CriandoPlanoStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps
           ></motion.div>
 
           <div className="relative z-10 w-48 h-48 rounded-full bg-surface-container-lowest shadow-2xl flex items-center justify-center group overflow-hidden border border-surface-container-highest">
-            <div className="absolute inset-0 bg-gradient-to-tr from-secondary/5 to-primary/5"></div>
+            <div className="absolute inset-0 bg-gradient-to-tr from-secondary/5 to-tertiary/5"></div>
             <div className="relative z-20 flex flex-col items-center">
               <motion.span 
                 animate={{ opacity: [0.5, 1, 0.5] }}
@@ -81,7 +81,7 @@ const CriandoPlanoStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps
 
         {/* Editorial Content */}
         <div className="text-center max-w-md">
-          <h1 className="font-headline text-4xl md:text-5xl font-medium tracking-tight text-primary mb-10">
+          <h1 className="font-headline text-4xl md:text-5xl font-medium tracking-tight text-tertiary mb-10">
             Criando seu <span className="text-secondary italic">Flow</span> único...
           </h1>
 
@@ -100,7 +100,7 @@ const CriandoPlanoStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 1.5 }}
-              className="flex items-center justify-center gap-3 text-primary"
+              className="flex items-center justify-center gap-3 text-tertiary"
             >
               <div className="w-5 h-5 flex items-center justify-center">
                 <div className="w-4 h-4 border-2 border-secondary/30 border-t-secondary rounded-full animate-spin"></div>

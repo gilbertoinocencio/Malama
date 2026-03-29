@@ -194,7 +194,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         return (
           <div className="text-center p-12">
             <h2 className="text-2xl font-bold mb-4">Em breve: {currentStep}</h2>
-            <button onClick={handleNext} className="bg-primary text-white p-4 rounded-xl">Continuar</button>
+            <button onClick={handleNext} className="bg-tertiary text-white p-4 rounded-xl">Continuar</button>
           </div>
         );
     }

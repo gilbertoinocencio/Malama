@@ -14,7 +14,7 @@ const EducaJejumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tota
       nextLabel="Entendi, continuar jornada"
     >
       <section className="mt-8 mb-12">
-        <h2 className="text-4xl md:text-5xl font-extrabold font-headline text-primary leading-tight tracking-tight mb-6">
+        <h2 className="text-4xl md:text-5xl font-extrabold font-headline text-tertiary leading-tight tracking-tight mb-6">
           O que é o Jejum Intermitente?
         </h2>
         <p className="text-lg md:text-xl text-on-surface-variant font-body leading-relaxed max-w-prose">
@@ -39,13 +39,13 @@ const EducaJejumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tota
                 <div className="w-full h-1/2 bg-tertiary-fixed absolute top-0 flex items-center justify-center">
                   <span className="material-symbols-outlined text-tertiary text-4xl">light_mode</span>
                 </div>
-                <div className="w-full h-1/2 bg-primary absolute bottom-0 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-primary-fixed text-4xl">dark_mode</span>
+                <div className="w-full h-1/2 bg-tertiary absolute bottom-0 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-tertiary-fixed text-4xl">dark_mode</span>
                 </div>
               </div>
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-bold font-lexend text-primary mb-3">Ciclo Circadiano</h3>
+              <h3 className="text-xl font-bold font-lexend text-tertiary mb-3">Ciclo Circadiano</h3>
               <p className="text-on-surface-variant text-sm leading-relaxed mb-4">
                 Seu corpo possui um relógio interno natural. O jejum alinha sua nutrição a este ritmo, otimizando a queima de gordura e a reparação celular durante o descanso.
               </p>
@@ -61,7 +61,7 @@ const EducaJejumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tota
         <div className="bg-surface-container-low p-8 rounded-xl flex flex-col justify-between group hover:bg-surface-container transition-colors duration-500">
           <div>
             <span className="material-symbols-outlined text-secondary text-4xl mb-4">restaurant</span>
-            <h3 className="text-lg font-bold font-lexend text-primary mb-2">Nutrição Consciente</h3>
+            <h3 className="text-lg font-bold font-lexend text-tertiary mb-2">Nutrição Consciente</h3>
             <p className="text-sm text-on-surface-variant leading-relaxed">Qualidade sobre quantidade. A janela de alimentação é o momento de nutrir cada célula com intenção.</p>
           </div>
         </div>
@@ -70,7 +70,7 @@ const EducaJejumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tota
         <div className="bg-surface-container-low p-8 rounded-xl flex flex-col justify-between group hover:bg-surface-container transition-colors duration-500">
           <div>
             <span className="material-symbols-outlined text-tertiary text-4xl mb-4">energy_savings_leaf</span>
-            <h3 className="text-lg font-bold font-lexend text-primary mb-2">Pausa Metabólica</h3>
+            <h3 className="text-lg font-bold font-lexend text-tertiary mb-2">Pausa Metabólica</h3>
             <p className="text-sm text-on-surface-variant leading-relaxed">Dê ao seu sistema digestivo o descanso necessário para focar na renovação e longevidade.</p>
           </div>
         </div>

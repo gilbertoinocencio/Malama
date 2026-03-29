@@ -14,7 +14,7 @@ const VelocidadeMetaStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
       onBack={onBack}
     >
       <div className="w-full mb-12 space-y-4">
-        <h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight text-primary leading-tight">
+        <h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight text-tertiary leading-tight">
           Qual a velocidade do seu objetivo?
         </h1>
         <p className="text-on-surface-variant text-lg max-w-md leading-relaxed">
@@ -28,13 +28,13 @@ const VelocidadeMetaStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
           <span className={`material-symbols-outlined text-5xl ${speed <= 2 ? 'text-secondary' : 'text-secondary/40'}`} style={{ fontVariationSettings: "'wght' 200" }}>
             egg
           </span>
-          <span className={`font-headline text-sm font-medium ${speed <= 2 ? 'text-primary' : 'text-on-surface-variant'}`}>Lento e sustentável</span>
+          <span className={`font-headline text-sm font-medium ${speed <= 2 ? 'text-tertiary' : 'text-on-surface-variant'}`}>Lento e sustentável</span>
         </div>
         <div className={`bg-surface-container-lowest p-8 rounded-lg flex flex-col items-center justify-center space-y-4 shadow-sm transition-all duration-500 border-2 ${speed >= 4 ? 'border-secondary/40 scale-105' : 'border-transparent'}`}>
           <span className={`material-symbols-outlined text-5xl ${speed >= 4 ? 'text-secondary' : 'text-secondary/40'}`} style={{ fontVariationSettings: "'FILL' 1" }}>
             bolt
           </span>
-          <span className={`font-headline text-sm font-medium ${speed >= 4 ? 'text-primary' : 'text-on-surface-variant'}`}>Rápido e intenso</span>
+          <span className={`font-headline text-sm font-medium ${speed >= 4 ? 'text-tertiary' : 'text-on-surface-variant'}`}>Rápido e intenso</span>
         </div>
       </div>
 
@@ -57,7 +57,7 @@ const VelocidadeMetaStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
             </div>
             <div className="flex flex-col items-end">
               <span className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest font-headline">Foco</span>
-              <span className="text-sm font-semibold text-primary">Acelerado</span>
+              <span className="text-sm font-semibold text-tertiary">Acelerado</span>
             </div>
           </div>
         </div>

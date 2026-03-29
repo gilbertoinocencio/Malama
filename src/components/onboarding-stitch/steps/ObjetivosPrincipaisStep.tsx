@@ -56,7 +56,7 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
             <span className="text-tertiary font-headline font-semibold text-sm tracking-widest uppercase">
               Passo {currentStep} de {totalSteps}
             </span>
-            <h2 className="text-primary font-headline font-bold text-4xl leading-tight">
+            <h2 className="text-tertiary font-headline font-bold text-4xl leading-tight">
               Qual é o seu objetivo principal?
             </h2>
             <p className="text-on-surface-variant text-lg">Personalize sua jornada para o seu bem-estar.</p>
@@ -70,14 +70,14 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
                 onClick={() => handleSelect(objetivo.id)}
                 className={`flex items-center justify-between w-full p-8 rounded-lg text-left transition-all duration-300 transform hover:scale-[1.02] active:scale-95 group ${
                   objetivoPrincipal === objetivo.id
-                    ? 'bg-primary-fixed-dim'
+                    ? 'bg-tertiary-fixed-dim'
                     : 'bg-surface-container-low'
                 }`}
               >
                 <div className="space-y-1">
                   <span
                     className={`font-headline font-semibold text-xl block ${
-                      objetivoPrincipal === objetivo.id ? 'text-primary' : 'text-on-surface'
+                      objetivoPrincipal === objetivo.id ? 'text-tertiary' : 'text-on-surface'
                     }`}
                   >
                     {objetivo.title}
@@ -85,7 +85,7 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
                   <span
                     className={`text-sm ${
                       objetivoPrincipal === objetivo.id
-                        ? 'text-on-primary-fixed-variant/70'
+                        ? 'text-on-tertiary-fixed-variant/70'
                         : 'text-on-surface-variant'
                     }`}
                   >
@@ -100,7 +100,7 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
                     check_circle
                   </span>
                 ) : (
-                  <span className="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">
+                  <span className="material-symbols-outlined text-outline-variant group-hover:text-tertiary transition-colors">
                     circle
                   </span>
                 )}

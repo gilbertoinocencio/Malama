@@ -56,7 +56,7 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
           <p className="text-on-surface-variant font-medium mb-2 opacity-60">
             Passo {currentStep} de {totalSteps}
           </p>
-          <h2 className="font-headline text-4xl font-bold text-primary tracking-tight leading-tight">
+          <h2 className="font-headline text-4xl font-bold text-tertiary tracking-tight leading-tight">
             Seu Perfil Biométrico
           </h2>
         </section>
@@ -67,7 +67,7 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
             <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-secondary-container opacity-20 blur-3xl"></div>
             <span className="text-on-surface-variant font-medium text-sm tracking-widest uppercase mb-2">Seu IMC Atual</span>
             <div className="flex items-baseline gap-1">
-              <span className="font-headline text-7xl font-extrabold text-primary">{bmiFormatted}</span>
+              <span className="font-headline text-7xl font-extrabold text-tertiary">{bmiFormatted}</span>
               <span className="font-headline text-xl font-medium text-on-surface-variant">kg/m²</span>
             </div>
             <div className={`mt-6 px-6 py-2 bg-${categoryColor}/10 rounded-full border border-${categoryColor}/10`}>
@@ -89,7 +89,7 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
               <div className="h-full bg-error-container w-[25%]"></div>
             </div>
             <div className="absolute -bottom-4 flex flex-col items-center" style={{ left: `${Math.min(Math.max(((bmi - 15) / 25) * 100, 2), 98)}%`, transform: 'translateX(-50%)' }}>
-              <div className="w-3 h-3 bg-primary rounded-full ring-4 ring-surface-container-lowest"></div>
+              <div className="w-3 h-3 bg-tertiary rounded-full ring-4 ring-surface-container-lowest"></div>
             </div>
           </div>
         </section>
