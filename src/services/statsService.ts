@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { DailyStats } from '../types';
+import { DailyStats, MicroNutrients } from '../types';
 import { INITIAL_STATS } from '../constants';
 import { MealService } from './mealService';
 
@@ -85,6 +85,22 @@ export const StatsService = {
 
         const flowScore = this.calculateFlowScore(consumed, targets);
 
+        // Aggregate micronutrients from all meal items
+        const micronutrients: Partial<MicroNutrients> = {};
+        for (const meal of meals) {
+            for (const item of (meal.items || [])) {
+                const m = (item as any).micros as Partial<MicroNutrients> | undefined;
+                if (m) {
+                    for (const [key, val] of Object.entries(m)) {
+                        if (typeof val === 'number' && val > 0) {
+                            const k = key as keyof MicroNutrients;
+                            micronutrients[k] = ((micronutrients[k] as number) || 0) + val;
+                        }
+                    }
+                }
+            }
+        }
+
         return {
             consumedCalories: consumed.calories,
             targetCalories: targets.target_calories,
@@ -98,7 +114,8 @@ export const StatsService = {
                 carbs: targets.target_carbs,
                 fats: targets.target_fats
             },
-            flowScore
+            flowScore,
+            micronutrients: Object.keys(micronutrients).length > 0 ? micronutrients : undefined
         };
     }
 };

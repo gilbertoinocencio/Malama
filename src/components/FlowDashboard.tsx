@@ -405,6 +405,84 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 );
               })()}
             </div>
+
+            {/* Micronutrients Card — only shown when at least one micro was consumed */}
+            {(() => {
+              const micros = stats.micronutrients;
+              if (!micros || Object.keys(micros).length === 0) return null;
+
+              type MicroKey = keyof typeof MICRO_META;
+              const MICRO_META = {
+                fiber:         { label: 'Fibra',       rda: 25,   unit: 'g',   group: 'Outros',   warn: false },
+                sugar:         { label: 'Açúcar',      rda: 25,   unit: 'g',   group: 'Outros',   warn: true  },
+                saturated_fat: { label: 'G. Saturada', rda: 20,   unit: 'g',   group: 'Outros',   warn: true  },
+                cholesterol:   { label: 'Colesterol',  rda: 300,  unit: 'mg',  group: 'Outros',   warn: true  },
+                sodium:        { label: 'Sódio',       rda: 2300, unit: 'mg',  group: 'Minerais', warn: true  },
+                potassium:     { label: 'Potássio',    rda: 4700, unit: 'mg',  group: 'Minerais', warn: false },
+                calcium:       { label: 'Cálcio',      rda: 1000, unit: 'mg',  group: 'Minerais', warn: false },
+                iron:          { label: 'Ferro',       rda: 14,   unit: 'mg',  group: 'Minerais', warn: false },
+                magnesium:     { label: 'Magnésio',    rda: 370,  unit: 'mg',  group: 'Minerais', warn: false },
+                zinc:          { label: 'Zinco',       rda: 10,   unit: 'mg',  group: 'Minerais', warn: false },
+                vitamin_a:     { label: 'Vit. A',      rda: 800,  unit: 'mcg', group: 'Vitaminas', warn: false },
+                vitamin_c:     { label: 'Vit. C',      rda: 80,   unit: 'mg',  group: 'Vitaminas', warn: false },
+                vitamin_d:     { label: 'Vit. D',      rda: 15,   unit: 'mcg', group: 'Vitaminas', warn: false },
+                vitamin_e:     { label: 'Vit. E',      rda: 15,   unit: 'mg',  group: 'Vitaminas', warn: false },
+                vitamin_b12:   { label: 'Vit. B12',    rda: 2.4,  unit: 'mcg', group: 'Vitaminas', warn: false },
+                vitamin_b6:    { label: 'Vit. B6',     rda: 1.3,  unit: 'mg',  group: 'Vitaminas', warn: false },
+                folate:        { label: 'Folato',      rda: 400,  unit: 'mcg', group: 'Vitaminas', warn: false },
+              } as const;
+
+              const groups = ['Outros', 'Minerais', 'Vitaminas'] as const;
+              const grouped = groups.map(group => ({
+                group,
+                items: (Object.entries(MICRO_META) as [MicroKey, typeof MICRO_META[MicroKey]][])
+                  .filter(([key, meta]) => meta.group === group && (micros[key] ?? 0) > 0)
+                  .map(([key, meta]) => ({
+                    key, ...meta,
+                    consumed: Math.round((micros[key] ?? 0) * 10) / 10,
+                  })),
+              })).filter(g => g.items.length > 0);
+
+              return (
+                <div className="px-6">
+                  <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-xl">biotech</span>
+                      <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Micronutrientes</span>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                      {grouped.map(({ group, items }) => (
+                        <div key={group}>
+                          <p className="text-[10px] font-bold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-2">{group}</p>
+                          <div className="flex flex-col gap-2">
+                            {items.map(({ key, label, rda, unit, warn, consumed }) => {
+                              const pct = Math.min(Math.round((consumed / rda) * 100), 100);
+                              const over = consumed > rda;
+                              const barColor = warn
+                                ? over ? 'bg-red-400' : pct > 70 ? 'bg-orange-400' : 'bg-nura-petrol dark:bg-primary'
+                                : 'bg-nura-petrol dark:bg-primary';
+                              return (
+                                <div key={key}>
+                                  <div className="flex justify-between items-baseline mb-1">
+                                    <span className="text-xs font-medium text-nura-main dark:text-white">{label}</span>
+                                    <span className="text-[10px] text-nura-muted dark:text-slate-500">
+                                      {consumed}{unit} / {rda}{unit}
+                                    </span>
+                                  </div>
+                                  <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                                    <div className={`h-full ${barColor} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </>
         ) : (
           /* ——— WEEK/MONTH VIEW: Flow Score + Weekly Rhythm (Stitch hero) ——— */

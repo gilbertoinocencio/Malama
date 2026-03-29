@@ -1,5 +1,35 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
-import { AIResponse } from '../types';
+import { AIResponse, MicroNutrients } from '../types';
+
+// Shared micronutrient schema properties (optional — not in required[])
+const MICRO_SCHEMA_PROPERTIES = {
+  fiber:         { type: SchemaType.NUMBER },
+  sugar:         { type: SchemaType.NUMBER },
+  saturated_fat: { type: SchemaType.NUMBER },
+  cholesterol:   { type: SchemaType.NUMBER },
+  sodium:        { type: SchemaType.NUMBER },
+  potassium:     { type: SchemaType.NUMBER },
+  calcium:       { type: SchemaType.NUMBER },
+  iron:          { type: SchemaType.NUMBER },
+  magnesium:     { type: SchemaType.NUMBER },
+  zinc:          { type: SchemaType.NUMBER },
+  vitamin_a:     { type: SchemaType.NUMBER },
+  vitamin_c:     { type: SchemaType.NUMBER },
+  vitamin_d:     { type: SchemaType.NUMBER },
+  vitamin_e:     { type: SchemaType.NUMBER },
+  vitamin_b12:   { type: SchemaType.NUMBER },
+  vitamin_b6:    { type: SchemaType.NUMBER },
+  folate:        { type: SchemaType.NUMBER },
+} as const;
+
+const MICRO_PROMPT_INSTRUCTIONS = `
+## MICRONUTRIENTES POR ITEM
+Para cada item, inclua também os seguintes campos quando disponíveis nas bases TACO/USDA:
+- fiber (fibra alimentar, g), sugar (açúcares totais, g), saturated_fat (gordura saturada, g), cholesterol (colesterol, mg)
+- sodium (sódio, mg), potassium (potássio, mg), calcium (cálcio, mg), iron (ferro, mg), magnesium (magnésio, mg), zinc (zinco, mg)
+- vitamin_a (Vitamina A, mcg), vitamin_c (Vitamina C, mg), vitamin_d (Vitamina D, mcg), vitamin_e (Vitamina E, mg)
+- vitamin_b12 (Vitamina B12, mcg), vitamin_b6 (Vitamina B6, mg), folate (Folato, mcg)
+Use os valores por 100g da base de dados e escale proporcionalmente ao weightGrams do item. Omita campos que não constam na base para aquele alimento.`;
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 // Initialize lazily to prevent crash if API key is missing during module load
@@ -64,7 +94,11 @@ export const analyzeTextLog = async (text: string, language: string = 'pt'): Pro
                   calories: { type: SchemaType.NUMBER },
                   protein: { type: SchemaType.NUMBER },
                   carbs: { type: SchemaType.NUMBER },
-                  fats: { type: SchemaType.NUMBER }
+                  fats: { type: SchemaType.NUMBER },
+                  micros: {
+                    type: SchemaType.OBJECT,
+                    properties: { ...MICRO_SCHEMA_PROPERTIES },
+                  },
                 },
                 required: ["name", "weightGrams", "calories", "protein", "carbs", "fats"]
               }
@@ -96,8 +130,9 @@ Return a JSON object with:
 - foodName (string, overall summary name in ${langName})
 - calories (number, total kcal)
 - macros (object with p, c, f as numbers for protein, carbs, fats in grams)
-- items (array of objects with: name (string in ${langName}), quantity (string, e.g. "2 unidades" — optional), weightGrams (number), calories (number), protein (number), carbs (number), fats (number))
+- items (array of objects with: name (string in ${langName}), quantity (string, e.g. "2 unidades" — optional), weightGrams (number), calories (number), protein (number), carbs (number), fats (number), plus optional micronutrient fields per item)
 - message (string, a short motivational phrase in ${langName} about maintaining the flow)
+${MICRO_PROMPT_INSTRUCTIONS}
 
 ALL text responses MUST be in ${langName}.`;
 
@@ -124,6 +159,7 @@ export interface SingleItemNutrition {
   protein: number;
   carbs: number;
   fats: number;
+  micros?: MicroNutrients;
 }
 
 export const lookupSingleItem = async (
@@ -144,6 +180,10 @@ export const lookupSingleItem = async (
           protein: { type: SchemaType.NUMBER },
           carbs: { type: SchemaType.NUMBER },
           fats: { type: SchemaType.NUMBER },
+          micros: {
+            type: SchemaType.OBJECT,
+            properties: { ...MICRO_SCHEMA_PROPERTIES },
+          },
         },
         required: ["calories", "protein", "carbs", "fats"]
       }
@@ -168,8 +208,9 @@ WEIGHT: ${weightGrams}g
 - Calculate values proportionally from per-100g reference data scaled to ${weightGrams}g.
 - Round all values to the nearest integer.
 
-Return JSON: { "calories": number, "protein": number, "carbs": number, "fats": number }
-All values in grams except calories (kcal). Language for any text: ${langName}.`;
+Return JSON: { "calories": number, "protein": number, "carbs": number, "fats": number, "micros": { ...optional micronutrient fields } }
+All values in grams except calories (kcal) and micronutrients (see units below). Language for any text: ${langName}.
+${MICRO_PROMPT_INSTRUCTIONS}`;
 
   const result = await model.generateContent(prompt);
   const response = await result.response;
@@ -218,10 +259,15 @@ Return a STRICT JSON string with this structure:
     "calories": number,
     "protein": number,
     "carbs": number,
-    "fats": number
+    "fats": number,
+    "micros": { "fiber": number, "sugar": number, "saturated_fat": number, "cholesterol": number,
+      "sodium": number, "potassium": number, "calcium": number, "iron": number, "magnesium": number,
+      "zinc": number, "vitamin_a": number, "vitamin_c": number, "vitamin_d": number,
+      "vitamin_e": number, "vitamin_b12": number, "vitamin_b6": number, "folate": number } (optional object — omit fields not found in TACO/USDA)
   }],
   "message": string (short motivational phrase in ${langName})
 }
+${MICRO_PROMPT_INSTRUCTIONS}
 ALL text responses MUST be in ${langName}.`;
 
     const result = await model.generateContent([

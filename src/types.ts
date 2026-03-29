@@ -6,6 +6,26 @@ export interface MacroData {
   fats: number;
 }
 
+export interface MicroNutrients {
+  fiber?: number;         // g
+  sugar?: number;         // g
+  saturated_fat?: number; // g
+  cholesterol?: number;   // mg
+  sodium?: number;        // mg
+  potassium?: number;     // mg
+  calcium?: number;       // mg
+  iron?: number;          // mg
+  magnesium?: number;     // mg
+  zinc?: number;          // mg
+  vitamin_a?: number;     // mcg
+  vitamin_c?: number;     // mg
+  vitamin_d?: number;     // mcg
+  vitamin_e?: number;     // mg
+  vitamin_b12?: number;   // mcg
+  vitamin_b6?: number;    // mg
+  folate?: number;        // mcg
+}
+
 export interface MealItem {
   name: string;
   quantity?: string;
@@ -14,6 +34,7 @@ export interface MealItem {
   protein?: number;
   carbs?: number;
   fats?: number;
+  micros?: MicroNutrients;
 }
 
 export interface Meal {
@@ -33,6 +54,7 @@ export interface DailyStats {
   macros: MacroData;
   targetMacros: MacroData;
   flowScore?: number; // 0-100
+  micronutrients?: Partial<MicroNutrients>;
 }
 
 export enum AppView {
