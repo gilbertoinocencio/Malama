@@ -724,6 +724,13 @@ Os valores nutricionais devem ser precisos e coerentes com as quantidades. A som
 3. Se o usuário mencionou quantidades específicas (ex: "150g", "2 unidades", "500ml"), use-as. Se não mencionou, estime porções típicas
 4. Não pergunte confirmação — simplesmente registre e mostre o resumo para aprovação
 
+**NUNCA emita <meal_json> nas seguintes situações:**
+- O usuário expressou estado de fome/saciedade sem citar um alimento (ex: "estou sem fome", "não estou com fome", "tô cheio", "não comi nada")
+- O usuário fez uma pergunta, pediu sugestão ou está em conversa geral
+- O usuário não nomeou nenhum alimento ou bebida específica na mensagem
+- O contexto é emocional, motivacional ou de check-in (ex: "tô bem", "tô cansado", "tô feliz")
+O <meal_json> só deve aparecer quando um alimento ou bebida ESPECÍFICO foi de fato consumido e nomeado.
+
 Formato do bloco (idêntico ao das sugestões):
 <meal_json>
 {
