@@ -64,7 +64,6 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
         {/* BMI Display */}
         <section className="relative mb-8">
           <div className="bg-surface-container-lowest rounded-lg p-10 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_16px_32px_0_rgba(26,28,26,0.04)]">
-            <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-secondary-container opacity-20 blur-3xl"></div>
             <span className="text-on-surface-variant font-medium text-sm tracking-widest uppercase mb-2">Seu IMC Atual</span>
             <div className="flex items-baseline gap-1">
               <span className="font-headline text-7xl font-extrabold text-tertiary">{bmiFormatted}</span>

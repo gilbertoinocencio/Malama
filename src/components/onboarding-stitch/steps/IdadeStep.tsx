@@ -44,7 +44,6 @@ const IdadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, curr
     >
       {/* Main Content */}
       <main className="flex-grow flex flex-col items-center justify-center px-8 pt-20 pb-32 max-w-2xl mx-auto w-full relative">
-        {/* Contextual Leaf (Decorative) */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-secondary-container/10 blur-[100px] -z-10 rounded-full"></div>
 
         {/* Headline & Subtitle */}

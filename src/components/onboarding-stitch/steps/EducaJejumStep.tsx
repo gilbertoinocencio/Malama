@@ -26,7 +26,6 @@ const EducaJejumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tota
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
         {/* Circadian Rhythm Card */}
         <div className="col-span-1 md:col-span-2 bg-surface-container-lowest p-8 rounded-xl relative overflow-hidden group">
-          <div className="absolute -right-12 -top-12 w-64 h-64 bg-secondary-container opacity-20 rounded-full blur-3xl pointer-events-none"></div>
           <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
             <div className="w-48 h-48 md:w-56 md:h-56 relative flex items-center justify-center">
               {/* Abstract Circadian Ring */}

@@ -24,9 +24,6 @@ const GeneroStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, cur
       onNext={handleContinue}
       showFooter={false}
     >
-      {/* Contextual Leaf (Decorative background) */}
-      <div className="fixed top-1/4 -right-20 w-64 h-64 bg-secondary-container opacity-20 blur-3xl rounded-full pointer-events-none"></div>
-      <div className="fixed bottom-1/4 -left-20 w-80 h-80 bg-tertiary-container opacity-10 blur-3xl rounded-full pointer-events-none"></div>
 
       <main className="flex-grow flex flex-col items-center justify-center px-6 pt-24 pb-32 max-w-2xl mx-auto w-full relative z-10">
         {/* Header Section (Editorial Clarity) */}

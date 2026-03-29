@@ -23,7 +23,6 @@ const PlanoPersonalizadoStep: React.FC<StepProps> = ({ onNext, onBack, currentSt
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 relative w-full">
-        {/* Contextual Leaf Decoration */}
         <div className="absolute -right-20 top-40 opacity-10 pointer-events-none hidden lg:block">
           <span className="material-symbols-outlined text-[200px] text-secondary-container">eco</span>
         </div>
@@ -62,7 +61,6 @@ const PlanoPersonalizadoStep: React.FC<StepProps> = ({ onNext, onBack, currentSt
           transition={{ delay: 0.4 }}
           className="bg-tertiary text-on-tertiary p-8 rounded-xl shadow-2xl flex flex-col h-full z-10 relative overflow-hidden"
         >
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-tertiary-container rounded-full blur-3xl opacity-50"></div>
           <div className="flex justify-between items-start mb-8 relative z-20">
             <span className="text-tertiary-fixed font-headline font-bold text-xs tracking-widest uppercase">Fase 2</span>
             <span className="material-symbols-outlined text-tertiary-fixed text-4xl">auto_awesome</span>

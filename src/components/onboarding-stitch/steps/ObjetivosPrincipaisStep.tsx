@@ -46,8 +46,6 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
     >
       {/* Main Content Canvas */}
       <main className="flex-1 flex flex-col px-6 pt-28 pb-32 max-w-lg mx-auto w-full relative overflow-hidden">
-        {/* Decorative "Contextual Leaf" */}
-        <div className="absolute -top-10 -right-10 w-64 h-64 bg-secondary-container/20 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute top-1/2 -left-20 w-48 h-48 bg-tertiary-fixed/10 rounded-full blur-2xl pointer-events-none"></div>
 
         {/* Section 1: Objectives */}

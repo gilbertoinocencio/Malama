@@ -19,7 +19,6 @@ const ExperienciaCaloriasStep: React.FC<StepProps> = ({ data, updateData, onNext
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
-      <div className="absolute -top-20 -right-20 w-64 h-64 bg-secondary-container opacity-20 rounded-full blur-3xl pointer-events-none"></div>
       
       <section className="text-center mb-16 space-y-4">
         <h1 className="font-headline text-4xl md:text-5xl font-extrabold text-tertiary tracking-tight leading-tight">

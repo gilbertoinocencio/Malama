@@ -54,8 +54,6 @@ const AssinaturasStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tot
       secondaryLabel="Continuar sem premium"
     >
       {/* Decorative blurs */}
-      <div className="fixed -right-20 top-40 w-64 h-64 bg-secondary-container opacity-20 rounded-full blur-3xl -z-10 pointer-events-none"></div>
-      <div className="fixed -left-20 bottom-40 w-80 h-80 bg-tertiary-fixed opacity-20 rounded-full blur-3xl -z-10 pointer-events-none"></div>
 
       <div className="w-full max-w-2xl">
         {/* Header */}

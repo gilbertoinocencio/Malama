@@ -66,8 +66,7 @@ export const StepContainer: React.FC<StepContainerProps> = ({
 
       {/* Main Content Canvas */}
       <main className={`flex-grow flex flex-col items-center justify-center px-6 ${showHeader ? 'pt-24' : 'pt-6'} pb-32 max-w-2xl mx-auto w-full relative z-10`}>
-        {/* Contextual Leaf (Decorative Element) */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-secondary-container opacity-10 rounded-full blur-[100px] -z-10 pointer-events-none" />
+
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -103,14 +102,7 @@ export const StepContainer: React.FC<StepContainerProps> = ({
         </footer>
       )}
 
-      {/* Background Decoration Image (Optional, can be toggled per step) */}
-      <div className="fixed top-0 right-0 -z-20 opacity-10 pointer-events-none w-1/3 h-full overflow-hidden hidden md:block">
-        <img
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDT_Z3n6qttWS317YYGfR-iInypIAsgBt-dPOGGH7yePbEfqdHspUUkgEh12YN_EV1fgpSvogyCVjZOuAb5k3GUQJg-TbCb8u7G5iXezV4K_1IKOTo4eFpkjs821yWL7rPk38KN-aMa-He87Ra9GXouLp62gyEeiHV5usP9ng0gKtj_1YMccvsqPOyoD3tr8ywkR0wuzpZJFx1dssikgPOmrCTnEWCDQR7Cwefz4nhkryI5_NnvRfkm1BkLdmwZ77LgF7Q3t5TVL24"
-          alt="Decoration"
-          className="object-cover h-full w-full grayscale"
-        />
-      </div>
+
     </div>
   );
 };

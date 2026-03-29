@@ -53,8 +53,6 @@ const VantagensPremiumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep
       secondaryLabel="Agora não"
     >
       {/* Decorative leaves */}
-      <div className="fixed -bottom-12 -right-12 w-64 h-64 bg-secondary-container opacity-10 rounded-full blur-3xl pointer-events-none -z-10"></div>
-      <div className="fixed top-1/4 -left-12 w-48 h-48 bg-tertiary-fixed-dim opacity-10 rounded-full blur-3xl pointer-events-none -z-10"></div>
 
       <div className="w-full max-w-2xl">
         {/* Header */}
