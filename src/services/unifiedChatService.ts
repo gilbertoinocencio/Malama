@@ -720,15 +720,15 @@ Responda com uma frase motivacional curta e inclua o bloco <meal_json> ao final:
   "calories": 320,
   "macros": {"p": 15, "c": 39, "f": 13},
   "items": [
-    {"name": "Iogurte Natural Desnatado", "quantity": "170g", "weightGrams": 170, "calories": 110, "protein": 10, "carbs": 12, "fats": 2},
-    {"name": "Banana", "quantity": "100g", "weightGrams": 100, "calories": 90, "protein": 1, "carbs": 23, "fats": 0.3},
-    {"name": "Castanha-do-Pará", "quantity": "20g", "weightGrams": 20, "calories": 132, "protein": 2.9, "carbs": 2.4, "fats": 13.5}
+    {"name": "Iogurte Natural Desnatado", "quantity": "170g", "weightGrams": 170, "calories": 110, "protein": 10, "carbs": 12, "fats": 2, "micros": {"calcium": 180, "vitamin_b12": 0.8, "potassium": 240}},
+    {"name": "Banana", "quantity": "100g", "weightGrams": 100, "calories": 90, "protein": 1, "carbs": 23, "fats": 0.3, "micros": {"potassium": 358, "vitamin_b6": 0.4, "vitamin_c": 8.7, "magnesium": 27, "fiber": 2.6}},
+    {"name": "Castanha-do-Pará", "quantity": "20g", "weightGrams": 20, "calories": 132, "protein": 2.9, "carbs": 2.4, "fats": 13.5, "micros": {"magnesium": 50, "zinc": 1, "selenium": 0}}
   ],
   "message": "Frase motivacional curta e personalizada aqui"
 }
 </meal_json>
 
-Os valores nutricionais devem ser precisos e coerentes com as quantidades. A soma de calorias dos items deve bater com o campo "calories" total.
+**IMPORTANTE — Micronutrientes por item:** Cada item do array "items" deve incluir um campo "micros" com os micronutrientes conhecidos para aquele alimento (use TACO para alimentos brasileiros e USDA FoodData Central para internacionais). Inclua apenas os campos com valor > 0. Campos disponíveis: fiber (g), sugar (g), saturated_fat (g), cholesterol (mg), sodium (mg), potassium (mg), calcium (mg), iron (mg), magnesium (mg), zinc (mg), vitamin_a (mcg), vitamin_c (mg), vitamin_d (mcg), vitamin_e (mg), vitamin_b12 (mcg), vitamin_b6 (mg), folate (mcg). Os valores nutricionais devem ser precisos e coerentes com as quantidades. A soma de calorias dos items deve bater com o campo "calories" total.
 
 **Quando o usuário relatar que comeu ou bebeu algo (ex: "comi dois pães de queijo", "tomei um suco de laranja", "almoçei frango com arroz", "bebi um café com leite"):**
 1. Responda de forma conversacional — acolha, comente sobre a escolha, oriente se necessário
@@ -745,14 +745,14 @@ Os valores nutricionais devem ser precisos e coerentes com as quantidades. A som
 
 **Critério obrigatório para emitir <meal_json>:** a mensagem deve conter um verbo no passado indicando ingestão já ocorrida — "comi", "tomei", "bebi", "almocei", "jantei", "lancei", "ingeri" — referindo-se a um alimento ou bebida específico que o usuário JÁ consumiu.
 
-Formato do bloco (idêntico ao das sugestões):
+Formato do bloco (idêntico ao das sugestões, com micros por item):
 <meal_json>
 {
   "foodName": "Nome Completo Da Refeição",
-  "calories": 320,
-  "macros": {"p": 15, "c": 39, "f": 13},
+  "calories": 225,
+  "macros": {"p": 2, "c": 52, "f": 1},
   "items": [
-    {"name": "Suco de Laranja", "quantity": "500ml", "weightGrams": 500, "calories": 225, "protein": 2, "carbs": 52, "fats": 1}
+    {"name": "Suco de Laranja", "quantity": "500ml", "weightGrams": 500, "calories": 225, "protein": 2, "carbs": 52, "fats": 1, "micros": {"vitamin_c": 125, "folate": 75, "potassium": 496, "sugar": 42, "fiber": 0.5}}
   ],
   "message": "Frase motivacional curta"
 }
