@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { AIResponse, MicroNutrients } from '../types';
+import { searchOpenFoodFacts, formatOFFBlock } from './openFoodFactsService';
 
 // Shared micronutrient schema properties (optional — not in required[])
 const MICRO_SCHEMA_PROPERTIES = {
@@ -98,9 +99,10 @@ export const analyzeTextLog = async (text: string, language: string = 'pt'): Pro
                   micros: {
                     type: SchemaType.OBJECT,
                     properties: { ...MICRO_SCHEMA_PROPERTIES },
+                    required: Object.keys(MICRO_SCHEMA_PROPERTIES) as string[],
                   },
                 },
-                required: ["name", "weightGrams", "calories", "protein", "carbs", "fats"]
+                required: ["name", "weightGrams", "calories", "protein", "carbs", "fats", "micros"]
               }
             },
             message: { type: SchemaType.STRING }
@@ -111,10 +113,16 @@ export const analyzeTextLog = async (text: string, language: string = 'pt'): Pro
     });
 
     const langName = LANG_NAMES[language] || LANG_NAMES.pt;
+
+    // Primary source: OpenFoodFacts (free, real data). Falls back to TACO/USDA via Gemini training.
+    const offResult = await searchOpenFoodFacts(text);
+    const offBlock = offResult ? formatOFFBlock(offResult) : '';
+
     const prompt = `You are NURA, a clinical-grade nutrition analysis engine. Analyze this food log: "${text}".
 
+${offBlock}
 ## NUTRITIONAL DATABASE PRIORITY
-Use values from these databases in order of priority:
+${offBlock ? '0. **OpenFoodFacts data above** — USE THIS AS PRIMARY REFERENCE if provided above.' : ''}
 1. **TACO (Tabela Brasileira de Composição de Alimentos)** — preferred for Brazilian foods (feijão, arroz, carne de sol, pão francês, coxinha, açaí, tapioca, etc.)
 2. **USDA FoodData Central (SR Legacy / Foundation Foods)** — for international foods or when TACO has no entry
 3. **IBGE POF** — for typical Brazilian portion sizes
@@ -183,20 +191,28 @@ export const lookupSingleItem = async (
           micros: {
             type: SchemaType.OBJECT,
             properties: { ...MICRO_SCHEMA_PROPERTIES },
+            required: Object.keys(MICRO_SCHEMA_PROPERTIES) as string[],
           },
         },
-        required: ["calories", "protein", "carbs", "fats"]
+        required: ["calories", "protein", "carbs", "fats", "micros"]
       }
     }
   });
 
   const langName = LANG_NAMES[language] || LANG_NAMES.pt;
+
+  // Primary source: OpenFoodFacts. Falls back to TACO/USDA via Gemini training.
+  const offResult = await searchOpenFoodFacts(foodName);
+  const offBlock = offResult ? formatOFFBlock(offResult) : '';
+
   const prompt = `You are a nutritional database lookup engine. Return the macronutrient values for EXACTLY the food described below. Do NOT substitute or generalize the food.
 
 FOOD: "${foodName}"
 WEIGHT: ${weightGrams}g
 
+${offBlock}
 ## CRITICAL RULES
+${offBlock ? '- OpenFoodFacts data above is the PRIMARY REFERENCE — scale the per-100g values to the exact weight.' : ''}
 - Return macros for THIS EXACT food, not a generic version.
 - "${foodName}" is the food as the user described it. Respect the specific variety, preparation method, and seasoning.
   Examples of distinctions you MUST respect:
