@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
+import { lookupBarcode, barcodeResultToAIResponse } from '../services/openFoodFactsService';
 import { NuraAiScan } from './NuraAiScan';
 import { USER_AVATAR } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { MealService } from '../services/mealService';
 import { useLanguage } from '../i18n';
+import { Html5Qrcode } from 'html5-qrcode';
 
 // Web Speech API type declarations
 interface SpeechRecognitionEvent extends Event {
@@ -238,6 +240,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
+  // Barcode Scanner State
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [draftSource, setDraftSource] = useState<'chat' | 'photo' | 'barcode'>('chat');
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -397,6 +403,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               { id: (Date.now() + 2).toString(), type: 'ai-card', content: parsedMeal }
             ]);
             setDraftMeal(parsedMeal);
+            setDraftSource('chat');
           } catch {
             // If JSON parse fails, fall back to plain text
             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: agentResponse.content }]);
@@ -425,6 +432,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
         setMessages(prev => [...prev, aiTextMsg, aiCardMsg]);
         setDraftMeal(result);
+        setDraftSource('chat');
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : t.general.error;
@@ -464,9 +472,91 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     reader.readAsDataURL(file);
   };
 
+  // ─── Barcode Scanner ──────────────────────────────────────────────
 
+  const barcodeScannerRef = useRef<Html5Qrcode | null>(null);
 
-  const handleConfirmLog = async (data: AIResponse, type: 'ai-chat' | 'ai-photo' | 'ai-voice') => {
+  useEffect(() => {
+    if (!showBarcodeScanner) return;
+
+    let stopped = false;
+    const scanner = new Html5Qrcode('barcode-reader');
+    barcodeScannerRef.current = scanner;
+
+    scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 280, height: 150 } },
+      async (decodedText) => {
+        if (stopped) return;
+        stopped = true;
+        try { await scanner.stop(); } catch { /* already stopped */ }
+        setShowBarcodeScanner(false);
+        handleBarcodeResult(decodedText);
+      },
+      undefined,
+    ).catch(() => {
+      setShowBarcodeScanner(false);
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        type: 'ai-text',
+        content: language === 'en'
+          ? 'Camera access is needed to scan barcodes. Please allow camera permission.'
+          : 'Acesso à câmera é necessário para escanear. Permita o acesso à câmera.',
+      }]);
+    });
+
+    return () => {
+      stopped = true;
+      scanner.stop().catch(() => {});
+      barcodeScannerRef.current = null;
+    };
+  }, [showBarcodeScanner]);
+
+  const handleBarcodeResult = async (barcode: string) => {
+    setLoading(true);
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      type: 'user',
+      content: `🔎 Barcode: ${barcode}`,
+    }]);
+
+    try {
+      const result = await lookupBarcode(barcode);
+
+      if (result) {
+        const aiResponse = barcodeResultToAIResponse(result);
+        const foundText = language === 'en'
+          ? 'Product found! Here are the nutritional details:'
+          : 'Produto encontrado! Aqui estão os dados nutricionais:';
+
+        setMessages(prev => [...prev,
+          { id: (Date.now() + 1).toString(), type: 'ai-text', content: foundText },
+          { id: (Date.now() + 2).toString(), type: 'ai-card', content: aiResponse },
+        ]);
+        setDraftMeal(aiResponse);
+        setDraftSource('barcode');
+      } else {
+        const notFoundText = language === 'en'
+          ? 'Product not found in our database. Try logging it manually by typing the food name.'
+          : 'Produto não encontrado na nossa base. Tente registrar manualmente digitando o nome do alimento.';
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          type: 'ai-text',
+          content: notFoundText,
+        }]);
+      }
+    } catch {
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        type: 'ai-text',
+        content: language === 'en' ? 'Error looking up product. Please try again.' : 'Erro ao buscar produto. Tente novamente.',
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmLog = async (data: AIResponse, type: 'ai-chat' | 'ai-photo' | 'ai-voice' | 'ai-barcode') => {
     console.log('MealLogger: Confirming log...', type);
     if (!user) {
       console.error('MealLogger: No user!');
@@ -823,7 +913,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                 {t.mealLogger.edit}
               </button>
               <button
-                onClick={() => handleConfirmLog(draftMeal, 'ai-chat')}
+                onClick={() => handleConfirmLog(draftMeal, draftSource === 'barcode' ? 'ai-barcode' : draftSource === 'photo' ? 'ai-photo' : 'ai-chat')}
                 className="flex-[2] h-12 rounded-xl bg-nura-petrol dark:bg-primary shadow-lg shadow-nura-petrol/25 dark:shadow-primary/25 flex items-center justify-center gap-2 text-white font-bold text-sm hover:brightness-110 transition-all active:scale-95"
               >
                 <span className="material-symbols-outlined text-base">check</span>
@@ -875,6 +965,15 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                   type="text"
                   disabled={loading || isListening}
                 />
+
+                {/* Barcode Scanner Button */}
+                <button
+                  onClick={() => setShowBarcodeScanner(true)}
+                  disabled={loading || isListening}
+                  className="size-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark ring-1 ring-nura-border dark:ring-white/10 text-nura-petrol dark:text-primary hover:bg-nura-petrol/10 dark:hover:bg-primary/10 transition-all disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-xl">barcode_scanner</span>
+                </button>
 
                 {/* Send/Camera Button */}
                 <button
@@ -992,6 +1091,51 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Barcode Scanner Modal — full-screen overlay */}
+      {showBarcodeScanner && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          {/* Top bar */}
+          <div className="flex items-center justify-between p-4 bg-black/80">
+            <button
+              onClick={() => setShowBarcodeScanner(false)}
+              className="flex items-center gap-2 text-white font-medium"
+            >
+              <span className="material-symbols-outlined">close</span>
+              {language === 'en' ? 'Cancel' : 'Cancelar'}
+            </button>
+            <span className="text-white/60 text-sm font-medium">
+              {language === 'en' ? 'Barcode Scanner' : 'Scanner de Código de Barras'}
+            </span>
+          </div>
+
+          {/* Camera feed area */}
+          <div className="flex-1 relative flex items-center justify-center">
+            <div id="barcode-reader" className="w-full h-full" />
+            {/* Animated scan line */}
+            <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 pointer-events-none">
+              <div className="h-0.5 bg-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-[barcode-scan_2s_ease-in-out_infinite]" />
+            </div>
+          </div>
+
+          {/* Bottom hint */}
+          <div className="p-6 bg-black/80 text-center">
+            <p className="text-white/80 text-sm">
+              {language === 'en'
+                ? 'Point the camera at the barcode on the product packaging'
+                : 'Aponte a câmera para o código de barras na embalagem do produto'}
+            </p>
+          </div>
+
+          {/* Scan line animation keyframes */}
+          <style>{`
+            @keyframes barcode-scan {
+              0%, 100% { transform: translateY(-40px); opacity: 0.5; }
+              50% { transform: translateY(40px); opacity: 1; }
+            }
+          `}</style>
         </div>
       )}
     </div>

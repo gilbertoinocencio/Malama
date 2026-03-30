@@ -5,6 +5,8 @@
  * Used as primary nutritional data source before Gemini (TACO/USDA fallback).
  */
 
+import { AIResponse, MicroNutrients } from '../types';
+
 export interface OFFPer100g {
   calories: number;
   protein: number;
@@ -33,94 +35,214 @@ export interface OFFResult {
   per100g: OFFPer100g;
 }
 
+export interface OFFBarcodeResult {
+  name: string;
+  brand?: string;
+  per100g: OFFPer100g;
+  servingSizeG?: number;
+  imageUrl?: string;
+}
+
 const TIMEOUT_MS = 5000;
 const FIELDS = 'product_name,nutriments';
 const PAGE_SIZE = 5;
 
-async function fetchOFF(baseUrl: string, query: string): Promise<OFFResult | null> {
+// ─── Shared helpers ──────────────────────────────────────────────────
+
+function parseNutriments(n: any): OFFPer100g | null {
+  const cal = n['energy-kcal_100g'];
+  if (!cal || cal <= 0) return null;
+
+  const mg = (key: string): number | undefined => {
+    const v = n[key];
+    return v != null && v > 0 ? Math.round(v * 1000 * 10) / 10 : undefined;
+  };
+  const mcg = (key: string): number | undefined => {
+    const v = n[key];
+    return v != null && v > 0 ? Math.round(v * 1_000_000 * 10) / 10 : undefined;
+  };
+  const g = (key: string): number | undefined => {
+    const v = n[key];
+    return v != null && v > 0 ? Math.round(v * 10) / 10 : undefined;
+  };
+
+  return {
+    calories:      Math.round(cal),
+    protein:       Math.round((n['proteins_100g'] || 0) * 10) / 10,
+    carbs:         Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
+    fats:          Math.round((n['fat_100g'] || 0) * 10) / 10,
+    fiber:         g('fiber_100g'),
+    sugar:         g('sugars_100g'),
+    saturated_fat: g('saturated-fat_100g'),
+    sodium:        n['sodium_100g'] != null ? Math.round(n['sodium_100g'] * 1000) : undefined,
+    potassium:     mg('potassium_100g'),
+    calcium:       mg('calcium_100g'),
+    iron:          mg('iron_100g'),
+    magnesium:     mg('magnesium_100g'),
+    zinc:          mg('zinc_100g'),
+    vitamin_a:     mcg('vitamin-a_100g'),
+    vitamin_c:     mg('vitamin-c_100g'),
+    vitamin_d:     mcg('vitamin-d_100g'),
+    vitamin_e:     mg('vitamin-e_100g'),
+    vitamin_b12:   mcg('vitamin-b12_100g'),
+    vitamin_b6:    mg('vitamin-b6_100g'),
+    folate:        mcg('folate_100g'),
+  };
+}
+
+function fetchWithTimeout(url: string): { promise: Promise<Response>; clear: () => void } {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  return {
+    promise: fetch(url, { signal: controller.signal }),
+    clear: () => clearTimeout(timer),
+  };
+}
+
+// ─── Search by text ──────────────────────────────────────────────────
+
+async function fetchOFF(baseUrl: string, query: string): Promise<OFFResult | null> {
+  const { promise, clear } = fetchWithTimeout(
+    `${baseUrl}/cgi/search.pl?search_terms=${encodeURIComponent(query)}` +
+    `&search_simple=1&action=process&json=1&fields=${FIELDS}&page_size=${PAGE_SIZE}`
+  );
 
   try {
-    const url =
-      `${baseUrl}/cgi/search.pl?search_terms=${encodeURIComponent(query)}` +
-      `&search_simple=1&action=process&json=1&fields=${FIELDS}&page_size=${PAGE_SIZE}`;
-
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await promise;
+    clear();
     if (!res.ok) return null;
 
     const data = await res.json();
-    clearTimeout(timer);
-
     const products: any[] = data.products || [];
     const product = products.find(
       (p) => p.product_name && (p.nutriments?.['energy-kcal_100g'] ?? 0) > 0
     );
     if (!product) return null;
 
-    const n = product.nutriments;
-
-    // Helper: convert g → mg, round to 1 decimal
-    const mg = (key: string): number | undefined => {
-      const v = n[key];
-      return v != null && v > 0 ? Math.round(v * 1000 * 10) / 10 : undefined;
-    };
-    // Helper: convert g → mcg, round to 1 decimal
-    const mcg = (key: string): number | undefined => {
-      const v = n[key];
-      return v != null && v > 0 ? Math.round(v * 1_000_000 * 10) / 10 : undefined;
-    };
-    // Helper: value already in g, return as-is rounded
-    const g = (key: string): number | undefined => {
-      const v = n[key];
-      return v != null && v > 0 ? Math.round(v * 10) / 10 : undefined;
-    };
-
-    const per100g: OFFPer100g = {
-      calories:      Math.round(n['energy-kcal_100g'] || 0),
-      protein:       Math.round((n['proteins_100g'] || 0) * 10) / 10,
-      carbs:         Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
-      fats:          Math.round((n['fat_100g'] || 0) * 10) / 10,
-      fiber:         g('fiber_100g'),
-      sugar:         g('sugars_100g'),
-      saturated_fat: g('saturated-fat_100g'),
-      sodium:        n['sodium_100g'] != null ? Math.round(n['sodium_100g'] * 1000) : undefined,
-      potassium:     mg('potassium_100g'),
-      calcium:       mg('calcium_100g'),
-      iron:          mg('iron_100g'),
-      magnesium:     mg('magnesium_100g'),
-      zinc:          mg('zinc_100g'),
-      vitamin_a:     mcg('vitamin-a_100g'),
-      vitamin_c:     mg('vitamin-c_100g'),
-      vitamin_d:     mcg('vitamin-d_100g'),
-      vitamin_e:     mg('vitamin-e_100g'),
-      vitamin_b12:   mcg('vitamin-b12_100g'),
-      vitamin_b6:    mg('vitamin-b6_100g'),
-      folate:        mcg('folate_100g'),
-    };
-
-    if (per100g.calories <= 0) return null;
+    const per100g = parseNutriments(product.nutriments);
+    if (!per100g) return null;
 
     return { name: product.product_name, per100g };
   } catch {
-    clearTimeout(timer);
+    clear();
     return null;
   }
 }
 
 /**
- * Search OpenFoodFacts for a food item.
+ * Search OpenFoodFacts by product name.
  * Tries Brazilian DB first, then global DB.
- * Returns null if not found or on timeout/error (caller falls back to Gemini).
  */
 export async function searchOpenFoodFacts(query: string): Promise<OFFResult | null> {
-  // Try Brazilian database first
   const brResult = await fetchOFF('https://br.openfoodfacts.org', query);
   if (brResult) return brResult;
-
-  // Fall back to global database
   return fetchOFF('https://world.openfoodfacts.org', query);
 }
+
+// ─── Lookup by barcode ───────────────────────────────────────────────
+
+/**
+ * Lookup a product by barcode (EAN-13/EAN-8/UPC-A) on OpenFoodFacts.
+ */
+export async function lookupBarcode(barcode: string): Promise<OFFBarcodeResult | null> {
+  const { promise, clear } = fetchWithTimeout(
+    `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`
+  );
+
+  try {
+    const res = await promise;
+    clear();
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (data.status !== 1 || !data.product) return null;
+
+    const product = data.product;
+    if (!product.nutriments || !product.product_name) return null;
+
+    const per100g = parseNutriments(product.nutriments);
+    if (!per100g) return null;
+
+    // Parse serving_size: "30g", "1 bar (40g)", "250 ml" → extract grams
+    let servingSizeG: number | undefined;
+    if (product.serving_size) {
+      const match = product.serving_size.match(/(\d+(?:[.,]\d+)?)\s*g/i);
+      if (match) {
+        servingSizeG = parseFloat(match[1].replace(',', '.'));
+      }
+    }
+
+    return {
+      name: product.product_name,
+      brand: product.brands || undefined,
+      per100g,
+      servingSizeG,
+      imageUrl: product.image_url || undefined,
+    };
+  } catch {
+    clear();
+    return null;
+  }
+}
+
+// ─── Convert barcode result → AIResponse ─────────────────────────────
+
+/**
+ * Converts an OFFBarcodeResult into an AIResponse compatible with MealLogger.
+ * Scales per-100g values to the serving size (or 100g default).
+ */
+export function barcodeResultToAIResponse(result: OFFBarcodeResult): AIResponse {
+  const weight = result.servingSizeG || 100;
+  const scale = weight / 100;
+  const n = result.per100g;
+
+  const scaleVal = (v: number | undefined) => v != null ? Math.round(v * scale * 10) / 10 : 0;
+
+  const calories = Math.round(n.calories * scale);
+  const protein = Math.round(n.protein * scale);
+  const carbs = Math.round(n.carbs * scale);
+  const fats = Math.round(n.fats * scale);
+
+  // Build micros from available OFF data
+  const micros: Partial<MicroNutrients> = {};
+  const microKeys: (keyof OFFPer100g)[] = [
+    'fiber', 'sugar', 'saturated_fat', 'sodium', 'potassium', 'calcium',
+    'iron', 'magnesium', 'zinc', 'vitamin_a', 'vitamin_c', 'vitamin_d',
+    'vitamin_e', 'vitamin_b12', 'vitamin_b6', 'folate',
+  ];
+  for (const key of microKeys) {
+    const val = scaleVal(n[key]);
+    if (val > 0) {
+      (micros as any)[key] = val;
+    }
+  }
+
+  const foodName = result.brand
+    ? `${result.brand} — ${result.name}`
+    : result.name;
+
+  const quantity = result.servingSizeG
+    ? `1 porção (${weight}g)`
+    : `100g`;
+
+  return {
+    foodName,
+    calories,
+    macros: { p: protein, c: carbs, f: fats },
+    items: [{
+      name: foodName,
+      quantity,
+      weightGrams: weight,
+      calories,
+      protein,
+      carbs,
+      fats,
+      micros: Object.keys(micros).length > 0 ? micros as MicroNutrients : undefined,
+    }],
+  };
+}
+
+// ─── Format for Gemini prompt injection ──────────────────────────────
 
 /**
  * Formats an OFFResult into a prompt block to inject into Gemini.
