@@ -8,7 +8,7 @@ import { USER_AVATAR } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { MealService } from '../services/mealService';
 import { useLanguage } from '../i18n';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
 // Web Speech API type declarations
 interface SpeechRecognitionEvent extends Event {
@@ -479,35 +479,59 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   useEffect(() => {
     if (!showBarcodeScanner) return;
 
+    let scanner: Html5Qrcode | null = null;
     let stopped = false;
-    const scanner = new Html5Qrcode('barcode-reader');
-    barcodeScannerRef.current = scanner;
 
-    scanner.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 280, height: 150 } },
-      async (decodedText) => {
-        if (stopped) return;
-        stopped = true;
-        try { await scanner.stop(); } catch { /* already stopped */ }
+    // Delay ensures the div#barcode-reader is fully painted before html5-qrcode attaches
+    const timer = setTimeout(async () => {
+      try {
+        // formatsToSupport must go in the constructor (html5-qrcode v2.3.x API)
+        scanner = new Html5Qrcode('barcode-reader', {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+          ],
+          verbose: false,
+        });
+        barcodeScannerRef.current = scanner;
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            // Narrow horizontal box — optimised for 1D barcodes (EAN-13 is wide, short)
+            qrbox: { width: 300, height: 100 },
+          },
+          async (decodedText) => {
+            if (stopped) return;
+            stopped = true;
+            try { await scanner?.stop(); } catch { /* already stopped */ }
+            barcodeScannerRef.current = null;
+            setShowBarcodeScanner(false);
+            handleBarcodeResult(decodedText);
+          },
+          undefined,
+        );
+      } catch {
         setShowBarcodeScanner(false);
-        handleBarcodeResult(decodedText);
-      },
-      undefined,
-    ).catch(() => {
-      setShowBarcodeScanner(false);
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        type: 'ai-text',
-        content: language === 'en'
-          ? 'Camera access is needed to scan barcodes. Please allow camera permission.'
-          : 'Acesso à câmera é necessário para escanear. Permita o acesso à câmera.',
-      }]);
-    });
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          type: 'ai-text',
+          content: language === 'en'
+            ? 'Camera access is needed to scan barcodes. Please allow camera permission in your browser settings.'
+            : 'Acesso à câmera necessário para escanear. Permita o acesso à câmera nas configurações do navegador.',
+        }]);
+      }
+    }, 150);
 
     return () => {
+      clearTimeout(timer);
       stopped = true;
-      scanner.stop().catch(() => {});
+      scanner?.stop().catch(() => {});
       barcodeScannerRef.current = null;
     };
   }, [showBarcodeScanner]);
