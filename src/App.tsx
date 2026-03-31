@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Layout } from './components/Layout';
 import { FlowDashboard } from './components/FlowDashboard'; // Critical: Keep eager
 import { LoginView } from './components/LoginView'; // Critical: Keep eager
@@ -10,26 +10,26 @@ import { MealService } from './services/mealService';
 import { StatsService } from './services/statsService';
 import { NotificationService } from './services/notificationService';
 import { supabase } from './services/supabase';
+import { lazyRetry } from './utils/lazyRetry';
 
-// Lazy Load Non-Critical Views
-// import { MealLogger } from './components/MealLogger';
-const SocialFeed = React.lazy<React.ComponentType<any>>(() => import('./components/SocialFeed').then(m => ({ default: (m as any).SocialFeed || (m as any).default })));
-const MealLogger = React.lazy<React.ComponentType<any>>(() => import('./components/MealLogger').then(m => ({ default: (m as any).MealLogger || (m as any).default })));
-const FoodGuide = React.lazy<React.ComponentType<any>>(() => import('./components/FoodGuide').then(m => ({ default: (m as any).FoodGuide || (m as any).default })));
-const SocialShare = React.lazy<React.ComponentType<any>>(() => import('./components/SocialShare').then(m => ({ default: (m as any).SocialShare || (m as any).default })));
-const QuarterlyPlan = React.lazy<React.ComponentType<any>>(() => import('./components/QuarterlyPlan').then(m => ({ default: (m as any).QuarterlyPlan || (m as any).default })));
-const PlanProgressShare = React.lazy<React.ComponentType<any>>(() => import('./components/PlanProgressShare').then(m => ({ default: (m as any).PlanProgressShare || (m as any).default })));
-const ProfileConfig = React.lazy<React.ComponentType<any>>(() => import('./components/ProfileConfig').then(m => ({ default: (m as any).ProfileConfig || (m as any).default })));
-const ProfileView = React.lazy<React.ComponentType<any>>(() => import('./components/ProfileView').then(m => ({ default: (m as any).ProfileView || (m as any).default })));
-const HydrationSocial = React.lazy<React.ComponentType<any>>(() => import('./components/HydrationSocial').then(m => ({ default: (m as any).HydrationSocial || (m as any).default })));
-const QuarterlyAnalysis = React.lazy<React.ComponentType<any>>(() => import('./components/QuarterlyAnalysis').then(m => ({ default: (m as any).QuarterlyAnalysis || (m as any).default })));
-const DailyJournal = React.lazy<React.ComponentType<any>>(() => import('./components/DailyJournal').then(m => ({ default: (m as any).DailyJournal || (m as any).default })));
-const PlanRenewal = React.lazy<React.ComponentType<any>>(() => import('./components/PlanRenewal').then(m => ({ default: (m as any).PlanRenewal || (m as any).default })));
-const RefinePlan = React.lazy<React.ComponentType<any>>(() => import('./components/RefinePlan').then(m => ({ default: (m as any).RefinePlan || (m as any).default })));
-const FlowAdaptation = React.lazy<React.ComponentType<any>>(() => import('./components/FlowAdaptation').then(m => ({ default: (m as any).FlowAdaptation || (m as any).default })));
-const VisualEvolution = React.lazy<React.ComponentType<any>>(() => import('./components/VisualEvolution').then(m => ({ default: (m as any).VisualEvolution || (m as any).default })));
-const VisualShare = React.lazy<React.ComponentType<any>>(() => import('./components/VisualShare').then(m => ({ default: (m as any).VisualShare || (m as any).default })));
-const Integrations = React.lazy<React.ComponentType<any>>(() => import('./components/Integrations').then(m => ({ default: (m as any).Integrations || (m as any).default })));
+// Lazy Load Non-Critical Views — lazyRetry auto-reloads on stale chunk errors
+const SocialFeed = React.lazy(() => lazyRetry(() => import('./components/SocialFeed'), 'SocialFeed'));
+const MealLogger = React.lazy(() => lazyRetry(() => import('./components/MealLogger'), 'MealLogger'));
+const FoodGuide = React.lazy(() => lazyRetry(() => import('./components/FoodGuide'), 'FoodGuide'));
+const SocialShare = React.lazy(() => lazyRetry(() => import('./components/SocialShare'), 'SocialShare'));
+const QuarterlyPlan = React.lazy(() => lazyRetry(() => import('./components/QuarterlyPlan'), 'QuarterlyPlan'));
+const PlanProgressShare = React.lazy(() => lazyRetry(() => import('./components/PlanProgressShare'), 'PlanProgressShare'));
+const ProfileConfig = React.lazy(() => lazyRetry(() => import('./components/ProfileConfig'), 'ProfileConfig'));
+const ProfileView = React.lazy(() => lazyRetry(() => import('./components/ProfileView'), 'ProfileView'));
+const HydrationSocial = React.lazy(() => lazyRetry(() => import('./components/HydrationSocial'), 'HydrationSocial'));
+const QuarterlyAnalysis = React.lazy(() => lazyRetry(() => import('./components/QuarterlyAnalysis'), 'QuarterlyAnalysis'));
+const DailyJournal = React.lazy(() => lazyRetry(() => import('./components/DailyJournal'), 'DailyJournal'));
+const PlanRenewal = React.lazy(() => lazyRetry(() => import('./components/PlanRenewal'), 'PlanRenewal'));
+const RefinePlan = React.lazy(() => lazyRetry(() => import('./components/RefinePlan'), 'RefinePlan'));
+const FlowAdaptation = React.lazy(() => lazyRetry(() => import('./components/FlowAdaptation'), 'FlowAdaptation'));
+const VisualEvolution = React.lazy(() => lazyRetry(() => import('./components/VisualEvolution'), 'VisualEvolution'));
+const VisualShare = React.lazy(() => lazyRetry(() => import('./components/VisualShare'), 'VisualShare'));
+const Integrations = React.lazy(() => lazyRetry(() => import('./components/Integrations'), 'Integrations'));
 const App: React.FC = () => {
   const { user, profile, loading, profileLoading } = useAuth();
   const [view, setView] = useState<AppView>(AppView.HOME);
