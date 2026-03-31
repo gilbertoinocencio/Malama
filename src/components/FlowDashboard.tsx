@@ -40,12 +40,13 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 }) => {
   const { t } = useLanguage();
   const { user, profile } = useAuth();
-  const [period, setPeriod] = useState<PeriodTab>('week');
+  const [period, setPeriod] = useState<PeriodTab>('day');
   const [gameStats, setGameStats] = useState<GamificationStats | null>(null);
   const [waterIntake, setWaterIntake] = useState(0);
   const [waterGoalState, setWaterGoalState] = useState(0);
   const [weeklyScores, setWeeklyScores] = useState<{ date: string, score: number }[]>([]);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
+  const [showMicros, setShowMicros] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -453,11 +454,22 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               return (
                 <div className="px-6">
                   <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300">
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-xl">biotech</span>
-                      <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Micronutrientes</span>
+                    <div 
+                      className="flex items-center justify-between cursor-pointer select-none"
+                      onClick={() => setShowMicros(!showMicros)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-xl">biotech</span>
+                        <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Micronutrientes</span>
+                      </div>
+                      <span className="material-symbols-outlined text-nura-muted text-sm transition-transform duration-300" style={{ transform: showMicros ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                        expand_more
+                      </span>
                     </div>
-                    <div className="flex flex-col gap-4">
+                    
+                    {/* Collapsible Content */}
+                    <div className={`overflow-hidden transition-all duration-300 ${showMicros ? 'max-h-[1000px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}>
+                      <div className="flex flex-col gap-4">
                       {grouped.map(({ group, items }) => (
                         <div key={group}>
                           <p className="text-[10px] font-bold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-2">{group}</p>
@@ -488,6 +500,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                     </div>
                   </div>
                 </div>
+              </div>
               );
             })()}
 
