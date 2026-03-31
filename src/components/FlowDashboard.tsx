@@ -674,21 +674,13 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
         {/* Actions */}
         <div className="w-full mt-auto mb-6 flex flex-col gap-4 px-6">
-          <div className="flex gap-4">
-            <button
-              onClick={onFabClick}
-              className="flex-1 bg-nura-petrol dark:bg-primary hover:bg-nura-petrol/90 dark:hover:bg-primary/90 text-white font-bold h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-nura-petrol/20 dark:shadow-primary/20 transition-all transform active:scale-[0.99]"
-            >
-              <span className="material-symbols-outlined">add_circle</span>
-              {t.dashboard.logMeal}
-            </button>
-            <button
-              onClick={() => onNavClick(AppView.HYDRATION)}
-              className="w-14 bg-white dark:bg-surface-dark hover:bg-nura-petrol-light dark:hover:bg-white/5 text-nura-petrol dark:text-primary font-bold h-14 rounded-xl flex items-center justify-center shadow-lg shadow-black/5 transition-all transform active:scale-[0.99] border border-transparent dark:border-white/5"
-            >
-              <span className="material-symbols-outlined text-[24px]">water_drop</span>
-            </button>
-          </div>
+          <button
+            onClick={() => onNavClick(AppView.HYDRATION)}
+            className="w-full bg-nura-petrol/10 dark:bg-primary/10 hover:bg-nura-petrol/20 dark:hover:bg-primary/20 text-nura-petrol dark:text-primary font-bold h-14 rounded-xl flex items-center justify-center gap-2 transition-all transform active:scale-[0.99] border border-transparent"
+          >
+            <span className="material-symbols-outlined text-[24px]">water_drop</span>
+            Acompanhar Hidratação
+          </button>
 
           <button
             onClick={onShareClick}

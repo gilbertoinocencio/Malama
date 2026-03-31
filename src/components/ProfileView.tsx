@@ -341,7 +341,23 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </section>
 
         {/* Quick Actions / Integration */}
-        <section className="w-full px-6 mb-8">
+        <section className="w-full px-6 mb-8 flex flex-col gap-3">
+          <div
+            onClick={() => onNavClick(AppView.DAILY_JOURNAL)}
+            className="w-full bg-gradient-to-r from-nura-petrol/10 to-transparent dark:from-primary/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-nura-petrol/20 dark:border-primary/20 cursor-pointer hover:bg-nura-petrol/10 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-nura-petrol dark:text-primary shadow-sm border border-nura-border dark:border-transparent">
+                <span className="material-symbols-outlined filled" style={{ fontVariationSettings: "'FILL' 1" }}>book</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-nura-main dark:text-white">Diário Pessoal</span>
+                <span className="text-xs text-nura-muted dark:text-gray-400">Suas anotações, evoluções e reflexões</span>
+              </div>
+            </div>
+            <span className="material-symbols-outlined text-nura-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>
+          </div>
+
           <div
             onClick={() => onNavClick(AppView.INTEGRATIONS)}
             className="w-full bg-gradient-to-r from-nura-petrol/5 to-transparent dark:from-primary/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-nura-petrol/10 dark:border-primary/20 cursor-pointer hover:bg-nura-petrol/5 transition-colors group"
