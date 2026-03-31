@@ -390,7 +390,16 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                         <span className="material-symbols-outlined text-sky-400 text-xl">water_drop</span>
                         <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Hidratação</span>
                       </div>
-                      <span className="text-xs text-sky-400 font-bold">{waterPct}%</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-sky-400 font-bold">{waterPct}%</span>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); onNavClick(AppView.HYDRATION); }}
+                          className="flex items-center justify-center size-7 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-500 hover:bg-sky-100 dark:hover:bg-sky-500/20 transition-colors active:scale-95"
+                          title="Compartilhar Hidratação"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">ios_share</span>
+                        </button>
+                      </div>
                     </div>
                     <div className="flex items-end gap-3">
                       <span className="text-2xl font-bold text-nura-main dark:text-white leading-none">
@@ -687,13 +696,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
         {/* Actions */}
         <div className="w-full mt-auto mb-6 flex flex-col gap-4 px-6">
-          <button
-            onClick={() => onNavClick(AppView.HYDRATION)}
-            className="w-full bg-nura-petrol/10 dark:bg-primary/10 hover:bg-nura-petrol/20 dark:hover:bg-primary/20 text-nura-petrol dark:text-primary font-bold h-14 rounded-xl flex items-center justify-center gap-2 transition-all transform active:scale-[0.99] border border-transparent"
-          >
-            <span className="material-symbols-outlined text-[24px]">water_drop</span>
-            Acompanhar Hidratação
-          </button>
+
 
           <button
             onClick={onShareClick}
