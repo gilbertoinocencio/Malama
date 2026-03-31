@@ -475,14 +475,18 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   // ─── Barcode Scanner ──────────────────────────────────────────────
 
   const barcodeScannerRef = useRef<Html5Qrcode | null>(null);
+  const [scannerReady, setScannerReady] = useState(false);
 
   useEffect(() => {
-    if (!showBarcodeScanner) return;
+    if (!showBarcodeScanner) {
+      setScannerReady(false);
+      return;
+    }
 
     let scanner: Html5Qrcode | null = null;
     let stopped = false;
 
-    // Delay ensures the div#barcode-reader is fully painted before html5-qrcode attaches
+    // iOS Safari needs more time to paint the div and resolve its pixel dimensions
     const timer = setTimeout(async () => {
       try {
         // formatsToSupport must go in the constructor (html5-qrcode v2.3.x API)
@@ -504,7 +508,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           {
             fps: 10,
             // Narrow horizontal box — optimised for 1D barcodes (EAN-13 is wide, short)
-            qrbox: { width: 300, height: 100 },
+            qrbox: { width: 260, height: 100 },
+            aspectRatio: 1.7777,
           },
           async (decodedText) => {
             if (stopped) return;
@@ -516,6 +521,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           },
           undefined,
         );
+        setScannerReady(true);
       } catch {
         setShowBarcodeScanner(false);
         setMessages(prev => [...prev, {
@@ -526,7 +532,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             : 'Acesso à câmera necessário para escanear. Permita o acesso à câmera nas configurações do navegador.',
         }]);
       }
-    }, 150);
+    }, 400);
 
     return () => {
       clearTimeout(timer);
@@ -1135,13 +1141,26 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             </span>
           </div>
 
-          {/* Camera feed area */}
-          <div className="flex-1 relative flex items-center justify-center">
-            <div id="barcode-reader" className="w-full h-full" />
-            {/* Animated scan line */}
-            <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 pointer-events-none">
-              <div className="h-0.5 bg-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-[barcode-scan_2s_ease-in-out_infinite]" />
-            </div>
+          {/* Camera feed area — explicit height required for iOS Safari (h-full resolves to 0 in flex) */}
+          <div className="flex-1 relative" style={{ minHeight: 0 }}>
+            <div
+              id="barcode-reader"
+              style={{ width: '100%', height: '100%', minHeight: '60vh' }}
+            />
+            {/* Animated scan line — only shown after camera is ready */}
+            {scannerReady && (
+              <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 pointer-events-none">
+                <div className="h-0.5 bg-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-[barcode-scan_2s_ease-in-out_infinite]" />
+              </div>
+            )}
+            {/* Loading indicator while camera initialises */}
+            {!scannerReady && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-white/60 text-sm">
+                  {language === 'en' ? 'Opening camera…' : 'Abrindo câmera…'}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bottom hint */}
