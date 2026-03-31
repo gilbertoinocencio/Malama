@@ -8,7 +8,7 @@ import { USER_AVATAR } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { MealService } from '../services/mealService';
 import { useLanguage } from '../i18n';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+// html5-qrcode is loaded dynamically to keep MealLogger chunk lean and isolate iOS failures
 
 // Web Speech API type declarations
 interface SpeechRecognitionEvent extends Event {
@@ -475,21 +475,28 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   // ─── Barcode Scanner ──────────────────────────────────────────────
 
-  const barcodeScannerRef = useRef<Html5Qrcode | null>(null);
+  const barcodeScannerRef = useRef<any>(null);
   const [scannerReady, setScannerReady] = useState(false);
+  const [scannerMode, setScannerMode] = useState<'live' | 'file' | null>(null);
+  const barcodeFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!showBarcodeScanner) {
       setScannerReady(false);
+      setScannerMode(null);
       return;
     }
 
-    let scanner: Html5Qrcode | null = null;
+    let scanner: any = null;
     let stopped = false;
 
     // iOS Safari needs more time to paint the div and resolve its pixel dimensions
     const timer = setTimeout(async () => {
       try {
+        // Dynamic import — keeps html5-qrcode out of the MealLogger chunk,
+        // and isolates any iOS module-evaluation failures to this scope only
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode');
+
         // formatsToSupport must go in the constructor (html5-qrcode v2.3.x API)
         scanner = new Html5Qrcode('barcode-reader', {
           formatsToSupport: [
@@ -508,11 +515,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           { facingMode: 'environment' },
           {
             fps: 10,
-            // Narrow horizontal box — optimised for 1D barcodes (EAN-13 is wide, short)
             qrbox: { width: 260, height: 100 },
             aspectRatio: 1.7777,
           },
-          async (decodedText) => {
+          async (decodedText: string) => {
             if (stopped) return;
             stopped = true;
             try { await scanner?.stop(); } catch { /* already stopped */ }
@@ -522,16 +528,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           },
           undefined,
         );
+        setScannerMode('live');
         setScannerReady(true);
       } catch {
-        setShowBarcodeScanner(false);
-        setMessages(prev => [...prev, {
-          id: Date.now().toString(),
-          type: 'ai-text',
-          content: language === 'en'
-            ? 'Camera access is needed to scan barcodes. Please allow camera permission in your browser settings.'
-            : 'Acesso à câmera necessário para escanear. Permita o acesso à câmera nas configurações do navegador.',
-        }]);
+        // Live camera failed (common on iOS Safari) — switch to file/photo fallback
+        setScannerMode('file');
+        setScannerReady(true);
       }
     }, 400);
 
@@ -584,6 +586,36 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       }]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileBarcodeScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setShowBarcodeScanner(false);
+    try {
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode');
+      const scanner = new Html5Qrcode('barcode-file-reader', {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+        ],
+        verbose: false,
+      });
+      const result = await scanner.scanFileV2(file, false);
+      handleBarcodeResult(result.decodedText);
+    } catch {
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        type: 'ai-text',
+        content: language === 'en'
+          ? 'Could not read the barcode from the photo. Try again with a clearer image, or type the product name manually.'
+          : 'Não foi possível ler o código de barras da foto. Tente novamente com uma imagem mais nítida, ou digite o nome do produto.',
+      }]);
     }
   };
 
@@ -1158,19 +1190,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             </span>
           </div>
 
-          {/* Camera feed area — explicit height required for iOS Safari (h-full resolves to 0 in flex) */}
+          {/* Camera area */}
           <div className="flex-1 relative" style={{ minHeight: 0 }}>
-            <div
-              id="barcode-reader"
-              style={{ width: '100%', height: '100%', minHeight: '60vh' }}
-            />
-            {/* Animated scan line — only shown after camera is ready */}
-            {scannerReady && (
-              <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 pointer-events-none">
-                <div className="h-0.5 bg-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-[barcode-scan_2s_ease-in-out_infinite]" />
-              </div>
-            )}
-            {/* Loading indicator while camera initialises */}
+
+            {/* Loading state */}
             {!scannerReady && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-white/60 text-sm">
@@ -1178,16 +1201,58 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                 </div>
               </div>
             )}
+
+            {/* Live camera mode (Android/desktop) */}
+            {scannerMode !== 'file' && (
+              <div
+                id="barcode-reader"
+                style={{ width: '100%', height: '100%', minHeight: '60vh' }}
+              />
+            )}
+            {scannerMode === 'live' && (
+              <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 pointer-events-none">
+                <div className="h-0.5 bg-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-[barcode-scan_2s_ease-in-out_infinite]" />
+              </div>
+            )}
+
+            {/* File/photo fallback (iOS Safari) */}
+            {scannerMode === 'file' && (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center h-full" style={{ minHeight: '60vh' }}>
+                {/* Hidden div required by html5-qrcode scanFileV2 */}
+                <div id="barcode-file-reader" style={{ display: 'none' }} />
+                <span className="material-symbols-outlined text-white/40 mb-4" style={{ fontSize: 64 }}>photo_camera</span>
+                <p className="text-white/80 text-base font-medium mb-2">
+                  {language === 'en' ? 'Live scanner unavailable on this device' : 'Scanner ao vivo indisponível neste dispositivo'}
+                </p>
+                <p className="text-white/50 text-sm mb-8">
+                  {language === 'en' ? 'Take a photo of the barcode instead' : 'Tire uma foto do código de barras'}
+                </p>
+                <label className="px-6 py-3 bg-emerald-500 text-white font-semibold rounded-xl cursor-pointer active:scale-95 transition-transform flex items-center gap-2">
+                  <span className="material-symbols-outlined">camera_alt</span>
+                  {language === 'en' ? 'Open Camera' : 'Abrir Câmera'}
+                  <input
+                    ref={barcodeFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleFileBarcodeScan}
+                  />
+                </label>
+              </div>
+            )}
           </div>
 
-          {/* Bottom hint */}
-          <div className="p-6 bg-black/80 text-center">
-            <p className="text-white/80 text-sm">
-              {language === 'en'
-                ? 'Point the camera at the barcode on the product packaging'
-                : 'Aponte a câmera para o código de barras na embalagem do produto'}
-            </p>
-          </div>
+          {/* Bottom hint — only shown during live mode */}
+          {scannerMode === 'live' && (
+            <div className="p-6 bg-black/80 text-center">
+              <p className="text-white/80 text-sm">
+                {language === 'en'
+                  ? 'Point the camera at the barcode on the product packaging'
+                  : 'Aponte a câmera para o código de barras na embalagem do produto'}
+              </p>
+            </div>
+          )}
 
           {/* Scan line animation keyframes */}
           <style>{`
