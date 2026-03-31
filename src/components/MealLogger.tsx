@@ -225,6 +225,7 @@ const getDateLabel = (isoDate: string): string => {
 export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageDates, setMessageDates] = useState<Record<string, string>>({});
@@ -614,13 +615,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       await MealService.logMeal(newMeal, user.id);
       console.log('MealLogger: Logged! Calling onLog...');
       onLog(newMeal); // Optimistic update / update parent state
-      console.log('MealLogger: Called onLog. Calling onClose...');
-      onClose();
-      console.log('MealLogger: Called onClose.');
+      
+      setSuccess(true);
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (error) {
       console.error('Failed to log meal:', error);
       alert(t.mealLogger.errorLogging);
-    } finally {
       setLoading(false);
     }
   };
@@ -633,7 +635,6 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   const handleRecalculate = async () => {
     if (!editItems.length) return;
-    setEditMode(false);
     setLoading(true);
     try {
       const description = editItems
@@ -650,6 +651,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         updated[idx] = { ...updated[idx], content: result };
         return updated;
       });
+      setEditMode(false);
     } catch (e) {
       console.error('Recalculate failed:', e);
     } finally {
@@ -1113,14 +1115,29 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             <div className="max-w-lg mx-auto">
               <button
                 onClick={handleRecalculate}
-                disabled={editItems.length === 0}
+                disabled={editItems.length === 0 || loading}
                 className="w-full h-14 rounded-2xl bg-nura-petrol dark:bg-primary text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-nura-petrol/25 dark:shadow-primary/25 hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50"
               >
-                <span className="material-symbols-outlined">calculate</span>
-                Recalcular macros
+                {loading ? (
+                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <span className="material-symbols-outlined">calculate</span>
+                )}
+                {loading ? 'Recalculando...' : 'Recalcular macros'}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Success Overlay */}
+      {success && (
+        <div className="fixed inset-0 z-[60] bg-nura-bg/90 dark:bg-background-dark/90 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in text-nura-main dark:text-white">
+          <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.4)] animate-bounce mb-6">
+            <span className="material-symbols-outlined text-white text-4xl">check</span>
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight mb-2">Refeição Salva!</h2>
+          <p className="text-nura-muted dark:text-slate-400 font-medium">Sincronizado com sucesso</p>
         </div>
       )}
 
