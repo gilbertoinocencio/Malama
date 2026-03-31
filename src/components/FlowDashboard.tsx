@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
-import { DailyStats, AppView } from '../types';
+import { DailyStats, AppView, Meal } from '../types';
 import { USER_AVATAR } from '../constants';
 import { useLanguage } from '../i18n';
 import { GamificationService, GamificationStats } from '../services/gamificationService';
@@ -9,12 +9,16 @@ import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Confetti } from './Confetti';
 import { TodayMissionsCard } from './TodayMissionsCard';
 import { DailyCheckinModal } from './DailyCheckinModal';
+import { DailyMealsList } from './DailyMealsList';
 
 interface FlowDashboardProps {
   stats: DailyStats;
+  meals: Meal[];
   onFabClick: () => void;
   onShareClick: () => void;
   onNavClick: (view: AppView) => void;
+  onDeleteMeal?: (id: string) => void;
+  onEditMeal?: (meal: Meal) => void;
   activeView: AppView;
   isDarkMode: boolean;
   onToggleTheme: () => void;
@@ -24,9 +28,12 @@ type PeriodTab = 'day' | 'week' | 'month';
 
 export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   stats,
+  meals,
   onFabClick,
   onShareClick,
   onNavClick,
+  onDeleteMeal,
+  onEditMeal,
   activeView,
   isDarkMode,
   onToggleTheme
@@ -483,6 +490,13 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 </div>
               );
             })()}
+
+            {/* Daily Meals Timeline */}
+            <DailyMealsList 
+              meals={meals} 
+              onDeleteMeal={onDeleteMeal} 
+              onEditMeal={onEditMeal} 
+            />
           </>
         ) : (
           /* ——— WEEK/MONTH VIEW: Flow Score + Weekly Rhythm (Stitch hero) ——— */

@@ -98,6 +98,58 @@ const App: React.FC = () => {
     setView(AppView.HOME);
   };
 
+  const handleDeleteMeal = async (mealId: string) => {
+    if (!user) return;
+    const mealToDelete = meals.find(m => m.id === mealId);
+    if (!mealToDelete) return;
+    
+    // Optimistic Update
+    setMeals(prev => prev.filter(m => m.id !== mealId));
+    setStats(prev => ({
+      ...prev,
+      consumedCalories: prev.consumedCalories - mealToDelete.calories,
+      macros: {
+        protein: prev.macros.protein - mealToDelete.macros.protein,
+        carbs: prev.macros.carbs - mealToDelete.macros.carbs,
+        fats: prev.macros.fats - mealToDelete.macros.fats,
+      }
+    }));
+    
+    try {
+      await MealService.deleteMeal(mealId, user.id);
+    } catch (e) {
+      console.error(e);
+      setStatsLoaded(false);
+      loadStats();
+    }
+  };
+
+  const handleEditMeal = async (updatedMeal: Meal) => {
+    if (!user) return;
+    const oldMeal = meals.find(m => m.id === updatedMeal.id);
+    if (!oldMeal) return;
+
+    // Optimistic Update
+    setMeals(prev => prev.map(m => m.id === updatedMeal.id ? updatedMeal : m));
+    setStats(prev => ({
+      ...prev,
+      consumedCalories: prev.consumedCalories - oldMeal.calories + updatedMeal.calories,
+      macros: {
+        protein: prev.macros.protein - oldMeal.macros.protein + updatedMeal.macros.protein,
+        carbs: prev.macros.carbs - oldMeal.macros.carbs + updatedMeal.macros.carbs,
+        fats: prev.macros.fats - oldMeal.macros.fats + updatedMeal.macros.fats,
+      }
+    }));
+
+    try {
+      await MealService.updateMeal(updatedMeal.id, user.id, updatedMeal);
+    } catch (e) {
+      console.error(e);
+      setStatsLoaded(false);
+      loadStats();
+    }
+  };
+
   // Loading Spinner Component for Suspense fallback
   const LoadingSpinner = () => (
     <div className="flex items-center justify-center p-8">
@@ -146,9 +198,12 @@ const App: React.FC = () => {
         {view === AppView.HOME && (
           <FlowDashboard
             stats={stats}
+            meals={meals}
             onFabClick={() => setView(AppView.DAILY_JOURNAL)}
             onShareClick={() => setView(AppView.SHARE)}
             onNavClick={setView}
+            onDeleteMeal={handleDeleteMeal}
+            onEditMeal={handleEditMeal}
             activeView={view}
             isDarkMode={darkMode}
             onToggleTheme={toggleTheme}

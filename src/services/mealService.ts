@@ -127,5 +127,37 @@ export const MealService = {
         } catch (e) {
             console.error("Error syncing daily stats:", e);
         }
+    },
+
+    async deleteMeal(mealId: string, userId: string): Promise<void> {
+        const { error } = await supabase
+            .from('meals')
+            .delete()
+            .eq('id', mealId)
+            .eq('user_id', userId);
+
+        if (error) throw error;
+        await this.syncDailyStats(userId);
+    },
+
+    async updateMeal(mealId: string, userId: string, updates: Partial<Meal>): Promise<void> {
+        const dbUpdates: any = {};
+        if (updates.name !== undefined) dbUpdates.name = updates.name;
+        if (updates.calories !== undefined) dbUpdates.calories = Math.round(updates.calories);
+        if (updates.macros) {
+            dbUpdates.protein = Math.round(updates.macros.protein);
+            dbUpdates.carbs = Math.round(updates.macros.carbs);
+            dbUpdates.fats = Math.round(updates.macros.fats);
+        }
+        if (updates.items !== undefined) dbUpdates.items = updates.items;
+
+        const { error } = await supabase
+            .from('meals')
+            .update(dbUpdates)
+            .eq('id', mealId)
+            .eq('user_id', userId);
+
+        if (error) throw error;
+        await this.syncDailyStats(userId);
     }
 };
