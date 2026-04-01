@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { DailyStats, MicroNutrients } from '../types';
 import { INITIAL_STATS } from '../constants';
 import { MealService } from './mealService';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export const StatsService = {
     // Calculate Flow Score based on adherence
@@ -38,14 +39,30 @@ export const StatsService = {
 
     // Calculate stats from meals for a specific day
     async getDailyStats(userId: string, date: Date = new Date()): Promise<DailyStats> {
-        const meals = await MealService.getMeals(userId, date);
+        const dateStr = getLocalDateString(date);
 
-        // Fetch User Profile for Targets
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('target_calories, target_protein, target_carbs, target_fats')
-            .eq('id', userId)
-            .maybeSingle();
+        const [meals, { data: profile }, { data: waterLog }] = await Promise.all([
+            MealService.getMeals(userId, date),
+            supabase
+                .from('profiles')
+                .select('target_calories, target_protein, target_carbs, target_fats, weight, activity_level')
+                .eq('id', userId)
+                .maybeSingle(),
+            supabase
+                .from('daily_logs')
+                .select('water_intake, water_goal')
+                .eq('user_id', userId)
+                .eq('date', dateStr)
+                .maybeSingle(),
+        ]);
+
+        const waterIntake = waterLog?.water_intake ?? 0;
+        const waterGoal = waterLog?.water_goal ?? (() => {
+            const weight = profile?.weight || 70;
+            const base = Math.max(3000, Math.round(weight * 35));
+            const bonus = profile?.activity_level === 'intense' ? 600 : profile?.activity_level === 'moderate' ? 300 : 0;
+            return base + bonus;
+        })();
 
         // Check if there is an active AI-generated plan to override targets
         const { data: activePlan } = await supabase
@@ -83,7 +100,14 @@ export const StatsService = {
             fats: acc.fats + meal.macros.fats
         }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
 
-        const flowScore = this.calculateFlowScore(consumed, targets);
+        const nutritionScore = this.calculateFlowScore(consumed, targets);
+        const hydrationRatio = waterGoal > 0 ? waterIntake / waterGoal : 0;
+        const hydrationScore = hydrationRatio >= 0.85 && hydrationRatio <= 1.15 ? 100
+            : hydrationRatio < 0.85 ? hydrationRatio * 100
+            : Math.max(0, 100 - (hydrationRatio - 1.15) * 100);
+        // Weighting: 50% nutrition (calorias) + 30% macros + 20% hidratação
+        // nutritionScore already uses 60/40 split internally; re-weight to include hydration
+        const flowScore = Math.round(nutritionScore * 0.8 + hydrationScore * 0.2);
 
         // Aggregate micronutrients from all meal items
         const micronutrients: Partial<MicroNutrients> = {};
@@ -115,7 +139,9 @@ export const StatsService = {
                 fats: targets.target_fats
             },
             flowScore,
-            micronutrients: Object.keys(micronutrients).length > 0 ? micronutrients : undefined
+            micronutrients: Object.keys(micronutrients).length > 0 ? micronutrients : undefined,
+            waterIntake,
+            waterGoal,
         };
     }
 };

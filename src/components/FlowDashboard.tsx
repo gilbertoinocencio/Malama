@@ -167,7 +167,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
   // Flow score calculated from consumed vs target (demo)
   const flowScore = stats.flowScore ?? 0;
-  const scoreIsOptimized = flowScore >= 75;
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
@@ -178,7 +177,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
   // SVG gauge calculations
   const circumference = 2 * Math.PI * 42;
-  const gaugeOffset = circumference - (flowScore / 100) * circumference;
 
   // Calorie progress for Day view
   const caloriePercent = Math.min(((stats.consumedCalories ?? 0) / (stats.targetCalories || 1)) * 100, 100);
@@ -225,6 +223,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
   const chartPaths = generateChartPath();
   const consistency = getConsistency();
+  const weeklyAvgScore = weeklyScores.length > 0
+    ? Math.round(weeklyScores.reduce((s, d) => s + d.score, 0) / weeklyScores.length)
+    : flowScore;
+  const displayedScore = period === 'week' ? weeklyAvgScore : flowScore;
   const displayName = profile?.display_name || user?.email?.split('@')[0] || t.dashboard.defaultUser;
 
   // Use profile level as fallback if gameStats is not yet loaded
@@ -582,7 +584,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                     className="text-gray-200 dark:text-[#1f2f36]" />
                   <circle cx="50" cy="50" r="42" fill="none" strokeWidth="6" strokeLinecap="round"
                     strokeDasharray={circumference}
-                    strokeDashoffset={gaugeOffset}
+                    strokeDashoffset={circumference - (displayedScore / 100) * circumference}
                     className="stroke-[#3b0764] dark:stroke-[#7e22ce] transition-all duration-1000" />
                   {/* Decorative inner ring */}
                   <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
@@ -590,11 +592,13 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
                 {/* Center Text */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-nura-muted dark:text-white/50 text-sm font-medium tracking-widest uppercase mb-1">{t.flowScore.flowScore}</span>
-                  <span className="text-6xl font-bold text-nura-main dark:text-white tracking-tighter">
-                    {flowScore}
+                  <span className="text-nura-muted dark:text-white/50 text-sm font-medium tracking-widest uppercase mb-1">
+                    {period === 'week' ? 'MÉDIA SEMANAL' : t.flowScore.flowScore}
                   </span>
-                  {scoreIsOptimized && (
+                  <span className="text-6xl font-bold text-nura-main dark:text-white tracking-tighter">
+                    {displayedScore}
+                  </span>
+                  {displayedScore >= 75 && (
                     <div className="mt-2 px-3 py-1 rounded-full bg-nura-petrol/10 dark:bg-primary/10 border border-nura-petrol/20 dark:border-primary/20 flex items-center gap-1">
                       <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-[14px]">bolt</span>
                       <span className="text-nura-petrol dark:text-primary text-xs font-bold uppercase tracking-wide">{t.flowScore.optimized}</span>

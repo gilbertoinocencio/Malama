@@ -55,6 +55,8 @@ export interface DailyStats {
   targetMacros: MacroData;
   flowScore?: number; // 0-100
   micronutrients?: Partial<MicroNutrients>;
+  waterIntake?: number; // ml
+  waterGoal?: number;  // ml
 }
 
 export enum AppView {
