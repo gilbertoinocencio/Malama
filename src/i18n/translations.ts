@@ -49,7 +49,10 @@ export interface Translations {
         day: string;
         week: string;
         month: string;
-        insightText: string;
+        insightConsistencyUp: string;
+        insightConsistencyDown: string;
+        insightConsistencyNew: string;
+        insightPeakFlow: string;
         weeklyRhythm: string;
         consistency: string;
         steady: string;
@@ -414,7 +417,10 @@ export const translations: Record<Language, Translations> = {
             day: 'Day',
             week: 'Week',
             month: 'Month',
-            insightText: 'Your consistency is up <b>+12%</b> this week. Peak flow achieved at 2 PM.',
+            insightConsistencyUp: 'Consistency up <b>+{change}%</b> vs last week.',
+            insightConsistencyDown: 'Consistency down <b>{change}%</b> vs last week.',
+            insightConsistencyNew: 'First week! Keep logging to unlock insights.',
+            insightPeakFlow: 'Peak flow at <b>{hour}h</b>.',
             weeklyRhythm: 'Weekly Rhythm',
             consistency: 'Consistency',
             steady: 'Steady',
@@ -745,7 +751,10 @@ export const translations: Record<Language, Translations> = {
             day: 'Dia',
             week: 'Semana',
             month: 'Mês',
-            insightText: 'Sua consistência aumentou <b>+12%</b> esta semana. Pico de flow às 14h.',
+            insightConsistencyUp: 'Consistência <b>+{change}%</b> vs semana passada.',
+            insightConsistencyDown: 'Consistência <b>{change}%</b> vs semana passada.',
+            insightConsistencyNew: 'Primeira semana! Continue registrando para ver seus insights.',
+            insightPeakFlow: 'Pico de flow às <b>{hour}h</b>.',
             weeklyRhythm: 'Ritmo Semanal',
             consistency: 'Consistência',
             steady: 'Estável',
@@ -1076,7 +1085,10 @@ export const translations: Record<Language, Translations> = {
             day: 'Día',
             week: 'Semana',
             month: 'Mes',
-            insightText: 'Tu consistencia subió <b>+12%</b> esta semana. Pico de flow a las 2 PM.',
+            insightConsistencyUp: 'Consistencia <b>+{change}%</b> vs semana pasada.',
+            insightConsistencyDown: 'Consistencia <b>{change}%</b> vs semana pasada.',
+            insightConsistencyNew: '¡Primera semana! Sigue registrando para ver tus insights.',
+            insightPeakFlow: 'Pico de flow a las <b>{hour}h</b>.',
             weeklyRhythm: 'Ritmo Semanal',
             consistency: 'Consistencia',
             steady: 'Estable',

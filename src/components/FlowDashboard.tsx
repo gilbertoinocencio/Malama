@@ -55,6 +55,8 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     avgWaterMl: number;
     daysLogged: number;
   } | null>(null);
+  type InsightData = { consistencyChange: number | null; peakHour: number | null };
+  const [insightData, setInsightData] = useState<InsightData>({ consistencyChange: null, peakHour: null });
 
   useEffect(() => {
     if (user) {
@@ -80,15 +82,33 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
   const loadWeeklyScores = async () => {
     if (!user) return;
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
     const { data } = await supabase
       .from('flow_stats')
       .select('date, flow_score')
       .eq('user_id', user.id)
-      .gte('date', getLocalDateString(sevenDaysAgo))
+      .gte('date', getLocalDateString(fourteenDaysAgo))
       .order('date', { ascending: true });
-    if (data) setWeeklyScores(data.map(d => ({ date: d.date, score: d.flow_score || 0 })));
+
+    if (!data) return;
+
+    const allScores = data.map(d => ({ date: d.date, score: d.flow_score || 0 }));
+    // Last 7 days for the chart
+    setWeeklyScores(allScores.slice(-7));
+
+    // Consistency change: current week avg vs previous week avg
+    const prevWeek = allScores.slice(0, 7);
+    const currWeek = allScores.slice(-7);
+    const avg = (arr: typeof allScores) =>
+      arr.length > 0 ? arr.reduce((s, d) => s + d.score, 0) / arr.length : 0;
+    const prevAvg = avg(prevWeek);
+    const currAvg = avg(currWeek);
+    const consistencyChange = prevAvg > 0
+      ? Math.round(((currAvg - prevAvg) / prevAvg) * 100)
+      : null;
+
+    setInsightData((d: InsightData) => ({ ...d, consistencyChange }));
   };
 
   const loadWeeklyMetrics = async () => {
@@ -127,6 +147,17 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
       avgWaterMl: Math.round(totalWater / waterDays),
       daysLogged: daysWithMeals,
     });
+
+    // Peak flow hour: hour with most meal registrations in the last 7 days
+    const hourCount = new Map<number, number>();
+    (weekMeals || []).forEach(m => {
+      const h = new Date(m.created_at).getHours();
+      hourCount.set(h, (hourCount.get(h) || 0) + 1);
+    });
+    const peakHour = hourCount.size > 0
+      ? [...hourCount.entries()].reduce((a, b) => b[1] > a[1] ? b : a)[0]
+      : null;
+    setInsightData((d: InsightData) => ({ ...d, peakHour }));
   };
 
   useEffect(() => {
@@ -578,16 +609,36 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               </div>
 
               {/* Insight Pill */}
-              <div className="mt-4 bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-nura-border dark:border-white/5 rounded-xl p-4 w-full max-w-sm flex items-start gap-3 transition-transform hover:scale-[1.02]">
-                <div className="mt-0.5 size-5 shrink-0 rounded-full bg-nura-petrol/20 dark:bg-primary/20 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-[14px]">auto_graph</span>
-                </div>
-                <div className="flex-1">
-                  <p className="text-nura-main dark:text-white text-sm font-medium leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: t.flowScore.insightText.replace(/<b>/g, '<span class="text-nura-petrol dark:text-primary font-bold">').replace(/<\/b>/g, '</span>') }}
-                  />
-                </div>
-              </div>
+              {(() => {
+                const fs = t.flowScore;
+                const { consistencyChange, peakHour } = insightData;
+                const bold = (s: string) =>
+                  s.replace(/<b>/g, '<span class="text-nura-petrol dark:text-primary font-bold">').replace(/<\/b>/g, '</span>');
+
+                let consistencyHtml: string;
+                if (consistencyChange === null) {
+                  consistencyHtml = fs.insightConsistencyNew;
+                } else if (consistencyChange >= 0) {
+                  consistencyHtml = fs.insightConsistencyUp.replace('{change}', String(consistencyChange));
+                } else {
+                  consistencyHtml = fs.insightConsistencyDown.replace('{change}', String(consistencyChange));
+                }
+
+                const peakHtml = peakHour !== null
+                  ? ' ' + fs.insightPeakFlow.replace('{hour}', String(peakHour))
+                  : '';
+
+                return (
+                  <div className="mt-4 bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-nura-border dark:border-white/5 rounded-xl p-4 w-full max-w-sm flex items-start gap-3 transition-transform hover:scale-[1.02]">
+                    <div className="mt-0.5 size-5 shrink-0 rounded-full bg-nura-petrol/20 dark:bg-primary/20 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-[14px]">auto_graph</span>
+                    </div>
+                    <p className="flex-1 text-nura-main dark:text-white text-sm font-medium leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: bold(consistencyHtml + peakHtml) }}
+                    />
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Weekly Rhythm Chart */}
