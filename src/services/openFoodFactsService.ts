@@ -141,12 +141,9 @@ export async function searchOpenFoodFacts(query: string): Promise<OFFResult | nu
 
 // ─── Lookup by barcode ───────────────────────────────────────────────
 
-/**
- * Lookup a product by barcode (EAN-13/EAN-8/UPC-A) on OpenFoodFacts.
- */
-export async function lookupBarcode(barcode: string): Promise<OFFBarcodeResult | null> {
+async function fetchBarcodeFromHost(host: string, barcode: string): Promise<OFFBarcodeResult | null> {
   const { promise, clear } = fetchWithTimeout(
-    `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`
+    `${host}/api/v0/product/${encodeURIComponent(barcode)}.json`
   );
 
   try {
@@ -163,13 +160,10 @@ export async function lookupBarcode(barcode: string): Promise<OFFBarcodeResult |
     const per100g = parseNutriments(product.nutriments);
     if (!per100g) return null;
 
-    // Parse serving_size: "30g", "1 bar (40g)", "250 ml" → extract grams
     let servingSizeG: number | undefined;
     if (product.serving_size) {
       const match = product.serving_size.match(/(\d+(?:[.,]\d+)?)\s*g/i);
-      if (match) {
-        servingSizeG = parseFloat(match[1].replace(',', '.'));
-      }
+      if (match) servingSizeG = parseFloat(match[1].replace(',', '.'));
     }
 
     return {
@@ -183,6 +177,17 @@ export async function lookupBarcode(barcode: string): Promise<OFFBarcodeResult |
     clear();
     return null;
   }
+}
+
+/**
+ * Lookup a product by barcode (EAN-13/EAN-8/UPC-A) on OpenFoodFacts.
+ * Tries the Brazilian database first (better coverage of local products),
+ * then falls back to the global database.
+ */
+export async function lookupBarcode(barcode: string): Promise<OFFBarcodeResult | null> {
+  const brResult = await fetchBarcodeFromHost('https://br.openfoodfacts.org', barcode);
+  if (brResult) return brResult;
+  return fetchBarcodeFromHost('https://world.openfoodfacts.org', barcode);
 }
 
 // ─── Convert barcode result → AIResponse ─────────────────────────────

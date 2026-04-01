@@ -538,7 +538,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     let scanner: any = null;
     let stopped = false;
 
-    // iOS Safari needs more time to paint the div and resolve its pixel dimensions
+    // Give the DOM time to measure the div's pixel dimensions before scanner.start()
+    // 700ms handles slow Android WebViews and iOS Safari layout delays
     const timer = setTimeout(async () => {
       try {
         // Dynamic import — keeps html5-qrcode out of the MealLogger chunk,
@@ -560,11 +561,18 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         barcodeScannerRef.current = scanner;
 
         await scanner.start(
-          { facingMode: 'environment' },
+          // Ask for the rear camera with a resolution hint (doesn't affect qrbox calc)
+          { facingMode: { ideal: 'environment' } },
           {
-            fps: 10,
-            qrbox: { width: 260, height: 100 },
-            aspectRatio: 1.7777,
+            fps: 15,
+            // Use a function so qrbox is relative to the actual rendered video size.
+            // Fixed pixel values throw when the container is smaller than the box.
+            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => ({
+              width: Math.floor(viewfinderWidth * 0.85),
+              height: Math.max(Math.floor(viewfinderHeight * 0.35), 80),
+            }),
+            // No aspectRatio here — forcing 16:9 on a portrait container
+            // shrinks the video and makes qrbox calculations unreliable
           },
           async (decodedText: string) => {
             if (stopped) return;
@@ -583,7 +591,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         setScannerMode('file');
         setScannerReady(true);
       }
-    }, 400);
+    }, 700);
 
     return () => {
       clearTimeout(timer);
@@ -640,7 +648,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const handleFileBarcodeScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setShowBarcodeScanner(false);
+    // NOTE: do NOT call setShowBarcodeScanner(false) here.
+    // Doing so before the first `await` causes React to unmount the modal and remove
+    // the #barcode-file-reader div from the DOM before html5-qrcode can use it.
+    // We close the modal in the finally block, after the scan attempt.
     try {
       const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode');
       const scanner = new Html5Qrcode('barcode-file-reader', {
@@ -655,8 +666,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         verbose: false,
       });
       const result = await scanner.scanFileV2(file, false);
+      setShowBarcodeScanner(false);
       handleBarcodeResult(result.decodedText);
     } catch {
+      setShowBarcodeScanner(false);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         type: 'ai-text',
