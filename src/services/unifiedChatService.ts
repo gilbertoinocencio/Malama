@@ -180,18 +180,25 @@ export const UnifiedChatService = {
             if (!isNaN(ml) && ml > 0) {
               // 1. Update daily_logs.water_intake (source of truth for dashboard)
               const today = new Date().toISOString().split('T')[0];
-              const { data: existingLog } = await supabase
+              const { data: existingLog, error: selectError } = await supabase
                 .from('daily_logs')
                 .select('id, water_intake, water_goal')
                 .eq('user_id', userId)
                 .eq('date', today)
                 .maybeSingle();
 
+              if (selectError) {
+                console.error('Water log: failed to read daily_log:', selectError);
+              }
+
+              const newWaterIntake = (existingLog?.water_intake || 0) + ml;
+
               if (existingLog) {
-                await supabase
+                const { error: updateError } = await supabase
                   .from('daily_logs')
-                  .update({ water_intake: (existingLog.water_intake || 0) + ml })
+                  .update({ water_intake: newWaterIntake })
                   .eq('id', existingLog.id);
+                if (updateError) console.error('Water log: failed to update daily_log:', updateError);
               } else {
                 // Fetch profile to calculate personalised water goal
                 const { data: profileData } = await supabase
@@ -203,9 +210,10 @@ export const UnifiedChatService = {
                 const activityBonus = profileData?.activity_level === 'intense' ? 600 : profileData?.activity_level === 'moderate' ? 300 : 0;
                 const waterGoal = Math.max(3000, Math.round(weight * 35)) + activityBonus;
 
-                await supabase
+                const { error: insertError } = await supabase
                   .from('daily_logs')
                   .insert({ user_id: userId, date: today, water_intake: ml, water_goal: waterGoal });
+                if (insertError) console.error('Water log: failed to insert daily_log:', insertError);
               }
 
               // 2. Also update hydration mission progress (gamification)
@@ -216,7 +224,7 @@ export const UnifiedChatService = {
                 await CoachService.updateMissionProgress(
                   userId,
                   hydrationMission.id,
-                  (hydrationMission.current_value || 0) + ml
+                  newWaterIntake
                 );
               }
             }

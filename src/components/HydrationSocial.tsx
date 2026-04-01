@@ -31,11 +31,11 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
       const today = new Date().toISOString().split('T')[0];
       const { data } = await supabase
         .from('daily_logs')
-        .select('hydration_ml')
+        .select('water_intake')
         .eq('user_id', user.id)
         .eq('date', today)
-        .single();
-      if (data?.hydration_ml) setCurrentMl(data.hydration_ml);
+        .maybeSingle();
+      if (data?.water_intake) setCurrentMl(data.water_intake);
     } catch (e) {
       // no log for today yet
     }
