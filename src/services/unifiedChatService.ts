@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
@@ -179,7 +180,7 @@ export const UnifiedChatService = {
             const ml = Number(parsed.ml);
             if (!isNaN(ml) && ml > 0) {
               // 1. Update daily_logs.water_intake (source of truth for dashboard)
-              const today = new Date().toISOString().split('T')[0];
+              const today = getLocalDateString();
               const { data: existingLog, error: selectError } = await supabase
                 .from('daily_logs')
                 .select('id, water_intake, water_goal')
@@ -913,7 +914,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
     }
 
     // Get latest daily check-in (mood, energy, sleep, symptoms)
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const { data: checkinRecords } = await supabase
       .from('daily_checkins')
       .select('energy_level, hunger_level, mood, motivation, sleep_hours, sleep_quality, weight, notes, symptoms')

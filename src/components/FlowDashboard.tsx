@@ -10,6 +10,7 @@ import { Confetti } from './Confetti';
 import { TodayMissionsCard } from './TodayMissionsCard';
 import { DailyCheckinModal } from './DailyCheckinModal';
 import { DailyMealsList } from './DailyMealsList';
+import { getLocalDateString } from '../utils/dateUtils';
 
 interface FlowDashboardProps {
   stats: DailyStats;
@@ -83,7 +84,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const loadDailyData = async () => {
     if (!user) return;
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       const { data, error } = await supabase
         .from('daily_logs')
         .select('water_intake, water_goal')
@@ -109,7 +110,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
       .from('flow_stats')
       .select('date, flow_score')
       .eq('user_id', user.id)
-      .gte('date', sevenDaysAgo.toISOString().split('T')[0])
+      .gte('date', getLocalDateString(sevenDaysAgo))
       .order('date', { ascending: true });
     if (data) setWeeklyScores(data.map(d => ({ date: d.date, score: d.flow_score || 0 })));
   };

@@ -3,6 +3,7 @@ import { Meal, DailyStats } from '../types';
 import { INITIAL_STATS } from '../constants';
 import { StatsService } from './statsService';
 import { GamificationService } from './gamificationService';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export const MealService = {
     // Upload image to Supabase Storage
@@ -107,7 +108,7 @@ export const MealService = {
         try {
             const date = new Date();
             const stats = await StatsService.getDailyStats(userId, date);
-            const formattedDate = date.toISOString().split('T')[0];
+            const formattedDate = getLocalDateString(date);
 
             // Upsert flow_stats
             const { error: statsError } = await supabase

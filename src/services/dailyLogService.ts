@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { GamificationService } from './gamificationService';
+import { getLocalDateString } from '../utils/dateUtils';
 
 export interface DailyLogData {
     id?: string;
@@ -15,7 +16,7 @@ export interface DailyLogData {
 export const DailyLogService = {
     // Get log for a specific date
     async getDailyLog(userId: string, date: Date = new Date()): Promise<DailyLogData | null> {
-        const formattedDate = date.toISOString().split('T')[0];
+        const formattedDate = getLocalDateString(date);
 
         const { data, error } = await supabase
             .from('daily_logs')

@@ -35,7 +35,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
-  const [statsLoaded, setStatsLoaded] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   // Default to false for the Original Light Mode Theme
   const [darkMode, setDarkMode] = useState(false);
@@ -62,26 +62,28 @@ const App: React.FC = () => {
   }, []);
 
   const loadStats = async () => {
-    if (!user || statsLoaded) return;
+    if (!user || statsLoading) return;
     try {
-      setStatsLoaded(true);
-      const dailyStats = await StatsService.getDailyStats(user.id);
+      setStatsLoading(true);
+      const [dailyStats, dailyMeals] = await Promise.all([
+        StatsService.getDailyStats(user.id),
+        MealService.getMeals(user.id),
+      ]);
       setStats(dailyStats);
-
-      const dailyMeals = await MealService.getMeals(user.id);
       setMeals(dailyMeals);
     } catch (error) {
       console.error('Error loading stats:', error);
-      setStatsLoaded(false); // Reset on error to allow retry
+    } finally {
+      setStatsLoading(false);
     }
   };
 
-  // Fetch Stats on Load - only once when user is authenticated and has completed onboarding
+  // Refresh stats every time the user navigates to HOME
   useEffect(() => {
-    if (user && profile?.onboarding_completed && !statsLoaded) {
+    if (user && profile?.onboarding_completed && view === AppView.HOME) {
       loadStats();
     }
-  }, [user, profile?.onboarding_completed, statsLoaded]);
+  }, [user, profile?.onboarding_completed, view]);
 
   const handleLogMeal = (meal: Meal) => {
     // Optimistic Update
@@ -119,7 +121,6 @@ const App: React.FC = () => {
       await MealService.deleteMeal(mealId, user.id);
     } catch (e) {
       console.error(e);
-      setStatsLoaded(false);
       loadStats();
     }
   };
@@ -145,7 +146,6 @@ const App: React.FC = () => {
       await MealService.updateMeal(updatedMeal.id, user.id, updatedMeal);
     } catch (e) {
       console.error(e);
-      setStatsLoaded(false);
       loadStats();
     }
   };
@@ -182,10 +182,7 @@ const App: React.FC = () => {
 
   // Profile loaded but onboarding not completed
   if (!profile?.onboarding_completed) {
-    return <OnboardingFlow onComplete={() => {
-      setStatsLoaded(false);
-      loadStats();
-    }} />;
+    return <OnboardingFlow onComplete={() => loadStats()} />;
   }
 
   return (
