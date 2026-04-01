@@ -247,6 +247,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const draftPersistedRef = useRef(false); // true once initial history load is done
 
   const { t, speechLang, language } = useLanguage();
   const { user } = useAuth();
@@ -265,12 +266,42 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       });
       setMessageDates(dates);
       setMessages(converted);
+
+      // Restore pending draft meal from localStorage (survives tab switches & nav away)
+      const draftKey = `nura_draft_meal_${user.id}`;
+      const savedDraft = localStorage.getItem(draftKey);
+      if (savedDraft) {
+        try {
+          const { meal, source, ts } = JSON.parse(savedDraft);
+          // Only restore if draft is less than 24 hours old
+          if (Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) {
+            setDraftMeal(meal);
+            setDraftSource(source || 'chat');
+          } else {
+            localStorage.removeItem(draftKey);
+          }
+        } catch {
+          localStorage.removeItem(draftKey);
+        }
+      }
+      draftPersistedRef.current = true;
     }).catch(() => {
       // On error, start with empty chat
+      draftPersistedRef.current = true;
     }).finally(() => {
       setLoadingHistory(false);
     });
   }, [user]);
+
+  // Persist draftMeal to localStorage whenever it changes (after initial load)
+  useEffect(() => {
+    if (!user || !draftPersistedRef.current) return;
+    const key = `nura_draft_meal_${user.id}`;
+    if (draftMeal) {
+      localStorage.setItem(key, JSON.stringify({ meal: draftMeal, source: draftSource, ts: Date.now() }));
+    }
+    // Clearing is done explicitly in confirm/cancel to avoid race with unmount
+  }, [draftMeal, draftSource, user]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -445,6 +476,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         setMessages(prev => [...prev, aiTextMsg, aiCardMsg]);
         setDraftMeal(result);
         setDraftSource('chat');
+
+        // Persist food analysis messages to DB so they survive remounts
+        if (user) {
+          const agentContent = `${t.mealLogger.analysisIntro}\n<meal_json>${JSON.stringify(result)}</meal_json>`;
+          UnifiedChatService.saveDirectMessages(user.id, userText, agentContent).catch(() => {});
+        }
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : t.general.error;
@@ -660,6 +697,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       onLog(newMeal); // Optimistic update / update parent state
       
       setSuccess(true);
+      if (user) localStorage.removeItem(`nura_draft_meal_${user.id}`);
       setTimeout(() => {
         onClose();
       }, 1500);
@@ -668,6 +706,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       alert(t.mealLogger.errorLogging);
       setLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    if (user) localStorage.removeItem(`nura_draft_meal_${user.id}`);
+    setDraftMeal(null);
+    onClose();
   };
 
   const handleOpenEdit = () => {
@@ -975,7 +1019,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           {draftMeal && (
             <div className="flex items-center gap-3 w-full animate-fade-in-up">
               <button
-                onClick={onClose}
+                onClick={handleCancel}
                 className="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-nura-muted hover:text-nura-main dark:text-slate-400 dark:hover:text-white font-semibold text-sm transition-colors active:scale-95"
               >
                 {t.mealLogger.cancel}

@@ -145,6 +145,21 @@ export const UnifiedChatService = {
   },
 
   /**
+   * Save a user + agent message pair directly (no AI generation).
+   * Used for food-analysis path so those messages persist across sessions.
+   */
+  async saveDirectMessages(userId: string, userContent: string, agentContent: string): Promise<void> {
+    try {
+      await supabase.from('chat_messages').insert([
+        { user_id: userId, role: 'user', content: userContent, stage: null },
+        { user_id: userId, role: 'agent', content: agentContent, stage: null },
+      ]);
+    } catch (e) {
+      console.error('Failed to save direct messages:', e);
+    }
+  },
+
+  /**
    * Send message and get AI response (auto-detects mode)
    */
   async sendMessage(userId: string, userMessage: string): Promise<ChatMessage> {
