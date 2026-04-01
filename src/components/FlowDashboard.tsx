@@ -48,6 +48,12 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const [weeklyScores, setWeeklyScores] = useState<{ date: string, score: number }[]>([]);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
   const [showMicros, setShowMicros] = useState(false);
+  const [weeklyMetrics, setWeeklyMetrics] = useState<{
+    avgCalories: number;
+    avgProtein: number;
+    avgWaterMl: number;
+    daysLogged: number;
+  } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -115,6 +121,50 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     if (data) setWeeklyScores(data.map(d => ({ date: d.date, score: d.flow_score || 0 })));
   };
 
+  const loadWeeklyMetrics = async () => {
+    if (!user) return;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const startOfWeek = new Date(sevenDaysAgo);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const [{ data: weekMeals }, { data: waterLogs }] = await Promise.all([
+      supabase
+        .from('meals')
+        .select('calories, protein, created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', startOfWeek.toISOString())
+        .lte('created_at', endOfToday.toISOString()),
+      supabase
+        .from('daily_logs')
+        .select('water_intake, date')
+        .eq('user_id', user.id)
+        .gte('date', getLocalDateString(sevenDaysAgo)),
+    ]);
+
+    const daysWithMeals = new Set((weekMeals || []).map(m => getLocalDateString(new Date(m.created_at)))).size;
+    const daysLogged = Math.max(daysWithMeals, 1);
+    const totalCalories = (weekMeals || []).reduce((s, m) => s + (m.calories || 0), 0);
+    const totalProtein = (weekMeals || []).reduce((s, m) => s + (m.protein || 0), 0);
+    const totalWater = (waterLogs || []).reduce((s, l) => s + (l.water_intake || 0), 0);
+    const waterDays = Math.max((waterLogs || []).length, 1);
+
+    setWeeklyMetrics({
+      avgCalories: Math.round(totalCalories / daysLogged),
+      avgProtein: Math.round(totalProtein / daysLogged),
+      avgWaterMl: Math.round(totalWater / waterDays),
+      daysLogged: daysWithMeals,
+    });
+  };
+
+  useEffect(() => {
+    if (user && (period === 'week' || period === 'month')) {
+      loadWeeklyMetrics();
+    }
+  }, [user, period]);
+
   // Flow score calculated from consumed vs target (demo)
   const flowScore = stats.flowScore ?? 0;
   const scoreIsOptimized = flowScore >= 75;
@@ -175,10 +225,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
   const chartPaths = generateChartPath();
   const consistency = getConsistency();
-  const waterIntakeL = (waterIntake / 1000).toFixed(1);
-  const waterPercent = Math.min((waterIntake / 2500) * 100, 100);
-  const proteinPercent = stats.targetMacros.protein > 0 ? Math.min((stats.macros.protein / stats.targetMacros.protein) * 100, 100) : 0;
-  const energyPercent = caloriePercent;
   const displayName = profile?.display_name || user?.email?.split('@')[0] || t.dashboard.defaultUser;
 
   // Use profile level as fallback if gameStats is not yet loaded
@@ -628,69 +674,81 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               </div>
             </div>
 
-            {/* Horizontal Scroll Metrics Cards */}
-            <div className="flex flex-col gap-4">
-              <div className="px-6 flex items-center justify-between">
+            {/* Weekly Metrics Grid */}
+            <div className="px-6 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
                 <h2 className="text-nura-main dark:text-white text-lg font-bold">{t.flowScore.metrics}</h2>
-                <span className="text-nura-petrol dark:text-primary text-sm font-medium cursor-pointer">{t.flowScore.viewAll}</span>
+                {weeklyMetrics && (
+                  <span className="text-xs text-nura-muted dark:text-white/40 font-medium">
+                    {weeklyMetrics.daysLogged}/7 dias registrados
+                  </span>
+                )}
               </div>
-              <div className="flex overflow-x-auto px-6 pb-4 gap-4 no-scrollbar snap-x">
-                {/* Hydration Card */}
-                <div className="snap-start min-w-[160px] bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-nura-border dark:border-white/5 rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden group">
-                  <div className="absolute right-0 bottom-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl translate-x-4 translate-y-4" />
-                  <div className="size-10 rounded-full bg-white dark:bg-surface-dark border border-nura-border dark:border-white/10 flex items-center justify-center text-blue-400">
-                    <span className="material-symbols-outlined">water_drop</span>
-                  </div>
-                  <div>
-                    <p className="text-nura-muted dark:text-white/50 text-xs font-medium mb-1">{t.flowScore.hydration}</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-nura-main dark:text-white group-hover:text-blue-400 transition-colors">{waterIntakeL}</span>
-                      <span className="text-sm text-nura-muted dark:text-white/60">L</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-white/10 h-1.5 rounded-full mt-1">
-                    <div className="bg-blue-400 h-1.5 rounded-full" style={{ width: `${waterPercent}%`, boxShadow: '0 0 8px rgba(96,165,250,0.5)' }} />
-                  </div>
-                </div>
 
-                {/* Protein Card */}
-                <div className="snap-start min-w-[160px] bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-nura-border dark:border-white/5 rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden group">
-                  <div className="absolute right-0 bottom-0 w-24 h-24 bg-orange-500/10 rounded-full blur-xl translate-x-4 translate-y-4" />
-                  <div className="size-10 rounded-full bg-white dark:bg-surface-dark border border-nura-border dark:border-white/10 flex items-center justify-center text-orange-400">
-                    <span className="material-symbols-outlined">egg</span>
+              {weeklyMetrics ? (() => {
+                const wTarget = waterGoalState || 2500;
+                const pTarget = stats.targetMacros.protein || 1;
+                const cTarget = stats.targetCalories || 1;
+                const cards = [
+                  {
+                    icon: 'water_drop',
+                    color: 'text-blue-400',
+                    bg: 'bg-blue-400',
+                    label: t.flowScore.hydration,
+                    value: (weeklyMetrics.avgWaterMl / 1000).toFixed(1),
+                    unit: 'L/dia',
+                    target: (wTarget / 1000).toFixed(1) + 'L',
+                    pct: Math.min((weeklyMetrics.avgWaterMl / wTarget) * 100, 100),
+                  },
+                  {
+                    icon: 'egg',
+                    color: 'text-orange-400',
+                    bg: 'bg-orange-400',
+                    label: t.dashboard.protein,
+                    value: weeklyMetrics.avgProtein,
+                    unit: 'g/dia',
+                    target: Math.round(pTarget) + 'g',
+                    pct: Math.min((weeklyMetrics.avgProtein / pTarget) * 100, 100),
+                  },
+                  {
+                    icon: 'local_fire_department',
+                    color: 'text-yellow-500',
+                    bg: 'bg-yellow-400',
+                    label: t.flowScore.energy,
+                    value: (weeklyMetrics.avgCalories / 1000).toFixed(1),
+                    unit: 'k/dia',
+                    target: (cTarget / 1000).toFixed(1) + 'k',
+                    pct: Math.min((weeklyMetrics.avgCalories / cTarget) * 100, 100),
+                  },
+                ];
+                return (
+                  <div className="grid grid-cols-3 gap-3">
+                    {cards.map(card => (
+                      <div key={card.label} className="bg-white dark:bg-surface-dark border border-nura-border dark:border-white/5 rounded-2xl p-4 flex flex-col gap-3">
+                        <span className={`material-symbols-outlined text-xl ${card.color}`}>{card.icon}</span>
+                        <div>
+                          <p className="text-[10px] font-semibold text-nura-muted dark:text-white/40 uppercase tracking-wide mb-1">{card.label}</p>
+                          <p className="text-xl font-bold text-nura-main dark:text-white leading-none">
+                            {card.value}<span className="text-xs font-medium text-nura-muted dark:text-white/40 ml-0.5">{card.unit}</span>
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <div className="w-full bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
+                            <div className={`h-full ${card.bg} rounded-full transition-all duration-700`} style={{ width: `${card.pct}%` }} />
+                          </div>
+                          <p className="text-[10px] text-nura-muted dark:text-white/30">meta {card.target}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-nura-muted dark:text-white/50 text-xs font-medium mb-1">{t.dashboard.protein}</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-nura-main dark:text-white group-hover:text-orange-400 transition-colors">
-                        {Math.round(stats.macros.protein)}
-                      </span>
-                      <span className="text-sm text-nura-muted dark:text-white/60">g</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-white/10 h-1.5 rounded-full mt-1">
-                    <div className="bg-orange-400 h-1.5 rounded-full" style={{ width: `${proteinPercent}%`, boxShadow: '0 0 8px rgba(251,146,60,0.5)' }} />
-                  </div>
+                );
+              })() : (
+                <div className="grid grid-cols-3 gap-3">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="bg-white dark:bg-surface-dark border border-nura-border dark:border-white/5 rounded-2xl p-4 h-32 animate-pulse" />
+                  ))}
                 </div>
-
-                {/* Energy Card */}
-                <div className="snap-start min-w-[160px] bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-nura-border dark:border-white/5 rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden group">
-                  <div className="absolute right-0 bottom-0 w-24 h-24 bg-yellow-500/10 rounded-full blur-xl translate-x-4 translate-y-4" />
-                  <div className="size-10 rounded-full bg-white dark:bg-surface-dark border border-nura-border dark:border-white/10 flex items-center justify-center text-yellow-400">
-                    <span className="material-symbols-outlined">local_fire_department</span>
-                  </div>
-                  <div>
-                    <p className="text-nura-muted dark:text-white/50 text-xs font-medium mb-1">{t.flowScore.energy}</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-nura-main dark:text-white group-hover:text-yellow-400 transition-colors">{(stats.consumedCalories / 1000).toFixed(1)}</span>
-                      <span className="text-sm text-nura-muted dark:text-white/60">kCal</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-white/10 h-1.5 rounded-full mt-1">
-                    <div className="bg-yellow-400 h-1.5 rounded-full" style={{ width: `${energyPercent}%`, boxShadow: '0 0 8px rgba(250,204,21,0.5)' }} />
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </>
         )}
