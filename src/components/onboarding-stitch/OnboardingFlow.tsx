@@ -24,7 +24,6 @@ import ImpactoAguaStep from './steps/ImpactoAguaStep';
 import EducaHidratacaoStep from './steps/EducaHidratacaoStep';
 import MudancaHabitosStep from './steps/MudancaHabitosStep';
 import ResumoIMCStep from './steps/ResumoIMCStep';
-import ResumoBiometricoStep from './steps/ResumoBiometricoStep';
 import PesoObjetivoStep from './steps/PesoObjetivoStep';
 import VelocidadeMetaStep from './steps/VelocidadeMetaStep';
 import ConfirmacaoMetasStep from './steps/ConfirmacaoMetasStep';
@@ -160,8 +159,6 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         return <MudancaHabitosStep {...props} />;
       case OnboardingStep.RESUMO_IMC:
         return <ResumoIMCStep {...props} />;
-      case OnboardingStep.RESUMO_BIOMÉTRICO:
-        return <ResumoBiometricoStep {...props} />;
       case OnboardingStep.PESO_OBJETIVO:
         return <PesoObjetivoStep {...props} />;
       case OnboardingStep.VELOCIDADE_META:

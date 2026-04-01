@@ -67,7 +67,6 @@ export enum OnboardingStep {
   EDUCA_HIDRATACAO = 'educa_hidratacao',
   MUDANCA_HABITOS = 'mudanca_habitos',
   RESUMO_IMC = 'resumo_imc',
-  RESUMO_BIOMÉTRICO = 'resumo_biometrico',
   PESO_OBJETIVO = 'peso_objetivo',
   VELOCIDADE_META = 'velocidade_meta',
   CONFIRMACAO_METAS = 'confirmacao_metas',
