@@ -796,6 +796,8 @@ Celebre a ação e extraia a quantidade em mililitros (ml). Inclua EXATAMENTE o 
 {"ml": 500}
 </water_json>
 
+**CRÍTICO — extração de quantidade:** Use SOMENTE o número literal que o usuário informou na mensagem. Não arredonde, não converta, não some com o total diário, não faça estimativas. Se o usuário disse "200ml", o campo ml deve ser exatamente 200. Se disse "1 litro", converta para 1000. Celebre a quantidade que o usuário informou — nunca mencione um número diferente do que ele disse.
+
 **ATENÇÃO — distinção importante:**
 - Se o usuário informou SOMENTE água (sem alimentos sólidos ou outras bebidas calóricas), use APENAS <water_json>
 - Se o usuário informou alimentos ou bebidas calóricas (mesmo que também tenha mencionado água), use <meal_json> para os alimentos E <water_json> separado para a água

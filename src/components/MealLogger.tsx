@@ -329,6 +329,17 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const isQuestion = (text: string): boolean => {
     const lower = text.toLowerCase().trim();
 
+    // Corrections and clarifications — always route to chat agent, never to food analysis
+    const correctionIndicators = [
+      'eu disse', 'não disse', 'disse que', 'falei que', 'não falei',
+      'na verdade', 'na realidade', 'quero corrigir', 'está errado', 'esta errado',
+      'não é isso', 'nao e isso', 'você errou', 'voce errou', 'errou',
+      'tá errado', 'ta errado', 'não é esse', 'nao e esse',
+      'foi diferente', 'foi outro', 'foi outra',
+      'corrija', 'corrige',
+    ];
+    if (correctionIndicators.some(i => lower.includes(i))) return true;
+
     // Emotional state, cravings, satiety, humor — always route to chat agent
     const emotionAndCravingIndicators = [
       'sem fome', 'não estou com fome', 'nao estou com fome', 'não tô com fome', 'nao to com fome',
