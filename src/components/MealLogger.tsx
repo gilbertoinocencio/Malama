@@ -821,8 +821,11 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     if (msg.type === 'ai-card') {
       const data = msg.content as AIResponse;
       const totalMacros = data.macros.p + data.macros.c + data.macros.f;
-      const pPct = (data.macros.p / totalMacros) * 100;
-      const cPct = (data.macros.c / totalMacros) * 100;
+      // Guard against division by zero (products with all-zero macros from OpenFoodFacts).
+      // NaN in conic-gradient crashes the render on iOS Safari → ErrorBoundary "Something went wrong".
+      const safeDivisor = totalMacros > 0 ? totalMacros : 1;
+      const pPct = (data.macros.p / safeDivisor) * 100;
+      const cPct = (data.macros.c / safeDivisor) * 100;
       const gradientStyle = {
         background: `conic-gradient(var(--tw-colors-accent-protein) 0% ${pPct}%, var(--tw-colors-accent-carbs) ${pPct}% ${pPct + cPct}%, var(--tw-colors-accent-fat) ${pPct + cPct}% 100%)`
       };
