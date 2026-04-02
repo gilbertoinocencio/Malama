@@ -168,11 +168,11 @@ const resizeImage = (base64Str: string, maxDim = 1200): Promise<string> => {
 
       canvas.width = width;
       canvas.height = height;
-      
+
       // Use better quality scaling
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-      
+
       ctx.drawImage(img, 0, 0, width, height);
 
       // Export as JPEG with 0.8 quality to balance file size and detail
@@ -442,8 +442,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             const cleanText = agentResponse.content.replace(/<meal_json>[\s\S]*?<\/meal_json>/, '').trim();
             const parsedMeal: AIResponse = JSON.parse(mealJsonMatch[1]);
             setMessages(prev => [...prev,
-              { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanText },
-              { id: (Date.now() + 2).toString(), type: 'ai-card', content: parsedMeal }
+            { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanText },
+            { id: (Date.now() + 2).toString(), type: 'ai-card', content: parsedMeal }
             ]);
             setDraftMeal(parsedMeal);
             setDraftSource('chat');
@@ -480,7 +480,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         // Persist food analysis messages to DB so they survive remounts
         if (user) {
           const agentContent = `${t.mealLogger.analysisIntro}\n<meal_json>${JSON.stringify(result)}</meal_json>`;
-          UnifiedChatService.saveDirectMessages(user.id, userText, agentContent).catch(() => {});
+          UnifiedChatService.saveDirectMessages(user.id, userText, agentContent).catch(() => { });
         }
       }
     } catch (e) {
@@ -526,12 +526,31 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const barcodeScannerRef = useRef<any>(null);
   const [scannerReady, setScannerReady] = useState(false);
   const [scannerMode, setScannerMode] = useState<'live' | 'file' | null>(null);
+  const [scannerError, setScannerError] = useState<string | null>(null);
   const barcodeFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper function to check camera permission
+  const checkCameraPermission = async (): Promise<boolean> => {
+    try {
+      // Check if browser supports permissions API
+      if (navigator.permissions) {
+        const permission = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        if (permission.state === 'denied') {
+          return false;
+        }
+      }
+      return true;
+    } catch {
+      // If permissions API is not available, assume it's ok
+      return true;
+    }
+  };
 
   useEffect(() => {
     if (!showBarcodeScanner) {
       setScannerReady(false);
       setScannerMode(null);
+      setScannerError(null);
       return;
     }
 
@@ -539,9 +558,30 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     let stopped = false;
 
     // Give the DOM time to measure the div's pixel dimensions before scanner.start()
-    // 700ms handles slow Android WebViews and iOS Safari layout delays
+    // 1000ms handles slow Android WebViews and iOS Safari layout delays (increased from 700ms)
     const timer = setTimeout(async () => {
       try {
+        // Check camera permission first
+        const hasPermission = await checkCameraPermission();
+        if (!hasPermission) {
+          console.error('Camera permission denied');
+          setScannerError(language === 'en'
+            ? 'Camera permission denied. Please enable camera access in your browser settings.'
+            : 'Permissão de câmera negada. Por favor, habilite o acesso à câmera nas configurações do navegador.');
+          setScannerMode('file');
+          setScannerReady(true);
+          return;
+        }
+
+        // Verify container element exists before proceeding
+        const container = document.getElementById('barcode-reader');
+        if (!container) {
+          console.error('Barcode scanner container not found in DOM');
+          setScannerMode('file');
+          setScannerReady(true);
+          return;
+        }
+
         // Dynamic import — keeps html5-qrcode out of the MealLogger chunk,
         // and isolates any iOS module-evaluation failures to this scope only
         const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode');
@@ -585,20 +625,60 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         );
         setScannerMode('live');
         setScannerReady(true);
-      } catch (err) {
-        console.error('Barcode live camera failed:', err);
+      } catch (err: any) {
+        const errorMessage = err?.message || err?.name || 'Unknown error';
+        console.error('Barcode live camera failed:', errorMessage, err);
+
+        // Check for specific error types
+        const isPermissionError = errorMessage.includes('Permission') ||
+          errorMessage.includes('NotAllowed') ||
+          errorMessage.includes('notAllowed');
+        const isHttpsError = errorMessage.includes('https') ||
+          errorMessage.includes('secure context');
+        const isNotFoundError = errorMessage.includes('NotFoundError') ||
+          errorMessage.includes('device') ||
+          errorMessage.includes('camera');
+
+        // Log specific error for debugging and set user-friendly message
+        if (isPermissionError) {
+          console.error('Camera permission denied by user');
+          setScannerError(language === 'en'
+            ? 'Camera permission denied. Please enable camera access in your browser settings.'
+            : 'Permissão de câmera negada. Por favor, habilite o acesso à câmera nas configurações do navegador.');
+        } else if (isHttpsError) {
+          console.error('Camera requires HTTPS or localhost');
+          setScannerError(language === 'en'
+            ? 'Camera requires a secure connection (HTTPS). Please access the app via HTTPS or localhost.'
+            : 'A câmera requer uma conexão segura (HTTPS). Por favor, acesse o app via HTTPS ou localhost.');
+        } else if (isNotFoundError) {
+          console.error('Camera device not found');
+          setScannerError(language === 'en'
+            ? 'No camera found on this device.'
+            : 'Nenhuma câmera encontrada neste dispositivo.');
+        } else {
+          setScannerError(language === 'en'
+            ? 'Failed to initialize camera. Try using photo mode instead.'
+            : 'Falha ao inicializar câmera. Tente usar o modo de foto.');
+        }
+
+        // Fallback to file mode for all errors
         setScannerMode('file');
         setScannerReady(true);
       }
-    }, 700);
+    }, 1000);
 
     return () => {
       clearTimeout(timer);
       stopped = true;
-      scanner?.stop().catch(() => {});
+      if (scanner) {
+        scanner.stop().catch((e: any) => {
+          // Ignore errors during cleanup
+          console.debug('Scanner cleanup error (expected):', e.message);
+        });
+      }
       barcodeScannerRef.current = null;
     };
-  }, [showBarcodeScanner]);
+  }, [showBarcodeScanner, language]);
 
   const handleBarcodeResult = async (barcode: string) => {
     setLoading(true);
@@ -618,8 +698,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           : 'Produto encontrado! Aqui estão os dados nutricionais:';
 
         setMessages(prev => [...prev,
-          { id: (Date.now() + 1).toString(), type: 'ai-text', content: foundText },
-          { id: (Date.now() + 2).toString(), type: 'ai-card', content: aiResponse },
+        { id: (Date.now() + 1).toString(), type: 'ai-text', content: foundText },
+        { id: (Date.now() + 2).toString(), type: 'ai-card', content: aiResponse },
         ]);
         setDraftMeal(aiResponse);
         setDraftSource('barcode');
@@ -707,7 +787,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       await MealService.logMeal(newMeal, user.id);
       console.log('MealLogger: Logged! Calling onLog...');
       onLog(newMeal); // Optimistic update / update parent state
-      
+
       setSuccess(true);
       if (user) localStorage.removeItem(`nura_draft_meal_${user.id}`);
       setTimeout(() => {
@@ -854,7 +934,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                 {[
                   { label: t.macros.prot, value: data.macros.p, color: 'bg-accent-protein' },
                   { label: t.macros.carb, value: data.macros.c, color: 'bg-accent-carbs' },
-                  { label: t.macros.fat,  value: data.macros.f, color: 'bg-accent-fat' },
+                  { label: t.macros.fat, value: data.macros.f, color: 'bg-accent-fat' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-nura-bg dark:bg-white/5 p-2 rounded-lg">
                     <div className="flex items-center gap-2">
@@ -1058,78 +1138,78 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
           {/* Sleek Input Bar */}
           <div className="relative w-full">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+            />
+
+            {/* Voice Recording Indicator */}
+            {isListening && (
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded-full text-sm font-medium animate-pulse flex items-center gap-2 shadow-lg">
+                <span className="w-2 h-2 bg-white rounded-full animate-ping"></span>
+                {t.mealLogger.listening}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              {/* Microphone Button */}
+              <button
+                onClick={handleVoiceInput}
+                disabled={loading}
+                className={`size-12 flex-shrink-0 flex items-center justify-center rounded-xl transition-all disabled:opacity-50 ${isListening
+                  ? 'bg-red-500 text-white shadow-lg shadow-red-500/30 animate-pulse'
+                  : 'bg-white dark:bg-surface-dark ring-1 ring-nura-border dark:ring-white/10 text-nura-petrol dark:text-primary hover:bg-nura-petrol/10 dark:hover:bg-primary/10'
+                  }`}
+              >
+                <span className="material-symbols-outlined text-xl">
+                  {isListening ? 'mic' : 'mic'}
+                </span>
+              </button>
+
+              {/* Text Input */}
               <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                ref={fileInputRef}
-                onChange={handleImageUpload}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-1 h-12 px-4 rounded-xl bg-white dark:bg-surface-dark border-none ring-1 ring-nura-border dark:ring-white/10 focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary text-nura-main dark:text-white placeholder-nura-muted dark:placeholder-slate-500 transition-all text-sm shadow-sm"
+                placeholder={isListening ? t.mealLogger.speakMeal : messages.length > 0 ? t.mealLogger.addDetails : t.mealLogger.describeMeal}
+                type="text"
+                disabled={loading || isListening}
               />
 
-              {/* Voice Recording Indicator */}
-              {isListening && (
-                <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded-full text-sm font-medium animate-pulse flex items-center gap-2 shadow-lg">
-                  <span className="w-2 h-2 bg-white rounded-full animate-ping"></span>
-                  {t.mealLogger.listening}
-                </div>
-              )}
+              {/* Barcode Scanner Button */}
+              <button
+                onClick={() => setShowBarcodeScanner(true)}
+                disabled={loading || isListening}
+                className="size-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark ring-1 ring-nura-border dark:ring-white/10 text-nura-petrol dark:text-primary hover:bg-nura-petrol/10 dark:hover:bg-primary/10 transition-all disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-xl">barcode_scanner</span>
+              </button>
 
-              <div className="flex items-center gap-2">
-                {/* Microphone Button */}
-                <button
-                  onClick={handleVoiceInput}
-                  disabled={loading}
-                  className={`size-12 flex-shrink-0 flex items-center justify-center rounded-xl transition-all disabled:opacity-50 ${isListening
-                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/30 animate-pulse'
-                    : 'bg-white dark:bg-surface-dark ring-1 ring-nura-border dark:ring-white/10 text-nura-petrol dark:text-primary hover:bg-nura-petrol/10 dark:hover:bg-primary/10'
-                    }`}
-                >
-                  <span className="material-symbols-outlined text-xl">
-                    {isListening ? 'mic' : 'mic'}
-                  </span>
-                </button>
-
-                {/* Text Input */}
-                <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="flex-1 h-12 px-4 rounded-xl bg-white dark:bg-surface-dark border-none ring-1 ring-nura-border dark:ring-white/10 focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary text-nura-main dark:text-white placeholder-nura-muted dark:placeholder-slate-500 transition-all text-sm shadow-sm"
-                  placeholder={isListening ? t.mealLogger.speakMeal : messages.length > 0 ? t.mealLogger.addDetails : t.mealLogger.describeMeal}
-                  type="text"
-                  disabled={loading || isListening}
-                />
-
-                {/* Barcode Scanner Button */}
-                <button
-                  onClick={() => setShowBarcodeScanner(true)}
-                  disabled={loading || isListening}
-                  className="size-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark ring-1 ring-nura-border dark:ring-white/10 text-nura-petrol dark:text-primary hover:bg-nura-petrol/10 dark:hover:bg-primary/10 transition-all disabled:opacity-50"
-                >
-                  <span className="material-symbols-outlined text-xl">barcode_scanner</span>
-                </button>
-
-                {/* Send/Camera Button */}
-                <button
-                  onClick={() => {
-                    console.log('MealLogger: Send Button Clicked', { input });
-                    if (input) {
-                      handleSend();
-                    } else {
-                      fileInputRef.current?.click();
-                    }
-                  }}
-                  disabled={loading || isListening}
-                  className="size-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-nura-petrol dark:bg-primary text-white shadow-lg shadow-nura-petrol/25 dark:shadow-primary/25 hover:brightness-110 transition-all disabled:opacity-50"
-                >
-                  {input ? (
-                    <span className="material-symbols-outlined text-xl">send</span>
-                  ) : (
-                    <span className="material-symbols-outlined text-xl">photo_camera</span>
-                  )}
-                </button>
-              </div>
+              {/* Send/Camera Button */}
+              <button
+                onClick={() => {
+                  console.log('MealLogger: Send Button Clicked', { input });
+                  if (input) {
+                    handleSend();
+                  } else {
+                    fileInputRef.current?.click();
+                  }
+                }}
+                disabled={loading || isListening}
+                className="size-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-nura-petrol dark:bg-primary text-white shadow-lg shadow-nura-petrol/25 dark:shadow-primary/25 hover:brightness-110 transition-all disabled:opacity-50"
+              >
+                {input ? (
+                  <span className="material-symbols-outlined text-xl">send</span>
+                ) : (
+                  <span className="material-symbols-outlined text-xl">photo_camera</span>
+                )}
+              </button>
             </div>
+          </div>
 
           {/* Home Indicator Safe Area Space */}
           <div className="h-1"></div>
@@ -1291,12 +1371,33 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                 {/* Hidden div required by html5-qrcode scanFileV2 */}
                 <div id="barcode-file-reader" style={{ display: 'none' }} />
                 <span className="material-symbols-outlined text-white/40 mb-4" style={{ fontSize: 64 }}>photo_camera</span>
-                <p className="text-white/80 text-base font-medium mb-2">
-                  {language === 'en' ? 'Live scanner unavailable on this device' : 'Scanner ao vivo indisponível neste dispositivo'}
-                </p>
-                <p className="text-white/50 text-sm mb-8">
-                  {language === 'en' ? 'Take a photo of the barcode instead' : 'Tire uma foto do código de barras'}
-                </p>
+
+                {/* Show specific error message if available */}
+                {scannerError ? (
+                  <>
+                    <p className="text-red-300 text-base font-semibold mb-2">
+                      {language === 'en' ? 'Camera Error' : 'Erro de Câmera'}
+                    </p>
+                    <p className="text-white/70 text-sm mb-4 max-w-xs">
+                      {scannerError}
+                    </p>
+                    <p className="text-white/50 text-sm mb-6">
+                      {language === 'en'
+                        ? 'You can still scan a barcode by taking a photo'
+                        : 'Você ainda pode escanear um código tirando uma foto'}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-white/80 text-base font-medium mb-2">
+                      {language === 'en' ? 'Live scanner unavailable on this device' : 'Scanner ao vivo indisponível neste dispositivo'}
+                    </p>
+                    <p className="text-white/50 text-sm mb-8">
+                      {language === 'en' ? 'Take a photo of the barcode instead' : 'Tire uma foto do código de barras'}
+                    </p>
+                  </>
+                )}
+
                 <label className="px-6 py-3 bg-emerald-500 text-white font-semibold rounded-xl cursor-pointer active:scale-95 transition-transform flex items-center gap-2">
                   <span className="material-symbols-outlined">camera_alt</span>
                   {language === 'en' ? 'Open Camera' : 'Abrir Câmera'}
