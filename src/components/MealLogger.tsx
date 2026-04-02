@@ -571,8 +571,29 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [scannerReady, setScannerReady] = useState(false);
   const [scannerMode, setScannerMode] = useState<'live' | 'file' | null>(null);
   const [scannerError, setScannerError] = useState<string | null>(null);
+  const [torchAvailable, setTorchAvailable] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
   const barcodeFileInputRef = useRef<HTMLInputElement>(null);
   const scannerStoppingRef = useRef(false); // Prevent multiple stop calls
+
+  // Toggle flashlight
+  const toggleTorch = async () => {
+    try {
+      const scanner = barcodeScannerRef.current;
+      if (scanner && scanner.applyVideoConstraints) {
+        const newTorchState = !torchOn;
+        await scanner.applyVideoConstraints({
+          facingMode: 'environment',
+          torch: newTorchState,
+        } as MediaTrackConstraints);
+        setTorchOn(newTorchState);
+        setTorchAvailable(true);
+      }
+    } catch (e: any) {
+      console.warn('Torch not available:', e.message);
+      setTorchAvailable(false);
+    }
+  };
 
   // Helper function to check camera permission
   const checkCameraPermission = async (): Promise<boolean> => {
@@ -640,24 +661,36 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             Html5QrcodeSupportedFormats.UPC_E,
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.CODABAR,
           ],
           verbose: false,
+          // Better scanning configuration
+          scanPeriodMs: 100, // Faster scan interval
         });
         barcodeScannerRef.current = scanner;
 
+        const config = {
+          fps: 10, // Reduced from 15 - more stable scanning
+          // Larger, more horizontal scan box for barcodes
+          qrbox: (viewfinderWidth: number, viewfinderHeight: number) => ({
+            width: Math.floor(viewfinderWidth * 0.90), // Wider: 90% of screen
+            height: Math.max(Math.floor(viewfinderHeight * 0.25), 120), // Taller: better for horizontal barcodes
+          }),
+          // Aspect ratio for better camera fit
+          aspectRatio: 1.5,
+          // Camera constraints for better focus
+          videoConstraints: {
+            facingMode: 'environment',
+            focusMode: 'continuous',
+            torch: true, // Enable flashlight if available
+          } as MediaTrackConstraints,
+        };
+
         await scanner.start(
           { facingMode: 'environment' },
-          {
-            fps: 15,
-            // Use a function so qrbox is relative to the actual rendered video size.
-            // Fixed pixel values throw when the container is smaller than the box.
-            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => ({
-              width: Math.floor(viewfinderWidth * 0.85),
-              height: Math.max(Math.floor(viewfinderHeight * 0.35), 80),
-            }),
-            // No aspectRatio here — forcing 16:9 on a portrait container
-            // shrinks the video and makes qrbox calculations unreliable
-          },
+          config,
           async (decodedText: string) => {
             if (stopped || scannerStoppingRef.current) return;
             stopped = true;
@@ -1426,9 +1459,26 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                 <span className="material-symbols-outlined">close</span>
                 {language === 'en' ? 'Cancel' : 'Cancelar'}
               </button>
-              <span className="text-white/60 text-sm font-medium">
-                {language === 'en' ? 'Barcode Scanner' : 'Scanner de Código de Barras'}
-              </span>
+              <div className="flex items-center gap-3">
+                {/* Torch button */}
+                {scannerMode === 'live' && (
+                  <button
+                    onClick={toggleTorch}
+                    className={`p-2 rounded-full transition-colors ${torchOn
+                      ? 'bg-yellow-500 text-white'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      }`}
+                    title={language === 'en' ? 'Toggle flashlight' : 'Lanterna'}
+                  >
+                    <span className="material-symbols-outlined">
+                      {torchOn ? 'flashlight_on' : 'flashlight_off'}
+                    </span>
+                  </button>
+                )}
+                <span className="text-white/60 text-sm font-medium">
+                  {language === 'en' ? 'Barcode Scanner' : 'Scanner de Código de Barras'}
+                </span>
+              </div>
             </div>
 
             {/* Camera area */}
@@ -1451,9 +1501,32 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                 />
               )}
               {scannerMode === 'live' && (
-                <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <div className="h-0.5 bg-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-[barcode-scan_2s_ease-in-out_infinite]" />
-                </div>
+                <>
+                  {/* Scan line animation */}
+                  <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <div className="h-0.5 bg-emerald-400/80 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-[barcode-scan_2s_ease-in-out_infinite]" />
+                  </div>
+
+                  {/* Corner guides for better alignment */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-1/2 left-8 w-16 h-16 border-l-4 border-t-4 border-b-4 border-emerald-400/50 rounded-l-lg -translate-y-1/2" />
+                    <div className="absolute top-1/2 right-8 w-16 h-16 border-r-4 border-t-4 border-b-4 border-emerald-400/50 rounded-r-lg -translate-y-1/2" />
+                  </div>
+
+                  {/* Instructions overlay */}
+                  <div className="absolute bottom-32 left-0 right-0 text-center pointer-events-none px-4">
+                    <p className="text-white/90 text-sm font-medium mb-1">
+                      {language === 'en'
+                        ? 'Align the barcode within the frame'
+                        : 'Alinhe o código de barras no quadro'}
+                    </p>
+                    <p className="text-white/60 text-xs">
+                      {language === 'en'
+                        ? 'Hold steady and ensure good lighting'
+                        : 'Mantenha firme e certifique-se de boa iluminação'}
+                    </p>
+                  </div>
+                </>
               )}
 
               {/* File/photo fallback (iOS Safari) */}
@@ -1523,11 +1596,35 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             {/* Bottom hint — only shown during live mode */}
             {scannerMode === 'live' && (
               <div className="p-6 bg-black/80 text-center">
-                <p className="text-white/80 text-sm">
-                  {language === 'en'
-                    ? 'Point the camera at the barcode on the product packaging'
-                    : 'Aponte a câmera para o código de barras na embalagem do produto'}
-                </p>
+                <div className="flex items-center justify-center gap-2 text-white/80 text-sm mb-2">
+                  <span className="material-symbols-outlined text-base">help_outline</span>
+                  <p>
+                    {language === 'en'
+                      ? 'Point the camera at the barcode on the product packaging'
+                      : 'Aponte a câmera para o código de barras na embalagem do produto'}
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-4 text-white/50 text-xs mt-3">
+                  <div className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">straighten</span>
+                    <span>{language === 'en' ? 'Keep flat' : 'Mantenha reto'}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">light_mode</span>
+                    <span>{language === 'en' ? 'Good light' : 'Boa luz'}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">panorama_fish_eye</span>
+                    <span>{language === 'en' ? 'Focus' : 'Foco'}</span>
+                  </div>
+                </div>
+                {torchAvailable && (
+                  <p className="text-white/40 text-xs mt-2">
+                    {language === 'en'
+                      ? 'Use the flashlight button for dark environments'
+                      : 'Use o botão da lanterna para ambientes escuros'}
+                  </p>
+                )}
               </div>
             )}
 
