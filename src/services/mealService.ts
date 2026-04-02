@@ -5,6 +5,19 @@ import { StatsService } from './statsService';
 import { GamificationService } from './gamificationService';
 import { getLocalDateString } from '../utils/dateUtils';
 
+// Map frontend meal types to database-compatible types
+// Frontend uses: 'manual' | 'ai-chat' | 'ai-photo' | 'ai-voice' | 'ai-barcode'
+// Database accepts: 'meal', 'streak', 'hydration', 'plan', 'visual'
+const mapMealTypeToDb = (type: string): string => {
+    // All AI and manual meal entries map to 'meal' in the database
+    // The specific type is used only for UI icons/display
+    if (type === 'ai-photo') {
+        return 'visual'; // Photo-based meal
+    }
+    // All other types (manual, ai-chat, ai-voice, ai-barcode) map to 'meal'
+    return 'meal';
+};
+
 export const MealService = {
     // Upload image to Supabase Storage
     async uploadMealImage(imageUri: string, userId: string): Promise<string | null> {
@@ -58,7 +71,7 @@ export const MealService = {
                 protein: Math.round(meal.macros.protein),
                 carbs: Math.round(meal.macros.carbs),
                 fats: Math.round(meal.macros.fats),
-                type: meal.type,
+                type: mapMealTypeToDb(meal.type), // Map frontend type to DB-compatible type
                 items: meal.items,
                 image_url: imageUrl,
             })
