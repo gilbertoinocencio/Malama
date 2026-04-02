@@ -561,8 +561,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         barcodeScannerRef.current = scanner;
 
         await scanner.start(
-          // Ask for the rear camera with a resolution hint (doesn't affect qrbox calc)
-          { facingMode: { ideal: 'environment' } },
+          { facingMode: 'environment' },
           {
             fps: 15,
             // Use a function so qrbox is relative to the actual rendered video size.
@@ -586,8 +585,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         );
         setScannerMode('live');
         setScannerReady(true);
-      } catch {
-        // Live camera failed (common on iOS Safari) — switch to file/photo fallback
+      } catch (err) {
+        console.error('Barcode live camera failed:', err);
         setScannerMode('file');
         setScannerReady(true);
       }
@@ -667,7 +666,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       });
       const result = await scanner.scanFileV2(file, false);
       setShowBarcodeScanner(false);
-      handleBarcodeResult(result.decodedText);
+      await handleBarcodeResult(result.decodedText);
     } catch {
       setShowBarcodeScanner(false);
       setMessages(prev => [...prev, {
