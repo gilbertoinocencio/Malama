@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
-import { lookupBarcode, barcodeResultToAIResponse } from '../services/openFoodFactsService';
+import { lookupBarcode, barcodeResultToAIResponse, enrichBarcodeWithAI } from '../services/openFoodFactsService';
 import { NuraAiScan } from './NuraAiScan';
 import { USER_AVATAR } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
@@ -765,7 +765,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       const result = await lookupBarcode(barcode);
 
       if (result) {
-        const aiResponse = barcodeResultToAIResponse(result);
+        // Enrich with AI-estimated micronutrients if OFF data is incomplete
+        const enrichedResult = await enrichBarcodeWithAI(result, language);
+        const aiResponse = barcodeResultToAIResponse(enrichedResult);
         const foundText = language === 'en'
           ? 'Product found! Here are the nutritional details:'
           : 'Produto encontrado! Aqui estão os dados nutricionais:';

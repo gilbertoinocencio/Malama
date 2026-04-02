@@ -67,26 +67,26 @@ function parseNutriments(n: any): OFFPer100g | null {
   };
 
   return {
-    calories:      Math.round(cal),
-    protein:       Math.round((n['proteins_100g'] || 0) * 10) / 10,
-    carbs:         Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
-    fats:          Math.round((n['fat_100g'] || 0) * 10) / 10,
-    fiber:         g('fiber_100g'),
-    sugar:         g('sugars_100g'),
+    calories: Math.round(cal),
+    protein: Math.round((n['proteins_100g'] || 0) * 10) / 10,
+    carbs: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
+    fats: Math.round((n['fat_100g'] || 0) * 10) / 10,
+    fiber: g('fiber_100g'),
+    sugar: g('sugars_100g'),
     saturated_fat: g('saturated-fat_100g'),
-    sodium:        n['sodium_100g'] != null ? Math.round(n['sodium_100g'] * 1000) : undefined,
-    potassium:     mg('potassium_100g'),
-    calcium:       mg('calcium_100g'),
-    iron:          mg('iron_100g'),
-    magnesium:     mg('magnesium_100g'),
-    zinc:          mg('zinc_100g'),
-    vitamin_a:     mcg('vitamin-a_100g'),
-    vitamin_c:     mg('vitamin-c_100g'),
-    vitamin_d:     mcg('vitamin-d_100g'),
-    vitamin_e:     mg('vitamin-e_100g'),
-    vitamin_b12:   mcg('vitamin-b12_100g'),
-    vitamin_b6:    mg('vitamin-b6_100g'),
-    folate:        mcg('folate_100g'),
+    sodium: n['sodium_100g'] != null ? Math.round(n['sodium_100g'] * 1000) : undefined,
+    potassium: mg('potassium_100g'),
+    calcium: mg('calcium_100g'),
+    iron: mg('iron_100g'),
+    magnesium: mg('magnesium_100g'),
+    zinc: mg('zinc_100g'),
+    vitamin_a: mcg('vitamin-a_100g'),
+    vitamin_c: mg('vitamin-c_100g'),
+    vitamin_d: mcg('vitamin-d_100g'),
+    vitamin_e: mg('vitamin-e_100g'),
+    vitamin_b12: mcg('vitamin-b12_100g'),
+    vitamin_b6: mg('vitamin-b6_100g'),
+    folate: mcg('folate_100g'),
   };
 }
 
@@ -256,12 +256,100 @@ export function barcodeResultToAIResponse(result: OFFBarcodeResult): AIResponse 
 export function formatOFFBlock(result: OFFResult): string {
   const n = result.per100g;
   const micros = Object.entries(n)
-    .filter(([k, v]) => !['calories','protein','carbs','fats'].includes(k) && v != null)
+    .filter(([k, v]) => !['calories', 'protein', 'carbs', 'fats'].includes(k) && v != null)
     .map(([k, v]) => `${k}: ${v}`)
     .join(', ');
 
   return `## DADOS PRIMÁRIOS — OPENFOODFACTS (USE COMO REFERÊNCIA PRINCIPAL)
 Produto encontrado: "${result.name}"
 Valores por 100g: calorias ${n.calories}kcal | proteína ${n.protein}g | carboidratos ${n.carbs}g | gorduras ${n.fats}g${micros ? `\nMicronutrientes por 100g: ${micros}` : ''}
-Escale proporcionalmente ao peso estimado ou informado pelo usuário.`;
+Escale proporcionalmente ao peso informado ou 100g se não houver informação de porção.`;
+}
+
+/**
+ * Enriches barcode data by searching TACO/USDA via Gemini using the product name.
+ * Uses OFF macros as anchor and fills in complete micronutrients from nutritional databases.
+ */
+export async function enrichBarcodeWithAI(result: OFFBarcodeResult, language: string = 'pt'): Promise<OFFBarcodeResult> {
+  const n = result.per100g;
+
+  try {
+    // Dynamic import to avoid circular dependency
+    const { GoogleGenerativeAI, SchemaType } = await import('@google/generative-ai');
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+
+    if (!apiKey) return result;
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const prompt = `Você é um nutricionista especialista em análise nutricional com acesso às bases TACO (Brasil) e USDA (EUA).
+
+PRODUTO DO CÓDIGO DE BARRAS:
+Nome: ${result.name} ${result.brand ? `(${result.brand})` : ''}
+Dados confirmados por 100g (OpenFoodFacts - use como referência OBRIGATÓRIA):
+- Calorias: ${n.calories}kcal
+- Proteínas: ${n.protein}g
+- Carboidratos: ${n.carbs}g
+- Gorduras: ${n.fats}g
+
+TAREFA:
+Busque nas tabelas TACO ou USDA alimentos SIMILARES a este produto e retorne os micronutrientes por 100g.
+Use os valores de calorias, proteínas, carbs e gorduras DO OpenFoodFacts (já conferidos).
+Complete APENAS os micronutrientes baseando-se em alimentos similares da TACO/USDA.
+
+${language === 'pt' ? `
+Exemplos de busca:
+- "Monster Energy" → busque por "bebida energética" na TACO/USDA
+- "Whey Protein" → busque por "proteína do soro do leite" na TACO
+- "Arroz integral" → busque por "arroz, integral, cozido" na TACO
+
+Retorne valores coerentes com o tipo de produto (bebida, lácteo, grão, etc.).` : ''}
+
+Retorne APENAS o JSON abaixo, sem texto adicional:
+{
+  "sodium": número ou null,
+  "potassium": número ou null,
+  "calcium": número ou null,
+  "iron": número ou null,
+  "magnesium": número ou null,
+  "zinc": número ou null,
+  "vitamin_c": número ou null,
+  "vitamin_b12": número ou null,
+  "vitamin_b6": número ou null,
+  "fiber": número ou null,
+  "sugar": número ou null,
+  "saturated_fat": número ou null,
+  "cholesterol": número ou null
+}`;
+
+    const response = await model.generateContent(prompt);
+    const text = response.response.text();
+    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const estimated = JSON.parse(cleanText);
+
+    // Merge estimated micros into per100g, keeping OFF macros intact
+    const enriched: OFFPer100g = {
+      ...n,
+      sodium: estimated.sodium ?? n.sodium,
+      potassium: estimated.potassium ?? n.potassium,
+      calcium: estimated.calcium ?? n.calcium,
+      iron: estimated.iron ?? n.iron,
+      magnesium: estimated.magnesium ?? n.magnesium,
+      zinc: estimated.zinc ?? n.zinc,
+      vitamin_c: estimated.vitamin_c ?? n.vitamin_c,
+      vitamin_b12: estimated.vitamin_b12 ?? n.vitamin_b12,
+      vitamin_b6: estimated.vitamin_b6 ?? n.vitamin_b6,
+      fiber: estimated.fiber ?? n.fiber,
+      sugar: estimated.sugar ?? n.sugar,
+      saturated_fat: estimated.saturated_fat ?? n.saturated_fat,
+      cholesterol: estimated.cholesterol ?? n.cholesterol,
+    };
+
+    console.log('[enrichBarcodeWithAI] Enriched with TACO/USDA data:', result.name);
+    return { ...result, per100g: enriched };
+  } catch (error) {
+    console.error('[enrichBarcodeWithAI] Failed to enrich:', error);
+    return result; // Return original data if enrichment fails
+  }
 }
