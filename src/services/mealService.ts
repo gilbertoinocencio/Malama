@@ -9,12 +9,15 @@ import { getLocalDateString } from '../utils/dateUtils';
 // Frontend uses: 'manual' | 'ai-chat' | 'ai-photo' | 'ai-voice' | 'ai-barcode'
 // Database accepts: 'meal', 'streak', 'hydration', 'plan', 'visual'
 const mapMealTypeToDb = (type: string): string => {
+    console.log('[MealService.mapMealTypeToDb] Mapping type:', type);
     // All AI and manual meal entries map to 'meal' in the database
     // The specific type is used only for UI icons/display
     if (type === 'ai-photo') {
+        console.log('[MealService.mapMealTypeToDb] Returning: visual');
         return 'visual'; // Photo-based meal
     }
     // All other types (manual, ai-chat, ai-voice, ai-barcode) map to 'meal'
+    console.log('[MealService.mapMealTypeToDb] Returning: meal');
     return 'meal';
 };
 
@@ -52,6 +55,12 @@ export const MealService = {
 
     // Save a meal to Supabase, returns the new meal's id
     async logMeal(meal: Meal, userId: string): Promise<string> {
+        console.log('[MealService.logMeal] Logging meal:', {
+            type: meal.type,
+            name: meal.name,
+            calories: meal.calories
+        });
+
         let imageUrl = meal.imageUri;
 
         // If it's a base64 data URI (new photo), upload it
@@ -62,6 +71,9 @@ export const MealService = {
             }
         }
 
+        const dbType = mapMealTypeToDb(meal.type);
+        console.log('[MealService.logMeal] Inserting with type:', dbType);
+
         const { data, error } = await supabase
             .from('meals')
             .insert({
@@ -71,14 +83,19 @@ export const MealService = {
                 protein: Math.round(meal.macros.protein),
                 carbs: Math.round(meal.macros.carbs),
                 fats: Math.round(meal.macros.fats),
-                type: mapMealTypeToDb(meal.type), // Map frontend type to DB-compatible type
+                type: dbType,
                 items: meal.items,
                 image_url: imageUrl,
             })
             .select('id')
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('[MealService.logMeal] Error:', error);
+            throw error;
+        }
+
+        console.log('[MealService.logMeal] Success! Meal ID:', data.id);
 
         // Also sync daily stats for gamification
         await this.syncDailyStats(userId);
