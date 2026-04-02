@@ -572,6 +572,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [scannerMode, setScannerMode] = useState<'live' | 'file' | null>(null);
   const [scannerError, setScannerError] = useState<string | null>(null);
   const barcodeFileInputRef = useRef<HTMLInputElement>(null);
+  const scannerStoppingRef = useRef(false); // Prevent multiple stop calls
 
   // Helper function to check camera permission
   const checkCameraPermission = async (): Promise<boolean> => {
@@ -658,9 +659,23 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             // shrinks the video and makes qrbox calculations unreliable
           },
           async (decodedText: string) => {
-            if (stopped) return;
+            if (stopped || scannerStoppingRef.current) return;
             stopped = true;
-            try { await scanner?.stop(); } catch { /* already stopped */ }
+            scannerStoppingRef.current = true;
+            try {
+              // Only stop if scanner exists
+              if (scanner) {
+                await scanner.stop();
+              }
+            } catch (e: any) {
+              // Ignore 'not running' errors - expected during rapid unmount
+              if (!e.message?.includes('not running') &&
+                !e.message?.includes('paused')) {
+                console.warn('Scanner stop error (non-critical):', e.message);
+              }
+            } finally {
+              scannerStoppingRef.current = false;
+            }
             barcodeScannerRef.current = null;
             setShowBarcodeScanner(false);
             handleBarcodeResult(decodedText);
@@ -714,11 +729,25 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     return () => {
       clearTimeout(timer);
       stopped = true;
-      if (scanner) {
-        scanner.stop().catch((e: any) => {
-          // Ignore errors during cleanup
-          console.debug('Scanner cleanup error (expected):', e.message);
-        });
+      if (scanner && !scannerStoppingRef.current) {
+        scannerStoppingRef.current = true;
+        try {
+          // Check if scanner is actually running before stopping
+          if (scanner.isRunning !== false) {
+            scanner.stop().catch((e: any) => {
+              // Ignore expected errors during cleanup
+              if (!e.message?.includes('not running') &&
+                !e.message?.includes('paused')) {
+                console.debug('Scanner cleanup error:', e.message);
+              }
+            });
+          }
+        } catch (e: any) {
+          // Ignore cleanup errors
+          console.debug('Scanner cleanup error (ignored):', e.message);
+        } finally {
+          scannerStoppingRef.current = false;
+        }
       }
       barcodeScannerRef.current = null;
     };
