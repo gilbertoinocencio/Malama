@@ -37,8 +37,8 @@ export const MealService = {
         }
     },
 
-    // Save a meal to Supabase
-    async logMeal(meal: Meal, userId: string): Promise<void> {
+    // Save a meal to Supabase, returns the new meal's id
+    async logMeal(meal: Meal, userId: string): Promise<string> {
         let imageUrl = meal.imageUri;
 
         // If it's a base64 data URI (new photo), upload it
@@ -49,7 +49,7 @@ export const MealService = {
             }
         }
 
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('meals')
             .insert({
                 user_id: userId,
@@ -61,12 +61,16 @@ export const MealService = {
                 type: meal.type,
                 items: meal.items,
                 image_url: imageUrl,
-            });
+            })
+            .select('id')
+            .single();
 
         if (error) throw error;
 
         // Also sync daily stats for gamification
         await this.syncDailyStats(userId);
+
+        return data.id as string;
     },
 
     // Get meals for a specific date

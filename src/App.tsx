@@ -309,6 +309,7 @@ const App: React.FC = () => {
           <FoodGuide
             onBack={() => setView(AppView.HOME)}
             onNavigate={setView}
+            onMealLogged={handleLogMeal}
           />
         )}
 

@@ -9,6 +9,7 @@ import { MealSuggestionsCarousel } from './MealSuggestionsCarousel';
 interface FoodGuideProps {
     onBack: () => void;
     onNavigate: (view: AppView) => void;
+    onMealLogged?: (meal: import('../types').Meal) => void;
 }
 
 type BudgetTier = 'economic' | 'balanced' | 'premium';
@@ -54,7 +55,7 @@ const mapDbToUi = (f: ServiceFoodItem): UiFoodItem => ({
     swapping: false,
 });
 
-export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate }) => {
+export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMealLogged }) => {
     const { t } = useLanguage();
     const { user } = useAuth();
     const [budgetTier, setBudgetTier] = useState<BudgetTier>('balanced');
@@ -179,7 +180,10 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate }) => {
 
                 {/* Meal Suggestions Carousel */}
                 <div className="mb-6">
-                    <MealSuggestionsCarousel />
+                    <MealSuggestionsCarousel onMealLogged={(meal) => {
+                        setMealCount(prev => prev + 1);
+                        onMealLogged?.(meal);
+                    }} />
                 </div>
 
                 {/* Budget Tier Selector */}

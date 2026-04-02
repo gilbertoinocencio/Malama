@@ -2,14 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { MealSuggestion } from '../services/coachService';
 import { MealSuggestionService } from '../services/mealSuggestionService';
+import { MealService } from '../services/mealService';
 import { useAuth } from '../contexts/AuthContext';
+import { Meal } from '../types';
 
-export const MealSuggestionsCarousel: React.FC = () => {
+interface MealSuggestionsCarouselProps {
+  onMealLogged?: (meal: Meal) => void;
+}
+
+export const MealSuggestionsCarousel: React.FC<MealSuggestionsCarouselProps> = ({ onMealLogged }) => {
   const { user } = useAuth();
   const [suggestions, setSuggestions] = useState<MealSuggestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [direction, setDirection] = useState(0);
+  const [pendingLog, setPendingLog] = useState<MealSuggestion | null>(null);
+  const [logging, setLogging] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -22,8 +30,8 @@ export const MealSuggestionsCarousel: React.FC = () => {
     setLoading(true);
     try {
       const dailySuggestions = await MealSuggestionService.getTodaySuggestions(user.id);
-      // Filter only suggestions that haven't been logged or rejected
-      const pending = dailySuggestions.filter((s) => s.accepted === null || s.accepted === true);
+      // Filter only suggestions that haven't been rejected or already logged
+      const pending = dailySuggestions.filter((s) => s.accepted !== false && !s.logged);
       setSuggestions(pending);
     } catch (error) {
       console.error('Error loading suggestions:', error);
@@ -36,10 +44,8 @@ export const MealSuggestionsCarousel: React.FC = () => {
     const swipeThreshold = 100;
     if (Math.abs(offset) > swipeThreshold || Math.abs(velocity) > 500) {
       if (offset > 0) {
-        // Swipe right - previous
         handlePrevious();
       } else {
-        // Swipe left - next
         handleNext();
       }
     }
@@ -50,6 +56,7 @@ export const MealSuggestionsCarousel: React.FC = () => {
       setDirection(1);
       setCurrentIndex((prev) => prev + 1);
     }
+    setPendingLog(null);
   };
 
   const handlePrevious = () => {
@@ -57,6 +64,7 @@ export const MealSuggestionsCarousel: React.FC = () => {
       setDirection(-1);
       setCurrentIndex((prev) => prev - 1);
     }
+    setPendingLog(null);
   };
 
   const handleAccept = async () => {
@@ -64,7 +72,7 @@ export const MealSuggestionsCarousel: React.FC = () => {
     if (!current.id) return;
 
     await MealSuggestionService.acceptSuggestion(current.id);
-    handleNext();
+    setPendingLog(current);
   };
 
   const handleReject = async () => {
@@ -72,14 +80,64 @@ export const MealSuggestionsCarousel: React.FC = () => {
     if (!current.id) return;
 
     await MealSuggestionService.rejectSuggestion(current.id);
+    setPendingLog(null);
 
-    // Remove from list
     const newSuggestions = suggestions.filter((_, i) => i !== currentIndex);
     setSuggestions(newSuggestions);
 
     if (currentIndex >= newSuggestions.length && newSuggestions.length > 0) {
       setCurrentIndex(newSuggestions.length - 1);
     }
+  };
+
+  const handleLogNow = async () => {
+    if (!pendingLog || !user) return;
+    setLogging(true);
+
+    try {
+      const meal: Meal = {
+        id: '',
+        name: pendingLog.meal_name,
+        timestamp: new Date(),
+        calories: pendingLog.calories || 0,
+        macros: {
+          protein: pendingLog.protein || 0,
+          carbs: pendingLog.carbs || 0,
+          fats: pendingLog.fats || 0,
+        },
+        type: 'manual',
+        items: pendingLog.ingredients?.map((ing: any) => ({
+          name: ing.name,
+          quantity: ing.quantity,
+          calories: 0,
+        })),
+      };
+
+      const mealId = await MealService.logMeal(meal, user.id);
+
+      if (pendingLog.id) {
+        await MealSuggestionService.markAsLogged(pendingLog.id, mealId);
+      }
+
+      // Remove from carousel (already logged)
+      const newSuggestions = suggestions.filter((_, i) => i !== currentIndex);
+      setSuggestions(newSuggestions);
+      if (currentIndex >= newSuggestions.length && newSuggestions.length > 0) {
+        setCurrentIndex(newSuggestions.length - 1);
+      }
+      setPendingLog(null);
+
+      onMealLogged?.({ ...meal, id: mealId });
+    } catch (error) {
+      console.error('Error logging suggestion:', error);
+    } finally {
+      setLogging(false);
+    }
+  };
+
+  const handleLogLater = () => {
+    setPendingLog(null);
+    handleNext();
   };
 
   if (loading) {
@@ -158,6 +216,7 @@ export const MealSuggestionsCarousel: React.FC = () => {
               onClick={() => {
                 setDirection(index > currentIndex ? 1 : -1);
                 setCurrentIndex(index);
+                setPendingLog(null);
               }}
               className={`
                 h-2 rounded-full transition-all
@@ -193,32 +252,74 @@ export const MealSuggestionsCarousel: React.FC = () => {
             }}
             className="absolute w-full"
           >
-            <MealCard suggestion={current} />
+            <MealCard suggestion={current} accepted={pendingLog?.id === current.id} />
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 mt-4">
-        <button
-          onClick={handleReject}
-          className="flex-1 py-3.5 rounded-2xl border-2 border-red-200 dark:border-red-700 bg-white dark:bg-surface-dark
-            text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-900/20
-            active:scale-95 transition-all flex items-center justify-center gap-2"
-        >
-          <span className="material-symbols-outlined text-[20px]">close</span>
-          <span>Rejeitar</span>
-        </button>
-        <button
-          onClick={handleAccept}
-          className="flex-1 py-3.5 rounded-2xl bg-green-500 dark:bg-green-600 text-white font-bold
-            shadow-lg hover:shadow-xl hover:brightness-110 active:scale-95 transition-all
-            flex items-center justify-center gap-2"
-        >
-          <span className="material-symbols-outlined text-[20px]">check_circle</span>
-          <span>Aceitar</span>
-        </button>
-      </div>
+      <AnimatePresence mode="wait">
+        {pendingLog?.id === current.id ? (
+          <motion.div
+            key="log-actions"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="flex gap-3 mt-4"
+          >
+            <button
+              onClick={handleLogLater}
+              className="flex-1 py-3.5 rounded-2xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark
+                text-gray-500 dark:text-gray-400 font-bold hover:bg-gray-50 dark:hover:bg-gray-800
+                active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[20px]">schedule</span>
+              <span>Registrar Depois</span>
+            </button>
+            <button
+              onClick={handleLogNow}
+              disabled={logging}
+              className="flex-1 py-3.5 rounded-2xl bg-nura-petrol dark:bg-primary text-white font-bold
+                shadow-lg hover:shadow-xl hover:brightness-110 active:scale-95 transition-all
+                flex items-center justify-center gap-2 disabled:opacity-70"
+            >
+              {logging ? (
+                <span className="size-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <span className="material-symbols-outlined text-[20px]">add_circle</span>
+              )}
+              <span>{logging ? 'Registrando...' : 'Registrar Agora'}</span>
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="default-actions"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="flex gap-3 mt-4"
+          >
+            <button
+              onClick={handleReject}
+              className="flex-1 py-3.5 rounded-2xl border-2 border-red-200 dark:border-red-700 bg-white dark:bg-surface-dark
+                text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-900/20
+                active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+              <span>Rejeitar</span>
+            </button>
+            <button
+              onClick={handleAccept}
+              className="flex-1 py-3.5 rounded-2xl bg-green-500 dark:bg-green-600 text-white font-bold
+                shadow-lg hover:shadow-xl hover:brightness-110 active:scale-95 transition-all
+                flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[20px]">check_circle</span>
+              <span>Aceitar</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Swipe Hint */}
       <p className="text-center text-xs text-nura-muted dark:text-gray-500 mt-3">
@@ -231,9 +332,10 @@ export const MealSuggestionsCarousel: React.FC = () => {
 // Meal Card Component
 interface MealCardProps {
   suggestion: MealSuggestion;
+  accepted?: boolean;
 }
 
-const MealCard: React.FC<MealCardProps> = ({ suggestion }) => {
+const MealCard: React.FC<MealCardProps> = ({ suggestion, accepted }) => {
   const getMealIcon = (mealTime: string): string => {
     const icons: Record<string, string> = {
       breakfast: 'bakery_dining',
@@ -263,7 +365,11 @@ const MealCard: React.FC<MealCardProps> = ({ suggestion }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-lg border border-nura-border dark:border-gray-700 space-y-4">
+    <div className={`bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-lg border transition-colors space-y-4
+      ${accepted
+        ? 'border-green-400 dark:border-green-600 ring-2 ring-green-300 dark:ring-green-700'
+        : 'border-nura-border dark:border-gray-700'
+      }`}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -274,6 +380,12 @@ const MealCard: React.FC<MealCardProps> = ({ suggestion }) => {
             <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wide">
               {getMealLabel(suggestion.meal_time)}
             </span>
+            {accepted && (
+              <span className="ml-auto flex items-center gap-1 text-xs font-semibold text-green-600 dark:text-green-400">
+                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                Aceita
+              </span>
+            )}
           </div>
           <h4 className="text-xl font-bold text-nura-main dark:text-white leading-tight">
             {suggestion.meal_name}
