@@ -37,10 +37,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [totalMeals, setTotalMeals] = useState(0);
   const [heatmapData, setHeatmapData] = useState<HeatmapDay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
+  // Load stats when user OR profile changes
   useEffect(() => {
     if (user) loadProfileStats();
-  }, [user]);
+  }, [user, profile]);
+
+  // Load notification status
+  useEffect(() => {
+    const loadNotifStatus = async () => {
+      const enabled = await NotificationService.isEnabled();
+      setNotificationsEnabled(enabled);
+    };
+    loadNotifStatus();
+  }, []);
 
   const loadProfileStats = async () => {
     if (!user) return;
@@ -48,7 +59,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     try {
       // 1) Gamification stats (streak, flow days, level)
       const stats = await GamificationService.updateStats(user.id);
-      if (stats) setGamification(stats);
+      if (stats) {
+        setGamification({
+          currentStreak: stats.currentStreak || 0,
+          totalFlowDays: stats.totalFlowDays || 0,
+          level: stats.level || 'seed',
+        });
+      } else {
+        // Initialize with empty stats if none exist
+        setGamification({
+          currentStreak: 0,
+          totalFlowDays: 0,
+          level: 'seed',
+        });
+      }
 
       // 2) Total meals ever logged
       const { count } = await supabase
@@ -68,19 +92,30 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         .order('date', { ascending: true });
 
       setHeatmapData(
-        (flowData || []).map((r: any) => ({ date: r.date, score: r.flow_score }))
+        (flowData || []).map((r: any) => ({ date: r.date, score: r.flow_score || 0 }))
       );
     } catch (e) {
       console.error('Error loading profile stats:', e);
+      // Set default values on error
+      setGamification({
+        currentStreak: 0,
+        totalFlowDays: 0,
+        level: 'seed',
+      });
+      setTotalMeals(0);
+      setHeatmapData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Calculate consistency: flow days / total tracked days
-  const consistencyPercent = gamification
-    ? Math.min(Math.round((gamification.totalFlowDays / Math.max(heatmapData.length, 1)) * 100), 100)
-    : 0;
+  // Calculate consistency: flow days / total tracked days (with NaN protection)
+  const consistencyPercent = React.useMemo(() => {
+    if (!gamification || !gamification.totalFlowDays) return 0;
+    const totalDays = Math.max(heatmapData.length, 1);
+    const percent = Math.round((gamification.totalFlowDays / totalDays) * 100);
+    return isNaN(percent) ? 0 : Math.min(percent, 100);
+  }, [gamification, heatmapData.length]);
 
   // Real heatmap from flow_stats (12 cols × 7 rows)
   const renderHeatmap = () => {
@@ -254,23 +289,25 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <div className="flex flex-col">
                 <span className="text-sm font-bold text-nura-main dark:text-white">{t.profile.notifications}</span>
                 <span className="text-xs text-nura-muted dark:text-gray-400">
-                  {NotificationService.isEnabled() ? t.profile.high : t.profile.low}
+                  {notificationsEnabled ? t.profile.high : t.profile.low}
                 </span>
               </div>
             </div>
             <button
               onClick={async () => {
-                if (NotificationService.isEnabled()) {
-                  NotificationService.disable();
-                  window.location.reload();
+                if (notificationsEnabled) {
+                  await NotificationService.disable();
+                  setNotificationsEnabled(false);
                 } else {
                   const granted = await NotificationService.requestPermission();
-                  if (granted) window.location.reload();
+                  if (granted) {
+                    setNotificationsEnabled(true);
+                  }
                 }
               }}
-              className={`w-12 h-7 rounded-full transition-colors relative ${NotificationService.isEnabled() ? 'bg-nura-petrol dark:bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
+              className={`w-12 h-7 rounded-full transition-colors relative ${notificationsEnabled ? 'bg-nura-petrol dark:bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
             >
-              <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${NotificationService.isEnabled() ? 'translate-x-5' : ''}`}></div>
+              <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${notificationsEnabled ? 'translate-x-5' : ''}`}></div>
             </button>
           </div>
         </section>
@@ -285,6 +322,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             {loading ? (
               <div className="flex justify-center py-6">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-nura-petrol dark:border-primary"></div>
+              </div>
+            ) : heatmapData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <span className="material-symbols-outlined text-nura-muted dark:text-gray-500 mb-2" style={{ fontSize: '48px' }}>calendar_month</span>
+                <p className="text-sm font-medium text-nura-main dark:text-white mb-1">{t.profile.noDataYet || 'Nenhum dado ainda'}</p>
+                <p className="text-xs text-nura-muted dark:text-gray-400 max-w-[200px]">
+                  {language === 'pt'
+                    ? 'Registre suas refeições para ver seu progresso aqui.'
+                    : 'Log your meals to see your progress here.'}
+                </p>
               </div>
             ) : (
               <>
