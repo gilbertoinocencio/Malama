@@ -240,15 +240,26 @@ const historyToMessages = (history: any[]): Message[] => {
       const mealMatch = msg.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/);
       if (mealMatch) {
         try {
-          const cleanText = msg.content.replace(/<meal_json>[\s\S]*?<\/meal_json>/, '').trim();
+          const cleanText = msg.content
+            .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
+            .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+            .trim();
           const parsedMeal: AIResponse = JSON.parse(mealMatch[1]);
           if (cleanText) result.push({ id: msg.id + '-text', type: 'ai-text', content: cleanText });
           result.push({ id: msg.id + '-card', type: 'ai-card', content: parsedMeal });
         } catch {
-          result.push({ id: msg.id, type: 'ai-text', content: msg.content });
+          const cleanContent = msg.content
+            .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
+            .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+            .trim();
+          result.push({ id: msg.id, type: 'ai-text', content: cleanContent || msg.content });
         }
       } else {
-        result.push({ id: msg.id, type: 'ai-text', content: msg.content });
+        // Check for water JSON and remove it from display
+        const cleanContent = msg.content
+          .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+          .trim();
+        result.push({ id: msg.id, type: 'ai-text', content: cleanContent || msg.content });
       }
     }
   }
@@ -481,9 +492,16 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         const mealJsonMatch = hasPastIntakeVerb
           ? agentResponse.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/)
           : null;
+
+        // Also check for water JSON (hydration logging)
+        const waterJsonMatch = agentResponse.content.match(/<water_json>([\s\S]*?)<\/water_json>/);
+
         if (mealJsonMatch) {
           try {
-            const cleanText = agentResponse.content.replace(/<meal_json>[\s\S]*?<\/meal_json>/, '').trim();
+            const cleanText = agentResponse.content
+              .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
+              .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+              .trim();
             const parsedMeal: AIResponse = JSON.parse(mealJsonMatch[1]);
             setMessages(prev => [...prev,
             { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanText },
@@ -493,11 +511,35 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             setDraftSource('chat');
           } catch {
             // If JSON parse fails, fall back to plain text
-            setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: agentResponse.content }]);
+            const cleanContent = agentResponse.content
+              .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
+              .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+              .trim();
+            setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanContent || agentResponse.content }]);
+          }
+        } else if (waterJsonMatch) {
+          // Water logging - just show the text without the JSON block
+          try {
+            const cleanText = agentResponse.content
+              .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+              .trim();
+            setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanText }]);
+
+            // Optionally log the water intake
+            const waterData = JSON.parse(waterJsonMatch[1]);
+            console.log('[MealLogger] Water logged:', waterData.ml, 'ml');
+          } catch {
+            const cleanContent = agentResponse.content
+              .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+              .trim();
+            setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanContent || agentResponse.content }]);
           }
         } else {
-          // Strip any <meal_json> block from the text if the guard blocked it
-          const cleanContent = agentResponse.content.replace(/<meal_json>[\s\S]*?<\/meal_json>/, '').trim();
+          // Strip any JSON blocks from the text
+          const cleanContent = agentResponse.content
+            .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
+            .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+            .trim();
           setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanContent || agentResponse.content }]);
         }
         // draft meal only set if meal_json was found above
