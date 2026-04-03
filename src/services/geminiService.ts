@@ -4,23 +4,23 @@ import { searchOpenFoodFacts, formatOFFBlock } from './openFoodFactsService';
 
 // Shared micronutrient schema properties (optional — not in required[])
 const MICRO_SCHEMA_PROPERTIES = {
-  fiber:         { type: SchemaType.NUMBER },
-  sugar:         { type: SchemaType.NUMBER },
+  fiber: { type: SchemaType.NUMBER },
+  sugar: { type: SchemaType.NUMBER },
   saturated_fat: { type: SchemaType.NUMBER },
-  cholesterol:   { type: SchemaType.NUMBER },
-  sodium:        { type: SchemaType.NUMBER },
-  potassium:     { type: SchemaType.NUMBER },
-  calcium:       { type: SchemaType.NUMBER },
-  iron:          { type: SchemaType.NUMBER },
-  magnesium:     { type: SchemaType.NUMBER },
-  zinc:          { type: SchemaType.NUMBER },
-  vitamin_a:     { type: SchemaType.NUMBER },
-  vitamin_c:     { type: SchemaType.NUMBER },
-  vitamin_d:     { type: SchemaType.NUMBER },
-  vitamin_e:     { type: SchemaType.NUMBER },
-  vitamin_b12:   { type: SchemaType.NUMBER },
-  vitamin_b6:    { type: SchemaType.NUMBER },
-  folate:        { type: SchemaType.NUMBER },
+  cholesterol: { type: SchemaType.NUMBER },
+  sodium: { type: SchemaType.NUMBER },
+  potassium: { type: SchemaType.NUMBER },
+  calcium: { type: SchemaType.NUMBER },
+  iron: { type: SchemaType.NUMBER },
+  magnesium: { type: SchemaType.NUMBER },
+  zinc: { type: SchemaType.NUMBER },
+  vitamin_a: { type: SchemaType.NUMBER },
+  vitamin_c: { type: SchemaType.NUMBER },
+  vitamin_d: { type: SchemaType.NUMBER },
+  vitamin_e: { type: SchemaType.NUMBER },
+  vitamin_b12: { type: SchemaType.NUMBER },
+  vitamin_b6: { type: SchemaType.NUMBER },
+  folate: { type: SchemaType.NUMBER },
 } as const;
 
 const MICRO_PROMPT_INSTRUCTIONS = `
@@ -118,7 +118,9 @@ export const analyzeTextLog = async (text: string, language: string = 'pt'): Pro
     const offResult = await searchOpenFoodFacts(text);
     const offBlock = offResult ? formatOFFBlock(offResult) : '';
 
-    const prompt = `You are NURA, a clinical-grade nutrition analysis engine. Analyze this food log: "${text}".
+    const prompt = `You are NURA, a clinical-grade nutrition analysis engine AND a strict, evidence-based nutritionist who cares about the user's health.
+
+Analyze this food log: "${text}".
 
 ${offBlock}
 ## NUTRITIONAL DATABASE PRIORITY
@@ -134,12 +136,26 @@ ${offBlock ? '0. **OpenFoodFacts data above** — USE THIS AS PRIMARY REFERENCE 
 - Round all numeric values to the nearest integer.
 - The total calories and macros must equal the sum of all items.
 
+## NUTRITIONIST FEEDBACK GUIDELINES (CRITICAL)
+You are NOT just a passive logger. You are a CLINICAL NUTRITIONIST who must provide HONEST, EVIDENCE-BASED feedback:
+
+1. **High-calorie meals (>800 kcal for a single meal):** Warn the user about excessive calories and suggest it may impact their goals
+2. **Fried foods (batata frita, frituras, empanados):** ALWAYS warn about health risks - trans fats, inflammation, cardiovascular issues
+3. **Ultra-processed foods:** Point out concerns about additives, sodium, and lack of nutrients
+4. **Excessive sugar/sodium:** Warn about health implications
+5. **Balanced meals:** Praise when appropriate, but still suggest improvements
+
+The "message" field should reflect your professional assessment:
+- If the meal is unhealthy: Be direct but supportive. Example: "Essa refeição tem muitas calorias (1239 kcal) e gordura saturada. A batata frita é um alimento ultraprocessado que pode prejudicar seus objetivos. Que tal trocar por batata assada na próxima?"
+- If the meal is balanced: "Boa escolha! Refeição equilibrada com proteínas, carboidratos e gorduras saudáveis."
+- If the meal is moderate: "Refeição ok, mas atenção ao tamanho da porção para não ultrapassar suas metas."
+
 Return a JSON object with:
 - foodName (string, overall summary name in ${langName})
 - calories (number, total kcal)
 - macros (object with p, c, f as numbers for protein, carbs, fats in grams)
 - items (array of objects with: name (string in ${langName}), quantity (string, e.g. "2 unidades" — optional), weightGrams (number), calories (number), protein (number), carbs (number), fats (number), plus optional micronutrient fields per item)
-- message (string, a short motivational phrase in ${langName} about maintaining the flow)
+- message (string, your professional nutritionist assessment in ${langName} — be honest about unhealthy choices, warn about fried/processed foods, praise balanced meals)
 ${MICRO_PROMPT_INSTRUCTIONS}
 
 ALL text responses MUST be in ${langName}.`;
