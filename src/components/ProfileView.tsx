@@ -38,11 +38,78 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [heatmapData, setHeatmapData] = useState<HeatmapDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
 
   // Load stats when user OR profile changes
   useEffect(() => {
     if (user) loadProfileStats();
   }, [user, profile]);
+
+  // Avatar upload handler
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploadingAvatar(true);
+    try {
+      console.log('[ProfileView] Uploading avatar...', file.name);
+
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+
+        // Upload to Supabase Storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+        const filePath = `avatars/${fileName}`;
+
+        // Convert base64 to blob
+        const response = await fetch(base64);
+        const blob = await response.blob();
+
+        const { error: uploadError } = await supabase.storage
+          .from('meal-photos')
+          .upload(filePath, blob, { upsert: true });
+
+        if (uploadError) {
+          console.error('[ProfileView] Upload error:', uploadError);
+          alert(language === 'pt' ? 'Erro ao fazer upload da foto.' : 'Error uploading photo.');
+          setUploadingAvatar(false);
+          return;
+        }
+
+        // Get public URL
+        const { data } = supabase.storage
+          .from('meal-photos')
+          .getPublicUrl(filePath);
+
+        console.log('[ProfileView] Avatar uploaded, URL:', data.publicUrl);
+
+        // Update profile with new avatar URL
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: data.publicUrl })
+          .eq('id', user.id);
+
+        if (updateError) {
+          console.error('[ProfileView] Profile update error:', updateError);
+          alert(language === 'pt' ? 'Erro ao atualizar perfil.' : 'Error updating profile.');
+        } else {
+          console.log('[ProfileView] Profile updated with new avatar');
+          // Reload profile to show new avatar
+          window.location.reload();
+        }
+        setUploadingAvatar(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('[ProfileView] Avatar upload error:', error);
+      alert(language === 'pt' ? 'Erro ao processar imagem.' : 'Error processing image.');
+      setUploadingAvatar(false);
+    }
+  };
 
   // Load notification status
   useEffect(() => {
@@ -250,18 +317,36 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       <main className="flex-1 overflow-y-auto hide-scrollbar pb-32">
         {/* Profile Info */}
         <section className="flex flex-col items-center pt-6 pb-8 px-4">
-          <div className="relative mb-4">
+          <div className="relative mb-4 group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
             <div
-              className="bg-center bg-no-repeat bg-cover aspect-square rounded-full h-28 w-28 ring-4 ring-white dark:ring-[#1a2630] shadow-sm transition-all"
+              className={`bg-center bg-no-repeat bg-cover aspect-square rounded-full h-28 w-28 ring-4 ring-white dark:ring-[#1a2630] shadow-sm transition-all ${uploadingAvatar ? 'opacity-50' : 'hover:opacity-90'}`}
               style={{ backgroundImage: `url("${profile?.avatar_url || USER_AVATAR}")` }}
             >
+              {uploadingAvatar && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-nura-petrol dark:border-primary"></div>
+                </div>
+              )}
             </div>
+            {/* Camera overlay on hover */}
+            {!uploadingAvatar && (
+              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="material-symbols-outlined text-white text-3xl">photo_camera</span>
+              </div>
+            )}
             <div className="absolute bottom-1 right-1 bg-nura-petrol dark:bg-primary text-white rounded-full p-1 border-2 border-white dark:border-[#101a22]">
-              <span className="material-symbols-outlined block text-[16px] leading-none">check</span>
+              <span className="material-symbols-outlined block text-[16px] leading-none">edit</span>
             </div>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
           </div>
           <h1 className="text-nura-main dark:text-white text-2xl font-bold leading-tight tracking-tight text-center">
-            {profile?.display_name || t.dashboard.defaultUser}
+            {profile?.display_name || profile?.email || t.dashboard.defaultUser}
           </h1>
           <p className="text-nura-muted dark:text-gray-400 text-sm font-medium mt-1">
             {profile?.goal ? t.profile.goals[profile.goal as keyof typeof t.profile.goals] : t.profile.defineProfile}
