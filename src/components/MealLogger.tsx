@@ -661,37 +661,27 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             Html5QrcodeSupportedFormats.UPC_E,
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.ITF,
             Html5QrcodeSupportedFormats.CODABAR,
           ],
           verbose: false,
-          // Better scanning configuration
-          scanPeriodMs: 100, // Faster scan interval
         });
         barcodeScannerRef.current = scanner;
 
-        const config = {
-          fps: 10, // Reduced from 15 - more stable scanning
-          // Larger, more horizontal scan box for barcodes
-          qrbox: (viewfinderWidth: number, viewfinderHeight: number) => ({
-            width: Math.floor(viewfinderWidth * 0.90), // Wider: 90% of screen
-            height: Math.max(Math.floor(viewfinderHeight * 0.25), 120), // Taller: better for horizontal barcodes
-          }),
-          // Aspect ratio for better camera fit
-          aspectRatio: 1.5,
-          // Camera constraints for better focus
-          videoConstraints: {
-            facingMode: 'environment',
-            focusMode: 'continuous',
-            torch: true, // Enable flashlight if available
-          } as MediaTrackConstraints,
-        };
-
         await scanner.start(
           { facingMode: 'environment' },
-          config,
+          {
+            fps: 10, // Lower FPS for more stable scanning
+            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+              // Make the scan box wider and shorter - better for horizontal barcodes
+              const width = Math.min(viewfinderWidth * 0.95, 500);
+              const height = Math.max(Math.floor(viewfinderHeight * 0.20), 100);
+              return { width, height };
+            },
+            aspectRatio: 1.7777778, // 16:9 for better camera fit
+          },
           async (decodedText: string) => {
+            console.log('[BarcodeScanner] Barcode detected:', decodedText);
             if (stopped || scannerStoppingRef.current) return;
             stopped = true;
             scannerStoppingRef.current = true;
