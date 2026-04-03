@@ -179,8 +179,18 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   // SVG gauge calculations
   const circumference = 2 * Math.PI * 42;
 
-  // Calorie progress for Day view
-  const caloriePercent = Math.min(((stats.consumedCalories ?? 0) / (stats.targetCalories || 1)) * 100, 100);
+  // Calorie progress for Day view - ALLOW values over 100% for multiple rotations
+  const calorieRatio = (stats.consumedCalories ?? 0) / (stats.targetCalories || 1);
+  const caloriePercent = calorieRatio * 100; // No Math.min - allow >100%
+  const isOverTarget = calorieRatio > 1;
+  const isWayOverTarget = calorieRatio > 1.5;
+
+  // Dynamic color based on progress
+  const getCalorieColor = () => {
+    if (isWayOverTarget) return '#ef4444'; // Red when >150%
+    if (isOverTarget) return '#f59e0b'; // Orange when >100%
+    return 'var(--tw-colors-nura-petrol)'; // Default purple when <100%
+  };
 
   const getLevelLabel = (level: string) => {
     const levels: Record<string, string> = {
@@ -341,11 +351,30 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                     a 15.9155 15.9155 0 0 1 0 -31.831" />
                   <path
                     className="circle"
-                    strokeDasharray={`${caloriePercent}, 100`}
+                    stroke={getCalorieColor()}
+                    strokeDasharray={`${Math.min(caloriePercent, 100)}, 100`}
                     d="M18 2.0845
                     a 15.9155 15.9155 0 0 1 0 31.831
                     a 15.9155 15.9155 0 0 1 0 -31.831"
+                    style={{
+                      transition: 'stroke-dasharray 0.5s ease, stroke 0.3s ease',
+                    }}
                   />
+                  {/* Second rotation indicator when over 100% */}
+                  {isOverTarget && (
+                    <path
+                      className="circle"
+                      stroke={getCalorieColor()}
+                      strokeDasharray={`${Math.max(caloriePercent - 100, 0)}, 100`}
+                      d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                      opacity="0.3"
+                      style={{
+                        transition: 'stroke-dasharray 0.5s ease',
+                      }}
+                    />
+                  )}
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                   <span className="text-4xl font-bold tracking-tighter text-nura-main dark:text-white">
@@ -354,15 +383,33 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   <span className="text-sm font-medium text-nura-muted dark:text-slate-400 mt-1">
                     / {(stats.targetCalories ?? 0).toLocaleString()} {t.dashboard.kcal}
                   </span>
+                  {isOverTarget && (
+                    <span className={`text-xs font-bold mt-1 px-2 py-0.5 rounded-full ${isWayOverTarget
+                      ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                      : 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
+                      }`}>
+                      {Math.round(calorieRatio * 100)}% da meta
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Motivational Text */}
+            {/* Motivational Text - Contextual based on calorie status */}
             <div className="text-center space-y-2 mb-4 px-6">
-              <h2 className="text-2xl font-bold tracking-tight text-nura-main dark:text-white">{t.dashboard.keepTheFlow}</h2>
+              <h2 className="text-2xl font-bold tracking-tight text-nura-main dark:text-white">
+                {isWayOverTarget
+                  ? 'Atenção ao excesso!'
+                  : isOverTarget
+                    ? 'Meta ultrapassada'
+                    : t.dashboard.keepTheFlow}
+              </h2>
               <p className="text-sm text-nura-muted dark:text-slate-400 font-medium max-w-[200px] mx-auto leading-relaxed">
-                {t.dashboard.fuelingPotential}
+                {isWayOverTarget
+                  ? `Você consumiu ${Math.round(calorieRatio * 100)}% da sua meta. Que tal fazer uma refeição mais leve no próximo?`
+                  : isOverTarget
+                    ? `Você ultrapassou sua meta de ${(stats.targetCalories ?? 0).toLocaleString()} kcal. Fique atento às próximas refeições.`
+                    : t.dashboard.fuelingPotential}
               </p>
             </div>
 
@@ -372,7 +419,12 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.protein}</span>
-                  <span className="text-[10px] text-nura-petrol dark:text-primary font-bold">
+                  <span className={`text-[10px] font-bold ${((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1.2
+                      ? 'text-red-500'
+                      : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1
+                        ? 'text-orange-500'
+                        : 'text-nura-petrol dark:text-primary'
+                    }`}>
                     {Math.round(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100)}%
                   </span>
                 </div>
@@ -382,7 +434,15 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                     <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.protein}g</span>
                   </span>
                   <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
-                    <div className="h-full bg-nura-petrol dark:bg-primary rounded-full" style={{ width: `${Math.min(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100, 100)}%` }} />
+                    <div
+                      className={`h-full rounded-full ${((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1.2
+                          ? 'bg-red-500'
+                          : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1
+                            ? 'bg-orange-500'
+                            : 'bg-nura-petrol dark:bg-primary'
+                        }`}
+                      style={{ width: `${Math.min(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100, 100)}%` }}
+                    />
                   </div>
                 </div>
               </div>
@@ -391,7 +451,12 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.carbs}</span>
-                  <span className="text-[10px] text-orange-400 font-bold">
+                  <span className={`text-[10px] font-bold ${((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1.2
+                      ? 'text-red-500'
+                      : ((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1
+                        ? 'text-orange-500'
+                        : 'text-orange-400'
+                    }`}>
                     {Math.round(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100)}%
                   </span>
                 </div>
@@ -401,7 +466,15 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                     <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.carbs}g</span>
                   </span>
                   <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
-                    <div className="h-full bg-orange-400 rounded-full" style={{ width: `${Math.min(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100, 100)}%` }} />
+                    <div
+                      className={`h-full rounded-full ${((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1.2
+                          ? 'bg-red-500'
+                          : ((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1
+                            ? 'bg-orange-500'
+                            : 'bg-orange-400'
+                        }`}
+                      style={{ width: `${Math.min(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100, 100)}%` }}
+                    />
                   </div>
                 </div>
               </div>
@@ -410,7 +483,12 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.fats}</span>
-                  <span className="text-[10px] text-pink-400 font-bold">
+                  <span className={`text-[10px] font-bold ${((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1.2
+                      ? 'text-red-500'
+                      : ((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1
+                        ? 'text-orange-500'
+                        : 'text-pink-400'
+                    }`}>
                     {Math.round(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100)}%
                   </span>
                 </div>
@@ -420,7 +498,15 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                     <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.fats}g</span>
                   </span>
                   <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
-                    <div className="h-full bg-pink-400 rounded-full" style={{ width: `${Math.min(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100, 100)}%` }} />
+                    <div
+                      className={`h-full rounded-full ${((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1.2
+                          ? 'bg-red-500'
+                          : ((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1
+                            ? 'bg-orange-500'
+                            : 'bg-pink-400'
+                        }`}
+                      style={{ width: `${Math.min(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100, 100)}%` }}
+                    />
                   </div>
                 </div>
               </div>
@@ -442,7 +528,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-sky-400 font-bold">{waterPct}%</span>
-                        <button 
+                        <button
                           onClick={(e) => { e.stopPropagation(); onNavClick(AppView.HYDRATION); }}
                           className="flex items-center justify-center size-7 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-500 hover:bg-sky-100 dark:hover:bg-sky-500/20 transition-colors active:scale-95"
                           title="Compartilhar Hidratação"
@@ -480,23 +566,23 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
               type MicroKey = keyof typeof MICRO_META;
               const MICRO_META = {
-                fiber:         { label: 'Fibra',       rda: 25,   unit: 'g',   group: 'Outros',   warn: false },
-                sugar:         { label: 'Açúcar',      rda: 25,   unit: 'g',   group: 'Outros',   warn: true  },
-                saturated_fat: { label: 'G. Saturada', rda: 20,   unit: 'g',   group: 'Outros',   warn: true  },
-                cholesterol:   { label: 'Colesterol',  rda: 300,  unit: 'mg',  group: 'Outros',   warn: true  },
-                sodium:        { label: 'Sódio',       rda: 2300, unit: 'mg',  group: 'Minerais', warn: true  },
-                potassium:     { label: 'Potássio',    rda: 4700, unit: 'mg',  group: 'Minerais', warn: false },
-                calcium:       { label: 'Cálcio',      rda: 1000, unit: 'mg',  group: 'Minerais', warn: false },
-                iron:          { label: 'Ferro',       rda: 14,   unit: 'mg',  group: 'Minerais', warn: false },
-                magnesium:     { label: 'Magnésio',    rda: 370,  unit: 'mg',  group: 'Minerais', warn: false },
-                zinc:          { label: 'Zinco',       rda: 10,   unit: 'mg',  group: 'Minerais', warn: false },
-                vitamin_a:     { label: 'Vit. A',      rda: 800,  unit: 'mcg', group: 'Vitaminas', warn: false },
-                vitamin_c:     { label: 'Vit. C',      rda: 80,   unit: 'mg',  group: 'Vitaminas', warn: false },
-                vitamin_d:     { label: 'Vit. D',      rda: 15,   unit: 'mcg', group: 'Vitaminas', warn: false },
-                vitamin_e:     { label: 'Vit. E',      rda: 15,   unit: 'mg',  group: 'Vitaminas', warn: false },
-                vitamin_b12:   { label: 'Vit. B12',    rda: 2.4,  unit: 'mcg', group: 'Vitaminas', warn: false },
-                vitamin_b6:    { label: 'Vit. B6',     rda: 1.3,  unit: 'mg',  group: 'Vitaminas', warn: false },
-                folate:        { label: 'Folato',      rda: 400,  unit: 'mcg', group: 'Vitaminas', warn: false },
+                fiber: { label: 'Fibra', rda: 25, unit: 'g', group: 'Outros', warn: false },
+                sugar: { label: 'Açúcar', rda: 25, unit: 'g', group: 'Outros', warn: true },
+                saturated_fat: { label: 'G. Saturada', rda: 20, unit: 'g', group: 'Outros', warn: true },
+                cholesterol: { label: 'Colesterol', rda: 300, unit: 'mg', group: 'Outros', warn: true },
+                sodium: { label: 'Sódio', rda: 2300, unit: 'mg', group: 'Minerais', warn: true },
+                potassium: { label: 'Potássio', rda: 4700, unit: 'mg', group: 'Minerais', warn: false },
+                calcium: { label: 'Cálcio', rda: 1000, unit: 'mg', group: 'Minerais', warn: false },
+                iron: { label: 'Ferro', rda: 14, unit: 'mg', group: 'Minerais', warn: false },
+                magnesium: { label: 'Magnésio', rda: 370, unit: 'mg', group: 'Minerais', warn: false },
+                zinc: { label: 'Zinco', rda: 10, unit: 'mg', group: 'Minerais', warn: false },
+                vitamin_a: { label: 'Vit. A', rda: 800, unit: 'mcg', group: 'Vitaminas', warn: false },
+                vitamin_c: { label: 'Vit. C', rda: 80, unit: 'mg', group: 'Vitaminas', warn: false },
+                vitamin_d: { label: 'Vit. D', rda: 15, unit: 'mcg', group: 'Vitaminas', warn: false },
+                vitamin_e: { label: 'Vit. E', rda: 15, unit: 'mg', group: 'Vitaminas', warn: false },
+                vitamin_b12: { label: 'Vit. B12', rda: 2.4, unit: 'mcg', group: 'Vitaminas', warn: false },
+                vitamin_b6: { label: 'Vit. B6', rda: 1.3, unit: 'mg', group: 'Vitaminas', warn: false },
+                folate: { label: 'Folato', rda: 400, unit: 'mcg', group: 'Vitaminas', warn: false },
               } as const;
 
               const groups = ['Outros', 'Minerais', 'Vitaminas'] as const;
@@ -513,7 +599,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               return (
                 <div className="px-6">
                   <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300">
-                    <div 
+                    <div
                       className="flex items-center justify-between cursor-pointer select-none"
                       onClick={() => setShowMicros(!showMicros)}
                     >
@@ -525,49 +611,49 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                         expand_more
                       </span>
                     </div>
-                    
+
                     {/* Collapsible Content */}
                     <div className={`overflow-hidden transition-all duration-300 ${showMicros ? 'max-h-[1000px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}>
                       <div className="flex flex-col gap-4">
-                      {grouped.map(({ group, items }) => (
-                        <div key={group}>
-                          <p className="text-[10px] font-bold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-2">{group}</p>
-                          <div className="flex flex-col gap-2">
-                            {items.map(({ key, label, rda, unit, warn, consumed }) => {
-                              const pct = Math.min(Math.round((consumed / rda) * 100), 100);
-                              const over = consumed > rda;
-                              const barColor = warn
-                                ? over ? 'bg-red-400' : pct > 70 ? 'bg-orange-400' : 'bg-nura-petrol dark:bg-primary'
-                                : 'bg-nura-petrol dark:bg-primary';
-                              return (
-                                <div key={key}>
-                                  <div className="flex justify-between items-baseline mb-1">
-                                    <span className="text-xs font-medium text-nura-main dark:text-white">{label}</span>
-                                    <span className="text-[10px] text-nura-muted dark:text-slate-500">
-                                      {consumed}{unit} / {rda}{unit}
-                                    </span>
+                        {grouped.map(({ group, items }) => (
+                          <div key={group}>
+                            <p className="text-[10px] font-bold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-2">{group}</p>
+                            <div className="flex flex-col gap-2">
+                              {items.map(({ key, label, rda, unit, warn, consumed }) => {
+                                const pct = Math.min(Math.round((consumed / rda) * 100), 100);
+                                const over = consumed > rda;
+                                const barColor = warn
+                                  ? over ? 'bg-red-400' : pct > 70 ? 'bg-orange-400' : 'bg-nura-petrol dark:bg-primary'
+                                  : 'bg-nura-petrol dark:bg-primary';
+                                return (
+                                  <div key={key}>
+                                    <div className="flex justify-between items-baseline mb-1">
+                                      <span className="text-xs font-medium text-nura-main dark:text-white">{label}</span>
+                                      <span className="text-[10px] text-nura-muted dark:text-slate-500">
+                                        {consumed}{unit} / {rda}{unit}
+                                      </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                                      <div className={`h-full ${barColor} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+                                    </div>
                                   </div>
-                                  <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
-                                    <div className={`h-full ${barColor} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
-                                  </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
               );
             })()}
 
             {/* Daily Meals Timeline */}
-            <DailyMealsList 
-              meals={meals} 
-              onDeleteMeal={onDeleteMeal} 
-              onEditMeal={onEditMeal} 
+            <DailyMealsList
+              meals={meals}
+              onDeleteMeal={onDeleteMeal}
+              onEditMeal={onEditMeal}
             />
           </>
         ) : (
