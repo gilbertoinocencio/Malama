@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
-import { AIResponse, MicroNutrients } from '../types';
+import { AIResponse, MicroNutrients, Profile } from '../types';
 import { searchOpenFoodFacts, formatOFFBlock } from './openFoodFactsService';
 
 // Shared micronutrient schema properties (optional — not in required[])
@@ -57,7 +57,7 @@ const LANG_NAMES: Record<string, string> = {
   es: 'Spanish'
 };
 
-export const analyzeTextLog = async (text: string, language: string = 'pt'): Promise<AIResponse> => {
+export const analyzeTextLog = async (text: string, language: string = 'pt', profile?: Profile | null): Promise<AIResponse> => {
   console.log("Gemini Service: Checking API Key...");
   if (!apiKey) {
     console.error("Gemini Service: API Key is MISSING or empty.");
@@ -118,10 +118,25 @@ export const analyzeTextLog = async (text: string, language: string = 'pt'): Pro
     const offResult = await searchOpenFoodFacts(text);
     const offBlock = offResult ? formatOFFBlock(offResult) : '';
 
+    // Build user context from profile
+    const userContext = profile ? `
+## USER PROFILE CONTEXT (USE THIS TO PERSONALIZE FEEDBACK)
+- **Name:** ${profile.display_name || 'Not provided'}
+- **Goal:** ${profile.goal === 'aesthetic' ? 'Weight loss / Aesthetics' : profile.goal === 'performance' ? 'Muscle gain / Performance' : profile.goal === 'health' ? 'Health / Wellness' : 'Not defined'}
+- **Activity Level:** ${profile.activity_level === 'sedentary' ? 'Sedentary' : profile.activity_level === 'moderate' ? 'Moderate' : profile.activity_level === 'intense' ? 'Intense' : 'Not defined'}
+- **Weight:** ${profile.weight ? profile.weight + 'kg' : 'Not provided'}
+- **Height:** ${profile.height ? profile.height + 'cm' : 'Not provided'}
+- **Age:** ${profile.age || 'Not provided'}
+- **Gender:** ${profile.gender || 'Not provided'}
+- **Daily Calorie Target:** ${profile.target_calories ? profile.target_calories + ' kcal' : 'Not defined'}
+- **Daily Protein Target:** ${profile.target_protein ? profile.target_protein + 'g' : 'Not defined'}
+` : '';
+
     const prompt = `You are NURA, a clinical-grade nutrition analysis engine AND a strict, evidence-based nutritionist who cares about the user's health.
 
 Analyze this food log: "${text}".
 
+${userContext}
 ${offBlock}
 ## NUTRITIONAL DATABASE PRIORITY
 ${offBlock ? '0. **OpenFoodFacts data above** — USE THIS AS PRIMARY REFERENCE if provided above.' : ''}
@@ -137,25 +152,26 @@ ${offBlock ? '0. **OpenFoodFacts data above** — USE THIS AS PRIMARY REFERENCE 
 - The total calories and macros must equal the sum of all items.
 
 ## NUTRITIONIST FEEDBACK GUIDELINES (CRITICAL)
-You are NOT just a passive logger. You are a CLINICAL NUTRITIONIST who must provide HONEST, EVIDENCE-BASED feedback:
+You are NOT just a passive logger. You are a CLINICAL NUTRITIONIST who must provide HONEST, EVIDENCE-BASED feedback PERSONALIZED to the user's profile:
 
-1. **High-calorie meals (>800 kcal for a single meal):** Warn the user about excessive calories and suggest it may impact their goals
+1. **High-calorie meals (>800 kcal for a single meal):** Warn the user about excessive calories and how it impacts THEIR SPECIFIC GOAL
 2. **Fried foods (batata frita, frituras, empanados):** ALWAYS warn about health risks - trans fats, inflammation, cardiovascular issues
 3. **Ultra-processed foods:** Point out concerns about additives, sodium, and lack of nutrients
 4. **Excessive sugar/sodium:** Warn about health implications
 5. **Balanced meals:** Praise when appropriate, but still suggest improvements
 
-The "message" field should reflect your professional assessment:
-- If the meal is unhealthy: Be direct but supportive. Example: "Essa refeição tem muitas calorias (1239 kcal) e gordura saturada. A batata frita é um alimento ultraprocessado que pode prejudicar seus objetivos. Que tal trocar por batata assada na próxima?"
-- If the meal is balanced: "Boa escolha! Refeição equilibrada com proteínas, carboidratos e gorduras saudáveis."
-- If the meal is moderate: "Refeição ok, mas atenção ao tamanho da porção para não ultrapassar suas metas."
+The "message" field should reflect your professional assessment PERSONALIZED to the user:
+- If the meal is unhealthy AND user wants to lose weight: "Essa refeição tem muitas calorias (1239 kcal) — mais da metade do seu objetivo diário de ${profile?.target_calories || '???'} kcal. A batata frita é ultraprocessada e vai contra seu objetivo de emagrecimento. Que tal trocar por batata doce assada?"
+- If the meal is unhealthy AND user wants muscle gain: "Boa proteína, mas a batata frita adiciona gorduras ruins que podem prejudicar sua performance. Troque por batata doce para ganhar massa de forma saudável."
+- If the meal is balanced: "Boa escolha! Refeição equilibrada que se encaixa bem no seu objetivo de ${profile?.goal === 'aesthetic' ? 'emagrecimento' : profile?.goal === 'performance' ? 'ganho de massa' : 'saúde'}."
+- If the meal is moderate: "Refeição ok, mas atenção ao tamanho da porção para não ultrapassar suas metas de ${profile?.target_calories || '???'} kcal/dia."
 
 Return a JSON object with:
 - foodName (string, overall summary name in ${langName})
 - calories (number, total kcal)
 - macros (object with p, c, f as numbers for protein, carbs, fats in grams)
 - items (array of objects with: name (string in ${langName}), quantity (string, e.g. "2 unidades" — optional), weightGrams (number), calories (number), protein (number), carbs (number), fats (number), plus optional micronutrient fields per item)
-- message (string, your professional nutritionist assessment in ${langName} — be honest about unhealthy choices, warn about fried/processed foods, praise balanced meals)
+- message (string, your professional nutritionist assessment in ${langName} — be honest about unhealthy choices, warn about fried/processed foods, praise balanced meals, ALWAYS reference user's specific goals and targets)
 ${MICRO_PROMPT_INSTRUCTIONS}
 
 ALL text responses MUST be in ${langName}.`;

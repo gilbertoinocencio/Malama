@@ -294,7 +294,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const draftPersistedRef = useRef(false); // true once initial history load is done
 
   const { t, speechLang, language } = useLanguage();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   // Load persistent chat history on mount
   useEffect(() => {
@@ -503,7 +503,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         // draft meal only set if meal_json was found above
       } else {
         // Route to Food Analysis (original behavior)
-        const result = await analyzeTextLog(userText, language);
+        const result = await analyzeTextLog(userText, language, profile);
 
         const aiTextMsg: Message = {
           id: (Date.now() + 1).toString(),
