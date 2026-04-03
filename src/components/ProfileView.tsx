@@ -54,11 +54,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   }, []);
 
   const loadProfileStats = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('[ProfileView] No user, skipping stats load');
+      return;
+    }
+    console.log('[ProfileView] Loading stats for user:', user.id);
+    console.log('[ProfileView] Profile data:', profile);
     setLoading(true);
     try {
       // 1) Gamification stats (streak, flow days, level)
+      console.log('[ProfileView] Fetching gamification stats...');
       const stats = await GamificationService.updateStats(user.id);
+      console.log('[ProfileView] Gamification stats received:', stats);
       if (stats) {
         setGamification({
           currentStreak: stats.currentStreak || 0,
@@ -67,6 +74,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         });
       } else {
         // Initialize with empty stats if none exist
+        console.log('[ProfileView] No gamification stats, using defaults');
         setGamification({
           currentStreak: 0,
           totalFlowDays: 0,
@@ -75,13 +83,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       }
 
       // 2) Total meals ever logged
+      console.log('[ProfileView] Fetching total meals...');
       const { count } = await supabase
         .from('meals')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
+      console.log('[ProfileView] Total meals:', count);
       setTotalMeals(count || 0);
 
       // 3) Heatmap: last 84 days (12 weeks)
+      console.log('[ProfileView] Fetching heatmap data...');
       const since = new Date();
       since.setDate(since.getDate() - 84);
       const { data: flowData } = await supabase
@@ -91,11 +102,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         .gte('date', since.toISOString().split('T')[0])
         .order('date', { ascending: true });
 
+      console.log('[ProfileView] Heatmap data received:', flowData);
       setHeatmapData(
         (flowData || []).map((r: any) => ({ date: r.date, score: r.flow_score || 0 }))
       );
     } catch (e) {
-      console.error('Error loading profile stats:', e);
+      console.error('[ProfileView] Error loading profile stats:', e);
       // Set default values on error
       setGamification({
         currentStreak: 0,
@@ -106,6 +118,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       setHeatmapData([]);
     } finally {
       setLoading(false);
+      console.log('[ProfileView] Stats loading complete');
     }
   };
 
