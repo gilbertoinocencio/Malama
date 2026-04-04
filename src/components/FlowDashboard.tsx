@@ -254,7 +254,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
           <div className="relative group cursor-pointer">
             <div
               className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-nura-petrol/20 dark:border-primary/20"
-              style={{ backgroundImage: `url("${USER_AVATAR}")` }}
+              style={{ backgroundImage: `url("${profile?.avatar_url || USER_AVATAR}")` }}
             />
             {currentStreak > 0 && (
               <div className="absolute -bottom-1 -right-1 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white dark:border-background-dark flex items-center gap-0.5 animate-pulse">
@@ -420,10 +420,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.protein}</span>
                   <span className={`text-[10px] font-bold ${((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1.2
-                      ? 'text-red-500'
-                      : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1
-                        ? 'text-orange-500'
-                        : 'text-nura-petrol dark:text-primary'
+                    ? 'text-red-500'
+                    : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1
+                      ? 'text-orange-500'
+                      : 'text-nura-petrol dark:text-primary'
                     }`}>
                     {Math.round(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100)}%
                   </span>
@@ -436,10 +436,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1.2
-                          ? 'bg-red-500'
-                          : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1
-                            ? 'bg-orange-500'
-                            : 'bg-nura-petrol dark:bg-primary'
+                        ? 'bg-red-500'
+                        : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1
+                          ? 'bg-orange-500'
+                          : 'bg-nura-petrol dark:bg-primary'
                         }`}
                       style={{ width: `${Math.min(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100, 100)}%` }}
                     />
@@ -452,10 +452,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.carbs}</span>
                   <span className={`text-[10px] font-bold ${((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1.2
-                      ? 'text-red-500'
-                      : ((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1
-                        ? 'text-orange-500'
-                        : 'text-orange-400'
+                    ? 'text-red-500'
+                    : ((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1
+                      ? 'text-orange-500'
+                      : 'text-orange-400'
                     }`}>
                     {Math.round(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100)}%
                   </span>
@@ -468,10 +468,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1.2
-                          ? 'bg-red-500'
-                          : ((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1
-                            ? 'bg-orange-500'
-                            : 'bg-orange-400'
+                        ? 'bg-red-500'
+                        : ((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1
+                          ? 'bg-orange-500'
+                          : 'bg-orange-400'
                         }`}
                       style={{ width: `${Math.min(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100, 100)}%` }}
                     />
@@ -484,10 +484,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.fats}</span>
                   <span className={`text-[10px] font-bold ${((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1.2
-                      ? 'text-red-500'
-                      : ((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1
-                        ? 'text-orange-500'
-                        : 'text-pink-400'
+                    ? 'text-red-500'
+                    : ((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1
+                      ? 'text-orange-500'
+                      : 'text-pink-400'
                     }`}>
                     {Math.round(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100)}%
                   </span>
@@ -500,10 +500,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1.2
-                          ? 'bg-red-500'
-                          : ((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1
-                            ? 'bg-orange-500'
-                            : 'bg-pink-400'
+                        ? 'bg-red-500'
+                        : ((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1
+                          ? 'bg-orange-500'
+                          : 'bg-pink-400'
                         }`}
                       style={{ width: `${Math.min(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100, 100)}%` }}
                     />

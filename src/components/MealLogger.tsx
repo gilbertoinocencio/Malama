@@ -1020,7 +1020,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           </div>
           <div
             className="bg-center bg-no-repeat bg-cover rounded-full w-8 h-8 shrink-0 border border-nura-border dark:border-white/10"
-            style={{ backgroundImage: `url("${USER_AVATAR}")` }}
+            style={{ backgroundImage: `url("${profile?.avatar_url || USER_AVATAR}")` }}
           />
         </div>
       );
