@@ -75,11 +75,21 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
 
             const dbCategory = categoryMap[activeCategory];
             const dbTier = tierMap[budgetTier];
+
+            console.log(`🔍 Carregando alimentos: categoria=${dbCategory}, tier=${dbTier}`);
             const data = await FoodService.getFoodsByFilter(dbCategory, dbTier);
 
+            console.log(`✅ ${data.length} alimentos carregados`);
             setFoods(data.map(mapDbToUi));
-        } catch (e) {
-            console.error(e);
+
+            if (data.length === 0) {
+                console.warn('⚠️ Nenhum alimento encontrado. Verifique se a tabela food_guide_items foi criada no Supabase.');
+            }
+        } catch (e: any) {
+            console.error('❌ Erro ao carregar alimentos:', e);
+            if (e.message?.includes('food_guide_items')) {
+                console.error('🚨 Tabela food_guide_items não existe! Execute o arquivo supabase-food-guide-setup.sql no Supabase.');
+            }
         } finally {
             setLoading(false);
         }
@@ -260,9 +270,26 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                     {loading ? (
                         <div className="flex justify-center py-10"><div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent"></div></div>
                     ) : foods.length === 0 ? (
-                        <div className="text-center py-10 text-gray-400 flex flex-col items-center gap-2">
+                        <div className="text-center py-10 text-gray-400 flex flex-col items-center gap-4">
                             <span className="material-symbols-outlined text-3xl">search_off</span>
-                            <span>{t.foodGuide.noFoods || 'Nenhum item encontrado para este filtro.'}</span>
+                            <div className="space-y-2">
+                                <p className="text-sm">{t.foodGuide.noFoods || 'Nenhum item encontrado para este filtro.'}</p>
+                                <p className="text-xs text-nura-petrol/60 dark:text-gray-500 px-4">
+                                    Se esta é a primeira vez usando o Food Guide, execute o arquivo{' '}
+                                    <code className="bg-nura-pastel-orange dark:bg-gray-800 px-1.5 py-0.5 rounded text-xs">
+                                        supabase-food-guide-setup.sql
+                                    </code>{' '}
+                                    no Supabase SQL Editor.
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        loadFoods();
+                                    }}
+                                    className="mt-2 px-4 py-2 bg-nura-petrol/10 dark:bg-primary/10 text-nura-petrol dark:text-primary text-sm font-medium rounded-lg hover:bg-nura-petrol/20 dark:hover:bg-primary/20 transition-colors"
+                                >
+                                    🔄 Tentar novamente
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <div className="flex flex-col gap-4">

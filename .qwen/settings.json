@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm run *)",
       "Bash(select-object *)",
-      "Bash(tasklist)"
+      "Bash(tasklist)",
+      "Bash(select-string *)",
+      "Bash(node *)"
     ]
   },
   "$version": 3

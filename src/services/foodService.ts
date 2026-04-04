@@ -55,6 +55,23 @@ export const FoodService = {
 
     // Seed function to populate DB if empty
     async seedInitialFoods() {
+        // Primeiro verificar se a tabela existe
+        try {
+            const { data: checkTable, error: tableError } = await supabase
+                .from('food_guide_items')
+                .select('id')
+                .limit(1);
+
+            // Se a tabela não existir, retornar sem erro
+            if (tableError) {
+                console.warn('⚠️ Tabela food_guide_items não encontrada. Execute o SQL de setup primeiro.');
+                return;
+            }
+        } catch (error) {
+            console.warn('⚠️ Não foi possível verificar a tabela food_guide_items:', error);
+            return;
+        }
+
         const initialFoods: FoodItem[] = [
             // ═══════════════════════════════════════
             // PROTEINS
