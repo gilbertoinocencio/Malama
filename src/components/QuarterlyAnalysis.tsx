@@ -49,9 +49,12 @@ export const QuarterlyAnalysis: React.FC<QuarterlyAnalysisProps> = ({ onBack, on
     }
   };
 
-  const consistencyPercent = gamification
-    ? Math.min(Math.round((gamification.totalFlowDays / Math.max(gamification.totalFlowDays + 5, 1)) * 100), 99)
-    : 0;
+  const consistencyPercent = React.useMemo(() => {
+    if (!gamification || !gamification.totalFlowDays) return 0;
+    const totalDays = Math.max(gamification.totalFlowDays + 5, 1);
+    const percent = Math.round((gamification.totalFlowDays / totalDays) * 100);
+    return isNaN(percent) ? 0 : Math.min(percent, 99);
+  }, [gamification]);
 
   // Macros hit rate = approximation from flow score
   const macrosHitPercent = Math.max(flowScore - 2, 0);
