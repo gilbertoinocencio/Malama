@@ -344,7 +344,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
 
             <div className="flex flex-col items-center justify-center px-6 py-4">
-              <div className="relative size-64">
+              <div className="relative size-64 rounded-full overflow-hidden">
                 <svg className="circular-chart transform -rotate-90 w-full h-full" viewBox="0 0 36 36">
                   <path className="circle-bg dark:stroke-[#18282e] stroke-gray-200 light-circle-bg" d="M18 2.0845
                     a 15.9155 15.9155 0 0 1 0 31.831
