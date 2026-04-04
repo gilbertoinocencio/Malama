@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { FoodService, FoodItem as ServiceFoodItem } from '../services/foodService';
 import { MealService } from '../services/mealService';
 import { MealSuggestionsCarousel } from './MealSuggestionsCarousel';
+import { supabase } from '../services/supabase';
 
 interface FoodGuideProps {
     onBack: () => void;
@@ -64,8 +65,31 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
     const [loading, setLoading] = useState(true);
     const [mealCount, setMealCount] = useState(0);
     const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+    const [userRestrictions, setUserRestrictions] = useState<string[]>([]);
 
     const DAILY_MEAL_TARGET = 4;
+
+    // Carregar restrições do usuário
+    useEffect(() => {
+        const loadUserRestrictions = async () => {
+            if (!user) return;
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('dietary_restrictions')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile?.dietary_restrictions) {
+                    setUserRestrictions(profile.dietary_restrictions);
+                    console.log(` Restrições do usuário: ${profile.dietary_restrictions.join(', ')}`);
+                }
+            } catch (e) {
+                console.warn('⚠️ Não foi possível carregar restrições:', e);
+            }
+        };
+        loadUserRestrictions();
+    }, [user]);
 
     // Load foods when filters change
     const loadFoods = useCallback(async () => {
@@ -77,7 +101,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
             const dbTier = tierMap[budgetTier];
 
             console.log(`🔍 Carregando alimentos: categoria=${dbCategory}, tier=${dbTier}`);
-            const data = await FoodService.getFoodsByFilter(dbCategory, dbTier);
+            const data = await FoodService.getFoodsByFilter(dbCategory, dbTier, userRestrictions);
 
             console.log(`✅ ${data.length} alimentos carregados`);
             setFoods(data.map(mapDbToUi));
@@ -93,7 +117,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
         } finally {
             setLoading(false);
         }
-    }, [activeCategory, budgetTier]);
+    }, [activeCategory, budgetTier, userRestrictions]);
 
     useEffect(() => {
         loadFoods();
@@ -113,14 +137,19 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
         loadMealCount();
     }, [user]);
 
-    // Swap handler
+    // Swap handler - agora respeita restrições do usuário
     const handleSwap = async (idx: number) => {
         const item = foods[idx];
         // Mark as swapping for animation
         setFoods(prev => prev.map((f, i) => i === idx ? { ...f, swapping: true } : f));
 
         try {
-            const alt = await FoodService.getSwapAlternative(item.name, item.category, item.tier);
+            const alt = await FoodService.getSwapAlternative(
+                item.name,
+                item.category,
+                item.tier,
+                userRestrictions
+            );
             if (alt) {
                 // Small delay for visual feedback
                 await new Promise(r => setTimeout(r, 300));
@@ -239,6 +268,18 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                         </button>
                     ))}
                 </div>
+
+                {/* Indicador de Restrições Ativas */}
+                {userRestrictions.length > 0 && (
+                    <div className="mb-6 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                        <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-[18px]">shield_person</span>
+                            <span className="text-xs font-semibold text-green-700 dark:text-green-300">
+                                Filtro ativo: {userRestrictions.join(', ')}
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 {/* AI Insight Card */}
                 <div className="mb-8 p-5 rounded-2xl bg-gradient-to-br from-[#E3F2FD] to-[#F1F8E9] dark:from-[#1e3a4c] dark:to-[#1a2e22] relative overflow-hidden">

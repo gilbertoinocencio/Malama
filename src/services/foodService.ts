@@ -9,6 +9,98 @@ export interface FoodItem {
     macros?: { p: number; c: number; f: number };
     image_url?: string;
     quality_score?: number; // 1-4
+    is_vegetarian?: boolean; // true se não contiver carne animal
+    is_vegan?: boolean; // true se não contiver nenhum produto animal
+}
+
+// Alimentos que NÃO são vegetarianos (contêm carne/peixe)
+const NON_VEGETARIAN_FOODS = [
+    'sardinha', 'frango', 'carne', 'tilápia', 'salmão', 'picanha',
+    'camarão', 'fígado', 'peixe', 'frutos do mar', 'atum', 'bacalhau'
+];
+
+// Alimentos que NÃO são veganos (contêm produtos animais: ovos, laticínios, mel)
+const NON_VEGAN_FOODS = [
+    ...NON_VEGETARIAN_FOODS,
+    'ovo', 'leite', 'queijo', 'manteiga', 'whey', 'iogurte',
+    'creme', 'requeijão', 'coalhada', 'mel', 'gelatina'
+];
+
+/**
+ * Verifica se um alimento é vegetariano
+ */
+function isVegetarianFood(name: string): boolean {
+    const lowerName = name.toLowerCase();
+    return !NON_VEGETARIAN_FOODS.some(meat => lowerName.includes(meat));
+}
+
+/**
+ * Verifica se um alimento é vegano
+ */
+function isVeganFood(name: string): boolean {
+    const lowerName = name.toLowerCase();
+    return !NON_VEGAN_FOODS.some(animal => lowerName.includes(animal));
+}
+
+/**
+ * Filtra alimentos baseado nas restrições alimentares do usuário
+ */
+export function filterFoodsByRestrictions(
+    foods: FoodItem[],
+    restrictions: string[]
+): FoodItem[] {
+    if (!restrictions || restrictions.length === 0) {
+        return foods; // Sem restrições, retorna todos
+    }
+
+    const isVegetarian = restrictions.some(r =>
+        r.toLowerCase().includes('vegetarian')
+    );
+    const isVegan = restrictions.some(r =>
+        r.toLowerCase().includes('vegano') || r.toLowerCase().includes('vegan')
+    );
+    const isLactoseFree = restrictions.some(r =>
+        r.toLowerCase().includes('lactose') || r.toLowerCase().includes('leite')
+    );
+    const isGlutenFree = restrictions.some(r =>
+        r.toLowerCase().includes('glúten') || r.toLowerCase().includes('gluten')
+    );
+
+    return foods.filter(food => {
+        const name = food.name.toLowerCase();
+
+        // Vegetariano: remove carnes/peixes
+        if (isVegetarian && !isVegetarianFood(food.name)) {
+            return false;
+        }
+
+        // Vegano: remove todos produtos animais
+        if (isVegan && !isVeganFood(food.name)) {
+            return false;
+        }
+
+        // Sem lactose: remove laticínios
+        if (isLactoseFree) {
+            const dairyKeywords = ['leite', 'queijo', 'manteiga', 'iogurte', 'whey', 'creme'];
+            if (dairyKeywords.some(keyword => name.includes(keyword))) {
+                return false;
+            }
+        }
+
+        // Sem glúten: remove trigo, cevada, centeio, aveia não certificada, pão, macarrão
+        if (isGlutenFree) {
+            const glutenKeywords = [
+                'trigo', 'cevada', 'centeio', 'aveia', 'pão', 'macarrão',
+                'pasta', 'farinha', 'biscoito', 'bolacha', 'cereal', 'granola',
+                'panqueca', 'waffle', 'pizza', 'lasanha', 'ravioli', 'nhoque'
+            ];
+            if (glutenKeywords.some(keyword => name.includes(keyword))) {
+                return false;
+            }
+        }
+
+        return true;
+    });
 }
 
 export const FoodService = {
@@ -24,7 +116,11 @@ export const FoodService = {
         return data;
     },
 
-    async getFoodsByFilter(category: string, tier: string): Promise<FoodItem[]> {
+    async getFoodsByFilter(
+        category: string,
+        tier: string,
+        restrictions?: string[]
+    ): Promise<FoodItem[]> {
         const { data, error } = await supabase
             .from('food_guide_items')
             .select('*')
@@ -35,11 +131,26 @@ export const FoodService = {
             console.error('Error fetching filtered foods:', error);
             return [];
         }
+
+        // Aplica filtro de restrições se fornecido
+        if (restrictions && restrictions.length > 0) {
+            console.log(`🥗 Aplicando restrições: ${restrictions.join(', ')}`);
+            const filtered = filterFoodsByRestrictions(data, restrictions);
+            console.log(`✅ ${filtered.length}/${data.length} alimentos após filtro`);
+            return filtered;
+        }
+
         return data;
     },
 
     // Swap: get a random alternative from same category+tier, excluding current
-    async getSwapAlternative(currentName: string, category: string, tier: string): Promise<FoodItem | null> {
+    // Agora respeita restrições alimentares
+    async getSwapAlternative(
+        currentName: string,
+        category: string,
+        tier: string,
+        restrictions?: string[]
+    ): Promise<FoodItem | null> {
         const { data, error } = await supabase
             .from('food_guide_items')
             .select('*')
@@ -49,8 +160,16 @@ export const FoodService = {
 
         if (error || !data || data.length === 0) return null;
 
-        const randomIndex = Math.floor(Math.random() * data.length);
-        return data[randomIndex];
+        // Filtra por restrições se necessário
+        let candidates = data;
+        if (restrictions && restrictions.length > 0) {
+            candidates = filterFoodsByRestrictions(data, restrictions);
+        }
+
+        if (candidates.length === 0) return null;
+
+        const randomIndex = Math.floor(Math.random() * candidates.length);
+        return candidates[randomIndex];
     },
 
     // Seed function to populate DB if empty
