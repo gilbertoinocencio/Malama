@@ -33,7 +33,7 @@ export default {
         "nura-border": "#E7E5E4",   // Stone 200
 
         // Flow Dashboard Specific
-        "primary": "#11c4d4",
+        "primary": "#1a6272",
         "primary-old": "#0a90bd",
         "background-light": "#FDFBF9", // Updated to Nura Off-white
         "background-dark": "#102022",
