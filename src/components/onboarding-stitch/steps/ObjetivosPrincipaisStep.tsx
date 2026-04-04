@@ -46,15 +46,15 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
     >
       {/* Main Content Canvas */}
       <main className="flex-1 flex flex-col px-6 pt-28 pb-32 max-w-lg mx-auto w-full relative overflow-hidden">
-        <div className="absolute top-1/2 -left-20 w-48 h-48 bg-tertiary-fixed/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="absolute top-1/2 -left-20 w-48 h-48 bg-primary-fixed/10 rounded-full blur-2xl pointer-events-none"></div>
 
         {/* Section 1: Objectives */}
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <header className="space-y-4">
-            <span className="text-tertiary font-headline font-semibold text-sm tracking-widest uppercase">
+            <span className="text-primary font-headline font-semibold text-sm tracking-widest uppercase">
               Passo {currentStep} de {totalSteps}
             </span>
-            <h2 className="text-tertiary font-headline font-bold text-4xl leading-tight">
+            <h2 className="text-primary font-headline font-bold text-4xl leading-tight">
               Qual é o seu objetivo principal?
             </h2>
             <p className="text-on-surface-variant text-lg">Personalize sua jornada para o seu bem-estar.</p>
@@ -68,14 +68,14 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
                 onClick={() => handleSelect(objetivo.id)}
                 className={`flex items-center justify-between w-full p-8 rounded-lg text-left transition-all duration-300 transform hover:scale-[1.02] active:scale-95 group ${
                   objetivoPrincipal === objetivo.id
-                    ? 'bg-tertiary-fixed-dim'
+                    ? 'bg-primary-fixed-dim'
                     : 'bg-surface-container-low'
                 }`}
               >
                 <div className="space-y-1">
                   <span
                     className={`font-headline font-semibold text-xl block ${
-                      objetivoPrincipal === objetivo.id ? 'text-tertiary' : 'text-on-surface'
+                      objetivoPrincipal === objetivo.id ? 'text-primary' : 'text-on-surface'
                     }`}
                   >
                     {objetivo.title}
@@ -83,7 +83,7 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
                   <span
                     className={`text-sm ${
                       objetivoPrincipal === objetivo.id
-                        ? 'text-on-tertiary-fixed-variant/70'
+                        ? 'text-on-primary-fixed-variant/70'
                         : 'text-on-surface-variant'
                     }`}
                   >
@@ -98,7 +98,7 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
                     check_circle
                   </span>
                 ) : (
-                  <span className="material-symbols-outlined text-outline-variant group-hover:text-tertiary transition-colors">
+                  <span className="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">
                     circle
                   </span>
                 )}

@@ -26,7 +26,7 @@ const NuraFlowStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) 
         </motion.div>
 
         <div className="space-y-6 max-w-2xl relative z-10">
-          <h1 className="text-5xl md:text-7xl font-headline font-extrabold text-tertiary tracking-tighter">
+          <h1 className="text-5xl md:text-7xl font-headline font-extrabold text-primary tracking-tighter">
             Seja bem-vindo ao seu <span className="text-secondary italic">Flow</span>.
           </h1>
           <p className="text-xl text-on-surface-variant font-light leading-relaxed">
@@ -49,7 +49,7 @@ const NuraFlowStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) 
               transition={{ delay: i * 0.1 + 0.5 }}
               className="bg-surface-container-low p-6 rounded-2xl flex flex-col items-center gap-3 border border-surface-container-highest"
             >
-              <span className="material-symbols-outlined text-tertiary text-3xl">{item.icon}</span>
+              <span className="material-symbols-outlined text-primary text-3xl">{item.icon}</span>
               <span className="text-xs font-bold tracking-widest uppercase text-outline">{item.label}</span>
             </motion.div>
           ))}

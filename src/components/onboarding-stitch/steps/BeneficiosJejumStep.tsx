@@ -31,7 +31,7 @@ const BeneficiosJejumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep,
       nextLabel="Continuar Jornada"
     >
       <div className="w-full mb-12 text-left">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-tertiary mb-6 leading-tight tracking-tighter">
+        <h1 className="text-4xl md:text-5xl font-extrabold text-primary mb-6 leading-tight tracking-tighter">
           O Poder do Jejum
         </h1>
         <p className="text-lg text-on-surface-variant font-light leading-relaxed max-w-md">
@@ -46,7 +46,7 @@ const BeneficiosJejumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep,
               <span className="material-symbols-outlined text-4xl">{benefit.icon}</span>
             </div>
             <div>
-              <h3 className="text-xl font-bold text-tertiary mb-2">{benefit.title}</h3>
+              <h3 className="text-xl font-bold text-primary mb-2">{benefit.title}</h3>
               <p className="text-on-surface-variant text-sm font-normal leading-relaxed">
                 {benefit.desc}
               </p>

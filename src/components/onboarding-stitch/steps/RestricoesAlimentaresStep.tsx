@@ -28,7 +28,7 @@ const RestricoesAlimentaresStep: React.FC<StepProps> = ({ data, updateData, onNe
       nextLabel={selected.length === 0 ? 'Não tenho restrições' : 'Isso é tudo'}
     >
       <header className="w-full mb-12 space-y-4">
-        <h1 className="font-headline text-4xl md:text-5xl text-tertiary font-bold leading-tight tracking-tight">
+        <h1 className="font-headline text-4xl md:text-5xl text-primary font-bold leading-tight tracking-tight">
           Tem alguma restrição alimentar?
         </h1>
         <p className="text-on-surface-variant text-lg max-w-md">
@@ -45,7 +45,7 @@ const RestricoesAlimentaresStep: React.FC<StepProps> = ({ data, updateData, onNe
               onClick={() => toggleRestriction(res.id)}
               className={`group flex flex-col items-start p-8 rounded-xl text-left transition-all duration-500 border-2 ${
                 isSelected 
-                  ? 'bg-tertiary-fixed-dim border-secondary/40 ring-2 ring-secondary/10 shadow-lg' 
+                  ? 'bg-primary-fixed-dim border-secondary/40 ring-2 ring-secondary/10 shadow-lg' 
                   : 'bg-surface-container-low border-transparent hover:bg-surface-container-high'
               } relative`}
             >
@@ -55,11 +55,11 @@ const RestricoesAlimentaresStep: React.FC<StepProps> = ({ data, updateData, onNe
                 </div>
               )}
               <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 transition-colors duration-500 ${isSelected ? 'bg-secondary-container' : 'bg-surface-container-highest group-hover:bg-secondary-container/20'}`}>
-                <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-tertiary' : 'text-tertiary opacity-70'}`}>
+                <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-primary' : 'text-primary opacity-70'}`}>
                   {res.icon}
                 </span>
               </div>
-              <span className={`text-xl font-headline font-medium mb-2 ${isSelected ? 'text-tertiary' : 'text-tertiary opacity-80'}`}>
+              <span className={`text-xl font-headline font-medium mb-2 ${isSelected ? 'text-primary' : 'text-primary opacity-80'}`}>
                 {res.label}
               </span>
               <span className="text-sm text-on-surface-variant leading-relaxed opacity-80">

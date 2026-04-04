@@ -29,7 +29,7 @@ const ObjetivosAdicionaisStep: React.FC<StepProps> = ({ data, updateData, onNext
       onBack={onBack}
     >
       <section className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-headline font-bold text-tertiary tracking-tight leading-tight mb-4">
+        <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tight leading-tight mb-4">
           Algum objetivo adicional?
         </h1>
         <p className="text-on-surface-variant text-lg max-w-md">
@@ -46,18 +46,18 @@ const ObjetivosAdicionaisStep: React.FC<StepProps> = ({ data, updateData, onNext
               onClick={() => toggleGoal(goal.id)}
               className={`group relative flex items-center justify-between p-8 rounded-[1.5rem] cursor-pointer transition-all duration-300 border-2 ${
                 isSelected 
-                  ? 'bg-tertiary-fixed-dim border-secondary/20 shadow-lg shadow-tertiary/5 ring-2 ring-secondary/10' 
+                  ? 'bg-primary-fixed-dim border-secondary/20 shadow-lg shadow-primary/5 ring-2 ring-secondary/10' 
                   : 'bg-surface-container-low border-transparent hover:bg-surface-container-high'
               }`}
             >
               <div className="flex items-center gap-6">
                 <div className={`w-12 h-12 flex items-center justify-center rounded-2xl ${isSelected ? 'bg-secondary-container/30' : 'bg-white/60'}`}>
-                  <span className={`material-symbols-outlined ${isSelected ? 'text-secondary' : 'text-tertiary opacity-70'}`}>
+                  <span className={`material-symbols-outlined ${isSelected ? 'text-secondary' : 'text-primary opacity-70'}`}>
                     {goal.icon}
                   </span>
                 </div>
                 <div>
-                  <span className={`text-xl font-medium block ${isSelected ? 'text-tertiary' : 'text-tertiary/80'}`}>
+                  <span className={`text-xl font-medium block ${isSelected ? 'text-primary' : 'text-primary/80'}`}>
                     {goal.label}
                   </span>
                 </div>

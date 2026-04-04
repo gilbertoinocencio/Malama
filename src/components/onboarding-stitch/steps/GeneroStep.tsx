@@ -31,7 +31,7 @@ const GeneroStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, cur
           <span className="text-on-surface-variant font-label text-sm uppercase tracking-widest font-medium">
             Passo {currentStep} de {totalSteps}
           </span>
-          <h1 className="font-headline text-4xl md:text-5xl font-bold text-tertiary tracking-tight leading-tight">
+          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tight leading-tight">
             Gênero Biológico
           </h1>
           <p className="font-body text-lg text-on-surface-variant max-w-md">
@@ -46,19 +46,19 @@ const GeneroStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, cur
             onClick={() => handleSelect('masculino')}
             className={`group flex flex-col items-center justify-center p-12 rounded-lg transition-all duration-300 active:scale-95 text-left relative overflow-hidden ${
               genero === 'masculino'
-                ? 'bg-tertiary-fixed-dim'
+                ? 'bg-primary-fixed-dim'
                 : 'bg-surface-container-low hover:bg-surface-container-highest'
             }`}
           >
             <div className="mb-6">
               <span
-                className="material-symbols-outlined text-6xl text-tertiary transition-transform group-hover:scale-110 duration-500"
+                className="material-symbols-outlined text-6xl text-primary transition-transform group-hover:scale-110 duration-500"
                 data-icon="male"
               >
                 male
               </span>
             </div>
-            <span className="font-headline text-xl font-semibold text-tertiary">Masculino</span>
+            <span className="font-headline text-xl font-semibold text-primary">Masculino</span>
             {/* Selection indicator */}
             <div
               className={`absolute top-6 right-6 transition-opacity duration-300 ${
@@ -79,19 +79,19 @@ const GeneroStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, cur
             onClick={() => handleSelect('feminino')}
             className={`group flex flex-col items-center justify-center p-12 rounded-lg transition-all duration-300 active:scale-95 text-left relative overflow-hidden ${
               genero === 'feminino'
-                ? 'bg-tertiary-fixed-dim'
+                ? 'bg-primary-fixed-dim'
                 : 'bg-surface-container-low hover:bg-surface-container-highest'
             }`}
           >
             <div className="mb-6">
               <span
-                className="material-symbols-outlined text-6xl text-tertiary transition-transform group-hover:scale-110 duration-500"
+                className="material-symbols-outlined text-6xl text-primary transition-transform group-hover:scale-110 duration-500"
                 data-icon="female"
               >
                 female
               </span>
             </div>
-            <span className="font-headline text-xl font-semibold text-tertiary">Feminino</span>
+            <span className="font-headline text-xl font-semibold text-primary">Feminino</span>
             {/* Selection indicator */}
             <div
               className={`absolute top-6 right-6 transition-opacity duration-300 ${
@@ -114,14 +114,14 @@ const GeneroStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, cur
         <div className="w-full max-w-2xl flex justify-between items-center pointer-events-auto">
           <button
             onClick={onBack}
-            className="text-tertiary font-semibold py-4 px-8 rounded-full hover:bg-surface-container-low transition-all duration-300"
+            className="text-primary font-semibold py-4 px-8 rounded-full hover:bg-surface-container-low transition-all duration-300"
           >
             Anterior
           </button>
           <button
             onClick={handleContinue}
             disabled={!genero}
-            className="bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline font-bold py-5 px-14 rounded-lg shadow-lg shadow-tertiary/10 transition-all duration-300 active:scale-95 flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-tertiary disabled:active:scale-100"
+            className="bg-primary hover:bg-primary-container text-on-primary font-headline font-bold py-5 px-14 rounded-lg shadow-lg shadow-primary/10 transition-all duration-300 active:scale-95 flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100"
           >
             Continuar
             <span className="material-symbols-outlined">arrow_forward</span>

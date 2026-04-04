@@ -15,7 +15,7 @@ const MetodologiaStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps 
     >
       {/* Header Section */}
       <header className="mb-12 space-y-4">
-        <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl text-tertiary font-bold tracking-tight leading-tight">
+        <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl text-primary font-bold tracking-tight leading-tight">
           O que torna o <span className="text-secondary">NURA</span> diferente?
         </h1>
         <p className="text-on-surface-variant text-xl md:text-2xl font-light max-w-2xl leading-relaxed">
@@ -33,7 +33,7 @@ const MetodologiaStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps 
                 <span className="material-symbols-outlined text-sm">auto_awesome</span>
                 METODOLOGIA NURA FLOW
               </div>
-              <h2 className="font-headline text-3xl text-tertiary font-semibold mb-4">
+              <h2 className="font-headline text-3xl text-primary font-semibold mb-4">
                 Nutrição sem rigidez, disciplina sem culpa.
               </h2>
               <p className="text-on-surface-variant text-lg leading-relaxed">
@@ -54,7 +54,7 @@ const MetodologiaStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps 
         </div>
 
         {/* Asymmetric Secondary Cards */}
-        <div className="md:col-span-7 bg-tertiary-container text-on-tertiary-container p-8 rounded-xl flex flex-col justify-between min-h-[240px]">
+        <div className="md:col-span-7 bg-primary-container text-on-primary-container p-8 rounded-xl flex flex-col justify-between min-h-[240px]">
           <span className="material-symbols-outlined text-4xl">psychology</span>
           <div>
             <h3 className="font-headline text-2xl font-medium mb-2">Foco no Bem-estar Mental</h3>
@@ -72,7 +72,7 @@ const MetodologiaStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps 
             </div>
           </div>
           <div>
-            <h3 className="font-headline text-2xl text-tertiary font-medium mb-2">Ritmos Flexíveis</h3>
+            <h3 className="font-headline text-2xl text-primary font-medium mb-2">Ritmos Flexíveis</h3>
             <p className="text-on-surface-variant font-light text-sm">Seu plano respira com você. Dias intensos pedem nutrição de suporte, não cobrança.</p>
           </div>
         </div>
@@ -81,12 +81,12 @@ const MetodologiaStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps 
         <div className="md:col-span-12 flex flex-col items-center justify-center py-12 bg-surface-container-low rounded-xl">
           <p className="text-on-surface-variant mb-6 font-medium">Sua meta de equilíbrio atual</p>
           <div className="flex items-baseline gap-2 group cursor-pointer">
-            <span className="font-headline text-7xl md:text-9xl text-tertiary font-extrabold tracking-tighter">85</span>
+            <span className="font-headline text-7xl md:text-9xl text-primary font-extrabold tracking-tighter">85</span>
             <span className="text-3xl font-headline text-secondary font-bold">%</span>
           </div>
           <div className="w-48 h-[2px] bg-surface-container-highest mt-2 relative overflow-hidden">
             <motion.div 
-              className="absolute inset-0 bg-tertiary"
+              className="absolute inset-0 bg-primary"
               initial={{ width: 0 }}
               animate={{ width: '80%' }}
               transition={{ duration: 1, delay: 0.5 }}

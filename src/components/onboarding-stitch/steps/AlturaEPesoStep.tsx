@@ -41,7 +41,7 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
           <span className="text-on-surface-variant font-label text-sm tracking-widest uppercase mb-2 block">
             Etapa {currentStep} de {totalSteps}
           </span>
-          <h1 className="font-headline text-4xl md:text-5xl font-bold text-tertiary tracking-tight leading-tight">
+          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tight leading-tight">
             Sua Biometria
           </h1>
           <p className="text-on-surface-variant mt-4 text-lg">
@@ -54,9 +54,9 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
           {/* Height Section (Altura) */}
           <div className="group relative bg-surface-container-lowest p-8 rounded-lg shadow-sm border border-transparent hover:border-outline-variant/15 transition-all duration-500">
             <div className="flex justify-between items-end mb-6">
-              <h2 className="font-headline text-xl font-medium text-tertiary">Altura</h2>
+              <h2 className="font-headline text-xl font-medium text-primary">Altura</h2>
               <div className="flex items-baseline">
-                <span className="font-headline text-5xl font-bold text-tertiary">{altura}</span>
+                <span className="font-headline text-5xl font-bold text-primary">{altura}</span>
                 <span className="ml-1 text-on-surface-variant font-medium">cm</span>
               </div>
             </div>
@@ -66,7 +66,7 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
               <div className="flex items-center justify-center gap-4">
                 <button
                   onClick={() => adjustAltura(-1)}
-                  className="w-12 h-12 rounded-full flex items-center justify-center bg-surface-container-high text-tertiary hover:bg-tertiary hover:text-white transition-all duration-300"
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-surface-container-high text-primary hover:bg-primary hover:text-white transition-all duration-300"
                 >
                   <span className="material-symbols-outlined">remove</span>
                 </button>
@@ -78,7 +78,7 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
                 </div>
                 <button
                   onClick={() => adjustAltura(1)}
-                  className="w-12 h-12 rounded-full flex items-center justify-center bg-surface-container-high text-tertiary hover:bg-tertiary hover:text-white transition-all duration-300"
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-surface-container-high text-primary hover:bg-primary hover:text-white transition-all duration-300"
                 >
                   <span className="material-symbols-outlined">add</span>
                 </button>
@@ -89,9 +89,9 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
           {/* Weight Section (Peso Atual) */}
           <div className="bg-surface-container-lowest p-8 rounded-lg shadow-sm border border-transparent hover:border-outline-variant/15 transition-all duration-500">
             <div className="flex justify-between items-end mb-4">
-              <h2 className="font-headline text-xl font-medium text-tertiary">Peso Atual</h2>
+              <h2 className="font-headline text-xl font-medium text-primary">Peso Atual</h2>
               <div className="flex items-baseline">
-                <span className="font-headline text-5xl font-bold text-tertiary">{peso}</span>
+                <span className="font-headline text-5xl font-bold text-primary">{peso}</span>
                 <span className="ml-1 text-on-surface-variant font-medium">kg</span>
               </div>
             </div>
@@ -100,7 +100,7 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
             <div className="mt-8 flex items-center justify-between gap-4">
               <button
                 onClick={() => adjustPeso(-0.5)}
-                className="w-14 h-14 rounded-full flex items-center justify-center bg-surface-container-high text-tertiary hover:bg-tertiary hover:text-white transition-all duration-300"
+                className="w-14 h-14 rounded-full flex items-center justify-center bg-surface-container-high text-primary hover:bg-primary hover:text-white transition-all duration-300"
               >
                 <span className="material-symbols-outlined">remove</span>
               </button>
@@ -115,7 +115,7 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
               </div>
               <button
                 onClick={() => adjustPeso(0.5)}
-                className="w-14 h-14 rounded-full flex items-center justify-center bg-surface-container-high text-tertiary hover:bg-tertiary hover:text-white transition-all duration-300"
+                className="w-14 h-14 rounded-full flex items-center justify-center bg-surface-container-high text-primary hover:bg-primary hover:text-white transition-all duration-300"
               >
                 <span className="material-symbols-outlined">add</span>
               </button>

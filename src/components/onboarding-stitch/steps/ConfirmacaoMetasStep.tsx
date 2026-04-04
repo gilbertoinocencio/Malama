@@ -26,10 +26,10 @@ const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, updateData, onNext, o
 
         {/* Editorial Header */}
         <header className="mb-10 mt-4 text-center">
-          <span className="text-tertiary font-medium tracking-widest text-xs uppercase mb-2 block">
+          <span className="text-primary font-medium tracking-widest text-xs uppercase mb-2 block">
             Cálculo de IA Finalizado
           </span>
-          <h1 className="text-tertiary text-4xl font-bold tracking-tight leading-tight">Suas Metas do Flow</h1>
+          <h1 className="text-primary text-4xl font-bold tracking-tight leading-tight">Suas Metas do Flow</h1>
           <p className="text-on-surface-variant mt-4 text-lg leading-relaxed">
             Com base no seu biotipo e rotina, este é o caminho ideal para sua transformação.
           </p>
@@ -46,19 +46,19 @@ const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, updateData, onNext, o
             </div>
             <p className="text-on-surface-variant font-medium uppercase tracking-widest text-xs mb-2">Peso Alvo</p>
             <div className="flex items-baseline gap-1">
-              <span className="text-tertiary text-7xl font-bold tracking-tighter">{pesoObjetivo}</span>
-              <span className="text-tertiary-container text-2xl font-semibold uppercase">kg</span>
+              <span className="text-primary text-7xl font-bold tracking-tighter">{pesoObjetivo}</span>
+              <span className="text-primary-container text-2xl font-semibold uppercase">kg</span>
             </div>
             <div className="mt-4 h-[2px] w-24 bg-surface-container-highest"></div>
           </div>
 
           {/* Estimated Time Card */}
-          <div className="col-span-1 bg-tertiary text-on-tertiary p-6 rounded-lg flex flex-col justify-between h-48">
-            <span className="material-symbols-outlined text-tertiary-fixed-dim text-3xl" data-icon="calendar_today">
+          <div className="col-span-1 bg-primary text-on-primary p-6 rounded-lg flex flex-col justify-between h-48">
+            <span className="material-symbols-outlined text-primary-fixed-dim text-3xl" data-icon="calendar_today">
               calendar_today
             </span>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-tertiary-fixed-dim/70 font-bold mb-1">
+              <p className="text-[10px] uppercase tracking-widest text-primary-fixed-dim/70 font-bold mb-1">
                 Prazo Estimado
               </p>
               <h3 className="text-3xl font-bold">{semanas}</h3>
@@ -67,12 +67,12 @@ const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, updateData, onNext, o
           </div>
 
           {/* Science Confirmation Card */}
-          <div className="col-span-1 bg-tertiary text-on-tertiary p-6 rounded-lg flex flex-col justify-between h-48">
-            <span className="material-symbols-outlined text-tertiary-fixed-dim text-3xl" data-icon="auto_awesome">
+          <div className="col-span-1 bg-primary text-on-primary p-6 rounded-lg flex flex-col justify-between h-48">
+            <span className="material-symbols-outlined text-primary-fixed-dim text-3xl" data-icon="auto_awesome">
               auto_awesome
             </span>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-tertiary-fixed-dim/70 font-bold mb-1">
+              <p className="text-[10px] uppercase tracking-widest text-primary-fixed-dim/70 font-bold mb-1">
                 Taxa de Sucesso
               </p>
               <h3 className="text-3xl font-bold">94%</h3>
@@ -83,7 +83,7 @@ const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, updateData, onNext, o
           {/* Simple Elegant Graph Overlay */}
           <div className="col-span-2 bg-surface-container-low p-6 rounded-lg flex flex-col gap-6">
             <div className="flex justify-between items-center">
-              <h4 className="text-tertiary font-bold text-sm tracking-tight uppercase">Curva de Progressão</h4>
+              <h4 className="text-primary font-bold text-sm tracking-tight uppercase">Curva de Progressão</h4>
               <span className="text-secondary font-bold text-xs flex items-center gap-1">
                 <span className="material-symbols-outlined text-sm" data-icon="trending_down">
                   trending_down
@@ -103,7 +103,7 @@ const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, updateData, onNext, o
               {[20, 25, 30, 40, 50, 60, 70, 80, 90, 100].map((height, index) => (
                 <div
                   key={index}
-                  className="w-[8%] bg-tertiary rounded-t-full"
+                  className="w-[8%] bg-primary rounded-t-full"
                   style={{
                     height: `${100 - height}%`,
                     opacity: 0.2 + (index * 0.08),

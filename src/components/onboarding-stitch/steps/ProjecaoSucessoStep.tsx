@@ -17,7 +17,7 @@ const ProjecaoSucessoStep: React.FC<StepProps> = ({ data, onNext, onBack, curren
       onBack={onBack}
     >
       <section className="mb-12">
-        <h2 className="text-4xl md:text-5xl font-extrabold font-headline text-tertiary leading-tight tracking-tight mb-4 text-center md:text-left">
+        <h2 className="text-4xl md:text-5xl font-extrabold font-headline text-primary leading-tight tracking-tight mb-4 text-center md:text-left">
           Sua Projeção de Sucesso
         </h2>
         <p className="text-on-surface-variant text-lg leading-relaxed max-w-md text-center md:text-left">
@@ -35,7 +35,7 @@ const ProjecaoSucessoStep: React.FC<StepProps> = ({ data, onNext, onBack, curren
             </div>
             <div className="text-right">
               <p className="text-sm font-label text-on-surface-variant">Data Alvo</p>
-              <p className="text-xl font-headline font-medium text-tertiary">12 Semanas</p>
+              <p className="text-xl font-headline font-medium text-primary">12 Semanas</p>
             </div>
           </div>
 
@@ -95,22 +95,22 @@ const ProjecaoSucessoStep: React.FC<StepProps> = ({ data, onNext, onBack, curren
           <div className="bg-surface-container-low p-6 rounded-lg flex flex-col gap-2 transition-all hover:bg-white hover:shadow-md">
             <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
             <p className="text-xs font-label text-on-surface-variant">Metabolismo</p>
-            <p className="text-xl font-headline font-semibold text-tertiary">+14% Eficiência</p>
+            <p className="text-xl font-headline font-semibold text-primary">+14% Eficiência</p>
           </div>
           <div className="bg-surface-container-low p-6 rounded-lg flex flex-col gap-2 transition-all hover:bg-white hover:shadow-md">
             <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
             <p className="text-xs font-label text-on-surface-variant">Saúde Celular</p>
-            <p className="text-xl font-headline font-semibold text-tertiary">Nível Ótimo</p>
+            <p className="text-xl font-headline font-semibold text-primary">Nível Ótimo</p>
           </div>
         </div>
 
         {/* Goal Milestone Card */}
-        <div className="flex items-center gap-6 p-6 bg-tertiary-container/10 rounded-lg border border-tertiary-container/20">
-          <div className="w-16 h-16 rounded-full bg-tertiary flex items-center justify-center shrink-0 shadow-lg">
-            <span className="material-symbols-outlined text-tertiary-fixed text-3xl">auto_awesome</span>
+        <div className="flex items-center gap-6 p-6 bg-primary-container/10 rounded-lg border border-primary-container/20">
+          <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-lg">
+            <span className="material-symbols-outlined text-primary-fixed text-3xl">auto_awesome</span>
           </div>
           <div>
-            <h4 className="font-headline font-bold text-tertiary">Seu "Novo Eu" em 90 dias</h4>
+            <h4 className="font-headline font-bold text-primary">Seu "Novo Eu" em 90 dias</h4>
             <p className="text-sm text-on-surface-variant">72% dos usuários NURA alcançam a meta projetada mantendo a consistência sugerida.</p>
           </div>
         </div>

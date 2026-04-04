@@ -52,13 +52,13 @@ export const StepContainer: React.FC<StepContainerProps> = ({
               onClick={onBack}
               className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-all duration-300 active:scale-95"
             >
-              <span className="material-symbols-outlined text-tertiary">arrow_back</span>
+              <span className="material-symbols-outlined text-primary">arrow_back</span>
             </button>
           ) : (
             <div className="w-10" />
           )}
 
-          <span className="font-headline tracking-tighter text-2xl font-bold text-tertiary">NURA</span>
+          <span className="font-headline tracking-tighter text-2xl font-bold text-primary">NURA</span>
 
           <div className="w-10" />
         </header>
@@ -94,7 +94,7 @@ export const StepContainer: React.FC<StepContainerProps> = ({
               <span className="material-symbols-outlined text-xl">chevron_right</span>
             </button>
             {secondaryLabel && (
-              <button onClick={onBack} className="w-full py-4 text-tertiary font-bold text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
+              <button onClick={onBack} className="w-full py-4 text-primary font-bold text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
                 {secondaryLabel}
               </button>
             )}

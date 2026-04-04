@@ -28,7 +28,7 @@ const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
       onBack={onBack}
     >
       <div className="text-center mb-12">
-        <h1 className="font-headline text-4xl md:text-5xl font-bold text-tertiary tracking-tight mb-4">
+        <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tight mb-4">
           Qual é o seu peso objetivo?
         </h1>
         <p className="text-on-surface-variant text-lg max-w-md mx-auto leading-relaxed">
@@ -38,11 +38,11 @@ const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
 
       <div className="w-full bg-surface-container-lowest rounded-xl p-10 flex flex-col items-center justify-center relative shadow-sm border border-white/50">
         {/* Subtitle/Label */}
-        <span className="text-tertiary font-headline font-semibold tracking-widest text-xs uppercase mb-8">Meta Desejada</span>
+        <span className="text-primary font-headline font-semibold tracking-widest text-xs uppercase mb-8">Meta Desejada</span>
         <div className="flex items-end justify-center gap-2 mb-10">
           <div className="relative group">
             <input
-              className="w-48 bg-transparent border-none text-center font-headline text-8xl font-extrabold text-tertiary p-0 focus:ring-0 placeholder-surface-container-highest transition-all duration-300"
+              className="w-48 bg-transparent border-none text-center font-headline text-8xl font-extrabold text-primary p-0 focus:ring-0 placeholder-surface-container-highest transition-all duration-300"
               type="number"
               value={target}
               onChange={(e) => handleChange(parseFloat(e.target.value) || 0)}
@@ -50,7 +50,7 @@ const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
             />
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-surface-container-highest group-focus-within:w-full group-focus-within:bg-secondary transition-all duration-500 rounded-full"></div>
           </div>
-          <span className="font-headline text-3xl font-medium text-tertiary pb-4">kg</span>
+          <span className="font-headline text-3xl font-medium text-primary pb-4">kg</span>
         </div>
 
         {/* Motivational Micro-copy */}
@@ -67,13 +67,13 @@ const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
         <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4">
           <button 
             onClick={handleIncrement}
-            className="w-12 h-12 flex items-center justify-center bg-surface-container-high rounded-full text-tertiary hover:bg-tertiary hover:text-white transition-all duration-300 active:scale-90 shadow-sm"
+            className="w-12 h-12 flex items-center justify-center bg-surface-container-high rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300 active:scale-90 shadow-sm"
           >
             <span className="material-symbols-outlined">add</span>
           </button>
           <button 
             onClick={handleDecrement}
-            className="w-12 h-12 flex items-center justify-center bg-surface-container-high rounded-full text-tertiary hover:bg-tertiary hover:text-white transition-all duration-300 active:scale-90 shadow-sm"
+            className="w-12 h-12 flex items-center justify-center bg-surface-container-high rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300 active:scale-90 shadow-sm"
           >
             <span className="material-symbols-outlined">remove</span>
           </button>
@@ -82,8 +82,8 @@ const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
 
       {/* Secondary Guidance Card */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-        <div className="bg-tertiary-fixed text-on-tertiary-fixed p-6 rounded-lg flex flex-col justify-between h-32 border border-tertiary/10">
-          <span className="material-symbols-outlined text-tertiary text-3xl">psychology</span>
+        <div className="bg-primary-fixed text-on-primary-fixed p-6 rounded-lg flex flex-col justify-between h-32 border border-primary/10">
+          <span className="material-symbols-outlined text-primary text-3xl">psychology</span>
           <p className="text-xs font-medium leading-tight">A ciência mostra que metas visíveis aumentam a retenção em 40%.</p>
         </div>
         <div className="bg-surface-container-high p-6 rounded-lg flex flex-col justify-between h-32">

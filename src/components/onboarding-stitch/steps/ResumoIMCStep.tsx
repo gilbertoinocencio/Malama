@@ -19,13 +19,13 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
 
   if (bmi < 18.5) {
     category = 'ABAIXO DO PESO';
-    categoryColor = 'tertiary';
+    categoryColor = 'primary';
     statusLabel = 'Abaixo do peso';
     insightTitle = 'Atenção!';
     insightText = 'Seu IMC está abaixo do ideal. Vamos trabalhar juntos para atingir um peso saudável com nosso plano personalizado.';
   } else if (bmi >= 25 && bmi < 30) {
     category = 'SOBREPESO';
-    categoryColor = 'tertiary';
+    categoryColor = 'primary';
     statusLabel = 'Sobrepeso';
     insightTitle = 'Você está no caminho!';
     insightText = 'Com ajustes na alimentação e rotina, você pode atingir o peso ideal. Nosso plano vai te guiar.';
@@ -56,7 +56,7 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
           <p className="text-on-surface-variant font-medium mb-2 opacity-60">
             Passo {currentStep} de {totalSteps}
           </p>
-          <h2 className="font-headline text-4xl font-bold text-tertiary tracking-tight leading-tight">
+          <h2 className="font-headline text-4xl font-bold text-primary tracking-tight leading-tight">
             Seu Perfil Biométrico
           </h2>
         </section>
@@ -66,7 +66,7 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
           <div className="bg-surface-container-lowest rounded-lg p-10 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_16px_32px_0_rgba(26,28,26,0.04)]">
             <span className="text-on-surface-variant font-medium text-sm tracking-widest uppercase mb-2">Seu IMC Atual</span>
             <div className="flex items-baseline gap-1">
-              <span className="font-headline text-7xl font-extrabold text-tertiary">{bmiFormatted}</span>
+              <span className="font-headline text-7xl font-extrabold text-primary">{bmiFormatted}</span>
               <span className="font-headline text-xl font-medium text-on-surface-variant">kg/m²</span>
             </div>
             <div className={`mt-6 px-6 py-2 bg-${categoryColor}/10 rounded-full border border-${categoryColor}/10`}>
@@ -82,13 +82,13 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
               <span>18.5</span><span>24.9</span><span>29.9</span><span>34.9</span>
             </div>
             <div className="h-3 w-full bg-surface-container-highest rounded-full flex overflow-hidden">
-              <div className="h-full bg-tertiary-fixed-dim w-[20%]"></div>
+              <div className="h-full bg-primary-fixed-dim w-[20%]"></div>
               <div className="h-full bg-secondary w-[30%] border-x-4 border-surface-container-lowest"></div>
-              <div className="h-full bg-tertiary-container w-[25%] border-r-4 border-surface-container-lowest"></div>
+              <div className="h-full bg-primary-container w-[25%] border-r-4 border-surface-container-lowest"></div>
               <div className="h-full bg-error-container w-[25%]"></div>
             </div>
             <div className="absolute -bottom-4 flex flex-col items-center" style={{ left: `${Math.min(Math.max(((bmi - 15) / 25) * 100, 2), 98)}%`, transform: 'translateX(-50%)' }}>
-              <div className="w-3 h-3 bg-tertiary rounded-full ring-4 ring-surface-container-lowest"></div>
+              <div className="w-3 h-3 bg-primary rounded-full ring-4 ring-surface-container-lowest"></div>
             </div>
           </div>
         </section>
@@ -108,13 +108,13 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
         </section>
 
         {/* Insight Card */}
-        <section className="mb-8 bg-tertiary-fixed text-tertiary rounded-lg p-6 flex gap-4 items-start">
-          <div className="bg-tertiary-container/10 p-2 rounded-lg flex-shrink-0">
-            <span className="material-symbols-outlined text-tertiary-container">colors_spark</span>
+        <section className="mb-8 bg-primary-fixed text-primary rounded-lg p-6 flex gap-4 items-start">
+          <div className="bg-primary-container/10 p-2 rounded-lg flex-shrink-0">
+            <span className="material-symbols-outlined text-primary-container">colors_spark</span>
           </div>
           <div>
             <p className="font-headline font-bold text-lg mb-1">{insightTitle}</p>
-            <p className="text-sm leading-relaxed text-on-tertiary-fixed-variant">{insightText}</p>
+            <p className="text-sm leading-relaxed text-on-primary-fixed-variant">{insightText}</p>
           </div>
         </section>
       </main>

@@ -8,18 +8,18 @@ const FEATURES = [
     title: 'Coach de IA Personalizado',
     desc: 'Orientação 24/7 ajustada ao seu ritmo e biotipo.',
     bg: 'bg-surface-container-lowest',
-    iconBg: 'bg-tertiary-container',
-    iconColor: 'text-on-tertiary-container',
+    iconBg: 'bg-primary-container',
+    iconColor: 'text-on-primary-container',
     full: false,
   },
   {
     icon: 'photo_camera',
     title: 'Scan de Fotos para Macros',
     desc: 'Aponte a câmera, capture os nutrientes. Simples assim.',
-    bg: 'bg-tertiary',
-    iconBg: 'bg-tertiary-fixed-dim',
-    iconColor: 'text-on-tertiary-fixed',
-    textColor: 'text-on-tertiary',
+    bg: 'bg-primary',
+    iconBg: 'bg-primary-fixed-dim',
+    iconColor: 'text-on-primary-fixed',
+    textColor: 'text-on-primary',
     full: false,
   },
   {
@@ -37,7 +37,7 @@ const FEATURES = [
     desc: 'Sincronia perfeita com Apple Health, Google Fit e dispositivos wearable.',
     bg: 'bg-surface-container-highest',
     iconBg: 'bg-white shadow-sm',
-    iconColor: 'text-tertiary',
+    iconColor: 'text-primary',
     full: true,
   },
 ];
@@ -57,11 +57,11 @@ const VantagensPremiumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep
       <div className="w-full max-w-2xl">
         {/* Header */}
         <header className="mb-12">
-          <p className="font-headline font-semibold text-tertiary mb-2 tracking-widest uppercase text-xs">
+          <p className="font-headline font-semibold text-primary mb-2 tracking-widest uppercase text-xs">
             Passo {currentStep} de {totalSteps}
           </p>
           <h2 className="font-headline font-bold text-4xl text-on-surface leading-tight tracking-tight">
-            Eleve sua jornada <br />ao nível <span className="text-tertiary">Premium.</span>
+            Eleve sua jornada <br />ao nível <span className="text-primary">Premium.</span>
           </h2>
           <p className="font-body text-on-surface-variant mt-4 text-lg">
             Desbloqueie ferramentas exclusivas desenhadas para acelerar seus resultados com serenidade.
@@ -84,7 +84,7 @@ const VantagensPremiumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep
                 </span>
               </div>
               <div>
-                <h3 className={`font-headline font-bold text-xl mb-2 ${f.textColor ?? 'text-tertiary'}`}>
+                <h3 className={`font-headline font-bold text-xl mb-2 ${f.textColor ?? 'text-primary'}`}>
                   {f.title}
                 </h3>
                 <p className={`font-body text-sm ${f.textColor ? 'opacity-80' : 'text-on-surface-variant'}`}>
