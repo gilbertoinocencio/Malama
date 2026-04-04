@@ -27,14 +27,7 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
       onNext={handleContinue}
     >
       <main className="flex-grow pt-24 pb-32 px-6 max-w-xl mx-auto w-full flex flex-col items-center justify-center relative">
-        <div className="fixed -right-20 top-1/4 opacity-10 pointer-events-none transform rotate-12">
-          <span
-            className="material-symbols-outlined text-[300px] text-secondary-container"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            spa
-          </span>
-        </div>
+
 
         {/* Headline Section */}
         <section className="w-full text-center mb-12">

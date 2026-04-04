@@ -98,11 +98,7 @@ const LembretesRotinaStep: React.FC<StepProps> = ({ data, updateData, onNext, on
       onBack={onBack}
       nextLabel="Salvar e Continuar"
     >
-      <div className="fixed top-1/4 -right-20 opacity-20 pointer-events-none">
-        <span className="material-symbols-outlined text-[20rem] text-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
-          eco
-        </span>
-      </div>
+
 
       <div className="w-full max-w-xl space-y-10 relative z-10">
         <div className="space-y-4">

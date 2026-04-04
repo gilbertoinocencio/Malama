@@ -23,9 +23,6 @@ const PlanoPersonalizadoStep: React.FC<StepProps> = ({ onNext, onBack, currentSt
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 relative w-full">
-        <div className="absolute -right-20 top-40 opacity-10 pointer-events-none hidden lg:block">
-          <span className="material-symbols-outlined text-[200px] text-secondary-container">eco</span>
-        </div>
 
         {/* Phase 1 Card */}
         <motion.div 

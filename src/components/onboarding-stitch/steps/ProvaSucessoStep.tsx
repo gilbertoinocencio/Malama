@@ -11,9 +11,6 @@ const ProvaSucessoStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, to
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
-      <div className="fixed -top-10 -right-10 opacity-10 pointer-events-none">
-        <span className="material-symbols-outlined text-[20rem] text-secondary-container" style={{ fontVariationSettings: "'FILL' 0" }}>eco</span>
-      </div>
 
       <div className="w-full text-center space-y-4 mb-10 relative z-10">
         <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-container font-medium text-sm tracking-wide mb-2">

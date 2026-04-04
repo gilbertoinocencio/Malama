@@ -12,10 +12,6 @@ const ImpactoAguaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
       nextLabel="Entendi"
     >
       <main className="flex-grow pt-24 pb-32 px-6 max-w-md mx-auto w-full flex flex-col">
-        {/* Background Decorative */}
-        <div className="fixed -right-20 top-40 opacity-10 pointer-events-none rotate-12">
-          <span className="material-symbols-outlined text-[300px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
-        </div>
 
         {/* Header */}
         <section className="w-full mb-12">

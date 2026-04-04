@@ -14,8 +14,6 @@ const HomeFeedStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) 
       nextLabel="Concluir"
     >
       <div className="text-center space-y-8 py-20 relative w-full">
-        <div className="absolute inset-0 -z-10 bg-nura-pattern opacity-10"></div>
-        
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
