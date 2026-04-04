@@ -46,10 +46,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     if (user) loadProfileStats();
   }, [user, profile]);
 
-  // Avatar upload handler
+  // Avatar upload handler - stores as base64 in profile directly
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert(language === 'pt' ? 'Por favor, selecione uma imagem válida.' : 'Please select a valid image.');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert(language === 'pt' ? 'A imagem deve ter no máximo 2MB.' : 'Image must be at most 2MB.');
+      return;
+    }
 
     setUploadingAvatar(true);
     try {
@@ -60,37 +72,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       reader.onloadend = async () => {
         const base64 = reader.result as string;
 
-        // Upload to Supabase Storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
+        console.log('[ProfileView] Image converted to base64, updating profile...');
 
-        // Convert base64 to blob
-        const response = await fetch(base64);
-        const blob = await response.blob();
-
-        const { error: uploadError } = await supabase.storage
-          .from('meal-photos')
-          .upload(filePath, blob, { upsert: true });
-
-        if (uploadError) {
-          console.error('[ProfileView] Upload error:', uploadError);
-          alert(language === 'pt' ? 'Erro ao fazer upload da foto.' : 'Error uploading photo.');
-          setUploadingAvatar(false);
-          return;
-        }
-
-        // Get public URL
-        const { data } = supabase.storage
-          .from('meal-photos')
-          .getPublicUrl(filePath);
-
-        console.log('[ProfileView] Avatar uploaded, URL:', data.publicUrl);
-
-        // Update profile with new avatar URL
+        // Update profile with new avatar URL (base64 data URI)
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ avatar_url: data.publicUrl })
+          .update({ avatar_url: base64 })
           .eq('id', user.id);
 
         if (updateError) {
@@ -98,9 +85,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           alert(language === 'pt' ? 'Erro ao atualizar perfil.' : 'Error updating profile.');
         } else {
           console.log('[ProfileView] Profile updated with new avatar');
-          // Reload profile to show new avatar
+          // Update local profile state immediately
           window.location.reload();
         }
+        setUploadingAvatar(false);
+      };
+      reader.onerror = () => {
+        console.error('[ProfileView] Failed to read file');
+        alert(language === 'pt' ? 'Erro ao processar imagem.' : 'Error processing image.');
         setUploadingAvatar(false);
       };
       reader.readAsDataURL(file);
