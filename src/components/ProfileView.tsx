@@ -9,6 +9,7 @@ import { GamificationService, GamificationStats } from '../services/gamification
 import { MealService } from '../services/mealService';
 import { supabase } from '../services/supabase';
 import { NotificationService } from '../services/notificationService';
+import { GeolocationService, LocationData } from '../services/geolocationService';
 
 interface ProfileViewProps {
   onNavClick: (view: AppView) => void;
@@ -40,6 +41,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
+  const [locationPermission, setLocationPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
+  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const watchLocationIdRef = React.useRef<number | null>(null);
 
   // Load stats when user OR profile changes
   useEffect(() => {
@@ -111,6 +116,128 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     };
     loadNotifStatus();
   }, []);
+
+  // Load user location from profile
+  useEffect(() => {
+    const loadUserLocation = async () => {
+      if (!user) return;
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('state, region, country')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.state) {
+          setCurrentLocation({
+            state: profile.state,
+            region: profile.region || undefined,
+            country: profile.country || 'BR',
+            latitude: 0,
+            longitude: 0,
+            timestamp: Date.now()
+          });
+          setLocationPermission('granted');
+        }
+      } catch (e) {
+        console.warn('⚠️ Erro ao carregar localização:', e);
+      }
+    };
+    loadUserLocation();
+  }, [user]);
+
+  // Cleanup watch on unmount
+  useEffect(() => {
+    return () => {
+      if (watchLocationIdRef.current !== null) {
+        GeolocationService.clearWatch(watchLocationIdRef.current);
+      }
+    };
+  }, []);
+
+  // Handler para solicitar permissão de localização
+  const handleLocationPermission = async () => {
+    if (!user || !GeolocationService.isSupported()) {
+      alert(language === 'pt'
+        ? 'Geolocalização não suportada neste navegador.'
+        : 'Geolocation not supported in this browser.');
+      return;
+    }
+
+    setLocationLoading(true);
+    try {
+      // Solicita permissão e obtém localização
+      const location = await GeolocationService.requestLocation();
+
+      // Atualiza estado local
+      setCurrentLocation(location);
+      setLocationPermission('granted');
+
+      // Salva no perfil do usuário
+      await GeolocationService.saveLocationToProfile(user.id, location, supabase);
+
+      // Inicia monitoramento contínuo (para detectar viagens)
+      if (watchLocationIdRef.current !== null) {
+        GeolocationService.clearWatch(watchLocationIdRef.current);
+      }
+
+      watchLocationIdRef.current = GeolocationService.watchLocation(
+        async (newLocation) => {
+          setCurrentLocation(newLocation);
+
+          // Se mudou de estado, atualiza no perfil
+          if (newLocation.state !== currentLocation?.state) {
+            await GeolocationService.saveLocationToProfile(user.id, newLocation, supabase);
+            console.log('📍 Estado alterado! Atualizado no perfil:', newLocation.state);
+          }
+        },
+        (error) => {
+          console.error('Erro ao monitorar localização:', error);
+        }
+      );
+
+      alert(language === 'pt'
+        ? `✅ Localização ativada!\n\n${GeolocationService.getLocationDisplay(location)}\n\nO Food Guide agora mostrará alimentos típicos da sua região.`
+        : `✅ Location enabled!\n\n${GeolocationService.getLocationDisplay(location)}\n\nThe Food Guide will now show foods typical of your region.`
+      );
+
+    } catch (error: any) {
+      console.error('Erro ao obter localização:', error);
+      setLocationPermission('denied');
+
+      alert(language === 'pt'
+        ? `❌ ${error.message}\n\nVocê pode ativar a localização nas configurações do navegador.`
+        : `❌ ${error.message}\n\nYou can enable location in your browser settings.`
+      );
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  // Handler para desativar localização
+  const handleDisableLocation = async () => {
+    // Para monitoramento
+    if (watchLocationIdRef.current !== null) {
+      GeolocationService.clearWatch(watchLocationIdRef.current);
+      watchLocationIdRef.current = null;
+    }
+
+    // Limpa localização do perfil
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ state: null, region: null })
+        .eq('id', user.id);
+    }
+
+    setCurrentLocation(null);
+    setLocationPermission('prompt');
+
+    alert(language === 'pt'
+      ? 'Localização desativada. O Food Guide mostrará alimentos nacionais.'
+      : 'Location disabled. The Food Guide will show national foods.'
+    );
+  };
 
   const loadProfileStats = async () => {
     if (!user) {
@@ -399,6 +526,110 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             >
               <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${notificationsEnabled ? 'translate-x-5' : ''}`}></div>
             </button>
+          </div>
+        </section>
+
+        {/* Location Permission Section */}
+        <section className="w-full px-6 mb-8">
+          <h3 className="text-nura-main dark:text-white text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-[18px]">location_on</span>
+            {language === 'pt' ? 'Localização' : 'Location'}
+          </h3>
+          <div className="bg-white dark:bg-[#1a2630] p-5 rounded-2xl shadow-sm border border-nura-border dark:border-gray-800 transition-colors">
+            {locationPermission === 'granted' && currentLocation ? (
+              // Localização ATIVA
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
+                      <p className="text-sm font-bold text-nura-main dark:text-white">
+                        {language === 'pt' ? 'Localização ativada' : 'Location enabled'}
+                      </p>
+                    </div>
+                    <p className="text-xs text-nura-muted dark:text-gray-400 mb-2">
+                      {GeolocationService.getLocationDisplay(currentLocation)}
+                    </p>
+                    {currentLocation.state && (
+                      <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[14px]">map</span>
+                        <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                          Região: {(currentLocation.region || '').charAt(0).toUpperCase() + (currentLocation.region || '').slice(1)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-nura-border/50 dark:border-gray-700">
+                  <p className="text-xs text-nura-muted dark:text-gray-400 mb-2">
+                    {language === 'pt'
+                      ? '💡 O Food Guide mostra alimentos típicos da sua região. Se viajar, os alimentos se atualizam automaticamente!'
+                      : '💡 The Food Guide shows foods typical of your region. If you travel, foods update automatically!'}
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleDisableLocation}
+                  className="w-full py-2.5 rounded-xl border border-red-200 dark:border-red-900/30 text-red-500 dark:text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[16px]">location_off</span>
+                  {language === 'pt' ? 'Desativar localização' : 'Disable location'}
+                </button>
+              </div>
+            ) : locationLoading ? (
+              // Carregando
+              <div className="flex flex-col items-center justify-center py-4 gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-nura-petrol dark:border-primary"></div>
+                <p className="text-sm text-nura-muted dark:text-gray-400">
+                  {language === 'pt' ? 'Obtendo localização...' : 'Getting location...'}
+                </p>
+              </div>
+            ) : (
+              // Localização INATIVA - pedir permissão
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[20px]">my_location</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-nura-main dark:text-white mb-1">
+                      {language === 'pt' ? 'Ativar localização automática' : 'Enable automatic location'}
+                    </p>
+                    <p className="text-xs text-nura-muted dark:text-gray-400 leading-relaxed">
+                      {language === 'pt'
+                        ? 'Permita o acesso à sua localização para receber sugestões de alimentos típicos da sua região. Se viajar, o app atualiza automaticamente!'
+                        : 'Allow access to your location to receive suggestions of foods typical of your region. If you travel, the app updates automatically!'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleLocationPermission}
+                  disabled={!GeolocationService.isSupported()}
+                  className="w-full py-2.5 rounded-xl bg-nura-petrol dark:bg-primary text-white text-sm font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="material-symbols-outlined text-[18px]">location_on</span>
+                  {language === 'pt' ? 'Permitir localização' : 'Allow location'}
+                </button>
+
+                {!GeolocationService.isSupported() && (
+                  <p className="text-xs text-center text-red-500 dark:text-red-400">
+                    {language === 'pt'
+                      ? '⚠️ Geolocalização não suportada neste navegador'
+                      : '⚠️ Geolocation not supported in this browser'}
+                  </p>
+                )}
+
+                {locationPermission === 'denied' && (
+                  <p className="text-xs text-center text-amber-600 dark:text-amber-400">
+                    {language === 'pt'
+                      ? '⚠️ Permissão negada. Ative nas configurações do navegador.'
+                      : '⚠️ Permission denied. Enable in browser settings.'}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </section>
 

@@ -66,29 +66,61 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
     const [mealCount, setMealCount] = useState(0);
     const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
     const [userRestrictions, setUserRestrictions] = useState<string[]>([]);
+    const [userRegion, setUserRegion] = useState<string>('');
 
     const DAILY_MEAL_TARGET = 4;
 
-    // Carregar restrições do usuário
+    // Carregar perfil completo do usuário (restrições + região + localização)
     useEffect(() => {
-        const loadUserRestrictions = async () => {
+        const loadUserProfile = async () => {
             if (!user) return;
             try {
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('dietary_restrictions')
+                    .select('dietary_restrictions, region, state, country')
                     .eq('id', user.id)
                     .single();
 
-                if (profile?.dietary_restrictions) {
-                    setUserRestrictions(profile.dietary_restrictions);
-                    console.log(` Restrições do usuário: ${profile.dietary_restrictions.join(', ')}`);
+                if (profile) {
+                    // Carregar restrições
+                    if (profile.dietary_restrictions) {
+                        setUserRestrictions(profile.dietary_restrictions);
+                        console.log(`🥗 Restrições do usuário: ${profile.dietary_restrictions.join(', ')}`);
+                    }
+
+                    // Carregar localização (prioriza estado se existir)
+                    // O estado pode vir da geolocalização GPS ou do perfil manual
+                    const location = profile.state || profile.region;
+                    if (location) {
+                        setUserRegion(location);
+                        const regionNames: Record<string, string> = {
+                            'norte': 'Norte',
+                            'nordeste': 'Nordeste',
+                            'centro-oeste': 'Centro-Oeste',
+                            'sudeste': 'Sudeste',
+                            'sul': 'Sul',
+                            'AC': 'Acre', 'AM': 'Amazonas', 'AP': 'Amapá', 'PA': 'Pará', 'RO': 'Rondônia', 'RR': 'Roraima', 'TO': 'Tocantins',
+                            'AL': 'Alagoas', 'BA': 'Bahia', 'CE': 'Ceará', 'MA': 'Maranhão', 'PB': 'Paraíba', 'PE': 'Pernambuco', 'PI': 'Piauí', 'RN': 'Rio Grande do Norte', 'SE': 'Sergipe',
+                            'DF': 'Distrito Federal', 'GO': 'Goiás', 'MS': 'Mato Grosso do Sul', 'MT': 'Mato Grosso',
+                            'ES': 'Espírito Santo', 'MG': 'Minas Gerais', 'RJ': 'Rio de Janeiro', 'SP': 'São Paulo',
+                            'PR': 'Paraná', 'RS': 'Rio Grande do Sul', 'SC': 'Santa Catarina'
+                        };
+                        const displayName = regionNames[location] || location;
+                        console.log(`📍 Localização do usuário: ${displayName}`);
+
+                        // Se tem estado (UF), é geolocalização GPS
+                        if (profile.state && profile.state.length === 2) {
+                            console.log('🛰️ Localização via GPS detectada!');
+                        }
+                    } else {
+                        console.log('📍 Nenhuma localização definida, mostrando alimentos nacionais');
+                    }
                 }
             } catch (e) {
-                console.warn('⚠️ Não foi possível carregar restrições:', e);
+                console.warn('⚠️ Não foi possível carregar perfil do usuário:', e);
             }
         };
-        loadUserRestrictions();
+        loadUserProfile();
     }, [user]);
 
     // Load foods when filters change
@@ -101,7 +133,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
             const dbTier = tierMap[budgetTier];
 
             console.log(`🔍 Carregando alimentos: categoria=${dbCategory}, tier=${dbTier}`);
-            const data = await FoodService.getFoodsByFilter(dbCategory, dbTier, userRestrictions);
+            const data = await FoodService.getFoodsByFilter(dbCategory, dbTier, userRestrictions, userRegion);
 
             console.log(`✅ ${data.length} alimentos carregados`);
             setFoods(data.map(mapDbToUi));
@@ -117,7 +149,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
         } finally {
             setLoading(false);
         }
-    }, [activeCategory, budgetTier, userRestrictions]);
+    }, [activeCategory, budgetTier, userRestrictions, userRegion]);
 
     useEffect(() => {
         loadFoods();
@@ -137,7 +169,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
         loadMealCount();
     }, [user]);
 
-    // Swap handler - agora respeita restrições do usuário
+    // Swap handler - agora respeita restrições E região do usuário
     const handleSwap = async (idx: number) => {
         const item = foods[idx];
         // Mark as swapping for animation
@@ -269,15 +301,40 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                     ))}
                 </div>
 
-                {/* Indicador de Restrições Ativas */}
-                {userRestrictions.length > 0 && (
-                    <div className="mb-6 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                        <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-[18px]">shield_person</span>
-                            <span className="text-xs font-semibold text-green-700 dark:text-green-300">
-                                Filtro ativo: {userRestrictions.join(', ')}
-                            </span>
-                        </div>
+                {/* Indicador de Filtros Ativos */}
+                {(userRestrictions.length > 0 || userRegion) && (
+                    <div className="mb-6 space-y-2">
+                        {/* Indicador de Localização/Região */}
+                        {userRegion && (
+                            <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[18px]">
+                                        {userRegion.length === 2 ? 'my_location' : 'location_on'}
+                                    </span>
+                                    <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                                        {userRegion.length === 2 ? '🛰️ GPS: ' : '📍 Região: '}
+                                        {userRegion.charAt(0).toUpperCase() + userRegion.slice(1)}
+                                    </span>
+                                    {userRegion.length === 2 && (
+                                        <span className="text-[10px] text-blue-500 dark:text-blue-400 ml-1">
+                                            (atualização automática)
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Indicador de Restrições */}
+                        {userRestrictions.length > 0 && (
+                            <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-[18px]">shield_person</span>
+                                    <span className="text-xs font-semibold text-green-700 dark:text-green-300">
+                                        Filtro ativo: {userRestrictions.join(', ')}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

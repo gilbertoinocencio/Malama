@@ -11,6 +11,7 @@ export interface FoodItem {
     quality_score?: number; // 1-4
     is_vegetarian?: boolean; // true se não contiver carne animal
     is_vegan?: boolean; // true se não contiver nenhum produto animal
+    regions?: string[]; // ['nacional', 'norte', 'nordeste', etc.]
 }
 
 // Alimentos que NÃO são vegetarianos (contêm carne/peixe)
@@ -103,6 +104,46 @@ export function filterFoodsByRestrictions(
     });
 }
 
+/**
+ * Filtra alimentos por região do Brasil
+ * Prioriza alimentos regionais + nacionais
+ */
+export function filterFoodsByRegion(
+    foods: FoodItem[],
+    userRegion?: string
+): FoodItem[] {
+    if (!userRegion || userRegion === 'nacional') {
+        return foods; // Sem região específica, retorna todos
+    }
+
+    const regionMap: Record<string, string> = {
+        'AC': 'norte', 'AM': 'norte', 'AP': 'norte', 'PA': 'norte', 'RO': 'norte', 'RR': 'norte', 'TO': 'norte',
+        'AL': 'nordeste', 'BA': 'nordeste', 'CE': 'nordeste', 'MA': 'nordeste', 'PB': 'nordeste',
+        'PE': 'nordeste', 'PI': 'nordeste', 'RN': 'nordeste', 'SE': 'nordeste',
+        'DF': 'centro-oeste', 'GO': 'centro-oeste', 'MS': 'centro-oeste', 'MT': 'centro-oeste',
+        'ES': 'sudeste', 'MG': 'sudeste', 'RJ': 'sudeste', 'SP': 'sudeste',
+        'PR': 'sul', 'RS': 'sul', 'SC': 'sul'
+    };
+
+    const normalizedRegion = regionMap[userRegion.toUpperCase()] || userRegion.toLowerCase();
+
+    return foods.filter(food => {
+        const foodRegions = food.regions || ['nacional'];
+
+        // Sempre inclui alimentos nacionais
+        if (foodRegions.includes('nacional')) {
+            return true;
+        }
+
+        // Inclui alimentos da região do usuário
+        if (foodRegions.includes(normalizedRegion)) {
+            return true;
+        }
+
+        return false;
+    });
+}
+
 export const FoodService = {
     async getFoods(): Promise<FoodItem[]> {
         const { data, error } = await supabase
@@ -119,7 +160,8 @@ export const FoodService = {
     async getFoodsByFilter(
         category: string,
         tier: string,
-        restrictions?: string[]
+        restrictions?: string[],
+        userRegion?: string
     ): Promise<FoodItem[]> {
         const { data, error } = await supabase
             .from('food_guide_items')
@@ -132,15 +174,23 @@ export const FoodService = {
             return [];
         }
 
+        let filteredFoods = data;
+
+        // Aplica filtro de região se fornecido
+        if (userRegion) {
+            console.log(`📍 Filtrando por região: ${userRegion}`);
+            filteredFoods = filterFoodsByRegion(filteredFoods, userRegion);
+            console.log(`✅ ${filteredFoods.length}/${data.length} alimentos após filtro regional`);
+        }
+
         // Aplica filtro de restrições se fornecido
         if (restrictions && restrictions.length > 0) {
             console.log(`🥗 Aplicando restrições: ${restrictions.join(', ')}`);
-            const filtered = filterFoodsByRestrictions(data, restrictions);
-            console.log(`✅ ${filtered.length}/${data.length} alimentos após filtro`);
-            return filtered;
+            filteredFoods = filterFoodsByRestrictions(filteredFoods, restrictions);
+            console.log(`✅ ${filteredFoods.length}/${data.length} alimentos após filtro de restrições`);
         }
 
-        return data;
+        return filteredFoods;
     },
 
     // Swap: get a random alternative from same category+tier, excluding current
