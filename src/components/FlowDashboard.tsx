@@ -280,11 +280,11 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
             <span className="absolute top-2 right-2 size-2 bg-nura-petrol dark:bg-primary rounded-full" />
           </button>
           <button
-            onClick={() => onNavClick(AppView.FEED)}
+            onClick={() => onNavClick(AppView.PROFILE)}
             className="flex items-center justify-center size-10 rounded-full bg-white dark:bg-surface-dark border border-nura-border dark:border-transparent hover:bg-nura-petrol-light dark:hover:bg-primary/10 transition-colors text-nura-petrol dark:text-primary shadow-sm dark:shadow-none"
-            title="Community Feed"
+            title="Perfil"
           >
-            <span className="material-symbols-outlined text-[20px]">groups</span>
+            <span className="material-symbols-outlined text-[20px]">person</span>
           </button>
           <button
             onClick={onToggleTheme}
