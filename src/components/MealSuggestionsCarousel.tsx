@@ -231,7 +231,7 @@ export const MealSuggestionsCarousel: React.FC<MealSuggestionsCarouselProps> = (
       </div>
 
       {/* Carousel */}
-      <div className="relative h-[420px] overflow-hidden">
+      <div className="relative h-[480px] overflow-hidden">
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={currentIndex}
@@ -250,9 +250,11 @@ export const MealSuggestionsCarousel: React.FC<MealSuggestionsCarouselProps> = (
             onDragEnd={(e, { offset, velocity }: PanInfo) => {
               handleSwipe(offset.x, velocity.x);
             }}
-            className="absolute w-full"
+            className="absolute w-full h-full"
           >
-            <MealCard suggestion={current} accepted={pendingLog?.id === current.id} />
+            <div className="h-full overflow-y-auto overflow-x-hidden pr-1 scrollbar-thin scrollbar-thumb-orange-300 dark:scrollbar-thumb-orange-700 scrollbar-track-transparent">
+              <MealCard suggestion={current} accepted={pendingLog?.id === current.id} />
+            </div>
           </motion.div>
         </AnimatePresence>
       </div>
@@ -365,13 +367,13 @@ const MealCard: React.FC<MealCardProps> = ({ suggestion, accepted }) => {
   };
 
   return (
-    <div className={`bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-lg border transition-colors space-y-4
+    <div className={`bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-lg border transition-colors
       ${accepted
         ? 'border-green-400 dark:border-green-600 ring-2 ring-green-300 dark:ring-green-700'
         : 'border-nura-border dark:border-gray-700'
       }`}>
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <span className="material-symbols-outlined text-orange-500 text-[20px]">
@@ -391,7 +393,7 @@ const MealCard: React.FC<MealCardProps> = ({ suggestion, accepted }) => {
             {suggestion.meal_name}
           </h4>
         </div>
-        <div className="text-right">
+        <div className="text-right ml-3 flex-shrink-0">
           <span className="text-xs text-nura-muted dark:text-gray-500">Horário</span>
           <p className="text-lg font-bold text-nura-petrol dark:text-primary">
             {suggestion.suggested_hour}
@@ -401,43 +403,43 @@ const MealCard: React.FC<MealCardProps> = ({ suggestion, accepted }) => {
 
       {/* Description */}
       {suggestion.description && (
-        <p className="text-sm text-nura-muted dark:text-gray-300 leading-relaxed">
+        <p className="text-sm text-nura-muted dark:text-gray-300 leading-relaxed mb-3">
           {suggestion.description}
         </p>
       )}
 
       {/* Macros */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-2 mb-3">
         <div className="bg-nura-pastel-orange/30 dark:bg-orange-900/20 rounded-xl p-2.5 text-center">
-          <span className="text-xs text-nura-muted dark:text-gray-500 block mb-0.5">Calorias</span>
+          <span className="text-[10px] text-nura-muted dark:text-gray-500 block mb-0.5">Calorias</span>
           <span className="text-base font-bold text-nura-main dark:text-white">{suggestion.calories}</span>
         </div>
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-2.5 text-center">
-          <span className="text-xs text-nura-muted dark:text-gray-500 block mb-0.5">Proteína</span>
+          <span className="text-[10px] text-nura-muted dark:text-gray-500 block mb-0.5">Proteína</span>
           <span className="text-base font-bold text-nura-main dark:text-white">{suggestion.protein}g</span>
         </div>
         <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-2.5 text-center">
-          <span className="text-xs text-nura-muted dark:text-gray-500 block mb-0.5">Carbs</span>
+          <span className="text-[10px] text-nura-muted dark:text-gray-500 block mb-0.5">Carbs</span>
           <span className="text-base font-bold text-nura-main dark:text-white">{suggestion.carbs}g</span>
         </div>
         <div className="bg-teal-50 dark:bg-teal-900/20 rounded-xl p-2.5 text-center">
-          <span className="text-xs text-nura-muted dark:text-gray-500 block mb-0.5">Gordura</span>
+          <span className="text-[10px] text-nura-muted dark:text-gray-500 block mb-0.5">Gordura</span>
           <span className="text-base font-bold text-nura-main dark:text-white">{suggestion.fats}g</span>
         </div>
       </div>
 
       {/* Ingredients */}
       {suggestion.ingredients && suggestion.ingredients.length > 0 && (
-        <div className="space-y-2">
-          <h5 className="text-sm font-bold text-nura-main dark:text-white flex items-center gap-2">
+        <div className="mb-3">
+          <h5 className="text-sm font-bold text-nura-main dark:text-white flex items-center gap-2 mb-2">
             <span className="material-symbols-outlined text-[18px]">shopping_basket</span>
             Ingredientes:
           </h5>
-          <ul className="grid grid-cols-2 gap-2">
+          <ul className="grid grid-cols-2 gap-x-2 gap-y-1.5">
             {suggestion.ingredients.map((ing: any, index: number) => (
               <li key={index} className="text-xs text-nura-muted dark:text-gray-300 flex items-start gap-1.5">
-                <span className="material-symbols-outlined text-orange-500 text-[14px] mt-0.5">check</span>
-                <span>
+                <span className="material-symbols-outlined text-orange-500 text-[14px] mt-0.5 flex-shrink-0">check</span>
+                <span className="leading-snug">
                   <span className="font-semibold">{ing.name}</span> - {ing.quantity}
                 </span>
               </li>
@@ -450,7 +452,7 @@ const MealCard: React.FC<MealCardProps> = ({ suggestion, accepted }) => {
       {suggestion.reasoning && (
         <div className="bg-nura-pastel-orange/20 dark:bg-primary/10 border border-orange-200 dark:border-orange-700 rounded-xl p-3">
           <div className="flex items-start gap-2">
-            <span className="material-symbols-outlined text-orange-500 text-[18px] mt-0.5">
+            <span className="material-symbols-outlined text-orange-500 text-[18px] mt-0.5 flex-shrink-0">
               lightbulb
             </span>
             <p className="text-xs text-nura-muted dark:text-gray-300 leading-relaxed">
