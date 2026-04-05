@@ -19,7 +19,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     { view: AppView.HOME, icon: 'home', label: t.nav.home, filled: true },
     { view: AppView.FOOD_GUIDE, icon: 'restaurant', label: t.nav.nutri, filled: true },
     { view: 'FAB', icon: 'add', label: '' },
-    { view: AppView.PLAN, icon: 'bar_chart', label: t.nav.data, filled: false },
+    { view: AppView.FEED, icon: 'groups', label: t.social.community || 'Feed', filled: true },
     { view: AppView.PROFILE, icon: 'person', label: t.nav.profile, filled: true },
   ];
 

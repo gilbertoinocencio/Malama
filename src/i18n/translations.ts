@@ -198,6 +198,14 @@ export interface Translations {
         feedTitle: string;
         noPosts: string;
         postNow: string;
+        createPost: string;
+        addComment: string;
+        comments: string;
+        noCommentsYet: string;
+        posting: string;
+        loadMore: string;
+        loading: string;
+        beFirstToShare: string;
     };
 
     // Hydration
@@ -553,6 +561,14 @@ export const translations: Record<Language, Translations> = {
             feedTitle: 'Flow Feed',
             noPosts: 'No posts yet. Be the first to share your flow!',
             postNow: 'Post Now',
+            createPost: 'Create Post',
+            addComment: 'Add a comment...',
+            comments: 'Comments',
+            noCommentsYet: 'No comments yet. Be the first!',
+            posting: 'Posting...',
+            loadMore: 'Load more',
+            loading: 'Loading...',
+            beFirstToShare: 'Be the first to share your flow!',
         },
         hydration: {
             title: 'Social Hydration',
@@ -887,6 +903,14 @@ export const translations: Record<Language, Translations> = {
             feedTitle: 'Feed do Flow',
             noPosts: 'Nenhum post ainda. Seja o primeiro a compartilhar seu flow!',
             postNow: 'Postar Agora',
+            createPost: 'Criar Post',
+            addComment: 'Adicione um comentário...',
+            comments: 'Comentários',
+            noCommentsYet: 'Nenhum comentário ainda. Seja o primeiro!',
+            posting: 'Postando...',
+            loadMore: 'Carregar mais',
+            loading: 'Carregando...',
+            beFirstToShare: 'Seja o primeiro a compartilhar seu flow!',
         },
         hydration: {
             title: 'Hidratação Social',
