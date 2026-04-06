@@ -741,6 +741,40 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
             <span className="material-symbols-outlined text-nura-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>
           </div>
+
+          {/* Teleconsulta */}
+          <div
+            onClick={() => onNavClick(AppView.AGENDAR_CONSULTA)}
+            className="w-full bg-gradient-to-r from-emerald-500/10 to-transparent dark:from-emerald-500/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-emerald-500/20 dark:border-emerald-500/20 cursor-pointer hover:bg-emerald-500/10 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm border border-nura-border dark:border-transparent">
+                <span className="material-symbols-outlined">videocam</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-nura-main dark:text-white">Teleconsulta médica</span>
+                <span className="text-xs text-nura-muted dark:text-gray-400">Agendar consulta com especialista</span>
+              </div>
+            </div>
+            <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+          </div>
+
+          {/* Minhas Consultas */}
+          <div
+            onClick={() => onNavClick(AppView.MINHAS_CONSULTAS)}
+            className="w-full bg-gradient-to-r from-nura-petrol/5 to-transparent dark:from-primary/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-nura-petrol/10 dark:border-primary/20 cursor-pointer hover:bg-nura-petrol/5 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-nura-petrol dark:text-primary shadow-sm border border-nura-border dark:border-transparent">
+                <span className="material-symbols-outlined">event_note</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-nura-main dark:text-white">Minhas consultas</span>
+                <span className="text-xs text-nura-muted dark:text-gray-400">Histórico, receitas e avaliações</span>
+              </div>
+            </div>
+            <span className="material-symbols-outlined text-nura-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>
+          </div>
         </section>
 
         {/* GLP-1 Program Banner */}

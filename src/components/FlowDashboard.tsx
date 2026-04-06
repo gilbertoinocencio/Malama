@@ -780,7 +780,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
             {/* GLP-1 Program Section — shown when active */}
             {profile?.glp1_mode && (
-              <GLP1Section onNavClick={onNavClick} />
+              <GLP1Section />
             )}
           </>
         ) : (

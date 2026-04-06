@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
-import { AppView } from '../types';
 
 interface GLP1SectionProps {
-  onNavClick: (view: AppView) => void;
+  className?: string;
 }
 
 interface WeightEntry {
@@ -49,7 +47,7 @@ const AI_TIPS: Record<string, string[]> = {
   ],
 };
 
-export const GLP1Section: React.FC<GLP1SectionProps> = ({ onNavClick }) => {
+export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
   const { profile, user, updateProfile } = useAuth();
   const [checkinSymptoms, setCheckinSymptoms] = useState<string[]>([]);
   const [checkinSaving, setCheckinSaving] = useState(false);
@@ -344,27 +342,6 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ onNavClick }) => {
                 <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-1">Dica do dia</p>
                 <p className="text-xs text-nura-main dark:text-white leading-relaxed">{dailyTip}</p>
               </div>
-            </div>
-          </div>
-
-          {/* Consultation CTA */}
-          <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-nura-petrol/10 dark:bg-primary/10 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-lg">videocam</span>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-nura-main dark:text-white">Teleconsulta</p>
-                  <p className="text-[10px] text-nura-muted dark:text-slate-500">Renova receita ou tira dúvidas</p>
-                </div>
-              </div>
-              <button
-                onClick={() => onNavClick(AppView.AGENDAR_CONSULTA)}
-                className="px-3 py-1.5 rounded-full bg-nura-main dark:bg-white text-white dark:text-nura-main text-[11px] font-bold hover:opacity-90 transition-opacity"
-              >
-                Agendar
-              </button>
             </div>
           </div>
 
