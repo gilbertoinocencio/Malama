@@ -12,6 +12,7 @@ import { DailyCheckinModal } from './DailyCheckinModal';
 import { DailyMealsList } from './DailyMealsList';
 import { getLocalDateString } from '../utils/dateUtils';
 import { getTodayConsultation, getDoctorMessage, getLatestGoalAdjustment } from '../lib/scheduling';
+import { GLP1Section } from './GLP1Section';
 
 interface FlowDashboardProps {
   stats: DailyStats;
@@ -776,6 +777,11 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               onDeleteMeal={onDeleteMeal}
               onEditMeal={onEditMeal}
             />
+
+            {/* GLP-1 Program Section — shown when active */}
+            {profile?.glp1_mode && (
+              <GLP1Section onNavClick={onNavClick} />
+            )}
           </>
         ) : (
           /* ——— WEEK/MONTH VIEW: Flow Score + Weekly Rhythm (Stitch hero) ——— */
