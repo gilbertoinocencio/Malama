@@ -1,0 +1,560 @@
+// =====================================================
+// NURA — Cadastro do Médico (4 etapas com stepper)
+// =====================================================
+
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { supabase } from '../../services/supabase';
+import { doctorService, storageService } from '../../services/doctorPortalService';
+import type { DoctorRegistrationFormData, DoctorSpecialty, ConsultationType } from '../../types/doctorPortal';
+import { BRAZILIAN_STATES, SPECIALTY_OPTIONS, CONSULTATION_TYPE_OPTIONS, ConsultationType as CT } from '../../types/doctorPortal';
+
+const MIN_CONSULTATION_PRICE = 80;
+
+export const DoctorRegistration: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [inviteData, setInviteData] = useState<{ email: string; doctorId: string } | null>(null);
+
+  const [formData, setFormData] = useState<DoctorRegistrationFormData>({
+    name: '',
+    email: '',
+    cpf: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    crm: '',
+    crmState: '',
+    specialty: '',
+    bio: '',
+    photo: null,
+    icpCertificate: null,
+    consultationPrice: MIN_CONSULTATION_PRICE,
+    consultationDuration: 30,
+    pixKey: '',
+    consultationTypes: [CT.INITIAL, CT.FOLLOW_UP]
+  });
+
+  const [errors, setErrors] = useState<Partial<Record<keyof DoctorRegistrationFormData, string>>>({});
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  // Verificar token de convite
+  useEffect(() => {
+    const inviteToken = searchParams.get('invite');
+    if (inviteToken) {
+      doctorService.getDoctorByInviteToken(inviteToken)
+        .then(doctor => {
+          if (doctor) {
+            setInviteData({ email: doctor.email, doctorId: doctor.id });
+            setFormData(prev => ({ ...prev, email: doctor.email }));
+            toast.success('Link de convite válido!');
+          } else {
+            toast.error('Link de convite inválido ou expirado');
+          }
+        })
+        .catch(() => {
+          toast.error('Link de convite inválido');
+        });
+    }
+  }, [searchParams]);
+
+  // Handlers de formulário
+  const updateField = (field: keyof DoctorRegistrationFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const formatCPF = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    return digits
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  };
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    return digits
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d)/, '$1-$2');
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, photo: 'Selecione uma imagem válida' }));
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, photo: 'Imagem deve ter no máximo 5MB' }));
+        return;
+      }
+      updateField('photo', file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Validação por etapa
+  const validateStep = (currentStep: number): boolean => {
+    const newErrors: Partial<Record<keyof DoctorRegistrationFormData, string>> = {};
+
+    if (currentStep === 1) {
+      if (!formData.name.trim()) newErrors.name = 'Nome é obrigatório';
+      if (!formData.email.trim()) newErrors.email = 'Email é obrigatório';
+      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email inválido';
+      if (!formData.cpf.trim() || formData.cpf.replace(/\D/g, '').length !== 11) newErrors.cpf = 'CPF inválido';
+      if (!formData.phone.trim() || formData.phone.replace(/\D/g, '').length !== 11) newErrors.phone = 'Telefone inválido';
+      if (formData.password.length < 8) newErrors.password = 'Senha deve ter no mínimo 8 caracteres';
+      if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Senhas não coincidem';
+    }
+
+    if (currentStep === 2) {
+      if (!formData.crm.trim()) newErrors.crm = 'CRM é obrigatório';
+      if (!formData.crmState) newErrors.crmState = 'Estado do CRM é obrigatório';
+      if (!formData.specialty) newErrors.specialty = 'Especialidade é obrigatória';
+      if (formData.bio.length > 300) newErrors.bio = 'Bio deve ter no máximo 300 caracteres';
+    }
+
+    if (currentStep === 4) {
+      if (formData.consultationPrice < MIN_CONSULTATION_PRICE) {
+        newErrors.consultationPrice = `Valor mínimo é R$ ${MIN_CONSULTATION_PRICE}`;
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const nextStep = () => {
+    if (validateStep(step)) {
+      setStep(prev => Math.min(prev + 1, 4));
+    }
+  };
+
+  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+
+  // Submit
+  const handleSubmit = async () => {
+    if (!validateStep(4)) return;
+
+    setLoading(true);
+    try {
+      // Criar conta de usuário
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+            role: 'doctor'
+          }
+        }
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Falha ao criar conta');
+
+      // Upload da foto
+      let photoUrl = null;
+      if (formData.photo) {
+        photoUrl = await storageService.uploadDoctorPhoto(formData.photo, authData.user.id);
+      }
+
+      // Upload do certificado
+      let certificateUrl = null;
+      if (formData.icpCertificate) {
+        certificateUrl = await storageService.uploadCertificate(formData.icpCertificate, authData.user.id);
+      }
+
+      // Criar registro do médico
+      await doctorService.createDoctor({
+        user_id: authData.user.id,
+        name: formData.name,
+        email: formData.email,
+        crm: formData.crm,
+        crm_state: formData.crmState,
+        specialty: formData.specialty,
+        bio: formData.bio || null,
+        photo_url: photoUrl,
+        icp_certificate_url: certificateUrl,
+        consultation_price: formData.consultationPrice,
+        consultation_duration: formData.consultationDuration,
+        pix_key: formData.pixKey || null,
+        invite_token: inviteData?.doctorId ? undefined : doctorService.generateInviteToken()
+      });
+
+      toast.success('Cadastro enviado com sucesso!');
+      navigate('/medico/cadastro/sucesso');
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Erro ao realizar cadastro');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Renderização das etapas
+  const renderStep1 = () => (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold text-gray-800">Dados Pessoais</h2>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
+        <input
+          type="text"
+          value={formData.name}
+          onChange={e => updateField('name', e.target.value)}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent`}
+          placeholder="Seu nome completo"
+        />
+        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+        <input
+          type="email"
+          value={formData.email}
+          onChange={e => updateField('email', e.target.value)}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent`}
+          placeholder="seu@email.com"
+          disabled={!!inviteData}
+        />
+        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">CPF *</label>
+          <input
+            type="text"
+            value={formData.cpf}
+            onChange={e => updateField('cpf', formatCPF(e.target.value))}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.cpf ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent`}
+            placeholder="000.000.000-00"
+          />
+          {errors.cpf && <p className="text-red-500 text-sm mt-1">{errors.cpf}</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Telefone *</label>
+          <input
+            type="text"
+            value={formData.phone}
+            onChange={e => updateField('phone', formatPhone(e.target.value))}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.phone ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent`}
+            placeholder="(00) 00000-0000"
+          />
+          {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Senha *</label>
+        <input
+          type="password"
+          value={formData.password}
+          onChange={e => updateField('password', e.target.value)}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent`}
+          placeholder="Mínimo 8 caracteres"
+        />
+        {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar Senha *</label>
+        <input
+          type="password"
+          value={formData.confirmPassword}
+          onChange={e => updateField('confirmPassword', e.target.value)}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent`}
+          placeholder="Repita a senha"
+        />
+        {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+      </div>
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold text-gray-800">Dados Profissionais</h2>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">CRM Número *</label>
+          <input
+            type="text"
+            value={formData.crm}
+            onChange={e => updateField('crm', e.target.value)}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.crm ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent`}
+            placeholder="000000"
+          />
+          {errors.crm && <p className="text-red-500 text-sm mt-1">{errors.crm}</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
+          <select
+            value={formData.crmState}
+            onChange={e => updateField('crmState', e.target.value)}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.crmState ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent`}
+          >
+            <option value="">UF</option>
+            {BRAZILIAN_STATES.map(uf => (
+              <option key={uf} value={uf}>{uf}</option>
+            ))}
+          </select>
+          {errors.crmState && <p className="text-red-500 text-sm mt-1">{errors.crmState}</p>}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Especialidade *</label>
+        <select
+          value={formData.specialty}
+          onChange={e => updateField('specialty', e.target.value)}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.specialty ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent`}
+        >
+          <option value="">Selecione...</option>
+          {SPECIALTY_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+        {errors.specialty && <p className="text-red-500 text-sm mt-1">{errors.specialty}</p>}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+        <textarea
+          value={formData.bio}
+          onChange={e => updateField('bio', e.target.value.slice(0, 300))}
+          rows={4}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.bio ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent resize-none`}
+          placeholder="Conte um pouco sobre sua experiência..."
+        />
+        <p className="text-xs text-gray-500 mt-1">{formData.bio.length}/300 caracteres</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Foto de Perfil</label>
+        <div className="flex items-center gap-4">
+          <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+            {photoPreview ? (
+              <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400 text-2xl">
+                {formData.name.charAt(0) || '👤'}
+              </div>
+            )}
+          </div>
+          <label className="cursor-pointer">
+            <span className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium inline-block">
+              Selecionar imagem
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+          </label>
+        </div>
+        {errors.photo && <p className="text-red-500 text-sm mt-1">{errors.photo}</p>}
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold text-gray-800">Certificado Digital</h2>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <strong>Necessário</strong> para emissão de receitas digitais com validade legal.
+        </p>
+        <a
+          href="https://www.gov.br/iti/pt-br"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-blue-600 hover:underline mt-2 inline-block"
+        >
+          Como obter seu certificado ICP-Brasil →
+        </a>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Arquivo .pfx ou .p12</label>
+        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+          <div className="text-center">
+            <p className="text-gray-500 text-sm">
+              {formData.icpCertificate ? formData.icpCertificate.name : 'Clique para selecionar'}
+            </p>
+          </div>
+          <input
+            type="file"
+            accept=".pfx,.p12"
+            onChange={e => updateField('icpCertificate', e.target.files?.[0] || null)}
+            className="hidden"
+          />
+        </label>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setStep(4)}
+        className="text-sm text-gray-500 hover:text-gray-700"
+      >
+        Pular esta etapa →
+      </button>
+    </div>
+  );
+
+  const renderStep4 = () => (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold text-gray-800">Configurações</h2>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Valor por Consulta (R$) *</label>
+        <input
+          type="number"
+          value={formData.consultationPrice}
+          onChange={e => updateField('consultationPrice', parseFloat(e.target.value) || 0)}
+          min={MIN_CONSULTATION_PRICE}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.consultationPrice ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent`}
+        />
+        {errors.consultationPrice && <p className="text-red-500 text-sm mt-1">{errors.consultationPrice}</p>}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Duração da Consulta</label>
+        <select
+          value={formData.consultationDuration}
+          onChange={e => updateField('consultationDuration', parseInt(e.target.value))}
+          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent"
+        >
+          <option value={20}>20 minutos</option>
+          <option value={30}>30 minutos</option>
+          <option value={45}>45 minutos</option>
+          <option value={60}>60 minutos</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Chave PIX</label>
+        <input
+          type="text"
+          value={formData.pixKey}
+          onChange={e => updateField('pixKey', e.target.value)}
+          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent"
+          placeholder="CPF, email, telefone ou chave aleatória"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Tipos de Consulta Oferecidos</label>
+        <div className="space-y-2">
+          {CONSULTATION_TYPE_OPTIONS.map(opt => (
+            <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.consultationTypes.includes(opt.value)}
+                onChange={e => {
+                  const types = e.target.checked
+                    ? [...formData.consultationTypes, opt.value]
+                    : formData.consultationTypes.filter(t => t !== opt.value);
+                  updateField('consultationTypes', types);
+                }}
+                className="w-4 h-4 text-[#2ECC71] border-gray-300 rounded focus:ring-[#2ECC71]"
+              />
+              <span className="text-sm text-gray-700">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-[#1A1A1A]">Nura</h1>
+          <p className="text-gray-600 mt-1">Portal do Médico</p>
+        </div>
+
+        {/* Stepper */}
+        <div className="flex items-center justify-center mb-8">
+          {[1, 2, 3, 4].map(s => (
+            <React.Fragment key={s}>
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold text-sm ${
+                s === step ? 'bg-[#2ECC71] text-white' :
+                s < step ? 'bg-[#2ECC71] text-white' :
+                'bg-gray-200 text-gray-600'
+              }`}>
+                {s < step ? '✓' : s}
+              </div>
+              {s < 4 && (
+                <div className={`w-12 h-1 ${s < step ? 'bg-[#2ECC71]' : 'bg-gray-200'}`} />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Formulário */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          {step === 1 && renderStep1()}
+          {step === 2 && renderStep2()}
+          {step === 3 && renderStep3()}
+          {step === 4 && renderStep4()}
+
+          {/* Botões */}
+          <div className="flex justify-between mt-8 pt-6 border-t">
+            {step > 1 ? (
+              <button
+                type="button"
+                onClick={prevStep}
+                className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                Voltar
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate('/medico')}
+                className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                Voltar ao login
+              </button>
+            )}
+
+            {step < 4 ? (
+              <button
+                type="button"
+                onClick={nextStep}
+                className="px-8 py-3 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium transition"
+              >
+                Próximo
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="px-8 py-3 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium transition disabled:opacity-50"
+              >
+                {loading ? 'Enviando...' : 'Enviar Cadastro'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

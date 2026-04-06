@@ -1,0 +1,387 @@
+// =====================================================
+// NURA — Portal do Médico: Tipos TypeScript
+// =====================================================
+
+export enum DoctorStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  SUSPENDED = 'suspended'
+}
+
+export enum DoctorSpecialty {
+  ENDOCRINOLOGISTA = 'Endocrinologista',
+  NUTROLOGO = 'Nutrólogo',
+  CLINICO_GERAL = 'Clínico Geral',
+  OUTRO = 'Outro'
+}
+
+export enum ConsultationStatus {
+  SCHEDULED = 'scheduled',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  NO_SHOW = 'no_show'
+}
+
+export enum ConsultationType {
+  INITIAL = 'initial',
+  FOLLOW_UP = 'follow_up',
+  PRESCRIPTION_RENEWAL = 'prescription_renewal'
+}
+
+export enum PaymentStatus {
+  PENDING = 'pending',
+  PAID = 'paid',
+  REFUNDED = 'refunded',
+  EXTERNAL = 'external'
+}
+
+export enum PrescriptionStatus {
+  ACTIVE = 'active',
+  EXPIRED = 'expired',
+  CANCELLED = 'cancelled'
+}
+
+export enum PayoutStatus {
+  PENDING = 'pending',
+  PAID = 'paid',
+  CANCELLED = 'cancelled'
+}
+
+export interface Doctor {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  crm: string;
+  crm_state: string;
+  specialty: DoctorSpecialty | string;
+  bio: string | null;
+  photo_url: string | null;
+  status: DoctorStatus;
+  icp_certificate_url: string | null;
+  consultation_price: number | null;
+  consultation_duration: number; // minutos
+  invite_token: string | null;
+  platform_fee_percent: number;
+  pix_key: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DoctorAvailability {
+  id: string;
+  doctor_id: string;
+  day_of_week: number; // 0=Dom, 1=Seg, ..., 6=Sáb
+  start_time: string; // HH:MM:SS
+  end_time: string; // HH:MM:SS
+  is_active: boolean;
+}
+
+export interface Consultation {
+  id: string;
+  doctor_id: string;
+  patient_id: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  status: ConsultationStatus;
+  type: ConsultationType;
+  price: number;
+  platform_fee: number;
+  doctor_payout: number;
+  payment_status: PaymentStatus;
+  payment_method: string | null;
+  room_id: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  rating: number | null; // 1-5
+  rating_comment: string | null;
+  notes: string | null;
+  created_at: string;
+  // Dados do paciente (joined)
+  patient_name?: string;
+  patient_photo?: string;
+  patient_age?: number;
+  patient_gender?: string;
+}
+
+export interface Prescription {
+  id: string;
+  consultation_id: string | null;
+  doctor_id: string;
+  patient_id: string;
+  medication: string;
+  dosage: string;
+  instructions: string;
+  validity_days: number;
+  issued_at: string;
+  expires_at: string | null;
+  pdf_url: string | null;
+  status: PrescriptionStatus;
+}
+
+export interface DoctorPlanAdjustment {
+  id: string;
+  consultation_id: string | null;
+  doctor_id: string;
+  patient_id: string;
+  calorie_goal: number | null;
+  protein_goal: number | null;
+  carb_goal: number | null;
+  fat_goal: number | null;
+  fiber_goal: number | null;
+  water_goal: number | null;
+  notes: string | null;
+  tag: string | null;
+  applied_at: string;
+}
+
+export interface DoctorMessage {
+  id: string;
+  consultation_id: string | null;
+  doctor_id: string;
+  patient_id: string;
+  message: string;
+  tag: string | null;
+  visible_until: string | null;
+  seen_at: string | null;
+  created_at: string;
+}
+
+export interface Payout {
+  id: string;
+  doctor_id: string;
+  amount: number;
+  period_start: string; // DATE
+  period_end: string; // DATE
+  consultations_count: number;
+  status: PayoutStatus;
+  pix_key: string | null;
+  paid_at: string | null;
+  created_at: string;
+}
+
+export interface PlatformSetting {
+  id: string;
+  key: string;
+  value: string;
+  updated_at: string;
+}
+
+export interface WebRTCSignal {
+  id: string;
+  room_id: string;
+  from_role: string;
+  type: string;
+  payload: Record<string, any>;
+  created_at: string;
+}
+
+// =====================================================
+// Tipos para formulários
+// =====================================================
+
+export interface DoctorRegistrationFormData {
+  // Etapa 1: Dados pessoais
+  name: string;
+  email: string;
+  cpf: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+
+  // Etapa 2: Dados profissionais
+  crm: string;
+  crmState: string;
+  specialty: DoctorSpecialty | string;
+  bio: string;
+  photo: File | null;
+
+  // Etapa 3: Certificado digital
+  icpCertificate: File | null;
+
+  // Etapa 4: Configurações
+  consultationPrice: number;
+  consultationDuration: number;
+  pixKey: string;
+  consultationTypes: ConsultationType[];
+}
+
+export interface AdminDoctorApprovalData {
+  doctorId: string;
+  platformFeePercent: number;
+  notes: string;
+}
+
+// =====================================================
+// Tipos para o dashboard
+// =====================================================
+
+export interface DashboardSummary {
+  todayConsultations: number;
+  weekConsultations: number;
+  pendingReceivable: number;
+}
+
+export interface PatientSummary {
+  id: string;
+  name: string;
+  photo_url: string | null;
+  lastConsultation: string | null;
+  nextConsultation: string | null;
+  imc: number | null;
+  age: number | null;
+  gender: string | null;
+  is_glp1_active: boolean;
+  glp1_phase: string | null;
+}
+
+export interface PatientFullProfile {
+  id: string;
+  name: string;
+  photo_url: string | null;
+  age: number | null;
+  gender: string | null;
+  imc: number | null;
+  imc_classification: string | null;
+  is_glp1_active: boolean;
+  glp1_phase: string | null;
+  glp1_medication: string | null;
+  current_weight: number | null;
+  weight_history: WeightEntry[];
+  current_goals: PatientGoals;
+  adherence: PatientAdherence;
+  weekly_history: WeeklyNutritionHistory[];
+  symptom_checkins: SymptomCheckin[];
+  past_consultations: Consultation[];
+  doctor_adjustments: DoctorPlanAdjustment[];
+}
+
+export interface WeightEntry {
+  date: string;
+  weight: number;
+  target_weight?: number;
+}
+
+export interface PatientGoals {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  water: number;
+  adjusted_by_doctor?: boolean;
+  doctor_name?: string;
+}
+
+export interface PatientAdherence {
+  registration_percentage: number; // 0-100
+  average_calories: number;
+  calorie_goal: number;
+  average_protein: number;
+  protein_goal: number;
+}
+
+export interface WeeklyNutritionHistory {
+  week_start: string;
+  week_end: string;
+  avg_calories: number;
+  avg_protein: number;
+  avg_carbs: number;
+  avg_fat: number;
+  adherence_percent: number;
+  avg_weight: number;
+}
+
+export interface SymptomCheckin {
+  id: string;
+  date: string;
+  symptoms: string[]; // 'náusea', 'fadiga', 'bem', etc.
+  mood: string | null;
+  energy: string | null;
+}
+
+// =====================================================
+// Tipos para Admin
+// =====================================================
+
+export interface AdminDashboardSummary {
+  approvedDoctors: number;
+  monthConsultations: number;
+  platformRevenue: number;
+  pendingPayouts: number;
+  pendingDoctors: Doctor[];
+}
+
+export interface FinancialSummary {
+  grossRevenue: number;
+  platformFee: number;
+  totalPaid: number;
+  pendingPayouts: number;
+}
+
+export interface PendingPayout {
+  id: string;
+  doctor_id: string;
+  doctor_name: string;
+  period_start: string;
+  period_end: string;
+  consultations_count: number;
+  gross_amount: number;
+  fee_percent: number;
+  fee_amount: number;
+  net_amount: number;
+  pix_key: string | null;
+  status: PayoutStatus;
+}
+
+// =====================================================
+// Utilitários
+// =====================================================
+
+export const BRAZILIAN_STATES = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+  'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+  'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+];
+
+export const CONSULTATION_TYPE_LABELS: Record<ConsultationType, string> = {
+  [ConsultationType.INITIAL]: 'Consulta inicial',
+  [ConsultationType.FOLLOW_UP]: 'Retorno / Correção de rota',
+  [ConsultationType.PRESCRIPTION_RENEWAL]: 'Renovação de receita'
+};
+
+export const CONSULTATION_TYPE_OPTIONS = [
+  { value: ConsultationType.INITIAL, label: 'Consulta inicial' },
+  { value: ConsultationType.FOLLOW_UP, label: 'Retorno / Correção de rota' },
+  { value: ConsultationType.PRESCRIPTION_RENEWAL, label: 'Renovação de receita' }
+];
+
+export const SPECIALTY_OPTIONS = [
+  { value: DoctorSpecialty.ENDOCRINOLOGISTA, label: 'Endocrinologista' },
+  { value: DoctorSpecialty.NUTROLOGO, label: 'Nutrólogo' },
+  { value: DoctorSpecialty.CLINICO_GERAL, label: 'Clínico Geral' },
+  { value: DoctorSpecialty.OUTRO, label: 'Outro' }
+];
+
+export const DAY_OF_WEEK_LABELS = [
+  'Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira',
+  'Quinta-feira', 'Sexta-feira', 'Sábado'
+];
+
+export const IMC_CLASSIFICATION = (imc: number): string => {
+  if (imc < 18.5) return 'Abaixo do peso';
+  if (imc < 24.9) return 'Peso normal';
+  if (imc < 29.9) return 'Sobrepeso';
+  if (imc < 34.9) return 'Obesidade Grau I';
+  if (imc < 39.9) return 'Obesidade Grau II';
+  return 'Obesidade Grau III';
+};
+
+export const IMC_COLOR = (imc: number): string => {
+  if (imc < 18.5) return '#3498db';
+  if (imc < 24.9) return '#2ecc71';
+  if (imc < 29.9) return '#f39c12';
+  if (imc < 34.9) return '#e67e22';
+  return '#e74c3c';
+};

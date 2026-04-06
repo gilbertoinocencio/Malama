@@ -16,16 +16,21 @@
     "framer-motion": "^12.34.0",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-confetti": "^6.4.0",
     "react-dom": "^19.2.3",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.14.0",
     "react-use": "^17.6.0",
-    "recharts": "^3.6.0"
+    "recharts": "^3.6.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@types/node": "^22.14.0",
+    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.27",
     "pdf-parse": "^1.1.1",

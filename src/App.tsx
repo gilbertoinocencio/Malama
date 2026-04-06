@@ -11,6 +11,7 @@ import { StatsService } from './services/statsService';
 import { NotificationService } from './services/notificationService';
 import { supabase } from './services/supabase';
 import { lazyRetry } from './utils/lazyRetry';
+import { AppRoutes } from './routes';
 
 // Lazy Load Non-Critical Views — lazyRetry auto-reloads on stale chunk errors
 const SocialFeed = React.lazy(() => lazyRetry(() => import('./components/SocialFeed'), 'SocialFeed'));
@@ -33,12 +34,39 @@ const Integrations = React.lazy(() => lazyRetry(() => import('./components/Integ
 const GLP1Onboarding = React.lazy(() => lazyRetry(() => import('./components/GLP1Onboarding'), 'GLP1Onboarding'));
 const GLP1Dashboard = React.lazy(() => lazyRetry(() => import('./components/GLP1Dashboard'), 'GLP1Dashboard'));
 const GLP1Consulta = React.lazy(() => lazyRetry(() => import('./components/GLP1Consulta'), 'GLP1Consulta'));
+const AgendarConsulta = React.lazy(() => lazyRetry(() => import('./components/AgendarConsulta'), 'AgendarConsulta'));
+const MinhasConsultas = React.lazy(() => lazyRetry(() => import('./components/MinhasConsultas'), 'MinhasConsultas'));
+const PatientConsultaPage = React.lazy(() => lazyRetry(() => import('./components/PatientConsultaPage'), 'PatientConsultaPage'));
+
+import type { Consultation } from './lib/scheduling';
+
 const App: React.FC = () => {
   const { user, profile, loading, profileLoading } = useAuth();
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [isPortalRoute, setIsPortalRoute] = useState(false);
+  const [videoConsultation, setVideoConsultation] = useState<Consultation | null>(null);
+
+  // Check if current path is a portal route (/medico/* or /admin/*)
+  useEffect(() => {
+    const checkPath = () => {
+      const path = window.location.pathname;
+      setIsPortalRoute(path.startsWith('/medico') || path.startsWith('/admin'));
+    };
+
+    checkPath();
+
+    // Listen for navigation events (popstate)
+    window.addEventListener('popstate', checkPath);
+    return () => window.removeEventListener('popstate', checkPath);
+  }, []);
+
+  // If on a portal route, render the AppRoutes component
+  if (isPortalRoute) {
+    return <AppRoutes />;
+  }
 
   // Default to false for the Original Light Mode Theme
   const [darkMode, setDarkMode] = useState(false);
@@ -343,6 +371,38 @@ const App: React.FC = () => {
         {view === AppView.GLP1_CONSULTA && (
           <GLP1Consulta
             onBack={() => setView(AppView.GLP1_DASHBOARD)}
+          />
+        )}
+
+        {/* Telemedicine — Real Scheduling Flow */}
+        {view === AppView.AGENDAR_CONSULTA && (
+          <AgendarConsulta
+            onBack={() => setView(AppView.GLP1_DASHBOARD)}
+            onBooked={(_c: Consultation) => setView(AppView.MINHAS_CONSULTAS)}
+            onNavigate={setView}
+          />
+        )}
+
+        {view === AppView.MINHAS_CONSULTAS && (
+          <MinhasConsultas
+            onBack={() => setView(AppView.PROFILE)}
+            onEnterConsulta={(c: Consultation) => {
+              setVideoConsultation(c);
+              setView(AppView.CONSULTA_VIDEO);
+            }}
+            onNavigate={setView}
+          />
+        )}
+
+        {view === AppView.CONSULTA_VIDEO && videoConsultation && (
+          <PatientConsultaPage
+            consultationId={videoConsultation.id}
+            roomId={videoConsultation.room_id}
+            doctorName={(videoConsultation.doctors as any)?.name || 'Médico'}
+            onEnd={() => {
+              setVideoConsultation(null);
+              setView(AppView.MINHAS_CONSULTAS);
+            }}
           />
         )}
 

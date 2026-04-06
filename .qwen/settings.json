@@ -5,7 +5,10 @@
       "Bash(select-object *)",
       "Bash(tasklist)",
       "Bash(select-string *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Read(c:\\Users\\DELL\\Downloads/**)",
+      "Bash(npm install *)",
+      "Bash(mkdir *)"
     ]
   },
   "$version": 3

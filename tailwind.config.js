@@ -125,6 +125,12 @@ export default {
         "journal-muted": "#78716C",
         "journal-border": "#DDD6CE",
         "journal-border-dark": "#2A3538",
+
+        // Doctor Portal Specific
+        "doctor-sidebar": "#1A1A1A",
+        "doctor-content": "#F8F9FA",
+        "doctor-accent": "#2ECC71",
+        "doctor-accent-hover": "#27ae60",
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',

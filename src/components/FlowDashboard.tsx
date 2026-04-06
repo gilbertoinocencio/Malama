@@ -11,6 +11,7 @@ import { TodayMissionsCard } from './TodayMissionsCard';
 import { DailyCheckinModal } from './DailyCheckinModal';
 import { DailyMealsList } from './DailyMealsList';
 import { getLocalDateString } from '../utils/dateUtils';
+import { getTodayConsultation, getDoctorMessage, getLatestGoalAdjustment } from '../lib/scheduling';
 
 interface FlowDashboardProps {
   stats: DailyStats;
@@ -58,6 +59,12 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   type InsightData = { consistencyChange: number | null; peakHour: number | null };
   const [insightData, setInsightData] = useState<InsightData>({ consistencyChange: null, peakHour: null });
 
+  // Telemedicine state
+  const [todayConsultation, setTodayConsultation] = useState<any>(null);
+  const [doctorMsg, setDoctorMsg] = useState<any>(null);
+  const [goalAdjustment, setGoalAdjustment] = useState<any>(null);
+  const [goalsToast, setGoalsToast] = useState<{ calorie_goal?: number; protein_goal?: number; doctor_name?: string } | null>(null);
+
   useEffect(() => {
     if (user) {
       loadGameStats();
@@ -73,6 +80,28 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
       setGameStats(result.stats);
     }
   };
+
+  // Load telemedicine data
+  useEffect(() => {
+    if (!user) return;
+    getTodayConsultation(user.id).then(setTodayConsultation).catch(() => {});
+    getDoctorMessage(user.id).then(setDoctorMsg).catch(() => {});
+    getLatestGoalAdjustment(user.id).then(setGoalAdjustment).catch(() => {});
+  }, [user]);
+
+  // Realtime goals sync
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`patient:${user.id}`)
+      .on('broadcast', { event: 'goals_updated' }, ({ payload }) => {
+        setGoalsToast(payload);
+        setTimeout(() => setGoalsToast(null), 6000);
+        getLatestGoalAdjustment(user.id).then(setGoalAdjustment).catch(() => {});
+      })
+      .subscribe();
+    return () => { channel.unsubscribe(); };
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -337,12 +366,104 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
         {period === 'day' ? (
           /* ——— DAY VIEW: Calorie Ring + Macros (original dashboard) ——— */
           <>
+            {/* Telemedicine: Today's Consultation Banner */}
+            {todayConsultation && (
+              <div className="px-6">
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-600 dark:to-teal-600 rounded-2xl p-4 flex items-center justify-between shadow-lg cursor-pointer"
+                  onClick={() => onNavClick(AppView.MINHAS_CONSULTAS)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white text-xl">videocam</span>
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-bold">
+                        Consulta hoje às {new Date(todayConsultation.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <p className="text-white/80 text-xs">{(todayConsultation.doctors as any)?.name || 'Médico'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 bg-white/20 px-3 py-1.5 rounded-full">
+                    <span className="text-white text-xs font-bold">Entrar</span>
+                    <span className="material-symbols-outlined text-white text-sm">arrow_forward</span>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
+            {/* Telemedicine: Doctor Message */}
+            {doctorMsg && (
+              <div className="px-6">
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-nura-border dark:border-transparent"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-lg">💪</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-nura-muted dark:text-slate-400 font-semibold">
+                        {(doctorMsg.doctors as any)?.name || 'Dr.'} disse:
+                      </p>
+                      <p className="text-sm text-nura-main dark:text-white mt-0.5 leading-relaxed">
+                        "{doctorMsg.message}"
+                      </p>
+                      <p className="text-[10px] text-nura-muted dark:text-slate-500 mt-1">
+                        {(() => {
+                          const diffMs = Date.now() - new Date(doctorMsg.created_at).getTime();
+                          const diffDays = Math.floor(diffMs / 86400000);
+                          return diffDays === 0 ? 'hoje' : diffDays === 1 ? 'há 1 dia' : `há ${diffDays} dias`;
+                        })()}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
+            {/* Realtime Goals Toast */}
+            {goalsToast && (
+              <div className="px-6">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700/50 rounded-2xl p-3 flex items-center gap-3"
+                >
+                  <span className="text-lg">✅</span>
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Metas atualizadas!</p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                      Dr. {goalsToast.doctor_name || 'Médico'} ajustou
+                      {goalsToast.calorie_goal ? ` calorias para ${goalsToast.calorie_goal}kcal` : ''}
+                      {goalsToast.calorie_goal && goalsToast.protein_goal ? ' e' : ''}
+                      {goalsToast.protein_goal ? ` proteína para ${goalsToast.protein_goal}g` : ''}
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
             {/* Today's Missions Card */}
             <div className="px-6">
               <TodayMissionsCard onNavClick={onNavClick} onFabClick={onFabClick} />
             </div>
 
-
+            {/* Goal Adjustment Badge */}
+            {goalAdjustment && (
+              <div className="px-6 -mt-4">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-full w-fit border border-emerald-200 dark:border-emerald-800/40">
+                  <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-sm">verified</span>
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+                    Metas ajustadas por {(goalAdjustment.doctors as any)?.name || 'seu médico'}
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="flex flex-col items-center justify-center px-6 py-4">
               <div className="relative size-64 rounded-full overflow-hidden">
                 <svg className="circular-chart transform -rotate-90 w-full h-full" viewBox="0 0 36 36">
