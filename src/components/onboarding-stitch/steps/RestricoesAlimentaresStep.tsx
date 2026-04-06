@@ -69,6 +69,21 @@ const RestricoesAlimentaresStep: React.FC<StepProps> = ({ data, updateData, onNe
           );
         })}
       </div>
+
+      {selected.length > 0 && (
+        <div className="w-full mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <label htmlFor="restrictionsDetail" className="block text-sm font-medium text-primary mb-2">
+            Especifique suas alergias ou restrições (Opcional)
+          </label>
+          <textarea
+            id="restrictionsDetail"
+            value={data.restrictionsDetail || ''}
+            onChange={(e) => updateData({ restrictionsDetail: e.target.value })}
+            placeholder="Ex: Alergia a frutos do mar, intolerância severa a lactose, não como carne de porco..."
+            className="w-full bg-surface-container-low border border-outline/30 rounded-xl p-4 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary min-h-[100px] resize-y transition-all"
+          />
+        </div>
+      )}
       
     </StepContainer>
   );

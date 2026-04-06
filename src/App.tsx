@@ -56,10 +56,18 @@ const App: React.FC = () => {
   // Notification Scheduler
   useEffect(() => {
     const interval = setInterval(() => {
-      NotificationService.checkReminders();
+      if (user && profile) {
+        NotificationService.checkReminders(user.id, {
+          meals_per_day: profile.meals_per_day,
+          eating_window_start: profile.eating_window_start,
+          eating_window_end: profile.eating_window_end,
+        });
+      } else {
+        NotificationService.checkReminders();
+      }
     }, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, []);
+  }, [user, profile]);
 
   const loadStats = async () => {
     if (!user || statsLoading) return;
@@ -104,7 +112,7 @@ const App: React.FC = () => {
     if (!user) return;
     const mealToDelete = meals.find(m => m.id === mealId);
     if (!mealToDelete) return;
-    
+
     // Optimistic Update
     setMeals(prev => prev.filter(m => m.id !== mealId));
     setStats(prev => ({
@@ -116,7 +124,7 @@ const App: React.FC = () => {
         fats: prev.macros.fats - mealToDelete.macros.fats,
       }
     }));
-    
+
     try {
       await MealService.deleteMeal(mealId, user.id);
     } catch (e) {

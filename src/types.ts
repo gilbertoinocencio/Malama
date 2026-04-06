@@ -115,5 +115,11 @@ export interface Profile {
   age?: number;
   gender?: string;
   body_fat?: number;
+  meals_per_day?: number;
+  eating_window_start?: string;
+  eating_window_end?: string;
   onboarding_completed?: boolean;
+  diet_type?: string;
+  dietary_restrictions?: string[];
+  dietary_restrictions_detail?: string;
 }

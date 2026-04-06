@@ -444,9 +444,11 @@ Responda APENAS com o JSON, sem texto adicional.
     const primaryGoal = goalMap[profile.primary_goal] || profile.primary_goal || profile.goal || 'Não definido';
     const gender = genderMap[profile.gender] || profile.gender || 'Não informado';
     const activityLevel = activityMap[profile.activity_level] || profile.activity_level || 'Não informado';
-    const restrictions = Array.isArray(profile.dietary_restrictions) && profile.dietary_restrictions.length > 0
+    const restrictionsList = Array.isArray(profile.dietary_restrictions) && profile.dietary_restrictions.length > 0
       ? profile.dietary_restrictions.join(', ')
       : 'Nenhuma';
+    const restrictionsDetail = profile.dietary_restrictions_detail ? ` (Detalhe: ${profile.dietary_restrictions_detail})` : '';
+    const restrictions = `${restrictionsList}${restrictionsDetail}`;
     const dietType = profile.diet_type || 'Variada';
     const additionalGoals = Array.isArray(profile.additional_goals) && profile.additional_goals.length > 0
       ? profile.additional_goals.join(', ')

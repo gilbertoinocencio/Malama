@@ -87,6 +87,18 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         muito_ativo: 'intense',
       };
 
+      // Parse eating window from reminderSchedule (format: "08:30 - 20:00")
+      let eatingWindowStart = '08:00';
+      let eatingWindowEnd = '20:00';
+      if (data.reminderSchedule) {
+        const [start, end] = data.reminderSchedule.split(' - ');
+        eatingWindowStart = start || '08:00';
+        eatingWindowEnd = end || '20:00';
+      } else if (data.eatingWindowStart && data.eatingWindowEnd) {
+        eatingWindowStart = data.eatingWindowStart;
+        eatingWindowEnd = data.eatingWindowEnd;
+      }
+
       await supabase.from('profiles').upsert({
         id: user.id,
         age: data.idade,
@@ -94,6 +106,11 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         height: data.altura,
         weight: data.peso,
         activity_level: activityMap[data.nivelAtividade ?? ''] ?? 'moderate',
+        meals_per_day: data.mealsPerDay || 3,
+        eating_window_start: eatingWindowStart,
+        eating_window_end: eatingWindowEnd,
+        dietary_restrictions: data.dietaryRestrictions || [],
+        dietary_restrictions_detail: data.restrictionsDetail || null,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       });

@@ -261,7 +261,7 @@ Você é um nutricionista criando sugestões de refeições PERSONALIZADAS para 
 **PERFIL DO USUÁRIO:**
 - 🎯 Objetivo: ${goal === 'aesthetic' ? 'Emagrecimento' : goal === 'performance' ? 'Performance/Ganho de Massa' : 'Saúde'}
 - 📊 Meta Diária: ${targetCalories} kcal | ${targetProtein}g proteína | ${targetCarbs}g carboidratos | ${targetFats}g gorduras
-- 🚫 Restrições: ${restrictions.length > 0 ? restrictions.join(', ') : 'Nenhuma'}
+- 🚫 Restrições: ${restrictions.length > 0 ? restrictions.join(', ') + (profile.dietary_restrictions_detail ? ` (Detalhes: ${profile.dietary_restrictions_detail})` : '') : 'Nenhuma'}
 - ❤️ Preferências: ${preferences.length > 0 ? preferences.join(', ') : 'Variado'}${contextInfo}
 
 **TAREFA:**

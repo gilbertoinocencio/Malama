@@ -25,6 +25,7 @@ export interface StitchOnboardingData extends Partial<Profile> {
   eatingLocation?: string;
   dietType?: string;
   dietaryRestrictions?: string[];
+  restrictionsDetail?: string;
 
   // Hidratação
   drinksEnoughWater?: string;

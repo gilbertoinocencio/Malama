@@ -67,17 +67,16 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
     const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
     const [userRestrictions, setUserRestrictions] = useState<string[]>([]);
     const [userRegion, setUserRegion] = useState<string>('');
+    const [dailyMealTarget, setDailyMealTarget] = useState(4);
 
-    const DAILY_MEAL_TARGET = 4;
-
-    // Carregar perfil completo do usuário (restrições + região + localização)
+    // Carregar perfil completo do usuário (restrições + região + localização + refeições por dia)
     useEffect(() => {
         const loadUserProfile = async () => {
             if (!user) return;
             try {
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('dietary_restrictions, region, state, country')
+                    .select('dietary_restrictions, region, state, country, meals_per_day')
                     .eq('id', user.id)
                     .single();
 
@@ -86,6 +85,12 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                     if (profile.dietary_restrictions) {
                         setUserRestrictions(profile.dietary_restrictions);
                         console.log(`🥗 Restrições do usuário: ${profile.dietary_restrictions.join(', ')}`);
+                    }
+
+                    // Carregar meta de refeições por dia
+                    if (profile.meals_per_day) {
+                        setDailyMealTarget(profile.meals_per_day);
+                        console.log(`🍽️ Meta de refeições do usuário: ${profile.meals_per_day}/dia`);
                     }
 
                     // Carregar localização (prioriza estado se existir)
@@ -493,7 +498,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                 >
                     <div className="flex flex-col items-start">
                         <span className="text-xs font-medium text-white/80 uppercase tracking-wider">{t.foodGuide.currentMeal}</span>
-                        <span className="text-lg font-bold">{mealCount}/{DAILY_MEAL_TARGET} {t.foodGuide.completed}</span>
+                        <span className="text-lg font-bold">{mealCount}/{dailyMealTarget} {t.foodGuide.completed}</span>
                     </div>
                     {/* Progress Ring */}
                     <div className="relative size-10 flex items-center justify-center">
@@ -509,7 +514,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                                 fill="none"
                                 stroke="white"
                                 strokeWidth="3"
-                                strokeDasharray={`${(mealCount / DAILY_MEAL_TARGET) * 100}, 100`}
+                                strokeDasharray={`${(mealCount / dailyMealTarget) * 100}, 100`}
                                 strokeLinecap="round"
                             />
                         </svg>
