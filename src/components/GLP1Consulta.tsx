@@ -117,8 +117,8 @@ export const GLP1Consulta: React.FC<GLP1ConsultaProps> = ({ onBack }) => {
       case 'specialty':
         return (
           <StepWrap key="specialty">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Escolhe a especialidade</h2>
-            <p className="text-sm text-gray-500 mb-6">Que tipo de médico preferes?</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Escolha a especialidade</h2>
+            <p className="text-sm text-gray-500 mb-6">Que tipo de médico você prefere?</p>
             <div className="space-y-3">
               {[
                 { id: 'Endocrinologista', emoji: '🩺', desc: 'Recomendado para GLP-1', badge: true },
@@ -186,7 +186,7 @@ export const GLP1Consulta: React.FC<GLP1ConsultaProps> = ({ onBack }) => {
       case 'schedule':
         return (
           <StepWrap key="schedule">
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Escolhe data e horário</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Escolha data e horário</h2>
             <p className="text-sm text-gray-500 mb-5">{selectedDoctor?.name}</p>
 
             {/* Date selector */}
@@ -278,7 +278,7 @@ export const GLP1Consulta: React.FC<GLP1ConsultaProps> = ({ onBack }) => {
             </div>
 
             <div className="bg-gray-50 rounded-2xl p-4 mb-4">
-              <p className="text-xs text-gray-500 font-semibold mb-2">Dados partilhados com o médico:</p>
+              <p className="text-xs text-gray-500 font-semibold mb-2">Dados compartilhados com o médico:</p>
               <div className="space-y-1.5 text-xs text-gray-600">
                 <p>📊 Histórico nutricional</p>
                 <p>⚖️ IMC e peso atual: {profile?.weight || '—'}kg</p>
@@ -298,7 +298,7 @@ export const GLP1Consulta: React.FC<GLP1ConsultaProps> = ({ onBack }) => {
               disabled={saving}
               className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
-              {saving ? 'A confirmar...' : 'Confirmar consulta — R$ 249'}
+              {saving ? 'Confirmando...' : 'Confirmar consulta — R$ 249'}
             </button>
           </StepWrap>
         );

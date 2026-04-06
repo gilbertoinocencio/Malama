@@ -24,13 +24,13 @@ const CONCERN_LABELS: Record<string, string> = {
   muscle_loss: 'Perder massa muscular',
   long_term: 'Manter resultado a longo prazo',
   what_to_eat: 'Saber o que comer',
-  side_effects: 'Gerir efeitos secundários',
+  side_effects: 'Lidar com efeitos colaterais',
 };
 
 const SYMPTOM_LABELS: Record<string, { emoji: string; label: string }> = {
   nausea: { emoji: '🤢', label: 'Náusea' },
   satiety: { emoji: '🍽️', label: 'Saciedade rápida' },
-  constipation: { emoji: '💣', label: 'Obstipação' },
+  constipation: { emoji: '💣', label: 'Constipação' },
   fatigue: { emoji: '😴', label: 'Fadiga' },
   reflux: { emoji: '🔥', label: 'Refluxo' },
   well: { emoji: '😊', label: 'Bem' },
@@ -39,21 +39,21 @@ const SYMPTOM_LABELS: Record<string, { emoji: string; label: string }> = {
 const AI_TIPS: Record<string, string[]> = {
   start: [
     'Nos primeiros dias, prioriza refeições pequenas e ricas em proteína para minimizar a náusea.',
-    'Come devagar e para quando sentires saciedade — o teu corpo está a adaptar-se.',
-    'Hidrata-te bem entre as refeições, não durante. Isto ajuda na digestão.',
-    'Evita alimentos muito gordurosos ou fritos — podem agravar a náusea inicial.',
+    'Coma devagar e pare quando sentir saciedade — seu corpo está se adaptando.',
+    'Beba água entre as refeições, não durante. Isso ajuda na digestão.',
+    'Evite alimentos muito gordurosos ou fritos — podem piorar a náusea inicial.',
   ],
   adjust: [
-    'Na fase de ajuste, mantém a proteína alta para preservar massa muscular.',
-    'Tenta distribuir a proteína por todas as refeições do dia.',
-    'Se sentires obstipação, aumenta o consumo de fibras e água.',
+    'Na fase de ajuste, mantenha a proteína alta para preservar massa muscular.',
+    'Tente distribuir a proteína por todas as refeições do dia.',
+    'Se sentir constipação, aumente o consumo de fibras e água.',
     'Caminhadas leves após as refeições ajudam na digestão.',
   ],
   maintain: [
-    'Na fase de manutenção, foca em consolidar os hábitos alimentares para manter o resultado.',
-    'Treino de força é essencial para manter a massa muscular durante a perda de peso.',
-    'Já podes experimentar porções ligeiramente maiores — observa como o teu corpo reage.',
-    'Planeia as refeições da semana para manter consistência.',
+    'Na fase de manutenção, foque em consolidar os hábitos alimentares para manter o resultado.',
+    'Treino de força é essencial para preservar massa muscular durante a perda de peso.',
+    'Você já pode experimentar porções um pouco maiores — observe como seu corpo reage.',
+    'Planeje as refeições da semana para manter a consistência.',
   ],
 };
 
@@ -160,7 +160,7 @@ export const GLP1Dashboard: React.FC<GLP1DashboardProps> = ({ onBack, onNavigate
       return (
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <span className="material-symbols-outlined text-gray-400 mb-2" style={{ fontSize: 40 }}>monitoring</span>
-          <p className="text-sm text-gray-500">Regista o teu peso no diário para ver a curva aqui.</p>
+          <p className="text-sm text-gray-500">Registre seu peso no diário para ver a curva aqui.</p>
         </div>
       );
     }
@@ -273,7 +273,7 @@ export const GLP1Dashboard: React.FC<GLP1DashboardProps> = ({ onBack, onNavigate
           <div className="grid grid-cols-2 gap-3">
             <GoalCard icon="🔥" label="Calorias" value={`${targets.calorieTarget} kcal`} sub="Déficit suave -300kcal" />
             <GoalCard icon="🥩" label="Proteína" value={`${targets.proteinTarget}g`} sub={`1,2g × ${weightKg}kg`} />
-            <GoalCard icon="🥬" label="Fibras" value={`${targets.fiberTarget}g/dia`} sub="Combate obstipação" />
+            <GoalCard icon="🥬" label="Fibras" value={`${targets.fiberTarget}g/dia`} sub="Combate constipação" />
             <GoalCard icon="💧" label="Hidratação" value={`${(targets.hydrationTarget / 1000).toFixed(1)}L`} sub={`35ml × ${weightKg}kg`} />
           </div>
         </motion.div>
@@ -289,12 +289,12 @@ export const GLP1Dashboard: React.FC<GLP1DashboardProps> = ({ onBack, onNavigate
           {checkinDone ? (
             <div className="text-center py-4">
               <span className="text-3xl">✅</span>
-              <p className="text-sm text-gray-600 mt-2">Check-in desta semana registado!</p>
+              <p className="text-sm text-gray-600 mt-2">Check-in desta semana registrado!</p>
               <p className="text-xs text-gray-400 mt-1">Próximo disponível em 7 dias</p>
             </div>
           ) : (
             <>
-              <p className="text-sm text-gray-500 mb-3">Como te sentiste esta semana?</p>
+              <p className="text-sm text-gray-500 mb-3">Como você se sentiu esta semana?</p>
               <div className="flex flex-wrap gap-2 mb-4">
                 {Object.entries(SYMPTOM_LABELS).map(([id, s]) => (
                   <button
@@ -315,7 +315,7 @@ export const GLP1Dashboard: React.FC<GLP1DashboardProps> = ({ onBack, onNavigate
                 disabled={checkinSymptoms.length === 0 || checkinSaving}
                 className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-40"
               >
-                {checkinSaving ? 'A registar...' : 'Registar'}
+                {checkinSaving ? 'Registrando...' : 'Registrar'}
               </button>
             </>
           )}

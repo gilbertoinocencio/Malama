@@ -97,7 +97,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
               </div>
               <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100 flex-1">
                 <p className="text-sm text-gray-700 leading-relaxed">
-                  Já ouviste falar nos medicamentos <strong>GLP-1</strong> para emagrecer?
+                  Você já ouviu falar nos medicamentos <strong>GLP-1</strong> para emagrecer?
                 </p>
               </div>
             </div>
@@ -125,8 +125,8 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
       case 'already_uses':
         return (
           <ScreenWrapper key="already_uses">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Qual medicamento estás a usar?</h2>
-            <p className="text-sm text-gray-500 mb-6">Seleciona o teu medicamento atual</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Qual medicamento você está usando?</h2>
+            <p className="text-sm text-gray-500 mb-6">Selecione seu medicamento atual</p>
             <div className="space-y-3">
               {['Ozempic', 'Wegovy', 'Mounjaro', 'Saxenda', 'Outro'].map(med => (
                 <button
@@ -148,8 +148,8 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
       case 'treatment_phase':
         return (
           <ScreenWrapper key="treatment_phase">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Em que fase do tratamento estás?</h2>
-            <p className="text-sm text-gray-500 mb-6">Isto ajuda-nos a personalizar as tuas metas</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Em que fase do tratamento você está?</h2>
+            <p className="text-sm text-gray-500 mb-6">Isso nos ajuda a personalizar suas metas</p>
             <div className="space-y-3">
               {[
                 { id: 'start' as const, emoji: '🌱', label: 'Início', desc: 'Menos de 1 mês, dose baixa' },
@@ -181,13 +181,13 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
       case 'symptoms':
         return (
           <ScreenWrapper key="symptoms">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Tens sentido algum destes efeitos?</h2>
-            <p className="text-sm text-gray-500 mb-6">Seleciona todos que se aplicam</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Você tem sentido algum desses efeitos?</h2>
+            <p className="text-sm text-gray-500 mb-6">Selecione todos que se aplicam</p>
             <div className="flex flex-wrap gap-2 mb-8">
               {[
                 { id: 'nausea', emoji: '🤢', label: 'Náusea' },
                 { id: 'satiety', emoji: '🍽️', label: 'Saciedade rápida' },
-                { id: 'constipation', emoji: '💣', label: 'Obstipação' },
+                { id: 'constipation', emoji: '💣', label: 'Constipação' },
                 { id: 'fatigue', emoji: '😴', label: 'Fadiga' },
                 { id: 'reflux', emoji: '🔥', label: 'Refluxo' },
                 { id: 'none', emoji: '✅', label: 'Nenhum' },
@@ -209,7 +209,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
               onClick={() => setScreen('main_concern')}
               className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors"
             >
-              Seguinte
+              Próximo
             </button>
           </ScreenWrapper>
         );
@@ -218,13 +218,13 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
         return (
           <ScreenWrapper key="main_concern">
             <h2 className="text-xl font-bold text-gray-900 mb-2">O que mais te preocupa no tratamento?</h2>
-            <p className="text-sm text-gray-500 mb-6">Vamos focar no que é mais importante para ti</p>
+            <p className="text-sm text-gray-500 mb-6">Vamos focar no que é mais importante para você</p>
             <div className="space-y-3">
               {[
                 { id: 'muscle_loss', emoji: '💪', label: 'Perder massa muscular' },
                 { id: 'long_term', emoji: '📈', label: 'Manter o resultado a longo prazo' },
                 { id: 'what_to_eat', emoji: '🥗', label: 'Saber o que comer' },
-                { id: 'side_effects', emoji: '😷', label: 'Gerir os efeitos secundários' },
+                { id: 'side_effects', emoji: '😷', label: 'Lidar com os efeitos colaterais' },
               ].map(c => (
                 <button
                   key={c.id}
@@ -251,11 +251,11 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
             <div className="flex flex-col items-center text-center pt-8">
               <span className="text-6xl mb-4">🎯</span>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Modo GLP-1 ativado!</h2>
-              <p className="text-sm text-gray-600 mb-8">O teu plano foi ajustado para suportar o teu tratamento.</p>
+              <p className="text-sm text-gray-600 mb-8">Seu plano foi ajustado para apoiar o seu tratamento.</p>
 
               <div className="w-full space-y-3 mb-8">
                 <InfoCard emoji="🥩" title="Meta proteína elevada" desc="Mínimo 1,2g por kg de peso corporal" />
-                <InfoCard emoji="📊" title="Dashboard de sintomas" desc="Regista os teus efeitos semanalmente" />
+                <InfoCard emoji="📊" title="Dashboard de sintomas" desc="Registre seus efeitos semanalmente" />
                 <InfoCard emoji="📋" title="Lembrete de renovação" desc="Receita válida 90 dias — avisamos antes" />
               </div>
 
@@ -264,7 +264,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
                 disabled={saving}
                 className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
               >
-                {saving ? 'A ativar...' : 'Começar com o Nura'}
+                {saving ? 'Ativando...' : 'Começar com o Nura'}
               </button>
             </div>
           </ScreenWrapper>
@@ -308,7 +308,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
               </div>
               <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100 flex-1">
                 <p className="text-sm text-gray-700 leading-relaxed">
-                  O Nura pode conectar-te com um <strong>médico especialista</strong> para avaliar o teu caso.
+                  O Nura pode te conectar com um <strong>médico especialista</strong> para avaliar o seu caso.
                 </p>
               </div>
             </div>
@@ -316,7 +316,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
               <h3 className="font-bold text-gray-900 text-sm mb-1">Consulta com médico parceiro</h3>
               <p className="text-xs text-gray-500 mb-4">
-                O teu histórico nutricional é partilhado automaticamente com o médico.
+                Seu histórico nutricional é compartilhado automaticamente com o médico.
               </p>
               <div className="space-y-2.5">
                 <FeatureRow icon="🎥" text="Videochamada dentro do app" />
@@ -337,8 +337,8 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
       case 'eligibility':
         return (
           <ScreenWrapper key="eligibility">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Já falaste com um médico sobre o GLP-1?</h2>
-            <p className="text-sm text-gray-500 mb-6">Isso ajuda-nos a guiar-te no melhor caminho</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Você já conversou com um médico sobre o GLP-1?</h2>
+            <p className="text-sm text-gray-500 mb-6">Isso nos ajuda a te guiar pelo melhor caminho</p>
             <div className="space-y-3">
               <OptionCard
                 emoji="📋"
@@ -363,7 +363,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
               </div>
               <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100 flex-1">
                 <p className="text-sm text-gray-700 leading-relaxed">
-                  Agenda uma consulta e descobre se o <strong>GLP-1</strong> é a opção certa para ti.
+                  Agende uma consulta e descubra se o <strong>GLP-1</strong> é a opção certa para você.
                 </p>
               </div>
             </div>
@@ -371,7 +371,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-4">
               <h3 className="font-bold text-gray-900 text-sm mb-3">O que está incluído:</h3>
               <div className="space-y-2.5">
-                <FeatureRow icon="🧾" text="Histórico Nura partilhado com o médico" />
+                <FeatureRow icon="🧾" text="Histórico Nura compartilhado com o médico" />
                 <FeatureRow icon="🎥" text="Videochamada 30 min com especialista" />
                 <FeatureRow icon="📋" text="Receita digital se indicado" />
                 <FeatureRow icon="🛡" text="Suporte nutricional no Nura após consulta" />
