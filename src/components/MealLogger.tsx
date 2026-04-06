@@ -284,7 +284,35 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageDates, setMessageDates] = useState<Record<string, string>>({});
-  const [draftMeal, setDraftMeal] = useState<AIResponse | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const draftPersistedRef = useRef(false); // true once initial history load is done
+
+  const { t, speechLang, language } = useLanguage();
+  const { user, profile } = useAuth();
+
+  // Restore draftMeal synchronously from localStorage on mount (prevents buttons disappearing on tab switch)
+  const [draftMeal, setDraftMeal] = useState<AIResponse | null>(() => {
+    if (!user) return null;
+    try {
+      const draftKey = `nura_draft_meal_${user.id}`;
+      const savedDraft = localStorage.getItem(draftKey);
+      if (savedDraft) {
+        const { meal, source, ts } = JSON.parse(savedDraft);
+        // Only restore if draft is less than 24 hours old
+        if (Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) {
+          return meal;
+        } else {
+          localStorage.removeItem(draftKey);
+        }
+      }
+    } catch {
+      localStorage.removeItem(`nura_draft_meal_${user?.id}`);
+    }
+    return null;
+  });
+
   const [editMode, setEditMode] = useState(false);
   const [editItems, setEditItems] = useState<MealItem[]>([]);
 
@@ -298,16 +326,22 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   // Barcode Scanner State
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
-  const [draftSource, setDraftSource] = useState<'chat' | 'photo' | 'barcode'>('chat');
+  const [draftSource, setDraftSource] = useState<'chat' | 'photo' | 'barcode'>(() => {
+    if (!user) return 'chat';
+    try {
+      const draftKey = `nura_draft_meal_${user.id}`;
+      const savedDraft = localStorage.getItem(draftKey);
+      if (savedDraft) {
+        const { source, ts } = JSON.parse(savedDraft);
+        if (Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) {
+          return source || 'chat';
+        }
+      }
+    } catch { /* ignore */ }
+    return 'chat';
+  });
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const draftPersistedRef = useRef(false); // true once initial history load is done
-
-  const { t, speechLang, language } = useLanguage();
-  const { user, profile } = useAuth();
-
-  // Load persistent chat history on mount
+  // Restore persistent chat history on mount (without re-setting draftMeal)
   useEffect(() => {
     if (!user) { setLoadingHistory(false); return; }
     UnifiedChatService.getChatHistory(user.id, 200).then((history) => {
@@ -321,24 +355,6 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       });
       setMessageDates(dates);
       setMessages(converted);
-
-      // Restore pending draft meal from localStorage (survives tab switches & nav away)
-      const draftKey = `nura_draft_meal_${user.id}`;
-      const savedDraft = localStorage.getItem(draftKey);
-      if (savedDraft) {
-        try {
-          const { meal, source, ts } = JSON.parse(savedDraft);
-          // Only restore if draft is less than 24 hours old
-          if (Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) {
-            setDraftMeal(meal);
-            setDraftSource(source || 'chat');
-          } else {
-            localStorage.removeItem(draftKey);
-          }
-        } catch {
-          localStorage.removeItem(draftKey);
-        }
-      }
       draftPersistedRef.current = true;
     }).catch(() => {
       // On error, start with empty chat
@@ -357,6 +373,30 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     }
     // Clearing is done explicitly in confirm/cancel to avoid race with unmount
   }, [draftMeal, draftSource, user]);
+
+  // Restore draftMeal from localStorage when tab becomes visible again (handles tab switch recovery)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user && !draftMeal) {
+        try {
+          const draftKey = `nura_draft_meal_${user.id}`;
+          const savedDraft = localStorage.getItem(draftKey);
+          if (savedDraft) {
+            const { meal, source, ts } = JSON.parse(savedDraft);
+            if (Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) {
+              setDraftMeal(meal);
+              setDraftSource(source || 'chat');
+            }
+          }
+        } catch {
+          if (user) localStorage.removeItem(`nura_draft_meal_${user.id}`);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user, draftMeal]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -949,8 +989,21 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   };
 
   const handleCancel = () => {
+    // Remove pending draft from localStorage
     if (user) localStorage.removeItem(`nura_draft_meal_${user.id}`);
+
+    // Remove the last ai-card message from chat (the pending nutritional analysis)
+    setMessages((prev: Message[]) => {
+      const lastCardIdx = [...prev].reverse().findIndex((m: Message) => m.type === 'ai-card');
+      if (lastCardIdx === -1) return prev; // No ai-card found
+      const idx = prev.length - 1 - lastCardIdx;
+      return prev.filter((_, i) => i !== idx);
+    });
+
+    // Clear draft state
     setDraftMeal(null);
+
+    // Close the MealLogger
     onClose();
   };
 
