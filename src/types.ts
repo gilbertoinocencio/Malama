@@ -77,7 +77,10 @@ export enum AppView {
   VISUAL_EVOLUTION = 'VISUAL_EVOLUTION',
   VISUAL_SHARE = 'VISUAL_SHARE',
   INTEGRATIONS = 'INTEGRATIONS',
-  FOOD_GUIDE = 'FOOD_GUIDE'
+  FOOD_GUIDE = 'FOOD_GUIDE',
+  GLP1_ONBOARDING = 'GLP1_ONBOARDING',
+  GLP1_DASHBOARD = 'GLP1_DASHBOARD',
+  GLP1_CONSULTA = 'GLP1_CONSULTA'
 }
 
 export type Theme = 'light' | 'dark';
@@ -122,4 +125,23 @@ export interface Profile {
   diet_type?: string;
   dietary_restrictions?: string[];
   dietary_restrictions_detail?: string;
+
+  // GLP-1 Module
+  glp1_mode?: boolean;
+  glp1_medication?: string;
+  glp1_phase?: 'start' | 'adjust' | 'maintain';
+  glp1_symptoms?: string[];
+  glp1_main_concern?: string;
+  glp1_start_date?: string;
+  glp1_prescription_expiry?: string;
+  glp1_weekly_checkins?: Array<{ date: string; symptoms: string[]; note?: string }>;
+  glp1_consultations?: Array<{
+    id: string;
+    doctor_name: string;
+    specialty: string;
+    date: string;
+    time: string;
+    status: 'scheduled' | 'completed' | 'cancelled';
+    price: number;
+  }>;
 }

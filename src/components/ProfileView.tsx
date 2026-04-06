@@ -743,6 +743,51 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </section>
 
+        {/* GLP-1 Program Banner */}
+        <section className="w-full px-6 mb-8">
+          {profile?.glp1_mode ? (
+            <div
+              onClick={() => onNavClick(AppView.GLP1_DASHBOARD)}
+              className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/20 rounded-2xl p-4 cursor-pointer hover:border-green-500/40 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="size-14 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors">
+                  <span className="text-2xl">💊</span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-nura-main dark:text-white font-bold text-sm">Programa GLP-1</h3>
+                    <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold rounded-full">Ativo</span>
+                  </div>
+                  <p className="text-nura-muted dark:text-gray-400 text-xs leading-relaxed">
+                    {profile.glp1_medication || 'GLP-1'} — {profile.glp1_phase === 'start' ? 'Início' : profile.glp1_phase === 'adjust' ? 'Ajuste' : 'Manutenção'}
+                  </p>
+                </div>
+                <span className="material-symbols-outlined text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
+              </div>
+            </div>
+          ) : (
+            <div
+              onClick={() => onNavClick(AppView.GLP1_ONBOARDING)}
+              className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/20 rounded-2xl p-4 cursor-pointer hover:border-green-500/40 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="size-14 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors">
+                  <span className="text-2xl">💊</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-nura-main dark:text-white font-bold text-sm mb-1">Programa GLP-1</h3>
+                  <p className="text-nura-muted dark:text-gray-400 text-xs leading-relaxed">Tratamento com acompanhamento nutricional personalizado</p>
+                </div>
+                <div className="flex items-center gap-1 bg-green-600 dark:bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0">
+                  Ativar
+                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Body Scan AI */}
         <section className="w-full px-6 mb-8">
           <div

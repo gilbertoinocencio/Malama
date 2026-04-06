@@ -30,6 +30,9 @@ const FlowAdaptation = React.lazy(() => lazyRetry(() => import('./components/Flo
 const VisualEvolution = React.lazy(() => lazyRetry(() => import('./components/VisualEvolution'), 'VisualEvolution'));
 const VisualShare = React.lazy(() => lazyRetry(() => import('./components/VisualShare'), 'VisualShare'));
 const Integrations = React.lazy(() => lazyRetry(() => import('./components/Integrations'), 'Integrations'));
+const GLP1Onboarding = React.lazy(() => lazyRetry(() => import('./components/GLP1Onboarding'), 'GLP1Onboarding'));
+const GLP1Dashboard = React.lazy(() => lazyRetry(() => import('./components/GLP1Dashboard'), 'GLP1Dashboard'));
+const GLP1Consulta = React.lazy(() => lazyRetry(() => import('./components/GLP1Consulta'), 'GLP1Consulta'));
 const App: React.FC = () => {
   const { user, profile, loading, profileLoading } = useAuth();
   const [view, setView] = useState<AppView>(AppView.HOME);
@@ -318,6 +321,28 @@ const App: React.FC = () => {
             onBack={() => setView(AppView.HOME)}
             onNavigate={setView}
             onMealLogged={handleLogMeal}
+          />
+        )}
+
+        {/* GLP-1 Module */}
+        {view === AppView.GLP1_ONBOARDING && (
+          <GLP1Onboarding
+            onComplete={() => setView(AppView.GLP1_DASHBOARD)}
+            onClose={() => setView(AppView.PROFILE)}
+            onNavigate={setView}
+          />
+        )}
+
+        {view === AppView.GLP1_DASHBOARD && (
+          <GLP1Dashboard
+            onBack={() => setView(AppView.PROFILE)}
+            onNavigate={setView}
+          />
+        )}
+
+        {view === AppView.GLP1_CONSULTA && (
+          <GLP1Consulta
+            onBack={() => setView(AppView.GLP1_DASHBOARD)}
           />
         )}
 
