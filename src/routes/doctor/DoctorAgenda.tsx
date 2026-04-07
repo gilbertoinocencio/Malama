@@ -25,6 +25,65 @@ export const DoctorAgenda: React.FC = () => {
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
+  // ---------- DRAG & DROP LOGIC ----------
+  const generateTimeSlots = () => {
+    const duration = doctor?.consultation_duration || 20; // Fallback para 20 se nulo
+    const slots: string[] = [];
+    const startMins = 7 * 60; // 07:00
+    const endMins = 21 * 60; // 21:00
+    
+    for (let m = startMins; m <= endMins; m += duration) {
+      const h = Math.floor(m / 60).toString().padStart(2, '0');
+      const mins = (m % 60).toString().padStart(2, '0');
+      slots.push(`${h}:${mins}`);
+    }
+    return slots;
+  };
+
+  const handleDragStart = (e: React.DragEvent, timeStr: string) => {
+    e.dataTransfer.setData('timeStr', timeStr);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault(); // Necessário para permitir o drop
+  };
+
+  const handleDrop = (e: React.DragEvent, day: number) => {
+    e.preventDefault();
+    const timeStr = e.dataTransfer.getData('timeStr');
+    if (!timeStr) return;
+
+    const duration = doctor?.consultation_duration || 20;
+    const [h, m] = timeStr.split(':').map(Number);
+    const endTotalMins = h * 60 + m + duration;
+    
+    const endH = Math.floor(endTotalMins / 60).toString().padStart(2, '0');
+    const endM = (endTotalMins % 60).toString().padStart(2, '0');
+    
+    const newSlot: DoctorAvailability = {
+      id: `temp-${Date.now()}-${Math.random()}`,
+      doctor_id: doctor!.id,
+      day_of_week: day,
+      start_time: `${timeStr}:00`,
+      end_time: `${endH}:${endM}:00`,
+      is_active: true
+    };
+
+    setAvailabilities(prev => {
+      // Impede duplicados no mesmo dia e mesma hora de inicio
+      if (prev[day]?.some(a => a.start_time === newSlot.start_time)) {
+        toast.error('Este horário já foi adicionado.');
+        return prev;
+      }
+      
+      const daySlots = [...(prev[day] || []), newSlot];
+      // Reordena do mais cedo para mais tarde
+      daySlots.sort((a, b) => a.start_time.localeCompare(b.start_time));
+      return { ...prev, [day]: daySlots };
+    });
+  };
+  // ----------------------------------------
+
   useEffect(() => {
     if (!doctor) return;
 
@@ -39,6 +98,8 @@ export const DoctorAgenda: React.FC = () => {
         const grouped: Record<number, DoctorAvailability[]> = {};
         for (let day = 0; day < 7; day++) {
           grouped[day] = availData.filter(a => a.day_of_week === day);
+          // Ordena
+          grouped[day].sort((a, b) => a.start_time.localeCompare(b.start_time));
         }
 
         setAvailabilities(grouped);
@@ -54,20 +115,6 @@ export const DoctorAgenda: React.FC = () => {
     loadData();
   }, [doctor, selectedDate]);
 
-  const addTimeSlot = (day: number) => {
-    setAvailabilities(prev => ({
-      ...prev,
-      [day]: [...prev[day], {
-        id: `temp-${Date.now()}`,
-        doctor_id: doctor!.id,
-        day_of_week: day,
-        start_time: '09:00:00',
-        end_time: '17:00:00',
-        is_active: true
-      }]
-    }));
-  };
-
   const removeTimeSlot = (day: number, id: string) => {
     if (!id.startsWith('temp-')) {
       setDeletedIds(prev => [...prev, id]);
@@ -75,13 +122,6 @@ export const DoctorAgenda: React.FC = () => {
     setAvailabilities(prev => ({
       ...prev,
       [day]: prev[day].filter(a => a.id !== id)
-    }));
-  };
-
-  const updateTime = (day: number, id: string, field: 'start_time' | 'end_time', value: string) => {
-    setAvailabilities(prev => ({
-      ...prev,
-      [day]: prev[day].map(a => a.id === id ? { ...a, [field]: value } : a)
     }));
   };
 
@@ -181,63 +221,69 @@ export const DoctorAgenda: React.FC = () => {
       <div className="bg-white rounded-xl shadow p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Disponibilidade Recorrente</h3>
 
-        <div className="flex overflow-x-auto pb-6 gap-4 snap-x touch-pan-x">
-          {[0, 1, 2, 3, 4, 5, 6].map(day => (
-            <div key={day} className="bg-gray-50/80 rounded-xl p-4 border border-gray-200 shadow-sm min-w-[280px] max-w-[300px] snap-start flex-shrink-0 flex flex-col h-full transition hover:border-[#2ECC71]/30">
-              <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-3">
-                <span className="font-bold text-gray-700">{DAY_OF_WEEK_LABELS[day]}</span>
-                <button
-                  onClick={() => addTimeSlot(day)}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-white text-[#2ECC71] hover:bg-[#2ECC71]/10 rounded-lg shadow-sm font-semibold transition"
-                  title="Adicionar Horário"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  + Horário
-                </button>
-              </div>
+        <p className="text-sm text-gray-500 mb-6">Selecione na paleta à esquerda e arraste os horários para a coluna do dia.</p>
 
-              <div className="flex-1 flex flex-col gap-3">
-                {availabilities[day]?.length === 0 ? (
-                  <div className="text-center py-8 bg-gray-100/50 rounded-lg border border-dashed border-gray-300 h-full flex flex-col items-center justify-center">
-                    <p className="text-sm text-gray-400 font-medium">Livre</p>
-                    <p className="text-xs text-gray-400 mt-1">Sem expedientes</p>
-                  </div>
-                ) : (
-                  <>
-                    {availabilities[day]?.map((avail) => (
-                      <div key={avail.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md hover:border-gray-300 transition group flex flex-col gap-2 relative">
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* Paleta de Horários */}
+          <div className="w-full lg:w-48 bg-white rounded-xl shadow-sm border border-gray-200 p-4 shrink-0 max-h-[500px] flex flex-col">
+            <div className="text-sm font-bold text-gray-700 mb-1 flex items-center justify-between">
+              Paleta
+              <span className="text-[10px] bg-[#2ECC71]/10 text-[#2ECC71] font-bold px-2 py-0.5 rounded-full">{doctor?.consultation_duration || 20} min</span>
+            </div>
+            <p className="text-xs text-gray-400 mb-4 pb-2 border-b border-gray-100">Arraste para os dias</p>
+            
+            <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-2 pr-1 custom-scrollbar">
+              {generateTimeSlots().map(time => (
+                <div
+                  key={time}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, time)}
+                  className="bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-xs text-center py-2 rounded cursor-grab active:cursor-grabbing hover:border-[#2ECC71] hover:text-[#2ECC71] hover:shadow-sm transition"
+                  title="Segure e arraste"
+                >
+                  {time}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Kanban Board */}
+          <div className="flex-1 w-full flex overflow-x-auto pb-4 gap-4 snap-x touch-pan-x">
+            {[0, 1, 2, 3, 4, 5, 6].map(day => (
+              <div 
+                key={day} 
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, day)}
+                className="bg-gray-50/80 rounded-xl p-3 border shadow-sm min-w-[200px] max-w-[220px] snap-start flex-shrink-0 flex flex-col h-full transition border-dashed border-gray-300 hover:border-[#2ECC71]/60"
+              >
+                <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-2 pointer-events-none">
+                  <span className="font-bold text-gray-700">{DAY_OF_WEEK_LABELS[day]}</span>
+                  <span className="text-xs font-semibold text-gray-400">{availabilities[day]?.length || 0} slots</span>
+                </div>
+
+                <div className="flex-1 flex flex-col gap-2 min-h-[200px]">
+                  {availabilities[day]?.length === 0 ? (
+                    <div className="text-center py-8 h-full flex flex-col items-center justify-center pointer-events-none opacity-50">
+                      <p className="text-sm font-medium text-gray-400">Solte horários aqui</p>
+                    </div>
+                  ) : (
+                    availabilities[day]?.map(avail => (
+                      <div key={avail.id} className="bg-white border text-center border-gray-200 rounded-md py-1.5 px-3 shadow-sm group flex items-center justify-between hover:border-[#2ECC71] transition">
+                        <div className="text-sm font-bold text-gray-700">{formatTime(avail.start_time)}</div>
                         <button 
                           onClick={() => removeTimeSlot(day, avail.id)}
-                          className="absolute right-2 top-2 p-1 text-gray-300 hover:text-white hover:bg-red-500 rounded-md transition opacity-0 group-hover:opacity-100"
+                          className="p-1 text-gray-300 hover:text-white hover:bg-red-500 rounded transition opacity-0 group-hover:opacity-100"
                           title="Remover horário"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
-                        
-                        <div className="text-xs font-semibold text-gray-500 mb-1">Turno</div>
-                        
-                        <div className="flex items-center gap-2 w-full pr-6">
-                          <input
-                            type="time"
-                            value={formatTime(avail.start_time)}
-                            onChange={e => updateTime(day, avail.id, 'start_time', e.target.value + ':00')}
-                            className="flex-1 px-2 py-1.5 bg-gray-50 rounded border border-gray-200 text-sm font-medium focus:ring-2 focus:ring-[#2ECC71] focus:bg-white text-center transition"
-                          />
-                          <span className="text-gray-400 text-xs font-bold">-</span>
-                          <input
-                            type="time"
-                            value={formatTime(avail.end_time)}
-                            onChange={e => updateTime(day, avail.id, 'end_time', e.target.value + ':00')}
-                            className="flex-1 px-2 py-1.5 bg-gray-50 rounded border border-gray-200 text-sm font-medium focus:ring-2 focus:ring-[#2ECC71] focus:bg-white text-center transition"
-                          />
-                        </div>
                       </div>
-                    ))}
-                  </>
-                )}
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <button
