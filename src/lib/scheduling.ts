@@ -114,29 +114,24 @@ export async function getAvailableSlots(
   console.log('  - Data:', date.toLocaleDateString('pt-BR'));
   console.log('  - Dia da semana:', days[dayOfWeek], `(${dayOfWeek})`);
 
-  // 1. Get doctor availability for this day
-  const { data: availability, error: availError } = await supabase
+  // 1. Get ALL doctor availabilities for this day (supports multiple slots)
+  const { data: availabilities, error: availError } = await supabase
     .from('doctor_availability')
     .select('*')
     .eq('doctor_id', doctorId)
     .eq('day_of_week', dayOfWeek)
-    .eq('is_active', true)
-    .maybeSingle();
+    .eq('is_active', true);
 
   if (availError) {
     console.error('❌ [scheduling.ts] Erro ao buscar disponibilidade:', availError);
   }
 
-  if (!availability) {
+  if (!availabilities || availabilities.length === 0) {
     console.warn(`⚠️  [scheduling.ts] NENHUMA disponibilidade para ${days[dayOfWeek]}`);
     return [];
   }
 
-  console.log('✅ [scheduling.ts] Disponibilidade encontrada:', {
-    start_time: availability.start_time,
-    end_time: availability.end_time,
-    day_of_week: availability.day_of_week
-  });
+  console.log(`✅ [scheduling.ts] ${availabilities.length} blocos de disponibilidade encontrados para ${days[dayOfWeek]}`);
 
   // 2. Get doctor info for duration
   const { data: doctor } = await supabase
@@ -168,21 +163,36 @@ export async function getAvailableSlots(
 
   console.log('📅 [scheduling.ts] Consultas existentes no dia:', booked?.length || 0);
 
-  // 4. Generate time slots
-  const slots = generateSlots(
-    availability.start_time,
-    availability.end_time,
-    duration,
-    booked || []
-  );
+  // 4. Generate time slots from EACH availability block and merge
+  const allSlots: TimeSlot[] = [];
+  const seenTimes = new Set<string>();
 
-  console.log('🕐 [scheduling.ts] Total de slots gerados:', slots.length);
-  console.log('   Slots disponíveis:', slots.filter(s => s.available).length);
+  for (const avail of availabilities) {
+    const blockSlots = generateSlots(
+      avail.start_time,
+      avail.end_time,
+      duration,
+      booked || []
+    );
+
+    for (const slot of blockSlots) {
+      if (!seenTimes.has(slot.time)) {
+        seenTimes.add(slot.time);
+        allSlots.push(slot);
+      }
+    }
+  }
+
+  // Sort chronologically
+  allSlots.sort((a, b) => a.time.localeCompare(b.time));
+
+  console.log('🕐 [scheduling.ts] Total de slots gerados:', allSlots.length);
+  console.log('   Slots disponíveis:', allSlots.filter(s => s.available).length);
 
   const isToday = new Date().toDateString() === date.toDateString();
   if (isToday) {
     const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
-    const filteredSlots = slots.map(s => {
+    const filteredSlots = allSlots.map(s => {
       const [h, m] = s.time.split(':').map(Number);
       return { ...s, available: s.available && (h * 60 + m) > nowMinutes };
     });
@@ -190,7 +200,7 @@ export async function getAvailableSlots(
     return filteredSlots;
   }
 
-  return slots;
+  return allSlots;
 }
 
 export async function bookConsultation(params: {
