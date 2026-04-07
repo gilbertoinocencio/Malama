@@ -164,13 +164,38 @@ export const availabilityService = {
 
   // Criar ou atualizar disponibilidade (upsert)
   async upsertAvailability(availabilities: DoctorAvailability[]): Promise<DoctorAvailability[]> {
-    const { data, error } = await supabase
-      .from('doctor_availability')
-      .upsert(availabilities, { onConflict: 'doctor_id,day_of_week,start_time,end_time' })
-      .select();
+    // Separar registros novos (sem id) e existentes (com id)
+    const newAvailabilities = availabilities.filter(a => !a.id || a.id.startsWith('temp-'));
+    const existingAvailabilities = availabilities.filter(a => a.id && !a.id.startsWith('temp-'));
 
-    if (error) throw error;
-    return data || [];
+    const results: DoctorAvailability[] = [];
+
+    // Inserir registros novos (sem id, o banco vai gerar automaticamente)
+    if (newAvailabilities.length > 0) {
+      const { id, ...rest } = newAvailabilities[0]; // Remove id do primeiro para exemplo
+      const toInsert = newAvailabilities.map(({ id, ...rest }) => rest);
+
+      const { data: insertedData, error: insertError } = await supabase
+        .from('doctor_availability')
+        .insert(toInsert)
+        .select();
+
+      if (insertError) throw insertError;
+      if (insertedData) results.push(...insertedData);
+    }
+
+    // Atualizar registros existentes
+    if (existingAvailabilities.length > 0) {
+      const { data: updatedData, error: updateError } = await supabase
+        .from('doctor_availability')
+        .upsert(existingAvailabilities, { onConflict: 'doctor_id,day_of_week,start_time,end_time' })
+        .select();
+
+      if (updateError) throw updateError;
+      if (updatedData) results.push(...updatedData);
+    }
+
+    return results;
   },
 
   // Deletar disponibilidade

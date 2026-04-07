@@ -73,12 +73,23 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
 
   useEffect(() => {
     if (selectedDoctor && selectedDate) {
+      console.log('🕒 [AgendarConsulta] Buscando horários para:', {
+        doctor: selectedDoctor.name,
+        date: selectedDate.toLocaleDateString('pt-BR')
+      });
       setLoadingSlots(true);
       setSlots([]);
       setSelectedSlot('');
       getAvailableSlots(selectedDoctor.id, selectedDate)
-        .then(setSlots)
-        .catch(console.error)
+        .then((result) => {
+          console.log('🕒 [AgendarConsulta] Horários recebidos:', result.length);
+          console.log('   Horários disponíveis:', result.filter(s => s.available).length);
+          console.table(result.filter(s => s.available).slice(0, 10));
+          setSlots(result);
+        })
+        .catch((err) => {
+          console.error('❌ [AgendarConsulta] Erro ao buscar horários:', err);
+        })
         .finally(() => setLoadingSlots(false));
     }
   }, [selectedDoctor, selectedDate]);
@@ -273,8 +284,8 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                           key={slot.time}
                           onClick={() => setSelectedSlot(slot.time)}
                           className={`py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${selectedSlot === slot.time
-                              ? 'border-green-500 bg-green-50 text-green-700'
-                              : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                            ? 'border-green-500 bg-green-50 text-green-700'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                             }`}
                         >
                           {slot.time}

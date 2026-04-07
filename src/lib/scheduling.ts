@@ -107,9 +107,15 @@ export async function getAvailableSlots(
   date: Date
 ): Promise<TimeSlot[]> {
   const dayOfWeek = date.getDay();
+  const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+  console.log('🕒 [scheduling.ts] Buscando horários disponíveis...');
+  console.log('  - Doctor ID:', doctorId);
+  console.log('  - Data:', date.toLocaleDateString('pt-BR'));
+  console.log('  - Dia da semana:', days[dayOfWeek], `(${dayOfWeek})`);
 
   // 1. Get doctor availability for this day
-  const { data: availability } = await supabase
+  const { data: availability, error: availError } = await supabase
     .from('doctor_availability')
     .select('*')
     .eq('doctor_id', doctorId)
@@ -117,7 +123,20 @@ export async function getAvailableSlots(
     .eq('is_active', true)
     .maybeSingle();
 
-  if (!availability) return [];
+  if (availError) {
+    console.error('❌ [scheduling.ts] Erro ao buscar disponibilidade:', availError);
+  }
+
+  if (!availability) {
+    console.warn(`⚠️  [scheduling.ts] NENHUMA disponibilidade para ${days[dayOfWeek]}`);
+    return [];
+  }
+
+  console.log('✅ [scheduling.ts] Disponibilidade encontrada:', {
+    start_time: availability.start_time,
+    end_time: availability.end_time,
+    day_of_week: availability.day_of_week
+  });
 
   // 2. Get doctor info for duration
   const { data: doctor } = await supabase
@@ -127,6 +146,7 @@ export async function getAvailableSlots(
     .single();
 
   const duration = doctor?.consultation_duration || 30;
+  console.log('⏱️  [scheduling.ts] Duração da consulta:', duration, 'minutos');
 
   // 3. Get already booked consultations
   const startOfDay = new Date(date);
@@ -134,7 +154,7 @@ export async function getAvailableSlots(
   const endOfDay = new Date(date);
   endOfDay.setHours(23, 59, 59, 999);
 
-  const { data: booked } = await supabase
+  const { data: booked, error: bookedError } = await supabase
     .from('consultations')
     .select('scheduled_at, duration_minutes')
     .eq('doctor_id', doctorId)
@@ -142,7 +162,13 @@ export async function getAvailableSlots(
     .lte('scheduled_at', endOfDay.toISOString())
     .not('status', 'in', '("cancelled","no_show")');
 
-  // 4. Filter out past slots if date is today
+  if (bookedError) {
+    console.error('❌ [scheduling.ts] Erro ao buscar consultas:', bookedError);
+  }
+
+  console.log('📅 [scheduling.ts] Consultas existentes no dia:', booked?.length || 0);
+
+  // 4. Generate time slots
   const slots = generateSlots(
     availability.start_time,
     availability.end_time,
@@ -150,13 +176,18 @@ export async function getAvailableSlots(
     booked || []
   );
 
+  console.log('🕐 [scheduling.ts] Total de slots gerados:', slots.length);
+  console.log('   Slots disponíveis:', slots.filter(s => s.available).length);
+
   const isToday = new Date().toDateString() === date.toDateString();
   if (isToday) {
     const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
-    return slots.map(s => {
+    const filteredSlots = slots.map(s => {
       const [h, m] = s.time.split(':').map(Number);
       return { ...s, available: s.available && (h * 60 + m) > nowMinutes };
     });
+    console.log('🕐 [scheduling.ts] Slots após filtro de horário atual:', filteredSlots.filter(s => s.available).length);
+    return filteredSlots;
   }
 
   return slots;
