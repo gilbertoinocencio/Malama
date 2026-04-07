@@ -183,45 +183,48 @@ export const DoctorAgenda: React.FC = () => {
 
         <div className="space-y-4">
           {[0, 1, 2, 3, 4, 5, 6].map(day => (
-            <div key={day} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-medium text-gray-800">{DAY_OF_WEEK_LABELS[day]}</span>
+            <div key={day} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm transition hover:border-[#2ECC71]/30">
+              <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
+                <span className="font-semibold text-gray-800">{DAY_OF_WEEK_LABELS[day]}</span>
                 <button
                   onClick={() => addTimeSlot(day)}
-                  className="flex items-center gap-1 text-sm text-[#2ECC71] hover:text-[#27ae60] font-medium"
+                  className="flex items-center gap-1 text-xs px-3 py-1.5 bg-[#2ECC71]/10 text-[#2ECC71] hover:bg-[#2ECC71]/20 rounded-full font-semibold transition"
                 >
-                  <Plus className="w-4 h-4" />
-                  Adicionar Horário
+                  <Plus className="w-3 h-3" />
+                  Adicionar
                 </button>
               </div>
 
               {availabilities[day]?.length === 0 ? (
-                <p className="text-sm text-gray-500 italic">Sem horários definidos.</p>
+                <div className="text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                  <p className="text-sm text-gray-400 font-medium tracking-wide">Livre (Nenhum horário definido)</p>
+                </div>
               ) : (
-                <div className="space-y-3">
+                <div className="flex flex-wrap gap-3">
                   {availabilities[day]?.map((avail) => (
-                    <div key={avail.id} className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
+                    <div key={avail.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-2 hover:shadow-sm transition group">
+                      <div className="flex items-center gap-1.5">
                         <input
                           type="time"
                           value={formatTime(avail.start_time)}
                           onChange={e => updateTime(day, avail.id, 'start_time', e.target.value + ':00')}
-                          className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71]"
+                          className="px-2 py-1 bg-white rounded border border-gray-300 text-xs font-medium focus:ring-1 focus:ring-[#2ECC71] w-20 text-center"
                         />
-                        <span className="text-gray-500 text-sm">até</span>
+                        <span className="text-gray-400 text-xs font-bold w-3 text-center">-</span>
                         <input
                           type="time"
                           value={formatTime(avail.end_time)}
                           onChange={e => updateTime(day, avail.id, 'end_time', e.target.value + ':00')}
-                          className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71]"
+                          className="px-2 py-1 bg-white rounded border border-gray-300 text-xs font-medium focus:ring-1 focus:ring-[#2ECC71] w-20 text-center"
                         />
                       </div>
                       
                       <button 
                         onClick={() => removeTimeSlot(day, avail.id)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                        className="p-1.5 text-gray-400 hover:text-white hover:bg-red-500 rounded-md transition opacity-50 group-hover:opacity-100"
+                        title="Remover horário"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
