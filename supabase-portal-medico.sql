@@ -390,9 +390,9 @@ CREATE TRIGGER update_platform_settings_updated_at
 -- 3. prescriptions-pdf (private)
 
 -- Políticas para o bucket doctors-photos
--- INSERT INTO storage.buckets (id, name, public) VALUES ('doctors-photos', 'doctors-photos', true);
--- INSERT INTO storage.buckets (id, name, public) VALUES ('doctors-certificates', 'doctors-certificates', false);
--- INSERT INTO storage.buckets (id, name, public) VALUES ('prescriptions-pdf', 'prescriptions-pdf', false);
+INSERT INTO storage.buckets (id, name, public) VALUES ('doctors-photos', 'doctors-photos', true);
+INSERT INTO storage.buckets (id, name, public) VALUES ('doctors-certificates', 'doctors-certificates', false);
+INSERT INTO storage.buckets (id, name, public) VALUES ('prescriptions-pdf', 'prescriptions-pdf', false);
 
 -- =====================================================
 -- FIM DO SCRIPT

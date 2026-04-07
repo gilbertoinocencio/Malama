@@ -9,6 +9,7 @@ import { supabase } from '../../services/supabase';
 import { doctorService, storageService } from '../../services/doctorPortalService';
 import type { DoctorRegistrationFormData, DoctorSpecialty, ConsultationType } from '../../types/doctorPortal';
 import { BRAZILIAN_STATES, SPECIALTY_OPTIONS, CONSULTATION_TYPE_OPTIONS, ConsultationType as CT } from '../../types/doctorPortal';
+import { NuraLogo } from '../../components/NuraLogo';
 
 const MIN_CONSULTATION_PRICE = 80;
 
@@ -485,19 +486,18 @@ export const DoctorRegistration: React.FC = () => {
       <div className="w-full max-w-2xl">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#1A1A1A]">Nura</h1>
-          <p className="text-gray-600 mt-1">Portal do Médico</p>
+          <NuraLogo size="lg" />
+          <p className="text-gray-600 mt-3 text-sm tracking-wide uppercase">Portal do Médico</p>
         </div>
 
         {/* Stepper */}
         <div className="flex items-center justify-center mb-8">
           {[1, 2, 3, 4].map(s => (
             <React.Fragment key={s}>
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold text-sm ${
-                s === step ? 'bg-[#2ECC71] text-white' :
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold text-sm ${s === step ? 'bg-[#2ECC71] text-white' :
                 s < step ? 'bg-[#2ECC71] text-white' :
-                'bg-gray-200 text-gray-600'
-              }`}>
+                  'bg-gray-200 text-gray-600'
+                }`}>
                 {s < step ? '✓' : s}
               </div>
               {s < 4 && (

@@ -9,7 +9,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Outfit', 'sans-serif'],
-        serif: ['Playfair Display', 'serif'],
+        serif: ['Cormorant Garamond', 'Playfair Display', 'Georgia', 'serif'],
         display: ['Manrope', 'sans-serif'],
         spline: ['Spline Sans', 'sans-serif'],
         libre: ['Libre Baskerville', 'serif'],

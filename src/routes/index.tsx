@@ -5,6 +5,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from '../components/ToastProvider';
+import { NuraLogo } from '../components/NuraLogo';
 
 // Guards
 import { DoctorRoute, AdminRoute, PublicDoctorRoute } from './guards';
@@ -37,10 +38,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Admin Header */}
       <header className="bg-[#1A1A1A] text-white px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-[#2ECC71]">Nura Admin</h1>
-            <p className="text-xs text-gray-400">Super Admin Panel</p>
-          </div>
+          <NuraLogo size="sm" />
           <nav className="flex gap-4">
             <a href="/admin/dashboard" className="text-sm hover:text-[#2ECC71] transition">Dashboard</a>
             <a href="/admin/medicos" className="text-sm hover:text-[#2ECC71] transition">Médicos</a>
@@ -63,7 +61,7 @@ export const AppRoutes: React.FC = () => {
       <ToastProvider>
         <Routes>
           {/* ==================== ROTAS DO MÉDICO ==================== */}
-          
+
           {/* Rotas públicas */}
           <Route
             path="/medico"
@@ -103,9 +101,9 @@ export const AppRoutes: React.FC = () => {
           </Route>
 
           {/* ==================== ROTAS DO ADMIN ==================== */}
-          
+
           <Route path="/admin" element={<AdminLogin />} />
-          
+
           <Route
             path="/admin/dashboard"
             element={
@@ -116,7 +114,7 @@ export const AppRoutes: React.FC = () => {
               </AdminGuard>
             }
           />
-          
+
           <Route
             path="/admin/medicos"
             element={
@@ -127,7 +125,7 @@ export const AppRoutes: React.FC = () => {
               </AdminGuard>
             }
           />
-          
+
           <Route
             path="/admin/financeiro"
             element={
@@ -138,7 +136,7 @@ export const AppRoutes: React.FC = () => {
               </AdminGuard>
             }
           />
-          
+
           <Route
             path="/admin/configuracoes"
             element={

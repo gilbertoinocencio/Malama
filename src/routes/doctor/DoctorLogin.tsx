@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '../../services/supabase';
 import { doctorService } from '../../services/doctorPortalService';
+import { NuraLogo } from '../../components/NuraLogo';
 
 export const DoctorLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -65,8 +66,8 @@ export const DoctorLogin: React.FC = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-[#1A1A1A]">Nura</h1>
-          <p className="text-gray-600 mt-2">Portal do Médico</p>
+          <NuraLogo size="xl" />
+          <p className="text-gray-600 mt-3 text-sm tracking-wide uppercase">Portal do Médico</p>
         </div>
 
         {/* Formulário */}

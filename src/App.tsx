@@ -63,15 +63,9 @@ const App: React.FC = () => {
     return () => window.removeEventListener('popstate', checkPath);
   }, []);
 
-  // If on a portal route, render the AppRoutes component
-  if (isPortalRoute) {
-    return <AppRoutes />;
-  }
-
-  // Default to false for the Original Light Mode Theme
+  // Handle Theme Toggle
   const [darkMode, setDarkMode] = useState(false);
 
-  // Handle Theme Toggle
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -195,6 +189,11 @@ const App: React.FC = () => {
       <div className="w-10 h-10 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
+
+  // If on a portal route, render the AppRoutes component
+  if (isPortalRoute) {
+    return <AppRoutes />;
+  }
 
   // Initial Auth Loading
   if (loading) {

@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '../../services/supabase';
+import { NuraLogo } from '../../components/NuraLogo';
 
 export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -48,8 +49,8 @@ export const AdminLogin: React.FC = () => {
     <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-[#1A1A1A]">Nura</h1>
-          <p className="text-gray-600 mt-2">Super Admin</p>
+          <NuraLogo size="xl" />
+          <p className="text-gray-600 mt-3 text-sm tracking-wide uppercase">Super Admin</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-8">

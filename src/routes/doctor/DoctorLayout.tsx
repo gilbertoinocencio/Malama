@@ -7,6 +7,7 @@ import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { doctorService } from '../../services/doctorPortalService';
 import type { Doctor } from '../../types/doctorPortal';
+import { NuraLogo } from '../../components/NuraLogo';
 import {
   LayoutDashboard,
   Calendar,
@@ -85,8 +86,7 @@ export const DoctorLayout: React.FC = () => {
       <aside className="hidden lg:flex flex-col w-64 bg-[#1A1A1A] text-white fixed h-full z-30">
         {/* Logo */}
         <div className="p-6 border-b border-gray-800">
-          <h1 className="text-2xl font-bold text-[#2ECC71]">Nura</h1>
-          <p className="text-xs text-gray-400 mt-1">Portal do Médico</p>
+          <NuraLogo size="md" />
         </div>
 
         {/* Menu */}
@@ -95,11 +95,10 @@ export const DoctorLayout: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${
-                isActive(item.path)
-                  ? 'bg-[#2ECC71] text-white'
-                  : 'text-gray-300 hover:bg-gray-800'
-              }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${isActive(item.path)
+                ? 'bg-[#2ECC71] text-white'
+                : 'text-gray-300 hover:bg-gray-800'
+                }`}
             >
               <item.icon className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
@@ -134,7 +133,7 @@ export const DoctorLayout: React.FC = () => {
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <aside className="relative w-64 h-full bg-[#1A1A1A] text-white">
             <div className="flex justify-between items-center p-4 border-b border-gray-800">
-              <h1 className="text-xl font-bold text-[#2ECC71]">Nura</h1>
+              <NuraLogo size="sm" />
               <button onClick={() => setSidebarOpen(false)}>
                 <X className="w-6 h-6" />
               </button>
@@ -146,11 +145,10 @@ export const DoctorLayout: React.FC = () => {
                   key={item.path}
                   to={item.path}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${
-                    isActive(item.path)
-                      ? 'bg-[#2ECC71] text-white'
-                      : 'text-gray-300 hover:bg-gray-800'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${isActive(item.path)
+                    ? 'bg-[#2ECC71] text-white'
+                    : 'text-gray-300 hover:bg-gray-800'
+                    }`}
                 >
                   <item.icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
@@ -178,7 +176,7 @@ export const DoctorLayout: React.FC = () => {
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="w-6 h-6 text-gray-600" />
           </button>
-          <h1 className="text-lg font-semibold text-gray-800">Nura</h1>
+          <NuraLogo size="sm" />
           <div className="w-8 h-8 rounded-full bg-[#2ECC71] flex items-center justify-center text-white font-semibold text-sm">
             {doctor?.name?.charAt(0) || 'D'}
           </div>
