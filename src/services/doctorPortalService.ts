@@ -716,14 +716,18 @@ export const patientService = {
       .limit(1);
 
     // Real data fetching: Profiles
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('display_name, avatar_url, age, gender, weight, height, goal, target_calories, target_protein, target_carbs, target_fats, glp1_mode, glp1_phase, glp1_medication')
       .eq('id', patientId)
       .single();
 
+    if (profileError) {
+       console.error("Erro ao buscar profile do paciente (RLS?):", profileError);
+    }
+
     // Check for active AI Nutritional Plan overriding profiles
-    const { data: activePlan } = await supabase
+    const { data: activePlan, error: planError } = await supabase
       .from('quarterly_plans')
       .select('content')
       .eq('user_id', patientId)
@@ -731,6 +735,13 @@ export const patientService = {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+
+    if (planError) {
+       console.error("Erro ao buscar quarterly_plans do paciente (RLS?):", planError);
+    }
+
+    console.log("🔥 [DEBUG DOCTOR] Profile fetched:", profile);
+    console.log("🔥 [DEBUG DOCTOR] Active Plan fetched:", activePlan);
 
     let cal = profile?.target_calories || 2000;
     let prot = profile?.target_protein || 100;
