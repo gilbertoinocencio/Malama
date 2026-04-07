@@ -3,8 +3,8 @@
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { Save, X, Trash2, AlertTriangle } from 'lucide-react';
+import { useOutletContext, useNavigate } from 'react-router-dom';
+import { Save, X, Trash2, AlertTriangle, Plus, Video, FileText, CheckCircle, Clock } from 'lucide-react';
 import { availabilityService, consultationService } from '../../services/doctorPortalService';
 import type { Doctor, DoctorAvailability, Consultation } from '../../types/doctorPortal';
 import { DAY_OF_WEEK_LABELS } from '../../types/doctorPortal';
@@ -12,11 +12,16 @@ import toast from 'react-hot-toast';
 
 export const DoctorAgenda: React.FC = () => {
   const { doctor } = useOutletContext<{ doctor: Doctor }>();
-  const [availabilities, setAvailabilities] = useState<DoctorAvailability[]>([]);
+  const navigate = useNavigate();
+  const [availabilities, setAvailabilities] = useState<Record<number, DoctorAvailability[]>>({});
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+  
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [dayConsultations, setDayConsultations] = useState<Consultation[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
@@ -30,28 +35,17 @@ export const DoctorAgenda: React.FC = () => {
           consultationService.getConsultationsByDay(doctor.id, selectedDate)
         ]);
 
-        // Preencher dias da semana
-        const fullAvail: DoctorAvailability[] = [];
+        // Agrupar disponibilidades por dia da semana
+        const grouped: Record<number, DoctorAvailability[]> = {};
         for (let day = 0; day < 7; day++) {
-          const existing = availData.find(a => a.day_of_week === day);
-          if (existing) {
-            fullAvail.push(existing);
-          } else {
-            fullAvail.push({
-              id: `temp-${day}`,
-              doctor_id: doctor.id,
-              day_of_week: day,
-              start_time: '09:00:00',
-              end_time: '17:00:00',
-              is_active: false
-            });
-          }
+          grouped[day] = availData.filter(a => a.day_of_week === day);
         }
 
-        setAvailabilities(fullAvail);
+        setAvailabilities(grouped);
         setDayConsultations(consultData);
       } catch (error) {
         console.error('Error loading agenda:', error);
+        toast.error('Erro ao carregar os dados da agenda.');
       } finally {
         setLoading(false);
       }
@@ -60,16 +54,35 @@ export const DoctorAgenda: React.FC = () => {
     loadData();
   }, [doctor, selectedDate]);
 
-  const toggleDayActive = (index: number) => {
-    setAvailabilities(prev =>
-      prev.map((a, i) => i === index ? { ...a, is_active: !a.is_active } : a)
-    );
+  const addTimeSlot = (day: number) => {
+    setAvailabilities(prev => ({
+      ...prev,
+      [day]: [...prev[day], {
+        id: `temp-${Date.now()}`,
+        doctor_id: doctor!.id,
+        day_of_week: day,
+        start_time: '09:00:00',
+        end_time: '17:00:00',
+        is_active: true
+      }]
+    }));
   };
 
-  const updateTime = (index: number, field: 'start_time' | 'end_time', value: string) => {
-    setAvailabilities(prev =>
-      prev.map((a, i) => i === index ? { ...a, [field]: value } : a)
-    );
+  const removeTimeSlot = (day: number, id: string) => {
+    if (!id.startsWith('temp-')) {
+      setDeletedIds(prev => [...prev, id]);
+    }
+    setAvailabilities(prev => ({
+      ...prev,
+      [day]: prev[day].filter(a => a.id !== id)
+    }));
+  };
+
+  const updateTime = (day: number, id: string, field: 'start_time' | 'end_time', value: string) => {
+    setAvailabilities(prev => ({
+      ...prev,
+      [day]: prev[day].map(a => a.id === id ? { ...a, [field]: value } : a)
+    }));
   };
 
   const handleSaveAvailability = async () => {
@@ -77,13 +90,44 @@ export const DoctorAgenda: React.FC = () => {
     setSaving(true);
 
     try {
-      const toSave = availabilities
-        .filter(a => a.is_active)
-        .map(({ id, ...rest }) => rest);
+      // Deletar os removidos
+      for (const id of deletedIds) {
+        await availabilityService.deleteAvailability(id);
+      }
+      setDeletedIds([]);
 
-      await availabilityService.upsertAvailability(toSave);
+      // Salvar (upsert) os atuais removendo os IDs temporários
+      const flatAvail: DoctorAvailability[] = [];
+      for (const day in availabilities) {
+        flatAvail.push(...availabilities[day]);
+      }
+
+      const toSave = flatAvail
+        .filter(a => a.is_active)
+        .map(a => {
+          if (a.id.startsWith('temp-')) {
+            const { id, ...rest } = a;
+            return rest;
+          }
+          return a;
+        }) as DoctorAvailability[];
+
+      if (toSave.length > 0) {
+        await availabilityService.upsertAvailability(toSave);
+      }
+      
       toast.success('Disponibilidade salva com sucesso!');
+      
+      // Recarregar os dados para ter os IDs reais
+      const availData = await availabilityService.getDoctorAvailability(doctor.id);
+      const grouped: Record<number, DoctorAvailability[]> = {};
+      for (let day = 0; day < 7; day++) {
+        grouped[day] = availData.filter(a => a.day_of_week === day);
+      }
+      setAvailabilities(grouped);
+
     } catch (error) {
+      console.error(error);
       toast.error('Erro ao salvar disponibilidade');
     } finally {
       setSaving(false);
@@ -91,7 +135,7 @@ export const DoctorAgenda: React.FC = () => {
   };
 
   const handleCancelConsultation = async () => {
-    if (!showCancelModal) return;
+    if (!showCancelModal || !doctor) return;
 
     try {
       await consultationService.cancelConsultation(showCancelModal, cancelReason);
@@ -99,11 +143,23 @@ export const DoctorAgenda: React.FC = () => {
       setShowCancelModal(null);
       setCancelReason('');
 
-      // Recarregar consultas do dia
-      const consultData = await consultationService.getConsultationsByDay(doctor!.id, selectedDate);
+      const consultData = await consultationService.getConsultationsByDay(doctor.id, selectedDate);
       setDayConsultations(consultData);
     } catch (error) {
       toast.error('Erro ao cancelar consulta');
+    }
+  };
+  
+  const handleNoShow = async (id: string) => {
+    if(!doctor) return;
+    try {
+      // Simplificação usando o método de cancelamento mas poderia ser um novo
+      await consultationService.cancelConsultation(id, 'Paciente não compareceu');
+      toast.success('Falta registrada');
+      const consultData = await consultationService.getConsultationsByDay(doctor.id, selectedDate);
+      setDayConsultations(consultData);
+    } catch (error) {
+      toast.error('Erro ao reportar falta');
     }
   };
 
@@ -125,36 +181,50 @@ export const DoctorAgenda: React.FC = () => {
       <div className="bg-white rounded-xl shadow p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Disponibilidade Recorrente</h3>
 
-        <div className="space-y-3">
-          {availabilities.map((avail, index) => (
-            <div key={avail.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-              <div className="w-32">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={avail.is_active}
-                    onChange={() => toggleDayActive(index)}
-                    className="w-4 h-4 text-[#2ECC71]"
-                  />
-                  <span className="text-sm font-medium text-gray-700">{DAY_OF_WEEK_LABELS[avail.day_of_week]}</span>
-                </label>
+        <div className="space-y-4">
+          {[0, 1, 2, 3, 4, 5, 6].map(day => (
+            <div key={day} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium text-gray-800">{DAY_OF_WEEK_LABELS[day]}</span>
+                <button
+                  onClick={() => addTimeSlot(day)}
+                  className="flex items-center gap-1 text-sm text-[#2ECC71] hover:text-[#27ae60] font-medium"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar Horário
+                </button>
               </div>
 
-              {avail.is_active && (
-                <div className="flex items-center gap-2 flex-1">
-                  <input
-                    type="time"
-                    value={formatTime(avail.start_time)}
-                    onChange={e => updateTime(index, 'start_time', e.target.value + ':00')}
-                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71]"
-                  />
-                  <span className="text-gray-500">até</span>
-                  <input
-                    type="time"
-                    value={formatTime(avail.end_time)}
-                    onChange={e => updateTime(index, 'end_time', e.target.value + ':00')}
-                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71]"
-                  />
+              {availabilities[day]?.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">Sem horários definidos.</p>
+              ) : (
+                <div className="space-y-3">
+                  {availabilities[day]?.map((avail) => (
+                    <div key={avail.id} className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="time"
+                          value={formatTime(avail.start_time)}
+                          onChange={e => updateTime(day, avail.id, 'start_time', e.target.value + ':00')}
+                          className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71]"
+                        />
+                        <span className="text-gray-500 text-sm">até</span>
+                        <input
+                          type="time"
+                          value={formatTime(avail.end_time)}
+                          onChange={e => updateTime(day, avail.id, 'end_time', e.target.value + ':00')}
+                          className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71]"
+                        />
+                      </div>
+                      
+                      <button 
+                        onClick={() => removeTimeSlot(day, avail.id)}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -164,60 +234,117 @@ export const DoctorAgenda: React.FC = () => {
         <button
           onClick={handleSaveAvailability}
           disabled={saving}
-          className="mt-4 px-6 py-3 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+          className="mt-6 w-full md:w-auto px-6 py-3 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
-          {saving ? 'Salvando...' : 'Salvar disponibilidade'}
+          {saving ? 'Salvando...' : 'Salvar disponibilidades'}
         </button>
       </div>
 
       {/* Seção 2: Calendário de consultas */}
       <div className="bg-white rounded-xl shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Consultas por Dia</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Consultas do Dia</h3>
 
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={e => setSelectedDate(e.target.value)}
-          className="px-4 py-2 rounded-lg border border-gray-300 mb-4 focus:ring-2 focus:ring-[#2ECC71]"
-        />
+        <div className="flex items-center gap-2 mb-6">
+          <Clock className="w-5 h-5 text-gray-400" />
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+            className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2ECC71] text-gray-700"
+          />
+        </div>
 
         {dayConsultations.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">Nenhuma consulta neste dia</p>
+          <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+            <p className="text-gray-500 font-medium">Nenhuma consulta agendada para esta data.</p>
+          </div>
         ) : (
-          <div className="space-y-3">
-            {dayConsultations.map(consult => (
-              <div key={consult.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-800">
-                    {new Date(consult.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                  <p className="text-sm text-gray-600">{consult.patient_name || 'Paciente'}</p>
-                  <span className="inline-block mt-1 px-2 py-0.5 bg-[#2ECC71]/10 text-[#2ECC71] text-xs rounded-full">
-                    {consult.type === 'initial' ? 'Inicial' : consult.type === 'follow_up' ? 'Retorno' : 'Renovação'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    consult.status === 'scheduled' ? 'bg-green-100 text-green-700' :
-                    consult.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {consult.status === 'scheduled' ? 'Agendada' : consult.status === 'cancelled' ? 'Cancelada' : consult.status}
-                  </span>
-
-                  {consult.status === 'scheduled' && (
-                    <button
-                      onClick={() => setShowCancelModal(consult.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+          <div className="grid gap-4">
+            {dayConsultations.map(consult => {
+              const isPaid = consult.payment_status === 'paid';
+              const isScheduled = consult.status === 'scheduled';
+              const isCancelled = consult.status === 'cancelled';
+              
+              return (
+                <div key={consult.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 bg-white border border-gray-100 shadow-sm rounded-xl hover:shadow-md transition">
+                  {/* Info Box */}
+                  <div className="flex-1 mb-4 md:mb-0">
+                    <div className="flex gap-3 items-center mb-1">
+                      <p className="font-bold text-gray-800 text-lg">
+                        {new Date(consult.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      
+                      {/* Pagamento Confirmado Badge */}
+                      {isPaid ? (
+                        <span className="flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full">
+                          <CheckCircle className="w-3 h-3" />
+                          Pagto Confirmado
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 bg-yellow-50 text-yellow-700 text-xs font-semibold rounded-full border border-yellow-100">
+                          Pagamento Pendente
+                        </span>
+                      )}
+                    </div>
+  
+                    <p className="text-md text-gray-700 font-medium">{consult.patient_name || 'Nome do Paciente'}</p>
+                    
+                    <div className="flex items-center gap-2 mt-2">
+                       <span className="inline-block px-2.5 py-1 bg-[#2ECC71]/10 text-[#2ECC71] text-xs font-medium rounded-full">
+                        {consult.type === 'initial' ? 'Inicial' : consult.type === 'follow_up' ? 'Retorno' : 'Renovação de Receita'}
+                      </span>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                        isScheduled ? 'bg-blue-50 text-blue-700' :
+                        isCancelled ? 'bg-red-50 text-red-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {isScheduled ? 'Agendada' : isCancelled ? 'Cancelada' : consult.status === 'no_show' ? 'Falta' : consult.status}
+                      </span>
+                    </div>
+                  </div>
+  
+                  {/* Actions Box */}
+                  {isScheduled && (
+                    <div className="flex flex-wrap items-center gap-2 justify-end w-full md:w-auto">
+                        <button
+                          onClick={() => navigate(`/medico/paciente/${consult.patient_id}`)}
+                          className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Ver Ficha
+                        </button>
+                         
+                        <button
+                          onClick={() => navigate(`/medico/consulta/${consult.id}`)}
+                          className="flex items-center gap-2 px-4 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg text-sm font-medium transition"
+                        >
+                          <Video className="w-4 h-4" />
+                          Iniciar Video
+                        </button>
+  
+                        <div className="w-full md:hidden"></div>
+  
+                        <button
+                          onClick={() => handleNoShow(consult.id)}
+                          className="p-2 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition tooltip"
+                          title="Reportar falta (No-show)"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+  
+                        <button
+                          onClick={() => setShowCancelModal(consult.id)}
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                          title="Cancelar consulta"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -265,3 +392,4 @@ export const DoctorAgenda: React.FC = () => {
     </div>
   );
 };
+
