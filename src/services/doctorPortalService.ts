@@ -866,6 +866,54 @@ export const patientService = {
       name: profile?.display_name || 'Paciente',
       photo_url: profile?.avatar_url || null,
       age: profile?.age || null,
+    // Fetch recent daily checkins
+    const { data: checkins } = await supabase
+      .from('daily_checkins')
+      .select('checkin_date, symptoms, mood, energy_level')
+      .eq('user_id', patientId)
+      .order('checkin_date', { ascending: false })
+      .limit(30);
+
+    const moodScale: Record<number, string> = { 1: 'Péssimo', 2: 'Ruim', 3: 'Neutro', 4: 'Bom', 5: 'Excelente' };
+    const energyScale: Record<number, string> = { 1: 'Exgotado', 2: 'Baixa', 3: 'Média', 4: 'Boa', 5: 'Alta' };
+
+    const formattedCheckins = (checkins || []).map(c => {
+      // Parse symptoms safely from JSON array or standard array
+      const s = c.symptoms || [];
+      const symptomList = Array.isArray(s) ? s : (typeof s === 'string' ? JSON.parse(s) : Object.keys(s));
+
+      const [year, month, day] = (c.checkin_date || '').split('-');
+      const formattedDate = day && month ? `${day}/${month}/${year}` : c.checkin_date;
+
+      return {
+        date: formattedDate,
+        symptoms: symptomList,
+        mood: c.mood ? moodScale[c.mood] || String(c.mood) : undefined,
+        energy: c.energy_level ? energyScale[c.energy_level] || String(c.energy_level) : undefined
+      };
+    });
+
+    return {
+      id: patientId,
+      name: profile?.display_name || 'Paciente',
+      photo_url: profile?.avatar_url || null,
+      age: profile?.age || null,
+      gender: profile?.gender || null,
+      imc,
+      imc_classification,
+      is_glp1_active: profile?.glp1_mode || false,
+      glp1_phase: profile?.glp1_phase || null,
+      glp1_medication: profile?.glp1_medication || null,
+      current_weight: profile?.weight || null,
+      weight_history: [],
+      current_goals: {
+        calories: cal,
+        protein: prot,
+        carbs: carb,
+        fat: fat,
+        fiber: 25,
+        water: water
+      },
       gender: profile?.gender || null,
       imc,
       imc_classification,
@@ -890,7 +938,7 @@ export const patientService = {
         protein_goal: prot
       },
       weekly_history: weekly_history,
-      symptom_checkins: [],
+      symptom_checkins: formattedCheckins,
       past_consultations: consultations || [],
       doctor_adjustments: adjustments || []
     };
