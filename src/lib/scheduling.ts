@@ -27,7 +27,7 @@ export interface Consultation {
   doctor_id: string;
   scheduled_at: string;
   duration_minutes: number;
-  consultation_type: 'initial' | 'followup' | 'prescription_renewal';
+  type: 'initial' | 'followup' | 'prescription_renewal';
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
   room_id: string;
   price: number;
@@ -251,7 +251,7 @@ export async function bookConsultation(params: {
       doctor_id: doctorId,
       scheduled_at: scheduledAt.toISOString(),
       duration_minutes: doctor.consultation_duration,
-      consultation_type: consultationType,
+      type: consultationType,
       status: 'scheduled',
       room_id: roomId,
       price,
