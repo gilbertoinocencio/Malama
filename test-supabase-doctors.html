@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste Supabase - Médicos</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #333;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button.secondary {
+      background: #2196F3;
+    }
+    pre {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    .success {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    .error {
+      color: #f44336;
+      font-weight: bold;
+    }
+    .warning {
+      color: #ff9800;
+      font-weight: bold;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #4CAF50;
+      color: white;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔧 Diagnóstico Supabase - Sistema de Médicos</h1>
+
+  <div class="card">
+    <h2>1️⃣ Configuração do Supabase</h2>
+    <label>Supabase URL:</label>
+    <input type="text" id="supabaseUrl" placeholder="https://xxxxx.supabase.co">
+    <label>Supabase Anon Key:</label>
+    <input type="text" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIs...">
+    <button onclick="connectSupabase()">Testar Conexão</button>
+    <div id="connectionStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>2️⃣ Diagnóstico de Médicos</h2>
+    <button onclick="checkAllDoctors()">Ver TODOS os médicos</button>
+    <button onclick="checkApprovedDoctors()">Ver médicos APROVADOS</button>
+    <button onclick="checkPolicies()">Ver políticas RLS</button>
+    <button onclick="checkAvailability()">Ver disponibilidade</button>
+    <button class="secondary" onclick="insertMockDoctors()">Inserir médicos mock</button>
+    <button class="secondary" onclick="fixPolicies()">Corrigir políticas RLS</button>
+    <pre id="diagnosticOutput">Clique em um botão para iniciar o diagnóstico...</pre>
+  </div>
+
+  <div class="card">
+    <h2>3️⃣ Teste da Query do App</h2>
+    <button onclick="testAppQuery()">Testar query exata do app</button>
+    <pre id="appQueryOutput"></pre>
+  </div>
+
+  <script>
+    let supabase = null;
+
+    function connectSupabase() {
+      const url = document.getElementById('supabaseUrl').value.trim();
+      const key = document.getElementById('supabaseKey').value.trim();
+
+      if (!url || !key) {
+        document.getElementById('connectionStatus').innerHTML = '<p class="error">❌ Preencha URL e Anon Key!</p>';
+        return;
+      }
+
+      try {
+        supabase = window.supabase.createClient(url, key);
+        document.getElementById('connectionStatus').innerHTML = '<p class="success">✅ Conexão estabelecida com sucesso!</p>';
+        
+        // Salvar no localStorage para facilitar
+        localStorage.setItem('supabase_url', url);
+        localStorage.setItem('supabase_key', key);
+      } catch (err) {
+        document.getElementById('connectionStatus').innerHTML = `<p class="error">❌ Erro: ${err.message}</p>`;
+      }
+    }
+
+    async function log(message, type = 'info') {
+      const output = document.getElementById('diagnosticOutput');
+      const timestamp = new Date().toLocaleTimeString();
+      const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+      output.innerHTML += `\n<span class="${className}">[${timestamp}] ${message}</span>`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    async function checkAllDoctors() {
+      if (!supabase) {
+        alert('Conecte ao Supabase primeiro!');
+        return;
+      }
+
+      document.getElementById('diagnosticOutput').innerHTML = '';
+      await log('🔍 Buscando TODOS os médicos...');
+
+      try {
+        const { data, error } = await supabase
+          .from('doctors')
+          .select('*');
+
+        if (error) {
+          await log(`❌ Erro: ${error.message}`, 'error');
+          await log(`Detalhes: ${JSON.stringify(error)}`, 'error');
+          return;
+        }
+
+        await log(`✅ Encontrados ${data?.length || 0} médicos no total`, 'success');
+        
+        if (data && data.length > 0) {
+          await log('\n📋 Lista de médicos:');
+          data.forEach((doc, i) => {
+            await log(`  ${i + 1}. ${doc.name} | CRM: ${doc.crm} | Status: ${doc.status} | Preço: R$${doc.price}`);
+          });
+        } else {
+          await log('⚠️ Nenhum médico encontrado no banco!', 'warning');
+        }
+      } catch (err) {
+        await log(`❌ Erro inesperado: ${err.message}`, 'error');
+      }
+    }
+
+    async function checkApprovedDoctors() {
+      if (!supabase) {
+        alert('Conecte ao Supabase primeiro!');
+        return;
+      }
+
+      document.getElementById('diagnosticOutput').innerHTML = '';
+      await log('🔍 Buscando médicos com status "approved"...');
+
+      try {
+        const { data, error } = await supabase
+          .from('doctors')
+          .select('*')
+          .eq('status', 'approved')
+          .order('rating', { ascending: false });
+
+        if (error) {
+          await log(`❌ Erro: ${error.message}`, 'error');
+          await log(`Detalhes: ${JSON.stringify(error)}`, 'error');
+          return;
+        }
+
+        await log(`✅ Encontrados ${data?.length || 0} médicos aprovados`, 'success');
+        
+        if (data && data.length > 0) {
+          await log('\n📋 Médicos aprovados:');
+          data.forEach((doc, i) => {
+            await log(`  ${i + 1}. ${doc.name} | ${doc.specialty} | ★${doc.rating} | R$${doc.price}`);
+          });
+        } else {
+          await log('⚠️ Nenhum médico aprovado encontrado!', 'warning');
+          await log('💡 Execute "Inserir médicos mock" para criar dados de teste', 'warning');
+        }
+      } catch (err) {
+        await log(`❌ Erro inesperado: ${err.message}`, 'error');
+      }
+    }
+
+    async function checkPolicies() {
+      if (!supabase) {
+        alert('Conecte ao Supabase primeiro!');
+        return;
+      }
+
+      document.getElementById('diagnosticOutput').innerHTML = '';
+      await log('🔒 Verificando políticas RLS na tabela doctors...');
+
+      try {
+        const { data, error } = await supabase.rpc('get_policies', { table_name: 'doctors' });
+        
+        // Se a função RPC não existir, usar query direta
+        const { data: policies, error: policyError } = await supabase
+          .from('pg_policies')
+          .select('*')
+          .eq('tablename', 'doctors');
+
+        if (policyError) {
+          await log(`❌ Erro ao buscar políticas: ${policyError.message}`, 'error');
+          await log('💡 Você precisa ser superuser para ver pg_policies', 'warning');
+          return;
+        }
+
+        await log(`✅ Encontradas ${policies?.length || 0} políticas`, 'success');
+        
+        if (policies && policies.length > 0) {
+          await log('\n📋 Políticas encontradas:');
+          policies.forEach((policy, i) => {
+            await log(`  ${i + 1}. ${policy.policyname} | Tipo: ${policy.cmd} | Condição: ${policy.qual}`);
+          });
+
+          const hasPublicPolicy = policies.some(p => 
+            p.policyname && p.policyname.includes('aprovados') || 
+            p.policyname && p.policyname.includes('basic')
+          );
+
+          if (hasPublicPolicy) {
+            await log('✅ Política de leitura pública encontrada!', 'success');
+          } else {
+            await log('❌ Política de leitura pública NÃO encontrada!', 'error');
+            await log('💡 Execute "Corrigir políticas RLS" para resolver', 'warning');
+          }
+        } else {
+          await log('⚠️ Nenhuma política encontrada!', 'warning');
+        }
+      } catch (err) {
+        await log(`❌ Erro inesperado: ${err.message}`, 'error');
+      }
+    }
+
+    async function checkAvailability() {
+      if (!supabase) {
+        alert('Conecte ao Supabase primeiro!');
+        return;
+      }
+
+      document.getElementById('diagnosticOutput').innerHTML = '';
+      await log('📅 Verificando disponibilidade dos médicos...');
+
+      try {
+        const { data: doctors, error: docError } = await supabase
+          .from('doctors')
+          .select('id, name, status')
+          .eq('status', 'approved');
+
+        if (docError) {
+          await log(`❌ Erro ao buscar médicos: ${docError.message}`, 'error');
+          return;
+        }
+
+        await log(`✅ Encontrados ${doctors?.length || 0} médicos aprovados`, 'success');
+
+        if (doctors && doctors.length > 0) {
+          for (const doctor of doctors) {
+            const { data: availability, error: availError } = await supabase
+              .from('doctor_availability')
+              .select('*')
+              .eq('doctor_id', doctor.id)
+              .eq('is_active', true);
+
+            if (availError) {
+              await log(`❌ Erro ao buscar disponibilidade de ${doctor.name}: ${availError.message}`, 'error');
+            } else {
+              await log(`\n📅 ${doctor.name}: ${availability?.length || 0} horários disponíveis`, 'success');
+              if (availability && availability.length > 0) {
+                const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                availability.forEach(avail => {
+                  await log(`   ${days[avail.day_of_week]}: ${avail.start_time} - ${avail.end_time}`);
+                });
+              } else {
+                await log(`   ⚠️ NENHUM horário de disponibilidade encontrado!`, 'warning');
+              }
+            }
+          }
+        }
+      } catch (err) {
+        await log(`❌ Erro inesperado: ${err.message}`, 'error');
+      }
+    }
+
+    async function insertMockDoctors() {
+      if (!supabase) {
+        alert('Conecte ao Supabase primeiro!');
+        return;
+      }
+
+      document.getElementById('diagnosticOutput').innerHTML = '';
+      await log('📝 Inserindo médicos mock no banco...');
+
+      try {
+        const mockDoctors = [
+          {
+            id: '11111111-1111-1111-1111-111111111111',
+            name: 'Dra. Ana Rodrigues',
+            crm: '12345-SP',
+            specialty: 'Endocrinologista',
+            bio: 'Especialista em tratamentos GLP-1 e obesidade há 10 anos.',
+            consultation_duration: 30,
+            price: 249,
+            status: 'approved',
+            rating: 4.9,
+            total_consultations: 142
+          },
+          {
+            id: '22222222-2222-2222-2222-222222222222',
+            name: 'Dr. Carlos Silva',
+            crm: '67890-SP',
+            specialty: 'Endocrinologista',
+            bio: 'Referência em endocrinologia metabólica e emagrecimento.',
+            consultation_duration: 30,
+            price: 249,
+            status: 'approved',
+            rating: 4.8,
+            total_consultations: 98
+          },
+          {
+            id: '33333333-3333-3333-3333-333333333333',
+            name: 'Dra. Mariana Costa',
+            crm: '11223-RJ',
+            specialty: 'Nutrólogo',
+            bio: 'Nutróloga clínica com foco em saúde metabólica.',
+            consultation_duration: 30,
+            price: 249,
+            status: 'approved',
+            rating: 4.7,
+            total_consultations: 67
+          }
+        ];
+
+        const { data, error } = await supabase
+          .from('doctors')
+          .upsert(mockDoctors, { onConflict: 'id' })
+          .select();
+
+        if (error) {
+          await log(`❌ Erro ao inserir médicos: ${error.message}`, 'error');
+          await log(`Detalhes: ${JSON.stringify(error)}`, 'error');
+          return;
+        }
+
+        await log(`✅ ${data?.length || 0} médicos inseridos/atualizados com sucesso!`, 'success');
+        
+        if (data) {
+          data.forEach((doc, i) => {
+            await log(`  ${i + 1}. ${doc.name} | Status: ${doc.status}`, 'success');
+          });
+        }
+      } catch (err) {
+        await log(`❌ Erro inesperado: ${err.message}`, 'error');
+      }
+    }
+
+    async function fixPolicies() {
+      if (!supabase) {
+        alert('Conecte ao Supabase primeiro!');
+        return;
+      }
+
+      document.getElementById('diagnosticOutput').innerHTML = '';
+      await log('🔧 Corrigindo políticas RLS...');
+      await log('⚠️ ATENÇÃO: Este comando pode falhar se você não tiver permissões de admin', 'warning');
+      await log('💡 Execute o script fix-doctors-rls-policy.sql no Supabase SQL Editor', 'warning');
+      
+      try {
+        // Tentar criar a política via RPC (pode não funcionar com anon key)
+        const { error } = await supabase.rpc('create_policy', {
+          table_name: 'doctors',
+          policy_name: 'Pacientes podem ver médicos aprovados',
+          policy_cmd: 'SELECT',
+          policy_qual: 'status = approved'
+        });
+
+        if (error) {
+          await log(`❌ Erro ao criar política via RPC: ${error.message}`, 'error');
+          await log('💡 Use o Supabase SQL Editor para executar: fix-doctors-rls-policy.sql', 'warning');
+        } else {
+          await log('✅ Política criada com sucesso!', 'success');
+        }
+      } catch (err) {
+        await log(`❌ Erro inesperado: ${err.message}`, 'error');
+        await log('💡 Execute o script SQL diretamente no Supabase Dashboard', 'warning');
+      }
+    }
+
+    async function testAppQuery() {
+      if (!supabase) {
+        alert('Conecte ao Supabase primeiro!');
+        return;
+      }
+
+      document.getElementById('appQueryOutput').innerHTML = '';
+      const output = document.getElementById('appQueryOutput');
+      output.innerHTML = '🔄 Executando query exata do app...\n\n';
+
+      try {
+        // Query exata usada no scheduling.ts
+        const { data, error } = await supabase
+          .from('doctors')
+          .select('*')
+          .eq('status', 'approved')
+          .order('rating', { ascending: false });
+
+        if (error) {
+          output.innerHTML += `❌ ERRO: ${error.message}\n\n`;
+          output.innerHTML += `Detalhes: ${JSON.stringify(error, null, 2)}`;
+          return;
+        }
+
+        output.innerHTML += `✅ Query executada com sucesso!\n`;
+        output.innerHTML += `📊 Médicos encontrados: ${data?.length || 0}\n\n`;
+
+        if (data && data.length > 0) {
+          output.innerHTML += '📋 MÉDICOS DISPONÍVEIS:\n';
+          output.innerHTML += '═'.repeat(80) + '\n';
+          data.forEach((doc, i) => {
+            output.innerHTML += `\n${i + 1}. ${doc.name}\n`;
+            output.innerHTML += `   CRM: ${doc.crm}\n`;
+            output.innerHTML += `   Especialidade: ${doc.specialty}\n`;
+            output.innerHTML += `   Preço: R$ ${doc.price}\n`;
+            output.innerHTML += `   Avaliação: ★ ${doc.rating}\n`;
+            output.innerHTML += `   Total de consultas: ${doc.total_consultations}\n`;
+          });
+        } else {
+          output.innerHTML += '⚠️ NENHUM MÉDICO ENCONTRADO!\n\n';
+          output.innerHTML += 'Possíveis causas:\n';
+          output.innerHTML += '  1. Nenhum médico com status "approved" no banco\n';
+          output.innerHTML += '  2. Política RLS bloqueando a leitura\n';
+          output.innerHTML += '  3. Tabela doctors vazia\n\n';
+          output.innerHTML += '💡 Execute o diagnóstico completo na seção acima';
+        }
+      } catch (err) {
+        output.innerHTML += `❌ Erro inesperado: ${err.message}`;
+      }
+    }
+
+    // Carregar valores salvos do localStorage
+    window.addEventListener('load', () => {
+      const savedUrl = localStorage.getItem('supabase_url');
+      const savedKey = localStorage.getItem('supabase_key');
+      
+      if (savedUrl) document.getElementById('supabaseUrl').value = savedUrl;
+      if (savedKey) document.getElementById('supabaseKey').value = savedKey;
+      
+      if (savedUrl && savedKey) {
+        connectSupabase();
+      }
+    });
+  </script>
+</body>
+</html>

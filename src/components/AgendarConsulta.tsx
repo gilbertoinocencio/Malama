@@ -56,10 +56,17 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
 
   useEffect(() => {
     if (step === 'doctors' && doctors.length === 0) {
+      console.log('📋 [AgendarConsulta] Step doctors ativado, buscando médicos...');
       setLoadingDoctors(true);
       getAvailableDoctors()
-        .then(setDoctors)
-        .catch(console.error)
+        .then((result) => {
+          console.log('📋 [AgendarConsulta] Médicos recebidos:', result.length);
+          console.table(result);
+          setDoctors(result);
+        })
+        .catch((err) => {
+          console.error('❌ [AgendarConsulta] Erro ao buscar médicos:', err);
+        })
         .finally(() => setLoadingDoctors(false));
     }
   }, [step]);
@@ -240,9 +247,8 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                     <button
                       key={date.toISOString()}
                       onClick={() => setSelectedDate(date)}
-                      className={`flex flex-col items-center px-3 py-2.5 rounded-xl min-w-[56px] border-2 transition-all flex-shrink-0 ${
-                        isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
+                      className={`flex flex-col items-center px-3 py-2.5 rounded-xl min-w-[56px] border-2 transition-all flex-shrink-0 ${isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
                     >
                       <span className="text-[10px] text-gray-400 uppercase">{f.weekday}</span>
                       <span className={`text-lg font-bold ${isSelected ? 'text-green-700' : 'text-gray-800'}`}>{f.day}</span>
@@ -266,11 +272,10 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                         <button
                           key={slot.time}
                           onClick={() => setSelectedSlot(slot.time)}
-                          className={`py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
-                            selectedSlot === slot.time
+                          className={`py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${selectedSlot === slot.time
                               ? 'border-green-500 bg-green-50 text-green-700'
                               : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                          }`}
+                            }`}
                         >
                           {slot.time}
                         </button>
@@ -346,13 +351,11 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
               {/* Consent */}
               <div
                 onClick={() => setConsentGiven(!consentGiven)}
-                className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all mb-4 ${
-                  consentGiven ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'
-                }`}
+                className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all mb-4 ${consentGiven ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'
+                  }`}
               >
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                  consentGiven ? 'border-green-500 bg-green-500' : 'border-gray-300'
-                }`}>
+                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${consentGiven ? 'border-green-500 bg-green-500' : 'border-gray-300'
+                  }`}>
                   {consentGiven && <span className="text-white text-xs">✓</span>}
                 </div>
                 <p className="text-xs text-gray-600 leading-relaxed">

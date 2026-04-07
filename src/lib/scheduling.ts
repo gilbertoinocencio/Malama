@@ -71,13 +71,22 @@ function generateSlots(
 }
 
 export async function getAvailableDoctors(): Promise<Doctor[]> {
+  console.log('🔍 [scheduling.ts] Buscando médicos disponíveis...');
+
   const { data, error } = await supabase
     .from('doctors')
     .select('*')
     .eq('status', 'approved')
     .order('rating', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ [scheduling.ts] Erro ao buscar médicos:', error);
+    throw error;
+  }
+
+  console.log('✅ [scheduling.ts] Médicos encontrados:', data?.length || 0);
+  console.table(data);
+
   return data || [];
 }
 
