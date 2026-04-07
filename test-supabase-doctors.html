@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,18 +14,21 @@
       padding: 20px;
       background: #f5f5f5;
     }
+
     .card {
       background: white;
       padding: 20px;
       border-radius: 12px;
       margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
+
     h2 {
       color: #333;
       border-bottom: 2px solid #4CAF50;
       padding-bottom: 10px;
     }
+
     button {
       background: #4CAF50;
       color: white;
@@ -35,45 +39,57 @@
       font-size: 14px;
       margin: 5px;
     }
+
     button:hover {
       background: #45a049;
     }
+
     button.secondary {
       background: #2196F3;
     }
+
     pre {
       background: #f8f9fa;
       padding: 15px;
       border-radius: 8px;
       overflow-x: auto;
     }
+
     .success {
       color: #4CAF50;
       font-weight: bold;
     }
+
     .error {
       color: #f44336;
       font-weight: bold;
     }
+
     .warning {
       color: #ff9800;
       font-weight: bold;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 15px;
     }
-    th, td {
+
+    th,
+    td {
       padding: 10px;
       text-align: left;
       border-bottom: 1px solid #ddd;
     }
+
     th {
       background: #4CAF50;
       color: white;
     }
-    input, textarea {
+
+    input,
+    textarea {
       width: 100%;
       padding: 10px;
       margin: 5px 0;
@@ -82,6 +98,7 @@
     }
   </style>
 </head>
+
 <body>
   <h1>🔧 Diagnóstico Supabase - Sistema de Médicos</h1>
 
@@ -127,7 +144,7 @@
       try {
         supabase = window.supabase.createClient(url, key);
         document.getElementById('connectionStatus').innerHTML = '<p class="success">✅ Conexão estabelecida com sucesso!</p>';
-        
+
         // Salvar no localStorage para facilitar
         localStorage.setItem('supabase_url', url);
         localStorage.setItem('supabase_key', key);
@@ -165,11 +182,14 @@
         }
 
         await log(`✅ Encontrados ${data?.length || 0} médicos no total`, 'success');
-        
+
         if (data && data.length > 0) {
           await log('\n📋 Lista de médicos:');
           data.forEach((doc, i) => {
-            await log(`  ${i + 1}. ${doc.name} | CRM: ${doc.crm} | Status: ${doc.status} | Preço: R$${doc.price}`);
+            const price = doc.consultation_price || doc.price || 0;
+            const rating = doc.rating || 'N/A';
+            const totalConsultations = doc.total_consultations || 0;
+            await log(`  ${i + 1}. ${doc.name} | CRM: ${doc.crm} | Status: ${doc.status} | Preço: R$${price} | ★${rating} | ${totalConsultations} consultas`);
           });
         } else {
           await log('⚠️ Nenhum médico encontrado no banco!', 'warning');
@@ -202,11 +222,14 @@
         }
 
         await log(`✅ Encontrados ${data?.length || 0} médicos aprovados`, 'success');
-        
+
         if (data && data.length > 0) {
           await log('\n📋 Médicos aprovados:');
           data.forEach((doc, i) => {
-            await log(`  ${i + 1}. ${doc.name} | ${doc.specialty} | ★${doc.rating} | R$${doc.price}`);
+            const price = doc.consultation_price || doc.price || 0;
+            const rating = doc.rating || 'N/A';
+            const totalConsultations = doc.total_consultations || 0;
+            await log(`  ${i + 1}. ${doc.name} | ${doc.specialty} | ★${rating} | R$${price} | ${totalConsultations} consultas`);
           });
         } else {
           await log('⚠️ Nenhum médico aprovado encontrado!', 'warning');
@@ -228,7 +251,7 @@
 
       try {
         const { data, error } = await supabase.rpc('get_policies', { table_name: 'doctors' });
-        
+
         // Se a função RPC não existir, usar query direta
         const { data: policies, error: policyError } = await supabase
           .from('pg_policies')
@@ -242,15 +265,15 @@
         }
 
         await log(`✅ Encontradas ${policies?.length || 0} políticas`, 'success');
-        
+
         if (policies && policies.length > 0) {
           await log('\n📋 Políticas encontradas:');
           policies.forEach((policy, i) => {
             await log(`  ${i + 1}. ${policy.policyname} | Tipo: ${policy.cmd} | Condição: ${policy.qual}`);
           });
 
-          const hasPublicPolicy = policies.some(p => 
-            p.policyname && p.policyname.includes('aprovados') || 
+          const hasPublicPolicy = policies.some(p =>
+            p.policyname && p.policyname.includes('aprovados') ||
             p.policyname && p.policyname.includes('basic')
           );
 
@@ -332,38 +355,47 @@
           {
             id: '11111111-1111-1111-1111-111111111111',
             name: 'Dra. Ana Rodrigues',
-            crm: '12345-SP',
+            email: 'ana@nura.app',
+            crm: '12345',
+            crm_state: 'SP',
             specialty: 'Endocrinologista',
             bio: 'Especialista em tratamentos GLP-1 e obesidade há 10 anos.',
             consultation_duration: 30,
-            price: 249,
+            consultation_price: 249,
             status: 'approved',
             rating: 4.9,
-            total_consultations: 142
+            total_consultations: 142,
+            platform_fee_percent: 25
           },
           {
             id: '22222222-2222-2222-2222-222222222222',
             name: 'Dr. Carlos Silva',
-            crm: '67890-SP',
+            email: 'carlos@nura.app',
+            crm: '67890',
+            crm_state: 'SP',
             specialty: 'Endocrinologista',
             bio: 'Referência em endocrinologia metabólica e emagrecimento.',
             consultation_duration: 30,
-            price: 249,
+            consultation_price: 249,
             status: 'approved',
             rating: 4.8,
-            total_consultations: 98
+            total_consultations: 98,
+            platform_fee_percent: 25
           },
           {
             id: '33333333-3333-3333-3333-333333333333',
             name: 'Dra. Mariana Costa',
-            crm: '11223-RJ',
+            email: 'mariana@nura.app',
+            crm: '11223',
+            crm_state: 'RJ',
             specialty: 'Nutrólogo',
             bio: 'Nutróloga clínica com foco em saúde metabólica.',
             consultation_duration: 30,
-            price: 249,
+            consultation_price: 249,
             status: 'approved',
             rating: 4.7,
-            total_consultations: 67
+            total_consultations: 67,
+            platform_fee_percent: 25
           }
         ];
 
@@ -379,7 +411,7 @@
         }
 
         await log(`✅ ${data?.length || 0} médicos inseridos/atualizados com sucesso!`, 'success');
-        
+
         if (data) {
           data.forEach((doc, i) => {
             await log(`  ${i + 1}. ${doc.name} | Status: ${doc.status}`, 'success');
@@ -400,7 +432,7 @@
       await log('🔧 Corrigindo políticas RLS...');
       await log('⚠️ ATENÇÃO: Este comando pode falhar se você não tiver permissões de admin', 'warning');
       await log('💡 Execute o script fix-doctors-rls-policy.sql no Supabase SQL Editor', 'warning');
-      
+
       try {
         // Tentar criar a política via RPC (pode não funcionar com anon key)
         const { error } = await supabase.rpc('create_policy', {
@@ -453,12 +485,15 @@
           output.innerHTML += '📋 MÉDICOS DISPONÍVEIS:\n';
           output.innerHTML += '═'.repeat(80) + '\n';
           data.forEach((doc, i) => {
+            const price = doc.consultation_price || doc.price || 0;
+            const rating = doc.rating || 'N/A';
+            const totalConsultations = doc.total_consultations || 0;
             output.innerHTML += `\n${i + 1}. ${doc.name}\n`;
             output.innerHTML += `   CRM: ${doc.crm}\n`;
             output.innerHTML += `   Especialidade: ${doc.specialty}\n`;
-            output.innerHTML += `   Preço: R$ ${doc.price}\n`;
-            output.innerHTML += `   Avaliação: ★ ${doc.rating}\n`;
-            output.innerHTML += `   Total de consultas: ${doc.total_consultations}\n`;
+            output.innerHTML += `   Preço: R$ ${price}\n`;
+            output.innerHTML += `   Avaliação: ★ ${rating}\n`;
+            output.innerHTML += `   Total de consultas: ${totalConsultations}\n`;
           });
         } else {
           output.innerHTML += '⚠️ NENHUM MÉDICO ENCONTRADO!\n\n';
@@ -477,14 +512,15 @@
     window.addEventListener('load', () => {
       const savedUrl = localStorage.getItem('supabase_url');
       const savedKey = localStorage.getItem('supabase_key');
-      
+
       if (savedUrl) document.getElementById('supabaseUrl').value = savedUrl;
       if (savedKey) document.getElementById('supabaseKey').value = savedKey;
-      
+
       if (savedUrl && savedKey) {
         connectSupabase();
       }
     });
   </script>
 </body>
+
 </html>

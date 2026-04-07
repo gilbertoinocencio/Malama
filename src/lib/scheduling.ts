@@ -12,8 +12,11 @@ export interface Doctor {
   specialty: string;
   bio: string;
   avatar_url: string | null;
+  photo_url?: string | null;
   consultation_duration: number;
   price: number;
+  consultation_price?: number;
+  platform_fee_percent?: number;
   rating: number;
   total_consultations: number;
 }
@@ -84,10 +87,19 @@ export async function getAvailableDoctors(): Promise<Doctor[]> {
     throw error;
   }
 
-  console.log('✅ [scheduling.ts] Médicos encontrados:', data?.length || 0);
-  console.table(data);
+  // Normalizar dados: mapear consultation_price para price
+  const doctors = (data || []).map(doc => ({
+    ...doc,
+    price: doc.consultation_price || doc.price || 249,
+    avatar_url: doc.photo_url || doc.avatar_url,
+    rating: doc.rating || 4.5,
+    total_consultations: doc.total_consultations || 0,
+  }));
 
-  return data || [];
+  console.log('✅ [scheduling.ts] Médicos encontrados:', doctors.length);
+  console.table(doctors);
+
+  return doctors;
 }
 
 export async function getAvailableSlots(
@@ -163,14 +175,14 @@ export async function bookConsultation(params: {
   // Get doctor price
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('price, platform_fee_percent, consultation_duration')
+    .select('consultation_price, platform_fee_percent, consultation_duration')
     .eq('id', doctorId)
     .single();
 
   if (!doctor) throw new Error('Médico não encontrado');
 
-  const price = doctor.price;
-  const platformFee = price * (doctor.platform_fee_percent / 100);
+  const price = doctor.consultation_price || 249;
+  const platformFee = price * ((doctor.platform_fee_percent || 25) / 100);
   const doctorPayout = price - platformFee;
   const roomId = crypto.randomUUID();
 

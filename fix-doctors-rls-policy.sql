@@ -39,12 +39,15 @@ BEGIN
     RAISE NOTICE '⚠️  Nenhum médico aprovado encontrado. Inserindo médicos mock...';
     
     -- Inserir médicos mock se não existirem
-    INSERT INTO doctors (id, name, crm, specialty, bio, consultation_duration, price, status, rating, total_consultations)
+    INSERT INTO doctors (id, name, email, crm, crm_state, specialty, bio, consultation_duration, consultation_price, status, rating, total_consultations, platform_fee_percent)
     VALUES
-      ('11111111-1111-1111-1111-111111111111', 'Dra. Ana Rodrigues', '12345-SP', 'Endocrinologista', 'Especialista em tratamentos GLP-1 e obesidade há 10 anos.', 30, 249, 'approved', 4.9, 142),
-      ('22222222-2222-2222-2222-222222222222', 'Dr. Carlos Silva', '67890-SP', 'Endocrinologista', 'Referência em endocrinologia metabólica e emagrecimento.', 30, 249, 'approved', 4.8, 98),
-      ('33333333-3333-3333-3333-333333333333', 'Dra. Mariana Costa', '11223-RJ', 'Nutrólogo', 'Nutróloga clínica com foco em saúde metabólica.', 30, 249, 'approved', 4.7, 67)
-    ON CONFLICT (id) DO NOTHING;
+      ('11111111-1111-1111-1111-111111111111', 'Dra. Ana Rodrigues', 'ana@nura.app', '12345', 'SP', 'Endocrinologista', 'Especialista em tratamentos GLP-1 e obesidade há 10 anos.', 30, 249, 'approved', 4.9, 142, 25),
+      ('22222222-2222-2222-2222-222222222222', 'Dr. Carlos Silva', 'carlos@nura.app', '67890', 'SP', 'Endocrinologista', 'Referência em endocrinologia metabólica e emagrecimento.', 30, 249, 'approved', 4.8, 98, 25),
+      ('33333333-3333-3333-3333-333333333333', 'Dra. Mariana Costa', 'mariana@nura.app', '11223', 'RJ', 'Nutrólogo', 'Nutróloga clínica com foco em saúde metabólica.', 30, 249, 'approved', 4.7, 67, 25)
+    ON CONFLICT (id) DO UPDATE SET
+      name = EXCLUDED.name,
+      status = 'approved',
+      consultation_price = EXCLUDED.consultation_price;
     
     RAISE NOTICE '✅ Médicos mock inseridos com sucesso';
   ELSE

@@ -1,85 +1,12 @@
 -- =====================================================
--- DIAGNÓSTICO COMPLETO - Verificar médicos e políticas
+-- CORREÇÃO COMPLETA - Adicionar colunas faltantes na tabela doctors
 -- =====================================================
--- Execute este script no Supabase SQL Editor para
--- diagnosticar exatamente o que está acontecendo
+-- O schema supabase-portal-medico.sql NÃO incluiu as colunas
+-- rating e total_consultations que são necessárias para o
+-- sistema de agendamento funcionar corretamente.
 -- =====================================================
 
--- 1. Verificar estrutura da tabela doctors
-SELECT '📋 ESTRUTURA DA TABELA DOCTORS' AS info;
-SELECT 
-  column_name AS coluna,
-  data_type AS tipo,
-  is_nullable AS permite_nulo,
-  column_default AS valor_padrao
-FROM information_schema.columns
-WHERE table_name = 'doctors'
-ORDER BY ordinal_position;
-
--- 2. Verificar TODOS os médicos no banco
-SELECT '📋 TODOS OS MÉDICOS' AS info;
-SELECT 
-  id,
-  name,
-  crm,
-  crm_state,
-  specialty,
-  status,
-  consultation_price,
-  rating,
-  total_consultations,
-  created_at
-FROM doctors
-ORDER BY created_at DESC;
-
--- 3. Verificar médicos com status 'approved'
-SELECT '✅ MÉDICOS APROVADOS' AS info;
-SELECT 
-  id,
-  name,
-  crm,
-  crm_state,
-  specialty,
-  status,
-  consultation_price,
-  rating,
-  total_consultations
-FROM doctors
-WHERE status = 'approved'
-ORDER BY rating DESC;
-
--- 3. Verificar políticas RLS na tabela doctors
-SELECT '🔒 POLÍTICAS RLS - TABELA DOCTORS' AS info;
-SELECT 
-  policyname AS politica,
-  cmd AS tipo,
-  roles AS papeis,
-  qual AS condicao
-FROM pg_policies
-WHERE tablename = 'doctors'
-ORDER BY policyname;
-
--- 4. Verificar disponibilidade dos médicos
-SELECT '📅 DISPONIBILIDADE DOS MÉDICOS' AS info;
-SELECT 
-  d.name AS medico,
-  d.status,
-  da.day_of_week AS dia_semana,
-  da.start_time AS hora_inicio,
-  da.end_time AS hora_fim,
-  da.is_active
-FROM doctors d
-LEFT JOIN doctor_availability da ON d.id = da.doctor_id
-ORDER BY d.name, da.day_of_week;
-
--- 5. Contar registros
-SELECT '📊 CONTADORES' AS info;
-SELECT 
-  (SELECT COUNT(*) FROM doctors) AS total_medicos,
-  (SELECT COUNT(*) FROM doctors WHERE status = 'approved') AS medicos_aprovados,
-  (SELECT COUNT(*) FROM doctor_availability WHERE is_active = true) AS disponibilidades_ativas;
-
--- 6. Adicionar colunas faltantes se necessário
+-- 1. Adicionar colunas faltantes na tabela doctors
 DO $$
 BEGIN
   -- Adicionar coluna rating se não existir
@@ -88,9 +15,9 @@ BEGIN
     WHERE table_name = 'doctors' AND column_name = 'rating'
   ) THEN
     ALTER TABLE doctors ADD COLUMN rating NUMERIC DEFAULT 4.5;
-    RAISE NOTICE '✅ Coluna "rating" adicionada';
+    RAISE NOTICE '✅ Coluna "rating" adicionada à tabela doctors';
   ELSE
-    RAISE NOTICE '⚠️  Coluna "rating" já existe';
+    RAISE NOTICE '⚠️  Coluna "rating" já existe na tabela doctors';
   END IF;
 
   -- Adicionar coluna total_consultations se não existir
@@ -99,18 +26,23 @@ BEGIN
     WHERE table_name = 'doctors' AND column_name = 'total_consultations'
   ) THEN
     ALTER TABLE doctors ADD COLUMN total_consultations INTEGER DEFAULT 0;
-    RAISE NOTICE '✅ Coluna "total_consultations" adicionada';
+    RAISE NOTICE '✅ Coluna "total_consultations" adicionada à tabela doctors';
   ELSE
-    RAISE NOTICE '⚠️  Coluna "total_consultations" já existe';
+    RAISE NOTICE '⚠️  Coluna "total_consultations" já existe na tabela doctors';
   END IF;
 END $$;
 
--- 7. Se não houver médicos aprovados, inserir mocks
+-- 2. Verificar se os médicos mock estão no banco
 DO $$
+DECLARE
+  doctor_count INTEGER;
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM doctors WHERE status = 'approved' LIMIT 1) THEN
-    RAISE NOTICE '⚠️  Nenhum médico aprovado encontrado! Inserindo médicos mock...';
+  SELECT COUNT(*) INTO doctor_count FROM doctors WHERE status = 'approved';
+  
+  IF doctor_count = 0 THEN
+    RAISE NOTICE '⚠️  Nenhum médico aprovado encontrado. Inserindo médicos mock...';
     
+    -- Inserir médicos mock se não existirem
     INSERT INTO doctors (id, name, email, crm, crm_state, specialty, bio, consultation_duration, consultation_price, status, rating, total_consultations, platform_fee_percent)
     VALUES
       ('11111111-1111-1111-1111-111111111111', 'Dra. Ana Rodrigues', 'ana@nura.app', '12345', 'SP', 'Endocrinologista', 'Especialista em tratamentos GLP-1 e obesidade há 10 anos.', 30, 249, 'approved', 4.9, 142, 25),
@@ -130,13 +62,13 @@ BEGIN
       total_consultations = EXCLUDED.total_consultations,
       platform_fee_percent = EXCLUDED.platform_fee_percent;
     
-    RAISE NOTICE '✅ Médicos mock inseridos/atualizados com status "approved"';
+    RAISE NOTICE '✅ Médicos mock inseridos/atualizados com sucesso';
   ELSE
-    RAISE NOTICE '✅ Já existem médicos aprovados no banco';
+    RAISE NOTICE '✅ % médicos aprovados encontrados no banco', doctor_count;
   END IF;
 END $$;
 
--- 8. Garantir que a política de leitura pública existe
+-- 3. Garantir que a política de leitura pública existe
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -153,7 +85,7 @@ BEGIN
   END IF;
 END $$;
 
--- 9. Inserir disponibilidade se não existir
+-- 4. Inserir disponibilidade se não existir
 DO $$
 DECLARE
   avail_count INTEGER;
@@ -161,8 +93,9 @@ BEGIN
   SELECT COUNT(*) INTO avail_count FROM doctor_availability WHERE is_active = true;
   
   IF avail_count = 0 THEN
-    RAISE NOTICE '⚠️  Nenhuma disponibilidade ativa encontrada! Inserindo horários padrão...';
+    RAISE NOTICE '⚠️  Nenhuma disponibilidade ativa encontrada. Inserindo horários padrão...';
     
+    -- Inserir disponibilidade padrão (seg-sex, 8h-18h) para todos os médicos aprovados
     INSERT INTO doctor_availability (doctor_id, day_of_week, start_time, end_time)
     SELECT d.id, dow, '08:00'::TIME, '18:00'::TIME
     FROM doctors d, generate_series(1,5) AS dow
@@ -171,14 +104,66 @@ BEGIN
     
     RAISE NOTICE '✅ Disponibilidade padrão inserida (Seg-Sex, 08:00-18:00)';
   ELSE
-    RAISE NOTICE '✅ Já existem disponibilidades ativas';
+    RAISE NOTICE '✅ % registros de disponibilidade ativa encontrados', avail_count;
   END IF;
 END $$;
 
--- 10. Verificação final
-SELECT '✅ VERIFICAÇÃO FINAL' AS info;
+-- 5. Verificação final - mostrar estrutura da tabela doctors
+SELECT '📋 ESTRUTURA DA TABELA DOCTORS' AS info;
+SELECT 
+  column_name AS coluna,
+  data_type AS tipo,
+  is_nullable AS permite_nulo,
+  column_default AS valor_padrao
+FROM information_schema.columns
+WHERE table_name = 'doctors'
+ORDER BY ordinal_position;
+
+-- 6. Verificar médicos aprovados
+SELECT '✅ MÉDICOS APROVADOS' AS info;
+SELECT 
+  id,
+  name,
+  crm,
+  crm_state,
+  specialty,
+  status,
+  consultation_price,
+  rating,
+  total_consultations
+FROM doctors
+WHERE status = 'approved'
+ORDER BY rating DESC;
+
+-- 7. Verificar disponibilidade
+SELECT '📅 DISPONIBILIDADE DOS MÉDICOS' AS info;
+SELECT 
+  d.name AS medico,
+  d.status,
+  da.day_of_week AS dia_semana,
+  da.start_time AS hora_inicio,
+  da.end_time AS hora_fim,
+  da.is_active
+FROM doctors d
+LEFT JOIN doctor_availability da ON d.id = da.doctor_id
+WHERE d.status = 'approved'
+ORDER BY d.name, da.day_of_week;
+
+-- 8. Resumo final
+SELECT '📊 RESUMO FINAL' AS info;
 SELECT 
   (SELECT COUNT(*) FROM doctors) AS total_medicos,
   (SELECT COUNT(*) FROM doctors WHERE status = 'approved') AS medicos_aprovados,
   (SELECT COUNT(*) FROM doctor_availability WHERE is_active = true) AS disponibilidades_ativas,
   (SELECT COUNT(*) FROM pg_policies WHERE tablename = 'doctors' AND policyname = 'Pacientes podem ver médicos aprovados') AS politica_leitura_existe;
+
+-- =====================================================
+-- RESUMO DA CORREÇÃO
+-- =====================================================
+-- ✅ Colunas rating e total_consultations adicionadas
+-- ✅ Médicos mock inseridos com todos os campos corretos
+-- ✅ Política RLS criada para pacientes verem médicos
+-- ✅ Disponibilidade padrão inserida
+-- 
+-- Execute este script no Supabase SQL Editor.
+-- =====================================================
