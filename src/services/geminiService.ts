@@ -460,3 +460,49 @@ export const generatePlanContent = async (profile: any, onboardingData?: any, la
     };
   }
 };
+
+export const generateDoctorBriefing = async (patient: any): Promise<string> => {
+  if (!apiKey) throw new Error("API Key missing");
+
+  try {
+    const model = getGenAI().getGenerativeModel({ model: MODEL_NAME });
+
+    const prompt = `
+      Você é um assistente clínico de IA (NURA Assistant) projetado para médicos endocrinologistas e nutricionistas.
+      Seu papel é ler os dados do paciente abaixo e gerar um BRIEFING CLÍNICO EXECUTIVO para o médico ler ANTES da consulta.
+      
+      DADOS DO PACIENTE:
+      Nome: ${patient.name} (${patient.gender}, ${patient.age} anos)
+      Físico: Peso Atual ${patient.currentWeight || patient.current_weight || 'N/A'} kg, IMC ${patient.imc || 'N/A'} (${patient.imc_classification || 'N/A'})
+      Uso de GLP-1: ${patient.is_glp1_active ? 'Sim' : 'Não'} ${patient.glp1_medication ? '(' + patient.glp1_medication + ')' : ''}
+      
+      ADESÃO NOS ÚLTIMOS 30 DIAS:
+      Taxa de Atividade/Registro: ${patient.adherence?.registration_percentage || 0}%
+      Média Calórica: ${patient.adherence?.average_calories || 0} kcal (Meta: ${patient.adherence?.calorie_goal || 0} kcal)
+      Média de Proteína: ${patient.adherence?.average_protein || 0}g (Meta: ${patient.adherence?.protein_goal || 0}g)
+      
+      SINTOMAS RECENTES (Últimos Check-ins):
+      ${(patient.symptom_checkins || []).slice(0, 5).map((c: any) => `- ${c.date}: Humor ${c.mood || 'N/A'}, Energia ${c.energy || 'N/A'}. Sintomas relatados: ${c.symptoms?.join(', ') || 'nenhum'}`).join('\n')}
+      
+      RETORNE UM TEXTO COM A SEGUINTE ESTRUTURA (use Markdown formatado com bullet points, negrito, etc):
+      
+      ### 📊 Panorama Clínico
+      (Resumo da adesão do paciente, avaliando se ele está comendo mais ou menos do que deveria).
+      
+      ### 🔴 Alertas
+      (Aponte sintomas recorrentes negativos: por exemplo, fadiga excessiva, humor péssimo, abandono de registro, etc. Se GLP-1, fique atento a náuseas).
+      
+      ### 💡 Sugestão para a Consulta
+      (Gere 2 perguntas clínicas diretas que o médico DEVE fazer para este paciente logo no início da conversa).
+      
+      Seja profissional, analítico, conciso e use português do Brasil. O objetivo é ler rápido. Não use introduções genéricas como "Olá doutor", vá direto ao briefing.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text() || "Erro ao gerar o briefing.";
+  } catch (error) {
+    console.error("Gemini Doctor Briefing Error:", error);
+    return "Houve um problema de conexão com a IA. Por favor, tente novamente.";
+  }
+};

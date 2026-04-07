@@ -7,6 +7,7 @@ import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { User, TrendingUp, Activity, FileText, MessageSquare, Calendar, Plus, X, Save } from 'lucide-react';
 import { patientService, planAdjustmentService } from '../../services/doctorPortalService';
+import { generateDoctorBriefing } from '../../services/geminiService';
 import type { Doctor, PatientFullProfile, PatientGoals } from '../../types/doctorPortal';
 import { IMC_CLASSIFICATION, IMC_COLOR } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
@@ -30,6 +31,8 @@ export const PatientProfile: React.FC = () => {
   });
   const [adjustNotes, setAdjustNotes] = useState('');
   const [adjustTag, setAdjustTag] = useState('');
+  const [briefing, setBriefing] = useState<string | null>(null);
+  const [generatingBriefing, setGeneratingBriefing] = useState(false);
 
   useEffect(() => {
     if (!doctor || !patientId) return;
@@ -72,6 +75,21 @@ export const PatientProfile: React.FC = () => {
       setShowAdjustModal(false);
     } catch (error) {
       toast.error('Erro ao salvar ajustes');
+    }
+  };
+
+  const handleGenerateBriefing = async () => {
+    if (!patient) return;
+    try {
+      setGeneratingBriefing(true);
+      const res = await generateDoctorBriefing(patient);
+      setBriefing(res);
+      toast.success('Briefing gerado com sucesso!');
+    } catch (err) {
+      toast.error('Erro ao gerar briefing da IA');
+      console.error(err);
+    } finally {
+      setGeneratingBriefing(false);
     }
   };
 
@@ -427,23 +445,51 @@ export const PatientProfile: React.FC = () => {
           {/* Aba 5: Briefing IA */}
           {activeTab === 'briefing' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">Briefing Pré-Consulta</h3>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                <p className="text-gray-600">
-                  📋 BRIEFING PRÉ-CONSULTA
-                </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Conteúdo será gerado pela IA antes da consulta
-                </p>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Briefing Pré-Consulta</h3>
+                {!briefing && !generatingBriefing && (
+                  <button
+                    onClick={handleGenerateBriefing}
+                    className="px-4 py-2 bg-[#2ECC71]/10 text-[#2ECC71] border border-[#2ECC71]/20 rounded-lg font-medium hover:bg-[#2ECC71]/20 transition-colors flex items-center gap-2 text-sm"
+                  >
+                    🪄 Gerar Análise IA
+                  </button>
+                )}
               </div>
 
-              <button
-                onClick={() => toast('Funcionalidade será implementada na Parte 2', { icon: '🤖' })}
-                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition"
-              >
-                Gerar briefing
-              </button>
+              {generatingBriefing ? (
+                <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-8 flex flex-col items-center justify-center text-center">
+                  <div className="animate-spin w-8 h-8 border-4 border-[#2ECC71] border-t-transparent rounded-full mb-4" />
+                  <p className="text-[#2ECC71] font-medium pb-1">Analisando histórico e check-ins...</p>
+                  <p className="text-sm text-gray-500">O NURA Assistant está cruzando os dados e montando os alertas.</p>
+                </div>
+              ) : briefing ? (
+                <div className="bg-white border text-gray-700 border-gray-200 rounded-lg p-6 shadow-sm">
+                  <p className="text-xs text-gray-400 mb-4 font-mono font-bold tracking-wider">GERADO POR NURA ASSISTANT • AI SUMMARIZATION</p>
+                  <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    {briefing}
+                  </div>
+                  <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+                    <button
+                      onClick={handleGenerateBriefing}
+                      className="text-xs text-[#2ECC71] hover:underline flex items-center gap-1"
+                    >
+                      🔄 Gerar novamente
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 flex flex-col items-center text-center">
+                  <p className="text-gray-600 text-lg mb-2 font-medium">
+                    📋 BRIEFING PRÉ-CONSULTA
+                  </p>
+                  <p className="text-sm text-gray-500 max-w-md">
+                    Clique em <strong>"Gerar Análise IA"</strong> para que o algoritmo cruze automaticamente 
+                    a dieta, os sintomas, o humor e os pesos registrados no aplicativo 
+                    e forneça os pontos críticos para guiar essa consulta.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
