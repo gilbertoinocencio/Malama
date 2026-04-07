@@ -68,19 +68,19 @@ ORDER BY da.day_of_week;
 -- 4. Se não houver disponibilidades, inserir padrão (Seg-Sex, 8h-18h)
 DO $$
 DECLARE
-  doctor_id UUID;
+  v_doctor_id UUID;
 BEGIN
   -- Buscar ID do médico Romarinho
-  SELECT id INTO doctor_id FROM doctors WHERE name ILIKE '%romarin%' LIMIT 1;
+  SELECT id INTO v_doctor_id FROM doctors WHERE name ILIKE '%romarin%' LIMIT 1;
   
-  IF doctor_id IS NOT NULL THEN
+  IF v_doctor_id IS NOT NULL THEN
     -- Verificar se já existem disponibilidades
-    IF NOT EXISTS (SELECT 1 FROM doctor_availability WHERE doctor_id = doctor_id LIMIT 1) THEN
+    IF NOT EXISTS (SELECT 1 FROM doctor_availability WHERE doctor_id = v_doctor_id LIMIT 1) THEN
       RAISE NOTICE '⚠️  Nenhuma disponibilidade encontrada para Romarinho. Inserindo horários padrão...';
       
       -- Inserir disponibilidade padrão (Seg-Sex, 08:00-18:00)
       INSERT INTO doctor_availability (doctor_id, day_of_week, start_time, end_time)
-      SELECT doctor_id, dow, '08:00'::TIME, '18:00'::TIME
+      SELECT v_doctor_id, dow, '08:00'::TIME, '18:00'::TIME
       FROM generate_series(1,5) AS dow;
       
       RAISE NOTICE '✅ Disponibilidade padrão inserida (Seg-Sex, 08:00-18:00)';
