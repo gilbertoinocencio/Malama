@@ -775,19 +775,73 @@ export const patientService = {
       imc_classification = 'Normal'; // Can be adjusted by frontend calculation logic
     }
 
-    // Check adherence past 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const { data: stats } = await supabase
+    // Fetch last 56 days of flow stats for history & adherence
+    const fiftySixDaysAgo = new Date();
+    fiftySixDaysAgo.setDate(fiftySixDaysAgo.getDate() - 56);
+    
+    const { data: allStats } = await supabase
       .from('flow_stats')
-      .select('calories_consumed, protein_consumed')
+      .select('date, calories_consumed, protein_consumed, carbs_consumed, fats_consumed')
       .eq('user_id', patientId)
-      .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
+      .gte('date', fiftySixDaysAgo.toISOString().split('T')[0])
+      .order('date', { ascending: false });
 
-    const activeDays = stats?.length || 0;
+    // Calculate Adherence (last 30 days)
+    const thirtyDaysAgoDate = new Date();
+    thirtyDaysAgoDate.setDate(thirtyDaysAgoDate.getDate() - 30);
+    const thirtyDaysStr = thirtyDaysAgoDate.toISOString().split('T')[0];
+    
+    const thirtyDaysStats = (allStats || []).filter(s => s.date >= thirtyDaysStr);
+    const activeDays = thirtyDaysStats.length;
     const adherencePercent = Math.round((activeDays / 30) * 100);
-    const avgCal = activeDays > 0 ? Math.round(stats!.reduce((acc, s) => acc + (s.calories_consumed || 0), 0) / activeDays) : 0;
-    const avgProt = activeDays > 0 ? Math.round(stats!.reduce((acc, s) => acc + (s.protein_consumed || 0), 0) / activeDays) : 0;
+    const avgCal = activeDays > 0 ? Math.round(thirtyDaysStats.reduce((acc, s) => acc + (s.calories_consumed || 0), 0) / activeDays) : 0;
+    const avgProt = activeDays > 0 ? Math.round(thirtyDaysStats.reduce((acc, s) => acc + (s.protein_consumed || 0), 0) / activeDays) : 0;
+
+    // Calculate Weekly History (8 weeks)
+    const weekly_history = [];
+    const now = new Date();
+    // Move backwards conceptually from today, chunks of 7
+    for (let i = 0; i < 8; i++) {
+        const weekEnd = new Date(now);
+        weekEnd.setDate(weekEnd.getDate() - (i * 7));
+        
+        const weekStart = new Date(weekEnd);
+        weekStart.setDate(weekStart.getDate() - 6);
+
+        const weekEndStr = weekEnd.toISOString().split('T')[0];
+        const weekStartStr = weekStart.toISOString().split('T')[0];
+
+        const daysInWeek = (allStats || []).filter(s => s.date >= weekStartStr && s.date <= weekEndStr);
+        const displayDate = `${weekStart.getDate().toString().padStart(2, '0')}/${(weekStart.getMonth()+1).toString().padStart(2, '0')}`;
+        
+        if (daysInWeek.length > 0) {
+           const avgC = Math.round(daysInWeek.reduce((acc, s) => acc + (s.calories_consumed || 0), 0) / daysInWeek.length);
+           const avgP = Math.round(daysInWeek.reduce((acc, s) => acc + (s.protein_consumed || 0), 0) / daysInWeek.length);
+           const avgCb = Math.round(daysInWeek.reduce((acc, s) => acc + (s.carbs_consumed || 0), 0) / daysInWeek.length);
+           const avgF = Math.round(daysInWeek.reduce((acc, s) => acc + (s.fats_consumed || 0), 0) / daysInWeek.length);
+           const adh = Math.round((daysInWeek.length / 7) * 100);
+
+           weekly_history.push({
+               week_start: displayDate,
+               avg_calories: avgC,
+               avg_protein: avgP,
+               avg_carbs: avgCb,
+               avg_fat: avgF,
+               adherence_percent: adh,
+               avg_weight: profile?.weight ? `${profile.weight}kg` : '-'
+           });
+        } else {
+           weekly_history.push({
+               week_start: displayDate,
+               avg_calories: 0,
+               avg_protein: 0,
+               avg_carbs: 0,
+               avg_fat: 0,
+               adherence_percent: 0,
+               avg_weight: profile?.weight ? `${profile.weight}kg` : '-'
+           });
+        }
+    }
 
     return {
       id: patientId,
@@ -817,7 +871,7 @@ export const patientService = {
         average_protein: avgProt,
         protein_goal: prot
       },
-      weekly_history: [],
+      weekly_history: weekly_history,
       symptom_checkins: [],
       past_consultations: consultations || [],
       doctor_adjustments: adjustments || []
