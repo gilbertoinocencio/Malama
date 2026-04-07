@@ -352,10 +352,11 @@ export const consultationService = {
 
   // Buscar consultas por dia
   async getConsultationsByDay(doctorId: string, date: string): Promise<Consultation[]> {
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
+    // Fix timezone: forçar início e fim do dia no fuso local
+    // new Date('YYYY-MM-DD') trata como UTC midnight e shift o dia em UTC-3
+    const [y, m, d] = date.split('-').map(Number);
+    const dayStart = new Date(y, m - 1, d, 0, 0, 0, 0);
+    const dayEnd   = new Date(y, m - 1, d, 23, 59, 59, 999);
 
     const { data, error } = await supabase
       .from('consultations')

@@ -143,7 +143,7 @@ export async function getAvailableSlots(
   const duration = doctor?.consultation_duration || 30;
   console.log('⏱️  [scheduling.ts] Duração da consulta:', duration, 'minutos');
 
-  // 3. Get already booked consultations
+  // 3. Get existing consultations for this date to mark slots as unavailable
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(date);
@@ -227,7 +227,12 @@ export async function bookConsultation(params: {
   const doctorPayout = price - platformFee;
   const roomId = crypto.randomUUID();
 
-  const scheduledAt = new Date(`${date}T${time}:00`);
+  // Fix timezone: construir a data com offset local para evitar shift de UTC
+  const localOffset = new Date().getTimezoneOffset(); // minutos, negativo no Brasil
+  const offsetSign = localOffset > 0 ? '-' : '+';
+  const offsetH = Math.floor(Math.abs(localOffset) / 60).toString().padStart(2, '0');
+  const offsetM = (Math.abs(localOffset) % 60).toString().padStart(2, '0');
+  const scheduledAt = new Date(`${date}T${time}:00${offsetSign}${offsetH}:${offsetM}`);
 
   // Race condition: verify slot still available
   const startOfSlot = scheduledAt.toISOString();
