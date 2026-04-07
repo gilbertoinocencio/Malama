@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StitchOnboardingData, OnboardingStep } from './types';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { LocationAutoPermission } from '../../services/locationAutoPermission';
 
 // Step Components
 import ObjetivosPrincipaisStep from './steps/ObjetivosPrincipaisStep';
@@ -117,6 +118,10 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
 
       // Re-fetch profile so AuthContext reflects onboarding_completed = true
       await refreshProfile();
+
+      // Solicitar localização automaticamente no primeiro uso
+      console.log('📍 Tentando obter localização automaticamente...');
+      await LocationAutoPermission.requestAutoPermission(user.id, supabase);
     } catch (err) {
       console.error('Error finishing onboarding:', err);
     } finally {
