@@ -775,16 +775,34 @@ export const patientService = {
       imc_classification = 'Normal'; // Can be adjusted by frontend calculation logic
     }
 
-    // Fetch last 56 days of flow stats for history & adherence
+    // Fetch last 56 days of meals for history & adherence
     const fiftySixDaysAgo = new Date();
     fiftySixDaysAgo.setDate(fiftySixDaysAgo.getDate() - 56);
+    fiftySixDaysAgo.setHours(0, 0, 0, 0);
     
-    const { data: allStats } = await supabase
-      .from('flow_stats')
-      .select('date, calories_consumed, protein_consumed, carbs_consumed, fats_consumed')
+    const { data: allMeals } = await supabase
+      .from('meals')
+      .select('created_at, calories, protein, carbs, fats')
       .eq('user_id', patientId)
-      .gte('date', fiftySixDaysAgo.toISOString().split('T')[0])
-      .order('date', { ascending: false });
+      .gte('created_at', fiftySixDaysAgo.toISOString())
+      .order('created_at', { ascending: false });
+
+    // Group meals by date dynamically (same structure as flow_stats)
+    const mapByDate = new Map<string, any>();
+    for (const m of (allMeals || [])) {
+       if (!m.created_at) continue;
+       const dStr = m.created_at.split('T')[0];
+       if (!mapByDate.has(dStr)) {
+          mapByDate.set(dStr, { date: dStr, calories_consumed: 0, protein_consumed: 0, carbs_consumed: 0, fats_consumed: 0 });
+       }
+       const stat = mapByDate.get(dStr);
+       stat.calories_consumed += (m.calories || 0);
+       stat.protein_consumed += (m.protein || 0);
+       stat.carbs_consumed += (m.carbs || 0);
+       stat.fats_consumed += (m.fats || 0);
+    }
+    
+    const allStats = Array.from(mapByDate.values());
 
     // Calculate Adherence (last 30 days)
     const thirtyDaysAgoDate = new Date();
