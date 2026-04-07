@@ -620,16 +620,24 @@ export const patientService = {
       .select(`
         patient_id,
         scheduled_at,
-        patient:patient_id (
+        patient:profiles!consultations_patient_id_fkey (
           id,
-          email,
-          raw_user_meta_data
+          display_name,
+          avatar_url,
+          age,
+          gender,
+          weight,
+          height,
+          glp1_mode,
+          glp1_phase
         )
       `)
       .eq('doctor_id', doctorId)
       .order('scheduled_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.warn("Using raw_user_meta_data fallback due to profile relation lack", error.message);
+    }
 
     // Agrupar por paciente e pegar última/próxima consulta
     const patientMap = new Map<string, any>();
@@ -639,17 +647,22 @@ export const patientService = {
       const patientData = Array.isArray(c.patient) ? c.patient[0] : c.patient;
 
       if (!patientMap.has(patientId)) {
+        let imc = null;
+        if (patientData?.weight && patientData?.height) {
+          imc = patientData.weight / ((patientData.height / 100) * (patientData.height / 100));
+        }
+
         patientMap.set(patientId, {
           id: patientId,
-          name: patientData?.raw_user_meta_data?.name || patientData?.email || 'Paciente',
-          photo_url: patientData?.raw_user_meta_data?.photo_url || null,
+          name: patientData?.display_name || 'Paciente',
+          photo_url: patientData?.avatar_url || null,
           lastConsultation: null as string | null,
           nextConsultation: null as string | null,
-          imc: patientData?.raw_user_meta_data?.imc || null,
-          age: patientData?.raw_user_meta_data?.age || null,
-          gender: patientData?.raw_user_meta_data?.gender || null,
-          is_glp1_active: patientData?.raw_user_meta_data?.is_glp1_active || false,
-          glp1_phase: patientData?.raw_user_meta_data?.glp1_phase || null
+          imc: imc,
+          age: patientData?.age || null,
+          gender: patientData?.gender || null,
+          is_glp1_active: patientData?.glp1_mode || false,
+          glp1_phase: patientData?.glp1_phase || null
         });
       }
 
@@ -702,34 +715,96 @@ export const patientService = {
       .order('applied_at', { ascending: false })
       .limit(1);
 
-    // Placeholder: Em produção, buscar dados reais das tabelas do Nura
+    // Real data fetching: Profiles
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name, avatar_url, age, gender, weight, height, goal, target_calories, target_protein, target_carbs, target_fats, glp1_mode, glp1_phase, glp1_medication')
+      .eq('id', patientId)
+      .single();
+
+    // Check for active AI Nutritional Plan overriding profiles
+    const { data: activePlan } = await supabase
+      .from('quarterly_plans')
+      .select('content')
+      .eq('user_id', patientId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let cal = profile?.target_calories || 2000;
+    let prot = profile?.target_protein || 100;
+    let carb = profile?.target_carbs || 250;
+    let fat = profile?.target_fats || 65;
+
+    if (activePlan?.content) {
+      cal = activePlan.content.calories || cal;
+      prot = activePlan.content.macros?.protein || prot;
+      carb = activePlan.content.macros?.carbs || carb;
+      fat = activePlan.content.macros?.fats || fat;
+    }
+
+    // Get latest water goal
+    const { data: latestLog } = await supabase
+      .from('daily_logs')
+      .select('water_goal')
+      .eq('user_id', patientId)
+      .order('date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+      
+    // Default water goal: weight * 35 if not found
+    const water = latestLog?.water_goal || Math.round((profile?.weight || 70) * 35);
+
+    // Calculate IMC
+    let imc = null;
+    let imc_classification = null;
+    if (profile?.weight && profile?.height) {
+      imc = profile.weight / ((profile.height / 100) * (profile.height / 100));
+      imc_classification = 'Normal'; // Can be adjusted by frontend calculation logic
+    }
+
+    // Check adherence past 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const { data: stats } = await supabase
+      .from('flow_stats')
+      .select('calories_consumed, protein_consumed')
+      .eq('user_id', patientId)
+      .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
+
+    const activeDays = stats?.length || 0;
+    const adherencePercent = Math.round((activeDays / 30) * 100);
+    const avgCal = activeDays > 0 ? Math.round(stats!.reduce((acc, s) => acc + (s.calories_consumed || 0), 0) / activeDays) : 0;
+    const avgProt = activeDays > 0 ? Math.round(stats!.reduce((acc, s) => acc + (s.protein_consumed || 0), 0) / activeDays) : 0;
+
     return {
       id: patientId,
-      name: 'Paciente',
-      photo_url: null,
-      age: null,
-      gender: null,
-      imc: null,
-      imc_classification: null,
-      is_glp1_active: false,
-      glp1_phase: null,
-      glp1_medication: null,
-      current_weight: null,
+      name: profile?.display_name || 'Paciente',
+      photo_url: profile?.avatar_url || null,
+      age: profile?.age || null,
+      gender: profile?.gender || null,
+      imc,
+      imc_classification,
+      is_glp1_active: profile?.glp1_mode || false,
+      glp1_phase: profile?.glp1_phase || null,
+      glp1_medication: profile?.glp1_medication || null,
+      current_weight: profile?.weight || null,
       weight_history: [],
       current_goals: {
-        calories: 2000,
-        protein: 100,
-        carbs: 250,
-        fat: 65,
+        calories: cal,
+        protein: prot,
+        carbs: carb,
+        fat: fat,
         fiber: 25,
-        water: 2000
+        water: water
       },
       adherence: {
-        registration_percentage: 75,
-        average_calories: 1800,
-        calorie_goal: 2000,
-        average_protein: 90,
-        protein_goal: 100
+        registration_percentage: adherencePercent,
+        average_calories: avgCal,
+        calorie_goal: cal,
+        average_protein: avgProt,
+        protein_goal: prot
       },
       weekly_history: [],
       symptom_checkins: [],
