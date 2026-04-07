@@ -356,7 +356,7 @@ export const consultationService = {
     // new Date('YYYY-MM-DD') trata como UTC midnight e shift o dia em UTC-3
     const [y, m, d] = date.split('-').map(Number);
     const dayStart = new Date(y, m - 1, d, 0, 0, 0, 0);
-    const dayEnd   = new Date(y, m - 1, d, 23, 59, 59, 999);
+    const dayEnd = new Date(y, m - 1, d, 23, 59, 59, 999);
 
     const { data, error } = await supabase
       .from('consultations')
@@ -723,7 +723,7 @@ export const patientService = {
       .single();
 
     if (profileError) {
-       console.error("Erro ao buscar profile do paciente (RLS?):", profileError);
+      console.error("Erro ao buscar profile do paciente (RLS?):", profileError);
     }
 
     // Check for active AI Nutritional Plan overriding profiles
@@ -737,7 +737,7 @@ export const patientService = {
       .maybeSingle();
 
     if (planError) {
-       console.error("Erro ao buscar quarterly_plans do paciente (RLS?):", planError);
+      console.error("Erro ao buscar quarterly_plans do paciente (RLS?):", planError);
     }
 
     console.log("🔥 [DEBUG DOCTOR] Profile fetched:", profile);
@@ -763,7 +763,7 @@ export const patientService = {
       .order('date', { ascending: false })
       .limit(1)
       .maybeSingle();
-      
+
     // Default water goal: weight * 35 if not found
     const water = latestLog?.water_goal || Math.round((profile?.weight || 70) * 35);
 
@@ -779,7 +779,7 @@ export const patientService = {
     const fiftySixDaysAgo = new Date();
     fiftySixDaysAgo.setDate(fiftySixDaysAgo.getDate() - 56);
     fiftySixDaysAgo.setHours(0, 0, 0, 0);
-    
+
     const { data: allMeals } = await supabase
       .from('meals')
       .select('created_at, calories, protein, carbs, fats')
@@ -790,25 +790,25 @@ export const patientService = {
     // Group meals by date dynamically (same structure as flow_stats)
     const mapByDate = new Map<string, any>();
     for (const m of (allMeals || [])) {
-       if (!m.created_at) continue;
-       const dStr = m.created_at.split('T')[0];
-       if (!mapByDate.has(dStr)) {
-          mapByDate.set(dStr, { date: dStr, calories_consumed: 0, protein_consumed: 0, carbs_consumed: 0, fats_consumed: 0 });
-       }
-       const stat = mapByDate.get(dStr);
-       stat.calories_consumed += (m.calories || 0);
-       stat.protein_consumed += (m.protein || 0);
-       stat.carbs_consumed += (m.carbs || 0);
-       stat.fats_consumed += (m.fats || 0);
+      if (!m.created_at) continue;
+      const dStr = m.created_at.split('T')[0];
+      if (!mapByDate.has(dStr)) {
+        mapByDate.set(dStr, { date: dStr, calories_consumed: 0, protein_consumed: 0, carbs_consumed: 0, fats_consumed: 0 });
+      }
+      const stat = mapByDate.get(dStr);
+      stat.calories_consumed += (m.calories || 0);
+      stat.protein_consumed += (m.protein || 0);
+      stat.carbs_consumed += (m.carbs || 0);
+      stat.fats_consumed += (m.fats || 0);
     }
-    
+
     const allStats = Array.from(mapByDate.values());
 
     // Calculate Adherence (last 30 days)
     const thirtyDaysAgoDate = new Date();
     thirtyDaysAgoDate.setDate(thirtyDaysAgoDate.getDate() - 30);
     const thirtyDaysStr = thirtyDaysAgoDate.toISOString().split('T')[0];
-    
+
     const thirtyDaysStats = (allStats || []).filter(s => s.date >= thirtyDaysStr);
     const activeDays = thirtyDaysStats.length;
     const adherencePercent = Math.round((activeDays / 30) * 100);
@@ -820,52 +820,47 @@ export const patientService = {
     const now = new Date();
     // Move backwards conceptually from today, chunks of 7
     for (let i = 0; i < 8; i++) {
-        const weekEnd = new Date(now);
-        weekEnd.setDate(weekEnd.getDate() - (i * 7));
-        
-        const weekStart = new Date(weekEnd);
-        weekStart.setDate(weekStart.getDate() - 6);
+      const weekEnd = new Date(now);
+      weekEnd.setDate(weekEnd.getDate() - (i * 7));
 
-        const weekEndStr = weekEnd.toISOString().split('T')[0];
-        const weekStartStr = weekStart.toISOString().split('T')[0];
+      const weekStart = new Date(weekEnd);
+      weekStart.setDate(weekStart.getDate() - 6);
 
-        const daysInWeek = (allStats || []).filter(s => s.date >= weekStartStr && s.date <= weekEndStr);
-        const displayDate = `${weekStart.getDate().toString().padStart(2, '0')}/${(weekStart.getMonth()+1).toString().padStart(2, '0')}`;
-        
-        if (daysInWeek.length > 0) {
-           const avgC = Math.round(daysInWeek.reduce((acc, s) => acc + (s.calories_consumed || 0), 0) / daysInWeek.length);
-           const avgP = Math.round(daysInWeek.reduce((acc, s) => acc + (s.protein_consumed || 0), 0) / daysInWeek.length);
-           const avgCb = Math.round(daysInWeek.reduce((acc, s) => acc + (s.carbs_consumed || 0), 0) / daysInWeek.length);
-           const avgF = Math.round(daysInWeek.reduce((acc, s) => acc + (s.fats_consumed || 0), 0) / daysInWeek.length);
-           const adh = Math.round((daysInWeek.length / 7) * 100);
+      const weekEndStr = weekEnd.toISOString().split('T')[0];
+      const weekStartStr = weekStart.toISOString().split('T')[0];
 
-           weekly_history.push({
-               week_start: displayDate,
-               avg_calories: avgC,
-               avg_protein: avgP,
-               avg_carbs: avgCb,
-               avg_fat: avgF,
-               adherence_percent: adh,
-               avg_weight: profile?.weight ? `${profile.weight}kg` : '-'
-           });
-        } else {
-           weekly_history.push({
-               week_start: displayDate,
-               avg_calories: 0,
-               avg_protein: 0,
-               avg_carbs: 0,
-               avg_fat: 0,
-               adherence_percent: 0,
-               avg_weight: profile?.weight ? `${profile.weight}kg` : '-'
-           });
-        }
+      const daysInWeek = (allStats || []).filter(s => s.date >= weekStartStr && s.date <= weekEndStr);
+      const displayDate = `${weekStart.getDate().toString().padStart(2, '0')}/${(weekStart.getMonth() + 1).toString().padStart(2, '0')}`;
+
+      if (daysInWeek.length > 0) {
+        const avgC = Math.round(daysInWeek.reduce((acc, s) => acc + (s.calories_consumed || 0), 0) / daysInWeek.length);
+        const avgP = Math.round(daysInWeek.reduce((acc, s) => acc + (s.protein_consumed || 0), 0) / daysInWeek.length);
+        const avgCb = Math.round(daysInWeek.reduce((acc, s) => acc + (s.carbs_consumed || 0), 0) / daysInWeek.length);
+        const avgF = Math.round(daysInWeek.reduce((acc, s) => acc + (s.fats_consumed || 0), 0) / daysInWeek.length);
+        const adh = Math.round((daysInWeek.length / 7) * 100);
+
+        weekly_history.push({
+          week_start: displayDate,
+          avg_calories: avgC,
+          avg_protein: avgP,
+          avg_carbs: avgCb,
+          avg_fat: avgF,
+          adherence_percent: adh,
+          avg_weight: profile?.weight ? `${profile.weight}kg` : '-'
+        });
+      } else {
+        weekly_history.push({
+          week_start: displayDate,
+          avg_calories: 0,
+          avg_protein: 0,
+          avg_carbs: 0,
+          avg_fat: 0,
+          adherence_percent: 0,
+          avg_weight: profile?.weight ? `${profile.weight}kg` : '-'
+        });
+      }
     }
 
-    return {
-      id: patientId,
-      name: profile?.display_name || 'Paciente',
-      photo_url: profile?.avatar_url || null,
-      age: profile?.age || null,
     // Fetch recent daily checkins
     const { data: checkins } = await supabase
       .from('daily_checkins')
@@ -878,7 +873,6 @@ export const patientService = {
     const energyScale: Record<number, string> = { 1: 'Exgotado', 2: 'Baixa', 3: 'Média', 4: 'Boa', 5: 'Alta' };
 
     const formattedCheckins = (checkins || []).map(c => {
-      // Parse symptoms safely from JSON array or standard array
       const s = c.symptoms || [];
       const symptomList = Array.isArray(s) ? s : (typeof s === 'string' ? JSON.parse(s) : Object.keys(s));
 
@@ -898,22 +892,6 @@ export const patientService = {
       name: profile?.display_name || 'Paciente',
       photo_url: profile?.avatar_url || null,
       age: profile?.age || null,
-      gender: profile?.gender || null,
-      imc,
-      imc_classification,
-      is_glp1_active: profile?.glp1_mode || false,
-      glp1_phase: profile?.glp1_phase || null,
-      glp1_medication: profile?.glp1_medication || null,
-      current_weight: profile?.weight || null,
-      weight_history: [],
-      current_goals: {
-        calories: cal,
-        protein: prot,
-        carbs: carb,
-        fat: fat,
-        fiber: 25,
-        water: water
-      },
       gender: profile?.gender || null,
       imc,
       imc_classification,
