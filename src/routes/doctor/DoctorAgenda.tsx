@@ -181,55 +181,61 @@ export const DoctorAgenda: React.FC = () => {
       <div className="bg-white rounded-xl shadow p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Disponibilidade Recorrente</h3>
 
-        <div className="space-y-4">
+        <div className="flex overflow-x-auto pb-6 gap-4 snap-x touch-pan-x">
           {[0, 1, 2, 3, 4, 5, 6].map(day => (
-            <div key={day} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm transition hover:border-[#2ECC71]/30">
-              <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
-                <span className="font-semibold text-gray-800">{DAY_OF_WEEK_LABELS[day]}</span>
+            <div key={day} className="bg-gray-50/80 rounded-xl p-4 border border-gray-200 shadow-sm min-w-[280px] max-w-[300px] snap-start flex-shrink-0 flex flex-col h-full transition hover:border-[#2ECC71]/30">
+              <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-3">
+                <span className="font-bold text-gray-700">{DAY_OF_WEEK_LABELS[day]}</span>
                 <button
                   onClick={() => addTimeSlot(day)}
-                  className="flex items-center gap-1 text-xs px-3 py-1.5 bg-[#2ECC71]/10 text-[#2ECC71] hover:bg-[#2ECC71]/20 rounded-full font-semibold transition"
+                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-white text-[#2ECC71] hover:bg-[#2ECC71]/10 rounded-lg shadow-sm font-semibold transition"
+                  title="Adicionar Horário"
                 >
-                  <Plus className="w-3 h-3" />
-                  Adicionar
+                  <Plus className="w-3.5 h-3.5" />
+                  + Horário
                 </button>
               </div>
 
-              {availabilities[day]?.length === 0 ? (
-                <div className="text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                  <p className="text-sm text-gray-400 font-medium tracking-wide">Livre (Nenhum horário definido)</p>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-3">
-                  {availabilities[day]?.map((avail) => (
-                    <div key={avail.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-2 hover:shadow-sm transition group">
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="time"
-                          value={formatTime(avail.start_time)}
-                          onChange={e => updateTime(day, avail.id, 'start_time', e.target.value + ':00')}
-                          className="px-2 py-1 bg-white rounded border border-gray-300 text-xs font-medium focus:ring-1 focus:ring-[#2ECC71] w-20 text-center"
-                        />
-                        <span className="text-gray-400 text-xs font-bold w-3 text-center">-</span>
-                        <input
-                          type="time"
-                          value={formatTime(avail.end_time)}
-                          onChange={e => updateTime(day, avail.id, 'end_time', e.target.value + ':00')}
-                          className="px-2 py-1 bg-white rounded border border-gray-300 text-xs font-medium focus:ring-1 focus:ring-[#2ECC71] w-20 text-center"
-                        />
+              <div className="flex-1 flex flex-col gap-3">
+                {availabilities[day]?.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-100/50 rounded-lg border border-dashed border-gray-300 h-full flex flex-col items-center justify-center">
+                    <p className="text-sm text-gray-400 font-medium">Livre</p>
+                    <p className="text-xs text-gray-400 mt-1">Sem expedientes</p>
+                  </div>
+                ) : (
+                  <>
+                    {availabilities[day]?.map((avail) => (
+                      <div key={avail.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md hover:border-gray-300 transition group flex flex-col gap-2 relative">
+                        <button 
+                          onClick={() => removeTimeSlot(day, avail.id)}
+                          className="absolute right-2 top-2 p-1 text-gray-300 hover:text-white hover:bg-red-500 rounded-md transition opacity-0 group-hover:opacity-100"
+                          title="Remover horário"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                        
+                        <div className="text-xs font-semibold text-gray-500 mb-1">Turno</div>
+                        
+                        <div className="flex items-center gap-2 w-full pr-6">
+                          <input
+                            type="time"
+                            value={formatTime(avail.start_time)}
+                            onChange={e => updateTime(day, avail.id, 'start_time', e.target.value + ':00')}
+                            className="flex-1 px-2 py-1.5 bg-gray-50 rounded border border-gray-200 text-sm font-medium focus:ring-2 focus:ring-[#2ECC71] focus:bg-white text-center transition"
+                          />
+                          <span className="text-gray-400 text-xs font-bold">-</span>
+                          <input
+                            type="time"
+                            value={formatTime(avail.end_time)}
+                            onChange={e => updateTime(day, avail.id, 'end_time', e.target.value + ':00')}
+                            className="flex-1 px-2 py-1.5 bg-gray-50 rounded border border-gray-200 text-sm font-medium focus:ring-2 focus:ring-[#2ECC71] focus:bg-white text-center transition"
+                          />
+                        </div>
                       </div>
-                      
-                      <button 
-                        onClick={() => removeTimeSlot(day, avail.id)}
-                        className="p-1.5 text-gray-400 hover:text-white hover:bg-red-500 rounded-md transition opacity-50 group-hover:opacity-100"
-                        title="Remover horário"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>
