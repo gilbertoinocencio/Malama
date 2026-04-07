@@ -2,27 +2,25 @@
 
 ## Componente Criado
 - **`src/components/NuraLogo.tsx`** — Componente React reutilizável com 4 tamanhos e 3 variantes
+- **`public/logo.jpg`** — Arquivo de imagem do novo logotipo NURA
 
 ### Design do Logo
-- **Fonte:** Cormorant Garamond (Google Fonts)
-- **Gradiente:** `#1A6070` → `#0C4352` (petrol escuro)
-- **Texto:** Branco, `font-weight: 300`, letter-spacing largo
-- **Efeito:** Gloss sutil no topo (50% altura, gradiente transparente)
+O logotipo NURA agora utiliza uma imagem personalizada (`IMG_7011.jpg`) que é carregada dinamicamente em todos os pontos da aplicação.
 
 ### Tamanhos Disponíveis
-| Size | Font Size | Uso |
+| Size | Width | Uso |
 |------|-----------|-----|
-| `sm` | 20px | Headers mobile, sidebar |
-| `md` | 32px | Sidebar desktop |
-| `lg` | 48px | Páginas de cadastro |
-| `xl` | 64px | Páginas de login |
+| `sm` | 80px | Headers mobile, sidebar |
+| `md` | 120px | Sidebar desktop |
+| `lg` | 180px | Páginas de cadastro |
+| `xl` | 240px | Páginas de login |
 
 ### Variantes
 | Variant | Descrição |
 |---------|-----------|
-| `light` (default) | Fundo gradiente + texto branco |
-| `dark` | Mesmo gradiente (preparado para dark mode) |
-| `text-only` | Apenas texto, cor `#1A6070`, sem fundo |
+| `light` (default) | Imagem do logo com fundo gradiente |
+| `dark` | Mesmo fundo gradiente (preparado para dark mode) |
+| `text-only` | Apenas texto "NURA", cor `#1A6070`, sem fundo |
 
 ## Onde foi aplicado
 
@@ -64,8 +62,8 @@ import { NuraLogo } from '../../components/NuraLogo';
 ```
 
 ## Fichas Técnicas
-- **Gradiente:** `linear-gradient(135deg, #1A6070 0%, #0C4352 100%)`
+- **Imagem:** `public/logo.jpg` (original: `LogotipoNura/IMG_7011.jpg`)
 - **Border Radius:** `8px` (sm) → `24px` (xl)
-- **Letter Spacing:** `4px` (sm) → `18px` (xl)
-- **Font Weight:** `300` (light/extralight)
-- **Font Family:** `'Cormorant Garamond', Georgia, serif`
+- **Width:** `80px` (sm) → `240px` (xl)
+- **Object Fit:** `contain`
+- **Formato:** JPEG

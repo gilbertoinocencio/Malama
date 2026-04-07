@@ -1,7 +1,7 @@
 # NURA - Feed the Flow
 
 <div align="center">
-  <img width="200" alt="NURA Logo" src="./public/pwa-icon.svg" />
+  <img width="200" alt="NURA Logo" src="./public/logo.jpg" />
 
   **AI-Powered Nutrition & Wellness Tracking**
 

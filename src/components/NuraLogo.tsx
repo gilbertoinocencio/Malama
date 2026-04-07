@@ -11,10 +11,10 @@ interface NuraLogoProps {
 }
 
 const sizeConfig = {
-  sm: { fontSize: '20px', padding: '6px 12px', borderRadius: '8px', letterSpacing: '4px', textIndent: '4px' },
-  md: { fontSize: '32px', padding: '10px 20px', borderRadius: '12px', letterSpacing: '8px', textIndent: '8px' },
-  lg: { fontSize: '48px', padding: '14px 28px', borderRadius: '16px', letterSpacing: '14px', textIndent: '14px' },
-  xl: { fontSize: '64px', padding: '18px 36px', borderRadius: '24px', letterSpacing: '18px', textIndent: '18px' }
+  sm: { width: '80px', height: 'auto', borderRadius: '8px' },
+  md: { width: '120px', height: 'auto', borderRadius: '12px' },
+  lg: { width: '180px', height: 'auto', borderRadius: '16px' },
+  xl: { width: '240px', height: 'auto', borderRadius: '24px' }
 };
 
 export const NuraLogo: React.FC<NuraLogoProps> = ({
@@ -29,9 +29,9 @@ export const NuraLogo: React.FC<NuraLogoProps> = ({
       <span
         className={`font-serif font-semibold tracking-wide ${className}`}
         style={{
-          fontSize: config.fontSize,
-          letterSpacing: config.letterSpacing,
-          textIndent: config.textIndent,
+          fontSize: config.width === '80px' ? '20px' : config.width === '120px' ? '32px' : config.width === '180px' ? '48px' : '64px',
+          letterSpacing: config.width === '80px' ? '4px' : config.width === '120px' ? '8px' : config.width === '180px' ? '14px' : '18px',
+          textIndent: config.width === '80px' ? '4px' : config.width === '120px' ? '8px' : config.width === '180px' ? '14px' : '18px',
           color: '#1A6070',
           fontFamily: "'Cormorant Garamond', Georgia, serif"
         }}
@@ -51,38 +51,22 @@ export const NuraLogo: React.FC<NuraLogoProps> = ({
           ? 'linear-gradient(135deg, #1A6070 0%, #0C4352 100%)'
           : 'linear-gradient(135deg, #1A6070 0%, #0C4352 100%)',
         borderRadius: config.borderRadius,
-        padding: config.padding,
+        padding: '8px',
         position: 'relative',
         overflow: 'hidden'
       }}
     >
-      {/* Gloss effect */}
-      <div
+      <img
+        src="/logo.jpg"
+        alt="NURA Logo"
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '50%',
-          background: 'linear-gradient(to bottom, rgba(255,255,255,0.06), transparent)',
-          borderRadius: `${config.borderRadius} ${config.borderRadius} 0 0`
+          width: config.width,
+          height: config.height,
+          objectFit: 'contain',
+          position: 'relative',
+          zIndex: 1
         }}
       />
-      <span
-        style={{
-          fontSize: config.fontSize,
-          fontWeight: 300,
-          color: 'white',
-          letterSpacing: config.letterSpacing,
-          textIndent: config.textIndent,
-          lineHeight: 1,
-          position: 'relative',
-          zIndex: 1,
-          fontFamily: "'Cormorant Garamond', Georgia, serif"
-        }}
-      >
-        NURA
-      </span>
     </div>
   );
 };

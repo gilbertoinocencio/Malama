@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['pwa-icon.svg', 'apple-touch-icon.png'],
+        includeAssets: ['logo.jpg', 'apple-touch-icon.png'],
         manifest: {
           name: 'NURA - Feed the Flow',
           short_name: 'NURA',
@@ -25,15 +25,15 @@ export default defineConfig(({ mode }) => {
           orientation: 'portrait',
           icons: [
             {
-              src: 'pwa-icon.svg',
+              src: 'logo.jpg',
               sizes: '192x192',
-              type: 'image/svg+xml',
+              type: 'image/jpeg',
               purpose: 'any maskable'
             },
             {
-              src: 'pwa-icon.svg',
+              src: 'logo.jpg',
               sizes: '512x512',
-              type: 'image/svg+xml',
+              type: 'image/jpeg',
               purpose: 'any maskable'
             }
           ]

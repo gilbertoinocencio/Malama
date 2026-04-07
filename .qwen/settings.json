@@ -8,7 +8,9 @@
       "Bash(node *)",
       "Read(c:\\Users\\DELL\\Downloads/**)",
       "Bash(npm install *)",
-      "Bash(mkdir *)"
+      "Bash(mkdir *)",
+      "Bash(copy *)",
+      "Bash(dir *)"
     ]
   },
   "$version": 3
