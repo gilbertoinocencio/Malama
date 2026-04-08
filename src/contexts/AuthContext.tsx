@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
-import { doctorService } from '../services/doctorPortalService';
+import { doctorService, influencerService } from '../services/doctorPortalService';
 
 interface AuthContextType {
     user: User | null;
@@ -89,16 +89,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Resolve token de indicação do localStorage e salva no profile (roda 1x por cadastro)
     // DEVE vir antes do useEffect que o utiliza!
     const applyReferralData = useCallback(async (userId: string) => {
-        const token = localStorage.getItem('nura_referral_token');
-        const channel = localStorage.getItem('nura_acquisition_channel');
+        const doctorToken     = localStorage.getItem('nura_referral_token');
+        const influencerToken = localStorage.getItem('nura_influencer_token');
+        const channel         = localStorage.getItem('nura_acquisition_channel');
 
         const updates: Record<string, unknown> = {
             id: userId,
             acquisition_channel: channel ?? 'organic',
         };
 
-        if (token) {
-            const doctor = await doctorService.getDoctorByReferralToken(token);
+        if (influencerToken) {
+            const inf = await influencerService.getByToken(influencerToken);
+            if (inf) {
+                updates.referred_by_influencer_id = inf.id;
+                updates.acquisition_channel = 'influencer';
+                await influencerService.registerReferral(inf.id, userId, inf.commission_per_referral);
+            }
+        } else if (doctorToken) {
+            const doctor = await doctorService.getDoctorByReferralToken(doctorToken);
             if (doctor) {
                 updates.referred_by_doctor_id = doctor.id;
                 updates.acquisition_channel = 'referral';
@@ -107,6 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         await supabase.from('profiles').upsert(updates, { onConflict: 'id' });
         localStorage.removeItem('nura_referral_token');
+        localStorage.removeItem('nura_influencer_token');
         localStorage.removeItem('nura_acquisition_channel');
     }, []);
 

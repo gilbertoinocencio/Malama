@@ -999,6 +999,144 @@ export const dashboardService = {
 };
 
 // =====================================================
+// INFLUENCIADORES
+// =====================================================
+
+export type Influencer = {
+  id: string;
+  user_id: string | null;
+  name: string;
+  email: string;
+  instagram_handle: string | null;
+  pix_key: string | null;
+  referral_token: string;
+  commission_per_referral: number;
+  status: 'active' | 'paused' | 'cancelled';
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InfluencerReferral = {
+  id: string;
+  influencer_id: string;
+  user_id: string | null;
+  commission_amount: number;
+  status: 'pending' | 'paid' | 'cancelled';
+  paid_at: string | null;
+  created_at: string;
+};
+
+export type InfluencerSummary = Influencer & {
+  total_referrals: number;
+  pending_referrals: number;
+  total_earned: number;   // paid + pending
+  pending_amount: number; // só pending
+};
+
+export const influencerService = {
+  // Listar todos com métricas agregadas
+  async getAll(): Promise<InfluencerSummary[]> {
+    const { data: influencers, error } = await supabase
+      .from('influencers')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!influencers?.length) return [];
+
+    const ids = influencers.map(i => i.id);
+    const { data: refs } = await supabase
+      .from('influencer_referrals')
+      .select('influencer_id, commission_amount, status')
+      .in('influencer_id', ids);
+
+    return influencers.map(inf => {
+      const myRefs = refs?.filter(r => r.influencer_id === inf.id) ?? [];
+      const pendingRefs = myRefs.filter(r => r.status === 'pending');
+      return {
+        ...inf,
+        total_referrals:  myRefs.length,
+        pending_referrals: pendingRefs.length,
+        total_earned:  myRefs.reduce((s, r) => s + r.commission_amount, 0),
+        pending_amount: pendingRefs.reduce((s, r) => s + r.commission_amount, 0),
+      };
+    });
+  },
+
+  // Criar novo influenciador
+  async create(data: Partial<Influencer>): Promise<Influencer> {
+    const token = `inf_${uuidv4().replace(/-/g, '')}`;
+    const { data: created, error } = await supabase
+      .from('influencers')
+      .insert([{ ...data, referral_token: token }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return created;
+  },
+
+  // Atualizar influenciador
+  async update(id: string, data: Partial<Influencer>): Promise<Influencer> {
+    const { data: updated, error } = await supabase
+      .from('influencers')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return updated;
+  },
+
+  // Buscar por token (landing page — não requer auth)
+  async getByToken(token: string): Promise<Pick<Influencer, 'id' | 'name' | 'instagram_handle' | 'commission_per_referral'> | null> {
+    const { data, error } = await supabase
+      .from('influencers')
+      .select('id, name, instagram_handle, commission_per_referral')
+      .eq('referral_token', token)
+      .eq('status', 'active')
+      .single();
+
+    if (error) return null;
+    return data;
+  },
+
+  // Buscar referrals de um influenciador
+  async getReferrals(influencerId: string): Promise<InfluencerReferral[]> {
+    const { data, error } = await supabase
+      .from('influencer_referrals')
+      .select('*')
+      .eq('influencer_id', influencerId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  // Registrar conversão (chamado em applyReferralData)
+  async registerReferral(influencerId: string, userId: string, commissionAmount: number): Promise<void> {
+    const { error } = await supabase
+      .from('influencer_referrals')
+      .insert([{ influencer_id: influencerId, user_id: userId, commission_amount: commissionAmount }]);
+
+    if (error) throw error;
+  },
+
+  // Marcar todas as comissões pendentes de um influenciador como pagas
+  async markPaid(influencerId: string): Promise<void> {
+    const { error } = await supabase
+      .from('influencer_referrals')
+      .update({ status: 'paid', paid_at: new Date().toISOString() })
+      .eq('influencer_id', influencerId)
+      .eq('status', 'pending');
+
+    if (error) throw error;
+  },
+};
+
+// =====================================================
 // ADMIN
 // =====================================================
 

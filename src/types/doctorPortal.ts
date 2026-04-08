@@ -48,6 +48,12 @@ export enum PayoutStatus {
   CANCELLED = 'cancelled'
 }
 
+export enum InfluencerStatus {
+  ACTIVE = 'active',
+  PAUSED = 'paused',
+  CANCELLED = 'cancelled'
+}
+
 export interface Doctor {
   id: string;
   user_id: string;
