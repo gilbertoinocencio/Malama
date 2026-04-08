@@ -32,6 +32,7 @@ import { AdminLogin } from './admin/AdminLogin';
 import { AdminRoute as AdminGuard } from './guards';
 import { AdminDashboard } from './admin/AdminDashboard';
 import { AdminDoctorsManagement } from './admin/AdminDoctorsManagement';
+import { AdminUsersManagement } from './admin/AdminUsersManagement';
 import { AdminFinancial } from './admin/AdminFinancial';
 import { AdminSettings } from './admin/AdminSettings';
 
@@ -46,6 +47,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <nav className="flex gap-4">
             <a href="/admin/dashboard" className="text-sm hover:text-[#2ECC71] transition">Dashboard</a>
             <a href="/admin/medicos" className="text-sm hover:text-[#2ECC71] transition">Médicos</a>
+            <a href="/admin/usuarios" className="text-sm hover:text-[#2ECC71] transition">Usuários</a>
             <a href="/admin/financeiro" className="text-sm hover:text-[#2ECC71] transition">Financeiro</a>
             <a href="/admin/configuracoes" className="text-sm hover:text-[#2ECC71] transition">Configurações</a>
           </nav>
@@ -128,6 +130,17 @@ export const AppRoutes: React.FC = () => {
               <AdminGuard>
                 <AdminLayout>
                   <AdminDoctorsManagement />
+                </AdminLayout>
+              </AdminGuard>
+            }
+          />
+
+          <Route
+            path="/admin/usuarios"
+            element={
+              <AdminGuard>
+                <AdminLayout>
+                  <AdminUsersManagement />
                 </AdminLayout>
               </AdminGuard>
             }

@@ -1002,7 +1002,193 @@ export const dashboardService = {
 // ADMIN
 // =====================================================
 
+// =====================================================
+// TIPOS INTERNOS — USUÁRIOS (ADMIN)
+// =====================================================
+
+export type AdminUserSummary = {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  email: string | null;
+  created_at: string;
+  acquisition_channel: string | null;
+  referred_by_doctor_id: string | null;
+  referred_by_doctor_name: string | null;
+  consultations_count: number;
+  ltv: number; // total gasto em consultas concluídas
+};
+
+export type AdminUserDetail = AdminUserSummary & {
+  age: number | null;
+  gender: string | null;
+  weight: number | null;
+  height: number | null;
+  goal: string | null;
+  level: number;
+  total_xp: number;
+  current_streak: number;
+  consultations: Array<{
+    id: string;
+    scheduled_at: string;
+    doctor_name: string | null;
+    status: string;
+    price: number | null;
+    type: string;
+  }>;
+};
+
+// =====================================================
+// ADMIN
+// =====================================================
+
 export const adminService = {
+  // Buscar todos os usuários com dados de LTV
+  async getAllUsers(search?: string): Promise<AdminUserSummary[]> {
+    const { data: profiles, error } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        display_name,
+        avatar_url,
+        created_at,
+        acquisition_channel,
+        referred_by_doctor_id
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!profiles?.length) return [];
+
+    // Buscar emails via auth (admin API — requer service_role ou RPC)
+    // Buscar nomes dos médicos indicadores
+    const doctorIds = [...new Set(profiles.map(p => p.referred_by_doctor_id).filter(Boolean))];
+    let doctorMap: Record<string, string> = {};
+    if (doctorIds.length) {
+      const { data: doctors } = await supabase
+        .from('doctors')
+        .select('id, name')
+        .in('id', doctorIds as string[]);
+      doctors?.forEach(d => { doctorMap[d.id] = d.name; });
+    }
+
+    // Buscar contagens e somas de consultas por paciente
+    const patientIds = profiles.map(p => p.id);
+    const { data: consultations } = await supabase
+      .from('consultations')
+      .select('patient_id, price, status')
+      .in('patient_id', patientIds);
+
+    const consultMap: Record<string, { count: number; ltv: number }> = {};
+    consultations?.forEach(c => {
+      if (!consultMap[c.patient_id]) consultMap[c.patient_id] = { count: 0, ltv: 0 };
+      consultMap[c.patient_id].count++;
+      if (c.status === 'completed' && c.price) {
+        consultMap[c.patient_id].ltv += c.price;
+      }
+    });
+
+    const result: AdminUserSummary[] = profiles.map(p => ({
+      id: p.id,
+      display_name: p.display_name,
+      avatar_url: p.avatar_url,
+      email: null, // preenchido separadamente se necessário
+      created_at: p.created_at,
+      acquisition_channel: p.acquisition_channel,
+      referred_by_doctor_id: p.referred_by_doctor_id,
+      referred_by_doctor_name: p.referred_by_doctor_id ? doctorMap[p.referred_by_doctor_id] ?? null : null,
+      consultations_count: consultMap[p.id]?.count ?? 0,
+      ltv: consultMap[p.id]?.ltv ?? 0,
+    }));
+
+    if (search) {
+      const q = search.toLowerCase();
+      return result.filter(u =>
+        u.display_name?.toLowerCase().includes(q) ||
+        u.referred_by_doctor_name?.toLowerCase().includes(q)
+      );
+    }
+
+    return result;
+  },
+
+  // Buscar ficha completa de um usuário
+  async getUserDetail(userId: string): Promise<AdminUserDetail | null> {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select(`
+        id, display_name, avatar_url, created_at,
+        acquisition_channel, referred_by_doctor_id,
+        age, gender, weight, height, goal,
+        level, total_xp, current_streak
+      `)
+      .eq('id', userId)
+      .single();
+
+    if (error || !profile) return null;
+
+    // Médico indicador
+    let referred_by_doctor_name: string | null = null;
+    if (profile.referred_by_doctor_id) {
+      const { data: doc } = await supabase
+        .from('doctors')
+        .select('name')
+        .eq('id', profile.referred_by_doctor_id)
+        .single();
+      referred_by_doctor_name = doc?.name ?? null;
+    }
+
+    // Consultas detalhadas
+    const { data: consults } = await supabase
+      .from('consultations')
+      .select('id, scheduled_at, doctor_id, status, price, type')
+      .eq('patient_id', userId)
+      .order('scheduled_at', { ascending: false });
+
+    const doctorIds = [...new Set(consults?.map(c => c.doctor_id).filter(Boolean) ?? [])];
+    let docNameMap: Record<string, string> = {};
+    if (doctorIds.length) {
+      const { data: docs } = await supabase
+        .from('doctors')
+        .select('id, name')
+        .in('id', doctorIds);
+      docs?.forEach(d => { docNameMap[d.id] = d.name; });
+    }
+
+    const totalLtv = consults
+      ?.filter(c => c.status === 'completed')
+      .reduce((sum, c) => sum + (c.price ?? 0), 0) ?? 0;
+
+    return {
+      id: profile.id,
+      display_name: profile.display_name,
+      avatar_url: profile.avatar_url,
+      email: null,
+      created_at: profile.created_at,
+      acquisition_channel: profile.acquisition_channel,
+      referred_by_doctor_id: profile.referred_by_doctor_id,
+      referred_by_doctor_name,
+      consultations_count: consults?.length ?? 0,
+      ltv: totalLtv,
+      age: profile.age,
+      gender: profile.gender,
+      weight: profile.weight,
+      height: profile.height,
+      goal: profile.goal,
+      level: profile.level ?? 1,
+      total_xp: profile.total_xp ?? 0,
+      current_streak: profile.current_streak ?? 0,
+      consultations: consults?.map(c => ({
+        id: c.id,
+        scheduled_at: c.scheduled_at,
+        doctor_name: docNameMap[c.doctor_id] ?? null,
+        status: c.status,
+        price: c.price,
+        type: c.type,
+      })) ?? [],
+    };
+  },
+
   async getDashboardSummary(): Promise<AdminDashboardSummary> {
     // Buscar contagem de médicos aprovados
     const { data: approvedDoctors, error: doctorsError } = await supabase
