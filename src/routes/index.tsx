@@ -23,6 +23,7 @@ import { PatientsList } from './doctor/PatientsList';
 import { PatientProfile } from './doctor/PatientProfile';
 import { ConsultationRoom } from './doctor/ConsultationRoom';
 import { DoctorSettings } from './doctor/DoctorSettings';
+import { DoctorFinancial } from './doctor/DoctorFinancial';
 
 // Referral
 import { PatientReferral } from './PatientReferral';
@@ -106,6 +107,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="pacientes" element={<PatientsList />} />
             <Route path="paciente/:patientId" element={<PatientProfile />} />
             <Route path="consulta/:id" element={<ConsultationRoom />} />
+            <Route path="financeiro" element={<DoctorFinancial />} />
             <Route path="configuracoes" element={<DoctorSettings />} />
           </Route>
 

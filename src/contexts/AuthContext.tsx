@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
+import { doctorService } from '../services/doctorPortalService';
 
 interface AuthContextType {
     user: User | null;
@@ -118,7 +119,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setUser(newSession?.user ?? null);
 
                 if (newSession?.user) {
-                    fetchProfile(newSession.user.id);
+                    // Se há token de indicação no localStorage e é um SIGNED_IN (ex: Google OAuth),
+                    // aplica o rastreamento antes de buscar o profile
+                    if (event === 'SIGNED_IN' && localStorage.getItem('nura_referral_token')) {
+                        applyReferralData(newSession.user.id).then(() => fetchProfile(newSession.user.id));
+                    } else {
+                        fetchProfile(newSession.user.id);
+                    }
                 } else {
                     setProfile(null);
                 }
@@ -129,7 +136,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             mountedRef.current = false;
             subscription.unsubscribe();
         };
-    }, [fetchProfile]);
+    }, [fetchProfile, applyReferralData]);
+
+    // Resolve token de indicação do localStorage e salva no profile (roda 1x por cadastro)
+    const applyReferralData = useCallback(async (userId: string) => {
+        const token = localStorage.getItem('nura_referral_token');
+        const channel = localStorage.getItem('nura_acquisition_channel');
+
+        const updates: Record<string, unknown> = {
+            id: userId,
+            acquisition_channel: channel ?? 'organic',
+        };
+
+        if (token) {
+            const doctor = await doctorService.getDoctorByReferralToken(token);
+            if (doctor) {
+                updates.referred_by_doctor_id = doctor.id;
+                updates.acquisition_channel = 'referral';
+            }
+        }
+
+        await supabase.from('profiles').upsert(updates, { onConflict: 'id' });
+        localStorage.removeItem('nura_referral_token');
+        localStorage.removeItem('nura_acquisition_channel');
+    }, []);
 
     const refreshProfile = useCallback(async () => {
         if (user) await fetchProfile(user.id);
@@ -156,9 +186,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const signUpWithEmail = useCallback(async (email: string, password: string) => {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-    }, []);
+        // Salvar canal de aquisição e indicação logo após o cadastro
+        if (data.user) await applyReferralData(data.user.id);
+    }, [applyReferralData]);
 
     const signOut = useCallback(async () => {
         const { error } = await supabase.auth.signOut();

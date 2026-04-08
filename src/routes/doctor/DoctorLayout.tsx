@@ -15,7 +15,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  DollarSign
 } from 'lucide-react';
 
 export const DoctorLayout: React.FC = () => {
@@ -48,6 +49,7 @@ export const DoctorLayout: React.FC = () => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/medico/dashboard' },
     { icon: Calendar, label: 'Agenda', path: '/medico/agenda' },
     { icon: Users, label: 'Pacientes', path: '/medico/pacientes' },
+    { icon: DollarSign, label: 'Financeiro', path: '/medico/financeiro' },
     { icon: Settings, label: 'Configurações', path: '/medico/configuracoes' }
   ];
 
