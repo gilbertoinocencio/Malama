@@ -17,6 +17,7 @@ interface AuthContextType {
     loading: boolean;          // true only while checking if user is logged in (fast)
     profileLoading: boolean;   // true while fetching profile from DB
     influencerRecord: InfluencerRecord | null; // preenchido se o usuário logado for influencer
+    influencerLoading: boolean; // true enquanto verifica se o usuário é influencer
     updateProfile: (updates: any) => Promise<void>;
     refreshProfile: () => Promise<void>;
     signInWithGoogle: () => Promise<void>;
@@ -34,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
     const [profileLoading, setProfileLoading] = useState(false);
     const [influencerRecord, setInfluencerRecord] = useState<InfluencerRecord | null>(null);
+    const [influencerLoading, setInfluencerLoading] = useState(false);
 
     const mountedRef = useRef(true);
     const profileFetchId = useRef(0);
@@ -182,10 +184,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Detectar se o usuário logado é um influencer
     useEffect(() => {
-        if (!user) { setInfluencerRecord(null); return; }
+        if (!user) { setInfluencerRecord(null); setInfluencerLoading(false); return; }
+        setInfluencerLoading(true);
         influencerService.getByUserId(user.id).then(data => {
             if (mountedRef.current) setInfluencerRecord(data as InfluencerRecord | null);
-        }).catch(() => setInfluencerRecord(null));
+        }).catch(() => {
+            if (mountedRef.current) setInfluencerRecord(null);
+        }).finally(() => {
+            if (mountedRef.current) setInfluencerLoading(false);
+        });
     }, [user?.id]);
 
     const refreshProfile = useCallback(async () => {
@@ -227,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (
         <AuthContext.Provider value={{
             user, session, profile, loading, profileLoading,
-            influencerRecord,
+            influencerRecord, influencerLoading,
             updateProfile, refreshProfile,
             signInWithGoogle, signInWithEmail, signUpWithEmail, signOut
         }}>

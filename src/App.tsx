@@ -42,12 +42,23 @@ const PatientConsultaPage = React.lazy(() => lazyRetry(() => import('./component
 import type { Consultation } from './lib/scheduling';
 
 const App: React.FC = () => {
-  const { user, profile, loading, profileLoading } = useAuth();
+  const { user, profile, loading, profileLoading, influencerRecord, influencerLoading } = useAuth();
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
-  const [isPortalRoute, setIsPortalRoute] = useState(false);
+  const [isPortalRoute, setIsPortalRoute] = useState(() => {
+    const path = window.location.pathname;
+    return (
+      path.startsWith('/medico') ||
+      path.startsWith('/admin') ||
+      path.startsWith('/influencer') ||
+      path.startsWith('/convite') ||
+      path.startsWith('/i/') ||
+      path === '/' ||
+      path === ''
+    );
+  });
   const [videoConsultation, setVideoConsultation] = useState<Consultation | null>(null);
 
   // Check if current path is a portal route (/medico/* or /admin/*) or landing page
@@ -67,9 +78,20 @@ const App: React.FC = () => {
 
     checkPath();
 
-    // Listen for navigation events (popstate)
+    // Listen for browser back/forward (popstate) AND React Router pushState/replaceState
     window.addEventListener('popstate', checkPath);
-    return () => window.removeEventListener('popstate', checkPath);
+
+    const originalPush = window.history.pushState.bind(window.history);
+    const originalReplace = window.history.replaceState.bind(window.history);
+
+    window.history.pushState = (...args) => { originalPush(...args); checkPath(); };
+    window.history.replaceState = (...args) => { originalReplace(...args); checkPath(); };
+
+    return () => {
+      window.removeEventListener('popstate', checkPath);
+      window.history.pushState = originalPush;
+      window.history.replaceState = originalReplace;
+    };
   }, []);
 
   // Handle Theme Toggle
@@ -229,6 +251,19 @@ const App: React.FC = () => {
 
   // Profile loaded but onboarding not completed
   if (!profile?.onboarding_completed) {
+    // Enquanto verifica se é influencer, mostra spinner
+    if (influencerLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-nura-bg dark:bg-background-dark">
+          <div className="w-12 h-12 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      );
+    }
+    // Influencer que caiu numa rota não-portal: redireciona para o portal deles
+    if (influencerRecord) {
+      window.location.replace('/influencer/dashboard');
+      return null;
+    }
     return <OnboardingFlow onComplete={() => loadStats()} />;
   }
 
