@@ -86,6 +86,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, []);
 
+    // Resolve token de indicação do localStorage e salva no profile (roda 1x por cadastro)
+    // DEVE vir antes do useEffect que o utiliza!
+    const applyReferralData = useCallback(async (userId: string) => {
+        const token = localStorage.getItem('nura_referral_token');
+        const channel = localStorage.getItem('nura_acquisition_channel');
+
+        const updates: Record<string, unknown> = {
+            id: userId,
+            acquisition_channel: channel ?? 'organic',
+        };
+
+        if (token) {
+            const doctor = await doctorService.getDoctorByReferralToken(token);
+            if (doctor) {
+                updates.referred_by_doctor_id = doctor.id;
+                updates.acquisition_channel = 'referral';
+            }
+        }
+
+        await supabase.from('profiles').upsert(updates, { onConflict: 'id' });
+        localStorage.removeItem('nura_referral_token');
+        localStorage.removeItem('nura_acquisition_channel');
+    }, []);
+
     useEffect(() => {
         mountedRef.current = true;
 
@@ -137,29 +161,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             subscription.unsubscribe();
         };
     }, [fetchProfile, applyReferralData]);
-
-    // Resolve token de indicação do localStorage e salva no profile (roda 1x por cadastro)
-    const applyReferralData = useCallback(async (userId: string) => {
-        const token = localStorage.getItem('nura_referral_token');
-        const channel = localStorage.getItem('nura_acquisition_channel');
-
-        const updates: Record<string, unknown> = {
-            id: userId,
-            acquisition_channel: channel ?? 'organic',
-        };
-
-        if (token) {
-            const doctor = await doctorService.getDoctorByReferralToken(token);
-            if (doctor) {
-                updates.referred_by_doctor_id = doctor.id;
-                updates.acquisition_channel = 'referral';
-            }
-        }
-
-        await supabase.from('profiles').upsert(updates, { onConflict: 'id' });
-        localStorage.removeItem('nura_referral_token');
-        localStorage.removeItem('nura_acquisition_channel');
-    }, []);
 
     const refreshProfile = useCallback(async () => {
         if (user) await fetchProfile(user.id);

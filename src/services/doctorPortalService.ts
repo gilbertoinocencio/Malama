@@ -1017,6 +1017,10 @@ export type AdminUserSummary = {
   referred_by_doctor_name: string | null;
   consultations_count: number;
   ltv: number; // total gasto em consultas concluídas
+  // Dados demográficos (para gráficos)
+  age: number | null;
+  gender: string | null;
+  goal: string | null;
 };
 
 export type AdminUserDetail = AdminUserSummary & {
@@ -1053,7 +1057,10 @@ export const adminService = {
         avatar_url,
         created_at,
         acquisition_channel,
-        referred_by_doctor_id
+        referred_by_doctor_id,
+        age,
+        gender,
+        goal
       `)
       .order('created_at', { ascending: false });
 
@@ -1099,6 +1106,9 @@ export const adminService = {
       referred_by_doctor_name: p.referred_by_doctor_id ? doctorMap[p.referred_by_doctor_id] ?? null : null,
       consultations_count: consultMap[p.id]?.count ?? 0,
       ltv: consultMap[p.id]?.ltv ?? 0,
+      age: p.age ?? null,
+      gender: p.gender ?? null,
+      goal: p.goal ?? null,
     }));
 
     if (search) {

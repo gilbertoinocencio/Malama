@@ -2,9 +2,13 @@
 // NURA — Gestão de Usuários (Admin)
 // =====================================================
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  Search, X, User, Calendar, DollarSign, Activity,
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
+  Tooltip, ResponsiveContainer, Legend
+} from 'recharts';
+import {
+  Search, X, User, Calendar, DollarSign,
   Stethoscope, Globe, Share2, TrendingUp, Hash
 } from 'lucide-react';
 import { adminService } from '../../services/doctorPortalService';
@@ -18,11 +22,11 @@ const fmtCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const CHANNEL_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  referral:  { label: 'Indicação médica', color: 'bg-purple-100 text-purple-700', icon: <Stethoscope className="w-3 h-3" /> },
-  website:   { label: 'Site',             color: 'bg-blue-100 text-blue-700',     icon: <Globe className="w-3 h-3" /> },
-  social:    { label: 'Redes sociais',    color: 'bg-pink-100 text-pink-700',     icon: <Share2 className="w-3 h-3" /> },
-  organic:   { label: 'Orgânico',         color: 'bg-gray-100 text-gray-600',     icon: <TrendingUp className="w-3 h-3" /> },
-  other:     { label: 'Outro',            color: 'bg-yellow-100 text-yellow-700', icon: <Hash className="w-3 h-3" /> },
+  referral: { label: 'Indicação médica', color: 'bg-purple-100 text-purple-700', icon: <Stethoscope className="w-3 h-3" /> },
+  website:  { label: 'Site',             color: 'bg-blue-100 text-blue-700',     icon: <Globe className="w-3 h-3" /> },
+  social:   { label: 'Redes sociais',    color: 'bg-pink-100 text-pink-700',     icon: <Share2 className="w-3 h-3" /> },
+  organic:  { label: 'Orgânico',         color: 'bg-gray-100 text-gray-600',     icon: <TrendingUp className="w-3 h-3" /> },
+  other:    { label: 'Outro',            color: 'bg-yellow-100 text-yellow-700', icon: <Hash className="w-3 h-3" /> },
 };
 
 const ChannelBadge: React.FC<{ channel: string | null }> = ({ channel }) => {
@@ -37,10 +41,10 @@ const ChannelBadge: React.FC<{ channel: string | null }> = ({ channel }) => {
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const map: Record<string, string> = {
-    completed: 'bg-green-100 text-green-700',
-    scheduled: 'bg-blue-100 text-blue-700',
-    cancelled: 'bg-red-100 text-red-700',
-    no_show:   'bg-orange-100 text-orange-700',
+    completed:   'bg-green-100 text-green-700',
+    scheduled:   'bg-blue-100 text-blue-700',
+    cancelled:   'bg-red-100 text-red-700',
+    no_show:     'bg-orange-100 text-orange-700',
     in_progress: 'bg-yellow-100 text-yellow-700',
   };
   const labelMap: Record<string, string> = {
@@ -71,6 +75,177 @@ const Avatar: React.FC<{ name: string | null; url: string | null; size?: 'sm' | 
   );
 };
 
+// ─── Tooltip customizado ───────────────────────────────
+const CustomTooltip: React.FC<any> = ({ active, payload }) => {
+  if (!active || !payload?.length) return null;
+  const { name, value } = payload[0].payload;
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow px-3 py-2 text-sm">
+      <p className="font-medium text-gray-800">{name}</p>
+      <p className="text-[#2ECC71] font-bold">{value} usuário{value !== 1 ? 's' : ''}</p>
+    </div>
+  );
+};
+
+// ─── Gráfico de pizza simples com legenda própria ──────
+const COLORS = ['#2ECC71', '#3498DB', '#9B59B6', '#E74C3C', '#F39C12', '#1ABC9C', '#95A5A6'];
+
+const MiniPie: React.FC<{ data: { name: string; value: number }[]; title: string }> = ({ data, title }) => {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return (
+    <div className="bg-white rounded-xl shadow p-5">
+      <p className="text-sm font-semibold text-gray-700 mb-4">{title}</p>
+      <p className="text-center text-gray-400 text-sm py-6">Sem dados</p>
+    </div>
+  );
+  return (
+    <div className="bg-white rounded-xl shadow p-5">
+      <p className="text-sm font-semibold text-gray-700 mb-3">{title}</p>
+      <div className="flex items-center gap-4">
+        <ResponsiveContainer width={110} height={110}>
+          <PieChart>
+            <Pie data={data} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={50} strokeWidth={0}>
+              {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+          {data.map((d, i) => (
+            <div key={d.name} className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                <span className="text-xs text-gray-600 truncate">{d.name}</span>
+              </div>
+              <span className="text-xs font-semibold text-gray-700 flex-shrink-0">
+                {d.value} <span className="text-gray-400 font-normal">({Math.round(d.value / total * 100)}%)</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Gráfico de barras horizontal simples ─────────────
+const MiniBar: React.FC<{ data: { name: string; value: number }[]; title: string; color?: string }> = ({
+  data, title, color = '#2ECC71'
+}) => {
+  const max = Math.max(...data.map(d => d.value), 1);
+  return (
+    <div className="bg-white rounded-xl shadow p-5">
+      <p className="text-sm font-semibold text-gray-700 mb-4">{title}</p>
+      <div className="space-y-2.5">
+        {data.map(d => (
+          <div key={d.name}>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-gray-600">{d.name}</span>
+              <span className="font-semibold text-gray-700">{d.value}</span>
+            </div>
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${(d.value / max) * 100}%`, background: color }}
+              />
+            </div>
+          </div>
+        ))}
+        {data.every(d => d.value === 0) && (
+          <p className="text-center text-gray-400 text-sm py-4">Sem dados</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── hook: dados derivados para gráficos ───────────────
+function useChartData(users: AdminUserSummary[]) {
+  return useMemo(() => {
+    // Gênero
+    const genderCount = { male: 0, female: 0, unknown: 0 };
+    users.forEach(u => {
+      if (u.gender === 'male') genderCount.male++;
+      else if (u.gender === 'female') genderCount.female++;
+      else genderCount.unknown++;
+    });
+    const gender = [
+      { name: 'Masculino', value: genderCount.male },
+      { name: 'Feminino',  value: genderCount.female },
+      { name: 'N/D',       value: genderCount.unknown },
+    ].filter(d => d.value > 0);
+
+    // Faixa etária
+    const ageBuckets: Record<string, number> = {
+      '< 20':  0, '20–29': 0, '30–39': 0,
+      '40–49': 0, '50+':   0, 'N/D':   0,
+    };
+    users.forEach(u => {
+      const a = u.age;
+      if (a == null)     ageBuckets['N/D']++;
+      else if (a < 20)   ageBuckets['< 20']++;
+      else if (a < 30)   ageBuckets['20–29']++;
+      else if (a < 40)   ageBuckets['30–39']++;
+      else if (a < 50)   ageBuckets['40–49']++;
+      else               ageBuckets['50+']++;
+    });
+    const ageData = Object.entries(ageBuckets).map(([name, value]) => ({ name, value }));
+
+    // Objetivos
+    const goalMap: Record<string, string> = {
+      aesthetic: 'Estética', health: 'Saúde', performance: 'Performance',
+    };
+    const goalCount: Record<string, number> = { aesthetic: 0, health: 0, performance: 0, other: 0 };
+    users.forEach(u => {
+      const k = u.goal && goalCount[u.goal] !== undefined ? u.goal : 'other';
+      goalCount[k]++;
+    });
+    const goalData = [
+      { name: 'Estética',    value: goalCount.aesthetic   },
+      { name: 'Saúde',       value: goalCount.health      },
+      { name: 'Performance', value: goalCount.performance },
+      { name: 'N/D',         value: goalCount.other       },
+    ].filter(d => d.value > 0);
+
+    // Tempo no app (desde o cadastro até hoje)
+    const now = Date.now();
+    const timeBuckets: Record<string, number> = {
+      '< 1 mês': 0, '1–3 meses': 0, '3–6 meses': 0, '6–12 meses': 0, '> 1 ano': 0,
+    };
+    users.forEach(u => {
+      const days = (now - new Date(u.created_at).getTime()) / 86_400_000;
+      if (days < 30)        timeBuckets['< 1 mês']++;
+      else if (days < 90)   timeBuckets['1–3 meses']++;
+      else if (days < 180)  timeBuckets['3–6 meses']++;
+      else if (days < 365)  timeBuckets['6–12 meses']++;
+      else                  timeBuckets['> 1 ano']++;
+    });
+    const timeData = Object.entries(timeBuckets).map(([name, value]) => ({ name, value }));
+
+    // Canal de aquisição
+    const channelCount: Record<string, number> = {
+      referral: 0, website: 0, social: 0, organic: 0, other: 0,
+    };
+    users.forEach(u => {
+      const k = u.acquisition_channel ?? 'organic';
+      channelCount[k] = (channelCount[k] ?? 0) + 1;
+    });
+    const channelData = [
+      { name: 'Indicação',    value: channelCount.referral },
+      { name: 'Site',         value: channelCount.website  },
+      { name: 'Redes sociais',value: channelCount.social   },
+      { name: 'Orgânico',     value: channelCount.organic  },
+      { name: 'Outro',        value: channelCount.other    },
+    ].filter(d => d.value > 0);
+
+    // Média de idade
+    const ages = users.map(u => u.age).filter((a): a is number => a != null);
+    const avgAge = ages.length ? Math.round(ages.reduce((s, a) => s + a, 0) / ages.length) : null;
+
+    return { gender, ageData, goalData, timeData, channelData, avgAge };
+  }, [users]);
+}
+
 // ─── Drawer de ficha ───────────────────────────────────
 const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId, onClose }) => {
   const [user, setUser] = useState<AdminUserDetail | null>(null);
@@ -87,8 +262,6 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative w-full max-w-xl bg-white h-full shadow-2xl flex flex-col overflow-hidden">
-
-        {/* Header */}
         <div className="bg-[#1A1A1A] px-6 py-5 flex items-center justify-between flex-shrink-0">
           <h2 className="text-white font-semibold text-lg">Ficha do usuário</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition">
@@ -104,16 +277,13 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
           <div className="flex-1 flex items-center justify-center text-gray-400">Usuário não encontrado.</div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-
             {/* Identidade */}
             <div className="flex items-center gap-4">
               <Avatar name={user.display_name} url={user.avatar_url} size="lg" />
               <div>
                 <p className="text-gray-800 font-semibold text-xl">{user.display_name ?? 'Sem nome'}</p>
                 <p className="text-gray-500 text-sm mt-0.5">Desde {fmtDate(user.created_at)}</p>
-                <div className="mt-1">
-                  <ChannelBadge channel={user.acquisition_channel} />
-                </div>
+                <div className="mt-1"><ChannelBadge channel={user.acquisition_channel} /></div>
               </div>
             </div>
 
@@ -151,10 +321,10 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
               <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Dados pessoais</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: 'Idade', value: user.age ? `${user.age} anos` : null },
-                  { label: 'Gênero', value: user.gender ? genderLabel[user.gender] : null },
-                  { label: 'Peso', value: user.weight ? `${user.weight} kg` : null },
-                  { label: 'Altura', value: user.height ? `${user.height} cm` : null },
+                  { label: 'Idade',    value: user.age ? `${user.age} anos` : null },
+                  { label: 'Gênero',   value: user.gender ? genderLabel[user.gender] : null },
+                  { label: 'Peso',     value: user.weight ? `${user.weight} kg` : null },
+                  { label: 'Altura',   value: user.height ? `${user.height} cm` : null },
                   { label: 'Objetivo', value: user.goal ? goalLabel[user.goal] : null },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-[#F8F9FA] rounded-lg p-3">
@@ -184,11 +354,9 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
               </div>
             </div>
 
-            {/* Histórico de consultas */}
+            {/* Consultas */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                Histórico de consultas
-              </h3>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Histórico de consultas</h3>
               {user.consultations.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-4">Nenhuma consulta ainda.</p>
               ) : (
@@ -212,7 +380,6 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
                 </div>
               )}
             </div>
-
           </div>
         )}
       </div>
@@ -249,20 +416,22 @@ export const AdminUsersManagement: React.FC = () => {
     ? users
     : users.filter(u => (u.acquisition_channel ?? 'organic') === channelFilter);
 
-  const totalLtv = filtered.reduce((sum, u) => sum + u.ltv, 0);
+  const charts = useChartData(filtered);
+
+  const totalLtv      = filtered.reduce((sum, u) => sum + u.ltv, 0);
   const totalConsults = filtered.reduce((sum, u) => sum + u.consultations_count, 0);
   const referralCount = filtered.filter(u => u.acquisition_channel === 'referral').length;
 
   return (
     <div className="space-y-6">
 
-      {/* Cabeçalho com métricas */}
+      {/* ── Cards de métricas ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: <User className="w-5 h-5 text-[#2ECC71]" />, label: 'Total de usuários', value: filtered.length.toString() },
-          { icon: <DollarSign className="w-5 h-5 text-[#2ECC71]" />, label: 'LTV acumulado', value: fmtCurrency(totalLtv) },
-          { icon: <Calendar className="w-5 h-5 text-[#2ECC71]" />, label: 'Consultas realizadas', value: totalConsults.toString() },
-          { icon: <Stethoscope className="w-5 h-5 text-[#2ECC71]" />, label: 'Via indicação médica', value: referralCount.toString() },
+          { icon: <User className="w-5 h-5 text-[#2ECC71]" />,        label: 'Total de usuários',     value: filtered.length.toString() },
+          { icon: <DollarSign className="w-5 h-5 text-[#2ECC71]" />,  label: 'LTV acumulado',         value: fmtCurrency(totalLtv) },
+          { icon: <Calendar className="w-5 h-5 text-[#2ECC71]" />,    label: 'Consultas realizadas',  value: totalConsults.toString() },
+          { icon: <Stethoscope className="w-5 h-5 text-[#2ECC71]" />, label: 'Via indicação médica',  value: referralCount.toString() },
         ].map(({ icon, label, value }) => (
           <div key={label} className="bg-white rounded-xl shadow p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#2ECC71]/10 flex items-center justify-center flex-shrink-0">
@@ -276,7 +445,32 @@ export const AdminUsersManagement: React.FC = () => {
         ))}
       </div>
 
-      {/* Filtros */}
+      {/* ── Gráficos de perfil da base ── */}
+      {!loading && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-1">
+            Perfil da base {channelFilter !== 'all' && `· ${CHANNEL_LABELS[channelFilter]?.label ?? channelFilter}`}
+            {charts.avgAge != null && (
+              <span className="ml-3 text-gray-400 font-normal normal-case">Idade média: <strong className="text-gray-600">{charts.avgAge} anos</strong></span>
+            )}
+          </h2>
+
+          {/* Linha 1: Gênero + Objetivo + Canal */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <MiniPie data={charts.gender}      title="Distribuição por sexo" />
+            <MiniPie data={charts.goalData}    title="Objetivo no app" />
+            <MiniPie data={charts.channelData} title="Canal de aquisição" />
+          </div>
+
+          {/* Linha 2: Faixa etária + Tempo no app */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MiniBar data={charts.ageData}  title="Faixa etária" />
+            <MiniBar data={charts.timeData} title="Tempo no app" color="#3498DB" />
+          </div>
+        </div>
+      )}
+
+      {/* ── Filtros ── */}
       <div className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -302,7 +496,7 @@ export const AdminUsersManagement: React.FC = () => {
         </select>
       </div>
 
-      {/* Tabela */}
+      {/* ── Tabela ── */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-40">
@@ -371,7 +565,7 @@ export const AdminUsersManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Drawer */}
+      {/* ── Drawer de ficha ── */}
       {selectedUserId && (
         <UserDrawer userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
       )}
