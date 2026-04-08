@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Save, Upload, AlertTriangle } from 'lucide-react';
-import { doctorService, storageService, payoutService } from '../../services/doctorPortalService';
+import { doctorService, storageService, payoutService, settingsService } from '../../services/doctorPortalService';
 import type { Doctor, Payout } from '../../types/doctorPortal';
 import { SPECIALTY_OPTIONS, CONSULTATION_TYPE_OPTIONS } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
@@ -46,12 +46,26 @@ export const DoctorSettings: React.FC = () => {
     setConsultationPrice(doctor.consultation_price || 80);
     setConsultationDuration(doctor.consultation_duration || 30);
     setPixKey(doctor.pix_key || '');
-    setPlatformFee(doctor.platform_fee_percent || 25);
     setConsultationTypes(['initial', 'follow_up']);
+
+    // Load global platform fee
+    loadGlobalFee();
 
     // Load payouts
     payoutService.getDoctorPayouts(doctor.id).then(setPayouts);
   }, [doctor]);
+
+  const loadGlobalFee = async () => {
+    try {
+      const data = await settingsService.getAllSettings();
+      const feeSetting = data.find(s => s.key === 'default_platform_fee');
+      if (feeSetting) {
+        setPlatformFee(parseFloat(feeSetting.value));
+      }
+    } catch (error) {
+      console.error('Error loading global fee:', error);
+    }
+  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -307,9 +321,10 @@ export const DoctorSettings: React.FC = () => {
               />
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-sm text-gray-600">Taxa da plataforma</p>
-              <p className="text-lg font-semibold text-gray-800">{platformFee}%</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <strong>ℹ️ Taxa da plataforma:</strong> {platformFee}% (configurada globalmente pelo administrador)
+              </p>
             </div>
 
             <button
@@ -347,11 +362,10 @@ export const DoctorSettings: React.FC = () => {
                           <td className="px-3 py-2">{payout.consultations_count}</td>
                           <td className="px-3 py-2">{formatCurrency(payout.amount)}</td>
                           <td className="px-3 py-2">
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              payout.status === 'paid' ? 'bg-green-100 text-green-700' :
+                            <span className={`px-2 py-1 rounded-full text-xs ${payout.status === 'paid' ? 'bg-green-100 text-green-700' :
                               payout.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-gray-100 text-gray-700'
-                            }`}>
+                                'bg-gray-100 text-gray-700'
+                              }`}>
                               {payout.status === 'paid' ? 'Pago' : payout.status === 'pending' ? 'Pendente' : payout.status}
                             </span>
                           </td>

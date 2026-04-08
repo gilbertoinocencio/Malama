@@ -144,10 +144,10 @@ export const doctorService = {
   },
 
   // Admin: Aprovar médico
-  async approveDoctor(doctorId: string, platformFeePercent: number): Promise<Doctor> {
+  async approveDoctor(doctorId: string): Promise<Doctor> {
     const { data, error } = await supabase
       .from('doctors')
-      .update({ status: 'approved', platform_fee_percent: platformFeePercent })
+      .update({ status: 'approved' })
       .eq('id', doctorId)
       .select()
       .single();
@@ -537,13 +537,21 @@ export const payoutService = {
 
   // Admin: Buscar repasses pendentes
   async getPendingPayouts(): Promise<PendingPayout[]> {
+    // Buscar taxa global
+    const { data: feeSetting } = await supabase
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'default_platform_fee')
+      .single();
+
+    const globalFee = feeSetting ? parseFloat(feeSetting.value) : 25;
+
     const { data, error } = await supabase
       .from('payouts')
       .select(`
         *,
         doctor:doctor_id (
           name,
-          platform_fee_percent,
           pix_key
         )
       `)
@@ -554,8 +562,7 @@ export const payoutService = {
 
     return (data || []).map((p: any) => {
       const grossAmount = p.amount;
-      const feePercent = p.doctor?.platform_fee_percent || 25;
-      const feeAmount = grossAmount * (feePercent / 100);
+      const feeAmount = grossAmount * (globalFee / 100);
       const netAmount = grossAmount - feeAmount;
 
       return {
@@ -566,7 +573,7 @@ export const payoutService = {
         period_end: p.period_end,
         consultations_count: p.consultations_count,
         gross_amount: grossAmount,
-        fee_percent: feePercent,
+        fee_percent: globalFee,
         fee_amount: feeAmount,
         net_amount: netAmount,
         pix_key: p.doctor?.pix_key || p.pix_key,
@@ -1057,9 +1064,9 @@ export const influencerService = {
       const pendingRefs = myRefs.filter(r => r.status === 'pending');
       return {
         ...inf,
-        total_referrals:  myRefs.length,
+        total_referrals: myRefs.length,
         pending_referrals: pendingRefs.length,
-        total_earned:  myRefs.reduce((s, r) => s + r.commission_amount, 0),
+        total_earned: myRefs.reduce((s, r) => s + r.commission_amount, 0),
         pending_amount: pendingRefs.reduce((s, r) => s + r.commission_amount, 0),
       };
     });
@@ -1068,7 +1075,7 @@ export const influencerService = {
   // Criar novo influenciador (gera referral_token e setup_token)
   async create(data: Partial<Influencer>): Promise<Influencer> {
     const referral_token = `inf_${uuidv4().replace(/-/g, '')}`;
-    const setup_token    = `setup_${uuidv4().replace(/-/g, '')}`;
+    const setup_token = `setup_${uuidv4().replace(/-/g, '')}`;
     const { data: created, error } = await supabase
       .from('influencers')
       .insert([{ ...data, referral_token, setup_token }])

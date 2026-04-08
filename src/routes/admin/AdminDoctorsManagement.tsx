@@ -4,8 +4,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, CheckCircle, XCircle, Edit, Link2, X, Save, Copy } from 'lucide-react';
-import { doctorService } from '../../services/doctorPortalService';
+import { Search, CheckCircle, XCircle, Link2, X, Copy } from 'lucide-react';
+import { doctorService, settingsService } from '../../services/doctorPortalService';
 import type { Doctor, DoctorStatus } from '../../types/doctorPortal';
 import { SPECIALTY_OPTIONS } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
@@ -16,25 +16,35 @@ export const AdminDoctorsManagement: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<DoctorStatus | 'all'>('all');
   const [filterSpecialty, setFilterSpecialty] = useState('');
   const [search, setSearch] = useState('');
+  const [settings, setSettings] = useState<Record<string, string>>({});
 
   // Modals
   const [showApproveModal, setShowApproveModal] = useState<string | null>(null);
   const [showSuspendModal, setShowSuspendModal] = useState<string | null>(null);
-  const [showFeeModal, setShowFeeModal] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState<string | null>(null);
 
   // Form states
-  const [approveFee, setApproveFee] = useState(25);
   const [approveSpecialty, setApproveSpecialty] = useState('');
   const [approveSpecialtyCustom, setApproveSpecialtyCustom] = useState('');
   const [suspendReason, setSuspendReason] = useState('');
-  const [newFee, setNewFee] = useState(25);
   const [inviteEmail, setInviteEmail] = useState('');
   const [generatedLink, setGeneratedLink] = useState('');
 
   useEffect(() => {
     loadDoctors();
+    loadSettings();
   }, [filterStatus, filterSpecialty]);
+
+  const loadSettings = async () => {
+    try {
+      const data = await settingsService.getAllSettings();
+      const settingsMap: Record<string, string> = {};
+      data.forEach(s => { settingsMap[s.key] = s.value; });
+      setSettings(settingsMap);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
 
   const loadDoctors = async () => {
     setLoading(true);
@@ -55,7 +65,7 @@ export const AdminDoctorsManagement: React.FC = () => {
     if (!showApproveModal) return;
 
     try {
-      const updates: any = { platform_fee_percent: approveFee };
+      const updates: any = {};
 
       // Se mudou a especialidade, atualizar
       if (approveSpecialty) {
@@ -67,7 +77,7 @@ export const AdminDoctorsManagement: React.FC = () => {
       }
 
       await doctorService.updateDoctor(showApproveModal, updates);
-      await doctorService.approveDoctor(showApproveModal, approveFee);
+      await doctorService.approveDoctor(showApproveModal);
       toast.success('Médico aprovado!');
       setShowApproveModal(null);
       loadDoctors();
@@ -86,19 +96,6 @@ export const AdminDoctorsManagement: React.FC = () => {
       loadDoctors();
     } catch (error) {
       toast.error('Erro ao suspender médico');
-    }
-  };
-
-  const handleUpdateFee = async () => {
-    if (!showFeeModal) return;
-
-    try {
-      await doctorService.updateDoctor(showFeeModal, { platform_fee_percent: newFee });
-      toast.success('Taxa atualizada!');
-      setShowFeeModal(null);
-      loadDoctors();
-    } catch (error) {
-      toast.error('Erro ao atualizar taxa');
     }
   };
 
@@ -134,7 +131,6 @@ export const AdminDoctorsManagement: React.FC = () => {
 
   const selectedDoctor = doctors.find(d => d.id === showApproveModal) ||
     doctors.find(d => d.id === showSuspendModal) ||
-    doctors.find(d => d.id === showFeeModal) ||
     doctors.find(d => d.id === showInviteModal);
 
   return (
@@ -192,7 +188,6 @@ export const AdminDoctorsManagement: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">CRM/UF</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Especialidade</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Taxa</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Criado em</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
                 </tr>
@@ -227,9 +222,6 @@ export const AdminDoctorsManagement: React.FC = () => {
                         {getStatusBadge(doctor.status)}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
-                        {doctor.platform_fee_percent}%
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
                         {formatDate(doctor.created_at)}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -238,7 +230,6 @@ export const AdminDoctorsManagement: React.FC = () => {
                             <button
                               onClick={() => {
                                 setShowApproveModal(doctor.id);
-                                setApproveFee(doctor.platform_fee_percent);
                                 setApproveSpecialty(doctor.specialty || '');
                                 setApproveSpecialtyCustom(doctor.specialty_custom || '');
                               }}
@@ -257,13 +248,6 @@ export const AdminDoctorsManagement: React.FC = () => {
                               <XCircle className="w-4 h-4" />
                             </button>
                           )}
-                          <button
-                            onClick={() => { setShowFeeModal(doctor.id); setNewFee(doctor.platform_fee_percent); }}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                            title="Editar taxa"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
                           <button
                             onClick={() => setShowInviteModal(doctor.id)}
                             className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition"
@@ -341,16 +325,11 @@ export const AdminDoctorsManagement: React.FC = () => {
               </div>
             )}
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Taxa de comissão (%)</label>
-              <input
-                type="number"
-                value={approveFee}
-                onChange={e => setApproveFee(parseInt(e.target.value) || 0)}
-                min={0}
-                max={100}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300"
-              />
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-green-800">
+                <strong>ℹ️ Taxa de comissão:</strong> Será utilizada a taxa global configurada em
+                <strong> Configurações</strong> ({settings?.default_platform_fee || 25}%).
+              </p>
             </div>
 
             <div className="flex justify-end gap-3">
@@ -393,40 +372,6 @@ export const AdminDoctorsManagement: React.FC = () => {
                 className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium"
               >
                 Confirmar suspensão
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Editar Taxa */}
-      {showFeeModal && selectedDoctor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowFeeModal(null)} />
-          <div className="relative bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Editar Taxa de Comissão</h3>
-            <p className="text-sm text-gray-600 mb-4">{selectedDoctor.name}</p>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Taxa (%)</label>
-              <input
-                type="number"
-                value={newFee}
-                onChange={e => setNewFee(parseInt(e.target.value) || 0)}
-                min={0}
-                max={100}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setShowFeeModal(null)} className="px-6 py-2 text-gray-600">Cancelar</button>
-              <button
-                onClick={handleUpdateFee}
-                className="px-6 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Salvar
               </button>
             </div>
           </div>

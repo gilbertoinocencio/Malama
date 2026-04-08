@@ -213,17 +213,26 @@ export async function bookConsultation(params: {
 }): Promise<Consultation> {
   const { patientId, doctorId, date, time, consultationType, consentGiven } = params;
 
-  // Get doctor price
+  // Get doctor price and duration
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('consultation_price, platform_fee_percent, consultation_duration')
+    .select('consultation_price, consultation_duration')
     .eq('id', doctorId)
     .single();
 
   if (!doctor) throw new Error('Médico não encontrado');
 
+  // Get global platform fee
+  const { data: feeSetting } = await supabase
+    .from('platform_settings')
+    .select('value')
+    .eq('key', 'default_platform_fee')
+    .single();
+
+  const globalFee = feeSetting ? parseFloat(feeSetting.value) : 25;
+
   const price = doctor.consultation_price || 249;
-  const platformFee = price * ((doctor.platform_fee_percent || 25) / 100);
+  const platformFee = price * (globalFee / 100);
   const doctorPayout = price - platformFee;
   const roomId = crypto.randomUUID();
 

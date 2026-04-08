@@ -43,11 +43,26 @@ export const DoctorFinancial: React.FC = () => {
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | PaymentStatus>('all');
   const [payoutFilter, setPayoutFilter] = useState<'all' | PayoutStatus>('all');
+  const [platformFeePercent, setPlatformFeePercent] = useState(25);
 
   useEffect(() => {
     if (!doctor) return;
     loadData();
+    loadGlobalFee();
   }, [doctor, period]);
+
+  const loadGlobalFee = async () => {
+    try {
+      const { settingsService } = await import('../../services/doctorPortalService');
+      const data = await settingsService.getAllSettings();
+      const feeSetting = data.find(s => s.key === 'default_platform_fee');
+      if (feeSetting) {
+        setPlatformFeePercent(parseFloat(feeSetting.value));
+      }
+    } catch (error) {
+      console.error('Error loading global fee:', error);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -219,9 +234,8 @@ export const DoctorFinancial: React.FC = () => {
                     setPeriod(option.value);
                     setShowPeriodDropdown(false);
                   }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition ${
-                    period === option.value ? 'bg-[#2ECC71]/10 text-[#2ECC71] font-medium' : 'text-gray-700'
-                  }`}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition ${period === option.value ? 'bg-[#2ECC71]/10 text-[#2ECC71] font-medium' : 'text-gray-700'
+                    }`}
                 >
                   {option.label}
                 </button>
@@ -257,7 +271,7 @@ export const DoctorFinancial: React.FC = () => {
           </div>
           <div className="text-2xl font-bold text-gray-800">{formatCurrency(totalPlatformFee)}</div>
           <div className="text-xs text-gray-500 mt-1">
-            {doctor.platform_fee_percent}% de comissão
+            {platformFeePercent}% de comissão
           </div>
         </div>
 
@@ -550,7 +564,7 @@ export const DoctorFinancial: React.FC = () => {
             <h4 className="text-sm font-semibold text-blue-800">Como funcionam os repasses</h4>
             <p className="text-sm text-blue-700 mt-1">
               Os valores das consultas são acumulados e repassados para sua chave PIX periodicamente.
-              A taxa da plataforma de {doctor.platform_fee_percent}% é deduzida automaticamente.
+              A taxa da plataforma de {platformFeePercent}% é deduzida automaticamente.
               Você pode acompanhar todos os repasses na tabela acima.
             </p>
           </div>
