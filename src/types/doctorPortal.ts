@@ -56,6 +56,7 @@ export interface Doctor {
   crm: string;
   crm_state: string;
   specialty: DoctorSpecialty | string;
+  specialty_custom?: string | null; // Especialidade personalizada quando specialty == 'Outro'
   bio: string | null;
   photo_url: string | null;
   status: DoctorStatus;

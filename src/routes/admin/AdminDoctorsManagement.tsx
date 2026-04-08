@@ -25,6 +25,8 @@ export const AdminDoctorsManagement: React.FC = () => {
 
   // Form states
   const [approveFee, setApproveFee] = useState(25);
+  const [approveSpecialty, setApproveSpecialty] = useState('');
+  const [approveSpecialtyCustom, setApproveSpecialtyCustom] = useState('');
   const [suspendReason, setSuspendReason] = useState('');
   const [newFee, setNewFee] = useState(25);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -53,6 +55,18 @@ export const AdminDoctorsManagement: React.FC = () => {
     if (!showApproveModal) return;
 
     try {
+      const updates: any = { platform_fee_percent: approveFee };
+
+      // Se mudou a especialidade, atualizar
+      if (approveSpecialty) {
+        updates.specialty = approveSpecialty;
+        // Se selecionou "Outro" e preencheu custom, salvar
+        if (approveSpecialty === 'Outro' && approveSpecialtyCustom.trim()) {
+          updates.specialty_custom = approveSpecialtyCustom.trim();
+        }
+      }
+
+      await doctorService.updateDoctor(showApproveModal, updates);
       await doctorService.approveDoctor(showApproveModal, approveFee);
       toast.success('Médico aprovado!');
       setShowApproveModal(null);
@@ -119,9 +133,9 @@ export const AdminDoctorsManagement: React.FC = () => {
   };
 
   const selectedDoctor = doctors.find(d => d.id === showApproveModal) ||
-                         doctors.find(d => d.id === showSuspendModal) ||
-                         doctors.find(d => d.id === showFeeModal) ||
-                         doctors.find(d => d.id === showInviteModal);
+    doctors.find(d => d.id === showSuspendModal) ||
+    doctors.find(d => d.id === showFeeModal) ||
+    doctors.find(d => d.id === showInviteModal);
 
   return (
     <div className="space-y-6">
@@ -222,7 +236,12 @@ export const AdminDoctorsManagement: React.FC = () => {
                         <div className="flex justify-end gap-2">
                           {doctor.status === 'pending' && (
                             <button
-                              onClick={() => { setShowApproveModal(doctor.id); setApproveFee(doctor.platform_fee_percent); }}
+                              onClick={() => {
+                                setShowApproveModal(doctor.id);
+                                setApproveFee(doctor.platform_fee_percent);
+                                setApproveSpecialty(doctor.specialty || '');
+                                setApproveSpecialtyCustom(doctor.specialty_custom || '');
+                              }}
                               className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
                               title="Aprovar"
                             >
@@ -266,24 +285,61 @@ export const AdminDoctorsManagement: React.FC = () => {
       {showApproveModal && selectedDoctor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowApproveModal(null)} />
-          <div className="relative bg-white rounded-xl shadow-lg w-full max-w-lg p-6">
+          <div className="relative bg-white rounded-xl shadow-lg w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Aprovar Médico</h3>
 
-            <div className="space-y-3 mb-6">
+            <div className="space-y-3 mb-6 p-4 bg-gray-50 rounded-lg">
               <p><strong>Nome:</strong> {selectedDoctor.name}</p>
               <p><strong>CRM:</strong> {selectedDoctor.crm}/{selectedDoctor.crm_state}</p>
-              <p><strong>Especialidade:</strong> {selectedDoctor.specialty}</p>
+              <p><strong>Especialidade declarada:</strong> {selectedDoctor.specialty}</p>
+              {selectedDoctor.specialty_custom && (
+                <p><strong>Especialidade personalizada:</strong> {selectedDoctor.specialty_custom}</p>
+              )}
               <p><strong>Email:</strong> {selectedDoctor.email}</p>
-              
+
               <a
                 href={`https://portal.cfm.org.br/${selectedDoctor.crm_state}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-[#2ECC71] hover:underline"
+                className="text-sm text-[#2ECC71] hover:underline inline-block"
               >
                 Verificar CRM no CFM →
               </a>
             </div>
+
+            {/* Campo de Especialidade */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Especialidade</label>
+              <select
+                value={approveSpecialty}
+                onChange={e => setApproveSpecialty(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300"
+              >
+                <option value="">Manter especialidade declarada</option>
+                {SPECIALTY_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Campo de Especialidade Customizada - aparece apenas se "Outro" for selecionado */}
+            {approveSpecialty === 'Outro' && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Especificar especialidade
+                </label>
+                <input
+                  type="text"
+                  value={approveSpecialtyCustom}
+                  onChange={e => setApproveSpecialtyCustom(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300"
+                  placeholder="Ex: Cardiologista, Dermatologista, etc."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Esta especialidade será adicionada ao perfil do médico
+                </p>
+              </div>
+            )}
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">Taxa de comissão (%)</label>
