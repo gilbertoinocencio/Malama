@@ -37,7 +37,7 @@ export const PatientReferral: React.FC = () => {
       localStorage.setItem('nura_referral_token', token);
       localStorage.setItem('nura_acquisition_channel', 'referral');
     }
-    navigate('/cadastro');
+    window.location.href = '/entrar';
   };
 
   if (loading) {

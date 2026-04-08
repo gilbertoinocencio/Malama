@@ -42,17 +42,43 @@ export const InfluencerActivation: React.FC = () => {
 
     setSaving(true);
     try {
-      // 1. Criar conta no Supabase Auth
-      const { data: auth, error: signUpErr } = await supabase.auth.signUp({
+      let userId: string | undefined;
+
+      // 1. Tentar criar conta nova
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
         email: influencer.email,
         password,
       });
 
-      if (signUpErr) throw signUpErr;
-      if (!auth.user) throw new Error('Erro ao criar conta.');
+      if (signUpErr) {
+        // Se o e-mail já existe, tentar login com a senha informada
+        const alreadyExists =
+          signUpErr.message.toLowerCase().includes('already registered') ||
+          signUpErr.message.toLowerCase().includes('already been registered') ||
+          signUpErr.status === 422;
+
+        if (alreadyExists) {
+          const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+            email: influencer.email,
+            password,
+          });
+          if (signInErr) {
+            setError('Este e-mail já possui uma conta. Verifique a senha e tente novamente.');
+            setSaving(false);
+            return;
+          }
+          userId = signInData.user?.id;
+        } else {
+          throw signUpErr;
+        }
+      } else {
+        userId = signUpData.user?.id;
+      }
+
+      if (!userId) throw new Error('Não foi possível obter o usuário.');
 
       // 2. Vincular user_id ao influenciador e invalidar setup_token
-      await influencerService.activateAccount(token, auth.user.id);
+      await influencerService.activateAccount(token, userId);
 
       // 3. Ir para o dashboard
       navigate('/influencer/dashboard');
@@ -97,7 +123,7 @@ export const InfluencerActivation: React.FC = () => {
             </div>
             <h1 className="text-white text-xl font-bold">Bem-vindo(a), {influencer?.name.split(' ')[0]}!</h1>
             <p className="text-gray-400 text-sm mt-1">
-              Crie sua senha para acessar o painel do influenciador.
+              Crie ou confirme sua senha para acessar o painel.
             </p>
           </div>
 

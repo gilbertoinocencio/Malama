@@ -130,11 +130,25 @@ export const AdminDoctorsManagement: React.FC = () => {
   };
 
   const selectedDoctor = doctors.find(d => d.id === showApproveModal) ||
-    doctors.find(d => d.id === showSuspendModal) ||
-    doctors.find(d => d.id === showInviteModal);
+    doctors.find(d => d.id === showSuspendModal);
 
   return (
     <div className="space-y-6">
+      {/* Header com botão de convite */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Gestão de Médicos</h2>
+          <p className="text-sm text-gray-600 mt-1">Gerencie médicos cadastrados e convide novos profissionais</p>
+        </div>
+        <button
+          onClick={() => setShowInviteModal('new')}
+          className="px-4 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center gap-2 transition"
+        >
+          <Link2 className="w-4 h-4" />
+          Gerar Link de Convite
+        </button>
+      </div>
+
       {/* Filtros */}
       <div className="bg-white rounded-xl shadow p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -248,13 +262,6 @@ export const AdminDoctorsManagement: React.FC = () => {
                               <XCircle className="w-4 h-4" />
                             </button>
                           )}
-                          <button
-                            onClick={() => setShowInviteModal(doctor.id)}
-                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition"
-                            title="Gerar link de convite"
-                          >
-                            <Link2 className="w-4 h-4" />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -379,14 +386,18 @@ export const AdminDoctorsManagement: React.FC = () => {
       )}
 
       {/* Modal Gerar Link de Convite */}
-      {showInviteModal && selectedDoctor && (
+      {showInviteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowInviteModal(null)} />
           <div className="relative bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Gerar Link de Convite</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Gerar Link de Convite</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Envie este link para médicos que deseja convidar para a plataforma.
+              O link é único e expira em 7 dias.
+            </p>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email (opcional)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email do médico (opcional)</label>
               <input
                 type="email"
                 value={inviteEmail}
@@ -398,26 +409,34 @@ export const AdminDoctorsManagement: React.FC = () => {
 
             <button
               onClick={generateInviteLink}
-              className="w-full py-3 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium mb-4"
+              className="w-full py-3 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium mb-4 transition"
             >
-              Gerar link
+              Gerar link de convite
             </button>
 
             {generatedLink && (
-              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                <input
-                  type="text"
-                  value={generatedLink}
-                  readOnly
-                  className="flex-1 px-3 py-2 text-sm bg-white rounded-lg border border-gray-300"
-                />
-                <button onClick={copyToClipboard} className="p-2 text-[#2ECC71] hover:bg-gray-100 rounded-lg">
-                  <Copy className="w-4 h-4" />
-                </button>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                  <input
+                    type="text"
+                    value={generatedLink}
+                    readOnly
+                    className="flex-1 px-3 py-2 text-sm bg-white rounded-lg border border-gray-300"
+                  />
+                  <button onClick={copyToClipboard} className="p-2 text-[#2ECC71] hover:bg-gray-100 rounded-lg transition">
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs text-blue-800">
+                    <strong>💡 Dica:</strong> Envie o link por email ou WhatsApp para o médico.
+                    Ele poderá se cadastrar diretamente na plataforma.
+                  </p>
+                </div>
               </div>
             )}
 
-            <p className="text-xs text-gray-500 mt-2">Link expira em 7 dias</p>
+            <p className="text-xs text-gray-500 mt-4 text-center">Link expira em 7 dias</p>
           </div>
         </div>
       )}

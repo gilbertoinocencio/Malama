@@ -35,7 +35,9 @@ export const InfluencerReferral: React.FC = () => {
       localStorage.setItem('nura_influencer_token', token);
       localStorage.setItem('nura_acquisition_channel', 'influencer');
     }
-    navigate('/cadastro');
+    // Hard navigation: exits BrowserRouter so App.tsx re-evaluates isPortalRoute
+    // and renders the patient app (LoginView) instead of the portal routes
+    window.location.href = '/entrar';
   };
 
   if (loading) {
