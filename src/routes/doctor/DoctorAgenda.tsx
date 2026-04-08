@@ -1,19 +1,61 @@
 // =====================================================
-// NURA — Agenda do Médico
+// NURA — Agenda do Médico (com datas específicas)
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Save, X, Trash2, AlertTriangle, Plus, Video, FileText, CheckCircle, Clock, Copy, ChevronRight } from 'lucide-react';
+import { Save, X, Trash2, AlertTriangle, Plus, Video, FileText, CheckCircle, Clock, Copy, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { availabilityService, consultationService } from '../../services/doctorPortalService';
 import type { Doctor, DoctorAvailability, Consultation } from '../../types/doctorPortal';
 import { DAY_OF_WEEK_LABELS } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
 
+// Helper para formatar data curta (DD/MM)
+const formatDateShort = (date: Date): string => {
+  return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+};
+
+// Helper para formatar data ISO (YYYY-MM-DD)
+const formatDateISO = (date: Date): string => {
+  return date.toISOString().split('T')[0];
+};
+
+// Helper para obter nome curto do dia
+const getShortDayName = (date: Date): string => {
+  const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  return days[date.getDay()];
+};
+
 export const DoctorAgenda: React.FC = () => {
   const { doctor } = useOutletContext<{ doctor: Doctor }>();
   const navigate = useNavigate();
-  const [availabilities, setAvailabilities] = useState<Record<number, DoctorAvailability[]>>({});
+
+  // Estado para navegação por semanas
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = semana atual, 1 = próxima, -1 = anterior
+
+  // Gerar datas dos próximos 14 dias (2 semanas) a partir do offset
+  const generateDays = () => {
+    const days = [];
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + (weekOffset * 7));
+
+    for (let i = 0; i < 14; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+      days.push({
+        date,
+        dateStr: formatDateISO(date),
+        dayOfWeek: date.getDay(),
+        label: `${getShortDayName(date)} ${formatDateShort(date)}`,
+        isToday: formatDateISO(date) === formatDateISO(new Date())
+      });
+    }
+    return days;
+  };
+
+  const days = generateDays();
+
+  const [availabilities, setAvailabilities] = useState<Record<string, DoctorAvailability[]>>({});
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
 
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -26,8 +68,8 @@ export const DoctorAgenda: React.FC = () => {
   const [cancelReason, setCancelReason] = useState('');
 
   // Copy schedule modal state
-  const [showCopyModal, setShowCopyModal] = useState<number | null>(null);
-  const [copyTargetDays, setCopyTargetDays] = useState<number[]>([]);
+  const [showCopyModal, setShowCopyModal] = useState<string | null>(null);
+  const [copyTargetDays, setCopyTargetDays] = useState<string[]>([]);
 
   // ---------- DRAG & DROP LOGIC ----------
   const generateTimeSlots = () => {
@@ -52,7 +94,7 @@ export const DoctorAgenda: React.FC = () => {
     e.preventDefault(); // Necessário para permitir o drop
   };
 
-  const handleDrop = (e: React.DragEvent, day: number) => {
+  const handleDrop = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault();
     const timeStr = e.dataTransfer.getData('timeStr');
     if (!timeStr) return;
@@ -64,65 +106,74 @@ export const DoctorAgenda: React.FC = () => {
     const endH = Math.floor(endTotalMins / 60).toString().padStart(2, '0');
     const endM = (endTotalMins % 60).toString().padStart(2, '0');
 
+    // Obter day_of_week da data
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    const dayOfWeek = dateObj.getDay();
+
     const newSlot: DoctorAvailability = {
       id: `temp-${Date.now()}-${Math.random()}`,
       doctor_id: doctor!.id,
-      day_of_week: day,
+      day_of_week: dayOfWeek,
+      date: dateStr, // Data específica!
       start_time: `${timeStr}:00`,
       end_time: `${endH}:${endM}:00`,
       is_active: true
     };
 
     setAvailabilities(prev => {
-      // Impede duplicados no mesmo dia e mesma hora de inicio
-      if (prev[day]?.some(a => a.start_time === newSlot.start_time)) {
-        toast.error('Este horário já foi adicionado.');
+      // Impede duplicados na mesma data e mesma hora de inicio
+      if (prev[dateStr]?.some(a => a.start_time === newSlot.start_time)) {
+        toast.error('Este horário já foi adicionado nesta data.');
         return prev;
       }
 
-      const daySlots = [...(prev[day] || []), newSlot];
+      const dateSlots = [...(prev[dateStr] || []), newSlot];
       // Reordena do mais cedo para mais tarde
-      daySlots.sort((a, b) => a.start_time.localeCompare(b.start_time));
-      return { ...prev, [day]: daySlots };
+      dateSlots.sort((a, b) => a.start_time.localeCompare(b.start_time));
+      return { ...prev, [dateStr]: dateSlots };
     });
   };
 
   // ---------- COPY SCHEDULE LOGIC ----------
-  const handleCopySchedule = (sourceDay: number, targetDays: number[]) => {
-    const sourceSlots = availabilities[sourceDay] || [];
+  const handleCopySchedule = (sourceDateStr: string, targetDateStrs: string[]) => {
+    const sourceSlots = availabilities[sourceDateStr] || [];
 
     if (sourceSlots.length === 0) {
-      toast.error('Não há horários para copiar neste dia.');
+      toast.error('Não há horários para copiar nesta data.');
       return;
     }
 
-    if (targetDays.length === 0) {
-      toast.error('Selecione pelo menos um dia de destino.');
+    if (targetDateStrs.length === 0) {
+      toast.error('Selecione pelo menos uma data de destino.');
       return;
     }
 
-    const duration = doctor?.consultation_duration || 20;
     let copiedCount = 0;
 
     setAvailabilities(prev => {
       const updated = { ...prev };
 
-      targetDays.forEach(targetDay => {
-        // Se o dia de destino é o mesmo que a origem, pula
-        if (targetDay === sourceDay) return;
+      targetDateStrs.forEach(targetDateStr => {
+        // Se a data de destino é a mesma que a origem, pula
+        if (targetDateStr === sourceDateStr) return;
 
-        const targetSlots = [...(prev[targetDay] || [])];
+        const targetSlots = [...(prev[targetDateStr] || [])];
 
         sourceSlots.forEach(sourceSlot => {
-          // Verifica se já existe este horário no dia de destino
+          // Verifica se já existe este horário na data de destino
           if (targetSlots.some(s => s.start_time === sourceSlot.start_time)) {
             return; // Pula duplicados silenciosamente
           }
 
+          // Obter day_of_week da data de destino
+          const targetDateObj = new Date(targetDateStr + 'T00:00:00');
+          const targetDayOfWeek = targetDateObj.getDay();
+
           const newSlot: DoctorAvailability = {
             id: `temp-${Date.now()}-${Math.random()}`,
             doctor_id: doctor!.id,
-            day_of_week: targetDay,
+            day_of_week: targetDayOfWeek,
+            date: targetDateStr, // Data específica!
             start_time: sourceSlot.start_time,
             end_time: sourceSlot.end_time,
             is_active: true
@@ -134,7 +185,7 @@ export const DoctorAgenda: React.FC = () => {
 
         // Reordena
         targetSlots.sort((a, b) => a.start_time.localeCompare(b.start_time));
-        updated[targetDay] = targetSlots;
+        updated[targetDateStr] = targetSlots;
       });
 
       return updated;
@@ -146,20 +197,32 @@ export const DoctorAgenda: React.FC = () => {
     if (copiedCount > 0) {
       toast.success(`${copiedCount} horário${copiedCount > 1 ? 's' : ''} copiado${copiedCount > 1 ? 's' : ''} com sucesso!`);
     } else {
-      toast('Todos os horários já existem nos dias selecionados.');
+      toast('Todos os horários já existem nas datas selecionadas.');
     }
   };
 
   const selectAllWeekdays = () => {
-    setCopyTargetDays([1, 2, 3, 4, 5]); // Seg-Sex
+    // Seleciona apenas dias úteis (Seg-Sex) das próximas 2 semanas
+    const weekdays = days
+      .filter(d => d.dayOfWeek >= 1 && d.dayOfWeek <= 5 && d.dateStr !== showCopyModal)
+      .map(d => d.dateStr);
+    setCopyTargetDays(weekdays);
   };
 
   const selectWeekend = () => {
-    setCopyTargetDays([0, 6]); // Dom-Sáb
+    // Seleciona apenas fim de semana (Sáb-Dom)
+    const weekends = days
+      .filter(d => (d.dayOfWeek === 0 || d.dayOfWeek === 6) && d.dateStr !== showCopyModal)
+      .map(d => d.dateStr);
+    setCopyTargetDays(weekends);
   };
 
   const selectAllDays = () => {
-    setCopyTargetDays([0, 1, 2, 3, 4, 5, 6]);
+    // Seleciona todos os dias exceto o de origem
+    const allDays = days
+      .filter(d => d.dateStr !== showCopyModal)
+      .map(d => d.dateStr);
+    setCopyTargetDays(allDays);
   };
   // ----------------------------------------
   // ----------------------------------------
@@ -169,18 +232,43 @@ export const DoctorAgenda: React.FC = () => {
 
     const loadData = async () => {
       try {
+        // Calcular período de 2 semanas
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() + (weekOffset * 7));
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 13);
+
         const [availData, consultData] = await Promise.all([
-          availabilityService.getDoctorAvailability(doctor.id),
+          availabilityService.getDoctorAvailability(
+            doctor.id,
+            formatDateISO(startDate),
+            formatDateISO(endDate)
+          ),
           consultationService.getConsultationsByDay(doctor.id, selectedDate)
         ]);
 
-        // Agrupar disponibilidades por dia da semana
-        const grouped: Record<number, DoctorAvailability[]> = {};
-        for (let day = 0; day < 7; day++) {
-          grouped[day] = availData.filter(a => a.day_of_week === day);
-          // Ordena
-          grouped[day].sort((a, b) => a.start_time.localeCompare(b.start_time));
+        // Agrupar disponibilidades por data
+        const grouped: Record<string, DoctorAvailability[]> = {};
+
+        // Inicializar todas as datas com array vazio
+        for (let i = 0; i < 14; i++) {
+          const date = new Date(startDate);
+          date.setDate(date.getDate() + i);
+          grouped[formatDateISO(date)] = [];
         }
+
+        // Popular com dados do banco
+        availData.forEach(a => {
+          if (a.date) {
+            if (!grouped[a.date]) grouped[a.date] = [];
+            grouped[a.date].push(a);
+          }
+        });
+
+        // Ordena cada data
+        Object.keys(grouped).forEach(dateStr => {
+          grouped[dateStr].sort((a, b) => a.start_time.localeCompare(b.start_time));
+        });
 
         setAvailabilities(grouped);
         setDayConsultations(consultData);
@@ -193,15 +281,15 @@ export const DoctorAgenda: React.FC = () => {
     };
 
     loadData();
-  }, [doctor, selectedDate]);
+  }, [doctor, selectedDate, weekOffset]);
 
-  const removeTimeSlot = (day: number, id: string) => {
+  const removeTimeSlot = (dateStr: string, id: string) => {
     if (!id.startsWith('temp-')) {
       setDeletedIds(prev => [...prev, id]);
     }
     setAvailabilities(prev => ({
       ...prev,
-      [day]: prev[day].filter(a => a.id !== id)
+      [dateStr]: prev[dateStr].filter(a => a.id !== id)
     }));
   };
 
@@ -240,11 +328,32 @@ export const DoctorAgenda: React.FC = () => {
       toast.success('Disponibilidade salva com sucesso!');
 
       // Recarregar os dados para ter os IDs reais
-      const availData = await availabilityService.getDoctorAvailability(doctor.id);
-      const grouped: Record<number, DoctorAvailability[]> = {};
-      for (let day = 0; day < 7; day++) {
-        grouped[day] = availData.filter(a => a.day_of_week === day);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() + (weekOffset * 7));
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 13);
+
+      const availData = await availabilityService.getDoctorAvailability(
+        doctor.id,
+        formatDateISO(startDate),
+        formatDateISO(endDate)
+      );
+
+      const grouped: Record<string, DoctorAvailability[]> = {};
+      for (let i = 0; i < 14; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        grouped[formatDateISO(date)] = [];
       }
+      availData.forEach(a => {
+        if (a.date) {
+          if (!grouped[a.date]) grouped[a.date] = [];
+          grouped[a.date].push(a);
+        }
+      });
+      Object.keys(grouped).forEach(dateStr => {
+        grouped[dateStr].sort((a, b) => a.start_time.localeCompare(b.start_time));
+      });
       setAvailabilities(grouped);
 
     } catch (error) {
@@ -298,11 +407,34 @@ export const DoctorAgenda: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Seção 1: Disponibilidade recorrente */}
+      {/* Seção 1: Disponibilidade por datas específicas */}
       <div className="bg-white rounded-xl shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Disponibilidade Recorrente</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Disponibilidade por Data</h3>
 
-        <p className="text-sm text-gray-500 mb-6">Selecione na paleta à esquerda e arraste os horários para a coluna do dia.</p>
+          {/* Navegação entre semanas */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setWeekOffset(prev => prev - 1)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+              title="Semana anterior"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <span className="text-sm font-medium text-gray-700 px-3">
+              {weekOffset === 0 ? 'Esta semana' : weekOffset === 1 ? 'Próxima semana' : `+${weekOffset} semanas`}
+            </span>
+            <button
+              onClick={() => setWeekOffset(prev => prev + 1)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+              title="Próxima semana"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+        </div>
+
+        <p className="text-sm text-gray-500 mb-6">Configure os horários para cada dia específico. Arraste da paleta ou copie de outro dia.</p>
 
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Paleta de Horários */}
@@ -311,7 +443,7 @@ export const DoctorAgenda: React.FC = () => {
               Paleta
               <span className="text-[10px] bg-[#2ECC71]/10 text-[#2ECC71] font-bold px-2 py-0.5 rounded-full">{doctor?.consultation_duration || 20} min</span>
             </div>
-            <p className="text-xs text-gray-400 mb-4 pb-2 border-b border-gray-100">Arraste para os dias</p>
+            <p className="text-xs text-gray-400 mb-4 pb-2 border-b border-gray-100">Arraste para as datas</p>
 
             <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-2 pr-1 custom-scrollbar">
               {generateTimeSlots().map(time => (
@@ -328,55 +460,65 @@ export const DoctorAgenda: React.FC = () => {
             </div>
           </div>
 
-          {/* Kanban Board */}
-          <div className="flex-1 w-full flex overflow-x-auto pb-4 gap-4 snap-x touch-pan-x">
-            {[0, 1, 2, 3, 4, 5, 6].map(day => (
-              <div
-                key={day}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, day)}
-                className="bg-gray-50/80 rounded-xl p-3 border shadow-sm min-w-[200px] max-w-[220px] snap-start flex-shrink-0 flex flex-col h-full transition border-dashed border-gray-300 hover:border-[#2ECC71]/60 relative group"
-              >
-                <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-2">
-                  <span className="font-bold text-gray-700">{DAY_OF_WEEK_LABELS[day]}</span>
-                  <span className="text-xs font-semibold text-gray-400">{availabilities[day]?.length || 0} slots</span>
-                </div>
-
-                {/* Copy Button - aparece no hover */}
-                <button
-                  onClick={() => {
-                    setShowCopyModal(day);
-                    setCopyTargetDays([]);
-                  }}
-                  disabled={availabilities[day]?.length === 0}
-                  className="absolute top-12 right-2 p-1.5 bg-[#2ECC71] text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#27ae60] disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="Copiar horários para outros dias"
+          {/* Kanban Board - 14 dias */}
+          <div className="flex-1 w-full">
+            <div className="flex overflow-x-auto pb-4 gap-4 snap-x touch-pan-x">
+              {days.map((dayInfo, index) => (
+                <div
+                  key={dayInfo.dateStr}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, dayInfo.dateStr)}
+                  className={`bg-gray-50/80 rounded-xl p-3 border shadow-sm min-w-[160px] max-w-[180px] snap-start flex-shrink-0 flex flex-col h-full transition relative group ${dayInfo.isToday ? 'border-[#2ECC71] border-2 bg-[#2ECC71]/5' : 'border-dashed border-gray-300 hover:border-[#2ECC71]/60'
+                    }`}
                 >
-                  <Copy className="w-3.5 h-3.5" />
-                </button>
-
-                <div className="flex-1 flex flex-col gap-2 min-h-[200px] pt-8">
-                  {availabilities[day]?.length === 0 ? (
-                    <div className="text-center py-8 h-full flex flex-col items-center justify-center pointer-events-none opacity-50">
-                      <p className="text-sm font-medium text-gray-400">Solte horários aqui</p>
+                  <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-2">
+                    <div>
+                      <span className={`font-bold text-sm ${dayInfo.isToday ? 'text-[#2ECC71]' : 'text-gray-700'}`}>
+                        {dayInfo.label}
+                      </span>
+                      {dayInfo.isToday && (
+                        <span className="ml-1 text-[9px] bg-[#2ECC71] text-white px-1.5 py-0.5 rounded-full font-bold">HOJE</span>
+                      )}
                     </div>
-                  ) : (
-                    availabilities[day]?.map(avail => (
-                      <div key={avail.id} className="bg-white border text-center border-gray-200 rounded-md py-1.5 px-3 shadow-sm group/slot flex items-center justify-between hover:border-[#2ECC71] transition">
-                        <div className="text-sm font-bold text-gray-700">{formatTime(avail.start_time)}</div>
-                        <button
-                          onClick={() => removeTimeSlot(day, avail.id)}
-                          className="p-1 text-gray-300 hover:text-white hover:bg-red-500 rounded transition opacity-0 group-hover/slot:opacity-100"
-                          title="Remover horário"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                    <span className="text-xs font-semibold text-gray-400">{availabilities[dayInfo.dateStr]?.length || 0}</span>
+                  </div>
+
+                  {/* Copy Button - aparece no hover */}
+                  <button
+                    onClick={() => {
+                      setShowCopyModal(dayInfo.dateStr);
+                      setCopyTargetDays([]);
+                    }}
+                    disabled={availabilities[dayInfo.dateStr]?.length === 0}
+                    className="absolute top-12 right-2 p-1.5 bg-[#2ECC71] text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#27ae60] disabled:opacity-30 disabled:cursor-not-allowed z-10"
+                    title="Copiar horários para outras datas"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+
+                  <div className="flex-1 flex flex-col gap-2 min-h-[200px] pt-8">
+                    {availabilities[dayInfo.dateStr]?.length === 0 ? (
+                      <div className="text-center py-8 h-full flex flex-col items-center justify-center pointer-events-none opacity-50">
+                        <p className="text-xs font-medium text-gray-400">Solte aqui</p>
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      availabilities[dayInfo.dateStr]?.map(avail => (
+                        <div key={avail.id} className="bg-white border text-center border-gray-200 rounded-md py-1.5 px-3 shadow-sm group/slot flex items-center justify-between hover:border-[#2ECC71] transition">
+                          <div className="text-sm font-bold text-gray-700">{formatTime(avail.start_time)}</div>
+                          <button
+                            onClick={() => removeTimeSlot(dayInfo.dateStr, avail.id)}
+                            className="p-1 text-gray-300 hover:text-white hover:bg-red-500 rounded transition opacity-0 group-hover/slot:opacity-100"
+                            title="Remover horário"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
@@ -501,7 +643,7 @@ export const DoctorAgenda: React.FC = () => {
       {showCopyModal !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowCopyModal(null)} />
-          <div className="relative bg-white rounded-xl shadow-lg w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#2ECC71]/10 flex items-center justify-center">
@@ -509,7 +651,9 @@ export const DoctorAgenda: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800">Copiar Horários</h3>
-                  <p className="text-sm text-gray-500">De: <strong>{DAY_OF_WEEK_LABELS[showCopyModal]}</strong></p>
+                  <p className="text-sm text-gray-500">
+                    De: <strong>{days.find(d => d.dateStr === showCopyModal)?.label}</strong>
+                  </p>
                 </div>
               </div>
               <button
@@ -541,59 +685,62 @@ export const DoctorAgenda: React.FC = () => {
                 onClick={selectAllWeekdays}
                 className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 transition"
               >
-                Dias Úteis (Seg-Sex)
+                Dias Úteis (14 dias)
               </button>
               <button
                 onClick={selectWeekend}
                 className="px-3 py-1.5 bg-purple-50 text-purple-700 text-xs font-medium rounded-lg hover:bg-purple-100 transition"
               >
-                Fim de Semana
+                Fins de Semana
               </button>
               <button
                 onClick={selectAllDays}
                 className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition"
               >
-                Todos os Dias
+                Todos os 13 dias
               </button>
             </div>
 
-            {/* Day Selection */}
+            {/* Date Selection Grid */}
             <div className="mb-6">
-              <p className="text-sm font-medium text-gray-700 mb-3">Selecionar dias de destino:</p>
-              <div className="grid grid-cols-2 gap-3">
-                {[0, 1, 2, 3, 4, 5, 6].map(day => {
-                  if (day === showCopyModal) return null; // Não mostra o dia de origem
+              <p className="text-sm font-medium text-gray-700 mb-3">Selecionar datas de destino:</p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-64 overflow-y-auto">
+                {days.map(dayInfo => {
+                  if (dayInfo.dateStr === showCopyModal) return null;
 
-                  const isSelected = copyTargetDays.includes(day);
-                  const hasSlots = availabilities[day]?.length > 0;
+                  const isSelected = copyTargetDays.includes(dayInfo.dateStr);
+                  const hasSlots = availabilities[dayInfo.dateStr]?.length > 0;
 
                   return (
                     <label
-                      key={day}
-                      className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition ${isSelected
+                      key={dayInfo.dateStr}
+                      className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 cursor-pointer transition ${isSelected
                           ? 'border-[#2ECC71] bg-[#2ECC71]/5'
                           : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        } ${dayInfo.isToday ? 'bg-yellow-50' : ''}`}
                     >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setCopyTargetDays(prev => [...prev, day]);
-                            } else {
-                              setCopyTargetDays(prev => prev.filter(d => d !== day));
-                            }
-                          }}
-                          className="w-4 h-4 text-[#2ECC71] border-gray-300 rounded focus:ring-[#2ECC71]"
-                        />
-                        <span className="text-sm font-medium text-gray-700">{DAY_OF_WEEK_LABELS[day]}</span>
-                      </div>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setCopyTargetDays(prev => [...prev, dayInfo.dateStr]);
+                          } else {
+                            setCopyTargetDays(prev => prev.filter(d => d !== dayInfo.dateStr));
+                          }
+                        }}
+                        className="w-4 h-4 text-[#2ECC71] border-gray-300 rounded focus:ring-[#2ECC71] mb-2"
+                      />
+                      <span className={`text-xs font-bold ${dayInfo.isToday ? 'text-[#2ECC71]' : 'text-gray-700'}`}>
+                        {dayInfo.label}
+                      </span>
                       {hasSlots && (
-                        <span className="text-xs text-gray-500">
-                          {availabilities[day].length} slots
+                        <span className="text-[10px] text-gray-500 mt-1">
+                          {availabilities[dayInfo.dateStr].length} slots
                         </span>
+                      )}
+                      {dayInfo.isToday && (
+                        <span className="text-[9px] bg-[#2ECC71] text-white px-1 py-0.5 rounded-full mt-1">HOJE</span>
                       )}
                     </label>
                   );

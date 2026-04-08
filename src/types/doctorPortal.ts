@@ -76,6 +76,7 @@ export interface DoctorAvailability {
   start_time: string; // HH:MM:SS
   end_time: string; // HH:MM:SS
   is_active: boolean;
+  date?: string | null; // Data específica (YYYY-MM-DD), opcional. Se NULL, aplica-se toda semana.
 }
 
 export interface Consultation {

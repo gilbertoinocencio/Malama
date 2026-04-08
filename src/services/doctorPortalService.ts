@@ -150,13 +150,23 @@ export const doctorService = {
 // =====================================================
 
 export const availabilityService = {
-  // Buscar disponibilidade de um médico
-  async getDoctorAvailability(doctorId: string): Promise<DoctorAvailability[]> {
-    const { data, error } = await supabase
+  // Buscar disponibilidade de um médico (com filtro opcional por período)
+  async getDoctorAvailability(
+    doctorId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<DoctorAvailability[]> {
+    let query = supabase
       .from('doctor_availability')
       .select('*')
-      .eq('doctor_id', doctorId)
-      .order('day_of_week');
+      .eq('doctor_id', doctorId);
+
+    // Se tiver filtro de data, buscar apenas disponibilidades no período
+    if (startDate && endDate) {
+      query = query.or(`date.is.null,date.gte.${startDate},date.lte.${endDate}`);
+    }
+
+    const { data, error } = await query.order('date', { ascending: true }).order('day_of_week').order('start_time');
 
     if (error) throw error;
     return data || [];
@@ -188,7 +198,9 @@ export const availabilityService = {
     if (existingAvailabilities.length > 0) {
       const { data: updatedData, error: updateError } = await supabase
         .from('doctor_availability')
-        .upsert(existingAvailabilities, { onConflict: 'doctor_id,day_of_week,start_time,end_time' })
+        .upsert(existingAvailabilities, {
+          onConflict: 'doctor_id,day_of_week,start_time,end_time,date'
+        })
         .select();
 
       if (updateError) throw updateError;
