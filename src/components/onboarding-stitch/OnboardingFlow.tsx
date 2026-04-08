@@ -3,6 +3,7 @@ import { StitchOnboardingData, OnboardingStep } from './types';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { LocationAutoPermission } from '../../services/locationAutoPermission';
+import { NotificationService } from '../../services/notificationService';
 
 // Step Components
 import ObjetivosPrincipaisStep from './steps/ObjetivosPrincipaisStep';
@@ -119,12 +120,31 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
       // Re-fetch profile so AuthContext reflects onboarding_completed = true
       await refreshProfile();
 
-      // Solicitar localização automaticamente no primeiro uso
-      console.log('📍 Tentando obter localização automaticamente...');
-      await LocationAutoPermission.requestAutoPermission(user.id, supabase);
+      // Solicitar permissões de forma NÃO bloqueante
+      // O app continua funcionando mesmo se o usuário negar
+
+      // Delay pequeno para não sobrecarregar o navegador com múltiplos popups
+      setTimeout(async () => {
+        try {
+          console.log('📍 Solicitando localização (opcional)...');
+          await LocationAutoPermission.requestAutoPermission(user.id, supabase);
+        } catch (err) {
+          console.log('📍 Localização não solicitada ou negada - app continua normalmente');
+        }
+      }, 1000);
+
+      setTimeout(async () => {
+        try {
+          console.log('🔔 Solicitando notificações (opcional)...');
+          await NotificationService.requestPermission();
+        } catch (err) {
+          console.log('🔔 Notificações não solicitadas ou negadas - app continua normalmente');
+        }
+      }, 2000);
     } catch (err) {
       console.error('Error finishing onboarding:', err);
     } finally {
+      // Sempre completa o onboarding, independente das permissões
       onComplete();
     }
   };

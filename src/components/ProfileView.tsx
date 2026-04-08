@@ -8,7 +8,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { GamificationService, GamificationStats } from '../services/gamificationService';
 import { MealService } from '../services/mealService';
 import { supabase } from '../services/supabase';
-import { NotificationService } from '../services/notificationService';
 
 interface ProfileViewProps {
   onNavClick: (view: AppView) => void;
@@ -37,7 +36,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [totalMeals, setTotalMeals] = useState(0);
   const [heatmapData, setHeatmapData] = useState<HeatmapDay[]>([]);
   const [loading, setLoading] = useState(true);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -102,15 +100,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       setUploadingAvatar(false);
     }
   };
-
-  // Load notification status
-  useEffect(() => {
-    const loadNotifStatus = async () => {
-      const enabled = await NotificationService.isEnabled();
-      setNotificationsEnabled(enabled);
-    };
-    loadNotifStatus();
-  }, []);
 
   const loadProfileStats = async () => {
     if (!user) {
@@ -368,37 +357,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </button>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* Notifications Toggle */}
-        <section className="w-full px-6 mb-8">
-          <div className="bg-white dark:bg-[#1a2630] rounded-2xl p-4 shadow-sm border border-nura-border dark:border-gray-800 transition-colors flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-nura-petrol dark:text-primary">notifications</span>
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-nura-main dark:text-white">{t.profile.notifications}</span>
-                <span className="text-xs text-nura-muted dark:text-gray-400">
-                  {notificationsEnabled ? t.profile.high : t.profile.low}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={async () => {
-                if (notificationsEnabled) {
-                  await NotificationService.disable();
-                  setNotificationsEnabled(false);
-                } else {
-                  const granted = await NotificationService.requestPermission();
-                  if (granted) {
-                    setNotificationsEnabled(true);
-                  }
-                }
-              }}
-              className={`w-12 h-7 rounded-full transition-colors relative ${notificationsEnabled ? 'bg-nura-petrol dark:bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
-            >
-              <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${notificationsEnabled ? 'translate-x-5' : ''}`}></div>
-            </button>
           </div>
         </section>
 
