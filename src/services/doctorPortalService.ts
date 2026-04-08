@@ -1010,6 +1010,7 @@ export type Influencer = {
   instagram_handle: string | null;
   pix_key: string | null;
   referral_token: string;
+  setup_token: string | null; // null após ativação da conta
   commission_per_referral: number;
   status: 'active' | 'paused' | 'cancelled';
   notes: string | null;
@@ -1064,12 +1065,13 @@ export const influencerService = {
     });
   },
 
-  // Criar novo influenciador
+  // Criar novo influenciador (gera referral_token e setup_token)
   async create(data: Partial<Influencer>): Promise<Influencer> {
-    const token = `inf_${uuidv4().replace(/-/g, '')}`;
+    const referral_token = `inf_${uuidv4().replace(/-/g, '')}`;
+    const setup_token    = `setup_${uuidv4().replace(/-/g, '')}`;
     const { data: created, error } = await supabase
       .from('influencers')
-      .insert([{ ...data, referral_token: token }])
+      .insert([{ ...data, referral_token, setup_token }])
       .select()
       .single();
 
@@ -1122,6 +1124,52 @@ export const influencerService = {
       .insert([{ influencer_id: influencerId, user_id: userId, commission_amount: commissionAmount }]);
 
     if (error) throw error;
+  },
+
+  // Buscar influenciador por setup_token (página de ativação)
+  async getBySetupToken(token: string): Promise<Pick<Influencer, 'id' | 'name' | 'email'> | null> {
+    const { data, error } = await supabase
+      .from('influencers')
+      .select('id, name, email')
+      .eq('setup_token', token)
+      .single();
+
+    if (error) return null;
+    return data;
+  },
+
+  // Vincular conta do app ao influenciador e invalidar setup_token
+  async activateAccount(setupToken: string, userId: string): Promise<void> {
+    const { error } = await supabase
+      .from('influencers')
+      .update({ user_id: userId, setup_token: null, updated_at: new Date().toISOString() })
+      .eq('setup_token', setupToken);
+
+    if (error) throw error;
+  },
+
+  // Buscar influenciador pelo user_id (dashboard do influenciador)
+  async getByUserId(userId: string): Promise<(Influencer & { pending_amount: number; total_referrals: number; total_earned: number }) | null> {
+    const { data: inf, error } = await supabase
+      .from('influencers')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !inf) return null;
+
+    const { data: refs } = await supabase
+      .from('influencer_referrals')
+      .select('commission_amount, status')
+      .eq('influencer_id', inf.id);
+
+    const pending = refs?.filter(r => r.status === 'pending') ?? [];
+    return {
+      ...inf,
+      total_referrals: refs?.length ?? 0,
+      total_earned: refs?.reduce((s, r) => s + r.commission_amount, 0) ?? 0,
+      pending_amount: pending.reduce((s, r) => s + r.commission_amount, 0),
+    };
   },
 
   // Marcar todas as comissões pendentes de um influenciador como pagas

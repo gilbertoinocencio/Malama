@@ -29,6 +29,11 @@ import { DoctorFinancial } from './doctor/DoctorFinancial';
 import { PatientReferral } from './PatientReferral';
 import { InfluencerReferral } from './InfluencerReferral';
 
+// Influencer Portal
+import { InfluencerLogin } from './influencer/InfluencerLogin';
+import { InfluencerActivation } from './influencer/InfluencerActivation';
+import { InfluencerDashboard } from './influencer/InfluencerDashboard';
+
 // Admin Pages
 import { AdminLogin } from './admin/AdminLogin';
 import { AdminRoute as AdminGuard } from './guards';
@@ -189,6 +194,11 @@ export const AppRoutes: React.FC = () => {
 
           {/* Indicação de influenciador */}
           <Route path="/i/:token" element={<InfluencerReferral />} />
+
+          {/* Portal do influenciador */}
+          <Route path="/influencer/login" element={<InfluencerLogin />} />
+          <Route path="/influencer/ativar/:token" element={<InfluencerActivation />} />
+          <Route path="/influencer/dashboard" element={<InfluencerDashboard />} />
 
           {/* Rota padrão - redireciona para Landing Page */}
           <Route path="*" element={<Navigate to="/" replace />} />

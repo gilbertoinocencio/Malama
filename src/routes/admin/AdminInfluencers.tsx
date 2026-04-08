@@ -5,7 +5,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Plus, Search, X, Copy, Check, Instagram,
-  ExternalLink, DollarSign, Users, TrendingUp, Pause, Ban, Play
+  ExternalLink, DollarSign, Users, TrendingUp, Pause, Ban, Play,
+  Trophy, Link as LinkIcon
 } from 'lucide-react';
 import { influencerService, settingsService } from '../../services/doctorPortalService';
 import type { Influencer, InfluencerSummary, InfluencerReferral } from '../../services/doctorPortalService';
@@ -51,6 +52,31 @@ const CopyLinkButton: React.FC<{ token: string }> = ({ token }) => {
       {copied ? <Check className="w-3 h-3 text-[#2ECC71]" /> : <Copy className="w-3 h-3" />}
       {copied ? 'Copiado!' : 'Link'}
     </button>
+  );
+};
+
+// ─── Botão copiar link de ativação ────────────────────
+const ActivationLinkButton: React.FC<{ token: string }> = ({ token }) => {
+  const [copied, setCopied] = useState(false);
+  const link = `${window.location.origin}/influencer/ativar/${token}`;
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="flex gap-2">
+      <div className="flex-1 bg-white border border-amber-200 rounded-lg px-2 py-1.5 text-xs text-gray-600 truncate">
+        {link}
+      </div>
+      <button
+        onClick={handleCopy}
+        className="flex items-center gap-1 px-2 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs font-medium rounded-lg transition whitespace-nowrap"
+      >
+        {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+        {copied ? 'Copiado!' : 'Copiar'}
+      </button>
+    </div>
   );
 };
 
@@ -148,6 +174,26 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
               </a>
             </div>
           </div>
+
+          {/* Link de ativação de conta */}
+          {influencer.setup_token && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Link de ativação de conta</p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
+                <LinkIcon className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-amber-700 mb-2">Conta ainda não ativada. Envie este link para o influenciador criar sua senha:</p>
+                  <ActivationLinkButton token={influencer.setup_token} />
+                </div>
+              </div>
+            </div>
+          )}
+          {!influencer.setup_token && influencer.user_id && (
+            <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2 text-sm text-green-700">
+              <Check className="w-4 h-4 flex-shrink-0" />
+              Conta ativada — influenciador tem acesso ao painel.
+            </div>
+          )}
 
           {/* Dados financeiros */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
@@ -483,6 +529,61 @@ export const AdminInfluencers: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* ── Ranking de conversões ── */}
+      {!loading && filtered.length > 0 && (
+        <div className="bg-white rounded-xl shadow p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy className="w-5 h-5 text-yellow-500" />
+            <h2 className="font-semibold text-gray-800">Ranking de conversões</h2>
+            <span className="text-xs text-gray-400 ml-1">top {Math.min(filtered.length, 5)}</span>
+          </div>
+          <div className="space-y-2">
+            {[...filtered]
+              .sort((a, b) => b.total_referrals - a.total_referrals)
+              .slice(0, 5)
+              .map((inf, i) => {
+                const medals = ['🥇', '🥈', '🥉'];
+                const pct = filtered[0]?.total_referrals > 0
+                  ? (inf.total_referrals / [...filtered].sort((a, b) => b.total_referrals - a.total_referrals)[0].total_referrals) * 100
+                  : 0;
+                return (
+                  <div key={inf.id} className="flex items-center gap-3">
+                    <span className="text-lg w-8 text-center flex-shrink-0">
+                      {medals[i] ?? <span className="text-sm font-bold text-gray-400">#{i + 1}</span>}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-medium text-gray-800 truncate">{inf.name}</span>
+                          {inf.instagram_handle && (
+                            <span className="text-xs text-[#2ECC71] hidden sm:inline">
+                              {inf.instagram_handle.startsWith('@') ? inf.instagram_handle : `@${inf.instagram_handle}`}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0 ml-2">
+                          <span className="text-xs text-gray-500">{inf.total_referrals} conv.</span>
+                          <span className="text-xs font-semibold text-[#2ECC71]">{fmtCurrency(inf.total_earned)}</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${pct}%`,
+                            background: i === 0 ? '#F59E0B' : i === 1 ? '#9CA3AF' : i === 2 ? '#CD7C2F' : '#2ECC71'
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <StatusBadge status={inf.status} />
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
 
       {/* ── Barra de ações ── */}
       <div className="flex gap-3 flex-col sm:flex-row">

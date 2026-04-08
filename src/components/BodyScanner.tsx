@@ -63,7 +63,7 @@ const resizeImage = (base64Str: string, maxDim = 1200): Promise<string> => {
 };
 
 export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplete }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { t } = useLanguage();
 
   const [step, setStep] = useState<ScanStep>('tutorial');
@@ -72,8 +72,12 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [showPoseGuide, setShowPoseGuide] = useState(true);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Translations (temporary - will be added to i18n)
   const texts = {
@@ -136,6 +140,9 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
     }
   }, [user]);
 
+  // Check if profile has required data
+  const profileComplete = profile?.height && profile?.weight;
+
   const handleStartTutorial = () => {
     setStep('capture');
     setCurrentPose('front');
@@ -145,6 +152,18 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione uma imagem válida.');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Imagem muito grande. Máximo: 10MB.');
+      return;
+    }
+
     setLoading(true);
     setStep('analyzing');
 
@@ -152,16 +171,31 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
     reader.onloadend = async () => {
       try {
         let base64 = reader.result as string;
-        base64 = await resizeImage(base64, 1200);
 
-        // Get user profile data
-        const { data: profile } = await BodyAnalysisService.getUserScans(user.id);
-        const heightCm = 170; // TODO: Get from profile
-        const weightKg = 70; // TODO: Get from profile
-        const age = 30; // TODO: Get from profile
-        const gender = 'male' as 'male' | 'female'; // TODO: Get from profile
+        // Set preview
+        setImagePreview(base64);
+        setCapturedImage(base64);
 
-        console.log(`🔍 Analyzing ${currentPose} pose...`);
+        // Resize for optimal API size (maintain quality but reduce payload)
+        base64 = await resizeImage(base64, 1024);
+
+        // Get user profile data - USE REAL DATA
+        const heightCm = profile?.height || 170;
+        const weightKg = profile?.weight || 70;
+        const age = profile?.age || 30;
+        const gender = profile?.gender || 'male';
+
+        // Validate profile data
+        if (!profile?.height || !profile?.weight) {
+          console.warn('⚠️ Perfil incompleto. Usando valores padrão.');
+        }
+
+        console.log(`🔍 Analyzing ${currentPose} pose with profile data:`, {
+          heightCm,
+          weightKg,
+          age,
+          gender
+        });
 
         // Analyze with Gemini
         const result = await analyzeBodyImage(
@@ -173,6 +207,19 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
           currentPose,
           'pt'
         );
+
+        // Check if AI score is too low
+        if (result.aiScore < 40) {
+          const continueAnyway = window.confirm(
+            'A qualidade da imagem está baixa (score: ' + result.aiScore + '/100). ' +
+            'Os resultados podem ser imprecisos. Deseja continuar mesmo assim?'
+          );
+          if (!continueAnyway) {
+            setStep('capture');
+            setLoading(false);
+            return;
+          }
+        }
 
         // Upload photo
         const photoUrl = await BodyAnalysisService.uploadBodyPhoto(
@@ -217,12 +264,33 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
 
       } catch (error) {
         console.error('❌ Scan failed:', error);
-        alert('Falha na análise. Tente novamente.');
+
+        // Better error messages
+        let errorMessage = 'Falha na análise. Tente novamente.';
+        if (error instanceof Error) {
+          if (error.message.includes('API Key')) {
+            errorMessage = 'Erro de configuração da IA. Contate o suporte.';
+          } else if (error.message.includes('network') || error.message.includes('fetch')) {
+            errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+          } else if (error.message.includes('incompleta')) {
+            errorMessage = 'Erro na análise da IA. Tente com outra imagem.';
+          } else {
+            errorMessage = `Erro: ${error.message}`;
+          }
+        }
+
+        alert(errorMessage);
         setStep('capture');
       } finally {
         setLoading(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
+    };
+
+    reader.onerror = () => {
+      alert('Erro ao ler imagem. Tente outra.');
+      setLoading(false);
+      setStep('capture');
     };
 
     reader.readAsDataURL(file);
@@ -288,13 +356,12 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
 
           return (
             <React.Fragment key={pose}>
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all ${
-                isCompleted
-                  ? 'bg-primary border-primary text-white'
-                  : isCurrent
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all ${isCompleted
+                ? 'bg-primary border-primary text-white'
+                : isCurrent
                   ? 'border-primary text-primary bg-primary/10'
                   : 'border-white/20 text-white/40'
-              }`}>
+                }`}>
                 {isCompleted ? (
                   <span className="material-symbols-outlined text-sm">check</span>
                 ) : (
@@ -362,6 +429,19 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                 <p className="text-orange-200 text-xs text-center">{texts.tutorial.disclaimer}</p>
               </div>
 
+              {/* Profile Warning */}
+              {!profileComplete && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mb-6">
+                  <div className="flex items-start gap-2">
+                    <span className="material-symbols-outlined text-yellow-400 text-sm flex-shrink-0 mt-0.5">warning</span>
+                    <p className="text-yellow-200 text-xs">
+                      <strong>Perfil incompleto:</strong> Para resultados mais precisos,
+                      atualize seu perfil com altura e peso no seu perfil.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Start Button */}
               <button
                 onClick={handleStartTutorial}
@@ -391,66 +471,124 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
 
               {/* Camera Preview Area with Pose Guide */}
               <div className="relative bg-surface-dark rounded-2xl overflow-hidden mb-6 aspect-[3/4]">
-                {/* Pose Guide Overlay */}
-                <AnimatePresence>
-                  {showPoseGuide && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 0.3 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
-                    >
-                      <svg
-                        viewBox="0 0 200 300"
-                        className="w-full h-full"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="2"
-                      >
-                        {currentPose === 'front' && (
-                          <>
-                            {/* Simple stick figure - front pose */}
-                            <circle cx="100" cy="40" r="15" /> {/* Head */}
-                            <line x1="100" y1="55" x2="100" y2="150" /> {/* Torso */}
-                            <line x1="100" y1="75" x2="60" y2="110" /> {/* Left arm */}
-                            <line x1="100" y1="75" x2="140" y2="110" /> {/* Right arm */}
-                            <line x1="100" y1="150" x2="75" y2="230" /> {/* Left leg */}
-                            <line x1="100" y1="150" x2="125" y2="230" /> {/* Right leg */}
-                          </>
-                        )}
-                        {currentPose === 'side' && (
-                          <>
-                            {/* Side profile */}
-                            <circle cx="100" cy="40" r="15" />
-                            <line x1="100" y1="55" x2="100" y2="150" />
-                            <line x1="100" y1="75" x2="100" y2="120" />
-                            <line x1="100" y1="150" x2="90" y2="230" />
-                            <line x1="100" y1="150" x2="110" y2="230" />
-                          </>
-                        )}
-                        {currentPose === 'back' && (
-                          <>
-                            {/* Back pose */}
-                            <circle cx="100" cy="40" r="15" />
-                            <line x1="100" y1="55" x2="100" y2="150" />
-                            <line x1="100" y1="75" x2="60" y2="110" />
-                            <line x1="100" y1="75" x2="140" y2="110" />
-                            <line x1="100" y1="150" x2="75" y2="230" />
-                            <line x1="100" y1="150" x2="125" y2="230" />
-                          </>
-                        )}
-                      </svg>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {/* Show captured image if available */}
+                {imagePreview && step === 'capture' ? (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <>
+                    {/* Pose Guide Overlay */}
+                    <AnimatePresence>
+                      {showPoseGuide && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 0.4 }}
+                          exit={{ opacity: 0 }}
+                          className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
+                        >
+                          <svg
+                            viewBox="0 0 200 320"
+                            className="w-3/4 h-3/4"
+                            fill="none"
+                            stroke="white"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          >
+                            {currentPose === 'front' && (
+                              <>
+                                {/* Head */}
+                                <ellipse cx="100" cy="35" rx="16" ry="20" strokeWidth="2.5" />
+                                {/* Neck */}
+                                <line x1="100" y1="55" x2="100" y2="65" strokeWidth="2.5" />
+                                {/* Shoulders */}
+                                <line x1="70" y1="75" x2="130" y2="75" strokeWidth="2.5" />
+                                {/* Torso */}
+                                <line x1="100" y1="65" x2="100" y2="160" strokeWidth="2.5" />
+                                {/* Left arm - 45 degrees */}
+                                <line x1="70" y1="75" x2="45" y2="130" strokeWidth="2.5" />
+                                <line x1="45" y1="130" x2="40" y2="170" strokeWidth="2.5" />
+                                {/* Right arm - 45 degrees */}
+                                <line x1="130" y1="75" x2="155" y2="130" strokeWidth="2.5" />
+                                <line x1="155" y1="130" x2="160" y2="170" strokeWidth="2.5" />
+                                {/* Hips */}
+                                <line x1="80" y1="160" x2="120" y2="160" strokeWidth="2.5" />
+                                {/* Left leg */}
+                                <line x1="85" y1="160" x2="75" y2="230" strokeWidth="2.5" />
+                                <line x1="75" y1="230" x2="70" y2="290" strokeWidth="2.5" />
+                                {/* Right leg */}
+                                <line x1="115" y1="160" x2="125" y2="230" strokeWidth="2.5" />
+                                <line x1="125" y1="230" x2="130" y2="290" strokeWidth="2.5" />
+                                {/* Shoulders width indicator */}
+                                <path d="M 65 70 Q 100 65 135 70" strokeWidth="1.5" strokeDasharray="4,4" opacity="0.5" />
+                              </>
+                            )}
+                            {currentPose === 'side' && (
+                              <>
+                                {/* Head - profile */}
+                                <ellipse cx="100" cy="35" rx="14" ry="18" strokeWidth="2.5" />
+                                <path d="M 100 25 Q 108 30 108 35 Q 108 40 100 45" strokeWidth="2" />
+                                {/* Neck */}
+                                <line x1="100" y1="53" x2="100" y2="65" strokeWidth="2.5" />
+                                {/* Torso - slight curve for chest/back */}
+                                <path d="M 100 65 Q 105 90 100 160" strokeWidth="2.5" />
+                                <path d="M 100 65 Q 95 90 100 160" strokeWidth="2.5" />
+                                {/* Arm - at side */}
+                                <line x1="100" y1="75" x2="100" y2="120" strokeWidth="2.5" />
+                                <line x1="100" y1="120" x2="100" y2="155" strokeWidth="2.5" />
+                                {/* Hips */}
+                                <line x1="90" y1="160" x2="110" y2="160" strokeWidth="2.5" />
+                                {/* Legs - side view */}
+                                <line x1="95" y1="160" x2="90" y2="230" strokeWidth="2.5" />
+                                <line x1="90" y1="230" x2="88" y2="290" strokeWidth="2.5" />
+                                <line x1="105" y1="160" x2="110" y2="230" strokeWidth="2.5" />
+                                <line x1="110" y1="230" x2="112" y2="290" strokeWidth="2.5" />
+                              </>
+                            )}
+                            {currentPose === 'back' && (
+                              <>
+                                {/* Head - back */}
+                                <ellipse cx="100" cy="35" rx="16" ry="20" strokeWidth="2.5" />
+                                {/* Hair line hint */}
+                                <path d="M 88 30 Q 100 25 112 30" strokeWidth="1.5" opacity="0.5" />
+                                {/* Neck */}
+                                <line x1="100" y1="55" x2="100" y2="65" strokeWidth="2.5" />
+                                {/* Shoulders */}
+                                <line x1="70" y1="75" x2="130" y2="75" strokeWidth="2.5" />
+                                {/* Spine line */}
+                                <line x1="100" y1="65" x2="100" y2="160" strokeWidth="2" strokeDasharray="4,4" opacity="0.6" />
+                                {/* Left arm - 45 degrees */}
+                                <line x1="70" y1="75" x2="45" y2="130" strokeWidth="2.5" />
+                                <line x1="45" y1="130" x2="40" y2="170" strokeWidth="2.5" />
+                                {/* Right arm - 45 degrees */}
+                                <line x1="130" y1="75" x2="155" y2="130" strokeWidth="2.5" />
+                                <line x1="155" y1="130" x2="160" y2="170" strokeWidth="2.5" />
+                                {/* Hips */}
+                                <line x1="80" y1="160" x2="120" y2="160" strokeWidth="2.5" />
+                                {/* Left leg */}
+                                <line x1="85" y1="160" x2="75" y2="230" strokeWidth="2.5" />
+                                <line x1="75" y1="230" x2="70" y2="290" strokeWidth="2.5" />
+                                {/* Right leg */}
+                                <line x1="115" y1="160" x2="125" y2="230" strokeWidth="2.5" />
+                                <line x1="125" y1="230" x2="130" y2="290" strokeWidth="2.5" />
+                              </>
+                            )}
+                          </svg>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
-                {/* Placeholder */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <span className="material-symbols-outlined text-white/20 text-6xl mb-2">photo_camera</span>
-                    <p className="text-white/40 text-xs">Toque no botão para capturar</p>
-                  </div>
-                </div>
+                    {/* Placeholder */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <span className="material-symbols-outlined text-white/20 text-6xl mb-2">photo_camera</span>
+                        <p className="text-white/40 text-xs">Toque no botão para capturar</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Tips */}
@@ -509,14 +647,62 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center justify-center h-full"
+              className="flex items-center justify-center h-full p-6"
             >
-              <div className="text-center">
-                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                  <span className="material-symbols-outlined text-primary text-4xl">psychology</span>
+              <div className="text-center max-w-sm">
+                {/* Animated AI Icon */}
+                <div className="relative w-24 h-24 mx-auto mb-6">
+                  <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" style={{ animationDuration: '2s' }}></div>
+                  <div className="absolute inset-2 bg-primary/30 rounded-full animate-ping" style={{ animationDuration: '1.5s' }}></div>
+                  <div className="absolute inset-4 bg-primary/10 rounded-full flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary text-5xl">psychology</span>
+                  </div>
                 </div>
-                <p className="text-white font-semibold mb-2">{texts.capture.analyzing}</p>
-                <p className="text-white/50 text-sm">Aguarde alguns segundos...</p>
+
+                <h3 className="text-white font-bold text-lg mb-2">Analisando Imagem</h3>
+                <p className="text-white/60 text-sm mb-6">
+                  {currentPose === 'front' && 'Analisando pose frontal...'}
+                  {currentPose === 'side' && 'Analisando pose lateral...'}
+                  {currentPose === 'back' && 'Analisando pose de costas...'}
+                </p>
+
+                {/* Progress Steps */}
+                <div className="space-y-3 text-left bg-surface-dark rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-primary text-sm">check</span>
+                    </div>
+                    <span className="text-white/80 text-xs">Redimensionando imagem</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
+                      <span className="material-symbols-outlined text-primary text-sm">hourglass_top</span>
+                    </div>
+                    <span className="text-white/80 text-xs">Analisando composição corporal</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white/40 text-sm">pending</span>
+                    </div>
+                    <span className="text-white/40 text-xs">Calculando medidas</span>
+                  </div>
+                </div>
+
+                <p className="text-white/40 text-xs mt-4">Aguarde 10-20 segundos...</p>
+
+                {/* Show captured image with overlay */}
+                {imagePreview && (
+                  <div className="mt-6 relative rounded-xl overflow-hidden aspect-[3/4] max-w-xs mx-auto opacity-50">
+                    <img
+                      src={imagePreview}
+                      alt="Analyzing"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white text-4xl animate-spin">settings</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

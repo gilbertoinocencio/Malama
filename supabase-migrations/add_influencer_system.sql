@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS influencers (
   instagram_handle TEXT,                -- @handle principal
   pix_key TEXT,                         -- chave PIX para pagamento de comissões
   referral_token TEXT UNIQUE NOT NULL,  -- token do link /i/:token (prefixo "inf_")
+  setup_token TEXT UNIQUE,              -- token de ativação de conta /influencer/ativar/:token (prefixo "setup_")
   commission_per_referral DECIMAL(10,2) NOT NULL DEFAULT 10.00, -- BRL por novo cadastro
   status TEXT NOT NULL DEFAULT 'active'
     CHECK (status IN ('active', 'paused', 'cancelled')),
@@ -46,6 +47,7 @@ ALTER TABLE profiles ADD CONSTRAINT profiles_acquisition_channel_check
 
 -- ─── 4. Índices ───────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_influencers_referral_token ON influencers(referral_token);
+CREATE INDEX IF NOT EXISTS idx_influencers_setup_token ON influencers(setup_token);
 CREATE INDEX IF NOT EXISTS idx_influencers_status ON influencers(status);
 CREATE INDEX IF NOT EXISTS idx_influencer_referrals_influencer_id ON influencer_referrals(influencer_id);
 CREATE INDEX IF NOT EXISTS idx_influencer_referrals_status ON influencer_referrals(status);

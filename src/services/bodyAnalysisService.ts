@@ -100,84 +100,122 @@ export const analyzeBodyImage = async (
   const langName = language === 'pt' ? 'Portuguese (Brazilian)' : language === 'en' ? 'English' : 'Spanish';
 
   // Build comprehensive prompt based on research
-  const prompt = `You are NURA, an expert AI body composition analyst. Analyze this ${poseType} body photo using advanced computer vision and anthropometric estimation.
+  const prompt = `You are NURA, an expert AI body composition analyst with advanced computer vision and anthropometric expertise. Analyze this ${poseType} body photo with scientific precision.
 
-**CONTEXT:**
+**USER CONTEXT:**
 - Height: ${heightCm} cm
 - Weight: ${weightKg} kg
 ${age ? `- Age: ${age} years` : ''}
 ${gender ? `- Gender: ${gender}` : ''}
 - Pose: ${poseType.toUpperCase()}
 
-**ANALYSIS TASKS:**
+**ANALYSIS PROTOCOL (follow strictly):**
 
-1. **Photo Quality Assessment (0-100 score):**
-   - Lighting quality
-   - Body visibility (full body in frame?)
-   - Pose alignment (correct A-pose for front/back, profile for side?)
-   - Image clarity
-   - Background interference
+### 1. IMAGE QUALITY ASSESSMENT (0-100)
+Evaluate objectively:
+- **Lighting** (0-25): Even illumination, no harsh shadows or overexposure
+- **Body Visibility** (0-25): Full body visible from head to toe, not cropped
+- **Pose Alignment** (0-25): Correct stance (A-pose for front/back, true profile for side)
+- **Clarity** (0-25): Sharp image, minimal blur, appropriate distance (2-3m)
 
-2. **Body Composition Estimation:**
-   Using the provided height/weight and visual analysis:
-   - Estimate body fat percentage (consider visible muscle definition, fat distribution)
-   - Calculate lean muscle mass in kg (use: muscle_mass = weight * (1 - body_fat/100))
-   - Reference standards: Athletes 6-13%, Fitness 14-17%, Average 18-24%, Overweight 25%+
+**Scoring guide:**
+- 90-100: Professional quality, ideal conditions
+- 75-89: Good quality, minor issues
+- 60-74: Acceptable, some limitations
+- 40-59: Poor quality, significant issues
+- Below 40: Very poor, unreliable for analysis
 
-3. **Circumference Measurements (in cm):**
-   Based on height as reference scale, estimate:
-   ${poseType === 'front' || poseType === 'back' ? `
-   - Waist (narrowest point)
-   - Hip (widest point)
-   - Chest (nipple line for males, under bust for females)
-   - Arm_left and arm_right (bicep, flexed)
-   - Thigh_left and thigh_right (mid-thigh)
-   - Calf_left and calf_right (widest point)
-   ` : `
-   - Waist (visible from side profile)
-   - Hip (visible from side profile)
-   - Chest (visible from side profile)
-   `}
+### 2. BODY FAT PERCENTAGE ESTIMATION
+Use MULTI-EVIDENCE approach:
+- **Visual markers**: Muscle definition visibility, subcutaneous fat layers
+- **Fat distribution patterns**: Abdomen, love handles, chest, thighs, arms
+- **Reference standards** (adapt to gender):
+  - Males: Essential 2-5%, Athletes 6-13%, Fitness 14-17%, Average 18-24%, Overweight 25%+
+  - Females: Essential 10-13%, Athletes 14-20%, Fitness 21-24%, Average 25-31%, Overweight 32%+
+- **Cross-validate** with provided weight and height
 
-4. **Biotype Classification:**
-   - ECTOMORPH: Lean, narrow shoulders, fast metabolism, difficulty gaining weight
-   - MESOMORPH: Athletic, balanced proportions, gains muscle easily
-   - ENDOMORPH: Wider frame, stores fat easily, rounder physique
+**Be realistic, not optimistic.** Common ranges:
+- Visible abs: typically 10-15% (male), 18-22% (female)
+- Some definition but soft: typically 15-20% (male), 22-28% (female)
+- No visible definition: typically 20%+ (male), 28%+ (female)
 
-5. **Feedback Message:**
-   Provide encouraging, actionable feedback in ${langName}. Mention:
-   - Photo quality assessment
-   - Key observations (muscle development, fat distribution)
-   - Progress tracking tips
+### 3. MUSCLE MASS CALCULATION
+Formula: muscle_mass_kg = weight_kg × (1 - body_fat_percentage/100)
+Calculate precisely and round to 1 decimal place.
 
-**IMPORTANT NOTES:**
-- These are AI ESTIMATES, not clinical measurements
-- Accuracy depends on photo quality, pose, and lighting
-- Use as tracking tool for TRENDS, not absolute values
-- Recommend professional assessment for medical purposes
+### 4. CIRCUMFERENCE MEASUREMENTS (cm)
+Use height as reference scale. Estimate based on visible proportions:
+
+${poseType === 'front' || poseType === 'back' ? `**FULL MEASUREMENTS (visible from this pose):**
+- waist: Narrowest point (typically above navel)
+- hip: Widest point of glutes
+- chest: At nipple line (males) / under bust (females)
+- arm_left: Mid-bicep circumference
+- arm_right: Mid-bicep circumference
+- thigh_left: Mid-thigh circumference
+- thigh_right: Mid-thigh circumference
+- calf_left: Widest point of calf
+- calf_right: Widest point of calf` : `**SIDE PROFILE MEASUREMENTS (visible from side):**
+- waist: Anterior-posterior depth at narrowest point
+- hip: Gluteal protrusion from side
+- chest: Thoracic depth from side
+
+Note: For side pose, provide reasonable estimates for all measurements based on visible proportions and typical body symmetry.`}
+
+**Estimation technique:**
+- Use height as known reference (${heightCm} cm)
+- Compare body part ratios to height
+- Consider typical proportions for detected body fat level
+- Be conservative - better to underestimate than overestimate
+
+### 5. BIOTYPE CLASSIFICATION
+Analyze skeletal frame and fat distribution:
+- **ECTO**: Narrow shoulders, lean build, fast metabolism appearance, difficulty gaining mass
+- **MESO**: Broad shoulders, athletic frame, balanced proportions, muscular tendency
+- **ENDO**: Wider frame, rounder physique, stores fat easily, slower metabolism appearance
+
+Consider: shoulder width vs hip width, limb length, joint size, natural fat storage pattern.
+
+### 6. FEEDBACK MESSAGE (in Portuguese - Brazilian)
+Provide constructive, science-based feedback:
+- Acknowledge photo quality objectively
+- Mention key observations (muscle development areas, fat distribution pattern)
+- Give actionable tip for progress tracking
+- Be encouraging but REALISTIC - avoid false praise
+
+**Tone:** Professional, supportive, evidence-based.
+**Length:** 2-3 sentences maximum.
+
+---
+
+**CRITICAL RULES:**
+1. These are AI ESTIMATES with ±3-5% margin of error for body fat
+2. Accuracy depends entirely on photo quality, pose, and lighting
+3. Use for TREND TRACKING, not absolute diagnostic values
+4. Never replace professional medical assessment
+5. If photo quality is poor (score < 50), state limitations clearly
 
 **OUTPUT FORMAT:**
-Return a STRICT JSON object with this structure:
-{
-  "bodyFatPercentage": <number, e.g., 18.5>,
-  "muscleMassKg": <number, e.g., 62.35>,
-  "measurements": {
-    "waist": <number in cm>,
-    "hip": <number in cm>,
-    "chest": <number in cm>,
-    "arm_left": <number in cm>,
-    "arm_right": <number in cm>,
-    "thigh_left": <number in cm>,
-    "thigh_right": <number in cm>,
-    "calf_left": <number in cm>,
-    "calf_right": <number in cm>
-  },
-  "aiScore": <number 0-100>,
-  "detectedBiotype": <"ecto" | "meso" | "endo">,
-  "message": <string in ${langName}>
-}
+Return ONLY a valid JSON object, no markdown, no explanations:
 
-Analyze the image now.`;
+{
+  "bodyFatPercentage": <number with 1 decimal, e.g., 18.5>,
+  "muscleMassKg": <number with 1 decimal, e.g., 58.3>,
+  "measurements": {
+    "waist": <number with 1 decimal>,
+    "hip": <number with 1 decimal>,
+    "chest": <number with 1 decimal>,
+    "arm_left": <number with 1 decimal>,
+    "arm_right": <number with 1 decimal>,
+    "thigh_left": <number with 1 decimal>,
+    "thigh_right": <number with 1 decimal>,
+    "calf_left": <number with 1 decimal>,
+    "calf_right": <number with 1 decimal>
+  },
+  "aiScore": <integer 0-100>,
+  "detectedBiotype": <"ecto" | "meso" | "endo">,
+  "message": "<string in Brazilian Portuguese>"
+}`;
 
   try {
     const model = getGenAI().getGenerativeModel({ model: MODEL_NAME });
@@ -195,15 +233,45 @@ Analyze the image now.`;
     const response = result.response;
     const text = response.text();
 
-    console.log('📊 Raw AI response:', text.substring(0, 200) + '...');
+    console.log('📊 Raw AI response (first 300 chars):', text.substring(0, 300));
 
-    // Clean and parse JSON
-    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    // Clean and parse JSON - remove markdown code blocks
+    let cleanedText = text
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '')
+      .replace(/^[^{}]*({)/, '{')  // Remove everything before first {
+      .replace(/}[^}]*$/, '}')     // Remove everything after last }
+      .trim();
+
     const parsed = JSON.parse(cleanedText) as BodyAnalysisResult;
 
-    // Validate result
-    if (!parsed.bodyFatPercentage || !parsed.muscleMassKg || !parsed.aiScore) {
-      throw new Error('Invalid AI response structure');
+    // Validate required fields
+    const requiredFields = ['bodyFatPercentage', 'muscleMassKg', 'aiScore', 'detectedBiotype', 'message', 'measurements'];
+    const missingFields = requiredFields.filter(field => !parsed[field as keyof BodyAnalysisResult]);
+
+    if (missingFields.length > 0) {
+      console.error('❌ Missing required fields:', missingFields);
+      console.error('Parsed data:', parsed);
+      throw new Error(`Resposta da IA incompleta. Faltam: ${missingFields.join(', ')}`);
+    }
+
+    // Validate ranges
+    if (parsed.bodyFatPercentage < 2 || parsed.bodyFatPercentage > 60) {
+      console.warn('⚠️ Body fat percentage out of normal range:', parsed.bodyFatPercentage);
+    }
+
+    if (parsed.aiScore < 0 || parsed.aiScore > 100) {
+      throw new Error('AI score fora do intervalo válido (0-100)');
+    }
+
+    if (!['ecto', 'meso', 'endo'].includes(parsed.detectedBiotype)) {
+      console.warn('⚠️ Invalid biotype:', parsed.detectedBiotype, '- defaulting to meso');
+      parsed.detectedBiotype = 'meso';
+    }
+
+    // Ensure measurements object exists
+    if (!parsed.measurements || typeof parsed.measurements !== 'object') {
+      parsed.measurements = {};
     }
 
     console.log('✅ Body analysis complete:', {
