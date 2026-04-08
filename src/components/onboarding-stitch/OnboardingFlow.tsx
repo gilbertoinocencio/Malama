@@ -42,7 +42,7 @@ import NuraFlowStep from './steps/NuraFlowStep';
 import HomeFeedStep from './steps/HomeFeedStep';
 
 export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, influencerRecord } = useAuth();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [data, setData] = useState<StitchOnboardingData>({
     // Initialize with safe defaults to prevent null errors
@@ -66,6 +66,12 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
   };
 
   const handleNext = async () => {
+    const nextStep = steps[currentStepIndex + 1];
+    // Influencers não pagam — pular telas de premium/planos e encerrar o onboarding
+    if (influencerRecord && nextStep === OnboardingStep.VANTAGENS_PREMIUM) {
+      await finishOnboarding();
+      return;
+    }
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
     } else {
