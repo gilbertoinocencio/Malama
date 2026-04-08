@@ -6,7 +6,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Plus, Search, X, Copy, Check, Instagram,
   ExternalLink, DollarSign, Users, TrendingUp, Pause, Ban, Play,
-  Trophy, Link as LinkIcon
+  Trophy, Link as LinkIcon, Eye, EyeOff
 } from 'lucide-react';
 import { influencerService, settingsService } from '../../services/doctorPortalService';
 import type { Influencer, InfluencerSummary, InfluencerReferral } from '../../services/doctorPortalService';
@@ -175,8 +175,14 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
             </div>
           </div>
 
-          {/* Link de ativação de conta */}
-          {influencer.setup_token && (
+          {/* Status da conta */}
+          {influencer.user_id && !influencer.setup_token && (
+            <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2 text-sm text-green-700">
+              <Check className="w-4 h-4 flex-shrink-0" />
+              Conta ativa — influenciador pode fazer login com e-mail e senha.
+            </div>
+          )}
+          {influencer.setup_token && !influencer.user_id && (
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Link de ativação de conta</p>
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
@@ -186,12 +192,6 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
                   <ActivationLinkButton token={influencer.setup_token} />
                 </div>
               </div>
-            </div>
-          )}
-          {!influencer.setup_token && influencer.user_id && (
-            <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2 text-sm text-green-700">
-              <Check className="w-4 h-4 flex-shrink-0" />
-              Conta ativada — influenciador tem acesso ao painel.
             </div>
           )}
 
@@ -273,11 +273,13 @@ type InfluencerForm = {
   name: string; email: string; instagram_handle: string;
   pix_key: string; commission_per_referral: string; notes: string;
   status: Influencer['status'];
+  password: string; // apenas no modo criação
 };
 
 const EMPTY_FORM: InfluencerForm = {
   name: '', email: '', instagram_handle: '', pix_key: '',
   commission_per_referral: '10', notes: '', status: 'active',
+  password: '',
 };
 
 const InfluencerModal: React.FC<{
@@ -300,18 +302,26 @@ const InfluencerModal: React.FC<{
       : { ...EMPTY_FORM, commission_per_referral: defaultCommission }
   );
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const set = (k: keyof InfluencerForm, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
     if (!form.name.trim() || !form.email.trim()) return;
+    if (!initial && form.password.length < 8) {
+      setFormError('A senha deve ter pelo menos 8 caracteres.');
+      return;
+    }
     setSaving(true);
     try {
       await onSave(form);
       onClose();
-    } catch {
+    } catch (err: any) {
       toast.error('Erro ao salvar influenciador.');
+      setFormError(err?.message ?? 'Erro ao salvar influenciador.');
     } finally {
       setSaving(false);
     }
@@ -349,6 +359,33 @@ const InfluencerModal: React.FC<{
                 placeholder="email@exemplo.com"
               />
             </div>
+
+            {/* Senha inicial — apenas na criação */}
+            {!initial && (
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Senha inicial *</label>
+                <div className="relative">
+                  <input
+                    required
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={e => set('password', e.target.value)}
+                    placeholder="Mínimo 8 caracteres"
+                    className="w-full pr-10 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  Compartilhe com o influenciador via WhatsApp ou e-mail.
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Instagram</label>
@@ -407,6 +444,12 @@ const InfluencerModal: React.FC<{
             </div>
           </div>
 
+          {formError && (
+            <p className="text-red-500 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {formError}
+            </p>
+          )}
+
           <div className="flex gap-3 pt-2">
             <button
               type="button" onClick={onClose}
@@ -418,7 +461,7 @@ const InfluencerModal: React.FC<{
               type="submit" disabled={saving}
               className="flex-1 py-2.5 bg-[#2ECC71] hover:bg-[#27ae60] text-white text-sm font-semibold rounded-xl transition disabled:opacity-60"
             >
-              {saving ? 'Salvando...' : initial ? 'Salvar alterações' : 'Criar influenciador'}
+              {saving ? 'Criando conta...' : initial ? 'Salvar alterações' : 'Criar influenciador'}
             </button>
           </div>
         </form>
@@ -469,7 +512,7 @@ export const AdminInfluencers: React.FC = () => {
   const totalPaid     = influencers.reduce((s, i) => s + (i.total_earned - i.pending_amount), 0);
 
   const handleCreate = async (form: InfluencerForm) => {
-    await influencerService.create({
+    await influencerService.createWithAuth({
       name: form.name,
       email: form.email,
       instagram_handle: form.instagram_handle || null,
@@ -477,8 +520,9 @@ export const AdminInfluencers: React.FC = () => {
       commission_per_referral: parseFloat(form.commission_per_referral),
       notes: form.notes || null,
       status: 'active',
+      password: form.password,
     });
-    toast.success('Influenciador criado com sucesso!');
+    toast.success('Influenciador criado! Compartilhe o e-mail e a senha com ele.');
     load();
   };
 

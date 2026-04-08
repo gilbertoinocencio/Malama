@@ -25,8 +25,10 @@ export const InfluencerReferral: React.FC = () => {
   useEffect(() => {
     if (!token) { setNotFound(true); setLoading(false); return; }
     influencerService.getByToken(token).then(data => {
-      if (!data) setNotFound(true);
-      else setInfluencer(data as InfluencerPreview);
+      if (!data) { setNotFound(true); return; }
+      setInfluencer(data as InfluencerPreview);
+      // Incrementa contador de visitas (não bloqueia UI em caso de erro)
+      influencerService.incrementVisit(token);
     }).finally(() => setLoading(false));
   }, [token]);
 

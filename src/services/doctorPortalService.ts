@@ -1021,6 +1021,7 @@ export type Influencer = {
   commission_per_referral: number;
   status: 'active' | 'paused' | 'cancelled';
   notes: string | null;
+  link_visits: number;         // visitas ao link /i/:token
   created_at: string;
   updated_at: string;
 };
@@ -1072,7 +1073,19 @@ export const influencerService = {
     });
   },
 
-  // Criar novo influenciador (gera referral_token e setup_token)
+  // Criar influenciador com conta auth criada pelo admin (via Edge Function)
+  // O admin define a senha — o influenciador faz login direto, sem fluxo de ativação
+  async createWithAuth(data: Partial<Influencer> & { password: string }): Promise<Influencer> {
+    const { password, ...infData } = data;
+    const { data: result, error } = await supabase.functions.invoke('create-influencer-user', {
+      body: { password, ...infData },
+    });
+    if (error) throw new Error(error.message);
+    if (result?.error) throw new Error(result.error);
+    return result as Influencer;
+  },
+
+  // Criar influenciador sem conta auth (legado — mantido para compatibilidade)
   async create(data: Partial<Influencer>): Promise<Influencer> {
     const referral_token = `inf_${uuidv4().replace(/-/g, '')}`;
     const setup_token = `setup_${uuidv4().replace(/-/g, '')}`;
@@ -1131,6 +1144,12 @@ export const influencerService = {
       .insert([{ influencer_id: influencerId, user_id: userId, commission_amount: commissionAmount }]);
 
     if (error) throw error;
+  },
+
+  // Incrementar contador de visitas ao link /i/:token (chamado na landing page)
+  async incrementVisit(token: string): Promise<void> {
+    // Falhas silenciosas — não bloquear a experiência do usuário
+    await supabase.rpc('increment_influencer_visits', { p_token: token });
   },
 
   // Buscar influenciador por setup_token (página de ativação)

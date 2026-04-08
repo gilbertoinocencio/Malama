@@ -2,6 +2,13 @@ import React, { createContext, useContext, useEffect, useState, useRef, useCallb
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
 import { doctorService, influencerService } from '../services/doctorPortalService';
+import type { Influencer } from '../services/doctorPortalService';
+
+export type InfluencerRecord = Influencer & {
+    total_referrals: number;
+    pending_amount: number;
+    total_earned: number;
+};
 
 interface AuthContextType {
     user: User | null;
@@ -9,6 +16,7 @@ interface AuthContextType {
     profile: any | null;
     loading: boolean;          // true only while checking if user is logged in (fast)
     profileLoading: boolean;   // true while fetching profile from DB
+    influencerRecord: InfluencerRecord | null; // preenchido se o usuário logado for influencer
     updateProfile: (updates: any) => Promise<void>;
     refreshProfile: () => Promise<void>;
     signInWithGoogle: () => Promise<void>;
@@ -25,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [profile, setProfile] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [profileLoading, setProfileLoading] = useState(false);
+    const [influencerRecord, setInfluencerRecord] = useState<InfluencerRecord | null>(null);
 
     const mountedRef = useRef(true);
     const profileFetchId = useRef(0);
@@ -171,6 +180,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     }, [fetchProfile, applyReferralData]);
 
+    // Detectar se o usuário logado é um influencer
+    useEffect(() => {
+        if (!user) { setInfluencerRecord(null); return; }
+        influencerService.getByUserId(user.id).then(data => {
+            if (mountedRef.current) setInfluencerRecord(data as InfluencerRecord | null);
+        }).catch(() => setInfluencerRecord(null));
+    }, [user?.id]);
+
     const refreshProfile = useCallback(async () => {
         if (user) await fetchProfile(user.id);
     }, [user, fetchProfile]);
@@ -210,6 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (
         <AuthContext.Provider value={{
             user, session, profile, loading, profileLoading,
+            influencerRecord,
             updateProfile, refreshProfile,
             signInWithGoogle, signInWithEmail, signUpWithEmail, signOut
         }}>

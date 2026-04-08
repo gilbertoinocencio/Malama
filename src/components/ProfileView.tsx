@@ -28,7 +28,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onToggleTheme
 }) => {
   const { language, setLanguage, t } = useLanguage();
-  const { profile, user, signOut } = useAuth();
+  const { profile, user, signOut, influencerRecord } = useAuth();
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const influencerLink = influencerRecord
+    ? `${window.location.origin}/i/${influencerRecord.referral_token}`
+    : '';
+
+  const handleCopyInfluencerLink = async () => {
+    await navigator.clipboard.writeText(influencerLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
 
   const [showBodyScanner, setShowBodyScanner] = useState(false);
   const [showBodyProgress, setShowBodyProgress] = useState(false);
@@ -601,6 +612,63 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             )}
           </div>
         </section>
+
+        {/* Influencer Card — visível apenas para usuários influenciadores */}
+        {influencerRecord && (
+          <section className="w-full px-6 mb-6">
+            <div className="rounded-2xl border border-[#2ECC71]/30 bg-[#2ECC71]/5 dark:bg-[#2ECC71]/10 p-5 space-y-4">
+              {/* Header */}
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full bg-[#2ECC71]/20 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-[#2ECC71] text-[20px]">star</span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-nura-main dark:text-white">Influenciador Nura</p>
+                  <p className="text-xs text-nura-muted dark:text-gray-400">Seu link de indicação</p>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white dark:bg-white/10 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-nura-main dark:text-white">{influencerRecord.link_visits}</p>
+                  <p className="text-xs text-nura-muted dark:text-gray-400 mt-0.5">Visitas</p>
+                </div>
+                <div className="bg-white dark:bg-white/10 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-nura-main dark:text-white">{influencerRecord.total_referrals}</p>
+                  <p className="text-xs text-nura-muted dark:text-gray-400 mt-0.5">Cadastros</p>
+                </div>
+                <div className="bg-white dark:bg-white/10 rounded-xl p-3 text-center">
+                  <p className="text-xl font-bold text-[#2ECC71]">
+                    {influencerRecord.total_referrals > 0 && influencerRecord.link_visits > 0
+                      ? `${Math.round((influencerRecord.total_referrals / influencerRecord.link_visits) * 100)}%`
+                      : '—'}
+                  </p>
+                  <p className="text-xs text-nura-muted dark:text-gray-400 mt-0.5">Conversão</p>
+                </div>
+              </div>
+
+              {/* Link copiável */}
+              <div>
+                <p className="text-xs text-nura-muted dark:text-gray-400 mb-1.5">Compartilhe seu link:</p>
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-white dark:bg-white/10 border border-[#2ECC71]/20 rounded-xl px-3 py-2 text-xs text-nura-muted dark:text-gray-300 truncate">
+                    {influencerLink}
+                  </div>
+                  <button
+                    onClick={handleCopyInfluencerLink}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white text-xs font-semibold rounded-xl transition whitespace-nowrap"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">
+                      {linkCopied ? 'check' : 'content_copy'}
+                    </span>
+                    {linkCopied ? 'Copiado!' : 'Copiar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Sign Out */}
         <section className="w-full px-6 pb-4">
