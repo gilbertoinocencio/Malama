@@ -4,7 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Save, X, Trash2, AlertTriangle, Plus, Video, FileText, CheckCircle, Clock } from 'lucide-react';
+import { Save, X, Trash2, AlertTriangle, Plus, Video, FileText, CheckCircle, Clock, Copy, ChevronRight } from 'lucide-react';
 import { availabilityService, consultationService } from '../../services/doctorPortalService';
 import type { Doctor, DoctorAvailability, Consultation } from '../../types/doctorPortal';
 import { DAY_OF_WEEK_LABELS } from '../../types/doctorPortal';
@@ -24,6 +24,10 @@ export const DoctorAgenda: React.FC = () => {
 
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+
+  // Copy schedule modal state
+  const [showCopyModal, setShowCopyModal] = useState<number | null>(null);
+  const [copyTargetDays, setCopyTargetDays] = useState<number[]>([]);
 
   // ---------- DRAG & DROP LOGIC ----------
   const generateTimeSlots = () => {
@@ -82,6 +86,82 @@ export const DoctorAgenda: React.FC = () => {
       return { ...prev, [day]: daySlots };
     });
   };
+
+  // ---------- COPY SCHEDULE LOGIC ----------
+  const handleCopySchedule = (sourceDay: number, targetDays: number[]) => {
+    const sourceSlots = availabilities[sourceDay] || [];
+
+    if (sourceSlots.length === 0) {
+      toast.error('Não há horários para copiar neste dia.');
+      return;
+    }
+
+    if (targetDays.length === 0) {
+      toast.error('Selecione pelo menos um dia de destino.');
+      return;
+    }
+
+    const duration = doctor?.consultation_duration || 20;
+    let copiedCount = 0;
+
+    setAvailabilities(prev => {
+      const updated = { ...prev };
+
+      targetDays.forEach(targetDay => {
+        // Se o dia de destino é o mesmo que a origem, pula
+        if (targetDay === sourceDay) return;
+
+        const targetSlots = [...(prev[targetDay] || [])];
+
+        sourceSlots.forEach(sourceSlot => {
+          // Verifica se já existe este horário no dia de destino
+          if (targetSlots.some(s => s.start_time === sourceSlot.start_time)) {
+            return; // Pula duplicados silenciosamente
+          }
+
+          const newSlot: DoctorAvailability = {
+            id: `temp-${Date.now()}-${Math.random()}`,
+            doctor_id: doctor!.id,
+            day_of_week: targetDay,
+            start_time: sourceSlot.start_time,
+            end_time: sourceSlot.end_time,
+            is_active: true
+          };
+
+          targetSlots.push(newSlot);
+          copiedCount++;
+        });
+
+        // Reordena
+        targetSlots.sort((a, b) => a.start_time.localeCompare(b.start_time));
+        updated[targetDay] = targetSlots;
+      });
+
+      return updated;
+    });
+
+    setShowCopyModal(null);
+    setCopyTargetDays([]);
+
+    if (copiedCount > 0) {
+      toast.success(`${copiedCount} horário${copiedCount > 1 ? 's' : ''} copiado${copiedCount > 1 ? 's' : ''} com sucesso!`);
+    } else {
+      toast('Todos os horários já existem nos dias selecionados.');
+    }
+  };
+
+  const selectAllWeekdays = () => {
+    setCopyTargetDays([1, 2, 3, 4, 5]); // Seg-Sex
+  };
+
+  const selectWeekend = () => {
+    setCopyTargetDays([0, 6]); // Dom-Sáb
+  };
+
+  const selectAllDays = () => {
+    setCopyTargetDays([0, 1, 2, 3, 4, 5, 6]);
+  };
+  // ----------------------------------------
   // ----------------------------------------
 
   useEffect(() => {
@@ -255,25 +335,38 @@ export const DoctorAgenda: React.FC = () => {
                 key={day}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, day)}
-                className="bg-gray-50/80 rounded-xl p-3 border shadow-sm min-w-[200px] max-w-[220px] snap-start flex-shrink-0 flex flex-col h-full transition border-dashed border-gray-300 hover:border-[#2ECC71]/60"
+                className="bg-gray-50/80 rounded-xl p-3 border shadow-sm min-w-[200px] max-w-[220px] snap-start flex-shrink-0 flex flex-col h-full transition border-dashed border-gray-300 hover:border-[#2ECC71]/60 relative group"
               >
-                <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-2 pointer-events-none">
+                <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-2">
                   <span className="font-bold text-gray-700">{DAY_OF_WEEK_LABELS[day]}</span>
                   <span className="text-xs font-semibold text-gray-400">{availabilities[day]?.length || 0} slots</span>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-2 min-h-[200px]">
+                {/* Copy Button - aparece no hover */}
+                <button
+                  onClick={() => {
+                    setShowCopyModal(day);
+                    setCopyTargetDays([]);
+                  }}
+                  disabled={availabilities[day]?.length === 0}
+                  className="absolute top-12 right-2 p-1.5 bg-[#2ECC71] text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#27ae60] disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Copiar horários para outros dias"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+
+                <div className="flex-1 flex flex-col gap-2 min-h-[200px] pt-8">
                   {availabilities[day]?.length === 0 ? (
                     <div className="text-center py-8 h-full flex flex-col items-center justify-center pointer-events-none opacity-50">
                       <p className="text-sm font-medium text-gray-400">Solte horários aqui</p>
                     </div>
                   ) : (
                     availabilities[day]?.map(avail => (
-                      <div key={avail.id} className="bg-white border text-center border-gray-200 rounded-md py-1.5 px-3 shadow-sm group flex items-center justify-between hover:border-[#2ECC71] transition">
+                      <div key={avail.id} className="bg-white border text-center border-gray-200 rounded-md py-1.5 px-3 shadow-sm group/slot flex items-center justify-between hover:border-[#2ECC71] transition">
                         <div className="text-sm font-bold text-gray-700">{formatTime(avail.start_time)}</div>
                         <button
                           onClick={() => removeTimeSlot(day, avail.id)}
-                          className="p-1 text-gray-300 hover:text-white hover:bg-red-500 rounded transition opacity-0 group-hover:opacity-100"
+                          className="p-1 text-gray-300 hover:text-white hover:bg-red-500 rounded transition opacity-0 group-hover/slot:opacity-100"
                           title="Remover horário"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -351,8 +444,8 @@ export const DoctorAgenda: React.FC = () => {
                         {consult.type === 'initial' ? 'Inicial' : consult.type === 'follow_up' ? 'Retorno' : 'Renovação de Receita'}
                       </span>
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${isScheduled ? 'bg-blue-50 text-blue-700' :
-                          isCancelled ? 'bg-red-50 text-red-700' :
-                            'bg-gray-100 text-gray-700'
+                        isCancelled ? 'bg-red-50 text-red-700' :
+                          'bg-gray-100 text-gray-700'
                         }`}>
                         {isScheduled ? 'Agendada' : isCancelled ? 'Cancelada' : consult.status === 'no_show' ? 'Falta' : consult.status}
                       </span>
@@ -403,6 +496,131 @@ export const DoctorAgenda: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de Copiar Horários */}
+      {showCopyModal !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowCopyModal(null)} />
+          <div className="relative bg-white rounded-xl shadow-lg w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#2ECC71]/10 flex items-center justify-center">
+                  <Copy className="w-5 h-5 text-[#2ECC71]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">Copiar Horários</h3>
+                  <p className="text-sm text-gray-500">De: <strong>{DAY_OF_WEEK_LABELS[showCopyModal]}</strong></p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCopyModal(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Preview dos horários de origem */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm font-medium text-gray-700 mb-2">Horários que serão copiados:</p>
+              <div className="flex flex-wrap gap-2">
+                {availabilities[showCopyModal]?.map(avail => (
+                  <span key={avail.id} className="px-3 py-1 bg-white border border-gray-200 rounded-md text-sm font-semibold text-gray-700">
+                    {formatTime(avail.start_time)}
+                  </span>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {availabilities[showCopyModal]?.length || 0} horário{availabilities[showCopyModal]?.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+
+            {/* Quick Select Buttons */}
+            <div className="mb-4 flex flex-wrap gap-2">
+              <button
+                onClick={selectAllWeekdays}
+                className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 transition"
+              >
+                Dias Úteis (Seg-Sex)
+              </button>
+              <button
+                onClick={selectWeekend}
+                className="px-3 py-1.5 bg-purple-50 text-purple-700 text-xs font-medium rounded-lg hover:bg-purple-100 transition"
+              >
+                Fim de Semana
+              </button>
+              <button
+                onClick={selectAllDays}
+                className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition"
+              >
+                Todos os Dias
+              </button>
+            </div>
+
+            {/* Day Selection */}
+            <div className="mb-6">
+              <p className="text-sm font-medium text-gray-700 mb-3">Selecionar dias de destino:</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[0, 1, 2, 3, 4, 5, 6].map(day => {
+                  if (day === showCopyModal) return null; // Não mostra o dia de origem
+
+                  const isSelected = copyTargetDays.includes(day);
+                  const hasSlots = availabilities[day]?.length > 0;
+
+                  return (
+                    <label
+                      key={day}
+                      className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition ${isSelected
+                          ? 'border-[#2ECC71] bg-[#2ECC71]/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCopyTargetDays(prev => [...prev, day]);
+                            } else {
+                              setCopyTargetDays(prev => prev.filter(d => d !== day));
+                            }
+                          }}
+                          className="w-4 h-4 text-[#2ECC71] border-gray-300 rounded focus:ring-[#2ECC71]"
+                        />
+                        <span className="text-sm font-medium text-gray-700">{DAY_OF_WEEK_LABELS[day]}</span>
+                      </div>
+                      {hasSlots && (
+                        <span className="text-xs text-gray-500">
+                          {availabilities[day].length} slots
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowCopyModal(null)}
+                className="flex-1 px-6 py-3 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleCopySchedule(showCopyModal, copyTargetDays)}
+                disabled={copyTargetDays.length === 0}
+                className="flex-1 px-6 py-3 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                Copiar para {copyTargetDays.length} dia{copyTargetDays.length !== 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de cancelamento */}
       {showCancelModal && (
