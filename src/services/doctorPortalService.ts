@@ -82,9 +82,46 @@ export const doctorService = {
     return data;
   },
 
-  // Gerar token de convite único
+  // Gerar token de convite único (para médicos)
   generateInviteToken(): string {
     return `invite_${uuidv4().replace(/-/g, '')}`;
+  },
+
+  // Obter ou criar token de indicação de paciente
+  async getOrCreatePatientReferralToken(doctorId: string): Promise<string> {
+    const { data: doctor, error: fetchError } = await supabase
+      .from('doctors')
+      .select('patient_referral_token')
+      .eq('id', doctorId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    if (doctor?.patient_referral_token) {
+      return doctor.patient_referral_token;
+    }
+
+    const token = `ref_${uuidv4().replace(/-/g, '')}`;
+    const { error: updateError } = await supabase
+      .from('doctors')
+      .update({ patient_referral_token: token })
+      .eq('id', doctorId);
+
+    if (updateError) throw updateError;
+    return token;
+  },
+
+  // Buscar médico por token de indicação de paciente
+  async getDoctorByReferralToken(token: string): Promise<Pick<Doctor, 'id' | 'name' | 'specialty' | 'specialty_custom' | 'photo_url' | 'bio'> | null> {
+    const { data, error } = await supabase
+      .from('doctors')
+      .select('id, name, specialty, specialty_custom, photo_url, bio')
+      .eq('patient_referral_token', token)
+      .eq('status', 'approved')
+      .single();
+
+    if (error) return null;
+    return data;
   },
 
   // Admin: Buscar todos os médicos

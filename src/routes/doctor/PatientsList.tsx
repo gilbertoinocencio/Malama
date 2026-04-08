@@ -4,8 +4,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { Search, User } from 'lucide-react';
-import { patientService } from '../../services/doctorPortalService';
+import { Search, User, Share2, Copy, Check } from 'lucide-react';
+import { patientService, doctorService } from '../../services/doctorPortalService';
 import type { Doctor, PatientSummary } from '../../types/doctorPortal';
 
 export const PatientsList: React.FC = () => {
@@ -13,6 +13,10 @@ export const PatientsList: React.FC = () => {
   const [patients, setPatients] = useState<PatientSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [referralLink, setReferralLink] = useState<string | null>(null);
+  const [loadingReferral, setLoadingReferral] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
 
   useEffect(() => {
     if (!doctor) return;
@@ -32,6 +36,31 @@ export const PatientsList: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [doctor, search]);
 
+  const handleGetReferralLink = async () => {
+    if (referralLink) {
+      setShowReferral(true);
+      return;
+    }
+    setLoadingReferral(true);
+    try {
+      const token = await doctorService.getOrCreatePatientReferralToken(doctor.id);
+      const base = window.location.origin;
+      setReferralLink(`${base}/convite/${token}`);
+      setShowReferral(true);
+    } catch (err) {
+      console.error('Erro ao gerar link:', err);
+    } finally {
+      setLoadingReferral(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!referralLink) return;
+    await navigator.clipboard.writeText(referralLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('pt-BR', {
@@ -43,6 +72,46 @@ export const PatientsList: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Indicar Paciente */}
+      <div className="bg-white rounded-xl shadow p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-gray-800">Indicar paciente</h2>
+            <p className="text-sm text-gray-500 mt-0.5">Compartilhe seu link personalizado para que pacientes baixem o app Nura.</p>
+          </div>
+          <button
+            onClick={handleGetReferralLink}
+            disabled={loadingReferral}
+            className="flex items-center gap-2 px-4 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white text-sm font-medium rounded-lg transition disabled:opacity-60"
+          >
+            {loadingReferral ? (
+              <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            ) : (
+              <Share2 className="w-4 h-4" />
+            )}
+            Gerar link
+          </button>
+        </div>
+
+        {showReferral && referralLink && (
+          <div className="mt-4 flex items-center gap-2">
+            <input
+              readOnly
+              value={referralLink}
+              className="flex-1 text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-700 select-all"
+              onClick={e => (e.target as HTMLInputElement).select()}
+            />
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition whitespace-nowrap"
+            >
+              {copied ? <Check className="w-4 h-4 text-[#2ECC71]" /> : <Copy className="w-4 h-4" />}
+              {copied ? 'Copiado!' : 'Copiar'}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Busca */}
       <div className="bg-white rounded-xl shadow p-4">
         <div className="relative">

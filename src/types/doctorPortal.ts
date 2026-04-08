@@ -64,6 +64,7 @@ export interface Doctor {
   consultation_price: number | null;
   consultation_duration: number; // minutos
   invite_token: string | null;
+  patient_referral_token: string | null;
   platform_fee_percent: number;
   pix_key: string | null;
   created_at: string;

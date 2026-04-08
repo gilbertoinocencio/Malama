@@ -12,6 +12,7 @@ import { NotificationService } from './services/notificationService';
 import { supabase } from './services/supabase';
 import { lazyRetry } from './utils/lazyRetry';
 import { AppRoutes } from './routes';
+import { LandingPage } from './routes/LandingPage';
 
 // Lazy Load Non-Critical Views — lazyRetry auto-reloads on stale chunk errors
 const SocialFeed = React.lazy(() => lazyRetry(() => import('./components/SocialFeed'), 'SocialFeed'));
@@ -49,11 +50,16 @@ const App: React.FC = () => {
   const [isPortalRoute, setIsPortalRoute] = useState(false);
   const [videoConsultation, setVideoConsultation] = useState<Consultation | null>(null);
 
-  // Check if current path is a portal route (/medico/* or /admin/*)
+  // Check if current path is a portal route (/medico/* or /admin/*) or landing page
   useEffect(() => {
     const checkPath = () => {
       const path = window.location.pathname;
-      setIsPortalRoute(path.startsWith('/medico') || path.startsWith('/admin'));
+      setIsPortalRoute(
+        path.startsWith('/medico') ||
+        path.startsWith('/admin') ||
+        path === '/' ||
+        path === ''
+      );
     };
 
     checkPath();

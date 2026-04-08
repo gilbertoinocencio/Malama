@@ -6,6 +6,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from '../components/ToastProvider';
 import { NuraLogo } from '../components/NuraLogo';
+import { LandingPage } from './LandingPage';
 
 // Guards
 import { DoctorRoute, AdminRoute, PublicDoctorRoute } from './guards';
@@ -22,6 +23,9 @@ import { PatientsList } from './doctor/PatientsList';
 import { PatientProfile } from './doctor/PatientProfile';
 import { ConsultationRoom } from './doctor/ConsultationRoom';
 import { DoctorSettings } from './doctor/DoctorSettings';
+
+// Referral
+import { PatientReferral } from './PatientReferral';
 
 // Admin Pages
 import { AdminLogin } from './admin/AdminLogin';
@@ -60,6 +64,9 @@ export const AppRoutes: React.FC = () => {
     <BrowserRouter>
       <ToastProvider>
         <Routes>
+          {/* ==================== LANDING PAGE ==================== */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* ==================== ROTAS DO MÉDICO ==================== */}
 
           {/* Rotas públicas */}
@@ -148,8 +155,11 @@ export const AppRoutes: React.FC = () => {
             }
           />
 
-          {/* Rota padrão */}
-          <Route path="*" element={<Navigate to="/medico" replace />} />
+          {/* Indicação de paciente */}
+          <Route path="/convite/:token" element={<PatientReferral />} />
+
+          {/* Rota padrão - redireciona para Landing Page */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </ToastProvider>
     </BrowserRouter>
