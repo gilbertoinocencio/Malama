@@ -10,7 +10,8 @@
       "Bash(npm install *)",
       "Bash(mkdir *)",
       "Bash(copy *)",
-      "Bash(dir *)"
+      "Bash(dir *)",
+      "Bash(timeout *)"
     ]
   },
   "$version": 3

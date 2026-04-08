@@ -21,7 +21,7 @@ export const AdminDoctorsManagement: React.FC = () => {
   // Modals
   const [showApproveModal, setShowApproveModal] = useState<string | null>(null);
   const [showSuspendModal, setShowSuspendModal] = useState<string | null>(null);
-  const [showInviteModal, setShowInviteModal] = useState<string | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Form states
   const [approveSpecialty, setApproveSpecialty] = useState('');
@@ -141,7 +141,7 @@ export const AdminDoctorsManagement: React.FC = () => {
           <p className="text-sm text-gray-600 mt-1">Gerencie médicos cadastrados e convide novos profissionais</p>
         </div>
         <button
-          onClick={() => setShowInviteModal('new')}
+          onClick={() => setShowInviteModal(true)}
           className="px-4 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center gap-2 transition"
         >
           <Link2 className="w-4 h-4" />
@@ -388,7 +388,7 @@ export const AdminDoctorsManagement: React.FC = () => {
       {/* Modal Gerar Link de Convite */}
       {showInviteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowInviteModal(null)} />
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowInviteModal(false)} />
           <div className="relative bg-white rounded-xl shadow-lg w-full max-w-md p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Gerar Link de Convite</h3>
             <p className="text-sm text-gray-600 mb-4">
