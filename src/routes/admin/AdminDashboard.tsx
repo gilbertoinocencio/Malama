@@ -30,9 +30,9 @@ export const AdminDashboard: React.FC = () => {
 
   const handleApproveDoctor = async (doctorId: string) => {
     try {
-      await doctorService.approveDoctor(doctorId, 25);
+      await doctorService.approveDoctor(doctorId);
       toast.success('Médico aprovado com sucesso!');
-      
+
       // Recarregar resumo
       const data = await adminService.getDashboardSummary();
       setSummary(data);
@@ -45,7 +45,7 @@ export const AdminDashboard: React.FC = () => {
     try {
       await doctorService.suspendDoctor(doctorId);
       toast.success('Médico suspenso');
-      
+
       const data = await adminService.getDashboardSummary();
       setSummary(data);
     } catch (error) {

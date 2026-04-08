@@ -57,6 +57,9 @@ const App: React.FC = () => {
       setIsPortalRoute(
         path.startsWith('/medico') ||
         path.startsWith('/admin') ||
+        path.startsWith('/influencer') ||
+        path.startsWith('/convite') ||
+        path.startsWith('/i/') ||
         path === '/' ||
         path === ''
       );
