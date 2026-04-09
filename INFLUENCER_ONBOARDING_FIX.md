@@ -2,133 +2,72 @@
 
 ## Problemas Resolvidos
 
-### 0. ✅ Erro RLS ao criar influencer pelo admin
-**Problema:** Ao criar um novo influencer pelo painel admin, ocorria o erro `new row violates row-level security policy for table "influencers"`.
-
-**Causa Raiz:** O admin estava usando `influencerService.create()` que faz insert direto na tabela, mas as políticas RLS do Supabase bloqueiam inserções diretas.
-
-**Solução:**
-- Atualizado `AdminInfluencers.tsx` para usar `influencerService.createWithAuth()`
-- Adicionado campo de **senha inicial** no formulário de criação
-- A Edge Function `create-influencer-user` cria a conta auth E o registro na tabela `influencers` com `user_id` já vinculado
-- Após criação, o influencer já pode fazer login diretamente com email/senha (sem necessidade de link de ativação)
-
 ### 1. ✅ Influencer era redirecionado para tela de login padrão ao invés do onboarding
 **Problema:** Ao clicar em "Criar minha conta influencer", o usuário era direcionado para `/entrar?signup=true` (tela de login), sem fluxo claro para o onboarding.
 
 **Solução:**
-- Criada nova rota dedicada `/influencer/onboarding` (arquivo: `src/routes/influencer/InfluencerOnboarding.tsx`)
-- Atualizado `InfluencerReferral.tsx` para redirecionar para `/influencer/onboarding` ao invés de `/entrar`
-- A rota verifica se há sessão ativa e se o usuário é influencer, depois redireciona para o app principal (`/`) onde o `App.tsx` detecta `onboarding_completed = false` e mostra o `OnboardingFlow`
+- Criada nova rota dedicada `/influencer/onboarding` (`src/routes/influencer/InfluencerOnboarding.tsx`)
+- Atualizado `InfluencerActivation.tsx` para redirecionar para `/influencer/onboarding` após ativação
+- A rota verifica sessão, valida que é influencer, e redireciona para o app principal onde o `App.tsx` detecta `onboarding_completed = false` e mostra o `OnboardingFlow`
 
 ### 2. ✅ Influencer via tela de planos premium durante onboarding
 **Problema:** Influenciadores estavam vendo a tela "Eleve sua jornada ao nível Premium" (Passo 31 de 34) e sendo direcionados para planos pagos, quando deveriam usar o app gratuitamente.
 
 **Solução:**
-- Adicionada flag `nura_is_influencer_signup` no localStorage para detecção imediata de influencers
-- Atualizado `OnboardingFlow.tsx` para:
-  - Verificar a flag do localStorage como fallback imediato (antes da query ao banco)
-  - Manter `isInfluencer = true` mesmo se a query ao banco falhar por race condition
-  - Limpar a flag após confirmação de que é influencer
+- Adicionada flag `nura_is_influencer_signup` no localStorage para detecção imediata
+- Atualizado `OnboardingFlow.tsx` para verificar essa flag como fallback (antes da query ao banco)
 - A lógica existente `handleNext()` já pula as telas `VANTAGENS_PREMIUM` e `ASSINATURAS` quando `isInfluencer = true`
 
 ### 3. ✅ Redirecionamento para tela inicial após conclusão do onboarding
 **Problema:** Potencial race condition entre o `upsert` no banco e o `refreshProfile()` podia impedir o redirecionamento correto.
 
 **Solução:**
-- Adicionado delay de 1s antes do `refreshProfile()` para garantir propagação no Supabase
-- Adicionada verificação extra: se `onboarding_completed` ainda é `false` após o refresh, aguarda mais 1s e tenta novamente
-- Limpeza da flag `nura_is_influencer_signup` no `finally` do `finishOnboarding()`
-- Adicionado fallback no `LoginView.tsx` que redireciona para `/` se o influencer estiver logado mas preso na tela de login
+- Adicionado delay de 1s + retry no `refreshProfile()` para garantir propagação no Supabase
+- Limpeza da flag `nura_is_influencer_signup` após conclusão
+- Fallback no `LoginView.tsx` que redireciona para `/` se o influencer ficar preso na tela de login
 
-## Arquivos Modificados
+---
 
-1. **`src/routes/admin/AdminInfluencers.tsx`**
-   - Adicionado campo de **senha inicial** no formulário de criação
-   - Atualizado `handleCreate` para usar `createWithAuth()` ao invés de `create()`
-   - Validação de senha mínima (8 caracteres)
-   - Mensagem atualizada: "Ele já pode fazer login com o email e senha definidos"
-   - Interface já detecta automaticamente quando `user_id` está presente e mostra "Conta ativa"
+## Fluxo Completo Corrigido
 
-2. **`src/routes/influencer/InfluencerOnboarding.tsx`** (NOVO)
-   - Rota dedicada para preparar o onboarding de influencers
-   - Verifica sessão, valida que é influencer, redireciona para app principal
-   - **Configura flag `nura_is_influencer_signup` no localStorage quando detecta influencer**
-   - Logs de debug detalhados para troubleshooting
-
-3. **`src/routes/index.tsx`**
-   - Adicionada rota `/influencer/onboarding`
-
-4. **`src/routes/InfluencerReferral.tsx`**
-   - Alterado redirecionamento de `/entrar?signup=true` para `/influencer/onboarding`
-   - Adicionada flag `nura_is_influencer_signup` no localStorage
-
-5. **`src/routes/influencer/InfluencerActivation.tsx`**
-   - Alterado redirecionamento de `/entrar` para `/influencer/onboarding`
-   - **Adicionada configuração da flag `nura_is_influencer_signup` antes do redirecionamento**
-
-6. **`src/components/onboarding-stitch/OnboardingFlow.tsx`**
-   - Verificação de flag localStorage para detecção imediata de influencers
-   - Delay e retry no `refreshProfile()` para evitar race conditions
-   - Limpeza da flag após conclusão do onboarding
-   - **Logs de debug detalhados para monitoramento do fluxo**
-
-7. **`src/components/LoginView.tsx`**
-   - Adicionado `useEffect` que redireciona influencers logados para `/` se ficarem presos na tela de login
-
-## Fluxo Completo Atualizado
-
-### Cenário A: Criação pelo Admin (com senha definida)
+### Cenário A: Admin Cria Influencer
 
 ```
-[Admin cria influencer no painel]
-  - Preenche nome, email, senha inicial, comissão, etc.
+[Admin cria influencer no painel /admin/influencers]
+  - Preenche nome, email, instagram, comissão, PIX
   - Clica em "Criar influenciador"
         ↓
-[Edge Function create-influencer-user]
-  - Cria conta auth com email/senha (email_confirm: true)
-  - Cria registro na tabela influencers com user_id vinculado
-  - setup_token = NULL (não necessário)
+[Backend cria registro na tabela influencers]
+  - Gera setup_token (prefixo: setup_)
+  - Gera referral_token (prefixo: inf_)
+  - user_id = NULL (ainda não ativado)
         ↓
-[Admin recebe confirmação de sucesso]
-  - Interface mostra "Conta ativa — influenciador pode fazer login"
-  - Admin envia email/senha para o influencer
+[Admin clica em "Ver" → copia link de ativação]
+  - Link: http://localhost:3000/influencer/ativar/:setup_token
+  - Envia este link para o influencer
         ↓
-[Influencer faz login em /influencer/login]
-  - Usa email e senha definidos pelo admin
-  - É direcionado para /influencer/dashboard
+[Influencer acessa o link]
+  - Vê tela de ativação (InfluencerActivation.tsx)
+  - Preenche senha (mínimo 8 caracteres)
+  - Clica em "Ativar minha conta"
         ↓
-[Influencer usa o app para divulgar]
-  - Compartilha link /i/:token
-  - Acompanha conversões no dashboard
-```
-
-### Cenário B: Via Link de Indicação `/i/:token`
-
-```
-[Influenciador compartilha link /i/:token]
-        ↓
-[InfluencerReferral.tsx] 
-  - Mostra dados do influencer
-  - Botão "Criar minha conta influencer"
-        ↓
-  [Clique no botão]
-  - Salva nura_influencer_token no localStorage
-  - Salva nura_acquisition_channel = 'influencer'
-  - Salva nura_is_influencer_signup = 'true'
-  - SignOut de sessão anterior
+[Backend processa ativação]
+  - Cria conta auth (Supabase Auth)
+  - Vincula user_id ao registro do influencer
+  - Invalida setup_token (setup_token = NULL)
+  - Configura flag nura_is_influencer_signup = 'true'
         ↓
 [/influencer/onboarding]
-  - Verifica se há sessão ativa
-  - Se NÃO há: redireciona para /entrar?signup=true
-  - Se há sessão: aguarda e verifica influencerRecord
+  - Verifica sessão ativa
+  - Confirma que é influencer
   - Redireciona para / (app principal)
         ↓
 [App.tsx detecta onboarding_completed = false]
+  - Mostra OnboardingFlow
         ↓
 [OnboardingFlow.tsx]
   - Detecta nura_is_influencer_signup = 'true'
-  - Preenche dados pessoais, objetivos, hábitos (steps 1-30)
+  - Influencer preenche dados pessoais, objetivos, hábitos (steps 1-30)
   - Ao chegar em VANTAGENS_PREMIUM:
     → isInfluencer = true → finishOnboarding() IMEDIATO
     → Pula telas de planos premium
@@ -136,15 +75,82 @@
 [finishOnboarding()]
   - Salva onboarding_completed = true no banco
   - Delay de 1s + refreshProfile()
-  - Verifica se foi atualizado, retry se necessário
   - Limpa flag nura_is_influencer_signup
   - Chama onComplete()
         ↓
 [App.tsx detecta onboarding_completed = true]
+  - Redireciona para FlowDashboard (tela inicial do app)
+        ↓
+[Influencer no app]
+  - Acessa perfil → Gera link de indicação
+  - Link: http://localhost:3000/i/:referral_token
+  - Compartilha com seguidores
+```
+
+### Cenário B: Seguidor Acessa Link de Indicação
+
+```
+[Seguidor acessa link /i/:referral_token]
+        ↓
+[InfluencerReferral.tsx]
+  - Mostra dados do influencer (nome, instagram)
+  - Lista benefícios do app
+  - Botão "Criar minha conta influencer"
+        ↓
+[Clique no botão]
+  - Salva nura_influencer_token no localStorage
+  - Salva nura_acquisition_channel = 'influencer'
+  - Salva nura_is_influencer_signup = 'true'
+  - Redireciona para /influencer/onboarding
+        ↓
+[/influencer/onboarding]
+  - Se não há sessão: redireciona para /entrar?signup=true
+  - Se há sessão: verifica influencerRecord e redireciona para /
+        ↓
+[App.tsx detecta onboarding_completed = false]
+  - Mostra OnboardingFlow
+        ↓
+[OnboardingFlow.tsx]
+  - Detecta nura_is_influencer_signup = 'true'
+  - Seguidor preenche onboarding
+  - Pula telas de planos premium
         ↓
 [App Principal - FlowDashboard]
-  - Influencer usa o app gratuitamente
+  - Usuário é registrado como referido do influencer
+  - Influencer recebe comissão
 ```
+
+---
+
+## Arquivos Modificados
+
+1. **`src/routes/influencer/InfluencerOnboarding.tsx`** (NOVO)
+   - Rota dedicada para preparar o onboarding de influencers
+   - Verifica sessão, valida que é influencer, redireciona para app principal
+   - Configura flag `nura_is_influencer_signup` no localStorage quando detecta influencer
+   - Logs de debug detalhados para troubleshooting
+
+2. **`src/routes/index.tsx`**
+   - Adicionada rota `/influencer/onboarding`
+
+3. **`src/routes/InfluencerReferral.tsx`**
+   - Alterado redirecionamento de `/entrar?signup=true` para `/influencer/onboarding`
+   - Adicionada flag `nura_is_influencer_signup` no localStorage
+
+4. **`src/routes/influencer/InfluencerActivation.tsx`**
+   - Alterado redirecionamento de `/entrar` para `/influencer/onboarding`
+   - Adicionada configuração da flag `nura_is_influencer_signup` antes do redirecionamento
+
+5. **`src/components/onboarding-stitch/OnboardingFlow.tsx`**
+   - Verificação de flag localStorage para detecção imediata de influencers
+   - Delay e retry no `refreshProfile()` para evitar race conditions
+   - Limpeza da flag após conclusão do onboarding
+   - Logs de debug detalhados para monitoramento do fluxo
+
+6. **`src/components/LoginView.tsx`**
+   - Adicionado `useEffect` que redireciona influencers logados para `/` se ficarem presos na tela de login
+
+---
 
 ## Testes Recomendados
 
@@ -175,61 +181,39 @@ Os seguintes logs aparecerão no console do navegador durante o teste:
 - `🟢 [OnboardingFlow] handleNext - currentStep: <step> nextStep: <step> isInfluencer: true/false`
 - `✅ [OnboardingFlow] Influencer detectado! Pulando telas de premium e finalizando onboarding...`
 
-### Teste de fluxo completo (Via Criação pelo Admin):
-
-1. Acessar painel admin em `/admin/influencers`
-2. Clicar em "+ Novo influenciador"
-3. Preencher formulário:
-   - Nome completo
-   - Email
-   - **Senha inicial** (mínimo 8 caracteres)
-   - Instagram (opcional)
-   - Comissão por cadastro
-   - Chave PIX (opcional)
-4. Clicar em "Criar influenciador"
-5. **VERIFICAR**: Deve aparecer toast "Influenciador criado com sucesso! Ele já pode fazer login com o email e senha definidos."
-6. **NÃO deve aparecer** link de ativação (apenas "Conta ativa")
-7. Copiar email e senha enviados ao influencer
-8. Em aba anônima, acessar `/influencer/login`
-9. Fazer login com email/senha
-10. Verificar redirecionamento para `/influencer/dashboard`
-11. Verificar que o influencer pode ver seu link de indicação e métricas
-
-### Teste de fluxo completo (Via Link de Indicação):
-
-1. Criar novo influencer via painel admin
-2. Copiar link de indicação `/i/:token`
-3. Abrir link em aba anônima
-4. Clicar em "Criar minha conta influencer"
-5. Verificar redirecionamento para `/influencer/onboarding`
-6. Fazer signup com email/senha
-7. Verificar que vai direto para onboarding (não login)
-8. Preencher onboarding
-9. **VERIFICAR CONSOLE**: Deve aparecer `✅ [OnboardingFlow] Influencer detectado! Pulando telas de premium e finalizando onboarding...`
-10. Verificar que NÃO aparece tela de planos premium
-11. Concluir onboarding
-12. Verificar redirecionamento para tela inicial do app
-
 ### Teste de fluxo completo (Via Link de Ativação do Admin):
 
-1. Criar novo influencer via painel admin
-2. Copiar link de ativação `/influencer/ativar/:setup_token`
-3. Abrir link em aba anônima
-4. Preencher senha e confirmar
-5. Clicar em "Ativar minha conta"
-6. **VERIFICAR CONSOLE**: Deve aparecer `✅ [InfluencerOnboarding] É influencer` e `🔵 [InfluencerOnboarding] Flag final no localStorage: true`
-7. Verificar redirecionamento para `/influencer/onboarding`
-8. Verificar redirecionamento automático para `/` (app principal)
-9. Verificar que onboarding aparece
-10. Preencher onboarding
-11. **VERIFICAR CONSOLE**: Deve aparecer `✅ [OnboardingFlow] Influencer detectado! Pulando telas de premium e finalizando onboarding...`
-12. Verificar que NÃO aparece tela de planos premium (passo 31/32)
-13. Verificar redirecionamento para tela inicial do app
+1. Acessar `/admin/influencers`
+2. Clicar em "+ Novo influenciador"
+3. Preencher: nome, email, instagram, comissão, PIX
+4. Clicar em "Criar influenciador"
+5. Clicar em "Ver" no influencer criado
+6. Copiar link de ativação: `http://localhost:3000/influencer/ativar/:setup_token`
+7. Abrir link em aba anônima
+8. Preencher senha e confirmar
+9. Clicar em "Ativar minha conta"
+10. **VERIFICAR CONSOLE**: Deve aparecer `✅ [InfluencerOnboarding] É influencer` e `🔵 [InfluencerOnboarding] Flag final no localStorage: true`
+11. Verificar redirecionamento para `/influencer/onboarding`
+12. Verificar redirecionamento automático para `/` (app principal)
+13. Verificar que onboarding aparece
+14. Preencher onboarding
+15. **VERIFICAR CONSOLE**: Deve aparecer `✅ [OnboardingFlow] Influencer detectado! Pulando telas de premium e finalizando onboarding...`
+16. Verificar que NÃO aparece tela de planos premium (passo 31/32)
+17. Verificar redirecionamento para tela inicial do app
+18. No app, ir em Perfil → Verificar se há opção de gerar link de indicação
 
-### Teste de race condition:
+### Teste de fluxo completo (Via Link de Indicação do Influencer):
 
-1. Fazer signup rápido e verificar se `isInfluencer` é detectado corretamente
-2. Verificar que a flag localStorage é limpa após conclusão
+1. Copiar link de indicação do influencer: `http://localhost:3000/i/:referral_token`
+2. Abrir link em aba anônima
+3. Clicar em "Criar minha conta influencer"
+4. Fazer signup com email/senha
+5. Verificar redirecionamento para onboarding
+6. Preencher onboarding
+7. **VERIFICAR CONSOLE**: Deve aparecer `✅ [OnboardingFlow] Influencer detectado! Pulando telas de premium...`
+8. Verificar que NÃO aparece tela de planos premium
+9. Concluir onboarding
+10. Verificar redirecionamento para tela inicial do app
 
 ### Teste de diagnóstico (se ainda houver problemas):
 
@@ -246,6 +230,6 @@ Os seguintes logs aparecerão no console do navegador durante o teste:
 
 ### Teste de usuário existente:
 
-1. Influencer com conta já criada clica no link
-2. Faz login
+1. Influencer com conta já criada clica no link de ativação
+2. Faz login com email/senha
 3. É direcionado para dashboard do influencer (não onboarding)

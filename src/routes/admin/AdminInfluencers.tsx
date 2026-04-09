@@ -272,13 +272,11 @@ type InfluencerForm = {
   name: string; email: string; instagram_handle: string;
   pix_key: string; commission_per_referral: string; notes: string;
   status: Influencer['status'];
-  password?: string; // Apenas para criação
 };
 
 const EMPTY_FORM: InfluencerForm = {
   name: '', email: '', instagram_handle: '', pix_key: '',
   commission_per_referral: '10', notes: '', status: 'active',
-  password: '',
 };
 
 const InfluencerModal: React.FC<{
@@ -356,24 +354,9 @@ const InfluencerModal: React.FC<{
 
             {/* Aviso de ativação — apenas na criação */}
             {!initial && (
-              <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 flex items-start gap-2 text-xs text-blue-700">
+              <div className="col-span-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2 text-xs text-amber-700">
                 <LinkIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>A conta do influenciador será criada com a senha definida abaixo. Ele poderá fazer login imediatamente após a criação.</span>
-              </div>
-            )}
-
-            {/* Senha — apenas na criação */}
-            {!initial && (
-              <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Senha inicial *</label>
-                <input
-                  required={!initial} type="password"
-                  value={form.password || ''} onChange={e => set('password', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent"
-                  placeholder="Senha para o influencer fazer login"
-                  minLength={8}
-                />
-                <p className="text-xs text-gray-500 mt-1">Mínimo 8 caracteres. O influencer poderá alterar após o primeiro login.</p>
+                <span>Após criar, um link de ativação ficará disponível na aba do influenciador para você compartilhar. O influencer define a própria senha.</span>
               </div>
             )}
 
@@ -502,47 +485,16 @@ export const AdminInfluencers: React.FC = () => {
   const totalPaid = influencers.reduce((s, i) => s + (i.total_earned - i.pending_amount), 0);
 
   const handleCreate = async (form: InfluencerForm) => {
-    // Valida senha
-    if (!form.password || form.password.length < 8) {
-      throw new Error('A senha deve ter pelo menos 8 caracteres.');
-    }
-
-    try {
-      // Tenta usar createWithAuth (Edge Function)
-      await influencerService.createWithAuth({
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        instagram_handle: form.instagram_handle || null,
-        pix_key: form.pix_key || null,
-        commission_per_referral: parseFloat(form.commission_per_referral),
-        notes: form.notes || null,
-        status: 'active',
-      });
-      toast.success('Influenciador criado com sucesso! Ele já pode fazer login com o email e senha definidos.');
-    } catch (err: any) {
-      console.error('❌ Erro ao criar influencer:', err);
-
-      // Mensagem de erro detalhada
-      const errorMsg = err.message || 'Erro desconhecido';
-
-      if (errorMsg.includes('CORS') || errorMsg.includes('Failed to fetch') || errorMsg.includes('preflight')) {
-        throw new Error(
-          'Edge Function não está configurada. Execute: supabase functions deploy create-influencer-user. ' +
-          'Veja EDGE_FUNCTION_DEPLOY.md para instruções.'
-        );
-      }
-
-      if (errorMsg.includes('row-level security') || errorMsg.includes('RLS')) {
-        throw new Error(
-          'Política RLS bloqueando inserção. Execute o SQL em supabase/migrations/fix_influencer_rls_policies.sql ' +
-          'no Supabase SQL Editor.'
-        );
-      }
-
-      throw new Error(`Erro ao criar influencer: ${errorMsg}`);
-    }
-
+    await influencerService.create({
+      name: form.name,
+      email: form.email,
+      instagram_handle: form.instagram_handle || null,
+      pix_key: form.pix_key || null,
+      commission_per_referral: parseFloat(form.commission_per_referral),
+      notes: form.notes || null,
+      status: 'active',
+    });
+    toast.success('Influenciador criado! Clique em "Ver" para copiar o link de ativação.');
     load();
   };
 
