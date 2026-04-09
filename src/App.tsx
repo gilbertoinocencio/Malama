@@ -49,14 +49,19 @@ const App: React.FC = () => {
   const [statsLoading, setStatsLoading] = useState(false);
   const [isPortalRoute, setIsPortalRoute] = useState(() => {
     const path = window.location.pathname;
+    const hasSession = !!localStorage.getItem('sb-agstaiizemtngcmllju-auth-token');
+
+    // Se há sessão e a rota é /, NÃO é portal (vai para o app)
+    if (path === '/' || path === '') {
+      return !hasSession; // Só é portal se NÃO há sessão
+    }
+
     return (
       path.startsWith('/medico') ||
       path.startsWith('/admin') ||
       path.startsWith('/influencer') ||
       path.startsWith('/convite') ||
-      path.startsWith('/i/') ||
-      path === '/' ||
-      path === ''
+      path.startsWith('/i/')
     );
   });
   const [videoConsultation, setVideoConsultation] = useState<Consultation | null>(null);
@@ -65,14 +70,20 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkPath = () => {
       const path = window.location.pathname;
+      const hasSession = !!localStorage.getItem('sb-agstaiizemtngcmllju-auth-token');
+
+      // Se há sessão e a rota é /, NÃO é portal (vai para o app)
+      if (path === '/' || path === '') {
+        setIsPortalRoute(!hasSession);
+        return;
+      }
+
       setIsPortalRoute(
         path.startsWith('/medico') ||
         path.startsWith('/admin') ||
         path.startsWith('/influencer') ||
         path.startsWith('/convite') ||
-        path.startsWith('/i/') ||
-        path === '/' ||
-        path === ''
+        path.startsWith('/i/')
       );
     };
 
