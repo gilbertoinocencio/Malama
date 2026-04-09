@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
 
 export const LoginView: React.FC = () => {
-    const { signInWithGoogle, signInWithEmail, signUpWithEmail, loading } = useAuth();
+    const { signInWithGoogle, signInWithEmail, signUpWithEmail, loading, user } = useAuth();
     const { t, language, setLanguage } = useLanguage();
     const a = t.auth;
     const [error, setError] = useState<string | null>(null);
@@ -34,6 +34,8 @@ export const LoginView: React.FC = () => {
         try {
             if (isSignUp) {
                 await signUpWithEmail(email, password);
+                // Se é signup de influencer, o onAuthStateChange vai detectar
+                // e redirecionar para o onboarding automaticamente
                 setError(a.accountCreated);
             } else {
                 await signInWithEmail(email, password);
@@ -44,6 +46,25 @@ export const LoginView: React.FC = () => {
             setAuthLoading(false);
         }
     };
+
+    // Se é signup de influencer e já está logado, redirecionar para onboarding
+    useEffect(() => {
+        const isSignup = new URLSearchParams(window.location.search).get('signup') === 'true';
+        const isInfluencerSignup = localStorage.getItem('nura_is_influencer_signup') === 'true';
+
+        if (isSignup && isInfluencerSignup && user) {
+            // Usuário influencer acabou de fazer signup e está logado
+            // O App.tsx já deve mostrar o onboarding, mas vamos garantir
+            // que não fique preso na tela de login
+            const timer = setTimeout(() => {
+                // Se ainda está na tela de login após 2s, força navegação
+                if (user) {
+                    window.location.replace('/');
+                }
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [user]);
 
     if (loading) {
         return (

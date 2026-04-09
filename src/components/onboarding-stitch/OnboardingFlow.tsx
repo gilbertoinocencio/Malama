@@ -45,15 +45,31 @@ import HomeFeedStep from './steps/HomeFeedStep';
 export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const { user, refreshProfile } = useAuth();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isInfluencer, setIsInfluencer] = useState(false);
+  const [isInfluencer, setIsInfluencer] = useState(() => {
+    // Verifica localStorage como fallback imediato (antes da query ao banco)
+    return localStorage.getItem('nura_is_influencer_signup') === 'true';
+  });
 
   // Consulta direta ao banco — mais confiável que o influencerRecord do contexto
   // (que pode estar desatualizado por race condition na ativação da conta)
   useEffect(() => {
     if (!user) return;
     influencerService.getByUserId(user.id).then(data => {
-      setIsInfluencer(!!data);
-    }).catch(() => setIsInfluencer(false));
+      const isInf = !!data;
+      setIsInfluencer(isInf);
+      // Se confirmou que é influencer, limpa a flag do localStorage
+      if (isInf) {
+        localStorage.removeItem('nura_is_influencer_signup');
+      }
+    }).catch(() => {
+      // Se não encontrou no banco mas a flag está setada, mantém como influencer
+      // (pode ser race condition - o registro ainda não foi criado)
+      if (localStorage.getItem('nura_is_influencer_signup') === 'true') {
+        setIsInfluencer(true);
+      } else {
+        setIsInfluencer(false);
+      }
+    });
   }, [user?.id]);
 
   const [data, setData] = useState<StitchOnboardingData>({
@@ -136,7 +152,26 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
       });
 
       // Re-fetch profile so AuthContext reflects onboarding_completed = true
+      // Adiciona delay para garantir que o Supabase propagou a mudança
+      await new Promise(resolve => setTimeout(resolve, 1000));
       await refreshProfile();
+
+      // Verifica se o profile foi atualizado corretamente
+      // Se não, tenta mais uma vez
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        const { data: profileCheck } = await supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+        if (!profileCheck?.onboarding_completed) {
+          // Última tentativa
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await refreshProfile();
+        }
+      }
 
       // Solicitar permissões de forma NÃO bloqueante
       // O app continua funcionando mesmo se o usuário negar
@@ -162,6 +197,9 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
     } catch (err) {
       console.error('Error finishing onboarding:', err);
     } finally {
+      // Limpa flag de influencer do localStorage
+      localStorage.removeItem('nura_is_influencer_signup');
+
       // Sempre completa o onboarding, independente das permissões
       onComplete();
     }

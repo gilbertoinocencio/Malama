@@ -36,13 +36,14 @@ export const InfluencerReferral: React.FC = () => {
     if (token) {
       localStorage.setItem('nura_influencer_token', token);
       localStorage.setItem('nura_acquisition_channel', 'influencer');
+      // Flag explícita para indicar que é onboarding de influencer
+      localStorage.setItem('nura_is_influencer_signup', 'true');
     }
     // Garante que nenhuma sessão anterior interfira no cadastro do novo usuário
     const { data: { session } } = await supabase.auth.getSession();
     if (session) await supabase.auth.signOut();
-    // Hard navigation: exits BrowserRouter so App.tsx re-evaluates isPortalRoute
-    // and renders the patient app (LoginView) instead of the portal routes
-    window.location.href = '/entrar?signup=true';
+    // Redireciona para a rota de onboarding dedicada do influencer
+    window.location.href = '/influencer/onboarding';
   };
 
   if (loading) {
@@ -135,10 +136,11 @@ export const InfluencerReferral: React.FC = () => {
               if (token) {
                 localStorage.setItem('nura_influencer_token', token);
                 localStorage.setItem('nura_acquisition_channel', 'influencer');
+                localStorage.setItem('nura_is_influencer_signup', 'true');
               }
               const { data: { session } } = await supabase.auth.getSession();
               if (session) await supabase.auth.signOut();
-              window.location.href = '/login';
+              window.location.href = '/influencer/onboarding';
             }}
             className="text-[#2ECC71] hover:underline"
           >
