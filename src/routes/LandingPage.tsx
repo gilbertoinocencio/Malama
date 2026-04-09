@@ -4,13 +4,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Brain, 
-  Clock, 
-  Shield, 
-  TrendingUp, 
-  Users, 
-  Star, 
+import {
+  Brain,
+  Clock,
+  Shield,
+  TrendingUp,
+  Users,
+  Star,
   ArrowRight,
   CheckCircle,
   Video,
@@ -48,9 +48,8 @@ const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* ==================== HEADER ==================== */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
-      }`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
+        }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
@@ -78,14 +77,14 @@ const LandingPage: React.FC = () => {
 
             {/* CTA Buttons */}
             <div className="hidden md:flex items-center gap-4">
-              <Link 
-                to="/medico" 
+              <Link
+                to="/medico"
                 className="text-nura-petrol font-semibold hover:opacity-80 transition"
               >
-                Área do Médico
+                Para Médicos
               </Link>
-              <Link 
-                to="/medico/cadastro" 
+              <Link
+                to="/entrar?signup=true"
                 className="bg-nura-petrol text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-nura-petrol/90 transition shadow-lg shadow-nura-petrol/20"
               >
                 Cadastrar-se
@@ -93,7 +92,7 @@ const LandingPage: React.FC = () => {
             </div>
 
             {/* Mobile Menu Button */}
-            <button 
+            <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="md:hidden p-2 text-gray-700"
             >
@@ -120,9 +119,9 @@ const LandingPage: React.FC = () => {
               </button>
               <div className="pt-3 border-t border-gray-100 space-y-2">
                 <Link to="/medico" className="block text-center py-2 text-nura-petrol font-semibold">
-                  Área do Médico
+                  Para Médicos
                 </Link>
-                <Link to="/medico/cadastro" className="block text-center bg-nura-petrol text-white py-3 rounded-xl font-semibold">
+                <Link to="/entrar?signup=true" className="block text-center bg-nura-petrol text-white py-3 rounded-xl font-semibold">
                   Cadastrar-se
                 </Link>
               </div>
@@ -146,27 +145,27 @@ const LandingPage: React.FC = () => {
                 <Zap className="w-4 h-4" />
                 Nutrição Inteligente com IA
               </div>
-              
+
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-nura-main leading-tight mb-6">
                 Alimente seu{' '}
                 <span className="text-nura-petrol">fluxo</span> natural
               </h1>
-              
+
               <p className="text-lg text-nura-muted mb-8 max-w-xl mx-auto lg:mx-0">
-                O Nura combina inteligência artificial com acompanhamento médico personalizado 
-                para transformar sua relação com a nutrição. Alcance seus objetivos de forma 
+                O Nura combina inteligência artificial com acompanhamento médico personalizado
+                para transformar sua relação com a nutrição. Alcance seus objetivos de forma
                 saudável e sustentável.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link 
-                  to="/medico/cadastro" 
+                <Link
+                  to="/entrar?signup=true"
                   className="inline-flex items-center justify-center gap-2 bg-nura-petrol text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-nura-petrol/90 transition shadow-xl shadow-nura-petrol/25 hover:shadow-nura-petrol/40"
                 >
                   Começar Agora
                   <ArrowRight className="w-5 h-5" />
                 </Link>
-                <button 
+                <button
                   onClick={() => scrollToSection('como-funciona')}
                   className="inline-flex items-center justify-center gap-2 border-2 border-nura-petrol text-nura-petrol px-8 py-4 rounded-xl font-semibold text-lg hover:bg-nura-petrol/5 transition"
                 >
@@ -200,7 +199,7 @@ const LandingPage: React.FC = () => {
                     <span className="font-semibold text-nura-main">Seu Plano de Hoje</span>
                     <span className="text-xs bg-nura-petrol-light text-nura-petrol px-2 py-1 rounded-full">Em dia!</span>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                       <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -211,7 +210,7 @@ const LandingPage: React.FC = () => {
                         <div className="text-xs text-nura-muted">450 kcal • 08:30</div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                       <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                         <Leaf className="w-5 h-5 text-blue-600" />
@@ -221,7 +220,7 @@ const LandingPage: React.FC = () => {
                         <div className="text-xs text-nura-muted">650 kcal • 12:30</div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-3 p-3 bg-nura-petrol-light rounded-xl border border-nura-petrol/20">
                       <div className="w-10 h-10 bg-nura-petrol/20 rounded-full flex items-center justify-center">
                         <Clock className="w-5 h-5 text-nura-petrol" />
@@ -368,8 +367,8 @@ const LandingPage: React.FC = () => {
           </div>
 
           <div className="text-center mt-12">
-            <Link 
-              to="/medico/cadastro" 
+            <Link
+              to="/entrar?signup=true"
               className="inline-flex items-center gap-2 bg-nura-petrol text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-nura-petrol/90 transition shadow-xl shadow-nura-petrol/25"
             >
               Começar Gratuitamente
@@ -391,7 +390,7 @@ const LandingPage: React.FC = () => {
                     <span className="font-semibold text-nura-main">Painel do Médico</span>
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Online</span>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                       <span className="text-sm text-nura-muted">Pacientes Ativos</span>
@@ -429,7 +428,7 @@ const LandingPage: React.FC = () => {
               </h2>
 
               <p className="text-lg text-nura-muted mb-8">
-                Junte-se à nossa rede de médicos especializados e ofereça acompanhamento 
+                Junte-se à nossa rede de médicos especializados e ofereça acompanhamento
                 nutricional de qualidade para centenas de pacientes.
               </p>
 
@@ -448,8 +447,8 @@ const LandingPage: React.FC = () => {
                 ))}
               </div>
 
-              <Link 
-                to="/medico/cadastro" 
+              <Link
+                to="/medico/cadastro"
                 className="inline-flex items-center gap-2 bg-nura-petrol text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-nura-petrol/90 transition shadow-xl shadow-nura-petrol/25"
               >
                 Cadastrar como Médico
@@ -522,15 +521,15 @@ const LandingPage: React.FC = () => {
             Junte-se a milhares de pessoas que já alcançaram seus objetivos nutricionais com o Nura.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              to="/medico/cadastro" 
+            <Link
+              to="/entrar?signup=true"
               className="inline-flex items-center justify-center gap-2 bg-white text-nura-petrol px-8 py-4 rounded-xl font-semibold text-lg hover:bg-gray-100 transition shadow-xl"
             >
               Criar Conta Gratuita
               <ArrowRight className="w-5 h-5" />
             </Link>
-            <Link 
-              to="/medico" 
+            <Link
+              to="/entrar"
               className="inline-flex items-center justify-center gap-2 border-2 border-white text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/10 transition"
             >
               Já tenho conta
@@ -548,11 +547,11 @@ const LandingPage: React.FC = () => {
                 <span className="text-white font-serif text-xl font-light tracking-[6px]">NURA</span>
               </div>
               <p className="text-gray-400 max-w-sm">
-                Nutrição inteligente com acompanhamento médico personalizado. 
+                Nutrição inteligente com acompanhamento médico personalizado.
                 Transforme sua relação com a alimentação.
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Links Rápidos</h4>
               <ul className="space-y-2 text-gray-400">
@@ -562,7 +561,7 @@ const LandingPage: React.FC = () => {
                 <li><button onClick={() => scrollToSection('depoimentos')} className="hover:text-white transition">Depoimentos</button></li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Área do Médico</h4>
               <ul className="space-y-2 text-gray-400">
@@ -572,7 +571,7 @@ const LandingPage: React.FC = () => {
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400 text-sm">
             <p>&copy; 2026 Nura - Feed the Flow. Todos os direitos reservados.</p>
           </div>
