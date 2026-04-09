@@ -45,7 +45,7 @@ export const InfluencerOnboarding: React.FC = () => {
 
   return (
     <OnboardingFlow
-      onComplete={() => window.location.replace('/influencer/dashboard')}
+      onComplete={() => window.location.replace('/')}
     />
   );
 };

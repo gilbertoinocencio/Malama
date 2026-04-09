@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, Copy, Check, TrendingUp, Clock, DollarSign } from 'lucide-react';
 import { BodyScanner } from './BodyScanner';
 import { BodyProgressTimeline } from './BodyProgressTimeline';
 import { AppView } from '../types';
@@ -8,6 +9,138 @@ import { useAuth } from '../contexts/AuthContext';
 import { GamificationService, GamificationStats } from '../services/gamificationService';
 import { MealService } from '../services/mealService';
 import { supabase } from '../services/supabase';
+import type { InfluencerRecord } from '../contexts/AuthContext';
+
+// =====================================================
+// InfluencerCard — métricas e link de indicação
+// =====================================================
+const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerLink: string }> = ({
+  influencerRecord,
+  influencerLink,
+}) => {
+  const [copied, setCopied] = useState(false);
+  const [showChangePass, setShowChangePass] = useState(false);
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [savingPass, setSavingPass] = useState(false);
+  const [passMsg, setPassMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const fmtCurrency = (v: number) =>
+    v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(influencerLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassMsg(null);
+    if (newPass.length < 8) { setPassMsg({ type: 'error', text: 'Mínimo 8 caracteres.' }); return; }
+    if (newPass !== confirmPass) { setPassMsg({ type: 'error', text: 'As senhas não coincidem.' }); return; }
+    setSavingPass(true);
+    const { error } = await supabase.auth.updateUser({ password: newPass });
+    setSavingPass(false);
+    if (error) {
+      setPassMsg({ type: 'error', text: error.message });
+    } else {
+      setPassMsg({ type: 'success', text: 'Senha alterada com sucesso!' });
+      setNewPass(''); setConfirmPass(''); setShowChangePass(false);
+    }
+  };
+
+  return (
+    <section className="w-full px-6 mb-6 space-y-3">
+      {/* Métricas */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { icon: <TrendingUp className="w-5 h-5 text-[#2ECC71]" />, label: 'Indicações', value: String(influencerRecord.total_referrals ?? 0) },
+          { icon: <Clock className="w-5 h-5 text-[#2ECC71]" />,       label: 'Pendente',   value: fmtCurrency(influencerRecord.pending_amount ?? 0) },
+          { icon: <DollarSign className="w-5 h-5 text-[#2ECC71]" />,  label: 'Total ganho', value: fmtCurrency(influencerRecord.total_earned ?? 0) },
+        ].map(({ icon, label, value }) => (
+          <div key={label} className="bg-white dark:bg-[#1a2630] border border-nura-border dark:border-gray-800 rounded-xl p-4 text-center">
+            <div className="flex justify-center mb-2">{icon}</div>
+            <p className="text-nura-main dark:text-white font-bold text-base leading-tight">{value}</p>
+            <p className="text-nura-muted dark:text-gray-400 text-xs mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Link de indicação */}
+      <div className="bg-white dark:bg-[#1a2630] border border-nura-border dark:border-gray-800 rounded-2xl p-5">
+        <p className="text-sm font-bold text-nura-main dark:text-white mb-1">Seu link de indicação</p>
+        <p className="text-xs text-nura-muted dark:text-gray-400 mb-3">
+          Compartilhe este link. A cada novo usuário cadastrado, você ganha{' '}
+          <span className="text-[#2ECC71] font-semibold">{fmtCurrency(influencerRecord.commission_per_referral ?? 0)}</span>.
+        </p>
+        <div className="flex gap-2">
+          <div className="flex-1 bg-nura-bg dark:bg-white/5 border border-nura-border dark:border-white/10 rounded-lg px-3 py-2 text-xs text-nura-muted dark:text-gray-300 truncate">
+            {influencerLink}
+          </div>
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 px-3 py-2 border border-nura-border dark:border-white/10 rounded-lg text-xs text-nura-muted dark:text-gray-300 hover:bg-nura-bg dark:hover:bg-white/5 transition whitespace-nowrap"
+          >
+            {copied ? <Check className="w-4 h-4 text-[#2ECC71]" /> : <Copy className="w-4 h-4" />}
+            {copied ? 'Copiado!' : 'Copiar'}
+          </button>
+        </div>
+      </div>
+
+      {/* Alterar senha */}
+      <div className="bg-white dark:bg-[#1a2630] border border-nura-border dark:border-gray-800 rounded-2xl p-5">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-bold text-nura-main dark:text-white">Alterar senha</p>
+          <button
+            onClick={() => setShowChangePass(v => !v)}
+            className="text-[#2ECC71] text-sm hover:underline"
+          >
+            {showChangePass ? 'Cancelar' : 'Alterar'}
+          </button>
+        </div>
+
+        {showChangePass && (
+          <form onSubmit={handleChangePassword} className="mt-4 space-y-3">
+            <div className="relative">
+              <input
+                type={showPass ? 'text' : 'password'}
+                value={newPass}
+                onChange={e => setNewPass(e.target.value)}
+                placeholder="Nova senha (mínimo 8 caracteres)"
+                className="w-full pr-10 px-3 py-2.5 bg-nura-bg dark:bg-white/5 border border-nura-border dark:border-white/10 rounded-lg text-nura-main dark:text-white text-sm placeholder-gray-400 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent outline-none"
+              />
+              <button type="button" onClick={() => setShowPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-nura-muted dark:text-gray-400">
+                {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <input
+              type={showPass ? 'text' : 'password'}
+              value={confirmPass}
+              onChange={e => setConfirmPass(e.target.value)}
+              placeholder="Confirmar nova senha"
+              className="w-full px-3 py-2.5 bg-nura-bg dark:bg-white/5 border border-nura-border dark:border-white/10 rounded-lg text-nura-main dark:text-white text-sm placeholder-gray-400 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent outline-none"
+            />
+            {passMsg && (
+              <p className={`text-sm px-3 py-2 rounded-lg border ${
+                passMsg.type === 'success'
+                  ? 'text-[#2ECC71] bg-green-400/10 border-green-400/20'
+                  : 'text-red-400 bg-red-400/10 border-red-400/20'
+              }`}>{passMsg.text}</p>
+            )}
+            <button
+              type="submit" disabled={savingPass}
+              className="w-full py-2.5 bg-[#2ECC71] hover:bg-[#27ae60] text-white font-semibold rounded-xl transition disabled:opacity-50"
+            >
+              {savingPass ? 'Salvando...' : 'Salvar nova senha'}
+            </button>
+          </form>
+        )}
+      </div>
+    </section>
+  );
+};
 
 interface ProfileViewProps {
   onNavClick: (view: AppView) => void;
@@ -29,17 +162,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 }) => {
   const { language, setLanguage, t } = useLanguage();
   const { profile, user, signOut, influencerRecord } = useAuth();
-  const [linkCopied, setLinkCopied] = useState(false);
 
   const influencerLink = influencerRecord
     ? `${window.location.origin}/i/${influencerRecord.referral_token}`
     : '';
-
-  const handleCopyInfluencerLink = async () => {
-    await navigator.clipboard.writeText(influencerLink);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
-  };
 
   const [showBodyScanner, setShowBodyScanner] = useState(false);
   const [showBodyProgress, setShowBodyProgress] = useState(false);
@@ -615,59 +741,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
         {/* Influencer Card — visível apenas para usuários influenciadores */}
         {influencerRecord && (
-          <section className="w-full px-6 mb-6">
-            <div className="rounded-2xl border border-[#2ECC71]/30 bg-[#2ECC71]/5 dark:bg-[#2ECC71]/10 p-5 space-y-4">
-              {/* Header */}
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-full bg-[#2ECC71]/20 flex items-center justify-center flex-shrink-0">
-                  <span className="material-symbols-outlined text-[#2ECC71] text-[20px]">star</span>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-nura-main dark:text-white">Influenciador Nura</p>
-                  <p className="text-xs text-nura-muted dark:text-gray-400">Seu link de indicação</p>
-                </div>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white dark:bg-white/10 rounded-xl p-3 text-center">
-                  <p className="text-xl font-bold text-nura-main dark:text-white">{influencerRecord.link_visits}</p>
-                  <p className="text-xs text-nura-muted dark:text-gray-400 mt-0.5">Visitas</p>
-                </div>
-                <div className="bg-white dark:bg-white/10 rounded-xl p-3 text-center">
-                  <p className="text-xl font-bold text-nura-main dark:text-white">{influencerRecord.total_referrals}</p>
-                  <p className="text-xs text-nura-muted dark:text-gray-400 mt-0.5">Cadastros</p>
-                </div>
-                <div className="bg-white dark:bg-white/10 rounded-xl p-3 text-center">
-                  <p className="text-xl font-bold text-[#2ECC71]">
-                    {influencerRecord.total_referrals > 0 && influencerRecord.link_visits > 0
-                      ? `${Math.round((influencerRecord.total_referrals / influencerRecord.link_visits) * 100)}%`
-                      : '—'}
-                  </p>
-                  <p className="text-xs text-nura-muted dark:text-gray-400 mt-0.5">Conversão</p>
-                </div>
-              </div>
-
-              {/* Link copiável */}
-              <div>
-                <p className="text-xs text-nura-muted dark:text-gray-400 mb-1.5">Compartilhe seu link:</p>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-white dark:bg-white/10 border border-[#2ECC71]/20 rounded-xl px-3 py-2 text-xs text-nura-muted dark:text-gray-300 truncate">
-                    {influencerLink}
-                  </div>
-                  <button
-                    onClick={handleCopyInfluencerLink}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white text-xs font-semibold rounded-xl transition whitespace-nowrap"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">
-                      {linkCopied ? 'check' : 'content_copy'}
-                    </span>
-                    {linkCopied ? 'Copiado!' : 'Copiar'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
+          <InfluencerCard influencerRecord={influencerRecord} influencerLink={influencerLink} />
         )}
 
         {/* Sign Out */}
