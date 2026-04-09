@@ -14,6 +14,7 @@ interface StepContainerProps {
   showHeader?: boolean;
   isLoading?: boolean;
   progress?: number;
+  onSecondary?: () => void;
 }
 
 export const StepContainer: React.FC<StepContainerProps> = ({
@@ -29,6 +30,7 @@ export const StepContainer: React.FC<StepContainerProps> = ({
   showHeader = true,
   isLoading = false,
   progress: progressProp,
+  onSecondary,
 }) => {
   const progress = progressProp ?? (currentStep / totalSteps) * 100;
 
@@ -94,7 +96,7 @@ export const StepContainer: React.FC<StepContainerProps> = ({
               <span className="material-symbols-outlined text-xl">chevron_right</span>
             </button>
             {secondaryLabel && (
-              <button onClick={onBack} className="w-full py-4 text-primary font-bold text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
+              <button onClick={onSecondary ?? onBack} className="w-full py-4 text-primary font-bold text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
                 {secondaryLabel}
               </button>
             )}

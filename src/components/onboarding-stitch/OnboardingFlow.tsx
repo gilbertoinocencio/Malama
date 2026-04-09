@@ -63,11 +63,20 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
     influencerService.getByUserId(user.id).then(data => {
       const isInf = !!data;
       console.log('🟢 [OnboardingFlow] Query ao banco - É influencer?', isInf);
-      setIsInfluencer(isInf);
-      // Se confirmou que é influencer, limpa a flag do localStorage
       if (isInf) {
+        setIsInfluencer(true);
         console.log('🟢 [OnboardingFlow] Limpando flag localStorage (já confirmado pelo banco)');
         localStorage.removeItem('nura_is_influencer_signup');
+      } else {
+        // Banco retornou null — verificar localStorage antes de sobrescrever
+        // (race condition: activateAccount pode não ter propagado ainda)
+        const flagSet = localStorage.getItem('nura_is_influencer_signup') === 'true';
+        if (!flagSet) {
+          console.log('🔴 [OnboardingFlow] Definindo isInfluencer=false (sem registro no banco e sem flag)');
+          setIsInfluencer(false);
+        } else {
+          console.log('🟡 [OnboardingFlow] Banco retornou null mas flag está presente — mantendo isInfluencer=true');
+        }
       }
     }).catch((err) => {
       console.error('🔴 [OnboardingFlow] Erro na query ao banco:', err);
