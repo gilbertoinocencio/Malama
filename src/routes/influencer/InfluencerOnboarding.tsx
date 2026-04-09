@@ -20,16 +20,24 @@ export const InfluencerOnboarding: React.FC = () => {
   useEffect(() => {
     const checkAndPrepare = async () => {
       try {
+        console.log('🔵 [InfluencerOnboarding] Iniciando verificação...');
+
         // 1. Verificar se já existe sessão ativa
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('🔵 [InfluencerOnboarding] Sessão:', session ? 'ATIVA' : 'NÃO EXISTE');
 
         if (!session) {
           // Não há sessão - o influencer ainda não fez login
           // O token já está no localStorage (salvo pelo InfluencerReferral)
           // Redirecionar para login com signup
+          console.log('🔴 [InfluencerOnboarding] Sem sessão, redirecionando para /entrar?signup=true');
           navigate('/entrar?signup=true');
           return;
         }
+
+        console.log('🔵 [InfluencerOnboarding] Usuário logado:', session.user.id);
+        console.log('🔵 [InfluencerOnboarding] influencerRecord atual:', influencerRecord);
+        console.log('🔵 [InfluencerOnboarding] Flag localStorage:', localStorage.getItem('nura_is_influencer_signup'));
 
         // 2. Aguardar um pouco para garantir que o influencerRecord foi carregado
         // Race condition: o signup pode ter acabado de criar o user_id no banco
@@ -37,24 +45,34 @@ export const InfluencerOnboarding: React.FC = () => {
         const maxAttempts = 5;
 
         const checkInfluencerStatus = async (): Promise<boolean> => {
+          console.log(`🔵 [InfluencerOnboarding] Tentativa ${attempts + 1}/${maxAttempts} - Verificando status de influencer...`);
+
           // Força refresh do registro de influencer
           await refreshInfluencerRecord();
 
           // Verifica se o usuário é influencer
           if (influencerRecord) {
+            console.log('✅ [InfluencerOnboarding] É influencer (via influencerRecord do contexto)');
+            // Garante que a flag esteja setada para o OnboardingFlow
+            localStorage.setItem('nura_is_influencer_signup', 'true');
             return true;
           }
 
           // Se não encontrou, tenta uma query direta (fallback)
           const { influencerService } = await import('../../services/doctorPortalService');
           const directCheck = await influencerService.getByUserId(session.user.id);
+          console.log('🔵 [InfluencerOnboarding] Query direta no banco:', directCheck ? 'ENCONTRADO' : 'NÃO ENCONTRADO');
 
           if (directCheck) {
+            console.log('✅ [InfluencerOnboarding] É influencer (via query direta)');
             // Atualiza o contexto com o resultado
             await refreshInfluencerRecord();
+            // Garante que a flag esteja setada para o OnboardingFlow
+            localStorage.setItem('nura_is_influencer_signup', 'true');
             return true;
           }
 
+          console.log('❌ [InfluencerOnboarding] NÃO é influencer');
           return false;
         };
 
@@ -62,6 +80,7 @@ export const InfluencerOnboarding: React.FC = () => {
           const isInfluencer = await checkInfluencerStatus();
 
           if (isInfluencer) {
+            console.log('✅ [InfluencerOnboarding] Confirmado como influencer!');
             break; // Encontrou!
           }
 
@@ -69,16 +88,22 @@ export const InfluencerOnboarding: React.FC = () => {
           attempts++;
           setRetryCount(attempts);
           if (attempts < maxAttempts) {
+            console.log(`⏳ [InfluencerOnboarding] Aguardando 500ms antes da próxima tentativa...`);
             await new Promise(resolve => setTimeout(resolve, 500));
           }
         }
 
-        // 3. Se chegou aqui, o App.tsx vai detectar onboarding_completed = false
+        // 3. Verificar status final
+        const finalFlag = localStorage.getItem('nura_is_influencer_signup');
+        console.log('🔵 [InfluencerOnboarding] Flag final no localStorage:', finalFlag);
+        console.log('🔵 [InfluencerOnboarding] Redirecionando para / (app principal)');
+
+        // 4. Se chegou aqui, o App.tsx vai detectar onboarding_completed = false
         // e mostrar o OnboardingFlow automaticamente
         // Redirecionar para a rota principal (não-portal)
         window.location.replace('/');
       } catch (err: any) {
-        console.error('Erro ao preparar onboarding:', err);
+        console.error('🔴 [InfluencerOnboarding] Erro ao preparar onboarding:', err);
         setError(err.message ?? 'Erro ao preparar onboarding. Tente novamente.');
       } finally {
         setChecking(false);

@@ -85,7 +85,11 @@ export const InfluencerActivation: React.FC = () => {
       // 3. Atualizar influencerRecord no contexto (evita race condition com onAuthStateChange)
       await refreshInfluencerRecord();
 
-      // 4. Ir para o onboarding via rota dedicada
+      // 4. Setar flag para garantir que o OnboardingFlow detecte como influencer
+      // (essencial para pular telas de planos premium)
+      localStorage.setItem('nura_is_influencer_signup', 'true');
+
+      // 5. Ir para o onboarding via rota dedicada
       window.location.replace('/influencer/onboarding');
     } catch (err: any) {
       setError(err.message ?? 'Erro ao ativar conta. Tente novamente.');

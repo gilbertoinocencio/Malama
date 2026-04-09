@@ -47,26 +47,37 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isInfluencer, setIsInfluencer] = useState(() => {
     // Verifica localStorage como fallback imediato (antes da query ao banco)
-    return localStorage.getItem('nura_is_influencer_signup') === 'true';
+    const flag = localStorage.getItem('nura_is_influencer_signup') === 'true';
+    console.log('🟢 [OnboardingFlow] Verificação inicial - Flag localStorage:', flag);
+    return flag;
   });
 
   // Consulta direta ao banco — mais confiável que o influencerRecord do contexto
   // (que pode estar desatualizado por race condition na ativação da conta)
   useEffect(() => {
     if (!user) return;
+
+    console.log('🟢 [OnboardingFlow] Verificando se é influencer para user:', user.id);
+    console.log('🟢 [OnboardingFlow] Flag atual no localStorage:', localStorage.getItem('nura_is_influencer_signup'));
+
     influencerService.getByUserId(user.id).then(data => {
       const isInf = !!data;
+      console.log('🟢 [OnboardingFlow] Query ao banco - É influencer?', isInf);
       setIsInfluencer(isInf);
       // Se confirmou que é influencer, limpa a flag do localStorage
       if (isInf) {
+        console.log('🟢 [OnboardingFlow] Limpando flag localStorage (já confirmado pelo banco)');
         localStorage.removeItem('nura_is_influencer_signup');
       }
-    }).catch(() => {
+    }).catch((err) => {
+      console.error('🔴 [OnboardingFlow] Erro na query ao banco:', err);
       // Se não encontrou no banco mas a flag está setada, mantém como influencer
       // (pode ser race condition - o registro ainda não foi criado)
       if (localStorage.getItem('nura_is_influencer_signup') === 'true') {
+        console.log('🟡 [OnboardingFlow] Mantendo isInfluencer=true (flag no localStorage, race condition)');
         setIsInfluencer(true);
       } else {
+        console.log('🔴 [OnboardingFlow] Definindo isInfluencer=false');
         setIsInfluencer(false);
       }
     });
@@ -95,11 +106,16 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
 
   const handleNext = async () => {
     const nextStep = steps[currentStepIndex + 1];
+
+    console.log('🟢 [OnboardingFlow] handleNext - currentStep:', currentStep, 'nextStep:', nextStep, 'isInfluencer:', isInfluencer);
+
     // Influencers não pagam — pular telas de premium/planos e encerrar o onboarding
     if (isInfluencer && nextStep === OnboardingStep.VANTAGENS_PREMIUM) {
+      console.log('✅ [OnboardingFlow] Influencer detectado! Pulando telas de premium e finalizando onboarding...');
       await finishOnboarding();
       return;
     }
+
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
     } else {
