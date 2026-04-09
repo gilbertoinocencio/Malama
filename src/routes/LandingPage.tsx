@@ -87,7 +87,7 @@ const LandingPage: React.FC = () => {
                 to="/entrar?signup=true"
                 className="bg-nura-petrol text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-nura-petrol/90 transition shadow-lg shadow-nura-petrol/20"
               >
-                Cadastrar-se
+                Sou Nura
               </Link>
             </div>
 
@@ -122,7 +122,7 @@ const LandingPage: React.FC = () => {
                   Para Médicos
                 </Link>
                 <Link to="/entrar?signup=true" className="block text-center bg-nura-petrol text-white py-3 rounded-xl font-semibold">
-                  Cadastrar-se
+                  Sou Nura
                 </Link>
               </div>
             </div>
