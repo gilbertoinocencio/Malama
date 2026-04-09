@@ -22,8 +22,8 @@ const fmtDate = (d: string) =>
 // ─── Status badge ──────────────────────────────────────
 const StatusBadge: React.FC<{ status: Influencer['status'] }> = ({ status }) => {
   const map = {
-    active:    'bg-green-100 text-green-700',
-    paused:    'bg-yellow-100 text-yellow-700',
+    active: 'bg-green-100 text-green-700',
+    paused: 'bg-yellow-100 text-yellow-700',
     cancelled: 'bg-red-100 text-red-700',
   };
   const label = { active: 'Ativo', paused: 'Pausado', cancelled: 'Cancelado' };
@@ -238,13 +238,12 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
                       <p className="text-xs text-gray-400">{fmtDate(r.created_at)}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        r.status === 'paid'
-                          ? 'bg-green-100 text-green-700'
-                          : r.status === 'pending'
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${r.status === 'paid'
+                        ? 'bg-green-100 text-green-700'
+                        : r.status === 'pending'
                           ? 'bg-yellow-100 text-yellow-700'
                           : 'bg-red-100 text-red-700'
-                      }`}>
+                        }`}>
                         {r.status === 'paid' ? 'Pago' : r.status === 'pending' ? 'Pendente' : 'Cancelado'}
                       </span>
                       <span className="text-sm font-semibold text-gray-700">{fmtCurrency(r.commission_amount)}</span>
@@ -273,11 +272,13 @@ type InfluencerForm = {
   name: string; email: string; instagram_handle: string;
   pix_key: string; commission_per_referral: string; notes: string;
   status: Influencer['status'];
+  password?: string; // Apenas para criação
 };
 
 const EMPTY_FORM: InfluencerForm = {
   name: '', email: '', instagram_handle: '', pix_key: '',
   commission_per_referral: '10', notes: '', status: 'active',
+  password: '',
 };
 
 const InfluencerModal: React.FC<{
@@ -289,14 +290,14 @@ const InfluencerModal: React.FC<{
   const [form, setForm] = useState<InfluencerForm>(
     initial
       ? {
-          name: initial.name,
-          email: initial.email,
-          instagram_handle: initial.instagram_handle ?? '',
-          pix_key: initial.pix_key ?? '',
-          commission_per_referral: String(initial.commission_per_referral),
-          notes: initial.notes ?? '',
-          status: initial.status,
-        }
+        name: initial.name,
+        email: initial.email,
+        instagram_handle: initial.instagram_handle ?? '',
+        pix_key: initial.pix_key ?? '',
+        commission_per_referral: String(initial.commission_per_referral),
+        notes: initial.notes ?? '',
+        status: initial.status,
+      }
       : { ...EMPTY_FORM, commission_per_referral: defaultCommission }
   );
   const [saving, setSaving] = useState(false);
@@ -355,9 +356,24 @@ const InfluencerModal: React.FC<{
 
             {/* Aviso de ativação — apenas na criação */}
             {!initial && (
-              <div className="col-span-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2 text-xs text-amber-700">
+              <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 flex items-start gap-2 text-xs text-blue-700">
                 <LinkIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>Após criar, um link de ativação ficará disponível na aba do influenciador para você compartilhar. O influenciador define a própria senha.</span>
+                <span>A conta do influenciador será criada com a senha definida abaixo. Ele poderá fazer login imediatamente após a criação.</span>
+              </div>
+            )}
+
+            {/* Senha — apenas na criação */}
+            {!initial && (
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Senha inicial *</label>
+                <input
+                  required={!initial} type="password"
+                  value={form.password || ''} onChange={e => set('password', e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent"
+                  placeholder="Senha para o influencer fazer login"
+                  minLength={8}
+                />
+                <p className="text-xs text-gray-500 mt-1">Mínimo 8 caracteres. O influencer poderá alterar após o primeiro login.</p>
               </div>
             )}
 
@@ -480,22 +496,29 @@ export const AdminInfluencers: React.FC = () => {
     (i.instagram_handle ?? '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalActive   = influencers.filter(i => i.status === 'active').length;
-  const totalRefs     = influencers.reduce((s, i) => s + i.total_referrals, 0);
-  const totalPending  = influencers.reduce((s, i) => s + i.pending_amount, 0);
-  const totalPaid     = influencers.reduce((s, i) => s + (i.total_earned - i.pending_amount), 0);
+  const totalActive = influencers.filter(i => i.status === 'active').length;
+  const totalRefs = influencers.reduce((s, i) => s + i.total_referrals, 0);
+  const totalPending = influencers.reduce((s, i) => s + i.pending_amount, 0);
+  const totalPaid = influencers.reduce((s, i) => s + (i.total_earned - i.pending_amount), 0);
 
   const handleCreate = async (form: InfluencerForm) => {
-    await influencerService.create({
+    // Valida senha
+    if (!form.password || form.password.length < 8) {
+      throw new Error('A senha deve ter pelo menos 8 caracteres.');
+    }
+
+    // Usa createWithAuth que chama a Edge Function para criar conta auth + influencer
+    await influencerService.createWithAuth({
       name: form.name,
       email: form.email,
+      password: form.password,
       instagram_handle: form.instagram_handle || null,
       pix_key: form.pix_key || null,
       commission_per_referral: parseFloat(form.commission_per_referral),
       notes: form.notes || null,
       status: 'active',
     });
-    toast.success('Influenciador criado! Clique em "Ver" para copiar o link de ativação.');
+    toast.success('Influenciador criado com sucesso! Ele já pode fazer login com o email e senha definidos.');
     load();
   };
 
@@ -530,10 +553,10 @@ export const AdminInfluencers: React.FC = () => {
       {/* ── Cards de métricas ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: <Users className="w-5 h-5 text-[#2ECC71]" />,     label: 'Influenciadores ativos', value: totalActive.toString() },
-          { icon: <TrendingUp className="w-5 h-5 text-[#2ECC71]" />, label: 'Total de conversões',   value: totalRefs.toString() },
-          { icon: <DollarSign className="w-5 h-5 text-[#2ECC71]" />, label: 'Comissões pendentes',   value: fmtCurrency(totalPending) },
-          { icon: <Check className="w-5 h-5 text-[#2ECC71]" />,      label: 'Total pago',            value: fmtCurrency(totalPaid) },
+          { icon: <Users className="w-5 h-5 text-[#2ECC71]" />, label: 'Influenciadores ativos', value: totalActive.toString() },
+          { icon: <TrendingUp className="w-5 h-5 text-[#2ECC71]" />, label: 'Total de conversões', value: totalRefs.toString() },
+          { icon: <DollarSign className="w-5 h-5 text-[#2ECC71]" />, label: 'Comissões pendentes', value: fmtCurrency(totalPending) },
+          { icon: <Check className="w-5 h-5 text-[#2ECC71]" />, label: 'Total pago', value: fmtCurrency(totalPaid) },
         ].map(({ icon, label, value }) => (
           <div key={label} className="bg-white rounded-xl shadow p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#2ECC71]/10 flex items-center justify-center flex-shrink-0">
