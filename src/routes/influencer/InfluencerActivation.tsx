@@ -8,10 +8,12 @@ import { Eye, EyeOff, Lock } from 'lucide-react';
 import { influencerService } from '../../services/doctorPortalService';
 import { supabase } from '../../services/supabase';
 import { NuraLogo } from '../../components/NuraLogo';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const InfluencerActivation: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
+  const { refreshInfluencerRecord } = useAuth();
 
   const [influencer, setInfluencer] = useState<{ id: string; name: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,10 @@ export const InfluencerActivation: React.FC = () => {
       // 2. Vincular user_id ao influenciador e invalidar setup_token
       await influencerService.activateAccount(token, userId);
 
-      // 3. Ir para o dashboard
+      // 3. Atualizar influencerRecord no contexto (evita race condition com onAuthStateChange)
+      await refreshInfluencerRecord();
+
+      // 4. Ir para o dashboard
       navigate('/influencer/dashboard');
     } catch (err: any) {
       setError(err.message ?? 'Erro ao ativar conta. Tente novamente.');

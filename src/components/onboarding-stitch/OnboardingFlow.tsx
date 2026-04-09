@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StitchOnboardingData, OnboardingStep } from './types';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { influencerService } from '../../services/doctorPortalService';
 import { LocationAutoPermission } from '../../services/locationAutoPermission';
 import { NotificationService } from '../../services/notificationService';
 
@@ -42,8 +43,19 @@ import NuraFlowStep from './steps/NuraFlowStep';
 import HomeFeedStep from './steps/HomeFeedStep';
 
 export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
-  const { user, refreshProfile, influencerRecord } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isInfluencer, setIsInfluencer] = useState(false);
+
+  // Consulta direta ao banco — mais confiável que o influencerRecord do contexto
+  // (que pode estar desatualizado por race condition na ativação da conta)
+  useEffect(() => {
+    if (!user) return;
+    influencerService.getByUserId(user.id).then(data => {
+      setIsInfluencer(!!data);
+    }).catch(() => setIsInfluencer(false));
+  }, [user?.id]);
+
   const [data, setData] = useState<StitchOnboardingData>({
     // Initialize with safe defaults to prevent null errors
     primary_goal: 'perder_peso',
@@ -68,7 +80,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
   const handleNext = async () => {
     const nextStep = steps[currentStepIndex + 1];
     // Influencers não pagam — pular telas de premium/planos e encerrar o onboarding
-    if (influencerRecord && nextStep === OnboardingStep.VANTAGENS_PREMIUM) {
+    if (isInfluencer && nextStep === OnboardingStep.VANTAGENS_PREMIUM) {
       await finishOnboarding();
       return;
     }

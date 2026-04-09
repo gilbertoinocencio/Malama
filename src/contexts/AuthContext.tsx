@@ -18,6 +18,7 @@ interface AuthContextType {
     profileLoading: boolean;   // true while fetching profile from DB
     influencerRecord: InfluencerRecord | null; // preenchido se o usuário logado for influencer
     influencerLoading: boolean; // true enquanto verifica se o usuário é influencer
+    refreshInfluencerRecord: () => Promise<void>;
     updateProfile: (updates: any) => Promise<void>;
     refreshProfile: () => Promise<void>;
     signInWithGoogle: () => Promise<void>;
@@ -199,6 +200,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (user) await fetchProfile(user.id);
     }, [user, fetchProfile]);
 
+    const refreshInfluencerRecord = useCallback(async () => {
+        if (!user) return;
+        setInfluencerLoading(true);
+        try {
+            const data = await influencerService.getByUserId(user.id);
+            if (mountedRef.current) setInfluencerRecord(data as InfluencerRecord | null);
+        } catch {
+            if (mountedRef.current) setInfluencerRecord(null);
+        } finally {
+            if (mountedRef.current) setInfluencerLoading(false);
+        }
+    }, [user]);
+
     const updateProfile = useCallback(async (updates: any) => {
         if (!user) return;
         const { ProfileService } = await import('../services/profileService');
@@ -234,7 +248,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (
         <AuthContext.Provider value={{
             user, session, profile, loading, profileLoading,
-            influencerRecord, influencerLoading,
+            influencerRecord, influencerLoading, refreshInfluencerRecord,
             updateProfile, refreshProfile,
             signInWithGoogle, signInWithEmail, signUpWithEmail, signOut
         }}>
