@@ -57,6 +57,9 @@ const App: React.FC = () => {
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
+  // Corta o loop de onboarding causado pela race condition entre
+  // refreshProfile() e onAuthStateChange no finishOnboarding.
+  const [onboardingDone, setOnboardingDone] = useState(false);
 
   const [isPortalRoute, setIsPortalRoute] = useState(() => {
     const path = window.location.pathname;
@@ -276,8 +279,8 @@ const App: React.FC = () => {
   }
 
   // Profile loaded but onboarding not completed
-  if (!profile?.onboarding_completed) {
-    return <OnboardingFlow onComplete={() => loadStats()} />;
+  if (!profile?.onboarding_completed && !onboardingDone) {
+    return <OnboardingFlow onComplete={() => { setOnboardingDone(true); loadStats(); }} />;
   }
 
   return (

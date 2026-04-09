@@ -89,8 +89,8 @@ export const InfluencerActivation: React.FC = () => {
       // (essencial para pular telas de planos premium)
       localStorage.setItem('nura_is_influencer_signup', 'true');
 
-      // 5. Ir para o onboarding via rota dedicada
-      window.location.replace('/influencer/onboarding');
+      // 5. Ir para o app principal — OnboardingFlow detecta influencer automaticamente
+      window.location.replace('/');
     } catch (err: any) {
       setError(err.message ?? 'Erro ao ativar conta. Tente novamente.');
     } finally {
