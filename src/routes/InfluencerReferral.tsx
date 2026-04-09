@@ -3,10 +3,11 @@
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Instagram } from 'lucide-react';
 import { influencerService } from '../services/doctorPortalService';
 import { NuraLogo } from '../components/NuraLogo';
+import { supabase } from '../services/supabase';
 
 type InfluencerPreview = {
   id: string;
@@ -17,7 +18,6 @@ type InfluencerPreview = {
 
 export const InfluencerReferral: React.FC = () => {
   const { token } = useParams<{ token: string }>();
-  const navigate = useNavigate();
   const [influencer, setInfluencer] = useState<InfluencerPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -32,11 +32,14 @@ export const InfluencerReferral: React.FC = () => {
     }).finally(() => setLoading(false));
   }, [token]);
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (token) {
       localStorage.setItem('nura_influencer_token', token);
       localStorage.setItem('nura_acquisition_channel', 'influencer');
     }
+    // Garante que nenhuma sessão anterior interfira no cadastro do novo usuário
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) await supabase.auth.signOut();
     // Hard navigation: exits BrowserRouter so App.tsx re-evaluates isPortalRoute
     // and renders the patient app (LoginView) instead of the portal routes
     window.location.href = '/entrar';
@@ -123,11 +126,24 @@ export const InfluencerReferral: React.FC = () => {
           onClick={handleSignUp}
           className="w-full py-4 bg-[#2ECC71] hover:bg-[#27ae60] text-white font-bold rounded-xl text-base transition"
         >
-          Criar minha conta gratuita
+          Criar minha conta influencer
         </button>
         <p className="text-center text-gray-500 text-xs mt-3">
           Já tem conta?{' '}
-          <a href="/login" className="text-[#2ECC71] hover:underline">Entrar</a>
+          <button
+            onClick={async () => {
+              if (token) {
+                localStorage.setItem('nura_influencer_token', token);
+                localStorage.setItem('nura_acquisition_channel', 'influencer');
+              }
+              const { data: { session } } = await supabase.auth.getSession();
+              if (session) await supabase.auth.signOut();
+              window.location.href = '/login';
+            }}
+            className="text-[#2ECC71] hover:underline"
+          >
+            Entrar
+          </button>
         </p>
       </div>
     </div>
