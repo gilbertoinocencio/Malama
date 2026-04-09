@@ -42,7 +42,7 @@ export const InfluencerReferral: React.FC = () => {
     if (session) await supabase.auth.signOut();
     // Hard navigation: exits BrowserRouter so App.tsx re-evaluates isPortalRoute
     // and renders the patient app (LoginView) instead of the portal routes
-    window.location.href = '/entrar';
+    window.location.href = '/entrar?signup=true';
   };
 
   if (loading) {

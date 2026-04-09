@@ -42,7 +42,7 @@ const PatientConsultaPage = React.lazy(() => lazyRetry(() => import('./component
 import type { Consultation } from './lib/scheduling';
 
 const App: React.FC = () => {
-  const { user, profile, loading, profileLoading, influencerRecord, influencerLoading } = useAuth();
+  const { user, profile, loading, profileLoading } = useAuth();
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -251,19 +251,6 @@ const App: React.FC = () => {
 
   // Profile loaded but onboarding not completed
   if (!profile?.onboarding_completed) {
-    // Enquanto verifica se é influencer, mostra spinner
-    if (influencerLoading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-nura-bg dark:bg-background-dark">
-          <div className="w-12 h-12 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      );
-    }
-    // Influencer que caiu numa rota não-portal: redireciona para o portal deles
-    if (influencerRecord) {
-      window.location.replace('/influencer/dashboard');
-      return null;
-    }
     return <OnboardingFlow onComplete={() => loadStats()} />;
   }
 

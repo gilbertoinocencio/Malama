@@ -9,7 +9,9 @@ export const LoginView: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [isSignUp, setIsSignUp] = useState(false);
+    const [isSignUp, setIsSignUp] = useState(() =>
+        new URLSearchParams(window.location.search).get('signup') === 'true'
+    );
     const [authLoading, setAuthLoading] = useState(false);
 
     const handleGoogleLogin = async () => {
