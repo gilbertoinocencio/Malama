@@ -41,20 +41,22 @@ const PatientConsultaPage = React.lazy(() => lazyRetry(() => import('./component
 
 import type { Consultation } from './lib/scheduling';
 
+// Deriva a chave do localStorage do Supabase a partir da URL (nível de módulo — calculado 1x)
+const _supabaseStorageKey = (() => {
+  try {
+    const url = import.meta.env.VITE_SUPABASE_URL || '';
+    if (!url) return '';
+    const ref = new URL(url).hostname.split('.')[0];
+    return ref ? `sb-${ref}-auth-token` : '';
+  } catch { return ''; }
+})();
+
 const App: React.FC = () => {
   const { user, profile, loading, profileLoading } = useAuth();
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
-  // Deriva a chave do localStorage do Supabase a partir da URL — evita hardcode
-  const _supabaseRef = (() => {
-    try {
-      const url = import.meta.env.VITE_SUPABASE_URL || '';
-      return url ? new URL(url).hostname.split('.')[0] : '';
-    } catch { return ''; }
-  })();
-  const _supabaseStorageKey = _supabaseRef ? `sb-${_supabaseRef}-auth-token` : '';
 
   const [isPortalRoute, setIsPortalRoute] = useState(() => {
     const path = window.location.pathname;

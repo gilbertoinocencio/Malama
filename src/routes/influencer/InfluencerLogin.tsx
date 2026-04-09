@@ -39,11 +39,12 @@ export const InfluencerLogin: React.FC = () => {
         .maybeSingle();
 
       if (!profile?.onboarding_completed) {
-        // Onboarding não completado — ir para onboarding do influencer (sem planos de assinatura)
-        navigate('/influencer/onboarding');
+        // Sinaliza ao OnboardingFlow do app principal que é influencer (sem planos)
+        localStorage.setItem('nura_is_influencer_signup', 'true');
+        window.location.replace('/');
       } else {
-        // Onboarding completado — ir para dashboard do influencer
-        navigate('/influencer/dashboard');
+        // Onboarding já feito — entrar no app principal diretamente
+        window.location.replace('/');
       }
     }
   };
