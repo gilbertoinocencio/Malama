@@ -13,6 +13,7 @@ import { supabase } from './services/supabase';
 import { lazyRetry } from './utils/lazyRetry';
 import { AppRoutes } from './routes';
 import { LandingPage } from './routes/LandingPage';
+import { useIdleLogout } from './hooks/useIdleLogout';
 
 // Lazy Load Non-Critical Views — lazyRetry auto-reloads on stale chunk errors
 const SocialFeed = React.lazy(() => lazyRetry(() => import('./components/SocialFeed'), 'SocialFeed'));
@@ -53,6 +54,7 @@ const _supabaseStorageKey = (() => {
 
 const App: React.FC = () => {
   const { user, profile, loading, profileLoading } = useAuth();
+  useIdleLogout(!!user);
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
