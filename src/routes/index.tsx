@@ -34,6 +34,7 @@ import { InfluencerLogin } from './influencer/InfluencerLogin';
 import { InfluencerActivation } from './influencer/InfluencerActivation';
 import { InfluencerDashboard } from './influencer/InfluencerDashboard';
 import { InfluencerOnboarding } from './influencer/InfluencerOnboarding';
+import { InfluencerInvite } from './influencer/InfluencerInvite';
 
 // Admin Pages
 import { AdminLogin } from './admin/AdminLogin';
@@ -199,6 +200,7 @@ export const AppRoutes: React.FC = () => {
           {/* Portal do influenciador */}
           <Route path="/influencer/login" element={<InfluencerLogin />} />
           <Route path="/influencer/ativar/:token" element={<InfluencerActivation />} />
+          <Route path="/influencer/convite/:token" element={<InfluencerInvite />} />
           <Route path="/influencer/onboarding" element={<InfluencerOnboarding />} />
           <Route path="/influencer/dashboard" element={<InfluencerDashboard />} />
 

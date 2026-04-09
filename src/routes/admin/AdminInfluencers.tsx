@@ -35,9 +35,9 @@ const StatusBadge: React.FC<{ status: Influencer['status'] }> = ({ status }) => 
 };
 
 // ─── Botão copiar link ─────────────────────────────────
-const CopyLinkButton: React.FC<{ token: string }> = ({ token }) => {
+const CopyLinkButton: React.FC<{ token: string; prefix?: string }> = ({ token, prefix = 'i' }) => {
   const [copied, setCopied] = useState(false);
-  const link = `${window.location.origin}/i/${token}`;
+  const link = `${window.location.origin}/${prefix === 'convite' ? 'influencer/convite' : prefix}/${token}`;
   const handleCopy = async () => {
     await navigator.clipboard.writeText(link);
     setCopied(true);
@@ -176,10 +176,26 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
           </div>
 
           {/* Status da conta */}
-          <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2 text-sm text-green-700">
+          <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2 text-sm text-green-700 mb-3">
             <Check className="w-4 h-4 flex-shrink-0" />
-            Conta ativa — influenciador pode fazer login com e-mail e senha.
+            Conta ativa — influenciador pode acessar com o link de convite.
           </div>
+
+          {/* Link de convite */}
+          {influencer.access_token && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Link de convite para o influencer</p>
+              <CopyLinkButton token={influencer.access_token} prefix="convite" />
+            </div>
+          )}
+
+          {/* Link de indicação (para seguidores) */}
+          {influencer.referral_token && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Link de indicação (para seguidores)</p>
+              <CopyLinkButton token={influencer.referral_token} prefix="i" />
+            </div>
+          )}
 
           {/* Dados financeiros */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
@@ -508,7 +524,11 @@ export const AdminInfluencers: React.FC = () => {
       notes: form.notes || null,
       status: 'active',
     });
-    toast.success('Influenciador criado! Envie o email e senha para ele fazer login.');
+
+    toast.success(
+      'Influenciador criado! Clique em "Ver" para copiar o link de convite e enviar ao influencer.',
+      { duration: 5000 }
+    );
     load();
   };
 

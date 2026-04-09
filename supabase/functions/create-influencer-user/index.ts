@@ -61,6 +61,7 @@ Deno.serve(async (req: Request) => {
 
     const userId = userData.user.id;
     const referral_token = `inf_${crypto.randomUUID().replace(/-/g, '')}`;
+    const access_token = `acc_${crypto.randomUUID().replace(/-/g, '')}`;
 
     // 2. Inserir registro do influenciador já vinculado ao user_id
     const { data: influencer, error: infError } = await supabaseAdmin
@@ -75,6 +76,7 @@ Deno.serve(async (req: Request) => {
         notes: notes || null,
         status: status || 'active',
         referral_token,
+        access_token,
         setup_token: null, // não necessário — conta já criada pelo admin
       }])
       .select()

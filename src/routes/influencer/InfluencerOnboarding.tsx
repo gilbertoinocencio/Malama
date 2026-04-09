@@ -27,11 +27,9 @@ export const InfluencerOnboarding: React.FC = () => {
         console.log('🔵 [InfluencerOnboarding] Sessão:', session ? 'ATIVA' : 'NÃO EXISTE');
 
         if (!session) {
-          // Não há sessão - o influencer ainda não fez login
-          // O token já está no localStorage (salvo pelo InfluencerReferral)
-          // Redirecionar para login com signup
-          console.log('🔴 [InfluencerOnboarding] Sem sessão, redirecionando para /entrar?signup=true');
-          navigate('/entrar?signup=true');
+          // Não há sessão - redirecionar para login
+          console.log('🔴 [InfluencerOnboarding] Sem sessão, redirecionando para /influencer/login');
+          navigate('/influencer/login');
           return;
         }
 
