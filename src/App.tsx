@@ -47,9 +47,20 @@ const App: React.FC = () => {
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
+  // Deriva a chave do localStorage do Supabase a partir da URL — evita hardcode
+  const _supabaseRef = (() => {
+    try {
+      const url = import.meta.env.VITE_SUPABASE_URL || '';
+      return url ? new URL(url).hostname.split('.')[0] : '';
+    } catch { return ''; }
+  })();
+  const _supabaseStorageKey = _supabaseRef ? `sb-${_supabaseRef}-auth-token` : '';
+
   const [isPortalRoute, setIsPortalRoute] = useState(() => {
     const path = window.location.pathname;
-    const hasSession = !!localStorage.getItem('sb-agstaiizemtngcmllju-auth-token');
+    const hasSession = _supabaseStorageKey
+      ? !!localStorage.getItem(_supabaseStorageKey)
+      : false;
 
     // Se há sessão e a rota é /, NÃO é portal (vai para o app)
     if (path === '/' || path === '') {
@@ -70,7 +81,9 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkPath = () => {
       const path = window.location.pathname;
-      const hasSession = !!localStorage.getItem('sb-agstaiizemtngcmllju-auth-token');
+      const hasSession = _supabaseStorageKey
+        ? !!localStorage.getItem(_supabaseStorageKey)
+        : false;
 
       // Se há sessão e a rota é /, NÃO é portal (vai para o app)
       if (path === '/' || path === '') {
