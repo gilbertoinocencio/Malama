@@ -176,24 +176,10 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
           </div>
 
           {/* Status da conta */}
-          {influencer.user_id && !influencer.setup_token && (
-            <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2 text-sm text-green-700">
-              <Check className="w-4 h-4 flex-shrink-0" />
-              Conta ativa — influenciador pode fazer login com e-mail e senha.
-            </div>
-          )}
-          {influencer.setup_token && !influencer.user_id && (
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Link de ativação de conta</p>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
-                <LinkIcon className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-amber-700 mb-2">Conta ainda não ativada. Envie este link para o influenciador criar sua senha:</p>
-                  <ActivationLinkButton token={influencer.setup_token} />
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2 text-sm text-green-700">
+            <Check className="w-4 h-4 flex-shrink-0" />
+            Conta ativa — influenciador pode fazer login com e-mail e senha.
+          </div>
 
           {/* Dados financeiros */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
@@ -272,11 +258,13 @@ type InfluencerForm = {
   name: string; email: string; instagram_handle: string;
   pix_key: string; commission_per_referral: string; notes: string;
   status: Influencer['status'];
+  password?: string; // Senha para criar conta auth do influencer
 };
 
 const EMPTY_FORM: InfluencerForm = {
   name: '', email: '', instagram_handle: '', pix_key: '',
   commission_per_referral: '10', notes: '', status: 'active',
+  password: '',
 };
 
 const InfluencerModal: React.FC<{
@@ -354,9 +342,24 @@ const InfluencerModal: React.FC<{
 
             {/* Aviso de ativação — apenas na criação */}
             {!initial && (
-              <div className="col-span-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2 text-xs text-amber-700">
+              <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 flex items-start gap-2 text-xs text-blue-700">
                 <LinkIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>Após criar, um link de ativação ficará disponível na aba do influenciador para você compartilhar. O influencer define a própria senha.</span>
+                <span>Defina uma senha para o influencer. Ele fará login com o email e senha informados abaixo.</span>
+              </div>
+            )}
+
+            {/* Senha — apenas na criação */}
+            {!initial && (
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Senha *</label>
+                <input
+                  required={!initial} type="password"
+                  value={form.password || ''} onChange={e => set('password', e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent"
+                  placeholder="Senha para o influencer fazer login"
+                  minLength={8}
+                />
+                <p className="text-xs text-gray-500 mt-1">Mínimo 8 caracteres.</p>
               </div>
             )}
 
@@ -485,16 +488,21 @@ export const AdminInfluencers: React.FC = () => {
   const totalPaid = influencers.reduce((s, i) => s + (i.total_earned - i.pending_amount), 0);
 
   const handleCreate = async (form: InfluencerForm) => {
-    await influencerService.create({
+    if (!form.password || form.password.length < 8) {
+      throw new Error('A senha deve ter pelo menos 8 caracteres.');
+    }
+
+    await influencerService.createWithAuth({
       name: form.name,
       email: form.email,
+      password: form.password,
       instagram_handle: form.instagram_handle || null,
       pix_key: form.pix_key || null,
       commission_per_referral: parseFloat(form.commission_per_referral),
       notes: form.notes || null,
       status: 'active',
     });
-    toast.success('Influenciador criado! Clique em "Ver" para copiar o link de ativação.');
+    toast.success('Influenciador criado! Envie o email e senha para ele fazer login.');
     load();
   };
 

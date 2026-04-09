@@ -20,10 +20,32 @@ export const InfluencerLogin: React.FC = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     const { error: err } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (err) { setError('E-mail ou senha incorretos.'); return; }
-    navigate('/influencer/dashboard');
+
+    if (err) {
+      setError('E-mail ou senha incorretos.');
+      return;
+    }
+
+    // Verificar se onboarding foi completado
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profile?.onboarding_completed) {
+        // Onboarding não completado — redirecionar para onboarding
+        navigate('/influencer/onboarding');
+      } else {
+        // Onboarding completado — ir para dashboard
+        navigate('/influencer/dashboard');
+      }
+    }
   };
 
   return (
