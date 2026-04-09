@@ -507,18 +507,42 @@ export const AdminInfluencers: React.FC = () => {
       throw new Error('A senha deve ter pelo menos 8 caracteres.');
     }
 
-    // Usa createWithAuth que chama a Edge Function para criar conta auth + influencer
-    await influencerService.createWithAuth({
-      name: form.name,
-      email: form.email,
-      password: form.password,
-      instagram_handle: form.instagram_handle || null,
-      pix_key: form.pix_key || null,
-      commission_per_referral: parseFloat(form.commission_per_referral),
-      notes: form.notes || null,
-      status: 'active',
-    });
-    toast.success('Influenciador criado com sucesso! Ele já pode fazer login com o email e senha definidos.');
+    try {
+      // Tenta usar createWithAuth (Edge Function)
+      await influencerService.createWithAuth({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        instagram_handle: form.instagram_handle || null,
+        pix_key: form.pix_key || null,
+        commission_per_referral: parseFloat(form.commission_per_referral),
+        notes: form.notes || null,
+        status: 'active',
+      });
+      toast.success('Influenciador criado com sucesso! Ele já pode fazer login com o email e senha definidos.');
+    } catch (err: any) {
+      console.error('❌ Erro ao criar influencer:', err);
+
+      // Mensagem de erro detalhada
+      const errorMsg = err.message || 'Erro desconhecido';
+
+      if (errorMsg.includes('CORS') || errorMsg.includes('Failed to fetch') || errorMsg.includes('preflight')) {
+        throw new Error(
+          'Edge Function não está configurada. Execute: supabase functions deploy create-influencer-user. ' +
+          'Veja EDGE_FUNCTION_DEPLOY.md para instruções.'
+        );
+      }
+
+      if (errorMsg.includes('row-level security') || errorMsg.includes('RLS')) {
+        throw new Error(
+          'Política RLS bloqueando inserção. Execute o SQL em supabase/migrations/fix_influencer_rls_policies.sql ' +
+          'no Supabase SQL Editor.'
+        );
+      }
+
+      throw new Error(`Erro ao criar influencer: ${errorMsg}`);
+    }
+
     load();
   };
 
