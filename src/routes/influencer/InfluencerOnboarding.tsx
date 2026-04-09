@@ -27,9 +27,9 @@ export const InfluencerOnboarding: React.FC = () => {
         console.log('🔵 [InfluencerOnboarding] Sessão:', session ? 'ATIVA' : 'NÃO EXISTE');
 
         if (!session) {
-          // Não há sessão - redirecionar para login
+          // Não há sessão - redirecionar para login do influencer
           console.log('🔴 [InfluencerOnboarding] Sem sessão, redirecionando para /influencer/login');
-          navigate('/influencer/login');
+          window.location.replace('/influencer/login');
           return;
         }
 
@@ -94,11 +94,9 @@ export const InfluencerOnboarding: React.FC = () => {
         // 3. Verificar status final
         const finalFlag = localStorage.getItem('nura_is_influencer_signup');
         console.log('🔵 [InfluencerOnboarding] Flag final no localStorage:', finalFlag);
-        console.log('🔵 [InfluencerOnboarding] Redirecionando para / (app principal)');
+        console.log('🔵 [InfluencerOnboarding] Redirecionando para / (app principal - não portal)');
 
-        // 4. Se chegou aqui, o App.tsx vai detectar onboarding_completed = false
-        // e mostrar o OnboardingFlow automaticamente
-        // Redirecionar para a rota principal (não-portal)
+        // 4. Redirecionar para / (não-portal) - App.tsx detecta onboarding_completed=false e mostra OnboardingFlow
         window.location.replace('/');
       } catch (err: any) {
         console.error('🔴 [InfluencerOnboarding] Erro ao preparar onboarding:', err);

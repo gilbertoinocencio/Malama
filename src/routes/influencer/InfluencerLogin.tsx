@@ -39,11 +39,12 @@ export const InfluencerLogin: React.FC = () => {
         .maybeSingle();
 
       if (!profile?.onboarding_completed) {
-        // Onboarding não completado — redirecionar para onboarding
-        navigate('/influencer/onboarding');
+        // Onboarding não completado — redirecionar para app principal (App.tsx detecta e mostra onboarding)
+        localStorage.setItem('nura_is_influencer_signup', 'true');
+        window.location.replace('/');
       } else {
-        // Onboarding completado — ir para dashboard
-        navigate('/influencer/dashboard');
+        // Onboarding completado — ir para dashboard do influencer
+        window.location.replace('/influencer/dashboard');
       }
     }
   };
