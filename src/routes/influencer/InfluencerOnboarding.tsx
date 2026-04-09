@@ -45,7 +45,12 @@ export const InfluencerOnboarding: React.FC = () => {
 
   return (
     <OnboardingFlow
-      onComplete={() => window.location.replace('/')}
+      onComplete={() => {
+        // Muda a URL para / sem recarregar a página.
+        // App.tsx monitora replaceState e seta isPortalRoute=false,
+        // exibindo o app principal com o perfil já atualizado em memória.
+        window.history.replaceState({}, '', '/');
+      }}
     />
   );
 };
