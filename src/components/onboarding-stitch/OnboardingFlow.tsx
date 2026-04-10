@@ -45,6 +45,7 @@ import HomeFeedStep from './steps/HomeFeedStep';
 export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const { user, refreshProfile } = useAuth();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [isInfluencer, setIsInfluencer] = useState(() => {
     // Verifica localStorage como fallback imediato (antes da query ao banco)
     const flag = localStorage.getItem('nura_is_influencer_signup') === 'true';
@@ -140,6 +141,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
 
   const finishOnboarding = async () => {
     if (!user) return;
+    setIsFinishing(true);
     try {
       const activityMap: Record<string, string> = {
         sedentario: 'sedentary',
@@ -319,6 +321,14 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         );
     }
   };
+
+  if (isFinishing) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-surface">
+        <div className="w-10 h-10 rounded-full border-4 border-secondary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-screen overflow-y-auto no-scrollbar">
