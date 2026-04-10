@@ -97,11 +97,10 @@ export const LoginView: React.FC = () => {
 
             <div className="w-full max-w-sm flex flex-col items-center gap-8 animate-fade-in-up">
                 {/* Logo */}
-                <div className="flex flex-col items-center gap-2">
-                    <div className="size-20 bg-nura-petrol dark:bg-primary rounded-full flex items-center justify-center shadow-lg shadow-nura-petrol/20 dark:shadow-primary/20">
-                        <span className="material-symbols-outlined text-white text-4xl">water_drop</span>
+                <div className="flex flex-col items-center gap-3">
+                    <div className="bg-nura-petrol rounded-lg px-6 py-3 shadow-lg">
+                        <span className="text-white font-serif text-3xl font-light tracking-[8px]">NURA</span>
                     </div>
-                    <h1 className="text-4xl font-bold text-nura-petrol dark:text-white tracking-tighter">NURA</h1>
                     <p className="text-nura-muted dark:text-slate-400 font-medium">{a.subtitle}</p>
                 </div>
 
