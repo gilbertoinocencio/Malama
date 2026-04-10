@@ -13,7 +13,7 @@ const DIETAS = [
 ];
 
 const TipoDietaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
-  const selected = data.dietType;
+  const selected = data.dietType ?? 'Equilibrada';
 
   return (
     <StepContainer

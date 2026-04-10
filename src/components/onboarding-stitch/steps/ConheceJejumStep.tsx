@@ -17,6 +17,7 @@ const ConheceJejumStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
       onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
+      nextDisabled={value === undefined}
     >
       <section className="w-full text-center mb-16 space-y-6">
         <h1 className="text-4xl md:text-5xl font-bold text-primary tracking-tight leading-tight">

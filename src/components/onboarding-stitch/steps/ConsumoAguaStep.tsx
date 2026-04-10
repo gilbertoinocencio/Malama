@@ -22,6 +22,7 @@ const ConsumoAguaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
       onNext={onNext}
       progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
+      nextDisabled={!selected}
     >
       <div className="w-full max-w-xl mx-auto flex flex-col items-center">
         {/* Subtle Water Drop Icon */}

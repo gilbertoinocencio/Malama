@@ -9,7 +9,7 @@ const LOCAIS = [
 ];
 
 const LocalRefeicoesStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
-  const selected = data.eatingLocation;
+  const selected = data.eatingLocation ?? 'casa';
 
   return (
     <StepContainer

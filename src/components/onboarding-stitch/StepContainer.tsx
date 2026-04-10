@@ -15,6 +15,7 @@ interface StepContainerProps {
   isLoading?: boolean;
   progress?: number;
   onSecondary?: () => void;
+  nextDisabled?: boolean;
 }
 
 export const StepContainer: React.FC<StepContainerProps> = ({
@@ -31,6 +32,7 @@ export const StepContainer: React.FC<StepContainerProps> = ({
   isLoading = false,
   progress: progressProp,
   onSecondary,
+  nextDisabled = false,
 }) => {
   const progress = progressProp ?? (currentStep / totalSteps) * 100;
 
@@ -90,7 +92,8 @@ export const StepContainer: React.FC<StepContainerProps> = ({
           <div className="max-w-md w-full">
             <button
               onClick={onNext}
-              className="w-full h-16 bg-gradient-to-r from-tertiary to-tertiary-container text-on-tertiary font-headline font-semibold text-lg rounded-full shadow-[0_16px_32px_rgba(0,70,79,0.2)] hover:shadow-[0_16px_40px_rgba(0,70,79,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-500 ease-in-out flex items-center justify-center gap-3"
+              disabled={nextDisabled}
+              className="w-full h-16 bg-gradient-to-r from-tertiary to-tertiary-container text-on-tertiary font-headline font-semibold text-lg rounded-full shadow-[0_16px_32px_rgba(0,70,79,0.2)] hover:shadow-[0_16px_40px_rgba(0,70,79,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-500 ease-in-out flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-[0_16px_32px_rgba(0,70,79,0.2)]"
             >
               <span>{nextLabel}</span>
               <span className="material-symbols-outlined text-xl">chevron_right</span>
