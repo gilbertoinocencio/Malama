@@ -16,7 +16,10 @@ import { LandingPage } from './routes/LandingPage';
 import { useIdleLogout } from './hooks/useIdleLogout';
 
 // Lazy Load Non-Critical Views — lazyRetry auto-reloads on stale chunk errors
-const SocialFeed = React.lazy(() => lazyRetry(() => import('./components/SocialFeed'), 'SocialFeed'));
+const CommunityFeed = React.lazy(() => lazyRetry(() => import('./components/community/feed/CommunityFeed').then(m => ({ default: m.CommunityFeed })), 'CommunityFeed'));
+const CommunitySearch = React.lazy(() => lazyRetry(() => import('./components/community/search/CommunitySearch').then(m => ({ default: m.CommunitySearch })), 'CommunitySearch'));
+const NotificationCenter = React.lazy(() => lazyRetry(() => import('./components/community/notifications/NotificationCenter').then(m => ({ default: m.NotificationCenter })), 'NotificationCenter'));
+const CommunityProfileView = React.lazy(() => lazyRetry(() => import('./components/community/profile/CommunityProfile').then(m => ({ default: m.CommunityProfile })), 'CommunityProfile'));
 const MealLogger = React.lazy(() => lazyRetry(() => import('./components/MealLogger'), 'MealLogger'));
 const FoodGuide = React.lazy(() => lazyRetry(() => import('./components/FoodGuide'), 'FoodGuide'));
 const SocialShare = React.lazy(() => lazyRetry(() => import('./components/SocialShare'), 'SocialShare'));
@@ -56,6 +59,7 @@ const App: React.FC = () => {
   const { user, profile, loading, profileLoading } = useAuth();
   useIdleLogout(!!user);
   const [view, setView] = useState<AppView>(AppView.HOME);
+  const [communityProfileUserId, setCommunityProfileUserId] = useState<string | null>(null);
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -308,11 +312,37 @@ const App: React.FC = () => {
         )}
 
         {view === AppView.FEED && (
-          <SocialFeed
-            onNavigate={setView}
-            onFabClick={() => setView(AppView.LOG)}
-            activeView={view}
+          <CommunityFeed
+            onNavigate={(v: AppView, userId?: string) => {
+              if (v === AppView.COMMUNITY_PROFILE && userId) setCommunityProfileUserId(userId);
+              setView(v);
+            }}
             onBack={() => setView(AppView.HOME)}
+          />
+        )}
+
+        {view === AppView.COMMUNITY_PROFILE && communityProfileUserId && (
+          <CommunityProfileView
+            userId={communityProfileUserId}
+            onBack={() => setView(AppView.FEED)}
+            onNavigate={setView}
+          />
+        )}
+
+        {view === AppView.COMMUNITY_SEARCH && (
+          <CommunitySearch
+            onBack={() => setView(AppView.FEED)}
+            onNavigate={(v: AppView, userId?: string) => {
+              if (v === AppView.COMMUNITY_PROFILE && userId) setCommunityProfileUserId(userId);
+              setView(v);
+            }}
+          />
+        )}
+
+        {view === AppView.NOTIFICATION_CENTER && (
+          <NotificationCenter
+            onBack={() => setView(AppView.FEED)}
+            onNavigate={setView}
           />
         )}
 

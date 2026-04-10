@@ -83,7 +83,10 @@ export enum AppView {
   GLP1_CONSULTA = 'GLP1_CONSULTA',
   AGENDAR_CONSULTA = 'AGENDAR_CONSULTA',
   MINHAS_CONSULTAS = 'MINHAS_CONSULTAS',
-  CONSULTA_VIDEO = 'CONSULTA_VIDEO'
+  CONSULTA_VIDEO = 'CONSULTA_VIDEO',
+  COMMUNITY_PROFILE = 'COMMUNITY_PROFILE',
+  COMMUNITY_SEARCH = 'COMMUNITY_SEARCH',
+  NOTIFICATION_CENTER = 'NOTIFICATION_CENTER',
 }
 
 export type Theme = 'light' | 'dark';
@@ -128,6 +131,14 @@ export interface Profile {
   diet_type?: string;
   dietary_restrictions?: string[];
   dietary_restrictions_detail?: string;
+
+  // Community
+  community_alias?: string;
+  is_private?: boolean;
+  milestone_opt_out?: boolean;
+  followers_count?: number;
+  following_count?: number;
+  posts_count?: number;
 
   // GLP-1 Module
   glp1_mode?: boolean;
