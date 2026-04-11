@@ -68,20 +68,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const [selectedDayStats, setSelectedDayStats] = useState<DailyStats | null>(null);
   const [selectedDayMeals, setSelectedDayMeals] = useState<Meal[]>([]);
   const [weekDaysData, setWeekDaysData] = useState<any[]>([]);
-  const [weeklyProgress, setWeeklyProgress] = useState<{
-    caloriesConsumed: number;
-    caloriesTarget: number;
-    proteinConsumed: number;
-    proteinTarget: number;
-    carbsConsumed: number;
-    carbsTarget: number;
-    fatsConsumed: number;
-    fatsTarget: number;
-    waterConsumed: number;
-    waterTarget: number;
-    daysMet: number;
-    totalDays: number;
-  } | null>(null);
 
   // Telemedicine state
   const [todayConsultation, setTodayConsultation] = useState<any>(null);
@@ -232,9 +218,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     try {
       const weekStats = await StatsService.getWeekStats(user.id);
       setWeekDaysData(weekStats);
-
-      const progress = await StatsService.getWeeklyGoalProgress(user.id);
-      setWeeklyProgress(progress);
 
       // Calculate weekly accumulated stats
       const today = getLocalDateString(new Date());
@@ -1029,11 +1012,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               /* ——— WEEK VIEW: Days Circle + Selected Day History ——— */
               <>
                 {/* Week Days Circle Component */}
-                {weeklyProgress && weekDaysForCircle.length > 0 && (
+                {weekDaysForCircle.length > 0 && (
                   <WeekDaysCircle
                     weekDays={weekDaysForCircle}
                     onDayClick={handleDayClick}
-                    weeklyGoalProgress={weeklyProgress}
                     selectedDate={selectedDate}
                   />
                 )}
