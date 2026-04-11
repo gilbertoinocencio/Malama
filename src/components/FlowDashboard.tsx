@@ -205,12 +205,12 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     }
   }, [user, period]);
 
-  // Load week view data
+  // Load week data always (needed for day view circles + weekly ring)
   useEffect(() => {
-    if (user && period === 'week') {
+    if (user) {
       loadWeekData();
     }
-  }, [user, period]);
+  }, [user]);
 
   const loadWeekData = async () => {
     if (!user) return;
@@ -403,6 +403,87 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
   const [isDaySelected, setIsDaySelected] = useState(false);
 
+  // Helper to check if a day met all macros + hydration goals (85% threshold)
+  const checkDayGoal = (dayStats: DailyStats | null): boolean => {
+    if (!dayStats) return false;
+    const calRatio = dayStats.consumedCalories / (dayStats.targetCalories || 1);
+    const pRatio = dayStats.macros.protein / (dayStats.targetMacros.protein || 1);
+    const cRatio = dayStats.macros.carbs / (dayStats.targetMacros.carbs || 1);
+    const fRatio = dayStats.macros.fats / (dayStats.targetMacros.fats || 1);
+    const wRatio = (dayStats.waterIntake || 0) / (dayStats.waterGoal || 1);
+    return calRatio >= 0.85 && pRatio >= 0.85 && cRatio >= 0.85 && fRatio >= 0.85 && wRatio >= 0.85;
+  };
+
+  // Weekly progress with carryover: missed goals from past days accumulate into the weekly target
+  const weeklyProgress = React.useMemo(() => {
+    if (!weekDaysData.length) return null;
+    const today = getLocalDateString(new Date());
+    const todayIdx = weekDaysData.findIndex((d: any) => d.date === today);
+    if (todayIdx === -1) return null;
+
+    let totalConsumed = 0;
+    let totalTarget = 0;
+    let daysMetGoal = 0;
+    let pastDeficit = 0; // calories missed from previous days
+
+    weekDaysData.forEach((day: any, i: number) => {
+      totalTarget += day.stats.targetCalories;
+      if (i <= todayIdx) {
+        totalConsumed += day.stats.consumedCalories;
+        const deficit = day.stats.targetCalories - day.stats.consumedCalories;
+        if (i < todayIdx && deficit > 0) pastDeficit += deficit;
+        if (checkDayGoal(day.stats)) daysMetGoal++;
+      }
+    });
+
+    const progress = totalTarget > 0 ? Math.min(totalConsumed / totalTarget, 1) : 0;
+    const weeklyRemaining = Math.max(0, totalTarget - totalConsumed);
+    const todayEffectiveTarget = stats.targetCalories + pastDeficit;
+    const todayRemaining = Math.max(0, todayEffectiveTarget - (stats.consumedCalories ?? 0));
+
+    return {
+      totalConsumed,
+      totalTarget,
+      progress,
+      weeklyRemaining,
+      daysMetGoal,
+      daysElapsed: todayIdx + 1,
+      pastDeficit,
+      todayEffectiveTarget,
+      todayRemaining,
+    };
+  }, [weekDaysData, stats]);
+
+  // Day-view day click: selects a specific day to view historical data
+  const handleDayViewClick = (date: string) => {
+    const today = getLocalDateString(new Date());
+    if (date === today || selectedDate === date) {
+      // Back to today
+      setSelectedDate(today);
+      setIsDaySelected(false);
+      setSelectedDayStats(null);
+      setSelectedDayMeals([]);
+      return;
+    }
+    setSelectedDate(date);
+    setIsDaySelected(true);
+    const day = weekDaysData.find((d: any) => d.date === date);
+    if (day) {
+      setSelectedDayStats(day.stats);
+      const mapped: Meal[] = day.meals.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        timestamp: new Date(item.created_at),
+        calories: item.calories,
+        macros: { protein: item.protein, carbs: item.carbs, fats: item.fats },
+        type: item.type,
+        items: item.items,
+        imageUri: item.image_url,
+      }));
+      setSelectedDayMeals(mapped);
+    }
+  };
+
   const handleDayClick = async (date: string) => {
     if (selectedDate === date) {
       // If clicking the same date, reset to weekly accumulated
@@ -587,10 +668,46 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
         {/* Conditional Content Based on Period */}
         {period === 'day' ? (
-          /* ——— DAY VIEW: Calorie Ring + Macros (original dashboard) ——— */
+          /* ——— DAY VIEW: Week Navigation + Hero Card + Macros ——— */
           <>
-            {/* Telemedicine: Today's Consultation Banner */}
-            {todayConsultation && (
+            {/* ── Week Days Navigation (always visible) ── */}
+            {weekDaysForCircle.length > 0 && (
+              <WeekDaysCircle
+                weekDays={weekDaysForCircle}
+                onDayClick={handleDayViewClick}
+                selectedDate={isDaySelected ? selectedDate : getLocalDateString(new Date())}
+              />
+            )}
+
+            {/* ── Past day banner ── */}
+            <AnimatePresence>
+              {isDaySelected && (
+                <motion.div
+                  key="past-day-banner"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="mx-6 mb-1 flex items-center justify-between px-4 py-2.5 rounded-xl bg-nura-petrol/8 dark:bg-primary/10 border border-nura-petrol/15 dark:border-primary/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-base">history</span>
+                    <span className="text-xs font-semibold text-nura-petrol dark:text-primary">
+                      {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleDayViewClick(selectedDate)}
+                    className="flex items-center gap-1 text-[11px] font-bold text-nura-petrol dark:text-primary bg-white dark:bg-surface-dark px-2.5 py-1 rounded-full shadow-sm"
+                  >
+                    <span className="material-symbols-outlined text-[13px]">today</span>
+                    Hoje
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ── Telemedicine banners (today only) ── */}
+            {!isDaySelected && todayConsultation && (
               <div className="px-6">
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
@@ -617,8 +734,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               </div>
             )}
 
-            {/* Telemedicine: Doctor Message */}
-            {doctorMsg && (
+            {!isDaySelected && doctorMsg && (
               <div className="px-6">
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
@@ -649,8 +765,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               </div>
             )}
 
-            {/* Realtime Goals Toast */}
-            {goalsToast && (
+            {!isDaySelected && goalsToast && (
               <div className="px-6">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -671,13 +786,13 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               </div>
             )}
 
-            {/* Today's Missions Card */}
-            <div className="px-6">
-              <TodayMissionsCard onNavClick={onNavClick} onFabClick={onFabClick} />
-            </div>
+            {!isDaySelected && (
+              <div className="px-6">
+                <TodayMissionsCard onNavClick={onNavClick} onFabClick={onFabClick} />
+              </div>
+            )}
 
-            {/* Goal Adjustment Badge */}
-            {goalAdjustment && (
+            {!isDaySelected && goalAdjustment && (
               <div className="px-6 -mt-4">
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-full w-fit border border-emerald-200 dark:border-emerald-800/40">
                   <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-sm">verified</span>
@@ -687,183 +802,229 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 </div>
               </div>
             )}
-            <div className="flex flex-col items-center justify-center px-6 py-4">
-              <div className="relative size-64 rounded-full overflow-hidden">
-                <svg className="circular-chart transform -rotate-90 w-full h-full" viewBox="0 0 36 36">
-                  <path className="circle-bg dark:stroke-[#18282e] stroke-gray-200 light-circle-bg" d="M18 2.0845
-                    a 15.9155 15.9155 0 0 1 0 31.831
-                    a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  <path
-                    className="circle"
-                    stroke={getCalorieColor()}
-                    strokeDasharray={`${Math.min(caloriePercent, 100)}, 100`}
-                    d="M18 2.0845
-                    a 15.9155 15.9155 0 0 1 0 31.831
-                    a 15.9155 15.9155 0 0 1 0 -31.831"
-                    style={{
-                      transition: 'stroke-dasharray 0.5s ease, stroke 0.3s ease',
-                    }}
-                  />
-                  {/* Second rotation indicator when over 100% */}
-                  {isOverTarget && (
-                    <path
-                      className="circle"
-                      stroke={getCalorieColor()}
-                      strokeDasharray={`${Math.max(caloriePercent - 100, 0)}, 100`}
-                      d="M18 2.0845
-                      a 15.9155 15.9155 0 0 1 0 31.831
-                      a 15.9155 15.9155 0 0 1 0 -31.831"
-                      opacity="0.3"
-                      style={{
-                        transition: 'stroke-dasharray 0.5s ease',
-                      }}
-                    />
-                  )}
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-4xl font-bold tracking-tighter text-nura-main dark:text-white">
-                    {(stats.consumedCalories ?? 0).toLocaleString()}
-                  </span>
-                  <span className="text-sm font-medium text-nura-muted dark:text-slate-400 mt-1">
-                    / {(stats.targetCalories ?? 0).toLocaleString()} {t.dashboard.kcal}
-                  </span>
-                  {isOverTarget && (
-                    <span className={`text-xs font-bold mt-1 px-2 py-0.5 rounded-full ${isWayOverTarget
-                      ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                      : 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'
-                      }`}>
-                      {Math.round(calorieRatio * 100)}% da meta
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
 
-            {/* Motivational Text - Contextual based on calorie status */}
-            <div className="text-center space-y-2 mb-4 px-6">
-              <h2 className="text-2xl font-bold tracking-tight text-nura-main dark:text-white">
-                {isWayOverTarget
-                  ? 'Atenção ao excesso!'
-                  : isOverTarget
-                    ? 'Meta ultrapassada'
-                    : t.dashboard.keepTheFlow}
-              </h2>
-              <p className="text-sm text-nura-muted dark:text-slate-400 font-medium max-w-[200px] mx-auto leading-relaxed">
-                {isWayOverTarget
-                  ? `Você consumiu ${Math.round(calorieRatio * 100)}% da sua meta. Que tal fazer uma refeição mais leve no próximo?`
-                  : isOverTarget
-                    ? `Você ultrapassou sua meta de ${(stats.targetCalories ?? 0).toLocaleString()} kcal. Fique atento às próximas refeições.`
-                    : t.dashboard.fuelingPotential}
-              </p>
-            </div>
+            {/* ── Hero card: Calories + Weekly Goal Ring ── */}
+            {(() => {
+              const ds = isDaySelected && selectedDayStats ? selectedDayStats : stats;
+              const dsWaterIntake = isDaySelected && selectedDayStats ? (selectedDayStats.waterIntake ?? 0) : waterIntake;
+              const dsWaterGoal = isDaySelected && selectedDayStats ? ((selectedDayStats.waterGoal ?? waterGoalState) || 2500) : (waterGoalState || 2500);
 
-            {/* Macro Stats */}
-            <div className="grid grid-cols-3 gap-2 w-full px-6">
-              {/* Protein */}
-              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.protein}</span>
-                  <span className={`text-[10px] font-bold ${((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1.2
-                    ? 'text-red-500'
-                    : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1
-                      ? 'text-orange-500'
-                      : 'text-nura-petrol dark:text-primary'
-                    }`}>
-                    {Math.round(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100)}%
-                  </span>
+              const todayRemaining = weeklyProgress?.todayRemaining ?? Math.max(0, stats.targetCalories - (stats.consumedCalories ?? 0));
+              const pastDeficit = weeklyProgress?.pastDeficit ?? 0;
+              const weekProgress = weeklyProgress?.progress ?? 0;
+              const daysMetGoal = weeklyProgress?.daysMetGoal ?? 0;
+              const daysElapsed = weeklyProgress?.daysElapsed ?? 1;
+              const weekPct = Math.round(weekProgress * 100);
+
+              // Color for weekly ring
+              const ringColor = weekPct >= 85 ? '#10b981' : weekPct >= 50 ? '#f59e0b' : '#6b7280';
+
+              // For past day: show consumed / target
+              const pastDayPct = isDaySelected
+                ? Math.min((ds.consumedCalories / (ds.targetCalories || 1)) * 100, 100)
+                : 0;
+              const pastDayOverTarget = isDaySelected && ds.consumedCalories > ds.targetCalories;
+
+              return (
+                <div className="px-6">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-nura-border dark:border-transparent"
+                  >
+                    <div className="flex items-center gap-5">
+                      {/* Left: calorie info */}
+                      <div className="flex-1 min-w-0">
+                        {isDaySelected ? (
+                          <>
+                            <p className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-1">
+                              Calorias consumidas
+                            </p>
+                            <p className={`text-4xl font-bold tracking-tighter leading-none ${pastDayOverTarget ? 'text-orange-500' : 'text-nura-main dark:text-white'}`}>
+                              {(ds.consumedCalories ?? 0).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-nura-muted dark:text-slate-400 mt-1">
+                              meta: {(ds.targetCalories ?? 0).toLocaleString()} kcal
+                            </p>
+                            {/* Day macro pills */}
+                            <div className="flex gap-2 mt-3 flex-wrap">
+                              {[
+                                { label: 'P', value: Math.round(ds.macros.protein), color: 'bg-nura-petrol/10 dark:bg-primary/10 text-nura-petrol dark:text-primary' },
+                                { label: 'C', value: Math.round(ds.macros.carbs), color: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' },
+                                { label: 'G', value: Math.round(ds.macros.fats), color: 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400' },
+                              ].map(m => (
+                                <span key={m.label} className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${m.color}`}>
+                                  {m.label} {m.value}g
+                                </span>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-1">
+                              Calorias restantes
+                            </p>
+                            <p className={`text-4xl font-bold tracking-tighter leading-none ${todayRemaining === 0 ? 'text-emerald-500' : 'text-nura-main dark:text-white'}`}>
+                              {todayRemaining.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-nura-muted dark:text-slate-400 mt-1">
+                              {(stats.consumedCalories ?? 0).toLocaleString()} / {(weeklyProgress?.todayEffectiveTarget ?? stats.targetCalories).toLocaleString()} kcal
+                            </p>
+                            {pastDeficit > 50 && (
+                              <div className="flex items-center gap-1 mt-2">
+                                <span className="material-symbols-outlined text-orange-400 text-[13px]">trending_up</span>
+                                <span className="text-[11px] font-semibold text-orange-500">
+                                  +{pastDeficit.toLocaleString()} acumulado de dias anteriores
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      {/* Right: weekly goal ring */}
+                      <div className="flex flex-col items-center gap-1.5 shrink-0">
+                        <div className="relative size-20">
+                          <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                            <path
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                              className="text-gray-100 dark:text-slate-700/60"
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                            <path
+                              fill="none"
+                              stroke={ringColor}
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeDasharray={`${weekPct}, 100`}
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              style={{ transition: 'stroke-dasharray 0.8s ease' }}
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-0.5">
+                            <span className="material-symbols-outlined text-[18px]" style={{ color: ringColor }}>
+                              local_fire_department
+                            </span>
+                            <span className="text-[11px] font-bold text-nura-main dark:text-white leading-none">
+                              {daysMetGoal}/{daysElapsed}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-medium text-nura-muted dark:text-slate-500 text-center leading-tight">
+                          Meta<br />semanal
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Weekly progress bar */}
+                    <div className="mt-4 pt-4 border-t border-gray-50 dark:border-white/5">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Progresso semanal</span>
+                        <span className="text-[10px] font-bold" style={{ color: ringColor }}>{weekPct}%</span>
+                      </div>
+                      <div className="h-2 w-full bg-gray-100 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${weekPct}%` }}
+                          transition={{ duration: 0.8, ease: 'easeOut' }}
+                          className="h-full rounded-full"
+                          style={{ background: `linear-gradient(to right, #6366f1, ${ringColor})` }}
+                        />
+                      </div>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-[9px] text-nura-muted dark:text-slate-500">
+                          {(weeklyProgress?.totalConsumed ?? 0).toLocaleString()} kcal
+                        </span>
+                        <span className="text-[9px] text-nura-muted dark:text-slate-500">
+                          meta {(weeklyProgress?.totalTarget ?? 0).toLocaleString()} kcal
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
                 </div>
-                <div className="flex flex-col gap-1 min-w-0">
-                  <span className="text-base font-bold text-nura-main dark:text-white leading-none">
-                    {Math.round(stats.macros.protein ?? 0)}
-                    <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.protein}g</span>
-                  </span>
-                  <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1.2
-                        ? 'bg-red-500'
-                        : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1
-                          ? 'bg-orange-500'
-                          : 'bg-nura-petrol dark:bg-primary'
-                        }`}
-                      style={{ width: `${Math.min(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100, 100)}%` }}
-                    />
+              );
+            })()}
+
+            {/* ── Macro Stats ── */}
+            {(() => {
+              const ds = isDaySelected && selectedDayStats ? selectedDayStats : stats;
+              const pRatio = (ds.macros.protein ?? 0) / (ds.targetMacros.protein || 1);
+              const cRatio = (ds.macros.carbs ?? 0) / (ds.targetMacros.carbs || 1);
+              const fRatio = (ds.macros.fats ?? 0) / (ds.targetMacros.fats || 1);
+              return (
+                <div className="grid grid-cols-3 gap-2 w-full px-6">
+                  {/* Protein */}
+                  <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent min-w-0">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.protein}</span>
+                      <span className={`text-[10px] font-bold ${pRatio > 1.2 ? 'text-red-500' : pRatio > 1 ? 'text-orange-500' : 'text-nura-petrol dark:text-primary'}`}>
+                        {Math.round(pRatio * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <span className="text-base font-bold text-nura-main dark:text-white leading-none">
+                        {Math.round(ds.macros.protein ?? 0)}
+                        <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{ds.targetMacros.protein}g</span>
+                      </span>
+                      <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${pRatio > 1.2 ? 'bg-red-500' : pRatio > 1 ? 'bg-orange-500' : 'bg-nura-petrol dark:bg-primary'}`}
+                          style={{ width: `${Math.min(pRatio * 100, 100)}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Carbs */}
+                  <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent min-w-0">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.carbs}</span>
+                      <span className={`text-[10px] font-bold ${cRatio > 1.2 ? 'text-red-500' : cRatio > 1 ? 'text-orange-500' : 'text-orange-400'}`}>
+                        {Math.round(cRatio * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <span className="text-base font-bold text-nura-main dark:text-white leading-none">
+                        {Math.round(ds.macros.carbs ?? 0)}
+                        <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{ds.targetMacros.carbs}g</span>
+                      </span>
+                      <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${cRatio > 1.2 ? 'bg-red-500' : cRatio > 1 ? 'bg-orange-500' : 'bg-orange-400'}`}
+                          style={{ width: `${Math.min(cRatio * 100, 100)}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Fats */}
+                  <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent min-w-0">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.fats}</span>
+                      <span className={`text-[10px] font-bold ${fRatio > 1.2 ? 'text-red-500' : fRatio > 1 ? 'text-orange-500' : 'text-pink-400'}`}>
+                        {Math.round(fRatio * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <span className="text-base font-bold text-nura-main dark:text-white leading-none">
+                        {Math.round(ds.macros.fats ?? 0)}
+                        <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{ds.targetMacros.fats}g</span>
+                      </span>
+                      <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${fRatio > 1.2 ? 'bg-red-500' : fRatio > 1 ? 'bg-orange-500' : 'bg-pink-400'}`}
+                          style={{ width: `${Math.min(fRatio * 100, 100)}%` }} />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              );
+            })()}
 
-              {/* Carbs */}
-              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.carbs}</span>
-                  <span className={`text-[10px] font-bold ${((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1.2
-                    ? 'text-red-500'
-                    : ((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1
-                      ? 'text-orange-500'
-                      : 'text-orange-400'
-                    }`}>
-                    {Math.round(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100)}%
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1 min-w-0">
-                  <span className="text-base font-bold text-nura-main dark:text-white leading-none">
-                    {Math.round(stats.macros.carbs ?? 0)}
-                    <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.carbs}g</span>
-                  </span>
-                  <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1.2
-                        ? 'bg-red-500'
-                        : ((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1
-                          ? 'bg-orange-500'
-                          : 'bg-orange-400'
-                        }`}
-                      style={{ width: `${Math.min(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Fats */}
-              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.fats}</span>
-                  <span className={`text-[10px] font-bold ${((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1.2
-                    ? 'text-red-500'
-                    : ((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1
-                      ? 'text-orange-500'
-                      : 'text-pink-400'
-                    }`}>
-                    {Math.round(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100)}%
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1 min-w-0">
-                  <span className="text-base font-bold text-nura-main dark:text-white leading-none">
-                    {Math.round(stats.macros.fats ?? 0)}
-                    <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.fats}g</span>
-                  </span>
-                  <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1.2
-                        ? 'bg-red-500'
-                        : ((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1
-                          ? 'bg-orange-500'
-                          : 'bg-pink-400'
-                        }`}
-                      style={{ width: `${Math.min(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Hydration Card */}
-            <div className="px-6">
-              {(() => {
-                const waterGoal = waterGoalState || 2500;
-                const waterPct = Math.min(Math.round((waterIntake / waterGoal) * 100), 100);
-                const glassesTotal = 8;
-                const glassesFilled = Math.round((waterIntake / waterGoal) * glassesTotal);
-                return (
+            {/* ── Hydration Card ── */}
+            {(() => {
+              const dsWaterIntake = isDaySelected && selectedDayStats ? (selectedDayStats.waterIntake ?? 0) : waterIntake;
+              const dsWaterGoal = isDaySelected && selectedDayStats ? ((selectedDayStats.waterGoal ?? waterGoalState) || 2500) : (waterGoalState || 2500);
+              const waterPct = Math.min(Math.round((dsWaterIntake / dsWaterGoal) * 100), 100);
+              const glassesTotal = 8;
+              const glassesFilled = Math.round((dsWaterIntake / dsWaterGoal) * glassesTotal);
+              return (
+                <div className="px-6">
                   <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
@@ -872,36 +1033,35 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-sky-400 font-bold">{waterPct}%</span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onNavClick(AppView.HYDRATION); }}
-                          className="flex items-center justify-center size-7 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-500 hover:bg-sky-100 dark:hover:bg-sky-500/20 transition-colors active:scale-95"
-                          title="Compartilhar Hidratação"
-                        >
-                          <span className="material-symbols-outlined text-[14px]">ios_share</span>
-                        </button>
+                        {!isDaySelected && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onNavClick(AppView.HYDRATION); }}
+                            className="flex items-center justify-center size-7 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-500 hover:bg-sky-100 dark:hover:bg-sky-500/20 transition-colors active:scale-95"
+                            title="Compartilhar Hidratação"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">ios_share</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-end gap-3">
                       <span className="text-2xl font-bold text-nura-main dark:text-white leading-none">
-                        {waterIntake}
-                        <span className="text-xs font-normal text-nura-muted dark:text-slate-500 ml-1">/{waterGoal} ml</span>
+                        {dsWaterIntake}
+                        <span className="text-xs font-normal text-nura-muted dark:text-slate-500 ml-1">/{dsWaterGoal} ml</span>
                       </span>
                     </div>
                     <div className="mt-3 flex gap-1.5">
                       {Array.from({ length: glassesTotal }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`flex-1 h-2 rounded-full transition-colors duration-300 ${i < glassesFilled ? 'bg-sky-400' : 'bg-nura-pastel-orange dark:bg-slate-700/50'}`}
-                        />
+                        <div key={i} className={`flex-1 h-2 rounded-full transition-colors duration-300 ${i < glassesFilled ? 'bg-sky-400' : 'bg-nura-pastel-orange dark:bg-slate-700/50'}`} />
                       ))}
                     </div>
                     <p className="text-[10px] text-nura-muted dark:text-slate-500 mt-1.5">
                       {glassesFilled} de {glassesTotal} copos · meta diária
                     </p>
                   </div>
-                );
-              })()}
-            </div>
+                </div>
+              );
+            })()}
 
             {/* Micronutrients Card — only shown when at least one micro was consumed */}
             {(() => {
@@ -993,15 +1153,15 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               );
             })()}
 
-            {/* Daily Meals Timeline */}
+            {/* ── Meals (selected day or today) ── */}
             <DailyMealsList
-              meals={meals}
-              onDeleteMeal={onDeleteMeal}
-              onEditMeal={onEditMeal}
+              meals={isDaySelected ? selectedDayMeals : meals}
+              onDeleteMeal={isDaySelected ? undefined : onDeleteMeal}
+              onEditMeal={isDaySelected ? undefined : onEditMeal}
             />
 
-            {/* GLP-1 Program Section — shown when active */}
-            {profile?.glp1_mode && (
+            {/* ── GLP-1 (today only) ── */}
+            {!isDaySelected && profile?.glp1_mode && (
               <GLP1Section />
             )}
           </>
