@@ -162,12 +162,18 @@ export const StatsService = {
 
             const stats = await this.getDailyStats(userId, currentDate);
 
+            // Use the same local-timezone window as MealService.getMeals to avoid UTC offset issues
+            const startOfDay = new Date(currentDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(currentDate);
+            endOfDay.setHours(23, 59, 59, 999);
+
             const { data: meals } = await supabase
                 .from('meals')
                 .select('*')
                 .eq('user_id', userId)
-                .gte('created_at', currentDate.toISOString())
-                .lt('created_at', new Date(currentDate.getTime() + 86400000).toISOString())
+                .gte('created_at', startOfDay.toISOString())
+                .lte('created_at', endOfDay.toISOString())
                 .order('created_at', { ascending: true });
 
             weekDays.push({

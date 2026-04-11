@@ -267,23 +267,13 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
         waterGoal: weeklyAccumulated.waterGoal,
       } as DailyStats);
 
-      // Get all meals from the week so far
+      // Get all meals from the week so far using MealService (local-timezone aware)
       const allWeekMeals: Meal[] = [];
       for (let i = 0; i < daysElapsed; i++) {
-        const dayMeals: Meal[] = weekStats[i].meals.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          timestamp: new Date(item.created_at),
-          calories: item.calories,
-          macros: {
-            protein: item.protein,
-            carbs: item.carbs,
-            fats: item.fats
-          },
-          type: item.type,
-          items: item.items,
-          imageUri: item.image_url
-        }));
+        const dateStr = weekStats[i].date;
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d);
+        const dayMeals = await MealService.getMeals(user.id, dateObj);
         allWeekMeals.push(...dayMeals);
       }
 
@@ -537,18 +527,12 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
         waterGoal: weeklyAccumulated.waterGoal,
       } as DailyStats);
 
+      // Fetch accumulated week meals using MealService (local-timezone aware)
       const allWeekMeals: Meal[] = [];
       for (let i = 0; i < daysElapsed; i++) {
-        const dayMeals: Meal[] = weekDaysData[i].meals.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          timestamp: new Date(item.created_at),
-          calories: item.calories,
-          macros: { protein: item.protein, carbs: item.carbs, fats: item.fats },
-          type: item.type,
-          items: item.items,
-          imageUri: item.image_url
-        }));
+        const dateStr = weekDaysData[i].date;
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const dayMeals = await MealService.getMeals(user.id, new Date(y, m - 1, d));
         allWeekMeals.push(...dayMeals);
       }
       allWeekMeals.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
@@ -561,18 +545,15 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
       const selectedDay = weekDaysData.find(d => d.date === date);
       if (selectedDay) {
         setSelectedDayStats(selectedDay.stats);
+      }
 
-        const meals: Meal[] = selectedDay.meals.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          timestamp: new Date(item.created_at),
-          calories: item.calories,
-          macros: { protein: item.protein, carbs: item.carbs, fats: item.fats },
-          type: item.type,
-          items: item.items,
-          imageUri: item.image_url
-        }));
-        setSelectedDayMeals(meals);
+      // Fetch meals using MealService (same local-timezone window used by getDailyStats)
+      // This avoids UTC offset issues that can make the raw query return empty
+      if (user) {
+        const [y, m, d] = date.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d); // constructs date in local timezone
+        const freshMeals = await MealService.getMeals(user.id, dateObj);
+        setSelectedDayMeals(freshMeals);
       }
     }
   };
