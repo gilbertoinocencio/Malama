@@ -59,6 +59,40 @@ export interface DailyStats {
   waterGoal?: number;  // ml
 }
 
+export interface WeekDay {
+  date: string;
+  dayName: string;
+  dayNumber: number;
+  stats: DailyStats | null;
+  meals: Meal[];
+  isToday: boolean;
+  isSelected: boolean;
+  isFuture: boolean;
+}
+
+export interface MonthWeek {
+  weekIndex: number;     // 0-based index in the month view
+  label: string;         // "Sem 1", "Sem 2", …
+  startDate: string;     // YYYY-MM-DD (Sunday)
+  endDate: string;       // YYYY-MM-DD (Saturday)
+  days: WeekDay[];       // exactly 7 entries
+  daysMetGoal: number;
+  daysWithData: number;
+  isCurrent: boolean;    // contains today
+  isFuture: boolean;     // startDate > today
+}
+
+export interface MonthSummary {
+  totalConsumed: number;
+  totalTarget: number;
+  monthProgress: number; // 0–1
+  weeksMetGoal: number;  // weeks with daysMetGoal >= 5
+  totalDaysMetGoal: number;
+  daysWithData: number;
+  month: number;         // 0-based JS month
+  year: number;
+}
+
 export enum AppView {
   HOME = 'HOME',
   FEED = 'FEED',

@@ -1,8 +1,19 @@
 import { supabase } from './supabase';
-import { DailyStats, MicroNutrients } from '../types';
+import { DailyStats, MicroNutrients, WeekDay, MonthWeek, MonthSummary } from '../types';
 import { INITIAL_STATS } from '../constants';
 import { MealService } from './mealService';
 import { getLocalDateString } from '../utils/dateUtils';
+
+// Shared helper: returns true if all macro + hydration goals are ≥ 85%
+export const checkDayGoalMet = (stats: DailyStats | null): boolean => {
+  if (!stats) return false;
+  const calRatio = stats.consumedCalories / (stats.targetCalories || 1);
+  const pRatio   = stats.macros.protein / (stats.targetMacros.protein || 1);
+  const cRatio   = stats.macros.carbs   / (stats.targetMacros.carbs   || 1);
+  const fRatio   = stats.macros.fats    / (stats.targetMacros.fats    || 1);
+  const wRatio   = (stats.waterIntake || 0) / (stats.waterGoal || 1);
+  return calRatio >= 0.85 && pRatio >= 0.85 && cRatio >= 0.85 && fRatio >= 0.85 && wRatio >= 0.85;
+};
 
 export const StatsService = {
     // Calculate Flow Score based on adherence
@@ -260,5 +271,228 @@ export const StatsService = {
             daysMet,
             totalDays: 7,
         };
-    }
+    },
+
+    // Get all weeks of a given month, with per-day stats computed from 4 batched Supabase queries
+    async getMonthStats(
+        userId: string,
+        year: number,
+        month: number // 0-based JS month
+    ): Promise<{ weeks: MonthWeek[]; monthSummary: MonthSummary }> {
+        const today = new Date();
+        const todayStr = getLocalDateString(today);
+
+        // Calendar grid: Sunday on or before month start → Saturday on or after month end
+        const monthStart = new Date(year, month, 1);
+        const monthEnd   = new Date(year, month + 1, 0); // last day of month
+
+        const gridStart = new Date(monthStart);
+        gridStart.setDate(monthStart.getDate() - monthStart.getDay()); // back to Sunday
+        gridStart.setHours(0, 0, 0, 0);
+
+        const gridEnd = new Date(monthEnd);
+        const daysToSat = 6 - monthEnd.getDay();
+        gridEnd.setDate(monthEnd.getDate() + daysToSat); // forward to Saturday
+        gridEnd.setHours(23, 59, 59, 999);
+
+        const gridStartStr = getLocalDateString(gridStart);
+        const gridEndStr   = getLocalDateString(gridEnd);
+
+        // ── 4 parallel Supabase queries ──────────────────────────────────────
+        const [
+            { data: profile },
+            { data: activePlan },
+            { data: rawMeals },
+            { data: waterLogs },
+        ] = await Promise.all([
+            supabase
+                .from('profiles')
+                .select('target_calories, target_protein, target_carbs, target_fats, weight, activity_level')
+                .eq('id', userId)
+                .maybeSingle(),
+            supabase
+                .from('quarterly_plans')
+                .select('content')
+                .eq('user_id', userId)
+                .eq('status', 'active')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle(),
+            supabase
+                .from('meals')
+                .select('id, name, calories, protein, carbs, fats, type, created_at, items, image_url')
+                .eq('user_id', userId)
+                .gte('created_at', gridStart.toISOString())
+                .lte('created_at', gridEnd.toISOString())
+                .order('created_at', { ascending: true }),
+            supabase
+                .from('daily_logs')
+                .select('date, water_intake, water_goal')
+                .eq('user_id', userId)
+                .gte('date', gridStartStr)
+                .lte('date', gridEndStr),
+        ]);
+
+        // ── Resolve targets ──────────────────────────────────────────────────
+        let target_calories = profile?.target_calories ?? 2000;
+        let target_protein  = profile?.target_protein  ?? 150;
+        let target_carbs    = profile?.target_carbs    ?? 200;
+        let target_fats     = profile?.target_fats     ?? 65;
+        if (activePlan?.content) {
+            target_calories = activePlan.content.calories          || target_calories;
+            target_protein  = activePlan.content.macros?.protein   || target_protein;
+            target_carbs    = activePlan.content.macros?.carbs     || target_carbs;
+            target_fats     = activePlan.content.macros?.fats      || target_fats;
+        }
+        const targets = { target_calories, target_protein, target_carbs, target_fats };
+
+        const defaultWaterGoal = (() => {
+            const weight = profile?.weight || 70;
+            const base = Math.max(3000, Math.round(weight * 35));
+            const bonus = profile?.activity_level === 'intense' ? 600
+                : profile?.activity_level === 'moderate' ? 300 : 0;
+            return base + bonus;
+        })();
+
+        // ── Build lookup maps ────────────────────────────────────────────────
+        const mealsByDate = new Map<string, typeof rawMeals>();
+        for (const meal of rawMeals || []) {
+            const d = getLocalDateString(new Date(meal.created_at));
+            if (!mealsByDate.has(d)) mealsByDate.set(d, []);
+            mealsByDate.get(d)!.push(meal);
+        }
+        const waterByDate = new Map<string, { water_intake: number; water_goal: number }>();
+        for (const log of waterLogs || []) {
+            waterByDate.set(log.date, { water_intake: log.water_intake, water_goal: log.water_goal });
+        }
+
+        const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+        // ── Build weeks ──────────────────────────────────────────────────────
+        const weeks: MonthWeek[] = [];
+        let cursor = new Date(gridStart);
+        let weekIdx = 0;
+
+        while (cursor <= gridEnd) {
+            const weekStartDate = getLocalDateString(cursor);
+            const days: WeekDay[] = [];
+
+            for (let d = 0; d < 7; d++) {
+                const dayDate = new Date(cursor);
+                const dateStr = getLocalDateString(dayDate);
+                const isToday  = dateStr === todayStr;
+                const isFuture = dateStr > todayStr;
+                const isInMonth = dayDate.getMonth() === month && dayDate.getFullYear() === year;
+
+                let stats: DailyStats | null = null;
+                let meals: any[] = [];
+
+                if (!isFuture) {
+                    const dayMeals = mealsByDate.get(dateStr) || [];
+                    meals = dayMeals.map((item: any) => ({
+                        id: item.id,
+                        name: item.name,
+                        timestamp: new Date(item.created_at),
+                        calories: item.calories,
+                        macros: { protein: item.protein, carbs: item.carbs, fats: item.fats },
+                        type: item.type,
+                        items: item.items,
+                        imageUri: item.image_url,
+                    }));
+
+                    const consumed = dayMeals.reduce(
+                        (acc: any, m: any) => ({
+                            calories: acc.calories + m.calories,
+                            protein: acc.protein + m.protein,
+                            carbs: acc.carbs + m.carbs,
+                            fats: acc.fats + m.fats,
+                        }),
+                        { calories: 0, protein: 0, carbs: 0, fats: 0 }
+                    );
+
+                    const waterLog = waterByDate.get(dateStr);
+                    const waterIntake = waterLog?.water_intake ?? 0;
+                    const waterGoal   = waterLog?.water_goal   ?? defaultWaterGoal;
+
+                    const nutritionScore = this.calculateFlowScore(consumed, targets);
+                    const hydrationRatio = waterGoal > 0 ? waterIntake / waterGoal : 0;
+                    const hydrationScore = hydrationRatio >= 0.85 && hydrationRatio <= 1.15
+                        ? 100
+                        : hydrationRatio < 0.85
+                            ? hydrationRatio * 100
+                            : Math.max(0, 100 - (hydrationRatio - 1.15) * 100);
+                    const flowScore = Math.round(nutritionScore * 0.8 + hydrationScore * 0.2);
+
+                    stats = {
+                        consumedCalories: consumed.calories,
+                        targetCalories: targets.target_calories,
+                        macros: { protein: consumed.protein, carbs: consumed.carbs, fats: consumed.fats },
+                        targetMacros: { protein: targets.target_protein, carbs: targets.target_carbs, fats: targets.target_fats },
+                        flowScore,
+                        waterIntake,
+                        waterGoal,
+                    };
+                }
+
+                days.push({
+                    date: dateStr,
+                    dayName: DAY_NAMES[dayDate.getDay()],
+                    dayNumber: dayDate.getDate(),
+                    stats,
+                    meals,
+                    isToday,
+                    isSelected: false,
+                    isFuture,
+                });
+
+                cursor.setDate(cursor.getDate() + 1);
+            }
+
+            const weekEndDate = getLocalDateString(new Date(cursor.getTime() - 86400000));
+            const daysMetGoal  = days.filter(d => checkDayGoalMet(d.stats)).length;
+            const daysWithData = days.filter(d => (d.stats?.consumedCalories ?? 0) > 0).length;
+
+            weeks.push({
+                weekIndex: weekIdx,
+                label: `Sem ${weekIdx + 1}`,
+                startDate: weekStartDate,
+                endDate: weekEndDate,
+                days,
+                daysMetGoal,
+                daysWithData,
+                isCurrent: days.some(d => d.isToday),
+                isFuture: weekStartDate > todayStr,
+            });
+
+            weekIdx++;
+        }
+
+        // ── Month summary (in-month days only) ───────────────────────────────
+        let totalConsumed = 0, totalTarget = 0, totalDaysMetGoal = 0, daysWithData = 0;
+        for (const week of weeks) {
+            for (const day of week.days) {
+                const inMonth = new Date(day.date + 'T00:00:00').getMonth() === month;
+                if (!inMonth || day.isFuture) continue;
+                totalConsumed    += day.stats?.consumedCalories ?? 0;
+                totalTarget      += targets.target_calories;
+                daysWithData     += (day.stats?.consumedCalories ?? 0) > 0 ? 1 : 0;
+                if (checkDayGoalMet(day.stats)) totalDaysMetGoal++;
+            }
+        }
+        const weeksMetGoal = weeks.filter(w => w.daysMetGoal >= 5).length;
+
+        return {
+            weeks,
+            monthSummary: {
+                totalConsumed,
+                totalTarget,
+                monthProgress: totalTarget > 0 ? Math.min(totalConsumed / totalTarget, 1) : 0,
+                weeksMetGoal,
+                totalDaysMetGoal,
+                daysWithData,
+                month,
+                year,
+            },
+        };
+    },
 };

@@ -1,84 +1,49 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { WeekDay, DailyStats } from '../types';
+import { MonthWeek } from '../types';
 
-interface WeekDaysCircleProps {
-  weekDays: WeekDay[];
-  onDayClick: (date: string) => void;
-  selectedDate: string;
+interface MonthWeeksGridProps {
+  weeks: MonthWeek[];
+  onWeekClick: (weekIndex: number) => void;
+  selectedWeekIndex: number | null;
 }
 
-// --- helpers -----------------------------------------------------------
-
-const checkDayGoal = (stats: DailyStats | null): boolean => {
-  if (!stats) return false;
-  const calRatio = stats.consumedCalories / (stats.targetCalories || 1);
-  const pRatio   = stats.macros.protein / (stats.targetMacros.protein || 1);
-  const cRatio   = stats.macros.carbs   / (stats.targetMacros.carbs   || 1);
-  const fRatio   = stats.macros.fats    / (stats.targetMacros.fats    || 1);
-  const wRatio   = (stats.waterIntake || 0) / (stats.waterGoal || 1);
-  return (
-    calRatio >= 0.85 &&
-    pRatio   >= 0.85 &&
-    cRatio   >= 0.85 &&
-    fRatio   >= 0.85 &&
-    wRatio   >= 0.85
-  );
-};
-
-/** 0 – 1 based on average macro + hydration progress */
-const getDayProgress = (stats: DailyStats | null): number => {
-  if (!stats) return 0;
-  const r = (n: number, t: number) => Math.min(n / (t || 1), 1);
-  return (
-    r(stats.consumedCalories,        stats.targetCalories) +
-    r(stats.macros.protein,          stats.targetMacros.protein) +
-    r(stats.macros.carbs,            stats.targetMacros.carbs) +
-    r(stats.macros.fats,             stats.targetMacros.fats) +
-    r(stats.waterIntake || 0,        stats.waterGoal || 1)
-  ) / 5;
-};
-
-// SVG arc path (circumference ≈ 100 so strokeDasharray maps to %)
+// SVG arc path — circumference ≈ 100 so strokeDasharray maps to %
 const ARC = 'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831';
 
-// -----------------------------------------------------------------------
-
-export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
-  weekDays,
-  onDayClick,
-  selectedDate,
+export const MonthWeeksGrid: React.FC<MonthWeeksGridProps> = ({
+  weeks,
+  onWeekClick,
+  selectedWeekIndex,
 }) => {
   return (
     <div className="px-4 py-3">
       <div className="flex items-end justify-between">
-        {weekDays.map((day, index) => {
-          const isSelected  = day.date === selectedDate;
-          const isClickable = !day.isFuture;
+        {weeks.map((week, index) => {
+          const isSelected  = selectedWeekIndex === week.weekIndex;
+          const isClickable = !week.isFuture;
 
-          // A day "has data" only if at least some calories were consumed
-          const hasData = !day.isFuture && !!day.stats && day.stats.consumedCalories > 0;
-          const goalMet = hasData && checkDayGoal(day.stats);
-          const progress = hasData ? getDayProgress(day.stats) : 0;
-          // clamp to [1, 100] when hasData so we always see at least a sliver
-          const pct = hasData ? Math.max(Math.round(progress * 100), 4) : 0;
+          const hasData = !week.isFuture && week.daysWithData > 0;
+          const goalMet = hasData && week.daysMetGoal >= 5;
+          const pct = hasData
+            ? Math.max(Math.round((week.daysMetGoal / 7) * 100), week.daysMetGoal > 0 ? 4 : 0)
+            : 0;
 
-          // ---- colours --------------------------------------------------
           // Ring stroke colour
           const ringStroke = goalMet
             ? '#10b981'   // emerald-500
             : hasData
               ? '#f59e0b'   // amber-500
-              : '#d1d5db';  // gray-300  (no data / future)
+              : '#d1d5db';  // gray-300
 
           // Inner fill colour
           const innerFill = isSelected
             ? '#ffffff'
             : goalMet
-              ? '#ecfdf5'   // emerald tint
+              ? '#ecfdf5'
               : hasData
-                ? '#fffbeb'   // amber tint
-                : '#f9fafb';  // gray-50
+                ? '#fffbeb'
+                : '#f9fafb';
 
           // Number colour
           const numClass = isSelected
@@ -87,54 +52,59 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
               ? 'font-semibold text-emerald-600 dark:text-emerald-400'
               : hasData
                 ? 'font-medium text-amber-600 dark:text-amber-400'
-                : day.isFuture
+                : week.isFuture
                   ? 'text-gray-300 dark:text-gray-600'
                   : 'text-gray-400 dark:text-gray-500';
 
           // Label colour
-          const labelClass = day.isToday || isSelected
+          const labelClass = week.isCurrent || isSelected
             ? 'text-nura-petrol dark:text-primary font-semibold'
-            : day.isFuture
+            : week.isFuture
               ? 'text-gray-300 dark:text-gray-600'
               : 'text-gray-400 dark:text-gray-500';
 
+          // Short date range for sub-label (e.g. "1–7")
+          const startDay = parseInt(week.startDate.split('-')[2], 10);
+          const endDay   = parseInt(week.endDate.split('-')[2], 10);
+          const dateRange = `${startDay}–${endDay}`;
+
           return (
             <motion.button
-              key={day.date}
+              key={week.weekIndex}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.04, duration: 0.22 }}
-              onClick={() => isClickable && onDayClick(day.date)}
+              transition={{ delay: index * 0.05, duration: 0.22 }}
+              onClick={() => isClickable && onWeekClick(week.weekIndex)}
               disabled={!isClickable}
               className={`
                 flex flex-col items-center gap-1 flex-1 min-w-0
                 ${isClickable ? 'cursor-pointer' : 'cursor-default'}
               `}
             >
-              {/* Day label — above the circle */}
+              {/* Week label — above circle */}
               <span className={`text-[10px] leading-none ${labelClass}`}>
-                {day.isToday ? 'Hoje' : day.dayName}
+                {week.label}
               </span>
 
               {/* SVG circle */}
               <div className={`relative transition-transform duration-150 ${isSelected ? 'scale-110' : 'hover:scale-105'}`}>
                 <svg
-                  width="40"
-                  height="40"
+                  width="44"
+                  height="44"
                   viewBox="0 0 36 36"
                   className="-rotate-90"
                 >
-                  {/* Track (background ring) */}
+                  {/* Track */}
                   <path
                     fill="none"
                     stroke="#e5e7eb"
                     strokeWidth="2.2"
-                    strokeDasharray={day.isFuture ? '3 3' : undefined}
+                    strokeDasharray={week.isFuture ? '3 3' : undefined}
                     d={ARC}
                     className="dark:stroke-slate-700"
                   />
 
-                  {/* Progress arc — only rendered when there is data */}
+                  {/* Progress arc — only when data exists */}
                   {hasData && (
                     <path
                       fill="none"
@@ -147,7 +117,7 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
                     />
                   )}
 
-                  {/* Selected day extra ring */}
+                  {/* Selected week extra ring */}
                   {isSelected && (
                     <path
                       fill="none"
@@ -161,23 +131,19 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
                   )}
 
                   {/* Inner filled circle */}
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="13.5"
-                    fill={innerFill}
-                  />
+                  <circle cx="18" cy="18" r="13.5" fill={innerFill} />
                 </svg>
 
-                {/* Day number */}
+                {/* Week numeral */}
                 <span
                   className={`
-                    absolute inset-0 flex items-center justify-center
-                    text-[13px] leading-none select-none
+                    absolute inset-0 flex flex-col items-center justify-center
+                    select-none leading-none
                     ${numClass}
                   `}
                 >
-                  {day.dayNumber}
+                  <span className="text-[12px]">{week.weekIndex + 1}</span>
+                  <span className="text-[8px] text-gray-400 dark:text-gray-500 font-normal mt-0.5">{dateRange}</span>
                 </span>
 
                 {/* Goal-met badge */}
@@ -197,6 +163,13 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
                   )}
                 </AnimatePresence>
               </div>
+
+              {/* Days met sub-label */}
+              <span className={`text-[9px] leading-none ${
+                hasData ? (goalMet ? 'text-emerald-500' : 'text-amber-500') : 'text-gray-300 dark:text-gray-600'
+              }`}>
+                {hasData ? `${week.daysMetGoal}/7` : ''}
+              </span>
             </motion.button>
           );
         })}
