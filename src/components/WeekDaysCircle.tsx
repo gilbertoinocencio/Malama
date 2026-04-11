@@ -44,7 +44,7 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
 
   const checkDayGoal = (stats: DailyStats | null): boolean => {
     if (!stats) return false;
-    
+
     const calorieRatio = stats.consumedCalories / (stats.targetCalories || 1);
     const proteinRatio = stats.macros.protein / (stats.targetMacros.protein || 1);
     const carbsRatio = stats.macros.carbs / (stats.targetMacros.carbs || 1);
@@ -52,8 +52,8 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
     const waterRatio = (stats.waterIntake || 0) / (stats.waterGoal || 1);
 
     // Meta batida se todos os macros e hidratação estão pelo menos em 85%
-    const macrosMet = calorieRatio >= 0.85 && proteinRatio >= 0.85 && 
-                      carbsRatio >= 0.85 && fatsRatio >= 0.85;
+    const macrosMet = calorieRatio >= 0.85 && proteinRatio >= 0.85 &&
+      carbsRatio >= 0.85 && fatsRatio >= 0.85;
     const waterMet = waterRatio >= 0.85;
 
     return macrosMet && waterMet;
@@ -62,20 +62,20 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
   const getCircleColor = (stats: DailyStats | null, isFuture: boolean): string => {
     if (isFuture) return 'bg-gray-200 dark:bg-gray-700';
     if (!stats) return 'bg-gray-300 dark:bg-gray-600';
-    
+
     const goalMet = checkDayGoal(stats);
-    return goalMet 
-      ? 'bg-gradient-to-br from-emerald-400 to-green-500 dark:from-emerald-500 dark:to-green-600' 
+    return goalMet
+      ? 'bg-gradient-to-br from-emerald-400 to-green-500 dark:from-emerald-500 dark:to-green-600'
       : 'bg-gradient-to-br from-orange-400 to-amber-500 dark:from-orange-500 dark:to-amber-600';
   };
 
   const getRingColor = (stats: DailyStats | null, isFuture: boolean): string => {
     if (isFuture) return 'ring-gray-200 dark:ring-gray-700';
     if (!stats) return 'ring-gray-300 dark:ring-gray-600';
-    
+
     const goalMet = checkDayGoal(stats);
-    return goalMet 
-      ? 'ring-emerald-400 dark:ring-emerald-500' 
+    return goalMet
+      ? 'ring-emerald-400 dark:ring-emerald-500'
       : 'ring-orange-400 dark:ring-orange-500';
   };
 
@@ -122,9 +122,6 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
             </span>
           </div>
         </div>
-        <p className="text-xs text-nura-muted dark:text-slate-400 mt-2 text-center">
-          {t.week.metaAcumulada}
-        </p>
       </div>
 
       {/* Week Days Circles */}
@@ -132,7 +129,7 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
         {weekDays.map((day, index) => {
           const goalMet = checkDayGoal(day.stats);
           const isSelected = day.date === selectedDate;
-          
+
           return (
             <motion.button
               key={day.date}
@@ -141,28 +138,24 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
               transition={{ delay: index * 0.05 }}
               onClick={() => !day.isFuture && onDayClick(day.date)}
               disabled={day.isFuture}
-              className={`flex flex-col items-center gap-2 min-w-[48px] cursor-pointer transition-all duration-200 ${
-                day.isFuture ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-              }`}
+              className={`flex flex-col items-center gap-2 min-w-[48px] cursor-pointer transition-all duration-200 ${day.isFuture ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                }`}
             >
               <div className="relative">
                 <div
-                  className={`size-12 rounded-full flex items-center justify-center ring-2 transition-all duration-300 ${
-                    isSelected
+                  className={`size-12 rounded-full flex items-center justify-center ring-2 transition-all duration-300 ${isSelected
                       ? 'ring-4 ring-nura-petrol dark:ring-primary scale-110'
                       : getRingColor(day.stats, day.isFuture)
-                  }`}
+                    }`}
                 >
                   <div
-                    className={`size-10 rounded-full flex items-center justify-center ${
-                      getCircleColor(day.stats, day.isFuture)
-                    }`}
+                    className={`size-10 rounded-full flex items-center justify-center ${getCircleColor(day.stats, day.isFuture)
+                      }`}
                   >
-                    <span className={`text-xs font-bold ${
-                      day.isFuture || !day.stats
+                    <span className={`text-xs font-bold ${day.isFuture || !day.stats
                         ? 'text-gray-500 dark:text-gray-400'
                         : 'text-white'
-                    }`}>
+                      }`}>
                       {day.dayNumber}
                     </span>
                   </div>
@@ -175,13 +168,12 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
                   </div>
                 )}
               </div>
-              <span className={`text-[10px] font-semibold ${
-                day.isToday
+              <span className={`text-[10px] font-semibold ${day.isToday
                   ? 'text-nura-petrol dark:text-primary'
                   : day.isFuture
-                  ? 'text-gray-400 dark:text-gray-500'
-                  : 'text-nura-muted dark:text-slate-400'
-              }`}>
+                    ? 'text-gray-400 dark:text-gray-500'
+                    : 'text-nura-muted dark:text-slate-400'
+                }`}>
                 {day.isToday ? 'Hoje' : day.dayName}
               </span>
             </motion.button>

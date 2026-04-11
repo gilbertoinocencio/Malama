@@ -224,7 +224,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     if (user && period === 'week') {
       loadWeekData();
     }
-  }, [user, period, selectedDate]);
+  }, [user, period]);
 
   const loadWeekData = async () => {
     if (!user) return;
@@ -236,12 +236,58 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
       const progress = await StatsService.getWeeklyGoalProgress(user.id);
       setWeeklyProgress(progress);
 
-      // Load selected day stats
-      const selectedDay = weekStats.find(d => d.date === selectedDate);
-      if (selectedDay) {
-        setSelectedDayStats(selectedDay.stats);
+      // Calculate weekly accumulated stats
+      const today = getLocalDateString(new Date());
+      const daysElapsed = weekStats.findIndex(d => d.date === today) + 1;
 
-        const meals: Meal[] = selectedDay.meals.map((item: any) => ({
+      let weeklyAccumulated = {
+        consumedCalories: 0,
+        targetCalories: 0,
+        protein: 0,
+        targetProtein: 0,
+        carbs: 0,
+        targetCarbs: 0,
+        fats: 0,
+        targetFats: 0,
+        waterIntake: 0,
+        waterGoal: 0,
+      };
+
+      for (let i = 0; i < daysElapsed; i++) {
+        const day = weekStats[i];
+        weeklyAccumulated.consumedCalories += day.stats.consumedCalories;
+        weeklyAccumulated.targetCalories += day.stats.targetCalories;
+        weeklyAccumulated.protein += day.stats.macros.protein;
+        weeklyAccumulated.targetProtein += day.stats.targetMacros.protein;
+        weeklyAccumulated.carbs += day.stats.macros.carbs;
+        weeklyAccumulated.targetCarbs += day.stats.targetMacros.carbs;
+        weeklyAccumulated.fats += day.stats.macros.fats;
+        weeklyAccumulated.targetFats += day.stats.targetMacros.fats;
+        weeklyAccumulated.waterIntake += day.stats.waterIntake || 0;
+        weeklyAccumulated.waterGoal += day.stats.waterGoal || 0;
+      }
+
+      setSelectedDayStats({
+        consumedCalories: weeklyAccumulated.consumedCalories,
+        targetCalories: weeklyAccumulated.targetCalories,
+        macros: {
+          protein: weeklyAccumulated.protein,
+          carbs: weeklyAccumulated.carbs,
+          fats: weeklyAccumulated.fats,
+        },
+        targetMacros: {
+          protein: weeklyAccumulated.targetProtein,
+          carbs: weeklyAccumulated.targetCarbs,
+          fats: weeklyAccumulated.targetFats,
+        },
+        waterIntake: weeklyAccumulated.waterIntake,
+        waterGoal: weeklyAccumulated.waterGoal,
+      } as DailyStats);
+
+      // Get all meals from the week so far
+      const allWeekMeals: Meal[] = [];
+      for (let i = 0; i < daysElapsed; i++) {
+        const dayMeals: Meal[] = weekStats[i].meals.map((item: any) => ({
           id: item.id,
           name: item.name,
           timestamp: new Date(item.created_at),
@@ -255,8 +301,13 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
           items: item.items,
           imageUri: item.image_url
         }));
-        setSelectedDayMeals(meals);
+        allWeekMeals.push(...dayMeals);
       }
+
+      // Sort by timestamp descending (most recent first)
+      allWeekMeals.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      setSelectedDayMeals(allWeekMeals);
+
     } catch (error) {
       console.error('Error loading week data:', error);
     }
@@ -367,8 +418,99 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     });
   }, [weekDaysData, selectedDate]);
 
-  const handleDayClick = (date: string) => {
-    setSelectedDate(date);
+  const [isDaySelected, setIsDaySelected] = useState(false);
+
+  const handleDayClick = async (date: string) => {
+    if (selectedDate === date) {
+      // If clicking the same date, reset to weekly accumulated
+      setIsDaySelected(false);
+
+      // Reload weekly accumulated
+      const today = getLocalDateString(new Date());
+      const daysElapsed = weekDaysData.findIndex(d => d.date === today) + 1;
+
+      let weeklyAccumulated = {
+        consumedCalories: 0,
+        targetCalories: 0,
+        protein: 0,
+        targetProtein: 0,
+        carbs: 0,
+        targetCarbs: 0,
+        fats: 0,
+        targetFats: 0,
+        waterIntake: 0,
+        waterGoal: 0,
+      };
+
+      for (let i = 0; i < daysElapsed; i++) {
+        const day = weekDaysData[i];
+        weeklyAccumulated.consumedCalories += day.stats.consumedCalories;
+        weeklyAccumulated.targetCalories += day.stats.targetCalories;
+        weeklyAccumulated.protein += day.stats.macros.protein;
+        weeklyAccumulated.targetProtein += day.stats.targetMacros.protein;
+        weeklyAccumulated.carbs += day.stats.macros.carbs;
+        weeklyAccumulated.targetCarbs += day.stats.targetMacros.carbs;
+        weeklyAccumulated.fats += day.stats.macros.fats;
+        weeklyAccumulated.targetFats += day.stats.targetMacros.fats;
+        weeklyAccumulated.waterIntake += day.stats.waterIntake || 0;
+        weeklyAccumulated.waterGoal += day.stats.waterGoal || 0;
+      }
+
+      setSelectedDayStats({
+        consumedCalories: weeklyAccumulated.consumedCalories,
+        targetCalories: weeklyAccumulated.targetCalories,
+        macros: {
+          protein: weeklyAccumulated.protein,
+          carbs: weeklyAccumulated.carbs,
+          fats: weeklyAccumulated.fats,
+        },
+        targetMacros: {
+          protein: weeklyAccumulated.targetProtein,
+          carbs: weeklyAccumulated.targetCarbs,
+          fats: weeklyAccumulated.targetFats,
+        },
+        waterIntake: weeklyAccumulated.waterIntake,
+        waterGoal: weeklyAccumulated.waterGoal,
+      } as DailyStats);
+
+      const allWeekMeals: Meal[] = [];
+      for (let i = 0; i < daysElapsed; i++) {
+        const dayMeals: Meal[] = weekDaysData[i].meals.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          timestamp: new Date(item.created_at),
+          calories: item.calories,
+          macros: { protein: item.protein, carbs: item.carbs, fats: item.fats },
+          type: item.type,
+          items: item.items,
+          imageUri: item.image_url
+        }));
+        allWeekMeals.push(...dayMeals);
+      }
+      allWeekMeals.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      setSelectedDayMeals(allWeekMeals);
+    } else {
+      // Load specific day data
+      setSelectedDate(date);
+      setIsDaySelected(true);
+
+      const selectedDay = weekDaysData.find(d => d.date === date);
+      if (selectedDay) {
+        setSelectedDayStats(selectedDay.stats);
+
+        const meals: Meal[] = selectedDay.meals.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          timestamp: new Date(item.created_at),
+          calories: item.calories,
+          macros: { protein: item.protein, carbs: item.carbs, fats: item.fats },
+          type: item.type,
+          items: item.items,
+          imageUri: item.image_url
+        }));
+        setSelectedDayMeals(meals);
+      }
+    }
   };
 
   return (
@@ -899,12 +1041,34 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 {/* Selected Day History */}
                 <div className="px-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-nura-main dark:text-white text-lg font-bold">
-                      {t.week.selectedDay}: {(() => {
-                        const date = new Date(selectedDate + 'T00:00:00');
-                        return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-                      })()}
-                    </h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-nura-main dark:text-white text-lg font-bold">
+                        {isDaySelected ? (
+                          <>
+                            {t.week.selectedDay}: {(() => {
+                              const date = new Date(selectedDate + 'T00:00:00');
+                              return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+                            })()}
+                          </>
+                        ) : (
+                          'Acumulado da Semana'
+                        )}
+                      </h2>
+                      {!isDaySelected && (
+                        <span className="text-[10px] text-nura-muted dark:text-slate-400 bg-nura-petrol/10 dark:bg-primary/10 px-2 py-0.5 rounded-full">
+                          Toque em um dia para ver detalhes
+                        </span>
+                      )}
+                    </div>
+                    {isDaySelected && (
+                      <button
+                        onClick={() => handleDayClick(selectedDate)}
+                        className="text-xs text-nura-petrol dark:text-primary font-semibold hover:underline flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-sm">undo</span>
+                        Ver acumulado
+                      </button>
+                    )}
                   </div>
 
                   {selectedDayStats ? (
