@@ -13,6 +13,9 @@ import { DailyMealsList } from './DailyMealsList';
 import { getLocalDateString } from '../utils/dateUtils';
 import { getTodayConsultation, getDoctorMessage, getLatestGoalAdjustment } from '../lib/scheduling';
 import { GLP1Section } from './GLP1Section';
+import { WeekDaysCircle } from './WeekDaysCircle';
+import { StatsService } from '../services/statsService';
+import { MealService } from '../services/mealService';
 
 interface FlowDashboardProps {
   stats: DailyStats;
@@ -60,6 +63,26 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   type InsightData = { consistencyChange: number | null; peakHour: number | null };
   const [insightData, setInsightData] = useState<InsightData>({ consistencyChange: null, peakHour: null });
 
+  // Week view state
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString(new Date()));
+  const [selectedDayStats, setSelectedDayStats] = useState<DailyStats | null>(null);
+  const [selectedDayMeals, setSelectedDayMeals] = useState<Meal[]>([]);
+  const [weekDaysData, setWeekDaysData] = useState<any[]>([]);
+  const [weeklyProgress, setWeeklyProgress] = useState<{
+    caloriesConsumed: number;
+    caloriesTarget: number;
+    proteinConsumed: number;
+    proteinTarget: number;
+    carbsConsumed: number;
+    carbsTarget: number;
+    fatsConsumed: number;
+    fatsTarget: number;
+    waterConsumed: number;
+    waterTarget: number;
+    daysMet: number;
+    totalDays: number;
+  } | null>(null);
+
   // Telemedicine state
   const [todayConsultation, setTodayConsultation] = useState<any>(null);
   const [doctorMsg, setDoctorMsg] = useState<any>(null);
@@ -85,9 +108,9 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   // Load telemedicine data
   useEffect(() => {
     if (!user) return;
-    getTodayConsultation(user.id).then(setTodayConsultation).catch(() => {});
-    getDoctorMessage(user.id).then(setDoctorMsg).catch(() => {});
-    getLatestGoalAdjustment(user.id).then(setGoalAdjustment).catch(() => {});
+    getTodayConsultation(user.id).then(setTodayConsultation).catch(() => { });
+    getDoctorMessage(user.id).then(setDoctorMsg).catch(() => { });
+    getLatestGoalAdjustment(user.id).then(setGoalAdjustment).catch(() => { });
   }, [user]);
 
   // Realtime goals sync
@@ -98,7 +121,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
       .on('broadcast', { event: 'goals_updated' }, ({ payload }) => {
         setGoalsToast(payload);
         setTimeout(() => setGoalsToast(null), 6000);
-        getLatestGoalAdjustment(user.id).then(setGoalAdjustment).catch(() => {});
+        getLatestGoalAdjustment(user.id).then(setGoalAdjustment).catch(() => { });
       })
       .subscribe();
     return () => { channel.unsubscribe(); };
@@ -196,6 +219,49 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     }
   }, [user, period]);
 
+  // Load week view data
+  useEffect(() => {
+    if (user && period === 'week') {
+      loadWeekData();
+    }
+  }, [user, period, selectedDate]);
+
+  const loadWeekData = async () => {
+    if (!user) return;
+
+    try {
+      const weekStats = await StatsService.getWeekStats(user.id);
+      setWeekDaysData(weekStats);
+
+      const progress = await StatsService.getWeeklyGoalProgress(user.id);
+      setWeeklyProgress(progress);
+
+      // Load selected day stats
+      const selectedDay = weekStats.find(d => d.date === selectedDate);
+      if (selectedDay) {
+        setSelectedDayStats(selectedDay.stats);
+
+        const meals: Meal[] = selectedDay.meals.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          timestamp: new Date(item.created_at),
+          calories: item.calories,
+          macros: {
+            protein: item.protein,
+            carbs: item.carbs,
+            fats: item.fats
+          },
+          type: item.type,
+          items: item.items,
+          imageUri: item.image_url
+        }));
+        setSelectedDayMeals(meals);
+      }
+    } catch (error) {
+      console.error('Error loading week data:', error);
+    }
+  };
+
   // Flow score calculated from consumed vs target (demo)
   const flowScore = stats.flowScore ?? 0;
   const [showConfetti, setShowConfetti] = useState(false);
@@ -273,6 +339,37 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   // Use profile level as fallback if gameStats is not yet loaded
   const currentLevel = gameStats?.level || profile?.level || 'seed';
   const currentStreak = gameStats?.currentStreak || profile?.current_streak || 0;
+
+  // Prepare week days data for WeekDaysCircle component
+  const weekDaysForCircle = React.useMemo(() => {
+    if (weekDaysData.length === 0) return [];
+
+    const today = getLocalDateString(new Date());
+    const DAY_NAMES_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+    return weekDaysData.map(day => {
+      const date = new Date(day.date + 'T00:00:00');
+      const dayName = DAY_NAMES_PT[date.getDay()];
+      const isToday = day.date === today;
+      const isFuture = day.date > today;
+      const isSelected = day.date === selectedDate;
+
+      return {
+        date: day.date,
+        dayName,
+        dayNumber: date.getDate(),
+        stats: day.stats,
+        meals: day.meals,
+        isToday,
+        isSelected,
+        isFuture,
+      };
+    });
+  }, [weekDaysData, selectedDate]);
+
+  const handleDayClick = (date: string) => {
+    setSelectedDate(date);
+  };
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-nura-bg dark:bg-background-dark font-display text-nura-main dark:text-white animate-fade-in transition-colors duration-300">
@@ -786,210 +883,349 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
         ) : (
           /* ——— WEEK/MONTH VIEW: Flow Score + Weekly Rhythm (Stitch hero) ——— */
           <>
-            {/* Flow Score Gauge */}
-            <div className="flex flex-col items-center justify-center relative px-6 py-4">
-              {/* Background Glow Effect */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-primary/20 rounded-full blur-[60px] pointer-events-none dark:block hidden" />
+            {period === 'week' ? (
+              /* ——— WEEK VIEW: Days Circle + Selected Day History ——— */
+              <>
+                {/* Week Days Circle Component */}
+                {weeklyProgress && weekDaysForCircle.length > 0 && (
+                  <WeekDaysCircle
+                    weekDays={weekDaysForCircle}
+                    onDayClick={handleDayClick}
+                    weeklyGoalProgress={weeklyProgress}
+                    selectedDate={selectedDate}
+                  />
+                )}
 
-              <div className="relative size-64 flex items-center justify-center">
-                {/* SVG Gauge */}
-                <svg className="size-full -rotate-90 transform" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round"
-                    className="text-gray-200 dark:text-[#1f2f36]" />
-                  <circle cx="50" cy="50" r="42" fill="none" strokeWidth="6" strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={circumference - (displayedScore / 100) * circumference}
-                    className="stroke-[#3b0764] dark:stroke-[#7e22ce] transition-all duration-1000" />
-                  {/* Decorative inner ring */}
-                  <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                </svg>
+                {/* Selected Day History */}
+                <div className="px-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-nura-main dark:text-white text-lg font-bold">
+                      {t.week.selectedDay}: {(() => {
+                        const date = new Date(selectedDate + 'T00:00:00');
+                        return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+                      })()}
+                    </h2>
+                  </div>
 
-                {/* Center Text */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-nura-muted dark:text-white/50 text-sm font-medium tracking-widest uppercase mb-1">
-                    {period === 'week' ? 'MÉDIA SEMANAL' : t.flowScore.flowScore}
-                  </span>
-                  <span className="text-6xl font-bold text-nura-main dark:text-white tracking-tighter">
-                    {displayedScore}
-                  </span>
-                  {displayedScore >= 75 && (
-                    <div className="mt-2 px-3 py-1 rounded-full bg-nura-petrol/10 dark:bg-primary/10 border border-nura-petrol/20 dark:border-primary/20 flex items-center gap-1">
-                      <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-[14px]">bolt</span>
-                      <span className="text-nura-petrol dark:text-primary text-xs font-bold uppercase tracking-wide">{t.flowScore.optimized}</span>
+                  {selectedDayStats ? (
+                    <div className="flex flex-col gap-4">
+                      {/* Calorie Ring */}
+                      <div className="flex flex-col items-center justify-center py-4">
+                        <div className="relative size-48">
+                          <svg className="circular-chart transform -rotate-90 w-full h-full" viewBox="0 0 36 36">
+                            <path className="circle-bg dark:stroke-[#18282e] stroke-gray-200 light-circle-bg" d="M18 2.0845
+                              a 15.9155 15.9155 0 0 1 0 31.831
+                              a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path
+                              className="circle"
+                              stroke={selectedDayStats.consumedCalories / (selectedDayStats.targetCalories || 1) > 1.15 ? '#ef4444' : 'var(--tw-colors-nura-petrol)'}
+                              strokeDasharray={`${Math.min((selectedDayStats.consumedCalories / (selectedDayStats.targetCalories || 1)) * 100, 100)}, 100`}
+                              d="M18 2.0845
+                              a 15.9155 15.9155 0 0 1 0 31.831
+                              a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                            <span className="text-3xl font-bold tracking-tighter text-nura-main dark:text-white">
+                              {(selectedDayStats.consumedCalories ?? 0).toLocaleString()}
+                            </span>
+                            <span className="text-sm font-medium text-nura-muted dark:text-slate-400 mt-1">
+                              / {(selectedDayStats.targetCalories ?? 0).toLocaleString()} {t.dashboard.kcal}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Macros */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {/* Protein */}
+                        <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent">
+                          <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">{t.dashboard.protein}</span>
+                          <span className="text-base font-bold text-nura-main dark:text-white">
+                            {Math.round(selectedDayStats.macros.protein ?? 0)}
+                            <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500">/{selectedDayStats.targetMacros.protein}g</span>
+                          </span>
+                          <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-nura-petrol dark:bg-primary rounded-full" style={{ width: `${Math.min(((selectedDayStats.macros.protein ?? 0) / (selectedDayStats.targetMacros.protein || 1)) * 100, 100)}%` }} />
+                          </div>
+                        </div>
+
+                        {/* Carbs */}
+                        <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent">
+                          <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">{t.dashboard.carbs}</span>
+                          <span className="text-base font-bold text-nura-main dark:text-white">
+                            {Math.round(selectedDayStats.macros.carbs ?? 0)}
+                            <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500">/{selectedDayStats.targetMacros.carbs}g</span>
+                          </span>
+                          <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-orange-400 rounded-full" style={{ width: `${Math.min(((selectedDayStats.macros.carbs ?? 0) / (selectedDayStats.targetMacros.carbs || 1)) * 100, 100)}%` }} />
+                          </div>
+                        </div>
+
+                        {/* Fats */}
+                        <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent">
+                          <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">{t.dashboard.fats}</span>
+                          <span className="text-base font-bold text-nura-main dark:text-white">
+                            {Math.round(selectedDayStats.macros.fats ?? 0)}
+                            <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500">/{selectedDayStats.targetMacros.fats}g</span>
+                          </span>
+                          <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-pink-400 rounded-full" style={{ width: `${Math.min(((selectedDayStats.macros.fats ?? 0) / (selectedDayStats.targetMacros.fats || 1)) * 100, 100)}%` }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Hydration */}
+                      <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-sky-400 text-xl">water_drop</span>
+                            <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">{t.week.hydration}</span>
+                          </div>
+                          <span className="text-xs text-sky-400 font-bold">
+                            {Math.min(Math.round(((selectedDayStats.waterIntake || 0) / (selectedDayStats.waterGoal || 1)) * 100), 100)}%
+                          </span>
+                        </div>
+                        <span className="text-2xl font-bold text-nura-main dark:text-white">
+                          {selectedDayStats.waterIntake || 0}
+                          <span className="text-xs font-normal text-nura-muted dark:text-slate-500">/{selectedDayStats.waterGoal || 2500} ml</span>
+                        </span>
+                      </div>
+
+                      {/* Meals */}
+                      <div>
+                        <h3 className="text-sm font-bold text-nura-main dark:text-white mb-3">{t.week.meals}</h3>
+                        {selectedDayMeals.length > 0 ? (
+                          <DailyMealsList
+                            meals={selectedDayMeals}
+                            onDeleteMeal={onDeleteMeal}
+                            onEditMeal={onEditMeal}
+                          />
+                        ) : (
+                          <div className="bg-white dark:bg-surface-dark rounded-xl p-6 shadow-sm border border-nura-border dark:border-transparent text-center">
+                            <span className="text-4xl mb-2 block">🍽️</span>
+                            <p className="text-sm text-nura-muted dark:text-slate-400">{t.week.noMealsLogged}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white dark:bg-surface-dark rounded-xl p-6 shadow-sm border border-nura-border dark:border-transparent text-center animate-pulse">
+                      <p className="text-sm text-nura-muted dark:text-slate-400">Carregando...</p>
                     </div>
                   )}
                 </div>
-              </div>
+              </>
+            ) : (
+              /* ——— MONTH VIEW: Flow Score + Weekly Rhythm ——— */
+              <>
+                {/* Flow Score Gauge */}
+                <div className="flex flex-col items-center justify-center relative px-6 py-4">
+                  {/* Background Glow Effect */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-primary/20 rounded-full blur-[60px] pointer-events-none dark:block hidden" />
 
-              {/* Insight Pill */}
-              {(() => {
-                const fs = t.flowScore;
-                const { consistencyChange, peakHour } = insightData;
-                const bold = (s: string) =>
-                  s.replace(/<b>/g, '<span class="text-nura-petrol dark:text-primary font-bold">').replace(/<\/b>/g, '</span>');
+                  <div className="relative size-64 flex items-center justify-center">
+                    {/* SVG Gauge */}
+                    <svg className="size-full -rotate-90 transform" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round"
+                        className="text-gray-200 dark:text-[#1f2f36]" />
+                      <circle cx="50" cy="50" r="42" fill="none" strokeWidth="6" strokeLinecap="round"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={circumference - (displayedScore / 100) * circumference}
+                        className="stroke-[#3b0764] dark:stroke-[#7e22ce] transition-all duration-1000" />
+                      {/* Decorative inner ring */}
+                      <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                    </svg>
 
-                let consistencyHtml: string;
-                if (consistencyChange === null) {
-                  consistencyHtml = fs.insightConsistencyNew;
-                } else if (consistencyChange >= 0) {
-                  consistencyHtml = fs.insightConsistencyUp.replace('{change}', String(consistencyChange));
-                } else {
-                  consistencyHtml = fs.insightConsistencyDown.replace('{change}', String(consistencyChange));
-                }
-
-                const peakHtml = peakHour !== null
-                  ? ' ' + fs.insightPeakFlow.replace('{hour}', String(peakHour))
-                  : '';
-
-                return (
-                  <div className="mt-4 bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-nura-border dark:border-white/5 rounded-xl p-4 w-full max-w-sm flex items-start gap-3 transition-transform hover:scale-[1.02]">
-                    <div className="mt-0.5 size-5 shrink-0 rounded-full bg-nura-petrol/20 dark:bg-primary/20 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-[14px]">auto_graph</span>
+                    {/* Center Text */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <span className="text-nura-muted dark:text-white/50 text-sm font-medium tracking-widest uppercase mb-1">
+                        {period === 'week' ? 'MÉDIA SEMANAL' : t.flowScore.flowScore}
+                      </span>
+                      <span className="text-6xl font-bold text-nura-main dark:text-white tracking-tighter">
+                        {displayedScore}
+                      </span>
+                      {displayedScore >= 75 && (
+                        <div className="mt-2 px-3 py-1 rounded-full bg-nura-petrol/10 dark:bg-primary/10 border border-nura-petrol/20 dark:border-primary/20 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-[14px]">bolt</span>
+                          <span className="text-nura-petrol dark:text-primary text-xs font-bold uppercase tracking-wide">{t.flowScore.optimized}</span>
+                        </div>
+                      )}
                     </div>
-                    <p className="flex-1 text-nura-main dark:text-white text-sm font-medium leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: bold(consistencyHtml + peakHtml) }}
-                    />
                   </div>
-                );
-              })()}
-            </div>
 
-            {/* Weekly Rhythm Chart */}
-            <div className="px-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-nura-main dark:text-white text-lg font-bold">{t.flowScore.weeklyRhythm}</h2>
-                <button className="text-nura-muted dark:text-white/40 hover:text-nura-main dark:hover:text-white transition-colors">
-                  <span className="material-symbols-outlined">more_horiz</span>
-                </button>
-              </div>
-              <div className="bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-nura-border dark:border-white/5 rounded-2xl p-5 w-full">
-                <div className="flex items-end justify-between gap-4 mb-2">
-                  <div>
-                    <p className="text-nura-muted dark:text-white/40 text-xs font-medium uppercase tracking-wider">{t.flowScore.consistency}</p>
-                    <p className="text-2xl font-bold text-nura-main dark:text-white">{consistency.label}</p>
-                  </div>
-                  <div className={`flex gap-1 items-center px-2 py-1 rounded-lg ${consistency.isPositive ? 'bg-green-500/10' : 'bg-orange-500/10'}`}>
-                    <span className={`material-symbols-outlined text-[16px] ${consistency.isPositive ? 'text-green-500 dark:text-green-400' : 'text-orange-500 dark:text-orange-400'}`}>
-                      {consistency.isPositive ? 'trending_up' : 'trending_down'}
-                    </span>
-                    <span className={`text-xs font-bold ${consistency.isPositive ? 'text-green-500 dark:text-green-400' : 'text-orange-500 dark:text-orange-400'}`}>{t.flowScore.steady}</span>
-                  </div>
-                </div>
+                  {/* Insight Pill */}
+                  {(() => {
+                    const fs = t.flowScore;
+                    const { consistencyChange, peakHour } = insightData;
+                    const bold = (s: string) =>
+                      s.replace(/<b>/g, '<span class="text-nura-petrol dark:text-primary font-bold">').replace(/<\/b>/g, '</span>');
 
-                {/* Chart Container */}
-                <div className="w-full h-40 mt-4 relative">
-                  <svg className="w-full h-full overflow-visible" viewBox="0 0 350 150" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="gradient-fill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="currentColor" stopOpacity="0.3" className="text-[#3b0764] dark:text-[#7e22ce]" />
-                        <stop offset="100%" stopColor="currentColor" stopOpacity="0" className="text-[#3b0764] dark:text-[#7e22ce]" />
-                      </linearGradient>
-                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                      </filter>
-                    </defs>
-                    {/* Grid lines */}
-                    <line x1="0" y1="150" x2="350" y2="150" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-                    <line x1="0" y1="75" x2="350" y2="75" stroke="rgba(255,255,255,0.05)" strokeWidth="1" strokeDasharray="4 4" />
-                    {/* Area fill */}
-                    <path d={chartPaths.area} fill="url(#gradient-fill)" />
-                    {/* Line */}
-                    <path d={chartPaths.line} fill="none" strokeWidth="3" strokeLinecap="round" className="stroke-[#3b0764] dark:stroke-[#7e22ce]" />
-                    {/* Current Point */}
-                    {weeklyScores.length > 0 && (() => {
-                      const lastScore = weeklyScores[weeklyScores.length - 1].score;
-                      const cy = 150 - (lastScore / 100) * 140 - 5;
-                      return <circle cx="350" cy={cy} r="4" fill="#fff" />;
-                    })()}
-                  </svg>
-                </div>
+                    let consistencyHtml: string;
+                    if (consistencyChange === null) {
+                      consistencyHtml = fs.insightConsistencyNew;
+                    } else if (consistencyChange >= 0) {
+                      consistencyHtml = fs.insightConsistencyUp.replace('{change}', String(consistencyChange));
+                    } else {
+                      consistencyHtml = fs.insightConsistencyDown.replace('{change}', String(consistencyChange));
+                    }
 
-                {/* X Axis Labels */}
-                <div className="flex justify-between mt-4 text-nura-muted dark:text-white/30 text-xs font-semibold uppercase px-1">
-                  <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
-                </div>
-              </div>
-            </div>
+                    const peakHtml = peakHour !== null
+                      ? ' ' + fs.insightPeakFlow.replace('{hour}', String(peakHour))
+                      : '';
 
-            {/* Weekly Metrics Grid */}
-            <div className="px-6 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-nura-main dark:text-white text-lg font-bold">{t.flowScore.metrics}</h2>
-                {weeklyMetrics && (
-                  <span className="text-xs text-nura-muted dark:text-white/40 font-medium">
-                    {weeklyMetrics.daysLogged}/7 dias registrados
-                  </span>
-                )}
-              </div>
-
-              {weeklyMetrics ? (() => {
-                const wTarget = waterGoalState || 2500;
-                const pTarget = stats.targetMacros.protein || 1;
-                const cTarget = stats.targetCalories || 1;
-                const cards = [
-                  {
-                    icon: 'water_drop',
-                    color: 'text-blue-400',
-                    bg: 'bg-blue-400',
-                    label: t.flowScore.hydration,
-                    value: (weeklyMetrics.avgWaterMl / 1000).toFixed(1),
-                    unit: 'L/dia',
-                    target: (wTarget / 1000).toFixed(1) + 'L',
-                    pct: Math.min((weeklyMetrics.avgWaterMl / wTarget) * 100, 100),
-                  },
-                  {
-                    icon: 'egg',
-                    color: 'text-orange-400',
-                    bg: 'bg-orange-400',
-                    label: t.dashboard.protein,
-                    value: weeklyMetrics.avgProtein,
-                    unit: 'g/dia',
-                    target: Math.round(pTarget) + 'g',
-                    pct: Math.min((weeklyMetrics.avgProtein / pTarget) * 100, 100),
-                  },
-                  {
-                    icon: 'local_fire_department',
-                    color: 'text-yellow-500',
-                    bg: 'bg-yellow-400',
-                    label: t.flowScore.energy,
-                    value: (weeklyMetrics.avgCalories / 1000).toFixed(1),
-                    unit: 'k/dia',
-                    target: (cTarget / 1000).toFixed(1) + 'k',
-                    pct: Math.min((weeklyMetrics.avgCalories / cTarget) * 100, 100),
-                  },
-                ];
-                return (
-                  <div className="grid grid-cols-3 gap-3">
-                    {cards.map(card => (
-                      <div key={card.label} className="bg-white dark:bg-surface-dark border border-nura-border dark:border-white/5 rounded-2xl p-4 flex flex-col gap-3">
-                        <span className={`material-symbols-outlined text-xl ${card.color}`}>{card.icon}</span>
-                        <div>
-                          <p className="text-[10px] font-semibold text-nura-muted dark:text-white/40 uppercase tracking-wide mb-1">{card.label}</p>
-                          <p className="text-xl font-bold text-nura-main dark:text-white leading-none">
-                            {card.value}<span className="text-xs font-medium text-nura-muted dark:text-white/40 ml-0.5">{card.unit}</span>
-                          </p>
+                    return (
+                      <div className="mt-4 bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-nura-border dark:border-white/5 rounded-xl p-4 w-full max-w-sm flex items-start gap-3 transition-transform hover:scale-[1.02]">
+                        <div className="mt-0.5 size-5 shrink-0 rounded-full bg-nura-petrol/20 dark:bg-primary/20 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-[14px]">auto_graph</span>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <div className="w-full bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
-                            <div className={`h-full ${card.bg} rounded-full transition-all duration-700`} style={{ width: `${card.pct}%` }} />
-                          </div>
-                          <p className="text-[10px] text-nura-muted dark:text-white/30">meta {card.target}</p>
-                        </div>
+                        <p className="flex-1 text-nura-main dark:text-white text-sm font-medium leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: bold(consistencyHtml + peakHtml) }}
+                        />
                       </div>
-                    ))}
-                  </div>
-                );
-              })() : (
-                <div className="grid grid-cols-3 gap-3">
-                  {[0, 1, 2].map(i => (
-                    <div key={i} className="bg-white dark:bg-surface-dark border border-nura-border dark:border-white/5 rounded-2xl p-4 h-32 animate-pulse" />
-                  ))}
+                    );
+                  })()}
                 </div>
-              )}
-            </div>
+
+                {/* Weekly Rhythm Chart */}
+                <div className="px-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-nura-main dark:text-white text-lg font-bold">{t.flowScore.weeklyRhythm}</h2>
+                    <button className="text-nura-muted dark:text-white/40 hover:text-nura-main dark:hover:text-white transition-colors">
+                      <span className="material-symbols-outlined">more_horiz</span>
+                    </button>
+                  </div>
+                  <div className="bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-nura-border dark:border-white/5 rounded-2xl p-5 w-full">
+                    <div className="flex items-end justify-between gap-4 mb-2">
+                      <div>
+                        <p className="text-nura-muted dark:text-white/40 text-xs font-medium uppercase tracking-wider">{t.flowScore.consistency}</p>
+                        <p className="text-2xl font-bold text-nura-main dark:text-white">{consistency.label}</p>
+                      </div>
+                      <div className={`flex gap-1 items-center px-2 py-1 rounded-lg ${consistency.isPositive ? 'bg-green-500/10' : 'bg-orange-500/10'}`}>
+                        <span className={`material-symbols-outlined text-[16px] ${consistency.isPositive ? 'text-green-500 dark:text-green-400' : 'text-orange-500 dark:text-orange-400'}`}>
+                          {consistency.isPositive ? 'trending_up' : 'trending_down'}
+                        </span>
+                        <span className={`text-xs font-bold ${consistency.isPositive ? 'text-green-500 dark:text-green-400' : 'text-orange-500 dark:text-orange-400'}`}>{t.flowScore.steady}</span>
+                      </div>
+                    </div>
+
+                    {/* Chart Container */}
+                    <div className="w-full h-40 mt-4 relative">
+                      <svg className="w-full h-full overflow-visible" viewBox="0 0 350 150" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="gradient-fill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="currentColor" stopOpacity="0.3" className="text-[#3b0764] dark:text-[#7e22ce]" />
+                            <stop offset="100%" stopColor="currentColor" stopOpacity="0" className="text-[#3b0764] dark:text-[#7e22ce]" />
+                          </linearGradient>
+                          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="3" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                          </filter>
+                        </defs>
+                        {/* Grid lines */}
+                        <line x1="0" y1="150" x2="350" y2="150" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                        <line x1="0" y1="75" x2="350" y2="75" stroke="rgba(255,255,255,0.05)" strokeWidth="1" strokeDasharray="4 4" />
+                        {/* Area fill */}
+                        <path d={chartPaths.area} fill="url(#gradient-fill)" />
+                        {/* Line */}
+                        <path d={chartPaths.line} fill="none" strokeWidth="3" strokeLinecap="round" className="stroke-[#3b0764] dark:stroke-[#7e22ce]" />
+                        {/* Current Point */}
+                        {weeklyScores.length > 0 && (() => {
+                          const lastScore = weeklyScores[weeklyScores.length - 1].score;
+                          const cy = 150 - (lastScore / 100) * 140 - 5;
+                          return <circle cx="350" cy={cy} r="4" fill="#fff" />;
+                        })()}
+                      </svg>
+                    </div>
+
+                    {/* X Axis Labels */}
+                    <div className="flex justify-between mt-4 text-nura-muted dark:text-white/30 text-xs font-semibold uppercase px-1">
+                      <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Weekly Metrics Grid */}
+                <div className="px-6 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-nura-main dark:text-white text-lg font-bold">{t.flowScore.metrics}</h2>
+                    {weeklyMetrics && (
+                      <span className="text-xs text-nura-muted dark:text-white/40 font-medium">
+                        {weeklyMetrics.daysLogged}/7 dias registrados
+                      </span>
+                    )}
+                  </div>
+
+                  {weeklyMetrics ? (() => {
+                    const wTarget = waterGoalState || 2500;
+                    const pTarget = stats.targetMacros.protein || 1;
+                    const cTarget = stats.targetCalories || 1;
+                    const cards = [
+                      {
+                        icon: 'water_drop',
+                        color: 'text-blue-400',
+                        bg: 'bg-blue-400',
+                        label: t.flowScore.hydration,
+                        value: (weeklyMetrics.avgWaterMl / 1000).toFixed(1),
+                        unit: 'L/dia',
+                        target: (wTarget / 1000).toFixed(1) + 'L',
+                        pct: Math.min((weeklyMetrics.avgWaterMl / wTarget) * 100, 100),
+                      },
+                      {
+                        icon: 'egg',
+                        color: 'text-orange-400',
+                        bg: 'bg-orange-400',
+                        label: t.dashboard.protein,
+                        value: weeklyMetrics.avgProtein,
+                        unit: 'g/dia',
+                        target: Math.round(pTarget) + 'g',
+                        pct: Math.min((weeklyMetrics.avgProtein / pTarget) * 100, 100),
+                      },
+                      {
+                        icon: 'local_fire_department',
+                        color: 'text-yellow-500',
+                        bg: 'bg-yellow-400',
+                        label: t.flowScore.energy,
+                        value: (weeklyMetrics.avgCalories / 1000).toFixed(1),
+                        unit: 'k/dia',
+                        target: (cTarget / 1000).toFixed(1) + 'k',
+                        pct: Math.min((weeklyMetrics.avgCalories / cTarget) * 100, 100),
+                      },
+                    ];
+                    return (
+                      <div className="grid grid-cols-3 gap-3">
+                        {cards.map(card => (
+                          <div key={card.label} className="bg-white dark:bg-surface-dark border border-nura-border dark:border-white/5 rounded-2xl p-4 flex flex-col gap-3">
+                            <span className={`material-symbols-outlined text-xl ${card.color}`}>{card.icon}</span>
+                            <div>
+                              <p className="text-[10px] font-semibold text-nura-muted dark:text-white/40 uppercase tracking-wide mb-1">{card.label}</p>
+                              <p className="text-xl font-bold text-nura-main dark:text-white leading-none">
+                                {card.value}<span className="text-xs font-medium text-nura-muted dark:text-white/40 ml-0.5">{card.unit}</span>
+                              </p>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <div className="w-full bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
+                                <div className={`h-full ${card.bg} rounded-full transition-all duration-700`} style={{ width: `${card.pct}%` }} />
+                              </div>
+                              <p className="text-[10px] text-nura-muted dark:text-white/30">meta {card.target}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })() : (
+                    <div className="grid grid-cols-3 gap-3">
+                      {[0, 1, 2].map(i => (
+                        <div key={i} className="bg-white dark:bg-surface-dark border border-nura-border dark:border-white/5 rounded-2xl p-4 h-32 animate-pulse" />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </>
-        )}
+        )
+        }
 
         {/* Actions */}
         <div className="w-full mt-auto mb-6 flex flex-col gap-4 px-6">
@@ -1003,21 +1239,23 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
             {t.dashboard.shareMyDay}
           </button>
         </div>
-      </main>
+      </main >
 
       {/* Daily Check-in Modal */}
-      {showCheckinModal && (
-        <DailyCheckinModal
-          onClose={() => setShowCheckinModal(false)}
-          onComplete={() => {
-            setShowCheckinModal(false);
-            loadGameStats();
-          }}
-        />
-      )}
+      {
+        showCheckinModal && (
+          <DailyCheckinModal
+            onClose={() => setShowCheckinModal(false)}
+            onComplete={() => {
+              setShowCheckinModal(false);
+              loadGameStats();
+            }}
+          />
+        )
+      }
 
 
 
-    </div>
+    </div >
   );
 };

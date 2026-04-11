@@ -62,6 +62,17 @@ export interface Translations {
         energy: string;
     };
 
+    // Week View
+    week: {
+        daysCompleted: string;
+        metaAcumulada: string;
+        selectedDay: string;
+        noMealsLogged: string;
+        macros: string;
+        hydration: string;
+        meals: string;
+    };
+
     // Food Guide
     foodGuide: {
         title: string;
@@ -437,6 +448,15 @@ export const translations: Record<Language, Translations> = {
             hydration: 'Hydration',
             energy: 'Energy',
         },
+        week: {
+            daysCompleted: 'days completed',
+            metaAcumulada: 'Weekly cumulative goal - unmet goals carry over',
+            selectedDay: 'Selected day',
+            noMealsLogged: 'No meals logged for this day',
+            macros: 'Macros',
+            hydration: 'Hydration',
+            meals: 'Meals',
+        },
         foodGuide: {
             title: 'Food Guide',
             subtitle: 'Personalized suggestions for your energy.',
@@ -779,6 +799,15 @@ export const translations: Record<Language, Translations> = {
             hydration: 'Hidratação',
             energy: 'Energia',
         },
+        week: {
+            daysCompleted: 'dias concluídos',
+            metaAcumulada: 'Meta semanal acumulada - metas não cumpridas são acumuladas para os próximos dias',
+            selectedDay: 'Dia selecionado',
+            noMealsLogged: 'Nenhuma refeição registrada neste dia',
+            macros: 'Macros',
+            hydration: 'Hidratação',
+            meals: 'Refeições',
+        },
         foodGuide: {
             title: 'Guia de Alimentos',
             subtitle: 'Sugestões personalizadas para sua energia.',
@@ -1120,6 +1149,15 @@ export const translations: Record<Language, Translations> = {
             viewAll: 'Ver todo',
             hydration: 'Hidratación',
             energy: 'Energía',
+        },
+        week: {
+            daysCompleted: 'días completados',
+            metaAcumulada: 'Meta semanal acumulada - metas no cumplidas se acumulan para los próximos días',
+            selectedDay: 'Día seleccionado',
+            noMealsLogged: 'Ninguna comida registrada en este día',
+            macros: 'Macros',
+            hydration: 'Hidratación',
+            meals: 'Comidas',
         },
         foodGuide: {
             title: 'Guía de Alimentos',

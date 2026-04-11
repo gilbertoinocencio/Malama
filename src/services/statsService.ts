@@ -104,7 +104,7 @@ export const StatsService = {
         const hydrationRatio = waterGoal > 0 ? waterIntake / waterGoal : 0;
         const hydrationScore = hydrationRatio >= 0.85 && hydrationRatio <= 1.15 ? 100
             : hydrationRatio < 0.85 ? hydrationRatio * 100
-            : Math.max(0, 100 - (hydrationRatio - 1.15) * 100);
+                : Math.max(0, 100 - (hydrationRatio - 1.15) * 100);
         // Weighting: 50% nutrition (calorias) + 30% macros + 20% hidratação
         // nutritionScore already uses 60/40 split internally; re-weight to include hydration
         const flowScore = Math.round(nutritionScore * 0.8 + hydrationScore * 0.2);
@@ -142,6 +142,117 @@ export const StatsService = {
             micronutrients: Object.keys(micronutrients).length > 0 ? micronutrients : undefined,
             waterIntake,
             waterGoal,
+        };
+    },
+
+    // Get stats for all 7 days of the current week
+    async getWeekStats(userId: string): Promise<{ date: string; stats: DailyStats; meals: any[] }[]> {
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - dayOfWeek);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const weekDays = [];
+
+        for (let i = 0; i < 7; i++) {
+            const currentDate = new Date(startOfWeek);
+            currentDate.setDate(startOfWeek.getDate() + i);
+            const dateStr = getLocalDateString(currentDate);
+
+            const stats = await this.getDailyStats(userId, currentDate);
+
+            const { data: meals } = await supabase
+                .from('meals')
+                .select('*')
+                .eq('user_id', userId)
+                .gte('created_at', currentDate.toISOString())
+                .lt('created_at', new Date(currentDate.getTime() + 86400000).toISOString())
+                .order('created_at', { ascending: true });
+
+            weekDays.push({
+                date: dateStr,
+                stats,
+                meals: meals || []
+            });
+        }
+
+        return weekDays;
+    },
+
+    // Get cumulative weekly goal progress
+    async getWeeklyGoalProgress(userId: string): Promise<{
+        caloriesConsumed: number;
+        caloriesTarget: number;
+        proteinConsumed: number;
+        proteinTarget: number;
+        carbsConsumed: number;
+        carbsTarget: number;
+        fatsConsumed: number;
+        fatsTarget: number;
+        waterConsumed: number;
+        waterTarget: number;
+        daysMet: number;
+        totalDays: number;
+    }> {
+        const weekStats = await this.getWeekStats(userId);
+        const today = getLocalDateString(new Date());
+        const daysElapsed = weekStats.findIndex(d => d.date === today) + 1;
+        const daysToConsider = Math.max(daysElapsed, 1);
+
+        let totals = {
+            caloriesConsumed: 0,
+            caloriesTarget: 0,
+            proteinConsumed: 0,
+            proteinTarget: 0,
+            carbsConsumed: 0,
+            carbsTarget: 0,
+            fatsConsumed: 0,
+            fatsTarget: 0,
+            waterConsumed: 0,
+            waterTarget: 0,
+        };
+
+        let daysMet = 0;
+
+        for (let i = 0; i < daysElapsed; i++) {
+            const day = weekStats[i];
+            totals.caloriesConsumed += day.stats.consumedCalories;
+            totals.caloriesTarget += day.stats.targetCalories;
+            totals.proteinConsumed += day.stats.macros.protein;
+            totals.proteinTarget += day.stats.targetMacros.protein;
+            totals.carbsConsumed += day.stats.macros.carbs;
+            totals.carbsTarget += day.stats.targetMacros.carbs;
+            totals.fatsConsumed += day.stats.macros.fats;
+            totals.fatsTarget += day.stats.targetMacros.fats;
+            totals.waterConsumed += day.stats.waterIntake || 0;
+            totals.waterTarget += day.stats.waterGoal || 0;
+
+            // Check if day met all goals
+            const calorieRatio = day.stats.consumedCalories / (day.stats.targetCalories || 1);
+            const proteinRatio = day.stats.macros.protein / (day.stats.targetMacros.protein || 1);
+            const carbsRatio = day.stats.macros.carbs / (day.stats.targetMacros.carbs || 1);
+            const fatsRatio = day.stats.macros.fats / (day.stats.targetMacros.fats || 1);
+            const waterRatio = (day.stats.waterIntake || 0) / (day.stats.waterGoal || 1);
+
+            const macrosMet = calorieRatio >= 0.85 && proteinRatio >= 0.85 &&
+                carbsRatio >= 0.85 && fatsRatio >= 0.85;
+            const waterMet = waterRatio >= 0.85;
+
+            if (macrosMet && waterMet) {
+                daysMet++;
+            }
+        }
+
+        // If goals not met, they carry over to next days
+        // Calculate how many days still need to complete their goals
+        const daysRemaining = 7 - daysMet;
+        const totalDays = daysElapsed > 0 ? daysMet + daysRemaining : 7;
+
+        return {
+            ...totals,
+            daysMet,
+            totalDays: 7,
         };
     }
 };
