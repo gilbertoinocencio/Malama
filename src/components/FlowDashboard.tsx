@@ -611,6 +611,47 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     }
   };
 
+  // Compute display stats for month tab macros/hydration cards:
+  //   - day selected  → that day's exact values
+  //   - week selected → daily average across that week's logged days
+  //   - nothing       → daily average across all month's logged days
+  const monthDisplayStats = React.useMemo(() => {
+    if (period !== 'month') return null;
+
+    if (isDaySelected && selectedDayStats) {
+      return { stats: selectedDayStats, mode: 'day' as const, daysCount: 1 };
+    }
+
+    const sourceDays = selectedWeekIndex !== null && monthWeeksData[selectedWeekIndex]
+      ? monthWeeksData[selectedWeekIndex].days
+      : monthWeeksData.flatMap((w: any) => w.days);
+
+    const logged = sourceDays.filter((d: any) => !d.isFuture && (d.stats?.consumedCalories ?? 0) > 0);
+    if (logged.length === 0) return null;
+
+    const avg = (fn: (d: any) => number) =>
+      Math.round(logged.reduce((s: number, d: any) => s + fn(d), 0) / logged.length);
+
+    const ref = logged[0].stats as DailyStats;
+
+    return {
+      stats: {
+        consumedCalories: avg(d => d.stats.consumedCalories),
+        targetCalories: ref.targetCalories,
+        macros: {
+          protein: avg(d => d.stats.macros.protein),
+          carbs:   avg(d => d.stats.macros.carbs),
+          fats:    avg(d => d.stats.macros.fats),
+        },
+        targetMacros: ref.targetMacros,
+        waterIntake: avg(d => d.stats.waterIntake ?? 0),
+        waterGoal: ref.waterGoal,
+      } as DailyStats,
+      mode: selectedWeekIndex !== null ? 'week' as const : 'month' as const,
+      daysCount: logged.length,
+    };
+  }, [period, isDaySelected, selectedDayStats, selectedWeekIndex, monthWeeksData]);
+
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-nura-bg dark:bg-background-dark font-display text-nura-main dark:text-white animate-fade-in transition-colors duration-300">
       <Confetti active={showConfetti} />
@@ -1542,14 +1583,26 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   );
                 })()}
 
-                {/* ── Macros do dia selecionado ── */}
-                {isDaySelected && selectedDayStats && (
+                {/* ── Macros — média acumulada / dia / semana ── */}
+                {monthDisplayStats && (
                   <div className="px-6">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="material-symbols-outlined text-[13px] text-nura-muted dark:text-slate-500">
+                        {monthDisplayStats.mode === 'day' ? 'today' : 'equalizer'}
+                      </span>
+                      <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">
+                        {monthDisplayStats.mode === 'day'
+                          ? 'Valores do dia'
+                          : monthDisplayStats.mode === 'week'
+                            ? `Média da semana · ${monthDisplayStats.daysCount} dia${monthDisplayStats.daysCount !== 1 ? 's' : ''}`
+                            : `Média mensal · ${monthDisplayStats.daysCount} dia${monthDisplayStats.daysCount !== 1 ? 's' : ''}`}
+                      </span>
+                    </div>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { label: t.dashboard.protein, value: selectedDayStats.macros.protein, target: selectedDayStats.targetMacros.protein, color: 'bg-nura-petrol dark:bg-primary' },
-                        { label: t.dashboard.carbs, value: selectedDayStats.macros.carbs, target: selectedDayStats.targetMacros.carbs, color: 'bg-orange-400' },
-                        { label: t.dashboard.fats, value: selectedDayStats.macros.fats, target: selectedDayStats.targetMacros.fats, color: 'bg-pink-400' },
+                        { label: t.dashboard.protein, value: monthDisplayStats.stats.macros.protein, target: monthDisplayStats.stats.targetMacros.protein, color: 'bg-nura-petrol dark:bg-primary' },
+                        { label: t.dashboard.carbs,   value: monthDisplayStats.stats.macros.carbs,   target: monthDisplayStats.stats.targetMacros.carbs,   color: 'bg-orange-400' },
+                        { label: t.dashboard.fats,    value: monthDisplayStats.stats.macros.fats,    target: monthDisplayStats.stats.targetMacros.fats,    color: 'bg-pink-400' },
                       ].map(m => (
                         <div key={m.label} className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent">
                           <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">{m.label}</span>
@@ -1565,8 +1618,8 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   </div>
                 )}
 
-                {/* ── Hidratação do dia selecionado ── */}
-                {isDaySelected && selectedDayStats && (
+                {/* ── Hidratação — média acumulada / dia / semana ── */}
+                {monthDisplayStats && (
                   <div className="px-6">
                     <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent">
                       <div className="flex items-center justify-between mb-3">
@@ -1575,16 +1628,19 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                           <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">{t.week.hydration}</span>
                         </div>
                         <span className="text-xs text-sky-400 font-bold">
-                          {Math.min(Math.round(((selectedDayStats.waterIntake || 0) / (selectedDayStats.waterGoal || 1)) * 100), 100)}%
+                          {Math.min(Math.round(((monthDisplayStats.stats.waterIntake || 0) / (monthDisplayStats.stats.waterGoal || 1)) * 100), 100)}%
                         </span>
                       </div>
                       <span className="text-2xl font-bold text-nura-main dark:text-white">
-                        {selectedDayStats.waterIntake || 0}
-                        <span className="text-xs font-normal text-nura-muted dark:text-slate-500">/{selectedDayStats.waterGoal || 2500} ml</span>
+                        {monthDisplayStats.stats.waterIntake || 0}
+                        <span className="text-xs font-normal text-nura-muted dark:text-slate-500">/{monthDisplayStats.stats.waterGoal || 2500} ml</span>
+                        {monthDisplayStats.mode !== 'day' && (
+                          <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-1">/dia</span>
+                        )}
                       </span>
                       {(() => {
-                        const wg = selectedDayStats.waterGoal || 2500;
-                        const wi = selectedDayStats.waterIntake || 0;
+                        const wg = monthDisplayStats.stats.waterGoal || 2500;
+                        const wi = monthDisplayStats.stats.waterIntake || 0;
                         const filled = Math.round((wi / wg) * 8);
                         return (
                           <div className="mt-3 flex gap-1.5">
