@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
+import { glp1Service } from '../services/glp1Service';
 import { AppView } from '../types';
 
 interface GLP1OnboardingProps {
@@ -31,7 +32,7 @@ const slideVariants = {
 };
 
 export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onClose, onNavigate }) => {
-  const { user, updateProfile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const [screen, setScreen] = useState<GLP1Screen>('initial');
   const [medication, setMedication] = useState('');
   const [phase, setPhase] = useState<'start' | 'adjust' | 'maintain'>('start');
@@ -66,6 +67,14 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
         glp1_start_date: now,
         glp1_prescription_expiry: expiry.toISOString().split('T')[0],
       });
+
+      // Reformulate nutrition goals for GLP-1 phase
+      if (profile) {
+        glp1Service.reformulateGoals(user.id, {
+          ...profile,
+          glp1_phase: phase as any,
+        }).catch(err => console.warn('reformulateGoals failed:', err));
+      }
 
       onComplete();
     } catch (err) {

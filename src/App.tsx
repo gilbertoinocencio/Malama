@@ -9,6 +9,7 @@ import { useAuth } from './contexts/AuthContext';
 import { MealService } from './services/mealService';
 import { StatsService } from './services/statsService';
 import { NotificationService } from './services/notificationService';
+import { glp1Service } from './services/glp1Service';
 import { supabase } from './services/supabase';
 import { lazyRetry } from './utils/lazyRetry';
 import { AppRoutes } from './routes';
@@ -152,6 +153,8 @@ const App: React.FC = () => {
           meals_per_day: profile.meals_per_day,
           eating_window_start: profile.eating_window_start,
           eating_window_end: profile.eating_window_end,
+          glp1_mode: profile.glp1_mode,
+          glp1_meal_schedule: profile.glp1_meal_schedule,
         });
       } else {
         NotificationService.checkReminders();
@@ -159,6 +162,12 @@ const App: React.FC = () => {
     }, 60000); // Check every minute
     return () => clearInterval(interval);
   }, [user, profile]);
+
+  // Subscribe to Web Push when GLP-1 mode is active
+  useEffect(() => {
+    if (!user || !profile?.glp1_mode) return;
+    glp1Service.subscribeToPush(user.id).catch(() => {});
+  }, [user?.id, profile?.glp1_mode]);
 
   const loadStats = async () => {
     if (!user || statsLoading) return;

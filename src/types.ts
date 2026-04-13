@@ -192,4 +192,25 @@ export interface Profile {
     status: 'scheduled' | 'completed' | 'cancelled';
     price: number;
   }>;
+  glp1_meal_schedule?: GLP1MealSlot[];
+}
+
+export interface GLP1MealSlot {
+  time: string;   // "HH:MM"
+  label: string;
+  notes?: string;
+}
+
+export interface GLP1Dose {
+  id: string;
+  user_id: string;
+  medication: string;
+  dose_mg: number | null;
+  applied_at: string;
+  notes: string | null;
+  is_first: boolean;
+  phase: string | null;
+  next_dose_scheduled_at: string | null;
+  notification_sent: boolean;
+  created_at: string;
 }

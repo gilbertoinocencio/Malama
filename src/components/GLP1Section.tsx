@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
+import { glp1Service } from '../services/glp1Service';
+import type { GLP1Dose } from '../types';
 
 interface GLP1SectionProps {
   className?: string;
@@ -54,6 +56,8 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
   const [checkinDone, setCheckinDone] = useState(false);
   const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
   const [expanded, setExpanded] = useState(true);
+  const [doseHistory, setDoseHistory] = useState<GLP1Dose[]>([]);
+  const [pushActive, setPushActive] = useState(false);
 
   const phaseInfo = PHASE_LABELS[profile?.glp1_phase || 'start'];
   const weightKg = profile?.weight || 70;
@@ -106,6 +110,16 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
     loadWeights();
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    glp1Service.getDoseHistory(user.id, 5).then(setDoseHistory).catch(() => {});
+    // Check if push is active
+    setPushActive(
+      'Notification' in window && Notification.permission === 'granted' &&
+      !!localStorage.getItem('notifications_enabled')
+    );
+  }, [user]);
+
   const toggleCheckinSymptom = (s: string) => {
     if (s === 'well') {
       setCheckinSymptoms(['well']);
@@ -141,6 +155,20 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
   };
 
   const recentCheckins = (profile?.glp1_weekly_checkins || []).slice(-3).reverse();
+
+  // Next scheduled dose from history (first one with a future next_dose_scheduled_at)
+  const nextDose = useMemo(() => {
+    const now = Date.now();
+    return doseHistory.find(d =>
+      d.next_dose_scheduled_at && new Date(d.next_dose_scheduled_at).getTime() > now
+    ) || null;
+  }, [doseHistory]);
+
+  const daysUntilNextDose = useMemo(() => {
+    if (!nextDose?.next_dose_scheduled_at) return null;
+    const diff = new Date(nextDose.next_dose_scheduled_at).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }, [nextDose]);
 
   const renderWeightChart = () => {
     if (weightHistory.length < 2) {
@@ -333,6 +361,77 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
             <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide mb-2 block">Curva de peso</span>
             {renderWeightChart()}
           </div>
+
+          {/* Dose History + Next Dose */}
+          {(doseHistory.length > 0 || nextDose) && (
+            <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Aplicações</span>
+                {pushActive && (
+                  <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold rounded-full">
+                    <span className="material-symbols-outlined text-[11px]">notifications_active</span>
+                    Alertas ativos
+                  </span>
+                )}
+              </div>
+
+              {/* Next dose countdown */}
+              {nextDose && daysUntilNextDose !== null && (
+                <div className="mb-3 flex items-center gap-3 p-3 bg-nura-pastel-orange dark:bg-slate-700/40 rounded-xl">
+                  <span className="text-xl">💉</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-nura-main dark:text-white">Próxima dose</p>
+                    <p className="text-[11px] text-nura-muted dark:text-slate-400">
+                      {nextDose.medication}{nextDose.dose_mg ? ` ${nextDose.dose_mg}mg` : ''} — {
+                        daysUntilNextDose === 0
+                          ? 'Hoje!'
+                          : daysUntilNextDose === 1
+                            ? 'Amanhã'
+                            : `em ${daysUntilNextDose} dias`
+                      }
+                    </p>
+                    <p className="text-[10px] text-nura-muted dark:text-slate-500">
+                      {new Date(nextDose.next_dose_scheduled_at!).toLocaleDateString('pt-BR', {
+                        weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Past doses */}
+              {doseHistory.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  {doseHistory.slice(0, 3).map((dose, i) => (
+                    <div key={dose.id || i} className="flex items-center gap-2 text-[11px]">
+                      <span className="text-base">💉</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-semibold text-nura-main dark:text-white">
+                          {dose.medication}{dose.dose_mg ? ` ${dose.dose_mg}mg` : ''}
+                        </span>
+                        {dose.is_first && (
+                          <span className="ml-1.5 px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-bold rounded-full">
+                            Primeira dose
+                          </span>
+                        )}
+                        <p className="text-[10px] text-nura-muted dark:text-slate-500">
+                          {new Date(dose.applied_at).toLocaleDateString('pt-BR', {
+                            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {doseHistory.length === 0 && (
+                <p className="text-xs text-nura-muted dark:text-slate-400 text-center py-2">
+                  Nenhuma dose registrada ainda. Diga no chat quando aplicar!
+                </p>
+              )}
+            </div>
+          )}
 
           {/* AI Tip */}
           <div className="bg-emerald-50/60 dark:bg-emerald-900/10 rounded-xl p-4 border border-emerald-200/50 dark:border-emerald-800/30">

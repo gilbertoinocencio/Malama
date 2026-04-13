@@ -6,6 +6,8 @@ interface UserProfile {
     meals_per_day?: number;
     eating_window_start?: string;
     eating_window_end?: string;
+    glp1_mode?: boolean;
+    glp1_meal_schedule?: Array<{ time: string; label: string; notes?: string }>;
 }
 
 export const NotificationService = {
@@ -246,6 +248,27 @@ export const NotificationService = {
             const mealHours = [9, 12, 15, 18, 21];
             if (minutes === 0 && mealHours.includes(hours)) {
                 NotificationService.send('🍽️ Meal Time', 'Fuel your body with a nutritious meal.');
+            }
+        }
+
+        // GLP-1 doctor-prescribed meal schedule reminders
+        if (profile?.glp1_mode && profile?.glp1_meal_schedule && profile.glp1_meal_schedule.length > 0) {
+            const nowMinutes = hours * 60 + minutes;
+            for (const slot of profile.glp1_meal_schedule) {
+                if (!slot.time || !slot.label) continue;
+                const [h, m] = slot.time.split(':').map(Number);
+                const slotMinutes = h * 60 + (m || 0);
+                // Notify within a 1-minute window of the scheduled slot
+                if (nowMinutes === slotMinutes) {
+                    const reminderKey = `glp1_meal_${slot.time}`;
+                    if (NotificationService.shouldSendReminder(reminderKey)) {
+                        NotificationService.send(
+                            `🍽️ ${slot.label}`,
+                            slot.notes || 'Hora de se alimentar — lembrete do seu médico!'
+                        );
+                        NotificationService.markReminderSent(reminderKey);
+                    }
+                }
             }
         }
 

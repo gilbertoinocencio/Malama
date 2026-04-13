@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getLocalDateString } from '../utils/dateUtils';
+import { glp1Service } from './glp1Service';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
@@ -254,6 +255,19 @@ export const UnifiedChatService = {
             console.error('Failed to parse or log water JSON:', e);
           }
         }
+
+        // --- DOSE INGESTION INTERCEPTOR ---
+        const doseMatch = aiResponse.content.match(/<dose_json>([\s\S]*?)<\/dose_json>/);
+        if (doseMatch) {
+          try {
+            const doseData = JSON.parse(doseMatch[1]);
+            await glp1Service.saveDose(userId, doseData);
+          } catch (e) {
+            console.error('Failed to parse or save dose JSON:', e);
+          }
+          // Always strip the block from the displayed message
+          aiResponse.content = aiResponse.content.replace(/<dose_json>[\s\S]*?<\/dose_json>/, '').trim();
+        }
       }
 
       // Save AI message (fire-and-forget — don't block on DB errors)
@@ -404,6 +418,14 @@ Responda APENAS com o JSON, sem texto adicional.
   }> {
     const context = await this.getContext(userId);
     const profile = context.profile;
+
+    // ── GLP-1 dose history (only when mode is active) ──
+    let recentDoses: any[] = [];
+    if (profile?.glp1_mode) {
+      try {
+        recentDoses = await glp1Service.getDoseHistory(userId, 3);
+      } catch { /* non-blocking */ }
+    }
 
     // ── RAG: Retrieve Relevant Guidelines ──
     let guidelinesText = '';
@@ -599,12 +621,36 @@ ${profile.glp1_mode ? `## 💉 PROGRAMA GLP-1 (ATIVO)
 - **Fase do tratamento:** ${profile.glp1_phase === 'start' ? 'Início (Adaptação)' : profile.glp1_phase === 'adjust' ? 'Ajuste de dose' : 'Manutenção'}
 - **Preocupação principal:** ${profile.glp1_main_concern || 'Nenhuma'}
 - **Sintomas recentes ou alertados:** ${Array.isArray(profile.glp1_symptoms) ? profile.glp1_symptoms.join(', ') : 'Nenhum reportado'}
+${recentDoses.length > 0 ? `- **Últimas aplicações registradas:**\n${recentDoses.map((d: any) => {
+  const date = new Date(d.applied_at).toLocaleDateString('pt-BR');
+  const next = d.next_dose_scheduled_at ? ` → próxima: ${new Date(d.next_dose_scheduled_at).toLocaleDateString('pt-BR')}` : '';
+  return `  • ${date}: ${d.medication}${d.dose_mg ? ` ${d.dose_mg}mg` : ''}${d.is_first ? ' (primeira dose)' : ''}${next}`;
+}).join('\n')}` : '- **Histórico de aplicações:** Nenhuma dose registrada ainda'}
 *ATENÇÃO CLÍNICA: Paciente em uso de análogo de GLP-1. Regras de ouro para este caso:
 1. **Risco de sarcopenia:** Reforce proteína DEMAIS (alta prioridade). O paciente pode perder músculo se a perda de peso for rápida.
 2. **Sintomas GI:** Se houver menção de náusea, constipação ou azia, seja ESTRATÉGICA. Sugira refeições puras, frias, pequenas, gengibre para náusea, e alta ingestão de água/fibras solúveis para constipação.
 3. **Esvaziamento gástrico lento:** Refeições volumosas ou muito gordurosas FARÃO MAL. Sugira volume pequeno, alta densidade nutritiva.
 4. **Apetite reduzido:** Celebre se bater a meta de proteína. Se o paciente disser que não consegue comer nada, sugira líquidos nutritivos (whey, leite, sopas ricas).
-5. NUNCA contradiga ou ajuste a prescrição do médico.*` : ''}
+5. NUNCA contradiga ou ajuste a prescrição do médico.*
+
+**Quando o usuário relatar que aplicou uma dose do medicamento GLP-1 (ex: "tomei minha dose", "apliquei o ozempic hoje", "fiz a aplicação"):**
+1. Celebre e confirme a aplicação com entusiasmo e carinho
+2. Pergunte quando será a próxima dose (se não informado)
+3. Se o usuário informar a próxima dose, capture o dia e horário
+4. Ao final da resposta, inclua EXATAMENTE este bloco (não inclua comentários dentro do JSON):
+<dose_json>
+{
+  "medication": "[nome do medicamento]",
+  "dose_mg": [número ou null],
+  "applied_at": "[data/hora ISO 8601 com timezone, use o momento atual se não informado]",
+  "notes": "[observações se houver ou null]",
+  "is_first": [true se o usuário disse que é a primeira dose, caso contrário false],
+  "next_dose_scheduled_at": "[ISO 8601 com timezone ou null se não informado]"
+}
+</dose_json>
+
+Se o usuário ainda não informou quando será a próxima dose, use next_dose_scheduled_at: null e pergunte em seguida de forma natural.
+NUNCA emita <dose_json> em situações hipotéticas ou sem que o usuário tenha confirmado a aplicação.` : ''}
 ${planBlock}${checkinBlock}${mealsBlock}${rejectedBlock}${insightsBlock}${historicalBlock}${ragBlock}${alertsBlock}
 
 ## REGRAS DE COMPORTAMENTO

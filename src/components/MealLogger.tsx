@@ -243,6 +243,7 @@ const historyToMessages = (history: any[]): Message[] => {
           const cleanText = msg.content
             .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
             .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+            .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
             .trim();
           const parsedMeal: AIResponse = JSON.parse(mealMatch[1]);
           if (cleanText) result.push({ id: msg.id + '-text', type: 'ai-text', content: cleanText });
@@ -251,13 +252,15 @@ const historyToMessages = (history: any[]): Message[] => {
           const cleanContent = msg.content
             .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
             .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+            .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
             .trim();
           result.push({ id: msg.id, type: 'ai-text', content: cleanContent || msg.content });
         }
       } else {
-        // Check for water JSON and remove it from display
+        // Check for water/dose JSON and remove from display
         const cleanContent = msg.content
           .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+          .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
           .trim();
         result.push({ id: msg.id, type: 'ai-text', content: cleanContent || msg.content });
       }
@@ -546,6 +549,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             const cleanText = agentResponse.content
               .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
               .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+              .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
               .trim();
             const parsedMeal: AIResponse = JSON.parse(mealJsonMatch[1]);
             setMessages(prev => [...prev,
@@ -559,6 +563,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             const cleanContent = agentResponse.content
               .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
               .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+              .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
               .trim();
             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanContent || agentResponse.content }]);
           }
@@ -567,6 +572,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           try {
             const cleanText = agentResponse.content
               .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+              .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
               .trim();
             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanText }]);
 
@@ -576,6 +582,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           } catch {
             const cleanContent = agentResponse.content
               .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+              .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
               .trim();
             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanContent || agentResponse.content }]);
           }
@@ -584,6 +591,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           const cleanContent = agentResponse.content
             .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
             .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
+            .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
             .trim();
           setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanContent || agentResponse.content }]);
         }

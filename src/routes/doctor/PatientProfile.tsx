@@ -6,13 +6,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { User, TrendingUp, Activity, FileText, MessageSquare, Calendar, Plus, X, Save } from 'lucide-react';
-import { patientService, planAdjustmentService } from '../../services/doctorPortalService';
+import { patientService, planAdjustmentService, glp1DoctorService } from '../../services/doctorPortalService';
+import type { GLP1MealSlot } from '../../services/doctorPortalService';
 import { generateDoctorBriefing } from '../../services/geminiService';
 import type { Doctor, PatientFullProfile, PatientGoals } from '../../types/doctorPortal';
 import { IMC_CLASSIFICATION, IMC_COLOR } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
 
-type TabType = 'overview' | 'history' | 'symptoms' | 'consultations' | 'briefing';
+type TabType = 'overview' | 'history' | 'symptoms' | 'consultations' | 'briefing' | 'glp1';
 
 export const PatientProfile: React.FC = () => {
   const { doctor } = useOutletContext<{ doctor: Doctor }>();
@@ -33,6 +34,8 @@ export const PatientProfile: React.FC = () => {
   const [adjustTag, setAdjustTag] = useState('');
   const [briefing, setBriefing] = useState<string | null>(null);
   const [generatingBriefing, setGeneratingBriefing] = useState(false);
+  const [glp1Schedule, setGlp1Schedule] = useState<GLP1MealSlot[]>([]);
+  const [glp1ScheduleSaving, setGlp1ScheduleSaving] = useState(false);
 
   useEffect(() => {
     if (!doctor || !patientId) return;
@@ -44,6 +47,9 @@ export const PatientProfile: React.FC = () => {
         if (data) {
           setAdjustGoals(data.current_goals);
         }
+        // Load GLP-1 meal schedule
+        const schedule = await glp1DoctorService.getPatientGlp1Schedule(patientId);
+        setGlp1Schedule(schedule.length > 0 ? schedule : [{ time: '08:00', label: '', notes: '' }]);
       } catch (error) {
         console.error('Error loading patient profile:', error);
       } finally {
@@ -117,7 +123,8 @@ export const PatientProfile: React.FC = () => {
     { id: 'history' as TabType, label: 'Histórico Nutricional', icon: Activity },
     { id: 'symptoms' as TabType, label: 'Sintomas e Check-ins', icon: MessageSquare },
     { id: 'consultations' as TabType, label: 'Consultas Anteriores', icon: FileText },
-    { id: 'briefing' as TabType, label: 'Briefing IA', icon: Calendar }
+    { id: 'briefing' as TabType, label: 'Briefing IA', icon: Calendar },
+    ...(patient?.is_glp1_active ? [{ id: 'glp1' as TabType, label: '💉 GLP-1', icon: Plus }] : []),
   ];
 
   return (
@@ -490,6 +497,106 @@ export const PatientProfile: React.FC = () => {
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Aba GLP-1: Horários de refeição */}
+          {activeTab === 'glp1' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-1">Horários de Alimentação GLP-1</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Configure os horários recomendados de refeição para o paciente. O app enviará lembretes no horário definido.
+                </p>
+
+                <div className="space-y-3">
+                  {glp1Schedule.map((slot, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="flex-shrink-0">
+                        <label className="block text-xs text-gray-500 mb-1">Horário</label>
+                        <input
+                          type="time"
+                          value={slot.time}
+                          onChange={e => {
+                            const updated = [...glp1Schedule];
+                            updated[i] = { ...updated[i], time: e.target.value };
+                            setGlp1Schedule(updated);
+                          }}
+                          className="px-2 py-1.5 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71]"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <label className="block text-xs text-gray-500 mb-1">Refeição</label>
+                        <input
+                          type="text"
+                          value={slot.label}
+                          onChange={e => {
+                            const updated = [...glp1Schedule];
+                            updated[i] = { ...updated[i], label: e.target.value };
+                            setGlp1Schedule(updated);
+                          }}
+                          placeholder="Ex: Café da manhã"
+                          className="w-full px-2 py-1.5 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71]"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <label className="block text-xs text-gray-500 mb-1">Orientação (opcional)</label>
+                        <input
+                          type="text"
+                          value={slot.notes || ''}
+                          onChange={e => {
+                            const updated = [...glp1Schedule];
+                            updated[i] = { ...updated[i], notes: e.target.value };
+                            setGlp1Schedule(updated);
+                          }}
+                          placeholder="Ex: Proteína + carboidrato leve"
+                          className="w-full px-2 py-1.5 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71]"
+                        />
+                      </div>
+                      <button
+                        onClick={() => setGlp1Schedule(glp1Schedule.filter((_, idx) => idx !== i))}
+                        className="mt-5 p-1 text-gray-400 hover:text-red-500 transition"
+                        title="Remover"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setGlp1Schedule([...glp1Schedule, { time: '12:00', label: '', notes: '' }])}
+                  className="mt-3 flex items-center gap-2 text-sm text-[#2ECC71] hover:text-[#27ae60] font-medium transition"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar horário
+                </button>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={async () => {
+                    if (!patientId) return;
+                    setGlp1ScheduleSaving(true);
+                    try {
+                      await glp1DoctorService.updatePatientGlp1Schedule(
+                        patientId,
+                        glp1Schedule.filter(s => s.label.trim())
+                      );
+                      toast.success('Horários GLP-1 salvos!');
+                    } catch {
+                      toast.error('Erro ao salvar horários');
+                    } finally {
+                      setGlp1ScheduleSaving(false);
+                    }
+                  }}
+                  disabled={glp1ScheduleSaving}
+                  className="px-6 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  {glp1ScheduleSaving ? 'Salvando...' : 'Salvar horários'}
+                </button>
+              </div>
             </div>
           )}
         </div>

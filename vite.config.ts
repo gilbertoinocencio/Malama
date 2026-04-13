@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
+        strategies: 'injectManifest',
+        srcDir: 'public',
+        filename: 'sw.js',
         registerType: 'autoUpdate',
         includeAssets: ['logo.jpg', 'apple-touch-icon.png'],
         manifest: {
@@ -38,34 +41,8 @@ export default defineConfig(({ mode }) => {
             }
           ]
         },
-        workbox: {
-          skipWaiting: true,
-          clientsClaim: true,
+        injectManifest: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg}'],
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'supabase-cache',
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24 // 24 hours
-                }
-              }
-            },
-            {
-              urlPattern: /^https:\/\/generativelanguage\.googleapis\.com\/.*/i,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'gemini-cache',
-                expiration: {
-                  maxEntries: 20,
-                  maxAgeSeconds: 60 * 60 // 1 hour
-                }
-              }
-            }
-          ]
         }
       })
     ],

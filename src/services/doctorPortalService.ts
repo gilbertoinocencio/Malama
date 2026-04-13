@@ -1512,3 +1512,42 @@ export const storageService = {
     return data.signedUrl;
   }
 };
+
+// =====================================================
+// GLP-1 Doctor Services
+// =====================================================
+
+export interface GLP1MealSlot {
+  time: string;   // "HH:MM"
+  label: string;
+  notes?: string;
+}
+
+export const glp1DoctorService = {
+  /**
+   * Update the doctor-recommended meal schedule for a patient.
+   * Stored as JSONB in profiles.glp1_meal_schedule.
+   */
+  async updatePatientGlp1Schedule(patientId: string, schedule: GLP1MealSlot[]): Promise<void> {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ glp1_meal_schedule: schedule })
+      .eq('id', patientId);
+
+    if (error) throw error;
+  },
+
+  /**
+   * Fetch the current meal schedule for a patient.
+   */
+  async getPatientGlp1Schedule(patientId: string): Promise<GLP1MealSlot[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('glp1_meal_schedule')
+      .eq('id', patientId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return (data?.glp1_meal_schedule as GLP1MealSlot[]) || [];
+  },
+};
