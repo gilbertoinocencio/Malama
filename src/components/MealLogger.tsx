@@ -520,7 +520,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       if (isQuestion(userText) && user) {
         // Route to Smart Agent (UnifiedChatService)
         // Inject current meal context so the agent knows which meal is being discussed
-        const mealContext = draftMeal
+        // Water intake messages (e.g. "bebi 1500ml de água") must NOT carry the previous
+        // meal context — otherwise the AI responds about the meal instead of the hydration.
+        const isWaterIntakeMessage = /\b(bebi|tomei|ingeri|bebei)\b.{0,40}\b(água|agua|water|\d+\s*ml|\d+\s*litro)/i.test(userText)
+          || /\b\d+\s*(ml|litros?|copos?)\b.{0,30}\b(água|agua|water)\b/i.test(userText);
+
+        const mealContext = (!isWaterIntakeMessage && draftMeal)
           ? `[Contexto da refeição atual: ${draftMeal.foodName} — ${(draftMeal.items || []).map(i => `${i.name} ${i.weightGrams}g (${i.calories}kcal)`).join(', ')}]\n\n`
           : '';
         const agentResponse = await UnifiedChatService.sendMessage(user.id, mealContext + userText);

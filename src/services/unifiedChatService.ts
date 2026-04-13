@@ -150,9 +150,13 @@ export const UnifiedChatService = {
    */
   async saveDirectMessages(userId: string, userContent: string, agentContent: string): Promise<void> {
     try {
+      // Use explicit timestamps 1 ms apart so getChatHistory (ordered by created_at)
+      // always returns user message before agent message, even when inserted in the same batch.
+      const userTs  = new Date().toISOString();
+      const agentTs = new Date(Date.now() + 1).toISOString();
       await supabase.from('chat_messages').insert([
-        { user_id: userId, role: 'user', content: userContent, stage: null },
-        { user_id: userId, role: 'agent', content: agentContent, stage: null },
+        { user_id: userId, role: 'user',  content: userContent,  stage: null, created_at: userTs  },
+        { user_id: userId, role: 'agent', content: agentContent, stage: null, created_at: agentTs },
       ]);
     } catch (e) {
       console.error('Failed to save direct messages:', e);
