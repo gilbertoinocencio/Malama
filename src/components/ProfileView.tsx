@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, Copy, Check, TrendingUp, Clock, DollarSign, HelpCircle } from 'lucide-react';
 import { BodyScanner } from './BodyScanner';
 import { BodyProgressTimeline } from './BodyProgressTimeline';
+import { MetricsChart } from './MetricsChart';
+import { WeightLogModal } from './WeightLogModal';
 import { FAQSection } from './support/FAQSection';
 import { ContactSupportModal } from './support/ContactSupportModal';
 import { AppView } from '../types';
@@ -171,6 +173,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   const [showBodyScanner, setShowBodyScanner] = useState(false);
   const [showBodyProgress, setShowBodyProgress] = useState(false);
+  const [showMetricsChart, setShowMetricsChart] = useState(false);
+  const [showWeightModal, setShowWeightModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [gamification, setGamification] = useState<GamificationStats | null>(null);
@@ -686,30 +690,63 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </section>
 
-        {/* Body Scan AI */}
+        {/* Corpo & Métricas */}
         <section className="w-full px-6 mb-8">
-          <div
-            onClick={() => setShowBodyProgress(true)}
-            className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 dark:from-purple-500/20 dark:to-pink-500/20 border border-purple-500/20 rounded-2xl p-4 cursor-pointer hover:border-purple-500/40 transition-all group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="size-14 bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-purple-500/30 transition-colors">
-                <span className="material-symbols-outlined text-purple-400 text-2xl">photo_camera</span>
+          <h3 className="text-nura-main dark:text-white text-base font-bold mb-3">Corpo & Métricas</h3>
+          <div className="bg-white dark:bg-[#1a2630] rounded-2xl border border-nura-border dark:border-gray-800 overflow-hidden shadow-sm">
+
+            {/* Body Scan row */}
+            <div
+              onClick={() => setShowBodyProgress(true)}
+              className="flex items-center gap-4 p-4 border-b border-nura-border dark:border-gray-800 cursor-pointer hover:bg-nura-bg dark:hover:bg-white/5 transition-colors group"
+            >
+              <div className="size-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,0.12)' }}>
+                <span className="material-symbols-outlined text-[22px]" style={{ color: '#8b5cf6' }}>photo_camera</span>
               </div>
               <div className="flex-1">
-                <h3 className="text-nura-main dark:text-white font-bold text-sm mb-1">Body Scan AI</h3>
-                <p className="text-nura-muted dark:text-gray-400 text-xs leading-relaxed">Analise seu progresso corporal com IA</p>
+                <span className="text-sm font-bold text-nura-main dark:text-white block">Body Scan AI</span>
+                <span className="text-xs text-nura-muted dark:text-gray-400">Fotos + análise de composição corporal</span>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowBodyScanner(true);
-                }}
-                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-sm">add_photo_alternate</span>
-                Scan
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowBodyScanner(true); }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors"
+                  style={{ background: '#8b5cf6' }}
+                >
+                  <span className="material-symbols-outlined text-sm leading-none">add_photo_alternate</span>
+                </button>
+                <span className="material-symbols-outlined text-nura-muted dark:text-gray-500 group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+              </div>
+            </div>
+
+            {/* Weight log row */}
+            <div
+              onClick={() => setShowWeightModal(true)}
+              className="flex items-center gap-4 p-4 border-b border-nura-border dark:border-gray-800 cursor-pointer hover:bg-nura-bg dark:hover:bg-white/5 transition-colors group"
+            >
+              <div className="size-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(26,154,175,0.12)' }}>
+                <span className="material-symbols-outlined text-[22px]" style={{ color: '#1a9aaf' }}>monitor_weight</span>
+              </div>
+              <div className="flex-1">
+                <span className="text-sm font-bold text-nura-main dark:text-white block">Registrar Peso</span>
+                <span className="text-xs text-nura-muted dark:text-gray-400">Histórico de peso com tendência</span>
+              </div>
+              <span className="material-symbols-outlined text-nura-muted dark:text-gray-500 group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+            </div>
+
+            {/* Metrics chart row */}
+            <div
+              onClick={() => setShowMetricsChart(true)}
+              className="flex items-center gap-4 p-4 cursor-pointer hover:bg-nura-bg dark:hover:bg-white/5 transition-colors group"
+            >
+              <div className="size-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(16,185,129,0.12)' }}>
+                <span className="material-symbols-outlined text-[22px]" style={{ color: '#10b981' }}>insights</span>
+              </div>
+              <div className="flex-1">
+                <span className="text-sm font-bold text-nura-main dark:text-white block">Gráficos de Evolução</span>
+                <span className="text-xs text-nura-muted dark:text-gray-400">Peso, gordura, músculo e medidas</span>
+              </div>
+              <span className="material-symbols-outlined text-nura-muted dark:text-gray-500 group-hover:translate-x-0.5 transition-transform">chevron_right</span>
             </div>
           </div>
         </section>
@@ -775,6 +812,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             setShowBodyProgress(false);
             setShowBodyScanner(true);
           }}
+        />
+      )}
+
+      {/* Metrics Chart Modal */}
+      {showMetricsChart && (
+        <MetricsChart
+          onClose={() => setShowMetricsChart(false)}
+          onLogWeight={() => {
+            setShowMetricsChart(false);
+            setShowWeightModal(true);
+          }}
+        />
+      )}
+
+      {/* Weight Log Modal */}
+      {showWeightModal && (
+        <WeightLogModal
+          onClose={() => setShowWeightModal(false)}
         />
       )}
 

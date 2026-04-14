@@ -6,6 +6,7 @@ import {
   BodyAnalysisService,
   BodyAnalysisResult
 } from '../services/bodyAnalysisService';
+import { MeasurementSnapshotService, WeightLogService } from '../services/weightLogService';
 import { BodyScanResult } from './BodyScanResult';
 
 interface BodyScannerProps {
@@ -425,14 +426,55 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
   };
 
   const handleFinishSession = async () => {
-    if (!sessionId) return;
+    if (!sessionId || !user) return;
     try {
       await BodyAnalysisService.completeSession(sessionId);
+
+      // Build consolidated measurement snapshot from all scans in this session
+      const frontScan = scans.find(s => s.poseType === 'front');
+      const allResults = scans.filter(s => s.result);
+
+      if (allResults.length > 0) {
+        const avgBodyFat = allResults.reduce((sum, s) => sum + (s.result?.bodyFatPercentage || 0), 0) / allResults.length;
+        const avgMuscleMass = allResults.reduce((sum, s) => sum + (s.result?.muscleMassKg || 0), 0) / allResults.length;
+        const avgAiScore = Math.round(allResults.reduce((sum, s) => sum + (s.result?.aiScore || 0), 0) / allResults.length);
+        const biotype = frontScan?.result?.detectedBiotype || allResults[0]?.result?.detectedBiotype;
+
+        const weightKg = profile?.weight || 70;
+        const heightCm = profile?.height || 170;
+
+        // Save measurement snapshot (body scan history)
+        await MeasurementSnapshotService.createFromSession(
+          user.id,
+          sessionId,
+          +avgBodyFat.toFixed(2),
+          +avgMuscleMass.toFixed(2),
+          frontScan?.result?.measurements || {},
+          weightKg,
+          heightCm,
+          avgAiScore,
+          biotype
+        );
+
+        // Also log weight from body scan
+        await WeightLogService.logWeight(
+          user.id,
+          weightKg,
+          'body_scan',
+          `Body Scan — ${avgBodyFat.toFixed(1)}% BF, ${avgMuscleMass.toFixed(1)}kg MM`
+        );
+
+        console.log('📊 Snapshot saved:', { avgBodyFat: avgBodyFat.toFixed(1) + '%', avgMuscleMass: avgMuscleMass.toFixed(2) + 'kg' });
+      }
+
       console.log('🎯 Session completed!');
       onScanComplete?.();
       onClose();
     } catch (error) {
       console.error('❌ Session completion failed:', error);
+      // Don't block user if snapshot save fails
+      onScanComplete?.();
+      onClose();
     }
   };
 

@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getLocalDateString } from '../utils/dateUtils';
 import { glp1Service } from './glp1Service';
+import { WeightLogService, MeasurementSnapshotService } from './weightLogService';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
@@ -572,6 +573,29 @@ ${checkin.weight ? `- **Peso registrado:** ${checkin.weight}kg` : ''}
 ${checkin.notes ? `- **Notas:** ${checkin.notes}` : ''}
 *Use estas informações para personalizar CADA resposta. Se a energia ou humor estiverem baixos, adapte o tom e as sugestões. Se houver sintomas, priorize alimentos que ajudem naquela condição.*`;}
 
+    // Weight history block
+    const weightBlock = context.recentWeightLogs && context.recentWeightLogs.length > 0
+      ? `\n## 👚 HISTÓRICO DE PESO (LTIMOS REGISTROS)
+${context.recentWeightLogs.slice(0, 5).map((l: any) => {
+  const date = new Date(l.logged_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  return `- ${l.weight_kg.toFixed(1)} kg em ${date}${l.source !== 'manual' ? ` (${l.source})` : ''}${l.note ? ` — ${l.note}` : ''}`;
+}).join('\n')}
+*Use esses dados para calcular a evolução do peso do usuário, detectar tendências e personalizar a orientação.*`
+      : '';
+
+    // Latest body scan snapshot block
+    const snapshotBlock = context.latestBodySnapshot
+      ? `\n## 📷 Último BODY SCAN (${new Date(context.latestBodySnapshot.snapped_at).toLocaleDateString('pt-BR')})
+- **Gordura corporal:** ${context.latestBodySnapshot.avg_body_fat_pct?.toFixed(1) ?? '?'}%
+- **Massa muscular magra:** ${context.latestBodySnapshot.avg_muscle_mass_kg?.toFixed(1) ?? '?'} kg
+${context.latestBodySnapshot.bmi ? `- **IMC:** ${context.latestBodySnapshot.bmi.toFixed(1)}` : ''}
+${context.latestBodySnapshot.detected_biotype ? `- **Biótipo detectado:** ${context.latestBodySnapshot.detected_biotype}` : ''}
+${context.latestBodySnapshot.waist_cm ? `- **Cintura:** ${context.latestBodySnapshot.waist_cm} cm` : ''}
+${context.latestBodySnapshot.hip_cm ? `- **Quadril:** ${context.latestBodySnapshot.hip_cm} cm` : ''}
+${context.latestBodySnapshot.chest_cm ? `- **Peitoral:** ${context.latestBodySnapshot.chest_cm} cm` : ''}
+*Use estes dados de composição corporal para personalizar as orientações de nutrição e treino. Mencione progress nos scans quando for relevante e motivador.*`
+      : '';
+
     const systemPrompt = `Você é a **Nura**, nutricionista da vida real que virou assistente de bolso. Pensa assim: uma amiga de longa data que estudou nutrição clínica, tem anos de consultório, e agora conversa com você pelo celular de forma totalmente natural — sem cerimônia, sem "prezado paciente", sem laudo.
 
 Você conhece este usuário de cor: sabe o peso, o objetivo, o que gosta de comer, quando treina, como está o sono. Usa tudo isso nas respostas, mas de forma leve, como alguém que genuinamente se lembra da sua história.
@@ -651,7 +675,7 @@ ${recentDoses.length > 0 ? `- **Últimas aplicações registradas:**\n${recentDo
 
 Se o usuário ainda não informou quando será a próxima dose, use next_dose_scheduled_at: null e pergunte em seguida de forma natural.
 NUNCA emita <dose_json> em situações hipotéticas ou sem que o usuário tenha confirmado a aplicação.` : ''}
-${planBlock}${checkinBlock}${mealsBlock}${rejectedBlock}${insightsBlock}${historicalBlock}${ragBlock}${alertsBlock}
+${planBlock}${checkinBlock}${mealsBlock}${weightBlock}${snapshotBlock}${rejectedBlock}${insightsBlock}${historicalBlock}${ragBlock}${alertsBlock}
 
 ## REGRAS DE COMPORTAMENTO
 1. **Seja pessoal** — Use os dados do perfil para personalizar CADA resposta. Jamais responda de forma genérica como se não soubesse quem é a pessoa.
@@ -1047,6 +1071,14 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
       console.warn("Failed to generate daily alerts", e);
     }
 
+    // Get weight history for the agent (last 10 entries)
+    let recentWeightLogs: any[] = [];
+    let latestBodySnapshot: any = null;
+    try {
+      recentWeightLogs = await WeightLogService.getWeightHistory(userId, 10);
+      latestBodySnapshot = await MeasurementSnapshotService.getLatestSnapshot(userId);
+    } catch { /* non-blocking */ }
+
     return {
       profile: profile || {},
       recentMeals: recentMeals || [],
@@ -1057,6 +1089,8 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
       latestCheckin,
       activeInsights: activeInsights || [],
       rejectedSuggestions: rejectedSuggestions || [],
+      recentWeightLogs,
+      latestBodySnapshot,
     };
   },
 
