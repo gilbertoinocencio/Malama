@@ -132,6 +132,10 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
   const [showPoseGuide, setShowPoseGuide] = useState(true);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+  // Timer state
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+
   // Camera state
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<CameraError>(null);
@@ -245,6 +249,42 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
     const newFacing = cameraFacing === 'environment' ? 'user' : 'environment';
     startCamera(newFacing);
   }, [cameraFacing, startCamera]);
+
+  // Timer functions
+  const handleStartTimer = useCallback(() => {
+    setCountdown(5);
+    setIsTimerActive(true);
+  }, []);
+
+  const handleCancelTimer = useCallback(() => {
+    setCountdown(null);
+    setIsTimerActive(false);
+  }, []);
+
+  // Countdown effect
+  useEffect(() => {
+    if (countdown === null || countdown <= 0) {
+      if (countdown === 0 && isTimerActive) {
+        // Timer finished, capture photo
+        setIsTimerActive(false);
+        handleCaptureFromCamera();
+      }
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown(prev => prev !== null ? prev - 1 : null);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown, isTimerActive]);
+
+  // Cancel timer when changing poses or leaving capture step
+  useEffect(() => {
+    if (step === 'capture') {
+      handleCancelTimer();
+    }
+  }, [currentPose, step, handleCancelTimer]);
 
   // Initialize session on mount
   useEffect(() => {
@@ -738,6 +778,41 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                     </button>
                   </div>
                 )}
+
+                {/* Countdown Overlay */}
+                <AnimatePresence>
+                  {isTimerActive && countdown !== null && countdown > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.2 }}
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{ zIndex: 30, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
+                    >
+                      <div className="text-center">
+                        <motion.div
+                          key={countdown}
+                          initial={{ scale: 1.5, opacity: 0.5 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="text-9xl font-bold text-white mb-4"
+                          style={{ textShadow: '0 0 40px rgba(26,154,175,0.8)' }}
+                        >
+                          {countdown}
+                        </motion.div>
+                        <p className="text-white text-lg font-medium" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
+                          Posicione-se para a foto
+                        </p>
+                        <button
+                          onClick={handleCancelTimer}
+                          className="mt-4 px-6 py-2 rounded-full text-sm font-medium transition-colors"
+                          style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Tips */}
@@ -769,16 +844,16 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   {showPoseGuide ? 'Ocultar' : 'Mostrar'} Guia de Pose
                 </button>
 
-                {/* Primary: Camera capture */}
+                {/* Primary: Camera capture with timer */}
                 {cameraActive && (
                   <button
-                    onClick={handleCaptureFromCamera}
-                    disabled={loading}
+                    onClick={handleStartTimer}
+                    disabled={loading || isTimerActive}
                     className="w-full font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     style={{ background: '#1a9aaf', color: 'white' }}
                   >
-                    <span className="material-symbols-outlined">photo_camera</span>
-                    Tirar Foto
+                    <span className="material-symbols-outlined">timer</span>
+                    {isTimerActive ? 'Timer Ativo...' : 'Tirar Foto (5s)'}
                   </button>
                 )}
 
