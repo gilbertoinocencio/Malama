@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Copy, Check, TrendingUp, Clock, DollarSign } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Eye, EyeOff, Copy, Check, TrendingUp, Clock, DollarSign, HelpCircle } from 'lucide-react';
 import { BodyScanner } from './BodyScanner';
 import { BodyProgressTimeline } from './BodyProgressTimeline';
+import { FAQSection } from './support/FAQSection';
+import { ContactSupportModal } from './support/ContactSupportModal';
 import { AppView } from '../types';
 import { USER_AVATAR, LANGUAGES } from '../constants';
 import { useLanguage } from '../i18n';
@@ -57,8 +60,8 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
       <div className="grid grid-cols-3 gap-3">
         {[
           { icon: <TrendingUp className="w-5 h-5 text-[#2ECC71]" />, label: 'Indicações', value: String(influencerRecord.total_referrals ?? 0) },
-          { icon: <Clock className="w-5 h-5 text-[#2ECC71]" />,       label: 'Pendente',   value: fmtCurrency(influencerRecord.pending_amount ?? 0) },
-          { icon: <DollarSign className="w-5 h-5 text-[#2ECC71]" />,  label: 'Total ganho', value: fmtCurrency(influencerRecord.total_earned ?? 0) },
+          { icon: <Clock className="w-5 h-5 text-[#2ECC71]" />, label: 'Pendente', value: fmtCurrency(influencerRecord.pending_amount ?? 0) },
+          { icon: <DollarSign className="w-5 h-5 text-[#2ECC71]" />, label: 'Total ganho', value: fmtCurrency(influencerRecord.total_earned ?? 0) },
         ].map(({ icon, label, value }) => (
           <div key={label} className="bg-white dark:bg-[#1a2630] border border-nura-border dark:border-gray-800 rounded-xl p-4 text-center">
             <div className="flex justify-center mb-2">{icon}</div>
@@ -123,11 +126,10 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
               className="w-full px-3 py-2.5 bg-nura-bg dark:bg-white/5 border border-nura-border dark:border-white/10 rounded-lg text-nura-main dark:text-white text-sm placeholder-gray-400 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent outline-none"
             />
             {passMsg && (
-              <p className={`text-sm px-3 py-2 rounded-lg border ${
-                passMsg.type === 'success'
-                  ? 'text-[#2ECC71] bg-green-400/10 border-green-400/20'
-                  : 'text-red-400 bg-red-400/10 border-red-400/20'
-              }`}>{passMsg.text}</p>
+              <p className={`text-sm px-3 py-2 rounded-lg border ${passMsg.type === 'success'
+                ? 'text-[#2ECC71] bg-green-400/10 border-green-400/20'
+                : 'text-red-400 bg-red-400/10 border-red-400/20'
+                }`}>{passMsg.text}</p>
             )}
             <button
               type="submit" disabled={savingPass}
@@ -169,6 +171,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   const [showBodyScanner, setShowBodyScanner] = useState(false);
   const [showBodyProgress, setShowBodyProgress] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   const [gamification, setGamification] = useState<GamificationStats | null>(null);
   const [totalMeals, setTotalMeals] = useState(0);
   const [heatmapData, setHeatmapData] = useState<HeatmapDay[]>([]);
@@ -641,15 +645,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </section>
 
-        {/* GLP-1 Program Banner */}
-        <section className="w-full px-6 mb-8">
-          {profile?.glp1_mode ? (
-            <div
-              onClick={() => onNavClick(AppView.GLP1_DASHBOARD)}
-              className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/20 rounded-2xl p-4 cursor-pointer hover:border-green-500/40 transition-all group"
-            >
+        {/* GLP-1 Program Banner - Simplified: just shows status, no navigation */}
+        {profile?.glp1_mode && (
+          <section className="w-full px-6 mb-8">
+            <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/20 rounded-2xl p-4">
               <div className="flex items-center gap-4">
-                <div className="size-14 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors">
+                <div className="size-14 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                   <span className="text-2xl">💊</span>
                 </div>
                 <div className="flex-1">
@@ -658,32 +659,31 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold rounded-full">Ativo</span>
                   </div>
                   <p className="text-nura-muted dark:text-gray-400 text-xs leading-relaxed">
-                    {profile.glp1_medication || 'GLP-1'} — {profile.glp1_phase === 'start' ? 'Início' : profile.glp1_phase === 'adjust' ? 'Ajuste' : 'Manutenção'}
+                    {profile.glp1_medication || 'GLP-1'} — Veja todos os detalhes na aba <span className="font-semibold text-green-600 dark:text-green-400">Início</span>
                   </p>
                 </div>
-                <span className="material-symbols-outlined text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
               </div>
             </div>
-          ) : (
-            <div
-              onClick={() => onNavClick(AppView.GLP1_ONBOARDING)}
-              className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/20 rounded-2xl p-4 cursor-pointer hover:border-green-500/40 transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="size-14 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/30 transition-colors">
-                  <span className="text-2xl">💊</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-nura-main dark:text-white font-bold text-sm mb-1">Programa GLP-1</h3>
-                  <p className="text-nura-muted dark:text-gray-400 text-xs leading-relaxed">Tratamento com acompanhamento nutricional personalizado</p>
-                </div>
-                <div className="flex items-center gap-1 bg-green-600 dark:bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0">
-                  Ativar
-                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                </div>
+          </section>
+        )}
+
+        {/* Support Section */}
+        <section className="w-full px-6 mb-8">
+          <div
+            onClick={() => setShowSupportModal(true)}
+            className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 dark:from-blue-500/20 dark:to-cyan-500/20 border border-blue-500/20 rounded-2xl p-4 cursor-pointer hover:border-blue-500/40 transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="size-14 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors">
+                <HelpCircle className="w-7 h-7 text-blue-500 dark:text-blue-400" />
               </div>
+              <div className="flex-1">
+                <h3 className="text-nura-main dark:text-white font-bold text-sm mb-1">Central de Ajuda</h3>
+                <p className="text-nura-muted dark:text-gray-400 text-xs leading-relaxed">FAQ, tutoriais e suporte ao vivo</p>
+              </div>
+              <span className="material-symbols-outlined text-blue-500 dark:text-blue-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
             </div>
-          )}
+          </div>
         </section>
 
         {/* Body Scan AI */}
@@ -777,6 +777,54 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           }}
         />
       )}
+
+      {/* Support Modal */}
+      {showSupportModal && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowSupportModal(false)} />
+          <motion.div
+            className="relative w-full max-w-2xl bg-nura-bg dark:bg-background-dark rounded-t-3xl max-h-[90vh] overflow-y-auto"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+          >
+            {/* Handle */}
+            <div className="sticky top-0 bg-nura-bg dark:bg-background-dark pt-3 pb-2 px-6 border-b border-nura-border dark:border-white/10">
+              <div className="w-10 h-1 bg-nura-border dark:bg-slate-600 rounded-full mx-auto mb-3" />
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-nura-main dark:text-white">Central de Ajuda</h3>
+                <button
+                  onClick={() => setShowSupportModal(false)}
+                  className="p-2 rounded-lg hover:bg-nura-main/5 dark:hover:bg-white/10 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-nura-muted dark:text-slate-400">close</span>
+                </button>
+              </div>
+            </div>
+
+            {/* FAQ Section */}
+            <div className="p-6">
+              <FAQSection onContactSupport={() => {
+                setShowSupportModal(false);
+                setShowContactModal(true);
+              }} />
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Contact Support Modal */}
+      <ContactSupportModal
+        isOpen={showContactModal}
+        onClose={() => setShowContactModal(false)}
+        onSuccess={() => setShowContactModal(false)}
+      />
     </div>
   );
 };

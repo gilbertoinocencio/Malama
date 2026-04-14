@@ -130,8 +130,11 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Handle Theme Toggle
-  const [darkMode, setDarkMode] = useState(false);
+  // Handle Theme Toggle — persisted in localStorage
+  const [darkMode, setDarkMode] = useState(() => {
+    // Initialize from localStorage, default to false (light mode)
+    try { return localStorage.getItem('nura_dark_mode') === 'true'; } catch { return false; }
+  });
 
   useEffect(() => {
     if (darkMode) {
@@ -139,6 +142,7 @@ const App: React.FC = () => {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    try { localStorage.setItem('nura_dark_mode', String(darkMode)); } catch {}
   }, [darkMode]);
 
   const toggleTheme = () => {

@@ -50,6 +50,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
 
       await supabase.from('profiles').update({
         glp1_mode: true,
+        glp1_mode_active: true,
         glp1_medication: medication || null,
         glp1_phase: phase,
         glp1_symptoms: symptoms,
@@ -60,6 +61,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
 
       await updateProfile({
         glp1_mode: true,
+        glp1_mode_active: true,
         glp1_medication: medication || null,
         glp1_phase: phase,
         glp1_symptoms: symptoms,

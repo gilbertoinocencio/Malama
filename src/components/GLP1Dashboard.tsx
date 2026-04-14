@@ -271,10 +271,15 @@ export const GLP1Dashboard: React.FC<GLP1DashboardProps> = ({ onBack, onNavigate
     if (!user || !medication) return;
     setLogDoseSaving(true);
     try {
+      const appliedAt = new Date().toISOString();
+
+      // Write to glp1_doses (AI chat history + push notification scheduling)
+      // saveFullDose also mirrors into glp1_dose_logs + sets the localStorage
+      // confirmed-today flag, so no separate markGlp1DoseConfirmed() call needed.
       await glp1Service.saveFullDose(user.id, {
         medication,
         dose_mg: currentDoseMg,
-        applied_at: new Date().toISOString(),
+        applied_at: appliedAt,
         is_first: doseHistory.length === 0,
         phase,
         application_site: logSite || null,
@@ -284,8 +289,7 @@ export const GLP1Dashboard: React.FC<GLP1DashboardProps> = ({ onBack, onNavigate
         notes: logNotes || null,
         next_dose_scheduled_at: nextApplicationDate?.toISOString() || null,
       });
-      // Mark dose as confirmed so missed-dose alert won't fire
-      NotificationService.markGlp1DoseConfirmed();
+
       const updated = await glp1Service.getDoseHistory(user.id, 20);
       setDoseHistory(updated);
       setShowLogDoseModal(false);
@@ -1005,7 +1009,7 @@ export const GLP1Dashboard: React.FC<GLP1DashboardProps> = ({ onBack, onNavigate
                   if (!user) return;
                   if (confirm('Tem certeza que deseja encerrar o Modo GLP-1? Isso registrará a data de saída e reverterá as metas nutricionais.')) {
                     await glp1Service.deactivateGlp1(user.id);
-                    await updateProfile({ glp1_mode: false, glp1_end_date: new Date().toISOString().split('T')[0] });
+                    await updateProfile({ glp1_mode: false, glp1_mode_active: false, glp1_end_date: new Date().toISOString().split('T')[0] });
                     onBack();
                   }
                 }}

@@ -176,10 +176,13 @@ export interface Profile {
 
   // GLP-1 Module
   glp1_mode?: boolean;
+  /** Explicitly set to true when the user manually activates GLP-1 mode (distinct from glp1_mode which may be set by other means) */
+  glp1_mode_active?: boolean;
   glp1_medication?: string;
   glp1_phase?: 'start' | 'adjust' | 'maintain';
   glp1_symptoms?: string[];
   glp1_main_concern?: string;
+  /** ISO date (YYYY-MM-DD) of the day the user first activated GLP-1 mode */
   glp1_start_date?: string;
   glp1_end_date?: string;
   glp1_paused_at?: string;

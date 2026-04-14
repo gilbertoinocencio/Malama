@@ -183,6 +183,10 @@ export const glp1Service = {
   // Extended Dose Logging (with site + side effects)
   // ──────────────────────────────────────────────────────────────────────────
 
+  /**
+   * Legacy writer to glp1_doses (used by AI chat <dose_json> flow).
+   * Also writes a lightweight row to glp1_dose_logs for confirmed-today tracking.
+   */
   async saveFullDose(
     userId: string,
     dose: {
@@ -215,6 +219,74 @@ export const glp1Service = {
       notification_sent:      false,
     });
     if (error) throw error;
+
+    // Mirror to glp1_dose_logs (canonical log + confirmed-today source of truth)
+    await this.saveDoseLog(userId, {
+      applied_at:    dose.applied_at,
+      dose_mg:       dose.dose_mg ?? null,
+      body_location: dose.application_site ?? null,
+      side_effects:  dose.side_effects ?? null,
+      energy_level:  dose.energy_level ?? null,
+    });
+  },
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // glp1_dose_logs — canonical application log
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Write one confirmed dose application to glp1_dose_logs.
+   * Also caches a localStorage flag so the missed-dose check (running every
+   * minute in notificationService) can short-circuit without a DB call.
+   */
+  async saveDoseLog(
+    userId: string,
+    data: {
+      applied_at?: string | null;
+      dose_mg?: number | null;
+      body_location?: string | null;
+      side_effects?: string[] | null;
+      energy_level?: number | null;
+    }
+  ): Promise<void> {
+    const appliedAt = data.applied_at ?? new Date().toISOString();
+
+    const { error } = await supabase.from('glp1_dose_logs').insert({
+      user_id:       userId,
+      applied_at:    appliedAt,
+      dose_mg:       data.dose_mg ?? null,
+      body_location: data.body_location ?? null,
+      // side_effects stored as JSONB — pass the array directly (Supabase handles serialisation)
+      side_effects:  data.side_effects ?? null,
+      energy_level:  data.energy_level ?? null,
+    });
+    if (error) throw error;
+
+    // Cache locally so notificationService can avoid a DB round-trip
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem(`glp1_dose_confirmed_${today}`, 'true');
+  },
+
+  /**
+   * Returns true if the user has a dose log entry for today.
+   * Checks localStorage first; falls back to a DB query if not cached.
+   */
+  async hasDoseToday(userId: string): Promise<boolean> {
+    const today = new Date().toISOString().split('T')[0];
+    if (localStorage.getItem(`glp1_dose_confirmed_${today}`) === 'true') return true;
+
+    const { data } = await supabase
+      .from('glp1_dose_logs')
+      .select('id')
+      .eq('user_id', userId)
+      .gte('applied_at', `${today}T00:00:00Z`)
+      .lt('applied_at',  `${today}T23:59:59Z`)
+      .limit(1)
+      .maybeSingle();
+
+    const confirmed = data !== null;
+    if (confirmed) localStorage.setItem(`glp1_dose_confirmed_${today}`, 'true');
+    return confirmed;
   },
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -225,7 +297,7 @@ export const glp1Service = {
     const today = new Date().toISOString().split('T')[0];
     const { error } = await supabase
       .from('profiles')
-      .update({ glp1_mode: false, glp1_end_date: today })
+      .update({ glp1_mode: false, glp1_mode_active: false, glp1_end_date: today })
       .eq('id', userId);
     if (error) throw error;
   },

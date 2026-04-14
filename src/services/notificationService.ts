@@ -129,7 +129,11 @@ export const NotificationService = {
         localStorage.setItem(lastSentKey, Date.now().toString());
     },
 
-    // Mark today's GLP-1 dose as confirmed (prevents missed-dose alert)
+    /**
+     * Mark today's GLP-1 dose as confirmed in localStorage (fast path).
+     * The canonical record lives in glp1_dose_logs (written by glp1Service.saveDoseLog).
+     * Call this only when you cannot go through glp1Service directly.
+     */
     markGlp1DoseConfirmed: () => {
         const today = new Date().toISOString().split('T')[0];
         localStorage.setItem(`glp1_dose_confirmed_${today}`, 'true');
