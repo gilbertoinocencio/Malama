@@ -181,7 +181,10 @@ export interface Profile {
   glp1_symptoms?: string[];
   glp1_main_concern?: string;
   glp1_start_date?: string;
+  glp1_end_date?: string;
+  glp1_paused_at?: string;
   glp1_prescription_expiry?: string;
+  glp1_current_dose_mg?: number;
   glp1_weekly_checkins?: Array<{ date: string; symptoms: string[]; note?: string }>;
   glp1_consultations?: Array<{
     id: string;
@@ -193,12 +196,40 @@ export interface Profile {
     price: number;
   }>;
   glp1_meal_schedule?: GLP1MealSlot[];
+  glp1_application_schedule?: GLP1ApplicationSchedule;
+  glp1_doctor_prescription?: GLP1DoctorPrescription;
 }
 
 export interface GLP1MealSlot {
   time: string;   // "HH:MM"
   label: string;
   notes?: string;
+}
+
+/** Application schedule configured by the patient (or overridden by doctor) */
+export interface GLP1ApplicationSchedule {
+  frequency: 'weekly' | 'daily';
+  day_of_week?: number;   // 0=Sun … 6=Sat (only for weekly)
+  time: string;           // "HH:MM"
+}
+
+/** Doctor-set prescription data — displayed with "Prescrito por Dr. X" badge */
+export interface GLP1DoctorPrescription {
+  doctor_id: string;
+  doctor_name: string;
+  medication?: string;
+  current_dose_mg?: number;
+  next_dose_mg?: number;
+  frequency?: 'weekly' | 'daily';
+  day_of_week?: number;
+  time?: string;
+  macro_calories?: number;
+  macro_protein_g?: number;
+  macro_carbs_g?: number;
+  macro_fats_g?: number;
+  notes?: string;
+  locked_fields?: string[];   // field names the patient cannot change
+  prescribed_at: string;      // ISO timestamp
 }
 
 export interface GLP1Dose {
@@ -212,5 +243,9 @@ export interface GLP1Dose {
   phase: string | null;
   next_dose_scheduled_at: string | null;
   notification_sent: boolean;
+  application_site?: string | null;
+  side_effects?: string[] | null;
+  energy_level?: number | null;   // 1-5
+  mood_level?: number | null;     // 1-5
   created_at: string;
 }

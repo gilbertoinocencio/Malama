@@ -154,7 +154,10 @@ const App: React.FC = () => {
           eating_window_start: profile.eating_window_start,
           eating_window_end: profile.eating_window_end,
           glp1_mode: profile.glp1_mode,
+          glp1_medication: profile.glp1_medication,
+          glp1_current_dose_mg: profile.glp1_current_dose_mg,
           glp1_meal_schedule: profile.glp1_meal_schedule,
+          glp1_application_schedule: profile.glp1_application_schedule,
         });
       } else {
         NotificationService.checkReminders();

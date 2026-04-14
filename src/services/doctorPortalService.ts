@@ -1523,6 +1523,23 @@ export interface GLP1MealSlot {
   notes?: string;
 }
 
+export interface GLP1DoctorPrescriptionInput {
+  doctor_id: string;
+  doctor_name: string;
+  medication?: string;
+  current_dose_mg?: number;
+  next_dose_mg?: number;
+  frequency?: 'weekly' | 'daily';
+  day_of_week?: number;
+  time?: string;
+  macro_calories?: number;
+  macro_protein_g?: number;
+  macro_carbs_g?: number;
+  macro_fats_g?: number;
+  notes?: string;
+  locked_fields?: string[];
+}
+
 export const glp1DoctorService = {
   /**
    * Update the doctor-recommended meal schedule for a patient.
@@ -1549,5 +1566,58 @@ export const glp1DoctorService = {
 
     if (error) throw error;
     return (data?.glp1_meal_schedule as GLP1MealSlot[]) || [];
+  },
+
+  /**
+   * Apply a GLP-1 prescription to a patient's profile.
+   * Syncs medication/dose/schedule/macros and stamps prescribed_at.
+   * The patient sees a "Prescrito por Dr. X" badge in GLP1Dashboard.
+   */
+  async prescribeGlp1(patientId: string, input: GLP1DoctorPrescriptionInput): Promise<void> {
+    const prescription = {
+      ...input,
+      prescribed_at: new Date().toISOString(),
+    };
+
+    const updates: Record<string, unknown> = {
+      glp1_doctor_prescription: prescription,
+    };
+
+    // Sync prescription fields to top-level profile fields
+    if (input.medication)       updates.glp1_medication         = input.medication;
+    if (input.current_dose_mg)  updates.glp1_current_dose_mg    = input.current_dose_mg;
+    if (input.macro_calories)   updates.target_calories          = input.macro_calories;
+    if (input.macro_protein_g)  updates.target_protein           = input.macro_protein_g;
+    if (input.macro_carbs_g)    updates.target_carbs             = input.macro_carbs_g;
+    if (input.macro_fats_g)     updates.target_fats              = input.macro_fats_g;
+
+    if (input.frequency && input.time) {
+      updates.glp1_application_schedule = {
+        frequency:   input.frequency,
+        day_of_week: input.day_of_week,
+        time:        input.time,
+      };
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', patientId);
+
+    if (error) throw error;
+  },
+
+  /**
+   * Fetch the current GLP-1 prescription for a patient.
+   */
+  async getPatientGlp1Prescription(patientId: string): Promise<GLP1DoctorPrescriptionInput | null> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('glp1_doctor_prescription')
+      .eq('id', patientId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return (data?.glp1_doctor_prescription as GLP1DoctorPrescriptionInput) || null;
   },
 };

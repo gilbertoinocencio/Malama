@@ -7,7 +7,14 @@ interface UserProfile {
     eating_window_start?: string;
     eating_window_end?: string;
     glp1_mode?: boolean;
+    glp1_medication?: string;
+    glp1_current_dose_mg?: number;
     glp1_meal_schedule?: Array<{ time: string; label: string; notes?: string }>;
+    glp1_application_schedule?: {
+        frequency: 'weekly' | 'daily';
+        day_of_week?: number; // 0=Sun … 6=Sat (weekly only)
+        time: string;         // "HH:MM"
+    };
 }
 
 export const NotificationService = {
@@ -120,6 +127,12 @@ export const NotificationService = {
     markReminderSent: (reminderType: string) => {
         const lastSentKey = `last_reminder_${reminderType}`;
         localStorage.setItem(lastSentKey, Date.now().toString());
+    },
+
+    // Mark today's GLP-1 dose as confirmed (prevents missed-dose alert)
+    markGlp1DoseConfirmed: () => {
+        const today = new Date().toISOString().split('T')[0];
+        localStorage.setItem(`glp1_dose_confirmed_${today}`, 'true');
     },
 
     // Main check function - called every minute by App
@@ -267,6 +280,52 @@ export const NotificationService = {
                             slot.notes || 'Hora de se alimentar — lembrete do seu médico!'
                         );
                         NotificationService.markReminderSent(reminderKey);
+                    }
+                }
+            }
+        }
+
+        // GLP-1 application (dose) reminders
+        if (profile?.glp1_mode && profile?.glp1_application_schedule) {
+            const schedule = profile.glp1_application_schedule;
+            const nowMinutes = hours * 60 + minutes;
+            const [schedH, schedM] = schedule.time.split(':').map(Number);
+            const schedMinutes = schedH * 60 + (schedM || 0);
+            const medicationLabel = profile.glp1_medication
+                ? profile.glp1_medication.charAt(0).toUpperCase() + profile.glp1_medication.slice(1)
+                : 'GLP-1';
+            const doseLabel = profile.glp1_current_dose_mg
+                ? ` (${profile.glp1_current_dose_mg} mg)`
+                : '';
+
+            const isDoseDay =
+                schedule.frequency === 'daily' ||
+                (schedule.frequency === 'weekly' && now.getDay() === (schedule.day_of_week ?? 1));
+
+            if (isDoseDay) {
+                // On-time reminder (exact minute)
+                if (nowMinutes === schedMinutes) {
+                    const reminderKey = `glp1_dose_${timeKey}`;
+                    if (NotificationService.shouldSendReminder(reminderKey)) {
+                        NotificationService.send(
+                            `💉 Hora da dose de ${medicationLabel}!`,
+                            `Aplique sua dose${doseLabel} agora. Registre no app após a aplicação.`
+                        );
+                        NotificationService.markReminderSent(reminderKey);
+                    }
+                }
+
+                // 1-hour "missed dose" alert — if the window passed and no confirmation recorded
+                if (nowMinutes === schedMinutes + 60) {
+                    const missedKey = `glp1_missed_${timeKey.split(':')[0]}`;
+                    const confirmedKey = `glp1_dose_confirmed_${new Date().toISOString().split('T')[0]}`;
+                    const alreadyConfirmed = localStorage.getItem(confirmedKey) === 'true';
+                    if (!alreadyConfirmed && NotificationService.shouldSendReminder(missedKey)) {
+                        NotificationService.send(
+                            `⚠️ Dose de ${medicationLabel} pendente`,
+                            'Você ainda não registrou a aplicação de hoje. Abra o app para confirmar ou reagendar.'
+                        );
+                        NotificationService.markReminderSent(missedKey);
                     }
                 }
             }

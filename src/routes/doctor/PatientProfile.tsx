@@ -7,7 +7,8 @@ import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { User, TrendingUp, Activity, FileText, MessageSquare, Calendar, Plus, X, Save } from 'lucide-react';
 import { patientService, planAdjustmentService, glp1DoctorService } from '../../services/doctorPortalService';
-import type { GLP1MealSlot } from '../../services/doctorPortalService';
+import type { GLP1MealSlot, GLP1DoctorPrescriptionInput } from '../../services/doctorPortalService';
+import { GLP1_MEDICATION_LIST, GLP1_PROTOCOLS } from '../../constants/glp1Protocols';
 import { generateDoctorBriefing } from '../../services/geminiService';
 import type { Doctor, PatientFullProfile, PatientGoals } from '../../types/doctorPortal';
 import { IMC_CLASSIFICATION, IMC_COLOR } from '../../types/doctorPortal';
@@ -36,6 +37,23 @@ export const PatientProfile: React.FC = () => {
   const [generatingBriefing, setGeneratingBriefing] = useState(false);
   const [glp1Schedule, setGlp1Schedule] = useState<GLP1MealSlot[]>([]);
   const [glp1ScheduleSaving, setGlp1ScheduleSaving] = useState(false);
+  const [glp1Prescription, setGlp1Prescription] = useState<GLP1DoctorPrescriptionInput>({
+    doctor_id: '',
+    doctor_name: '',
+    medication: '',
+    current_dose_mg: undefined,
+    next_dose_mg: undefined,
+    frequency: 'weekly',
+    day_of_week: 1,
+    time: '08:00',
+    macro_calories: undefined,
+    macro_protein_g: undefined,
+    macro_carbs_g: undefined,
+    macro_fats_g: undefined,
+    notes: '',
+    locked_fields: [],
+  });
+  const [glp1PrescriptionSaving, setGlp1PrescriptionSaving] = useState(false);
 
   useEffect(() => {
     if (!doctor || !patientId) return;
@@ -50,6 +68,14 @@ export const PatientProfile: React.FC = () => {
         // Load GLP-1 meal schedule
         const schedule = await glp1DoctorService.getPatientGlp1Schedule(patientId);
         setGlp1Schedule(schedule.length > 0 ? schedule : [{ time: '08:00', label: '', notes: '' }]);
+
+        // Load existing GLP-1 prescription
+        const existingRx = await glp1DoctorService.getPatientGlp1Prescription(patientId);
+        if (existingRx) {
+          setGlp1Prescription(prev => ({ ...prev, ...existingRx, doctor_id: doctor.id, doctor_name: doctor.name }));
+        } else {
+          setGlp1Prescription(prev => ({ ...prev, doctor_id: doctor.id, doctor_name: doctor.name }));
+        }
       } catch (error) {
         console.error('Error loading patient profile:', error);
       } finally {
@@ -500,10 +526,268 @@ export const PatientProfile: React.FC = () => {
             </div>
           )}
 
-          {/* Aba GLP-1: Horários de refeição */}
+          {/* Aba GLP-1: Prescrição + Horários de refeição */}
           {activeTab === 'glp1' && (
-            <div className="space-y-6">
-              <div>
+            <div className="space-y-8">
+
+              {/* ── Prescrição médica ──────────────────────────────── */}
+              <section>
+                <h3 className="text-lg font-semibold text-gray-800 mb-1">Prescrição GLP-1</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  As informações abaixo serão exibidas no app do paciente com o selo "Prescrito por Dr. {doctor.name}".
+                  Campos marcados como <strong>bloqueados</strong> não poderão ser alterados pelo paciente.
+                </p>
+
+                <div className="space-y-5 bg-gray-50 rounded-xl p-5 border border-gray-200">
+
+                  {/* Medicamento */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Medicamento</label>
+                      <div className="flex gap-2">
+                        <select
+                          value={glp1Prescription.medication || ''}
+                          onChange={e => setGlp1Prescription(p => ({ ...p, medication: e.target.value }))}
+                          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71] bg-white"
+                        >
+                          <option value="">Selecionar medicamento</option>
+                          {GLP1_MEDICATION_LIST.map(m => (
+                            <option key={m.value} value={m.value}>{m.label}</option>
+                          ))}
+                        </select>
+                        <button
+                          title={glp1Prescription.locked_fields?.includes('medication') ? 'Desbloquear' : 'Bloquear campo'}
+                          onClick={() => setGlp1Prescription(p => ({
+                            ...p,
+                            locked_fields: p.locked_fields?.includes('medication')
+                              ? p.locked_fields.filter(f => f !== 'medication')
+                              : [...(p.locked_fields || []), 'medication']
+                          }))}
+                          className={`px-2.5 rounded-lg border text-sm transition ${
+                            glp1Prescription.locked_fields?.includes('medication')
+                              ? 'border-orange-400 bg-orange-50 text-orange-600'
+                              : 'border-gray-300 text-gray-400 hover:text-gray-600'
+                          }`}
+                        >
+                          {glp1Prescription.locked_fields?.includes('medication') ? '🔒' : '🔓'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Dose atual */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Dose atual (mg)</label>
+                      <div className="flex gap-2">
+                        <select
+                          value={glp1Prescription.current_dose_mg ?? ''}
+                          onChange={e => setGlp1Prescription(p => ({
+                            ...p,
+                            current_dose_mg: e.target.value ? Number(e.target.value) : undefined
+                          }))}
+                          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71] bg-white"
+                        >
+                          <option value="">Selecionar dose</option>
+                          {glp1Prescription.medication && GLP1_PROTOCOLS[glp1Prescription.medication]?.dose_steps.map(s => (
+                            <option key={s.dose_mg} value={s.dose_mg}>{s.label}</option>
+                          ))}
+                        </select>
+                        <button
+                          title={glp1Prescription.locked_fields?.includes('current_dose_mg') ? 'Desbloquear' : 'Bloquear campo'}
+                          onClick={() => setGlp1Prescription(p => ({
+                            ...p,
+                            locked_fields: p.locked_fields?.includes('current_dose_mg')
+                              ? p.locked_fields.filter(f => f !== 'current_dose_mg')
+                              : [...(p.locked_fields || []), 'current_dose_mg']
+                          }))}
+                          className={`px-2.5 rounded-lg border text-sm transition ${
+                            glp1Prescription.locked_fields?.includes('current_dose_mg')
+                              ? 'border-orange-400 bg-orange-50 text-orange-600'
+                              : 'border-gray-300 text-gray-400 hover:text-gray-600'
+                          }`}
+                        >
+                          {glp1Prescription.locked_fields?.includes('current_dose_mg') ? '🔒' : '🔓'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Próxima dose (escalonamento) */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Próxima dose / escalonamento (mg)</label>
+                      <select
+                        value={glp1Prescription.next_dose_mg ?? ''}
+                        onChange={e => setGlp1Prescription(p => ({
+                          ...p,
+                          next_dose_mg: e.target.value ? Number(e.target.value) : undefined
+                        }))}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71] bg-white"
+                      >
+                        <option value="">Nenhuma (manter dose atual)</option>
+                        {glp1Prescription.medication && GLP1_PROTOCOLS[glp1Prescription.medication]?.dose_steps.map(s => (
+                          <option key={s.dose_mg} value={s.dose_mg}>{s.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Frequência */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Frequência de aplicação</label>
+                      <div className="flex gap-2">
+                        <select
+                          value={glp1Prescription.frequency || 'weekly'}
+                          onChange={e => setGlp1Prescription(p => ({
+                            ...p,
+                            frequency: e.target.value as 'weekly' | 'daily'
+                          }))}
+                          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71] bg-white"
+                        >
+                          <option value="weekly">Semanal</option>
+                          <option value="daily">Diária</option>
+                        </select>
+                        <button
+                          title={glp1Prescription.locked_fields?.includes('frequency') ? 'Desbloquear' : 'Bloquear campo'}
+                          onClick={() => setGlp1Prescription(p => ({
+                            ...p,
+                            locked_fields: p.locked_fields?.includes('frequency')
+                              ? p.locked_fields.filter(f => f !== 'frequency')
+                              : [...(p.locked_fields || []), 'frequency']
+                          }))}
+                          className={`px-2.5 rounded-lg border text-sm transition ${
+                            glp1Prescription.locked_fields?.includes('frequency')
+                              ? 'border-orange-400 bg-orange-50 text-orange-600'
+                              : 'border-gray-300 text-gray-400 hover:text-gray-600'
+                          }`}
+                        >
+                          {glp1Prescription.locked_fields?.includes('frequency') ? '🔒' : '🔓'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Dia da semana (só weekly) */}
+                    {glp1Prescription.frequency === 'weekly' && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Dia de aplicação</label>
+                        <div className="flex gap-1 flex-wrap">
+                          {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setGlp1Prescription(p => ({ ...p, day_of_week: idx }))}
+                              className={`w-10 h-10 rounded-lg text-sm font-medium transition ${
+                                glp1Prescription.day_of_week === idx
+                                  ? 'bg-[#2ECC71] text-white'
+                                  : 'bg-white border border-gray-300 text-gray-600 hover:border-[#2ECC71]'
+                              }`}
+                            >
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Horário */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Horário de aplicação</label>
+                      <input
+                        type="time"
+                        value={glp1Prescription.time || '08:00'}
+                        onChange={e => setGlp1Prescription(p => ({ ...p, time: e.target.value }))}
+                        className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71] bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Metas de macros */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-2">Metas nutricionais prescritas (opcional)</label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {([
+                        { key: 'macro_calories', label: 'Calorias', unit: 'kcal', locked: 'macros' },
+                        { key: 'macro_protein_g', label: 'Proteína', unit: 'g', locked: 'macros' },
+                        { key: 'macro_carbs_g', label: 'Carboidratos', unit: 'g', locked: 'macros' },
+                        { key: 'macro_fats_g', label: 'Gorduras', unit: 'g', locked: 'macros' },
+                      ] as const).map(({ key, label, unit }) => (
+                        <div key={key}>
+                          <label className="block text-xs text-gray-500 mb-1">{label} ({unit})</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={(glp1Prescription as Record<string, unknown>)[key] as number ?? ''}
+                            onChange={e => setGlp1Prescription(p => ({
+                              ...p,
+                              [key]: e.target.value ? Number(e.target.value) : undefined
+                            }))}
+                            placeholder="—"
+                            className="w-full px-2 py-1.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71] bg-white"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        onClick={() => setGlp1Prescription(p => ({
+                          ...p,
+                          locked_fields: p.locked_fields?.includes('macros')
+                            ? p.locked_fields.filter(f => f !== 'macros')
+                            : [...(p.locked_fields || []), 'macros']
+                        }))}
+                        className={`text-sm px-3 py-1 rounded-lg border transition ${
+                          glp1Prescription.locked_fields?.includes('macros')
+                            ? 'border-orange-400 bg-orange-50 text-orange-600'
+                            : 'border-gray-300 text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        {glp1Prescription.locked_fields?.includes('macros') ? '🔒 Metas bloqueadas' : '🔓 Bloquear metas'}
+                      </button>
+                      <span className="text-xs text-gray-400">
+                        {glp1Prescription.locked_fields?.includes('macros')
+                          ? 'Paciente não pode alterar as metas'
+                          : 'Paciente pode ajustar metas'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Observações */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Observações / instruções para o paciente</label>
+                    <textarea
+                      value={glp1Prescription.notes || ''}
+                      onChange={e => setGlp1Prescription(p => ({ ...p, notes: e.target.value }))}
+                      rows={3}
+                      placeholder="Ex: Aplicar sempre no mesmo dia da semana. Aumentar dose após 4 semanas sem efeitos adversos."
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#2ECC71] bg-white resize-none"
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={async () => {
+                        if (!patientId) return;
+                        setGlp1PrescriptionSaving(true);
+                        try {
+                          await glp1DoctorService.prescribeGlp1(patientId, {
+                            ...glp1Prescription,
+                            doctor_id: doctor.id,
+                            doctor_name: doctor.name,
+                          });
+                          toast.success('Prescrição GLP-1 salva com sucesso!');
+                        } catch {
+                          toast.error('Erro ao salvar prescrição');
+                        } finally {
+                          setGlp1PrescriptionSaving(false);
+                        }
+                      }}
+                      disabled={glp1PrescriptionSaving}
+                      className="px-6 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4" />
+                      {glp1PrescriptionSaving ? 'Salvando...' : 'Salvar prescrição'}
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* ── Horários de refeição ───────────────────────────── */}
+              <section>
                 <h3 className="text-lg font-semibold text-gray-800 mb-1">Horários de Alimentação GLP-1</h3>
                 <p className="text-sm text-gray-500 mb-4">
                   Configure os horários recomendados de refeição para o paciente. O app enviará lembretes no horário definido.
@@ -571,32 +855,32 @@ export const PatientProfile: React.FC = () => {
                   <Plus className="w-4 h-4" />
                   Adicionar horário
                 </button>
-              </div>
 
-              <div className="flex justify-end">
-                <button
-                  onClick={async () => {
-                    if (!patientId) return;
-                    setGlp1ScheduleSaving(true);
-                    try {
-                      await glp1DoctorService.updatePatientGlp1Schedule(
-                        patientId,
-                        glp1Schedule.filter(s => s.label.trim())
-                      );
-                      toast.success('Horários GLP-1 salvos!');
-                    } catch {
-                      toast.error('Erro ao salvar horários');
-                    } finally {
-                      setGlp1ScheduleSaving(false);
-                    }
-                  }}
-                  disabled={glp1ScheduleSaving}
-                  className="px-6 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  {glp1ScheduleSaving ? 'Salvando...' : 'Salvar horários'}
-                </button>
-              </div>
+                <div className="flex justify-end mt-4">
+                  <button
+                    onClick={async () => {
+                      if (!patientId) return;
+                      setGlp1ScheduleSaving(true);
+                      try {
+                        await glp1DoctorService.updatePatientGlp1Schedule(
+                          patientId,
+                          glp1Schedule.filter(s => s.label.trim())
+                        );
+                        toast.success('Horários GLP-1 salvos!');
+                      } catch {
+                        toast.error('Erro ao salvar horários');
+                      } finally {
+                        setGlp1ScheduleSaving(false);
+                      }
+                    }}
+                    disabled={glp1ScheduleSaving}
+                    className="px-6 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    {glp1ScheduleSaving ? 'Salvando...' : 'Salvar horários'}
+                  </button>
+                </div>
+              </section>
             </div>
           )}
         </div>
