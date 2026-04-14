@@ -194,12 +194,17 @@ export const UnifiedChatService = {
         aiResponse = await this.generateChatResponse(userId, userMessage);
         
         // --- WATER INGESTION INTERCEPTOR ---
-        const waterMatch = aiResponse.content.match(/<water_json>([\s\S]*?)<\/water_json>/);
-        if (waterMatch) {
+        const waterMatches = [...aiResponse.content.matchAll(/<water_json>([\s\S]*?)<\/water_json>/g)];
+        if (waterMatches.length > 0) {
           try {
-            const parsed = JSON.parse(waterMatch[1]);
-            const ml = Number(parsed.ml);
-            if (!isNaN(ml) && ml > 0) {
+            let totalMl = 0;
+            for (const match of waterMatches) {
+              const parsed = JSON.parse(match[1]);
+              const ml = Number(parsed.ml);
+              if (!isNaN(ml) && ml > 0) totalMl += ml;
+            }
+
+            if (totalMl > 0) {
               // 1. Update daily_logs.water_intake (source of truth for dashboard)
               const today = getLocalDateString();
               const { data: existingLog, error: selectError } = await supabase
@@ -213,7 +218,7 @@ export const UnifiedChatService = {
                 console.error('Water log: failed to read daily_log:', selectError);
               }
 
-              const newWaterIntake = (existingLog?.water_intake || 0) + ml;
+              const newWaterIntake = (existingLog?.water_intake || 0) + totalMl;
 
               if (existingLog) {
                 const { error: updateError } = await supabase
@@ -234,7 +239,7 @@ export const UnifiedChatService = {
 
                 const { error: insertError } = await supabase
                   .from('daily_logs')
-                  .insert({ user_id: userId, date: today, water_intake: ml, water_goal: waterGoal });
+                  .insert({ user_id: userId, date: today, water_intake: totalMl, water_goal: waterGoal });
                 if (insertError) console.error('Water log: failed to insert daily_log:', insertError);
               }
 
@@ -251,7 +256,7 @@ export const UnifiedChatService = {
               }
             }
             // Strip the JSON block from the text message to the user
-            aiResponse.content = aiResponse.content.replace(/<water_json>[\s\S]*?<\/water_json>/, '').trim();
+            aiResponse.content = aiResponse.content.replace(/<water_json>[\s\S]*?<\/water_json>/g, '').trim();
           } catch (e) {
             console.error('Failed to parse or log water JSON:', e);
           }

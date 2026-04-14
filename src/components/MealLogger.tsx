@@ -241,26 +241,26 @@ const historyToMessages = (history: any[]): Message[] => {
       if (mealMatch) {
         try {
           const cleanText = msg.content
-            .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
-            .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
-            .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
+            .replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '')
+            .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
+            .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
             .trim();
           const parsedMeal: AIResponse = JSON.parse(mealMatch[1]);
           if (cleanText) result.push({ id: msg.id + '-text', type: 'ai-text', content: cleanText });
           result.push({ id: msg.id + '-card', type: 'ai-card', content: parsedMeal });
         } catch {
           const cleanContent = msg.content
-            .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
-            .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
-            .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
+            .replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '')
+            .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
+            .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
             .trim();
           result.push({ id: msg.id, type: 'ai-text', content: cleanContent || msg.content });
         }
       } else {
         // Check for water/dose JSON and remove from display
         const cleanContent = msg.content
-          .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
-          .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
+          .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
+          .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
           .trim();
         result.push({ id: msg.id, type: 'ai-text', content: cleanContent || msg.content });
       }
@@ -291,6 +291,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const draftPersistedRef = useRef(false); // true once initial history load is done
+  const isSendingRef = useRef(false); // Prevents double-submit race condition
 
   const { t, speechLang, language } = useLanguage();
   const { user, profile } = useAuth();
@@ -511,8 +512,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   const handleSend = async () => {
     console.log('MealLogger: handleSend called', { input });
-    if (!input.trim()) return;
+    if (!input.trim() || isSendingRef.current) return;
 
+    isSendingRef.current = true;
     const userMsg: Message = { id: Date.now().toString(), type: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
     const userText = input;
@@ -547,9 +549,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         if (mealJsonMatch) {
           try {
             const cleanText = agentResponse.content
-              .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
-              .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
-              .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
+              .replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '')
+              .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
+              .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
               .trim();
             const parsedMeal: AIResponse = JSON.parse(mealJsonMatch[1]);
             setMessages(prev => [...prev,
@@ -561,9 +563,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           } catch {
             // If JSON parse fails, fall back to plain text
             const cleanContent = agentResponse.content
-              .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
-              .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
-              .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
+              .replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '')
+              .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
+              .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
               .trim();
             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanContent || agentResponse.content }]);
           }
@@ -571,8 +573,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           // Water logging - just show the text without the JSON block
           try {
             const cleanText = agentResponse.content
-              .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
-              .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
+              .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
+              .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
               .trim();
             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanText }]);
 
@@ -581,17 +583,17 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             console.log('[MealLogger] Water logged:', waterData.ml, 'ml');
           } catch {
             const cleanContent = agentResponse.content
-              .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
-              .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
+              .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
+              .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
               .trim();
             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanContent || agentResponse.content }]);
           }
         } else {
           // Strip any JSON blocks from the text
           const cleanContent = agentResponse.content
-            .replace(/<meal_json>[\s\S]*?<\/meal_json>/, '')
-            .replace(/<water_json>[\s\S]*?<\/water_json>/, '')
-            .replace(/<dose_json>[\s\S]*?<\/dose_json>/, '')
+            .replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '')
+            .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
+            .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
             .trim();
           setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanContent || agentResponse.content }]);
         }
@@ -628,6 +630,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       setMessages(prev => [...prev, errorMsg]);
     } finally {
       setLoading(false);
+      isSendingRef.current = false;
     }
   };
 
