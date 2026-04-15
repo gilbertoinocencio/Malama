@@ -168,7 +168,7 @@ export const UnifiedChatService = {
   /**
    * Send message and get AI response (auto-detects mode)
    */
-  async sendMessage(userId: string, userMessage: string): Promise<ChatMessage> {
+  async sendMessage(userId: string, userMessage: string, options?: { interceptMeals?: boolean }): Promise<ChatMessage> {
     try {
       // Get current session
       const session = await this.getOrCreateSession(userId);
@@ -273,6 +273,40 @@ export const UnifiedChatService = {
           }
           // Always strip the block from the displayed message
           aiResponse.content = aiResponse.content.replace(/<dose_json>[\s\S]*?<\/dose_json>/, '').trim();
+        }
+
+        // --- MEAL INGESTION INTERCEPTOR ---
+        if (options?.interceptMeals !== false) {
+          const mealMatch = aiResponse.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/);
+          if (mealMatch) {
+            try {
+              const { MealService } = await import('./mealService');
+              const mealData = JSON.parse(mealMatch[1]);
+              const newMeal = {
+                id: Date.now().toString(),
+                name: mealData.foodName,
+                timestamp: new Date(),
+                calories: mealData.calories,
+                macros: {
+                  protein: mealData.macros.p,
+                  carbs: mealData.macros.c,
+                  fats: mealData.macros.f
+                },
+                type: 'ai-chat',
+                items: mealData.items || []
+              };
+              
+              await MealService.logMeal(newMeal as any, userId);
+              
+              // Strip JSON from response
+              aiResponse.content = aiResponse.content.replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '').trim();
+              if (!aiResponse.content) {
+                 aiResponse.content = "Refeição registrada com sucesso! ✓";
+              }
+            } catch(e) {
+              console.error('Failed to intercept meal json:', e);
+            }
+          }
         }
       }
 

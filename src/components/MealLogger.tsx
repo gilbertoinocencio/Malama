@@ -533,15 +533,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         const mealContext = (!isWaterIntakeMessage && draftMeal)
           ? `[Contexto da refeição atual: ${draftMeal.foodName} — ${(draftMeal.items || []).map(i => `${i.name} ${i.weightGrams}g (${i.calories}kcal)`).join(', ')}]\n\n`
           : '';
-        const agentResponse = await UnifiedChatService.sendMessage(user.id, mealContext + userText);
+        const agentResponse = await UnifiedChatService.sendMessage(user.id, mealContext + userText, { interceptMeals: false });
 
-        // Guard: only show meal card if user message contains a past-tense intake verb
-        const hasPastIntakeVerb = /\b(comi|tomei|bebi|almocei|almoçei|jantei|lancei|lanchei|ingeri|engoli|consumi)\b/i.test(userText);
-
-        // Check if response contains a structured meal JSON block
-        const mealJsonMatch = hasPastIntakeVerb
-          ? agentResponse.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/)
-          : null;
+        // Always extract meal_json if it exists (AI decided it's a meal)
+        const mealJsonMatch = agentResponse.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/);
 
         // Also check for water JSON (hydration logging)
         const waterJsonMatch = agentResponse.content.match(/<water_json>([\s\S]*?)<\/water_json>/);
