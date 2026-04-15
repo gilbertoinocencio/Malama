@@ -9,11 +9,10 @@
  *   5. StabilityDetector (2 s hold)
  *   6. Auto-capture → computeMeasurements → onCapture callback
  *
- * Quiet Luxury UI:
- *   - 1 px guide lines at 40 % white opacity
- *   - Sage-green border when positioned correctly (no aggressive animations)
- *   - Playfair Display numbers, generous spacing
- *   - Off-white background, no coloured gradients
+ * UX features:
+ *   - Camera flip button (front ↔ rear) for self-scans
+ *   - Large, full-width status banner (visible against any background)
+ *   - Web Speech API voice guidance in pt-BR (no extra libraries)
  */
 
 import React, {
@@ -73,7 +72,6 @@ type CameraStep =
 
 const GUIDE_COLOR = 'rgba(255,255,255,0.40)';
 const VALID_COLOR = 'rgba(134,168,141,0.85)'; // sage green
-const WARN_COLOR  = 'rgba(255,255,255,0.55)';
 
 function drawGuideLines(
   ctx: CanvasRenderingContext2D,
@@ -128,7 +126,7 @@ function drawLandmarkDots(
     ctx.fill();
   }
 
-  // Skeleton lines (shoulder→hip)
+  // Skeleton lines
   ctx.strokeStyle = 'rgba(255,255,255,0.25)';
   ctx.lineWidth = 1;
   const pairs: [number, number][] = [
@@ -136,8 +134,8 @@ function drawLandmarkDots(
     [LM.LEFT_SHOULDER, LM.LEFT_HIP],
     [LM.RIGHT_SHOULDER, LM.RIGHT_HIP],
     [LM.LEFT_HIP, LM.RIGHT_HIP],
-    [LM.LEFT_HIP, LM.LEFT_KNEE ?? LM.LEFT_ANKLE],
-    [LM.RIGHT_HIP, LM.RIGHT_KNEE ?? LM.RIGHT_ANKLE],
+    [LM.LEFT_HIP, LM.LEFT_ANKLE],
+    [LM.RIGHT_HIP, LM.RIGHT_ANKLE],
   ];
   for (const [a, b] of pairs) {
     const lmA = landmarks[a];
@@ -153,8 +151,6 @@ function drawLandmarkDots(
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-const LM_KNEE = { LEFT_KNEE: 25, RIGHT_KNEE: 26 };
-
 export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   pose,
   requireLiveness = true,
@@ -165,9 +161,9 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   onCapture,
   onError,
 }) => {
-  const videoRef  = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const videoRef      = useRef<HTMLVideoElement>(null);
+  const canvasRef     = useRef<HTMLCanvasElement>(null);
+  const streamRef     = useRef<MediaStream | null>(null);
   const providerRef   = useRef<MediaPipeProvider | null>(null);
   const livenessRef   = useRef(new LivenessDetector());
   const stabilityRef  = useRef(new StabilityDetector(2000));
@@ -175,13 +171,31 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   const rafRef        = useRef<number>(0);
   const capturedRef   = useRef(false);
 
-  const [step, setStep] = useState<CameraStep>('loading');
-  const [statusMsg, setStatusMsg] = useState('Inicializando...');
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  const [step, setStep]             = useState<CameraStep>('loading');
+  const [statusMsg, setStatusMsg]   = useState('Inicializando...');
   const [stabilityPct, setStabilityPct] = useState(0);
-  const [livenessPct, setLivenessPct] = useState(0);
-  const [frameValid, setFrameValid] = useState(false);
-  const [currentOrientation, setCurrentOrientation] = useState<PoseOrientation>('unknown');
+  const [livenessPct, setLivenessPct]   = useState(0);
+  const [frameValid, setFrameValid]     = useState(false);
   const [distanceStatus, setDistanceStatus] = useState<'too_close' | 'too_far' | 'ok'>('too_far');
+
+  // ── Voice guidance (Web Speech API — available in all modern browsers & Safari iOS 14+) ──
+
+  const speak = useCallback((text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'pt-BR';
+    utt.rate = 0.95;
+    window.speechSynthesis.speak(utt);
+  }, []);
+
+  // Speak every time the instruction changes
+  useEffect(() => {
+    if (step !== 'loading' && step !== 'captured' && statusMsg) {
+      speak(statusMsg);
+    }
+  }, [statusMsg]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Camera ─────────────────────────────────────────────────────────────────
 
@@ -191,7 +205,12 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
     streamRef.current = null;
   }, []);
 
-  const startCamera = useCallback(async () => {
+  /**
+   * Start camera with the given facing mode.
+   * Receives `facing` as a parameter so the callback doesn't depend on
+   * `facingMode` state — avoids stale-closure issues.
+   */
+  const startCamera = useCallback(async (facing: 'user' | 'environment') => {
     if (!navigator.mediaDevices?.getUserMedia) {
       onError?.('Câmera não suportada neste dispositivo.');
       return;
@@ -199,7 +218,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'environment', // rear camera for body shots
+          facingMode: facing,
           width:  { ideal: 1280 },
           height: { ideal: 720 },
         },
@@ -246,6 +265,9 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         return;
       }
 
+      // Speak confirmation
+      speak('Perfeito');
+
       // Capture JPEG — stays 100% local, never uploaded
       const canvas = document.createElement('canvas');
       canvas.width  = frameW;
@@ -259,15 +281,15 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
       onCapture({ pose, measurements, imageDataUrl });
     },
-    [heightCm, weightKg, age, gender, pose, onCapture, onError, stopCamera],
+    [heightCm, weightKg, age, gender, pose, onCapture, onError, stopCamera, speak],
   );
 
   // ── Inference loop ──────────────────────────────────────────────────────────
 
   const runLoop = useCallback(() => {
-    const provider  = providerRef.current;
-    const video     = videoRef.current;
-    const canvas    = canvasRef.current;
+    const provider = providerRef.current;
+    const video    = videoRef.current;
+    const canvas   = canvasRef.current;
 
     if (!provider?.isReady() || !video || video.readyState < 2 || !canvas) {
       rafRef.current = requestAnimationFrame(runLoop);
@@ -305,22 +327,19 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
       // Orientation
       const orientation = detectPoseOrientation(landmarks);
-      setCurrentOrientation(orientation);
 
       const expectedOrientation: PoseOrientation = pose === 'front' ? 'frontal' : 'side';
       const orientationOk = orientation === expectedOrientation;
       const positionOk = dist.valid && orientationOk;
 
       setFrameValid(positionOk);
-
       drawGuideLines(ctx, frameW, frameH, positionOk);
       drawLandmarkDots(ctx, landmarks, frameW, frameH);
 
       // ── Liveness ────────────────────────────────────────────────────────
       if (requireLiveness && !livenessRef.current.validated) {
         setStep('liveness');
-        const liveProg = livenessRef.current.progress;
-        setLivenessPct(liveProg);
+        setLivenessPct(livenessRef.current.progress);
         livenessRef.current.addFrame(landmarks);
         setStatusMsg('Levante o braço direito acima do ombro');
         prevLandmarks.current = landmarks;
@@ -337,12 +356,12 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
           setStatusMsg(
             dist.status === 'too_close'
               ? 'Afaste-se um pouco da câmera'
-              : 'Aproxime-se da câmera (70–85% do enquadramento)',
+              : 'Aproxime-se da câmera',
           );
         } else if (!orientationOk) {
           setStatusMsg(
             pose === 'front'
-              ? 'Vire-se de frente para a câmera'
+              ? 'Vire de frente para a câmera'
               : 'Vire 90° para o lado direito',
           );
         }
@@ -354,7 +373,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       }
 
       setStep('stable');
-      setStatusMsg('Mantenha a posição...');
+      setStatusMsg('Não se mexa');
 
       // ── Stability ────────────────────────────────────────────────────────
       const isStable = stabilityRef.current.addFrame(landmarks, prevLandmarks.current, now);
@@ -371,6 +390,8 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   }, [pose, requireLiveness, captureFrame]);
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
+  // Reruns when `pose` OR `facingMode` changes.
+  // MediaPipe WASM is browser-cached after first load, so reinit on flip is fast.
 
   useEffect(() => {
     let mounted = true;
@@ -378,13 +399,14 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
     stabilityRef.current.reset();
     livenessRef.current.reset();
     prevLandmarks.current = null;
+    setStep('loading');
 
     const provider = new MediaPipeProvider();
     providerRef.current = provider;
 
     (async () => {
       try {
-        await startCamera();
+        await startCamera(facingMode);
         if (!mounted) return;
         await provider.initialize();
         if (!mounted) return;
@@ -408,8 +430,9 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       cancelAnimationFrame(rafRef.current);
       stopCamera();
       provider.destroy();
+      window.speechSynthesis?.cancel();
     };
-  }, [pose]); // re-init when pose changes
+  }, [pose, facingMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived UI ──────────────────────────────────────────────────────────────
 
@@ -460,8 +483,8 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Step indicator — discrete dots at top */}
-      <div className="absolute top-4 left-0 right-0 flex justify-center gap-2 px-6">
+      {/* Step progress bars — top centre */}
+      <div className="absolute top-4 left-0 right-0 flex justify-center gap-2 px-14">
         {(['liveness', 'positioning', 'stable'] as CameraStep[]).map((s, i) => (
           <div
             key={s}
@@ -476,25 +499,36 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         ))}
       </div>
 
-      {/* Status chip — bottom centre */}
+      {/* Camera flip button — top left */}
+      {step !== 'loading' && step !== 'captured' && (
+        <button
+          onClick={() => setFacingMode(f => f === 'environment' ? 'user' : 'environment')}
+          className="absolute top-10 left-4 bg-black/40 backdrop-blur-md p-2.5 rounded-full border border-white/20 text-white/80 active:scale-95 transition-transform z-10"
+          aria-label="Alternar câmera"
+        >
+          <span className="material-symbols-outlined text-xl leading-none">flip_camera_ios</span>
+        </button>
+      )}
+
+      {/* Status banner — large, full-width, bottom centre */}
       <AnimatePresence mode="wait">
         {step !== 'loading' && step !== 'captured' && (
           <motion.div
             key={statusMsg}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3 }}
-            className="absolute bottom-20 left-0 right-0 flex justify-center px-6"
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+            className="absolute bottom-24 left-4 right-4"
           >
-            <div className="bg-black/50 backdrop-blur-md rounded-full px-5 py-2.5 border border-white/10 max-w-xs text-center">
-              <p className="text-white/90 text-sm font-light">{statusMsg}</p>
+            <div className="bg-black/70 backdrop-blur-md rounded-2xl px-5 py-4 text-center border border-white/10">
+              <p className="text-white text-lg font-medium leading-snug">{statusMsg}</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Liveness progress arc */}
+      {/* Liveness progress arc — right side */}
       <AnimatePresence>
         {step === 'liveness' && (
           <motion.div
@@ -505,10 +539,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
             className="absolute top-1/2 right-6 -translate-y-1/2 flex flex-col items-center gap-2"
           >
             <svg width="44" height="44" viewBox="0 0 44 44">
-              <circle
-                cx="22" cy="22" r="18"
-                fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2"
-              />
+              <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2" />
               <circle
                 cx="22" cy="22" r="18"
                 fill="none" stroke="rgba(134,168,141,0.85)" strokeWidth="2"
@@ -518,9 +549,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
                 transform="rotate(-90 22 22)"
               />
             </svg>
-            <span className="text-white/50 text-[10px] tracking-wider uppercase">
-              Braço
-            </span>
+            <span className="text-white/50 text-[10px] tracking-wider uppercase">Braço</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -533,34 +562,29 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="absolute bottom-32 left-0 right-0 flex justify-center"
+            className="absolute bottom-40 left-0 right-0 flex justify-center"
           >
-            <div className="flex flex-col items-center gap-2">
-              <svg width="56" height="56" viewBox="0 0 56 56">
-                <circle
-                  cx="28" cy="28" r="22"
-                  fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="2"
-                />
-                <circle
-                  cx="28" cy="28" r="22"
-                  fill="none" stroke="rgba(134,168,141,0.90)" strokeWidth="2"
-                  strokeDasharray={`${2 * Math.PI * 22}`}
-                  strokeDashoffset={`${2 * Math.PI * 22 * (1 - stabilityPct)}`}
-                  strokeLinecap="round"
-                  transform="rotate(-90 28 28)"
-                  className="transition-all duration-100"
-                />
-                <text
-                  x="28" y="33"
-                  textAnchor="middle"
-                  fill="rgba(255,255,255,0.85)"
-                  fontSize="13"
-                  fontFamily="Playfair Display, serif"
-                >
-                  {Math.ceil((1 - stabilityPct) * 2)}s
-                </text>
-              </svg>
-            </div>
+            <svg width="56" height="56" viewBox="0 0 56 56">
+              <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="2" />
+              <circle
+                cx="28" cy="28" r="22"
+                fill="none" stroke="rgba(134,168,141,0.90)" strokeWidth="2"
+                strokeDasharray={`${2 * Math.PI * 22}`}
+                strokeDashoffset={`${2 * Math.PI * 22 * (1 - stabilityPct)}`}
+                strokeLinecap="round"
+                transform="rotate(-90 28 28)"
+                className="transition-all duration-100"
+              />
+              <text
+                x="28" y="33"
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.85)"
+                fontSize="13"
+                fontFamily="Playfair Display, serif"
+              >
+                {Math.ceil((1 - stabilityPct) * 2)}s
+              </text>
+            </svg>
           </motion.div>
         )}
       </AnimatePresence>
@@ -580,7 +604,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         </div>
       )}
 
-      {/* Captured flash */}
+      {/* Capture flash */}
       <AnimatePresence>
         {step === 'captured' && (
           <motion.div

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Copy, Check, TrendingUp, Clock, DollarSign, HelpCircle } from 'lucide-react';
 import { BodyScanner } from './BodyScanner';
-import { BodyProgressTimeline } from './BodyProgressTimeline';
 import { MetricsChart } from './MetricsChart';
 import { WeightLogModal } from './WeightLogModal';
 import { FAQSection } from './support/FAQSection';
@@ -172,7 +171,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     : '';
 
   const [showBodyScanner, setShowBodyScanner] = useState(false);
-  const [showBodyProgress, setShowBodyProgress] = useState(false);
   const [showMetricsChart, setShowMetricsChart] = useState(false);
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -697,7 +695,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
             {/* Body Scan row */}
             <div
-              onClick={() => setShowBodyProgress(true)}
+              onClick={() => setShowBodyScanner(true)}
               className="flex items-center gap-4 p-4 border-b border-nura-border dark:border-gray-800 cursor-pointer hover:bg-nura-bg dark:hover:bg-white/5 transition-colors group"
             >
               <div className="size-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,0.12)' }}>
@@ -797,21 +795,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       {showBodyScanner && (
         <BodyScanner
           onClose={() => setShowBodyScanner(false)}
-          onScanComplete={() => {
-            setShowBodyScanner(false);
-            setShowBodyProgress(true);
-          }}
-        />
-      )}
-
-      {/* Body Progress Timeline Modal */}
-      {showBodyProgress && (
-        <BodyProgressTimeline
-          onClose={() => setShowBodyProgress(false)}
-          onNewScan={() => {
-            setShowBodyProgress(false);
-            setShowBodyScanner(true);
-          }}
+          onScanComplete={() => setShowBodyScanner(false)}
         />
       )}
 
