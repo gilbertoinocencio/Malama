@@ -54,6 +54,15 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, './src'),
       }
-    }
+    },
+    // Exclude MediaPipe from Vite pre-bundling — it ships its own WASM loader
+    optimizeDeps: {
+      exclude: ['@mediapipe/tasks-vision'],
+    },
+    // Allow WASM MIME type and cross-origin headers needed by Safari iOS 16+
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
   };
 });

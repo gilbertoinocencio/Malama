@@ -1,0 +1,599 @@
+/**
+ * BodyScanCamera — real-time pose-guided camera component.
+ *
+ * Pipeline per frame:
+ *   1. MediaPipe → landmarks
+ *   2. validateDistance → distance feedback
+ *   3. detectPoseOrientation → confirms correct pose
+ *   4. LivenessDetector (right-arm raise)  ← only for the first scan
+ *   5. StabilityDetector (2 s hold)
+ *   6. Auto-capture → computeMeasurements → onCapture callback
+ *
+ * Quiet Luxury UI:
+ *   - 1 px guide lines at 40 % white opacity
+ *   - Sage-green border when positioned correctly (no aggressive animations)
+ *   - Playfair Display numbers, generous spacing
+ *   - Off-white background, no coloured gradients
+ */
+
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  MediaPipeProvider,
+  LivenessDetector,
+  StabilityDetector,
+  validateDistance,
+  detectPoseOrientation,
+  computeMeasurements,
+  type AnthroMeasurements,
+  type PoseLandmark,
+  type PoseOrientation,
+} from '../services/bodyscan';
+import { LANDMARK_INDEX as LM } from '../services/bodyscan';
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+export type ScanPose = 'front' | 'side';
+
+export interface BodyScanCaptureResult {
+  pose: ScanPose;
+  measurements: AnthroMeasurements;
+  /** JPEG data-URL of the captured frame (not uploaded — stays on device) */
+  imageDataUrl: string;
+}
+
+interface BodyScanCameraProps {
+  /** Which pose to guide the user into */
+  pose: ScanPose;
+  /** Whether to run liveness check (raise right arm) before allowing capture */
+  requireLiveness?: boolean;
+  heightCm: number;
+  weightKg: number;
+  age: number;
+  gender: 'male' | 'female';
+  onCapture: (result: BodyScanCaptureResult) => void;
+  onError?: (msg: string) => void;
+}
+
+// ─── Step state ────────────────────────────────────────────────────────────────
+
+type CameraStep =
+  | 'loading'       // MediaPipe initialising
+  | 'liveness'      // waiting for right-arm raise
+  | 'positioning'   // pose / distance validation
+  | 'stable'        // 2-s countdown
+  | 'captured';     // frame captured, processing
+
+// ─── Overlay drawing helpers ────────────────────────────────────────────────────
+
+const GUIDE_COLOR = 'rgba(255,255,255,0.40)';
+const VALID_COLOR = 'rgba(134,168,141,0.85)'; // sage green
+const WARN_COLOR  = 'rgba(255,255,255,0.55)';
+
+function drawGuideLines(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  valid: boolean,
+) {
+  ctx.clearRect(0, 0, w, h);
+
+  // Frame border
+  ctx.strokeStyle = valid ? VALID_COLOR : GUIDE_COLOR;
+  ctx.lineWidth = valid ? 2 : 1;
+  ctx.strokeRect(1, 1, w - 2, h - 2);
+
+  // Thin horizontal thirds
+  ctx.strokeStyle = GUIDE_COLOR;
+  ctx.lineWidth = 1;
+  for (const frac of [0.33, 0.66]) {
+    ctx.beginPath();
+    ctx.moveTo(0, h * frac);
+    ctx.lineTo(w, h * frac);
+    ctx.stroke();
+  }
+
+  // Thin vertical centre
+  ctx.beginPath();
+  ctx.moveTo(w / 2, 0);
+  ctx.lineTo(w / 2, h);
+  ctx.stroke();
+}
+
+function drawLandmarkDots(
+  ctx: CanvasRenderingContext2D,
+  landmarks: PoseLandmark[],
+  w: number,
+  h: number,
+) {
+  const keyIndices = [
+    LM.NOSE,
+    LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER,
+    LM.LEFT_HIP, LM.RIGHT_HIP,
+    LM.LEFT_ANKLE, LM.RIGHT_ANKLE,
+    LM.LEFT_WRIST, LM.RIGHT_WRIST,
+  ];
+
+  ctx.fillStyle = 'rgba(255,255,255,0.50)';
+  for (const i of keyIndices) {
+    const lm = landmarks[i];
+    if (!lm || (lm.visibility ?? 0) < 0.4) continue;
+    ctx.beginPath();
+    ctx.arc(lm.x * w, lm.y * h, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Skeleton lines (shoulder→hip)
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 1;
+  const pairs: [number, number][] = [
+    [LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER],
+    [LM.LEFT_SHOULDER, LM.LEFT_HIP],
+    [LM.RIGHT_SHOULDER, LM.RIGHT_HIP],
+    [LM.LEFT_HIP, LM.RIGHT_HIP],
+    [LM.LEFT_HIP, LM.LEFT_KNEE ?? LM.LEFT_ANKLE],
+    [LM.RIGHT_HIP, LM.RIGHT_KNEE ?? LM.RIGHT_ANKLE],
+  ];
+  for (const [a, b] of pairs) {
+    const lmA = landmarks[a];
+    const lmB = landmarks[b];
+    if (!lmA || !lmB) continue;
+    if ((lmA.visibility ?? 0) < 0.4 || (lmB.visibility ?? 0) < 0.4) continue;
+    ctx.beginPath();
+    ctx.moveTo(lmA.x * w, lmA.y * h);
+    ctx.lineTo(lmB.x * w, lmB.y * h);
+    ctx.stroke();
+  }
+}
+
+// ─── Component ─────────────────────────────────────────────────────────────────
+
+const LM_KNEE = { LEFT_KNEE: 25, RIGHT_KNEE: 26 };
+
+export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
+  pose,
+  requireLiveness = true,
+  heightCm,
+  weightKg,
+  age,
+  gender,
+  onCapture,
+  onError,
+}) => {
+  const videoRef  = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const providerRef   = useRef<MediaPipeProvider | null>(null);
+  const livenessRef   = useRef(new LivenessDetector());
+  const stabilityRef  = useRef(new StabilityDetector(2000));
+  const prevLandmarks = useRef<PoseLandmark[] | null>(null);
+  const rafRef        = useRef<number>(0);
+  const capturedRef   = useRef(false);
+
+  const [step, setStep] = useState<CameraStep>('loading');
+  const [statusMsg, setStatusMsg] = useState('Inicializando...');
+  const [stabilityPct, setStabilityPct] = useState(0);
+  const [livenessPct, setLivenessPct] = useState(0);
+  const [frameValid, setFrameValid] = useState(false);
+  const [currentOrientation, setCurrentOrientation] = useState<PoseOrientation>('unknown');
+  const [distanceStatus, setDistanceStatus] = useState<'too_close' | 'too_far' | 'ok'>('too_far');
+
+  // ── Camera ─────────────────────────────────────────────────────────────────
+
+  const stopCamera = useCallback(() => {
+    cancelAnimationFrame(rafRef.current);
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      onError?.('Câmera não suportada neste dispositivo.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment', // rear camera for body shots
+          width:  { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch (err: unknown) {
+      const e = err as Error;
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        onError?.('Permissão de câmera negada. Permita o acesso nas configurações.');
+      } else {
+        onError?.('Não foi possível acessar a câmera.');
+      }
+    }
+  }, [onError]);
+
+  // ── Capture ─────────────────────────────────────────────────────────────────
+
+  const captureFrame = useCallback(
+    (landmarks: PoseLandmark[], frameW: number, frameH: number) => {
+      if (capturedRef.current) return;
+      capturedRef.current = true;
+      setStep('captured');
+      cancelAnimationFrame(rafRef.current);
+
+      const measurements = computeMeasurements({
+        landmarks,
+        frameWidth: frameW,
+        frameHeight: frameH,
+        heightCm,
+        weightKg,
+        age,
+        gender,
+      });
+
+      if (!measurements) {
+        capturedRef.current = false;
+        setStep('positioning');
+        onError?.('Não foi possível calcular as medidas. Tente novamente.');
+        return;
+      }
+
+      // Capture JPEG — stays 100% local, never uploaded
+      const canvas = document.createElement('canvas');
+      canvas.width  = frameW;
+      canvas.height = frameH;
+      const ctx = canvas.getContext('2d');
+      if (ctx && videoRef.current) {
+        ctx.drawImage(videoRef.current, 0, 0);
+      }
+      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      stopCamera();
+
+      onCapture({ pose, measurements, imageDataUrl });
+    },
+    [heightCm, weightKg, age, gender, pose, onCapture, onError, stopCamera],
+  );
+
+  // ── Inference loop ──────────────────────────────────────────────────────────
+
+  const runLoop = useCallback(() => {
+    const provider  = providerRef.current;
+    const video     = videoRef.current;
+    const canvas    = canvasRef.current;
+
+    if (!provider?.isReady() || !video || video.readyState < 2 || !canvas) {
+      rafRef.current = requestAnimationFrame(runLoop);
+      return;
+    }
+
+    const frameW = video.videoWidth;
+    const frameH = video.videoHeight;
+    canvas.width  = frameW;
+    canvas.height = frameH;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { rafRef.current = requestAnimationFrame(runLoop); return; }
+
+    provider.analyzeFrame(video).then((frame) => {
+      const now = frame.timestamp;
+
+      if (!frame.poseDetected || !frame.result) {
+        setStatusMsg(
+          pose === 'front'
+            ? 'Posicione-se de frente para a câmera'
+            : 'Vire 90° para o lado direito',
+        );
+        drawGuideLines(ctx, frameW, frameH, false);
+        setFrameValid(false);
+        rafRef.current = requestAnimationFrame(runLoop);
+        return;
+      }
+
+      const { landmarks } = frame.result;
+
+      // Distance
+      const dist = validateDistance(landmarks, frameH);
+      setDistanceStatus(dist.status);
+
+      // Orientation
+      const orientation = detectPoseOrientation(landmarks);
+      setCurrentOrientation(orientation);
+
+      const expectedOrientation: PoseOrientation = pose === 'front' ? 'frontal' : 'side';
+      const orientationOk = orientation === expectedOrientation;
+      const positionOk = dist.valid && orientationOk;
+
+      setFrameValid(positionOk);
+
+      drawGuideLines(ctx, frameW, frameH, positionOk);
+      drawLandmarkDots(ctx, landmarks, frameW, frameH);
+
+      // ── Liveness ────────────────────────────────────────────────────────
+      if (requireLiveness && !livenessRef.current.validated) {
+        setStep('liveness');
+        const liveProg = livenessRef.current.progress;
+        setLivenessPct(liveProg);
+        livenessRef.current.addFrame(landmarks);
+        setStatusMsg('Levante o braço direito acima do ombro');
+        prevLandmarks.current = landmarks;
+        rafRef.current = requestAnimationFrame(runLoop);
+        return;
+      }
+
+      // ── Positioning ─────────────────────────────────────────────────────
+      if (!positionOk) {
+        stabilityRef.current.reset();
+        setStabilityPct(0);
+
+        if (!dist.valid) {
+          setStatusMsg(
+            dist.status === 'too_close'
+              ? 'Afaste-se um pouco da câmera'
+              : 'Aproxime-se da câmera (70–85% do enquadramento)',
+          );
+        } else if (!orientationOk) {
+          setStatusMsg(
+            pose === 'front'
+              ? 'Vire-se de frente para a câmera'
+              : 'Vire 90° para o lado direito',
+          );
+        }
+
+        setStep('positioning');
+        prevLandmarks.current = landmarks;
+        rafRef.current = requestAnimationFrame(runLoop);
+        return;
+      }
+
+      setStep('stable');
+      setStatusMsg('Mantenha a posição...');
+
+      // ── Stability ────────────────────────────────────────────────────────
+      const isStable = stabilityRef.current.addFrame(landmarks, prevLandmarks.current, now);
+      setStabilityPct(stabilityRef.current.progress);
+      prevLandmarks.current = landmarks;
+
+      if (isStable) {
+        captureFrame(landmarks, frameW, frameH);
+        return;
+      }
+
+      rafRef.current = requestAnimationFrame(runLoop);
+    });
+  }, [pose, requireLiveness, captureFrame]);
+
+  // ── Lifecycle ───────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    let mounted = true;
+    capturedRef.current = false;
+    stabilityRef.current.reset();
+    livenessRef.current.reset();
+    prevLandmarks.current = null;
+
+    const provider = new MediaPipeProvider();
+    providerRef.current = provider;
+
+    (async () => {
+      try {
+        await startCamera();
+        if (!mounted) return;
+        await provider.initialize();
+        if (!mounted) return;
+        setStep(requireLiveness ? 'liveness' : 'positioning');
+        setStatusMsg(
+          requireLiveness
+            ? 'Levante o braço direito acima do ombro'
+            : pose === 'front'
+              ? 'Posicione-se de frente para a câmera'
+              : 'Vire 90° para o lado direito',
+        );
+        rafRef.current = requestAnimationFrame(runLoop);
+      } catch (err) {
+        console.error('[BodyScanCamera] init error:', err);
+        onError?.('Falha ao inicializar análise de pose. Verifique sua conexão.');
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      cancelAnimationFrame(rafRef.current);
+      stopCamera();
+      provider.destroy();
+    };
+  }, [pose]); // re-init when pose changes
+
+  // ── Derived UI ──────────────────────────────────────────────────────────────
+
+  const borderClass =
+    frameValid
+      ? 'ring-2 ring-[#86a88d]/70'
+      : 'ring-1 ring-white/20';
+
+  const distanceLabel =
+    distanceStatus === 'too_close'
+      ? 'Afaste-se'
+      : distanceStatus === 'too_far'
+        ? 'Aproxime-se'
+        : 'Distância ✓';
+
+  return (
+    <div className="relative w-full h-full bg-[#0a0a0a] overflow-hidden rounded-2xl">
+      {/* Live video */}
+      <video
+        ref={videoRef}
+        className="w-full h-full object-cover"
+        playsInline
+        muted
+        autoPlay
+      />
+
+      {/* Overlay canvas (pose dots + guide lines) */}
+      <canvas
+        ref={canvasRef}
+        className={`absolute inset-0 w-full h-full transition-all duration-700 ${borderClass}`}
+      />
+
+      {/* Loading overlay */}
+      <AnimatePresence>
+        {step === 'loading' && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-[#0a0a0a]/80 flex flex-col items-center justify-center gap-4"
+          >
+            <div className="w-8 h-8 border border-white/30 border-t-white/80 rounded-full animate-spin" />
+            <p className="text-white/60 text-sm font-light tracking-widest uppercase">
+              Carregando IA
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Step indicator — discrete dots at top */}
+      <div className="absolute top-4 left-0 right-0 flex justify-center gap-2 px-6">
+        {(['liveness', 'positioning', 'stable'] as CameraStep[]).map((s, i) => (
+          <div
+            key={s}
+            className={`h-0.5 flex-1 rounded-full transition-all duration-500 ${
+              step === s
+                ? 'bg-white/70'
+                : i < (['liveness', 'positioning', 'stable'] as CameraStep[]).indexOf(step)
+                  ? 'bg-white/40'
+                  : 'bg-white/15'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Status chip — bottom centre */}
+      <AnimatePresence mode="wait">
+        {step !== 'loading' && step !== 'captured' && (
+          <motion.div
+            key={statusMsg}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3 }}
+            className="absolute bottom-20 left-0 right-0 flex justify-center px-6"
+          >
+            <div className="bg-black/50 backdrop-blur-md rounded-full px-5 py-2.5 border border-white/10 max-w-xs text-center">
+              <p className="text-white/90 text-sm font-light">{statusMsg}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Liveness progress arc */}
+      <AnimatePresence>
+        {step === 'liveness' && (
+          <motion.div
+            key="liveness"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute top-1/2 right-6 -translate-y-1/2 flex flex-col items-center gap-2"
+          >
+            <svg width="44" height="44" viewBox="0 0 44 44">
+              <circle
+                cx="22" cy="22" r="18"
+                fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2"
+              />
+              <circle
+                cx="22" cy="22" r="18"
+                fill="none" stroke="rgba(134,168,141,0.85)" strokeWidth="2"
+                strokeDasharray={`${2 * Math.PI * 18}`}
+                strokeDashoffset={`${2 * Math.PI * 18 * (1 - livenessPct)}`}
+                strokeLinecap="round"
+                transform="rotate(-90 22 22)"
+              />
+            </svg>
+            <span className="text-white/50 text-[10px] tracking-wider uppercase">
+              Braço
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Stability countdown arc */}
+      <AnimatePresence>
+        {step === 'stable' && (
+          <motion.div
+            key="stable"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute bottom-32 left-0 right-0 flex justify-center"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <svg width="56" height="56" viewBox="0 0 56 56">
+                <circle
+                  cx="28" cy="28" r="22"
+                  fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="2"
+                />
+                <circle
+                  cx="28" cy="28" r="22"
+                  fill="none" stroke="rgba(134,168,141,0.90)" strokeWidth="2"
+                  strokeDasharray={`${2 * Math.PI * 22}`}
+                  strokeDashoffset={`${2 * Math.PI * 22 * (1 - stabilityPct)}`}
+                  strokeLinecap="round"
+                  transform="rotate(-90 28 28)"
+                  className="transition-all duration-100"
+                />
+                <text
+                  x="28" y="33"
+                  textAnchor="middle"
+                  fill="rgba(255,255,255,0.85)"
+                  fontSize="13"
+                  fontFamily="Playfair Display, serif"
+                >
+                  {Math.ceil((1 - stabilityPct) * 2)}s
+                </text>
+              </svg>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Distance badge — top right */}
+      {step !== 'loading' && step !== 'liveness' && (
+        <div className="absolute top-10 right-4">
+          <div
+            className={`text-[10px] px-2.5 py-1 rounded-full backdrop-blur-md border font-light tracking-wider uppercase transition-colors duration-300 ${
+              distanceStatus === 'ok'
+                ? 'bg-[#86a88d]/20 border-[#86a88d]/40 text-[#86a88d]'
+                : 'bg-white/10 border-white/20 text-white/60'
+            }`}
+          >
+            {distanceLabel}
+          </div>
+        </div>
+      )}
+
+      {/* Captured flash */}
+      <AnimatePresence>
+        {step === 'captured' && (
+          <motion.div
+            key="flash"
+            initial={{ opacity: 0.8 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+            className="absolute inset-0 bg-white pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default BodyScanCamera;
