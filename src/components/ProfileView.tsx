@@ -173,6 +173,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [showBodyScanner, setShowBodyScanner] = useState(false);
   const [showMetricsChart, setShowMetricsChart] = useState(false);
   const [showWeightModal, setShowWeightModal] = useState(false);
+  const [metricsRefreshKey, setMetricsRefreshKey] = useState(0);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [gamification, setGamification] = useState<GamificationStats | null>(null);
@@ -802,18 +803,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       {/* Metrics Chart Modal */}
       {showMetricsChart && (
         <MetricsChart
+          key={metricsRefreshKey}
           onClose={() => setShowMetricsChart(false)}
-          onLogWeight={() => {
-            setShowMetricsChart(false);
-            setShowWeightModal(true);
-          }}
+          onLogWeight={() => setShowWeightModal(true)}
         />
       )}
 
-      {/* Weight Log Modal */}
+      {/* Weight Log Modal — opens on top of MetricsChart (z-[60] > z-50) */}
       {showWeightModal && (
         <WeightLogModal
           onClose={() => setShowWeightModal(false)}
+          onSaved={() => setMetricsRefreshKey((k: number) => k + 1)}
         />
       )}
 

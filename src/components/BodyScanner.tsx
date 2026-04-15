@@ -132,7 +132,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
     if (!user) return;
     setSaveError(null);
     try {
-      await saveScan({ measurements, heightCmUsed: heightCm });
+      await saveScan({ measurements, heightCmUsed: heightCm, weightKg });
       setStep('result');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro ao salvar';

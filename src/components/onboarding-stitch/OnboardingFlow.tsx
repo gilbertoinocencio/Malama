@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { influencerService } from '../../services/doctorPortalService';
 import { LocationAutoPermission } from '../../services/locationAutoPermission';
 import { NotificationService } from '../../services/notificationService';
+import { WeightLogService } from '../../services/weightLogService';
 
 // Step Components
 import ObjetivosPrincipaisStep from './steps/ObjetivosPrincipaisStep';
@@ -177,6 +178,13 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       });
+
+      // Seed initial weight_logs entry so MetricsChart has a starting point
+      if (data.peso) {
+        await WeightLogService.logWeight(
+          user.id, data.peso, 'manual', 'Peso inicial'
+        ).catch(() => {}); // non-fatal
+      }
 
       // Re-fetch profile so AuthContext reflects onboarding_completed = true
       // Adiciona delay para garantir que o Supabase propagou a mudança

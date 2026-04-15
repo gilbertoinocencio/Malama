@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { ProfileService, ProfileUpdates } from '../services/profileService';
+import { WeightLogService } from '../services/weightLogService';
 import { useLanguage } from '../i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,7 +12,7 @@ interface ProfileConfigProps {
 }
 
 export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }) => {
-  const { profile, updateProfile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
 
@@ -78,7 +79,16 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
         gender
       };
 
+      const prevWeight = profile?.weight;
       await updateProfile(updates);
+
+      // Log weight change to weight_logs so MetricsChart picks it up
+      if (user && w !== prevWeight) {
+        await WeightLogService.logWeight(
+          user.id, w, 'manual', 'Atualizado no perfil'
+        ).catch(() => {}); // non-fatal
+      }
+
       onFinish();
     } catch (error) {
       console.error('Failed to update profile:', error);

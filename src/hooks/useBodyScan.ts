@@ -31,6 +31,7 @@ export interface BodyScanRecord {
 export interface SaveBodyScanInput {
   measurements: AnthroMeasurements;
   heightCmUsed: number;
+  weightKg?: number;
   notes?: string;
 }
 
@@ -77,8 +78,9 @@ export function useBodyScan() {
     async (input: SaveBodyScanInput): Promise<BodyScanRecord> => {
       if (!user) throw new Error('Usuário não autenticado');
 
-      const { measurements, heightCmUsed, notes } = input;
+      const { measurements, heightCmUsed, weightKg, notes } = input;
 
+      // 1. Save to body_scan_measurements (source of truth for raw MediaPipe data)
       const { data, error: dbErr } = await supabase
         .from('body_scan_measurements')
         .insert({
@@ -97,8 +99,35 @@ export function useBodyScan() {
       if (dbErr) throw dbErr;
 
       const record = data as BodyScanRecord;
-      // Prepend to local state so the UI updates instantly
       setHistory(prev => [record, ...prev]);
+
+      // 2. Also write a body_measurement_snapshots record so MetricsChart
+      //    (Gordura / Músculo / Medidas tabs) picks up this scan automatically.
+      try {
+        const bfFraction = measurements.bf_percentage / 100;
+        const wKg = weightKg ?? 70;
+        const bmi = heightCmUsed > 0
+          ? +(wKg / ((heightCmUsed / 100) ** 2)).toFixed(2)
+          : undefined;
+        const muscleMassKg = +(wKg * (1 - bfFraction)).toFixed(2);
+
+        await supabase.from('body_measurement_snapshots').insert({
+          user_id:            user.id,
+          avg_body_fat_pct:   measurements.bf_percentage,
+          avg_muscle_mass_kg: muscleMassKg,
+          waist_cm:           measurements.waist_cm,
+          hip_cm:             measurements.hip_cm,
+          chest_cm:           measurements.bust_cm,
+          weight_kg:          wKg,
+          height_cm:          heightCmUsed,
+          bmi,
+          snapped_at:         new Date().toISOString(),
+        });
+      } catch (snapshotErr) {
+        // Non-fatal: raw data is already saved above
+        console.warn('Could not mirror scan to body_measurement_snapshots:', snapshotErr);
+      }
+
       return record;
     },
     [user],

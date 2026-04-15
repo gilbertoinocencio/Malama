@@ -9,7 +9,7 @@ interface WeightLogModalProps {
 }
 
 export const WeightLogModal: React.FC<WeightLogModalProps> = ({ onClose, onSaved }) => {
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
 
   const [weight, setWeight] = useState<string>(profile?.weight ? String(profile.weight) : '');
   const [note, setNote] = useState('');
@@ -42,6 +42,8 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({ onClose, onSaved
     setError(null);
     try {
       const log = await WeightLogService.logWeight(user.id, weightNum, 'manual', note || undefined);
+      // Keep profiles.weight in sync (no DB trigger exists for this)
+      await updateProfile({ weight: weightNum }).catch(() => {});
       setSaved(true);
       onSaved?.(log);
       // Auto-close after 1.2s
