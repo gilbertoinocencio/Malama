@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { MealSuggestion } from './coachService';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
@@ -10,7 +11,7 @@ export const MealSuggestionService = {
   /**
    * Generate daily meal suggestions based on user profile and plan phase
    */
-  async generateDailySuggestions(userId: string, date: string = new Date().toISOString().split('T')[0]): Promise<MealSuggestion[]> {
+  async generateDailySuggestions(userId: string, date: string = getLocalDateString()): Promise<MealSuggestion[]> {
     // Check if suggestions already exist for today
     const { data: existing } = await supabase
       .from('meal_suggestions')
@@ -473,8 +474,7 @@ Retorne APENAS o JSON array, sem texto adicional antes ou depois.
    * Get today's suggestions
    */
   async getTodaySuggestions(userId: string): Promise<MealSuggestion[]> {
-    const today = new Date().toISOString().split('T')[0];
-    return this.generateDailySuggestions(userId, today);
+    return this.generateDailySuggestions(userId, getLocalDateString());
   },
 
   /**

@@ -3,6 +3,7 @@ import { AppView } from '../types';
 import { DailyLogService } from '../services/dailyLogService';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
+import { getLocalDateString } from '../utils/dateUtils';
 
 interface DailyJournalProps {
   onBack: () => void;
@@ -42,7 +43,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
     try {
       await DailyLogService.saveDailyLog({
         user_id: user.id,
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         energy_level: energy || undefined,
         notes,
         photo_url: imagePreview || undefined

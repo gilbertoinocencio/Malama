@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
@@ -71,7 +72,7 @@ export const CoachService = {
   /**
    * Generate daily missions for user based on their profile and goals
    */
-  async generateDailyMissions(userId: string, date: string = new Date().toISOString().split('T')[0]): Promise<DailyMission[]> {
+  async generateDailyMissions(userId: string, date: string = getLocalDateString()): Promise<DailyMission[]> {
     // Check if missions already exist for today
     const { data: existing } = await supabase
       .from('daily_missions')
@@ -254,15 +255,14 @@ export const CoachService = {
    * Get today's missions for user
    */
   async getTodayMissions(userId: string): Promise<DailyMission[]> {
-    const today = new Date().toISOString().split('T')[0];
-    return this.generateDailyMissions(userId, today);
+    return this.generateDailyMissions(userId, getLocalDateString());
   },
 
   /**
    * Sync active missions progress with latest daily stats (hydration, protein)
    */
   async syncMissionsProgress(userId: string): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const { data: missions } = await supabase
       .from('daily_missions')
       .select('*')
@@ -309,7 +309,7 @@ export const CoachService = {
    * Submit daily check-in
    */
   async submitCheckin(userId: string, checkinData: Partial<DailyCheckin>): Promise<DailyCheckin> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
 
     // Generate AI coach feedback based on checkin
     const coachFeedback = await this.generateCheckinFeedback(userId, checkinData);
