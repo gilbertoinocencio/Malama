@@ -143,7 +143,12 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                 >
                     Nura Scan
                 </h2>
-                <div className="w-10"></div>
+                <button
+                    onClick={onBack}
+                    className="flex size-10 items-center justify-center rounded-full bg-stone-50 text-stone-400 hover:bg-stone-100 transition-all active:scale-95"
+                >
+                    <span className="material-symbols-outlined text-xl">close</span>
+                </button>
             </header>
 
             <div className="flex-1 overflow-y-auto px-6 pb-32 pt-6">
