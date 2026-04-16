@@ -1134,7 +1134,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         data={scanResult}
         imageUri={scannedImageUri}
         onConfirm={(finalData) => handleConfirmLog(finalData, 'ai-photo')}
-        onBack={() => setShowDiscardConfirm(true)}
+        onBack={() => {
+          setScanResult(null);
+          setScannedImageUri(null);
+        }}
       />
     );
   }

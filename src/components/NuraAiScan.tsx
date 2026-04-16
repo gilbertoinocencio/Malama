@@ -131,12 +131,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
         <div className="flex flex-col h-full font-body overflow-hidden" style={{ background: BG_CREAM }}>
             {/* Header */}
             <header className="flex items-center px-6 py-4 justify-between shrink-0 z-30" style={{ background: BG_CREAM, borderBottom: '1px solid #f5f5f4' }}>
-                <button
-                    onClick={onBack}
-                    className="flex size-10 items-center justify-center rounded-full bg-stone-50 text-stone-500 hover:bg-stone-100 transition-all active:scale-95"
-                >
-                    <span className="material-symbols-outlined text-xl">arrow_back</span>
-                </button>
+                <div className="w-10"></div>
                 <h2 
                     className="text-stone-800 text-sm tracking-[0.2em] uppercase"
                     style={{ fontFamily: "'Playfair Display', serif", color: PETROL }}
