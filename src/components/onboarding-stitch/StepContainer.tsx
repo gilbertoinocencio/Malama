@@ -93,13 +93,17 @@ export const StepContainer: React.FC<StepContainerProps> = ({
             <button
               onClick={onNext}
               disabled={nextDisabled}
-              className="w-full h-16 bg-gradient-to-r from-tertiary to-tertiary-container text-on-tertiary font-headline font-semibold text-lg rounded-full shadow-[0_16px_32px_rgba(0,70,79,0.2)] hover:shadow-[0_16px_40px_rgba(0,70,79,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-500 ease-in-out flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-[0_16px_32px_rgba(0,70,79,0.2)]"
+              className="w-full py-4 rounded-2xl text-white font-light tracking-wider text-base transition-all duration-300 hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: '#1A6070' }}
             >
-              <span>{nextLabel}</span>
-              <span className="material-symbols-outlined text-xl">chevron_right</span>
+              {nextLabel}
             </button>
             {secondaryLabel && (
-              <button onClick={onSecondary ?? onBack} className="w-full py-4 text-primary font-bold text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
+              <button
+                onClick={onSecondary ?? onBack}
+                className="w-full py-3 text-sm font-light transition-colors"
+                style={{ color: '#1A6070' }}
+              >
                 {secondaryLabel}
               </button>
             )}
