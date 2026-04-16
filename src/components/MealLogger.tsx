@@ -320,9 +320,32 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [editMode, setEditMode] = useState(false);
   const [editItems, setEditItems] = useState<MealItem[]>([]);
 
-  // Photo Mode State
-  const [scanResult, setScanResult] = useState<AIResponse | null>(null);
-  const [scannedImageUri, setScannedImageUri] = useState<string | null>(null);
+  // Confirm-before-close dialog
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+  // Photo Mode State — initialized from localStorage so they survive app switches
+  const [scanResult, setScanResult] = useState<AIResponse | null>(() => {
+    if (!user) return null;
+    try {
+      const saved = localStorage.getItem(`nura_draft_meal_${user.id}`);
+      if (saved) {
+        const { scanResult: sr, ts } = JSON.parse(saved);
+        if (sr && Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) return sr;
+      }
+    } catch { }
+    return null;
+  });
+  const [scannedImageUri, setScannedImageUri] = useState<string | null>(() => {
+    if (!user) return null;
+    try {
+      const saved = localStorage.getItem(`nura_draft_meal_${user.id}`);
+      if (saved) {
+        const { imageUri, ts } = JSON.parse(saved);
+        if (imageUri && Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) return imageUri;
+      }
+    } catch { }
+    return null;
+  });
 
   // Voice Recognition State
   const [isListening, setIsListening] = useState(false);
@@ -368,28 +391,43 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     });
   }, [user]);
 
-  // Persist draftMeal to localStorage whenever it changes (after initial load)
+  // Persist draftMeal/scanResult/imageUri to localStorage whenever they change (after initial load)
   useEffect(() => {
     if (!user || !draftPersistedRef.current) return;
     const key = `nura_draft_meal_${user.id}`;
-    if (draftMeal) {
-      localStorage.setItem(key, JSON.stringify({ meal: draftMeal, source: draftSource, ts: Date.now() }));
+    if (draftMeal || scanResult) {
+      const draft: Record<string, any> = {
+        meal: draftMeal ?? scanResult,
+        source: draftSource,
+        ts: Date.now(),
+      };
+      if (scanResult) draft.scanResult = scanResult;
+      if (scannedImageUri && scannedImageUri.length < 1.5 * 1024 * 1024) draft.imageUri = scannedImageUri;
+      try {
+        localStorage.setItem(key, JSON.stringify(draft));
+      } catch {
+        // If too large (e.g. big image), retry without image
+        try {
+          localStorage.setItem(key, JSON.stringify({ ...draft, imageUri: undefined }));
+        } catch { /* silent */ }
+      }
     }
-    // Clearing is done explicitly in confirm/cancel to avoid race with unmount
-  }, [draftMeal, draftSource, user]);
+    // Clearing is done explicitly in confirm/cancel/discard to avoid race with unmount
+  }, [draftMeal, scanResult, scannedImageUri, draftSource, user]);
 
-  // Restore draftMeal from localStorage when tab becomes visible again (handles tab switch recovery)
+  // Restore draftMeal/scanResult/imageUri from localStorage when tab becomes visible again
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user && !draftMeal) {
+      if (document.visibilityState === 'visible' && user) {
         try {
           const draftKey = `nura_draft_meal_${user.id}`;
           const savedDraft = localStorage.getItem(draftKey);
           if (savedDraft) {
-            const { meal, source, ts } = JSON.parse(savedDraft);
+            const { meal, source, ts, scanResult: sr, imageUri } = JSON.parse(savedDraft);
             if (Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) {
-              setDraftMeal(meal);
-              setDraftSource(source || 'chat');
+              if (!draftMeal && meal) { setDraftMeal(meal); setDraftSource(source || 'chat'); }
+              if (!scanResult && sr) setScanResult(sr);
+              if (!scannedImageUri && imageUri) setScannedImageUri(imageUri);
             }
           }
         } catch {
@@ -400,7 +438,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user, draftMeal]);
+  }, [user, draftMeal, scanResult, scannedImageUri]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -1018,6 +1056,38 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     onClose();
   };
 
+  // Show confirm dialog if there is unsaved data, otherwise close immediately
+  const handleClose = () => {
+    if (draftMeal || scanResult) {
+      setShowDiscardConfirm(true);
+    } else {
+      onClose();
+    }
+  };
+
+  // Discard everything and close
+  const handleDiscardAndClose = () => {
+    if (user) localStorage.removeItem(`nura_draft_meal_${user.id}`);
+    setScanResult(null);
+    setScannedImageUri(null);
+    setDraftMeal(null);
+    setShowDiscardConfirm(false);
+    onClose();
+  };
+
+  // Save the pending meal/scan and close
+  const handleConfirmAndClose = async () => {
+    setShowDiscardConfirm(false);
+    if (draftMeal) {
+      await handleConfirmLog(
+        draftMeal,
+        draftSource === 'barcode' ? 'ai-barcode' : draftSource === 'photo' ? 'ai-photo' : 'ai-chat'
+      );
+    } else if (scanResult) {
+      await handleConfirmLog(scanResult, 'ai-photo');
+    }
+  };
+
   const handleOpenEdit = () => {
     if (!draftMeal) return;
     setEditItems(draftMeal.items ? draftMeal.items.map((i: MealItem) => ({ ...i })) : []);
@@ -1064,10 +1134,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         data={scanResult}
         imageUri={scannedImageUri}
         onConfirm={(finalData) => handleConfirmLog(finalData, 'ai-photo')}
-        onBack={() => {
-          setScanResult(null);
-          setScannedImageUri(null);
-        }}
+        onBack={() => setShowDiscardConfirm(true)}
       />
     );
   }
@@ -1223,7 +1290,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
       {/* Top Navigation */}
       <header className="flex items-center px-4 py-3 justify-between shrink-0 z-10 bg-nura-bg/95 dark:bg-background-dark/95 backdrop-blur-sm sticky top-0 border-b border-nura-border dark:border-white/5">
-        <div onClick={onClose} className="text-nura-main dark:text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+        <div onClick={handleClose} className="text-nura-main dark:text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
           <span className="material-symbols-outlined text-2xl">arrow_back</span>
         </div>
         <div className="flex flex-col items-center">
@@ -1532,6 +1599,46 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           </div>
           <h2 className="text-2xl font-bold tracking-tight mb-2">Refeição Salva!</h2>
           <p className="text-nura-muted dark:text-slate-400 font-medium">Sincronizado com sucesso</p>
+        </div>
+      )}
+
+      {/* Confirm-before-close dialog */}
+      {showDiscardConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDiscardConfirm(false)} />
+          <div className="relative w-full max-w-md bg-nura-bg dark:bg-[#111c1e] rounded-t-3xl">
+            <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-4 bg-nura-border dark:bg-white/20" />
+            <div className="px-6 pb-10">
+              <h3 className="text-nura-main dark:text-white text-lg font-bold text-center mb-1">
+                Análise em andamento
+              </h3>
+              <p className="text-nura-muted dark:text-slate-400 text-sm text-center mb-6">
+                Você tem uma refeição não registrada. O que deseja fazer?
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleConfirmAndClose}
+                  className="w-full h-14 rounded-2xl bg-nura-petrol dark:bg-primary text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-nura-petrol/25 dark:shadow-primary/25"
+                >
+                  <span className="material-symbols-outlined text-base">check</span>
+                  Confirmar e salvar
+                </button>
+                <button
+                  onClick={() => setShowDiscardConfirm(false)}
+                  className="w-full h-12 rounded-2xl border border-nura-border dark:border-white/10 text-nura-main dark:text-white font-semibold flex items-center justify-center"
+                >
+                  Continuar aqui
+                </button>
+                <button
+                  onClick={handleDiscardAndClose}
+                  className="w-full h-12 rounded-xl text-red-400 font-semibold text-sm flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base">delete</span>
+                  Descartar e sair
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
