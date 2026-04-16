@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, Copy, Check, TrendingUp, Clock, DollarSign, HelpCircle } from 'lucide-react';
 import { BodyScanner } from './BodyScanner';
 import { MetricsChart } from './MetricsChart';
-import { WeightLogModal } from './WeightLogModal';
 import { FAQSection } from './support/FAQSection';
 import { ContactSupportModal } from './support/ContactSupportModal';
 import { AppView } from '../types';
@@ -172,8 +171,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   const [showBodyScanner, setShowBodyScanner] = useState(false);
   const [showMetricsChart, setShowMetricsChart] = useState(false);
-  const [showWeightModal, setShowWeightModal] = useState(false);
-  const [metricsRefreshKey, setMetricsRefreshKey] = useState(0);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [gamification, setGamification] = useState<GamificationStats | null>(null);
@@ -718,21 +715,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </div>
             </div>
 
-            {/* Weight log row */}
-            <div
-              onClick={() => setShowWeightModal(true)}
-              className="flex items-center gap-4 p-4 border-b border-nura-border dark:border-gray-800 cursor-pointer hover:bg-nura-bg dark:hover:bg-white/5 transition-colors group"
-            >
-              <div className="size-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(26,154,175,0.12)' }}>
-                <span className="material-symbols-outlined text-[22px]" style={{ color: '#1a9aaf' }}>monitor_weight</span>
-              </div>
-              <div className="flex-1">
-                <span className="text-sm font-bold text-nura-main dark:text-white block">Registrar Peso</span>
-                <span className="text-xs text-nura-muted dark:text-gray-400">Histórico de peso com tendência</span>
-              </div>
-              <span className="material-symbols-outlined text-nura-muted dark:text-gray-500 group-hover:translate-x-0.5 transition-transform">chevron_right</span>
-            </div>
-
             {/* Metrics chart row */}
             <div
               onClick={() => setShowMetricsChart(true)}
@@ -803,17 +785,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       {/* Metrics Chart Modal */}
       {showMetricsChart && (
         <MetricsChart
-          key={metricsRefreshKey}
           onClose={() => setShowMetricsChart(false)}
-          onLogWeight={() => setShowWeightModal(true)}
-        />
-      )}
-
-      {/* Weight Log Modal — opens on top of MetricsChart (z-[60] > z-50) */}
-      {showWeightModal && (
-        <WeightLogModal
-          onClose={() => setShowWeightModal(false)}
-          onSaved={() => setMetricsRefreshKey((k: number) => k + 1)}
         />
       )}
 
