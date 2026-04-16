@@ -2,6 +2,8 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
+const PETROL = '#1A6070';
+
 const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const target = data.pesoObjetivo || data.targetWeight || 70;
 
@@ -24,73 +26,72 @@ const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBac
       currentStep={currentStep}
       totalSteps={totalSteps}
       onNext={onNext}
-      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
-      <div className="text-center mb-12">
-        <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tight mb-4">
+      <div className="text-center mb-10">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1 
+          className="text-4xl text-stone-800 leading-tight mb-4"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
           Qual é o seu peso objetivo?
         </h1>
-        <p className="text-on-surface-variant text-lg max-w-md mx-auto leading-relaxed">
-          Definir uma meta clara é o primeiro passo para uma jornada de transformação sustentável.
+        <p className="text-stone-400 text-base font-light max-w-md mx-auto leading-relaxed">
+          Definir uma meta clara é o primeiro passo para uma jornada sustentável.
         </p>
       </div>
 
-      <div className="w-full bg-surface-container-lowest rounded-xl p-10 flex flex-col items-center justify-center relative shadow-sm border border-white/50">
-        {/* Subtitle/Label */}
-        <span className="text-primary font-headline font-semibold tracking-widest text-xs uppercase mb-8">Meta Desejada</span>
-        <div className="flex items-end justify-center gap-2 mb-10">
+      <div className="w-full bg-white rounded-2xl p-10 flex flex-col items-center justify-center relative shadow-sm border border-stone-100">
+        <span className="text-stone-400 tracking-widest text-xs uppercase mb-8 font-light">Meta Desejada</span>
+        
+        <div className="flex items-end justify-center gap-2 mb-8">
           <div className="relative group">
             <input
-              className="w-48 bg-transparent border-none text-center font-headline text-8xl font-extrabold text-primary p-0 focus:ring-0 placeholder-surface-container-highest transition-all duration-300"
+              className="w-48 bg-transparent border-none text-center text-7xl text-stone-800 p-0 focus:ring-0 transition-all duration-300"
+              style={{ fontFamily: "'Playfair Display', serif" }}
               type="number"
               value={target}
               onChange={(e) => handleChange(parseFloat(e.target.value) || 0)}
               step="0.1"
             />
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-surface-container-highest group-focus-within:w-full group-focus-within:bg-secondary transition-all duration-500 rounded-full"></div>
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-px bg-stone-200 group-focus-within:w-full transition-all duration-500"></div>
           </div>
-          <span className="font-headline text-3xl font-medium text-primary pb-4">kg</span>
-        </div>
-
-        {/* Motivational Micro-copy */}
-        <div className="flex items-center gap-3 bg-surface-container-low px-6 py-3 rounded-full border border-surface-variant/30">
-          <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>
-            auto_awesome
+          <span 
+            className="text-2xl text-stone-400 pb-2"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
+            kg
           </span>
-          <p className="text-sm font-medium text-on-surface-variant">
-            Sua meta é realista e saudável para o seu perfil.
-          </p>
         </div>
 
-        {/* Stepper Controls (Tactile) */}
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4">
+        {/* Stepper Controls */}
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-3">
           <button 
             onClick={handleIncrement}
-            className="w-12 h-12 flex items-center justify-center bg-surface-container-high rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300 active:scale-90 shadow-sm"
+            className="w-10 h-10 flex items-center justify-center bg-stone-50 rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors active:scale-95"
           >
-            <span className="material-symbols-outlined">add</span>
+            <span className="material-symbols-outlined text-sm">add</span>
           </button>
           <button 
             onClick={handleDecrement}
-            className="w-12 h-12 flex items-center justify-center bg-surface-container-high rounded-full text-primary hover:bg-primary hover:text-white transition-all duration-300 active:scale-90 shadow-sm"
+            className="w-10 h-10 flex items-center justify-center bg-stone-50 rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors active:scale-95"
           >
-            <span className="material-symbols-outlined">remove</span>
+            <span className="material-symbols-outlined text-sm">remove</span>
           </button>
         </div>
       </div>
 
-      {/* Secondary Guidance Card */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-        <div className="bg-primary-fixed text-on-primary-fixed p-6 rounded-lg flex flex-col justify-between h-32 border border-primary/10">
-          <span className="material-symbols-outlined text-primary text-3xl">psychology</span>
-          <p className="text-xs font-medium leading-tight">A ciência mostra que metas visíveis aumentam a retenção em 40%.</p>
-        </div>
-        <div className="bg-surface-container-high p-6 rounded-lg flex flex-col justify-between h-32">
-          <span className="material-symbols-outlined text-secondary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-            eco
-          </span>
-          <p className="text-xs font-medium leading-tight text-on-surface-variant">Equilíbrio metabólico é nossa prioridade absoluta.</p>
+      {/* Info Card */}
+      <div className="mt-6 w-full">
+        <div className="bg-white border border-stone-100 p-6 rounded-2xl flex items-center gap-4 shadow-sm">
+          <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-stone-50">
+            <span className="material-symbols-outlined text-stone-400 text-lg">eco</span>
+          </div>
+          <p className="text-sm font-light text-stone-500 leading-relaxed">
+            Sua meta é avaliada de forma inteligente para garantir o equilíbrio metabólico durante e após a adaptação.
+          </p>
         </div>
       </div>
     </StepContainer>

@@ -1,25 +1,36 @@
 /**
  * BodyScanner — Full-screen body-scan orchestrator.
  *
- * Flow:
- *   tutorial → front (liveness + stability) → side (stability) → result
+ * Flow (multi-scan):
+ *   tutorial
+ *   └─> Cycle N: front (liveness + stability) → side (stability) → confidence check
+ *        ├─ confidence ≥ 75 → validCaptures++, next cycle (until TARGET_VALID or MAX_ATTEMPTS)
+ *        └─ confidence < 75 → show hint, retry (until MAX_ATTEMPTS)
+ *   └─> aggregateScans(validCaptures) → saving → result
  *
  * Architecture:
- *   - Camera guidance: BodyScanCamera (MediaPipe Pose Landmarker, 100% local)
- *   - Measurements: computeMeasurements + deurenbergBF (no data leaves the device)
- *   - Persistence: useBodyScan → Supabase body_scan_measurements table
- *   - Legacy sessions: BodyAnalysisService.getOrCreateSession kept for compatibility
+ *   - Camera guidance:  BodyScanCamera (MediaPipe Pose Landmarker, 100 % local)
+ *   - Measurements:     computeMeasurements + deurenbergBF (no data leaves the device)
+ *   - Aggregation:      scanAggregator (confidence-weighted average, outlier removal)
+ *   - Persistence:      useBodyScan → Supabase body_scan_measurements table
  *
  * UI: Quiet Luxury — off-white, 1 px guides, Playfair Display numbers,
  *     sage-green on valid state, no aggressive animations.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { BodyScanCamera, type BodyScanCaptureResult, type ScanPose } from './BodyScanCamera';
 import { useBodyScan } from '../hooks/useBodyScan';
 import type { AnthroMeasurements } from '../services/bodyscan';
+import {
+  CONFIDENCE_MIN,
+  TARGET_VALID,
+  MAX_ATTEMPTS,
+  getConfidenceHint,
+  aggregateScans,
+} from '../services/bodyscan/scanAggregator';
 
 interface BodyScannerProps {
   onClose: () => void;
@@ -87,44 +98,20 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [finalMeasurements, setFinalMeasurements] = useState<AnthroMeasurements | null>(null);
 
+  // Multi-scan state
+  const [validCaptures, setValidCaptures] = useState<AnthroMeasurements[]>([]);
+  const [sessionAttempt, setSessionAttempt] = useState(0);
+  const [lastDiscardHint, setLastDiscardHint] = useState<string | null>(null);
+  const [sessionFailed, setSessionFailed] = useState(false);
+
+  // Ref mirrors so callbacks always read fresh values without stale closures
+  const capturesRef = useRef<CaptureState>({});
+  capturesRef.current = captures;
+
   const heightCm = profile?.height ?? 170;
   const weightKg = profile?.weight ?? 70;
   const age      = profile?.age ?? 30;
   const gender   = (profile?.gender as 'male' | 'female') ?? 'female';
-
-  // ── Capture handlers ────────────────────────────────────────────────────────
-
-  const handleFrontCapture = useCallback((result: BodyScanCaptureResult) => {
-    setCaptures((prev: CaptureState) => ({ ...prev, front: result }));
-    setCameraError(null);
-    setStep('side');
-  }, []);
-
-  const handleSideCapture = useCallback(async (result: BodyScanCaptureResult) => {
-    setCaptures((prev: CaptureState) => {
-      const updated = { ...prev, side: result };
-
-      // Average measurements from both poses
-      const front = updated.front;
-      const side  = result;
-
-      const merged: AnthroMeasurements = {
-        waist_cm:             (front?.measurements.waist_cm ?? 0 + side.measurements.waist_cm) / (front ? 2 : 1),
-        hip_cm:               (front?.measurements.hip_cm   ?? 0 + side.measurements.hip_cm  ) / (front ? 2 : 1),
-        bust_cm:              front?.measurements.bust_cm ?? side.measurements.bust_cm,
-        bf_percentage:        side.measurements.bf_percentage,  // Deurenberg is pose-independent
-        estimation_confidence: Math.min(
-          front?.measurements.estimation_confidence ?? 100,
-          side.measurements.estimation_confidence,
-        ),
-      };
-
-      setFinalMeasurements(merged);
-      return updated;
-    });
-    setCameraError(null);
-    setStep('saving');
-  }, []);
 
   // ── Persist ─────────────────────────────────────────────────────────────────
 
@@ -139,7 +126,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
       setSaveError(msg);
       setStep('result'); // show results even if save fails
     }
-  }, [user, saveScan, heightCm]);
+  }, [user, saveScan, heightCm, weightKg]);
 
   // Trigger persist once we reach 'saving'
   React.useEffect(() => {
@@ -147,6 +134,87 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
       persistAndFinish(finalMeasurements);
     }
   }, [step, finalMeasurements, persistAndFinish]);
+
+  // ── Multi-scan cycle decision ────────────────────────────────────────────────
+
+  /**
+   * Called after each front+side cycle completes with the merged measurements.
+   * Decides whether to: accept the cycle, discard it, or finalize the session.
+   */
+  const handleCycleComplete = useCallback((merged: AnthroMeasurements) => {
+    const newAttempt = sessionAttempt + 1;
+    setSessionAttempt(newAttempt);
+
+    if (merged.estimation_confidence >= CONFIDENCE_MIN) {
+      const newValid = [...validCaptures, merged];
+      setValidCaptures(newValid);
+      setLastDiscardHint(null);
+
+      if (newValid.length >= TARGET_VALID || newAttempt >= MAX_ATTEMPTS) {
+        // Enough valid captures — aggregate and save
+        const final = aggregateScans(newValid);
+        setFinalMeasurements(final);
+        setStep('saving');
+      } else {
+        // Start the next cycle
+        setCaptures({});
+        setStep('front');
+      }
+    } else {
+      // Cycle discarded — show hint and decide next action
+      const hint = getConfidenceHint(merged.estimation_confidence);
+      setLastDiscardHint(hint);
+
+      if (newAttempt >= MAX_ATTEMPTS) {
+        if (validCaptures.length >= 2) {
+          // Enough valid captures despite hitting the limit
+          const final = aggregateScans(validCaptures);
+          setFinalMeasurements(final);
+          setStep('saving');
+        } else {
+          // Not enough valid captures — session failed
+          setSessionFailed(true);
+        }
+      } else {
+        // Wait 2 s so the user can read the hint, then restart
+        setTimeout(() => {
+          setLastDiscardHint(null);
+          setCaptures({});
+          setStep('front');
+        }, 2000);
+      }
+    }
+  }, [sessionAttempt, validCaptures]);
+
+  // ── Capture handlers ────────────────────────────────────────────────────────
+
+  const handleFrontCapture = useCallback((result: BodyScanCaptureResult) => {
+    setCaptures((prev: CaptureState) => ({ ...prev, front: result }));
+    setCameraError(null);
+    setStep('side');
+  }, []);
+
+  const handleSideCapture = useCallback((result: BodyScanCaptureResult) => {
+    // Read the current front capture from the ref (avoids stale closure)
+    const front = capturesRef.current.front;
+    const side  = result;
+
+    // Merge front + side measurements (same logic as before)
+    const merged: AnthroMeasurements = {
+      waist_cm:  ((front?.measurements.waist_cm ?? 0) + side.measurements.waist_cm) / (front ? 2 : 1),
+      hip_cm:    ((front?.measurements.hip_cm   ?? 0) + side.measurements.hip_cm)   / (front ? 2 : 1),
+      bust_cm:   front?.measurements.bust_cm ?? side.measurements.bust_cm,
+      bf_percentage:        side.measurements.bf_percentage, // Deurenberg: pose-independent
+      estimation_confidence: Math.min(
+        front?.measurements.estimation_confidence ?? 100,
+        side.measurements.estimation_confidence,
+      ),
+    };
+
+    setCaptures((prev: CaptureState) => ({ ...prev, side: result }));
+    setCameraError(null);
+    handleCycleComplete(merged);
+  }, [handleCycleComplete]);
 
   // ── Pose step config ─────────────────────────────────────────────────────────
 
@@ -157,9 +225,57 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
 
   const donePoses = Object.keys(captures) as ScanPose[];
 
+  // ── Reset helpers ────────────────────────────────────────────────────────────
+
+  const resetSession = useCallback(() => {
+    setCaptures({});
+    setFinalMeasurements(null);
+    setSaveError(null);
+    setCameraError(null);
+    setValidCaptures([]);
+    setSessionAttempt(0);
+    setLastDiscardHint(null);
+    setSessionFailed(false);
+  }, []);
+
   // ── Camera step render ───────────────────────────────────────────────────────
 
   const isCamera = step === 'front' || step === 'side';
+
+  // ── session_failed screen ────────────────────────────────────────────────────
+
+  if (sessionFailed) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0f10] p-8 text-center gap-4">
+        <span className="material-symbols-outlined text-amber-400" style={{ fontSize: 64 }}>
+          warning
+        </span>
+        <h2
+          className="text-white text-xl"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Leituras inconsistentes
+        </h2>
+        <p className="text-white/60 text-sm leading-relaxed max-w-xs">
+          Não foi possível obter capturas confiáveis suficientes.
+          Tente em um ambiente com melhor iluminação, fundo simples e mais espaço atrás de você.
+        </p>
+        <button
+          onClick={() => { resetSession(); setStep('front'); }}
+          className="mt-4 w-full max-w-xs h-14 rounded-2xl text-white font-light tracking-wider"
+          style={{ background: '#1A6070' }}
+        >
+          Tentar novamente
+        </button>
+        <button
+          onClick={onClose}
+          className="text-white/40 text-sm font-light"
+        >
+          Cancelar
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#FDFBF9]">
@@ -220,7 +336,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   Medição Digital
                 </h2>
                 <p className="text-stone-400 text-sm text-center font-light mb-8 leading-relaxed">
-                  A IA mede em tempo real via câmera.<br />
+                  A IA fará até {TARGET_VALID} capturas para aumentar a precisão.<br />
                   Nenhuma imagem sai do seu dispositivo.
                 </p>
 
@@ -289,18 +405,30 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
               exit={{ opacity: 0 }}
               className="h-full flex flex-col"
             >
-              {/* Pose label */}
-              <div className="px-5 py-3 flex items-center justify-between bg-[#0a0a0a]">
-                <span className="text-white/50 text-xs font-light tracking-widest uppercase">
+              {/* Pose label + multi-scan progress */}
+              <div className="px-4 py-3 flex items-center justify-between gap-3 bg-[#0a0a0a]">
+                <span className="text-white/50 text-xs font-light tracking-widest uppercase shrink-0">
                   {step === 'front' ? 'Pose Frontal' : 'Perfil Direito'}
                 </span>
-                <span className="text-white/30 text-xs">
-                  {step === 'front' ? '1 / 2' : '2 / 2'}
-                </span>
+
+                {/* Progress bar — 1/3, 2/3, 3/3 */}
+                <div className="flex items-center gap-1.5 flex-1 max-w-[120px]">
+                  {Array.from({ length: TARGET_VALID }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded-full transition-all duration-500 ${
+                        i < validCaptures.length ? 'bg-emerald-400' : 'bg-white/20'
+                      }`}
+                    />
+                  ))}
+                  <span className="text-white/40 text-[10px] ml-1 shrink-0">
+                    {validCaptures.length}/{TARGET_VALID}
+                  </span>
+                </div>
               </div>
 
               {/* Camera */}
-              <div className="flex-1">
+              <div className="flex-1 relative">
                 <BodyScanCamera
                   pose={step as ScanPose}
                   requireLiveness={step === 'front'}
@@ -311,6 +439,22 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   onCapture={step === 'front' ? handleFrontCapture : handleSideCapture}
                   onError={(msg: string) => setCameraError(msg)}
                 />
+
+                {/* Discard hint banner — shown after a low-confidence cycle */}
+                <AnimatePresence>
+                  {lastDiscardHint && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute bottom-32 left-4 right-4 bg-amber-500/90 backdrop-blur-sm rounded-2xl p-3 text-center"
+                    >
+                      <span className="material-symbols-outlined text-white text-sm">warning</span>
+                      <p className="text-white text-sm font-medium mt-1">{lastDiscardHint}</p>
+                      <p className="text-white/70 text-xs mt-0.5">Ajustando para próxima captura…</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Camera error */}
@@ -362,8 +506,8 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
             >
               <div className="max-w-sm mx-auto px-5 pt-6">
 
-                {/* Confidence badge */}
-                <div className="flex justify-center mb-6">
+                {/* Confidence badge + aggregation badge */}
+                <div className="flex justify-center gap-2 mb-6 flex-wrap">
                   <div
                     className={`px-4 py-1.5 rounded-full text-xs font-light tracking-widest uppercase border ${
                       finalMeasurements.estimation_confidence >= 75
@@ -373,6 +517,16 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   >
                     Confiança {finalMeasurements.estimation_confidence.toFixed(0)}%
                   </div>
+
+                  {/* Badge showing how many captures were aggregated */}
+                  {validCaptures.length > 1 && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10">
+                      <span className="material-symbols-outlined text-emerald-500 text-xs">check_circle</span>
+                      <span className="text-emerald-600 text-xs font-light tracking-wide">
+                        Média de {validCaptures.length} capturas
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Main number — BF% */}
@@ -460,10 +614,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   </button>
                   <button
                     onClick={() => {
-                      setCaptures({});
-                      setFinalMeasurements(null);
-                      setSaveError(null);
-                      setCameraError(null);
+                      resetSession();
                       setStep('tutorial');
                     }}
                     className="w-full text-stone-500 text-sm font-light py-2 hover:text-stone-700 transition-colors"

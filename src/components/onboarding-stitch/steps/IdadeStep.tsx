@@ -26,7 +26,6 @@ const IdadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, curr
   };
 
   useEffect(() => {
-    // Scroll to initial age
     if (scrollContainerRef.current) {
       const index = ages.indexOf(idade);
       if (index !== -1) {
@@ -42,80 +41,64 @@ const IdadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, curr
       onBack={onBack}
       onNext={handleContinue}
     >
-      {/* Main Content */}
-      <main className="flex-grow flex flex-col items-center justify-center px-8 pt-20 pb-32 max-w-2xl mx-auto w-full relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-secondary-container/10 blur-[100px] -z-10 rounded-full"></div>
-
-        {/* Headline & Subtitle */}
-        <div className="text-center mb-16 space-y-4">
-          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary tracking-tight">
+      <main className="flex-grow flex flex-col items-center justify-center pt-10 pb-10 max-w-2xl mx-auto w-full relative">
+        <div className="text-center mb-12 space-y-2 w-full">
+          <span className="text-stone-400 text-xs tracking-widest uppercase font-light">
+            Passo {currentStep} de {totalSteps}
+          </span>
+          <h1 
+            className="text-4xl text-stone-800 leading-tight"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
             Qual é a sua idade?
           </h1>
-          <p className="text-on-surface-variant text-lg font-medium max-w-xs mx-auto">
-            A idade influencia seu ritmo metabólico.
+          <p className="text-stone-400 text-base font-light">
+            A idade influencia nas recomendações metabólicas.
           </p>
         </div>
 
-        {/* Sophisticated Scroller UI */}
-        <div className="relative w-full max-w-xs flex flex-col items-center">
-          {/* Selected Area Highlight */}
-          <div className="absolute top-1/2 -translate-y-1/2 w-full h-24 bg-surface-container-lowest shadow-[0_16px_32px_0_rgba(26,28,26,0.04)] rounded-lg -z-0"></div>
+        {/* Scroller UI */}
+        <div className="relative w-full max-w-xs flex flex-col items-center bg-white rounded-3xl py-4 shadow-sm border border-stone-100">
+          
+          {/* Highlight line */}
+          <div className="absolute top-1/2 -translate-y-1/2 w-48 h-px bg-stone-200 -z-0"></div>
 
-          {/* Scrolling Numbers */}
           <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
-            className="h-[300px] overflow-y-auto no-scrollbar scroller-mask snap-y snap-mandatory py-[110px] z-10 w-full text-center"
+            className="h-[300px] overflow-y-auto no-scrollbar scroller-mask snap-y snap-mandatory py-[102px] z-10 w-full text-center"
           >
-            {ages.map((age, index) => {
+            {ages.map((age) => {
               const distance = Math.abs(age - idade);
-              let className = "h-24 snap-center flex items-center justify-center font-headline";
-
-              if (age === idade) {
-                className += " text-primary text-8xl font-bold";
-              } else if (distance === 1) {
-                className += " text-on-surface/40 text-6xl";
-              } else if (distance === 2) {
-                className += " text-on-surface/20 text-5xl";
-              } else {
-                className += " text-on-surface/10 text-5xl";
-              }
+              const isSelected = age === idade;
 
               return (
-                <div key={age} className={className}>
+                <div 
+                  key={age} 
+                  className="h-24 snap-center flex items-center justify-center transition-all duration-200"
+                  style={{
+                    fontFamily: "'Playfair Display', serif",
+                    fontSize: isSelected ? '5rem' : distance === 1 ? '3.5rem' : '2.5rem',
+                    color: isSelected ? '#292524' : distance === 1 ? '#a8a29e' : '#e7e5e4',
+                  }}
+                >
                   {age}
                 </div>
               );
             })}
           </div>
 
-          {/* Unit Label */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 font-headline text-primary/40 font-medium">
+          <div 
+            className="absolute right-0 top-1/2 -translate-y-1/2 text-stone-300 font-light tracking-widest text-xs"
+          >
             ANOS
           </div>
-        </div>
-
-        {/* Informative Badge (Asymmetric) */}
-        <div className="mt-12 bg-surface-container-low px-6 py-4 rounded-lg flex items-center gap-4 self-end mr-[-10%] md:mr-0 transition-all hover:bg-surface-container">
-          <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-              analytics
-            </span>
-          </div>
-          <p className="text-sm font-medium text-on-surface-variant max-w-[180px]">
-            Personalizamos seu plano com base em dados biológicos.
-          </p>
         </div>
       </main>
 
       <style jsx>{`
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .scroller-mask {
           mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
           -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
