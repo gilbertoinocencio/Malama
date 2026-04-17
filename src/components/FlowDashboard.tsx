@@ -319,7 +319,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const getCalorieColor = () => {
     if (isWayOverTarget) return '#ef4444'; // Red when >150%
     if (isOverTarget) return '#f59e0b'; // Orange when >100%
-    return 'var(--tw-colors-nura-petrol)'; // Default purple when <100%
+    return '#722F37'; // Bordeaux when <100%
   };
 
   const getLevelLabel = (level: string) => {
