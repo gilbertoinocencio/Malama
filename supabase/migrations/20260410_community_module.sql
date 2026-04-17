@@ -189,11 +189,14 @@ CREATE INDEX IF NOT EXISTS follows_following_idx ON public.follows(following_id)
 ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
 
 -- Qualquer autenticado pode ver follows (necessário para contagens e sugestões)
+DROP POLICY IF EXISTS "follows_select" ON public.follows;
 CREATE POLICY "follows_select" ON public.follows
   FOR SELECT USING (auth.role() = 'authenticated');
 -- Só o próprio follower pode inserir/deletar
+DROP POLICY IF EXISTS "follows_insert" ON public.follows;
 CREATE POLICY "follows_insert" ON public.follows
   FOR INSERT WITH CHECK (auth.uid() = follower_id);
+DROP POLICY IF EXISTS "follows_delete" ON public.follows;
 CREATE POLICY "follows_delete" ON public.follows
   FOR DELETE USING (auth.uid() = follower_id);
 
@@ -299,43 +302,56 @@ ALTER TABLE public.weekly_spotlight        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.badges                  ENABLE ROW LEVEL SECURITY;
 
 -- Reactions: qualquer autenticado lê; só o dono escreve
+DROP POLICY IF EXISTS "reactions_select" ON public.reactions;
 CREATE POLICY "reactions_select" ON public.reactions
   FOR SELECT USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "reactions_insert" ON public.reactions;
 CREATE POLICY "reactions_insert" ON public.reactions
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "reactions_update" ON public.reactions;
 CREATE POLICY "reactions_update" ON public.reactions
   FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "reactions_delete" ON public.reactions;
 CREATE POLICY "reactions_delete" ON public.reactions
   FOR DELETE USING (auth.uid() = user_id);
 
 -- Notifications: só o destinatário
+DROP POLICY IF EXISTS "comm_notif_all" ON public.community_notifications;
 CREATE POLICY "comm_notif_all" ON public.community_notifications
   FOR ALL USING (auth.uid() = recipient_id);
 
 -- Preferences: só o próprio
+DROP POLICY IF EXISTS "notif_pref_all" ON public.notification_preferences;
 CREATE POLICY "notif_pref_all" ON public.notification_preferences
   FOR ALL USING (auth.uid() = user_id);
 
 -- Reports: autenticado insere; só o próprio lê
+DROP POLICY IF EXISTS "reports_insert" ON public.post_reports;
 CREATE POLICY "reports_insert" ON public.post_reports
   FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+DROP POLICY IF EXISTS "reports_select" ON public.post_reports;
 CREATE POLICY "reports_select" ON public.post_reports
   FOR SELECT USING (auth.uid() = reporter_id);
 
 -- Badges: leitura pública
+DROP POLICY IF EXISTS "badges_select" ON public.badges;
 CREATE POLICY "badges_select" ON public.badges
   FOR SELECT USING (true);
 
 -- User badges: leitura pública; escrita via SECURITY DEFINER fn
+DROP POLICY IF EXISTS "user_badges_select" ON public.user_badges;
 CREATE POLICY "user_badges_select" ON public.user_badges
   FOR SELECT USING (true);
+DROP POLICY IF EXISTS "user_badges_update_featured" ON public.user_badges;
 CREATE POLICY "user_badges_update_featured" ON public.user_badges
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- Milestones: só o próprio
+DROP POLICY IF EXISTS "milestones_all" ON public.milestones;
 CREATE POLICY "milestones_all" ON public.milestones
   FOR ALL USING (auth.uid() = user_id);
 
 -- Spotlight: leitura pública
+DROP POLICY IF EXISTS "spotlight_select" ON public.weekly_spotlight;
 CREATE POLICY "spotlight_select" ON public.weekly_spotlight
   FOR SELECT USING (true);
