@@ -583,11 +583,15 @@ Responda APENAS com o JSON, sem texto adicional.
       const weeksSinceStart = planStart
         ? Math.floor((now.getTime() - planStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1
         : null;
+      const phaseDetail = currentPhase
+        ? currentPhase.bullets?.length
+          ? `\n- **Foco:** ${currentPhase.focus || ''}\n- **Ações da fase:**\n${currentPhase.bullets.map(b => `  • ${b}`).join('\n')}`
+          : `\n- **Descrição:** ${(currentPhase.description ?? '').slice(0, 400)}`
+        : '';
       planBlock = `\n## PLANO TRIMESTRAL ATIVO
 - **Estratégia:** ${plan.optimization_tag || 'Personalizada'}
 - **Período:** ${planStart ? planStart.toLocaleDateString('pt-BR') : '?'} → ${planEnd ? planEnd.toLocaleDateString('pt-BR') : '?'}${weeksSinceStart ? ` (semana ${weeksSinceStart})` : ''}
-- **Fase atual:** ${currentPhase?.title || 'Não definida'} — ${currentPhase?.tag || ''}
-- **Descrição da fase:** ${currentPhase?.description ? currentPhase.description.slice(0, 300) + (currentPhase.description.length > 300 ? '...' : '') : 'N/A'}
+- **Fase atual:** ${currentPhase?.title || 'Não definida'} — ${currentPhase?.tag || ''}${phaseDetail}
 *Adapte suas sugestões e orientações à fase atual do plano. Mencione a fase quando for relevante para motivar o paciente.*`;
     }
 

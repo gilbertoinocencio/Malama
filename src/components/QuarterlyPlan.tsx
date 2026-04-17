@@ -218,10 +218,28 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
                           </span>
                         </button>
                         {isExpanded && (
-                          <div className="px-5 pb-5 relative z-10">
-                            <p className="text-xs text-nura-muted dark:text-slate-400 leading-relaxed">
-                              {phase.description}
-                            </p>
+                          <div className="px-5 pb-5 relative z-10 flex flex-col gap-3">
+                            {phase.focus && (
+                              <p className="text-xs font-medium text-nura-main dark:text-white/80 leading-relaxed">
+                                {phase.focus}
+                              </p>
+                            )}
+                            {phase.bullets?.length ? (
+                              <ul className="flex flex-col gap-2">
+                                {phase.bullets.map((bullet, i) => (
+                                  <li key={i} className="flex items-start gap-2 text-xs text-nura-muted dark:text-slate-400 leading-relaxed">
+                                    <span className={`mt-0.5 shrink-0 size-4 rounded-full flex items-center justify-center text-[9px] font-bold ${isMainPhase ? 'bg-nura-petrol/10 dark:bg-primary/10 text-nura-petrol dark:text-primary' : 'bg-nura-border dark:bg-slate-700 text-nura-muted dark:text-slate-400'}`}>
+                                      {i + 1}
+                                    </span>
+                                    {bullet}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : phase.description ? (
+                              <p className="text-xs text-nura-muted dark:text-slate-400 leading-relaxed">
+                                {phase.description}
+                              </p>
+                            ) : null}
                           </div>
                         )}
                       </div>

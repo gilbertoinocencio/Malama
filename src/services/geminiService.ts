@@ -433,7 +433,8 @@ export const generatePlanContent = async (profile: any, onboardingData?: any, la
           {
             "title": string,
             "tag": string,
-            "description": string (200-300 palavras)
+            "focus": string (1 frase objetiva — o propósito central da fase, máx 12 palavras),
+            "bullets": string[] (exatamente 5 ações concretas e específicas, máx 15 palavras cada)
           }
         ]
       }
@@ -453,9 +454,39 @@ export const generatePlanContent = async (profile: any, onboardingData?: any, la
       macros: { protein: 160, carbs: 220, fats: 70 },
       optimization_tag: "Otimizado: IA Fallback",
       phases: [
-        { title: "Adaptação", tag: "Fase 1", description: "Recalibrando metabolismo e estabelecendo hábitos alimentares saudáveis." },
-        { title: "Flow", tag: "Fase 2", description: "Foco total em performance e otimização de resultados." },
-        { title: "Consolidação", tag: "Fase 3", description: "Mantendo os ganhos e desenvolvendo autonomia alimentar." }
+        {
+          title: "Adaptação", tag: "Fase 1",
+          focus: "Reorganizar hábitos e construir base alimentar sustentável",
+          bullets: [
+            "Estabelecer horários fixos para as 3 refeições principais",
+            "Substituir 1 ultraprocessado por dia por opção integral",
+            "Atingir meta de ingestão hídrica diária (2L mínimo)",
+            "Incluir proteína em todas as refeições principais",
+            "Reduzir açúcar adicionado gradualmente ao longo das semanas"
+          ]
+        },
+        {
+          title: "Flow", tag: "Fase 2",
+          focus: "Intensificar estratégias e otimizar macros para máxima performance",
+          bullets: [
+            "Ajustar timing de carboidratos ao redor dos treinos",
+            "Aumentar ingestão proteica conforme evolução da composição corporal",
+            "Implementar estratégias de controle de fome entre refeições",
+            "Monitorar energia e ajustar calorias conforme resposta do corpo",
+            "Introduzir alimentos funcionais alinhados ao objetivo principal"
+          ]
+        },
+        {
+          title: "Consolidação", tag: "Fase 3",
+          focus: "Manter resultados e desenvolver autonomia alimentar plena",
+          bullets: [
+            "Estabilizar o peso e composição corporal alcançados",
+            "Praticar flexibilidade alimentar sem perder os hábitos construídos",
+            "Aprender a adaptar o plano em situações sociais e viagens",
+            "Revisar e ajustar metas para o próximo ciclo trimestral",
+            "Consolidar a relação consciente com a comida sem restrições rígidas"
+          ]
+        }
       ]
     };
   }

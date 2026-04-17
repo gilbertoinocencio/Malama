@@ -1,12 +1,20 @@
 import { supabase } from './supabase';
 import { generatePlanContent } from './geminiService';
 
+export interface QuarterlyPlanPhase {
+    title: string;
+    tag: string;
+    focus: string;
+    bullets: string[];
+    description?: string; // legado — planos gerados antes da reformatação
+}
+
 export interface QuarterlyPlanData {
     id?: string;
     calories: number;
     macros: { protein: number; carbs: number; fats: number };
     optimization_tag: string;
-    phases: Array<{ title: string; tag: string; description: string }>;
+    phases: QuarterlyPlanPhase[];
     start_date?: string;
     end_date?: string;
 }
