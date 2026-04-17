@@ -1453,10 +1453,13 @@ const DAILY_QUESTIONS = [
   'Teve alguma conquista essa semana? Conte para a gente! ✨',
 ];
 
-export async function getDailyQuestion(systemUserId: string): Promise<EnrichedPost | null> {
+const SYSTEM_USER_ID = import.meta.env.VITE_COMMUNITY_SYSTEM_USER_ID as string | undefined;
+
+export async function getDailyQuestion(viewerUserId: string): Promise<EnrichedPost | null> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
+  // Busca pergunta do dia já existente (independente de quem criou)
   const { data: existing } = await supabase
     .from('posts')
     .select('id')
@@ -1466,18 +1469,20 @@ export async function getDailyQuestion(systemUserId: string): Promise<EnrichedPo
     .single();
 
   if (existing) {
-    const posts = await enrichPosts([existing.id], systemUserId);
+    const posts = await enrichPosts([existing.id], viewerUserId);
     return posts[0] ?? null;
   }
 
-  // Criar pergunta do dia
+  // Só cria nova pergunta do dia se o sistema estiver configurado
+  if (!SYSTEM_USER_ID) return null;
+
   const dayIndex = new Date().getDay();
   const question = DAILY_QUESTIONS[dayIndex % DAILY_QUESTIONS.length];
 
   const { data: post, error } = await supabase
     .from('posts')
     .insert({
-      user_id: systemUserId,
+      user_id: SYSTEM_USER_ID,
       type: 'text',
       caption: question,
       is_pinned: true,
@@ -1488,6 +1493,6 @@ export async function getDailyQuestion(systemUserId: string): Promise<EnrichedPo
     .single();
 
   if (error || !post) return null;
-  const posts = await enrichPosts([post.id], systemUserId);
+  const posts = await enrichPosts([post.id], viewerUserId);
   return posts[0] ?? null;
 }

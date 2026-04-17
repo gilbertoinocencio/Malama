@@ -66,8 +66,6 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate }) => {
   useEffect(() => {
     if (!user) return;
     getCurrentSpotlight().then(setSpotlight);
-    // getDailyQuestion requires a system user ID — use a known admin/system user
-    // For now we pass the current user; in production this should be a system account
     getDailyQuestion(user.id).then(setDailyQuestion);
     checkMilestones(user.id);
     checkAndGrantAutoBadges(user.id).then(newBadges => {

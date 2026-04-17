@@ -160,6 +160,7 @@ ALTER TABLE public.posts
 
 -- profiles: campos de comunidade
 ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS bio               TEXT,
   ADD COLUMN IF NOT EXISTS community_alias   TEXT,
   ADD COLUMN IF NOT EXISTS is_private        BOOLEAN DEFAULT false,
   ADD COLUMN IF NOT EXISTS milestone_opt_out BOOLEAN DEFAULT false,
@@ -172,6 +173,29 @@ CREATE INDEX IF NOT EXISTS posts_fts_idx ON public.posts
   USING gin(to_tsvector('portuguese',
     coalesce(caption,'') || ' ' || coalesce(content::text,'')
   ));
+
+-- ----------------------------------------------------------------
+-- 10b. FOLLOWS TABLE
+-- ----------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.follows (
+  follower_id  UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  following_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (follower_id, following_id)
+);
+CREATE INDEX IF NOT EXISTS follows_follower_idx  ON public.follows(follower_id);
+CREATE INDEX IF NOT EXISTS follows_following_idx ON public.follows(following_id);
+
+ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
+
+-- Qualquer autenticado pode ver follows (necessário para contagens e sugestões)
+CREATE POLICY "follows_select" ON public.follows
+  FOR SELECT USING (auth.role() = 'authenticated');
+-- Só o próprio follower pode inserir/deletar
+CREATE POLICY "follows_insert" ON public.follows
+  FOR INSERT WITH CHECK (auth.uid() = follower_id);
+CREATE POLICY "follows_delete" ON public.follows
+  FOR DELETE USING (auth.uid() = follower_id);
 
 -- ----------------------------------------------------------------
 -- 11. RPC FUNCTIONS
