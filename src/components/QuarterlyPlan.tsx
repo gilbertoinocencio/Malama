@@ -17,6 +17,7 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [activated, setActivated] = useState(false);
+  const [expandedPhase, setExpandedPhase] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) loadPlan();
@@ -188,6 +189,7 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
 
                 {plan.phases.map((phase, idx) => {
                   const isMainPhase = idx === 1;
+                  const isExpanded = expandedPhase === idx;
                   return (
                     <div key={idx} className="timeline-item flex gap-4 pb-8">
                       <div className="flex-shrink-0 z-10">
@@ -201,15 +203,27 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
                           </div>
                         )}
                       </div>
-                      <div className={`flex-1 bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border ${isMainPhase ? 'border-nura-petrol/20 dark:border-primary/20 ring-1 ring-nura-petrol/20 dark:ring-primary/20 relative overflow-hidden' : 'border-nura-border dark:border-transparent'}`}>
+                      <div className={`flex-1 bg-white dark:bg-surface-dark rounded-2xl shadow-sm border ${isMainPhase ? 'border-nura-petrol/20 dark:border-primary/20 ring-1 ring-nura-petrol/20 dark:ring-primary/20 relative overflow-hidden' : 'border-nura-border dark:border-transparent'}`}>
                         {isMainPhase && <div className="absolute -right-4 -top-4 size-20 bg-nura-petrol/5 dark:bg-primary/5 rounded-full blur-xl"></div>}
-                        <div className="flex justify-between items-start mb-2 relative z-10">
-                          <h4 className={`font-bold ${isMainPhase ? 'text-nura-petrol dark:text-primary' : 'text-nura-main dark:text-white'}`}>{phase.title}</h4>
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${isMainPhase ? 'bg-nura-petrol/10 dark:bg-primary/10 text-nura-petrol dark:text-primary' : 'bg-nura-pastel-orange dark:bg-slate-700/50 text-nura-muted dark:text-slate-500'}`}>{phase.tag}</span>
-                        </div>
-                        <p className="text-xs text-nura-muted dark:text-slate-400 leading-relaxed relative z-10">
-                          {phase.description}
-                        </p>
+                        <button
+                          onClick={() => setExpandedPhase(isExpanded ? null : idx)}
+                          className="w-full flex justify-between items-center p-5 relative z-10 text-left"
+                        >
+                          <div className="flex flex-col gap-1 flex-1 pr-3">
+                            <h4 className={`font-bold text-sm ${isMainPhase ? 'text-nura-petrol dark:text-primary' : 'text-nura-main dark:text-white'}`}>{phase.title}</h4>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase self-start ${isMainPhase ? 'bg-nura-petrol/10 dark:bg-primary/10 text-nura-petrol dark:text-primary' : 'bg-nura-pastel-orange dark:bg-slate-700/50 text-nura-muted dark:text-slate-500'}`}>{phase.tag}</span>
+                          </div>
+                          <span className={`material-symbols-outlined text-nura-muted dark:text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                            expand_more
+                          </span>
+                        </button>
+                        {isExpanded && (
+                          <div className="px-5 pb-5 relative z-10">
+                            <p className="text-xs text-nura-muted dark:text-slate-400 leading-relaxed">
+                              {phase.description}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
