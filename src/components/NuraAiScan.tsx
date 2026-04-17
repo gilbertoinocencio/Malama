@@ -133,7 +133,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
             <header className="flex items-center px-6 py-4 justify-between shrink-0 z-30" style={{ background: BG_CREAM, borderBottom: '1px solid #f5f5f4' }}>
                 <div className="w-10"></div>
                 <h2 
-                    className="text-stone-800 text-sm tracking-[0.2em] uppercase"
+                    className="text-stone-800 text-lg tracking-[0.2em] uppercase"
                     style={{ fontFamily: "'Playfair Display', serif", color: PETROL }}
                 >
                     Nura Scan
@@ -142,7 +142,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                     onClick={onBack}
                     className="flex size-10 items-center justify-center rounded-full bg-stone-50 text-stone-400 hover:bg-stone-100 transition-all active:scale-95"
                 >
-                    <span className="material-symbols-outlined text-xl">close</span>
+                    <span className="material-symbols-outlined text-3xl">close</span>
                 </button>
             </header>
 
@@ -169,19 +169,19 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                 <div className="absolute bottom-4 left-4 right-4">
                                     <div className="bg-white/95 backdrop-blur-xl p-5 rounded-2xl shadow-sm flex items-center justify-between border border-stone-100">
                                         <div className="flex-1 min-w-0 pr-4">
-                                            <span className="block text-[10px] font-light text-stone-400 mb-1 uppercase tracking-widest">REFEIÇÃO IDENTIFICADA</span>
+                                            <span className="block text-sm font-light text-stone-400 mb-1 uppercase tracking-widest">REFEIÇÃO IDENTIFICADA</span>
                                             <h1 
-                                                className="text-2xl text-stone-800 leading-tight truncate"
+                                                className="text-4xl text-stone-800 leading-tight truncate"
                                                 style={{ fontFamily: "'Playfair Display', serif" }}
                                             >
                                                 {foodName}
                                             </h1>
                                         </div>
                                         <div 
-                                            className="size-12 rounded-full flex items-center justify-center shadow-sm shrink-0"
+                                            className="size-14 rounded-full flex items-center justify-center shadow-sm shrink-0"
                                             style={{ background: PETROL }}
                                         >
-                                            <span className="material-symbols-outlined text-white text-xl">done_all</span>
+                                            <span className="material-symbols-outlined text-white text-3xl">done_all</span>
                                         </div>
                                     </div>
                                 </div>
@@ -191,18 +191,18 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                             <div className="mt-10 bg-white p-6 rounded-2xl border border-stone-100 shadow-sm">
                                 <div className="flex items-end justify-between border-b border-stone-100 pb-6 mb-6">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-light text-stone-400 uppercase tracking-widest mb-1">Total Calórico</span>
+                                        <span className="text-sm font-light text-stone-400 uppercase tracking-widest mb-1">Total Calórico</span>
                                         <div className="flex items-baseline gap-1">
                                             <span 
-                                                className="text-5xl text-stone-800"
+                                                className="text-7xl text-stone-800"
                                                 style={{ fontFamily: "'Playfair Display', serif" }}
                                             >
                                                 {calories}
                                             </span>
-                                            <span className="text-sm font-light text-stone-400 tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>kcal</span>
+                                            <span className="text-lg font-light text-stone-400 tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>kcal</span>
                                         </div>
                                     </div>
-                                    <div className="relative size-16">
+                                    <div className="relative size-20">
                                         <svg className="size-full -rotate-90" viewBox="0 0 36 36">
                                             <circle cx="18" cy="18" r="16" fill="none" className="stroke-stone-100" strokeWidth="2" />
                                             <circle 
@@ -220,9 +220,9 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                 {/* Macros Grid */}
                                 <div className="grid grid-cols-3 gap-6">
                                     <div className="flex flex-col gap-2">
-                                        <span className="text-[10px] font-light text-stone-400 uppercase tracking-widest">Proteína</span>
-                                        <span className="text-xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{macros.p}g</span>
-                                        <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden">
+                                        <span className="text-sm font-light text-stone-400 uppercase tracking-widest">Proteína</span>
+                                        <span className="text-3xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{macros.p}g</span>
+                                        <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
                                             <motion.div 
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${getPercent(macros.p)}%` }}
@@ -232,9 +232,9 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <span className="text-[10px] font-light text-stone-400 uppercase tracking-widest">Carbo</span>
-                                        <span className="text-xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{macros.c}g</span>
-                                        <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden">
+                                        <span className="text-sm font-light text-stone-400 uppercase tracking-widest">Carbo</span>
+                                        <span className="text-3xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{macros.c}g</span>
+                                        <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
                                             <motion.div 
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${getPercent(macros.c)}%` }}
@@ -244,9 +244,9 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <span className="text-[10px] font-light text-stone-400 uppercase tracking-widest">Gordura</span>
-                                        <span className="text-xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{macros.f}g</span>
-                                        <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden">
+                                        <span className="text-sm font-light text-stone-400 uppercase tracking-widest">Gordura</span>
+                                        <span className="text-3xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{macros.f}g</span>
+                                        <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
                                             <motion.div 
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${getPercent(macros.f)}%` }}
@@ -267,89 +267,89 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                             className="flex flex-col w-full max-w-md mx-auto gap-4"
                         >
                             <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>Detalhes da Refeição</h3>
+                                <h3 className="text-3xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>Detalhes da Refeição</h3>
                                 <button 
                                     onClick={addItem}
-                                    className="text-xs font-light flex items-center gap-1 bg-white px-3 py-1.5 rounded-full border border-stone-200 shadow-sm active:scale-95"
+                                    className="text-base font-light flex items-center gap-1 bg-white px-4 py-2 rounded-full border border-stone-200 shadow-sm active:scale-95"
                                     style={{ color: PETROL }}
                                 >
-                                    <span className="material-symbols-outlined text-sm">add</span>
+                                    <span className="material-symbols-outlined text-lg">add</span>
                                     Item
                                 </button>
                             </div>
 
                             {items.map((item, idx) => (
-                                <div key={idx} className="bg-white p-5 rounded-2xl shadow-sm border border-stone-100 flex flex-col gap-4">
-                                    <div className="flex items-center justify-between border-b border-stone-50 pb-3">
+                                <div key={idx} className="bg-white p-5 rounded-2xl shadow-sm border border-stone-100 flex flex-col gap-5">
+                                    <div className="flex items-center justify-between border-b border-stone-50 pb-4">
                                         <input
                                             value={item.name}
                                             onChange={(e) => handleNameChange(idx, e.target.value)}
-                                            className="bg-transparent border-none p-0 text-stone-800 text-lg focus:ring-0 w-full"
+                                            className="bg-transparent border-none p-0 text-stone-800 text-2xl focus:ring-0 w-full"
                                             style={{ fontFamily: "'Playfair Display', serif" }}
                                             placeholder="Ingrediente..."
                                         />
                                         {lookingUp === idx && (
-                                            <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin shrink-0 mr-2" style={{ borderColor: PETROL, borderTopColor: 'transparent' }} />
+                                            <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin shrink-0 mr-2" style={{ borderColor: PETROL, borderTopColor: 'transparent' }} />
                                         )}
                                         <button
                                             onClick={() => removeItem(idx)}
                                             className="text-stone-300 hover:text-stone-500 transition-colors shrink-0"
                                         >
-                                            <span className="material-symbols-outlined text-xl">close</span>
+                                            <span className="material-symbols-outlined text-3xl">close</span>
                                         </button>
                                     </div>
 
                                     <div className="grid grid-cols-5 gap-3">
                                         {/* Grams */}
-                                        <div className="col-span-1 flex flex-col gap-1">
-                                            <label className="text-[10px] font-light text-stone-400 capitalize">Quant</label>
+                                        <div className="col-span-1 flex flex-col gap-1.5">
+                                            <label className="text-xs font-light text-stone-400 capitalize">Quant</label>
                                             <div className="relative">
                                                 <input
                                                     type="number"
                                                     value={item.weightGrams || 0}
                                                     onChange={(e) => updateItem(idx, 'weightGrams', parseInt(e.target.value) || 0)}
-                                                    className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2 text-sm text-stone-800 focus:ring-1"
+                                                    className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2.5 text-base text-stone-800 focus:ring-1"
                                                     style={{ outlineColor: PETROL }}
                                                 />
                                             </div>
                                         </div>
-                                        <div className="col-span-1 flex flex-col gap-1">
-                                            <label className="text-[10px] font-light text-stone-400 capitalize">Kcal</label>
+                                        <div className="col-span-1 flex flex-col gap-1.5">
+                                            <label className="text-xs font-light text-stone-400 capitalize">Kcal</label>
                                             <input
                                                 type="number"
                                                 value={item.calories || 0}
                                                 onChange={(e) => updateItem(idx, 'calories', parseInt(e.target.value) || 0)}
-                                                className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2 text-sm text-stone-800 focus:ring-1"
+                                                className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2.5 text-base text-stone-800 focus:ring-1"
                                                 style={{ outlineColor: PETROL }}
                                             />
                                         </div>
-                                        <div className="col-span-1 flex flex-col gap-1">
-                                            <label className="text-[10px] font-light text-stone-400 capitalize">Prot</label>
+                                        <div className="col-span-1 flex flex-col gap-1.5">
+                                            <label className="text-xs font-light text-stone-400 capitalize">Prot</label>
                                             <input
                                                 type="number"
                                                 value={item.protein || 0}
                                                 onChange={(e) => updateItem(idx, 'protein', parseInt(e.target.value) || 0)}
-                                                className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2 text-sm text-stone-800 focus:ring-1"
+                                                className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2.5 text-base text-stone-800 focus:ring-1"
                                                 style={{ outlineColor: PETROL }}
                                             />
                                         </div>
-                                        <div className="col-span-1 flex flex-col gap-1">
-                                            <label className="text-[10px] font-light text-stone-400 capitalize">Carb</label>
+                                        <div className="col-span-1 flex flex-col gap-1.5">
+                                            <label className="text-xs font-light text-stone-400 capitalize">Carb</label>
                                             <input
                                                 type="number"
                                                 value={item.carbs || 0}
                                                 onChange={(e) => updateItem(idx, 'carbs', parseInt(e.target.value) || 0)}
-                                                className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2 text-sm text-stone-800 focus:ring-1"
+                                                className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2.5 text-base text-stone-800 focus:ring-1"
                                                 style={{ outlineColor: PETROL }}
                                             />
                                         </div>
-                                        <div className="col-span-1 flex flex-col gap-1">
-                                            <label className="text-[10px] font-light text-stone-400 capitalize">Gord</label>
+                                        <div className="col-span-1 flex flex-col gap-1.5">
+                                            <label className="text-xs font-light text-stone-400 capitalize">Gord</label>
                                             <input
                                                 type="number"
                                                 value={item.fats || 0}
                                                 onChange={(e) => updateItem(idx, 'fats', parseInt(e.target.value) || 0)}
-                                                className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2 text-sm text-stone-800 focus:ring-1"
+                                                className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2.5 text-base text-stone-800 focus:ring-1"
                                                 style={{ outlineColor: PETROL }}
                                             />
                                         </div>
@@ -368,18 +368,18 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                         <>
                             <button
                                 onClick={() => setIsEditing(true)}
-                                className="flex-1 py-4 rounded-2xl bg-white border border-stone-200 text-stone-600 text-base font-light hover:bg-stone-50 transition-all active:scale-[0.98] shadow-sm"
+                                className="flex-1 py-4 rounded-2xl bg-white border border-stone-200 text-stone-600 text-lg font-light hover:bg-stone-50 transition-all active:scale-[0.98] shadow-sm"
                             >
                                 Editar
                             </button>
                             <button
                                 onClick={handleConfirm}
                                 disabled={confirming}
-                                className="flex-[2] py-4 rounded-2xl text-white text-base font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
+                                className="flex-[2] py-4 rounded-2xl text-white text-lg font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
                                 style={{ background: PETROL }}
                             >
                                 {confirming ? (
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
                                     <>
                                         Registrar
@@ -390,7 +390,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                     ) : (
                         <button
                             onClick={() => setIsEditing(false)}
-                            className="w-full py-4 rounded-2xl text-white text-base font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98]"
+                            className="w-full py-4 rounded-2xl text-white text-lg font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98]"
                             style={{ background: PETROL }}
                         >
                             Salvar Alterações
