@@ -197,12 +197,18 @@ export const UnifiedChatService = {
         const waterMatches = [...aiResponse.content.matchAll(/<water_json>([\s\S]*?)<\/water_json>/g)];
         if (waterMatches.length > 0) {
           try {
-            let totalMl = 0;
+            // Parse each block and deduplicate: if the AI generated the same ml value
+            // more than once (common hallucination: once inline, once at the end),
+            // count it only once. Different values are legitimate multiple intakes and
+            // should be summed normally.
+            const mlValues: number[] = [];
             for (const match of waterMatches) {
               const parsed = JSON.parse(match[1]);
               const ml = Number(parsed.ml);
-              if (!isNaN(ml) && ml > 0) totalMl += ml;
+              if (!isNaN(ml) && ml > 0) mlValues.push(ml);
             }
+            const uniqueMlValues = [...new Set(mlValues)];
+            const totalMl = uniqueMlValues.reduce((sum, ml) => sum + ml, 0);
 
             if (totalMl > 0) {
               // 1. Update daily_logs.water_intake (source of truth for dashboard)
@@ -936,13 +942,15 @@ Formato do bloco (idêntico ao das sugestões, com micros por item):
 </meal_json>
 
 **Quando o usuário relatar que ingeriu água (ex: "bebi 500ml", "tomei 1 litro"):**
-Celebre a ação e extraia a quantidade em mililitros (ml). Inclua EXATAMENTE o seguinte bloco ao final:
+Celebre a ação e extraia a quantidade em mililitros (ml). Inclua EXATAMENTE UM bloco ao final da sua resposta, após todo o texto, sem repetir:
 
 <water_json>
-{"ml": 500}
+{"ml": QUANTIDADE_EM_ML}
 </water_json>
 
 **CRÍTICO — extração de quantidade:** Use SOMENTE o número literal que o usuário informou na mensagem. Não arredonde, não converta, não some com o total diário, não faça estimativas. Se o usuário disse "200ml", o campo ml deve ser exatamente 200. Se disse "1 litro", converta para 1000. Celebre a quantidade que o usuário informou — nunca mencione um número diferente do que ele disse.
+
+**CRÍTICO — NUNCA repita o bloco water_json.** Inclua-o UMA ÚNICA VEZ, apenas ao final. Incluir o bloco mais de uma vez causará registro duplicado no sistema.
 
 **ATENÇÃO — distinção importante:**
 - Se o usuário informou SOMENTE água (sem alimentos sólidos ou outras bebidas calóricas), use APENAS <water_json>
