@@ -374,17 +374,39 @@ export const consultationService = {
     return data || [];
   },
 
-  // Cancelar consulta
+  // Cancelar consulta (médico)
+  // Cancelamento pelo médico é sempre tratado como antecedência >= 24h:
+  // o paciente recebe novo crédito disponível.
   async cancelConsultation(consultationId: string, reason?: string): Promise<Consultation> {
     const { data, error } = await supabase
       .from('consultations')
       .update({ status: 'cancelled', notes: reason })
       .eq('id', consultationId)
-      .select()
+      .select('id, scheduled_at')
       .single();
 
     if (error) throw error;
-    return data;
+
+    // Verificar se existe crédito vinculado e liberar para reagendamento
+    const { data: credit } = await supabase
+      .from('consultation_credits')
+      .select('id')
+      .eq('appointment_id', consultationId)
+      .maybeSingle();
+
+    if (credit && data) {
+      // Import dinâmico para evitar dependência circular
+      const { creditService } = await import('./billingService');
+      // Força 24h+ de antecedência (cancelamento pelo médico → paciente não perde crédito)
+      const futureDate = new Date(Date.now() + 48 * 3600_000).toISOString();
+      await creditService.handleAppointmentCancellation(
+        credit.id,
+        consultationId,
+        futureDate
+      );
+    }
+
+    return data as unknown as Consultation;
   },
 
   // Criar consulta

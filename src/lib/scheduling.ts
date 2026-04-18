@@ -310,6 +310,16 @@ export async function getTodayConsultation(patientId: string): Promise<Consultat
 }
 
 export async function cancelConsultation(consultationId: string, patientId: string): Promise<void> {
+  // Buscar dados da consulta antes de cancelar (precisamos do scheduled_at)
+  const { data: consultation, error: fetchError } = await supabase
+    .from('consultations')
+    .select('scheduled_at, status')
+    .eq('id', consultationId)
+    .eq('patient_id', patientId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
   const { error } = await supabase
     .from('consultations')
     .update({ status: 'cancelled' })
@@ -317,6 +327,23 @@ export async function cancelConsultation(consultationId: string, patientId: stri
     .eq('patient_id', patientId);
 
   if (error) throw error;
+
+  // Verificar se existe um crédito de consulta vinculado a este agendamento
+  const { data: credit } = await supabase
+    .from('consultation_credits')
+    .select('id')
+    .eq('appointment_id', consultationId)
+    .maybeSingle();
+
+  if (credit && consultation) {
+    // Import dinâmico para evitar dependência circular
+    const { creditService } = await import('../services/billingService');
+    await creditService.handleAppointmentCancellation(
+      credit.id,
+      consultationId,
+      consultation.scheduled_at
+    );
+  }
 }
 
 export async function rateConsultation(

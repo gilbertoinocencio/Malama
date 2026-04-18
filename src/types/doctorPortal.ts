@@ -43,9 +43,11 @@ export enum PrescriptionStatus {
 }
 
 export enum PayoutStatus {
-  PENDING = 'pending',
-  PAID = 'paid',
-  CANCELLED = 'cancelled'
+  PENDING    = 'pending',
+  PAID       = 'paid',
+  CANCELLED  = 'cancelled',
+  PROCESSING = 'processing',
+  FAILED     = 'failed'
 }
 
 export enum InfluencerStatus {
@@ -168,6 +170,10 @@ export interface Payout {
   pix_key: string | null;
   paid_at: string | null;
   created_at: string;
+  // Campos Asaas (adicionados na migration 20260417)
+  asaas_transfer_id: string | null;
+  paid_at_asaas: string | null;
+  processing_error: string | null;
 }
 
 export interface PlatformSetting {
@@ -342,6 +348,9 @@ export interface PendingPayout {
   net_amount: number;
   pix_key: string | null;
   status: PayoutStatus;
+  // Campos Asaas (adicionados na migration 20260417)
+  asaas_transfer_id: string | null;
+  processing_error: string | null;
 }
 
 // =====================================================

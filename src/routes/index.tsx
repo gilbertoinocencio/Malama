@@ -46,6 +46,8 @@ import { AdminInfluencers } from './admin/AdminInfluencers';
 import { AdminFinancial } from './admin/AdminFinancial';
 import { AdminSettings } from './admin/AdminSettings';
 import { AdminCommunityModeration } from './admin/AdminCommunityModeration';
+import { AdminSubscriptions } from './admin/AdminSubscriptions';
+import { AdminCreditsLog } from './admin/AdminCreditsLog';
 
 // Admin Layout
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -55,12 +57,14 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <header className="bg-[#1A1A1A] text-white px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <NuraLogo size="sm" />
-          <nav className="flex gap-4">
+          <nav className="flex gap-4 flex-wrap">
             <a href="/admin/dashboard" className="text-sm hover:text-[#2ECC71] transition">Dashboard</a>
             <a href="/admin/medicos" className="text-sm hover:text-[#2ECC71] transition">Médicos</a>
             <a href="/admin/usuarios" className="text-sm hover:text-[#2ECC71] transition">Usuários</a>
             <a href="/admin/influencers" className="text-sm hover:text-[#2ECC71] transition">Influenciadores</a>
             <a href="/admin/financeiro" className="text-sm hover:text-[#2ECC71] transition">Financeiro</a>
+            <a href="/admin/assinantes" className="text-sm hover:text-[#2ECC71] transition">Assinantes</a>
+            <a href="/admin/creditos" className="text-sm hover:text-[#2ECC71] transition">Créditos</a>
             <a href="/admin/comunidade" className="text-sm hover:text-[#2ECC71] transition">Comunidade</a>
             <a href="/admin/configuracoes" className="text-sm hover:text-[#2ECC71] transition">Configurações</a>
           </nav>
@@ -199,6 +203,28 @@ export const AppRoutes: React.FC = () => {
               <AdminGuard>
                 <AdminLayout>
                   <AdminCommunityModeration />
+                </AdminLayout>
+              </AdminGuard>
+            }
+          />
+
+          <Route
+            path="/admin/assinantes"
+            element={
+              <AdminGuard>
+                <AdminLayout>
+                  <AdminSubscriptions />
+                </AdminLayout>
+              </AdminGuard>
+            }
+          />
+
+          <Route
+            path="/admin/creditos"
+            element={
+              <AdminGuard>
+                <AdminLayout>
+                  <AdminCreditsLog />
                 </AdminLayout>
               </AdminGuard>
             }

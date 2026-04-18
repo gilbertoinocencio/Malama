@@ -4,20 +4,27 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Calendar, DollarSign, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Calendar, DollarSign, Clock, CheckCircle, XCircle, CreditCard, TrendingUp } from 'lucide-react';
 import { adminService, doctorService } from '../../services/doctorPortalService';
-import type { AdminDashboardSummary, Doctor } from '../../types/doctorPortal';
+import { adminBillingService } from '../../services/billingService';
+import type { AdminDashboardSummary } from '../../types/doctorPortal';
+import type { BillingStats } from '../../types/billing';
 import toast from 'react-hot-toast';
 
 export const AdminDashboard: React.FC = () => {
   const [summary, setSummary] = useState<AdminDashboardSummary | null>(null);
+  const [billingStats, setBillingStats] = useState<BillingStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadSummary = async () => {
       try {
-        const data = await adminService.getDashboardSummary();
+        const [data, billing] = await Promise.all([
+          adminService.getDashboardSummary(),
+          adminBillingService.getBillingStats().catch(() => null),
+        ]);
         setSummary(data);
+        setBillingStats(billing);
       } catch (error) {
         console.error('Error loading admin dashboard:', error);
       } finally {
@@ -166,15 +173,62 @@ export const AdminDashboard: React.FC = () => {
         )}
       </div>
 
+      {/* Cards de billing (assinaturas e créditos) */}
+      {billingStats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 text-[#2ECC71]" />
+              <p className="text-xs text-gray-500">MRR Total</p>
+            </div>
+            <p className="text-2xl font-bold text-gray-800">{formatCurrency(billingStats.mrr_total)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {billingStats.active_subscribers} assinantes ativos
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="w-4 h-4 text-blue-500" />
+              <p className="text-xs text-gray-500">Assinantes</p>
+            </div>
+            <p className="text-2xl font-bold text-gray-800">{billingStats.active_subscribers}</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {billingStats.active_subscribers_essencial} Essencial · {billingStats.active_subscribers_glp1} GLP-1
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <CreditCard className="w-4 h-4 text-purple-500" />
+              <p className="text-xs text-gray-500">Créditos do Mês</p>
+            </div>
+            <p className="text-2xl font-bold text-gray-800">{billingStats.credits_realizadas_mes}</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {billingStats.credits_disponivel} disponíveis · {billingStats.credits_agendada} agendados
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="w-4 h-4 text-yellow-500" />
+              <p className="text-xs text-gray-500">Próximo Split</p>
+            </div>
+            <p className="text-2xl font-bold text-gray-800">{formatCurrency(billingStats.next_split_estimate)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Previsto {billingStats.next_split_date}</p>
+          </div>
+        </div>
+      )}
+
       {/* Links rápidos */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Link
           to="/admin/medicos"
           className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition"
         >
           <Users className="w-8 h-8 text-[#2ECC71] mb-2" />
-          <h4 className="font-semibold text-gray-800">Gestão de Médicos</h4>
-          <p className="text-sm text-gray-600">Aprovar, editar e gerenciar médicos</p>
+          <h4 className="font-semibold text-gray-800">Médicos</h4>
+          <p className="text-sm text-gray-600">Aprovar e gerenciar</p>
         </Link>
 
         <Link
@@ -183,16 +237,34 @@ export const AdminDashboard: React.FC = () => {
         >
           <DollarSign className="w-8 h-8 text-purple-600 mb-2" />
           <h4 className="font-semibold text-gray-800">Financeiro</h4>
-          <p className="text-sm text-gray-600">Repasses e receita da plataforma</p>
+          <p className="text-sm text-gray-600">Repasses e receita</p>
+        </Link>
+
+        <Link
+          to="/admin/assinantes"
+          className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition"
+        >
+          <CreditCard className="w-8 h-8 text-blue-600 mb-2" />
+          <h4 className="font-semibold text-gray-800">Assinantes</h4>
+          <p className="text-sm text-gray-600">Planos e cobrança</p>
+        </Link>
+
+        <Link
+          to="/admin/creditos"
+          className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition"
+        >
+          <TrendingUp className="w-8 h-8 text-orange-500 mb-2" />
+          <h4 className="font-semibold text-gray-800">Créditos</h4>
+          <p className="text-sm text-gray-600">Log e auditoria</p>
         </Link>
 
         <Link
           to="/admin/configuracoes"
           className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition"
         >
-          <Calendar className="w-8 h-8 text-blue-600 mb-2" />
+          <Calendar className="w-8 h-8 text-gray-500 mb-2" />
           <h4 className="font-semibold text-gray-800">Configurações</h4>
-          <p className="text-sm text-gray-600">Configurações globais da plataforma</p>
+          <p className="text-sm text-gray-600">Configurações globais</p>
         </Link>
       </div>
     </div>
