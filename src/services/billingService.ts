@@ -81,13 +81,7 @@ export const subscriptionService = {
   async getAll(filters?: SubscriptionFilters): Promise<SubscriptionWithUser[]> {
     let query = supabase
       .from('subscriptions')
-      .select(`
-        *,
-        profiles:user_id (
-          display_name,
-          avatar_url
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (filters?.plan && filters.plan !== 'all') {
@@ -100,10 +94,25 @@ export const subscriptionService = {
     const { data, error } = await query;
     if (error) throw error;
 
-    return (data || []).map((row: any) => ({
+    // Buscar display_name dos perfis separadamente para evitar erro se coluna não existir
+    const rows = data || [];
+    const userIds = [...new Set(rows.map((r: any) => r.user_id))];
+
+    let profileMap: Record<string, string> = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', userIds);
+      for (const p of (profiles || [])) {
+        profileMap[p.id] = p.display_name ?? null;
+      }
+    }
+
+    return rows.map((row: any) => ({
       ...row,
-      user_display_name: row.profiles?.display_name ?? null,
-      user_email: null, // email vem de auth.users, não de profiles
+      user_display_name: profileMap[row.user_id] ?? null,
+      user_email: null,
       active_credit_status: null,
       credits_realizadas_mes: 0,
     }));
@@ -298,11 +307,7 @@ export const adminBillingService = {
   async listCredits(filters?: CreditFilters): Promise<CreditWithDetails[]> {
     let query = supabase
       .from('consultation_credits')
-      .select(`
-        *,
-        subscriptions:subscription_id (plan_type),
-        doctors:doctor_id (name)
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(200);
 
@@ -320,12 +325,37 @@ export const adminBillingService = {
     const { data, error } = await query;
     if (error) throw error;
 
-    return (data || []).map((row: any) => ({
+    const rows = data || [];
+
+    // Buscar nomes dos médicos separadamente
+    const doctorIds = [...new Set(rows.filter((r: any) => r.doctor_id).map((r: any) => r.doctor_id))];
+    const subIds    = [...new Set(rows.map((r: any) => r.subscription_id))];
+
+    let doctorMap: Record<string, string> = {};
+    let subPlanMap: Record<string, string> = {};
+
+    if (doctorIds.length > 0) {
+      const { data: doctors } = await supabase
+        .from('doctors')
+        .select('id, name')
+        .in('id', doctorIds);
+      for (const d of (doctors || [])) doctorMap[d.id] = d.name;
+    }
+
+    if (subIds.length > 0) {
+      const { data: subs } = await supabase
+        .from('subscriptions')
+        .select('id, plan_type')
+        .in('id', subIds);
+      for (const s of (subs || [])) subPlanMap[s.id] = s.plan_type;
+    }
+
+    return rows.map((row: any) => ({
       ...row,
-      user_display_name: null, // join com auth.users requer chamada separada
+      user_display_name: null,
       user_email: null,
-      doctor_name: row.doctors?.name ?? null,
-      subscription_plan: row.subscriptions?.plan_type ?? null,
+      doctor_name: doctorMap[row.doctor_id] ?? null,
+      subscription_plan: subPlanMap[row.subscription_id] ?? null,
     }));
   },
 
