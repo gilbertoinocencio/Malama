@@ -102,7 +102,6 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate }) => {
   const handlePostCreated = () => {
     setComposerOpen(false);
     loadFeed(true);
-    toast.success('Post publicado!');
   };
 
   const handlePostDeleted = (postId: string) => {

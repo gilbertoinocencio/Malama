@@ -19,6 +19,7 @@ export const PostComposerV2: React.FC<PostComposerV2Props> = ({ userId, onClose,
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState('');
 
   const hasVideo = files.some(f => f.type.startsWith('video/'));
   const canPublish = caption.trim().length > 0 || files.length > 0;
@@ -36,33 +37,35 @@ export const PostComposerV2: React.FC<PostComposerV2Props> = ({ userId, onClose,
 
   const handlePublish = async () => {
     if (!canPublish || publishing) return;
+    setPublishError('');
     setPublishing(true);
     try {
-      const allTags = [...new Set([...tags, ...(caption.match(/#[\wÀ-ú]+/g) ?? []).map(t => t.slice(1).toLowerCase())])];
-      const captionWithoutDuplicateTags = caption;
       const postId = await createCommunityPost(userId, {
-        caption: captionWithoutDuplicateTags,
+        caption,
         files: files.length > 0 ? files : undefined,
-        type: hasVideo ? 'photo' : files.length > 0 ? 'photo' : 'text',
+        type: hasVideo ? 'video' : files.length > 0 ? 'photo' : 'text',
       });
       if (postId) {
+        toast.success('Post publicado!');
         onPublished();
       } else {
-        toast.error('Erro ao publicar. Tente novamente.');
+        setPublishError('Não foi possível publicar. Tente novamente.');
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       if (message === 'daily_limit_reached') {
-        toast.error('Você atingiu o limite de 10 posts por dia.');
+        setPublishError('Você atingiu o limite de 10 posts por dia.');
       } else if (message === 'video_too_long') {
-        toast.error('O vídeo não pode ter mais de 60 segundos.');
+        setPublishError('O vídeo não pode ter mais de 60 segundos.');
       } else if (message === 'video_too_large') {
-        toast.error('O vídeo não pode ter mais de 50MB.');
+        setPublishError('O vídeo não pode ter mais de 50MB.');
       } else {
-        toast.error('Erro ao publicar. Tente novamente.');
+        setPublishError('Erro ao publicar. Verifique sua conexão e tente novamente.');
+        console.error('[PostComposerV2] publish error:', err);
       }
+    } finally {
+      setPublishing(false);
     }
-    setPublishing(false);
   };
 
   return (
@@ -106,6 +109,13 @@ export const PostComposerV2: React.FC<PostComposerV2Props> = ({ userId, onClose,
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-safe">
+            {/* Error banner — shown inside modal so it's always visible */}
+            {publishError && (
+              <div className="px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-medium">
+                {publishError}
+              </div>
+            )}
+
             {/* Mídia */}
             <MediaUploadGrid
               files={files}
