@@ -12,6 +12,7 @@ import { DailyCheckinModal } from './DailyCheckinModal';
 import { DailyMealsList } from './DailyMealsList';
 import { getLocalDateString } from '../utils/dateUtils';
 import { getTodayConsultation, getDoctorMessage, getLatestGoalAdjustment } from '../lib/scheduling';
+import { creditService } from '../services/billingService';
 import { GLP1Section } from './GLP1Section';
 import { WeekDaysCircle } from './WeekDaysCircle';
 import { MonthWeeksGrid } from './MonthWeeksGrid';
@@ -81,6 +82,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const [doctorMsg, setDoctorMsg] = useState<any>(null);
   const [goalAdjustment, setGoalAdjustment] = useState<any>(null);
   const [goalsToast, setGoalsToast] = useState<{ calorie_goal?: number; protein_goal?: number; doctor_name?: string } | null>(null);
+  const [hasAvailableCredit, setHasAvailableCredit] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -104,6 +106,9 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     getTodayConsultation(user.id).then(setTodayConsultation).catch(() => { });
     getDoctorMessage(user.id).then(setDoctorMsg).catch(() => { });
     getLatestGoalAdjustment(user.id).then(setGoalAdjustment).catch(() => { });
+    creditService.getAvailableForUser(user.id)
+      .then(credits => setHasAvailableCredit(credits.length > 0))
+      .catch(() => { });
   }, [user]);
 
   // Realtime goals sync
@@ -745,6 +750,32 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
         {period === 'day' ? (
           /* ——— DAY VIEW: Calorie Ring + Macros (original dashboard) ——— */
           <>
+            {/* Telemedicine: Crédito disponível mas não agendado */}
+            {hasAvailableCredit && !todayConsultation && (
+              <div className="px-6">
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-4 flex items-center justify-between shadow-lg cursor-pointer"
+                  onClick={() => onNavClick(AppView.AGENDAR_CONSULTA)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white text-xl">calendar_month</span>
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-bold">Consulta do mês disponível</p>
+                      <p className="text-white/80 text-xs">Você ainda não agendou a consulta do mês</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 bg-white/20 px-3 py-1.5 rounded-full">
+                    <span className="text-white text-xs font-bold">Agendar</span>
+                    <span className="material-symbols-outlined text-white text-sm">arrow_forward</span>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
             {/* Telemedicine: Today's Consultation Banner */}
             {todayConsultation && (
               <div className="px-6">

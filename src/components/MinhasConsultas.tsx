@@ -8,6 +8,7 @@ import {
   cancelConsultation,
   rateConsultation,
 } from '../lib/scheduling';
+import { creditService } from '../services/billingService';
 import { AppView } from '../types';
 
 interface MinhasConsultasProps {
@@ -24,6 +25,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasAvailableCredit, setHasAvailableCredit] = useState(false);
   const [ratingModal, setRatingModal] = useState<{ id: string; doctorName: string } | null>(null);
   const [ratingValue, setRatingValue] = useState(5);
   const [ratingComment, setRatingComment] = useState('');
@@ -35,8 +37,13 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
     Promise.all([
       getPatientConsultations(user.id),
       getPatientPrescriptions(user.id),
+      creditService.getAvailableForUser(user.id),
     ])
-      .then(([c, p]) => { setConsultations(c); setPrescriptions(p); })
+      .then(([c, p, credits]) => {
+        setConsultations(c);
+        setPrescriptions(p);
+        setHasAvailableCredit((credits as any[]).length > 0);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [user]);
@@ -120,6 +127,30 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
           </div>
         ) : tab === 'consultations' ? (
           <>
+            {/* Banner: crédito disponível mas não agendado */}
+            {hasAvailableCredit && upcoming.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-4 flex items-center justify-between shadow-md mb-5 cursor-pointer"
+                onClick={() => onNavigate(AppView.AGENDAR_CONSULTA)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <span className="material-symbols-outlined text-white text-xl">calendar_month</span>
+                  </div>
+                  <div>
+                    <p className="text-white text-sm font-bold">Consulta do mês disponível</p>
+                    <p className="text-white/80 text-xs">Você ainda não agendou a consulta do mês</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 bg-white/20 px-3 py-1.5 rounded-full">
+                  <span className="text-white text-xs font-bold">Agendar</span>
+                  <span className="material-symbols-outlined text-white text-sm">arrow_forward</span>
+                </div>
+              </motion.div>
+            )}
+
             {/* Upcoming */}
             {upcoming.length > 0 && (
               <div className="mb-5">
