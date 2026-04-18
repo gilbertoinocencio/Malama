@@ -1164,7 +1164,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       return (
         <div key={msg.id} className="flex gap-3 w-full max-w-full animate-fade-in-up">
           <div className="shrink-0 flex flex-col justify-end pb-6">
-            <div className="bg-gradient-to-br from-Malama-petrol to-[#9c5d4b] dark:from-primary dark:to-[#9c5d4b] flex items-center justify-center rounded-full w-8 h-8 shrink-0 shadow-lg shadow-Malama-petrol/20 dark:shadow-primary/20">
+            <div className="bg-gradient-to-br from-Malama-petrol to-[#7d4a3c] dark:from-primary dark:to-[#7d4a3c] flex items-center justify-center rounded-full w-8 h-8 shrink-0 shadow-lg shadow-Malama-petrol/20 dark:shadow-primary/20">
               <span className="material-symbols-outlined text-white text-sm">smart_toy</span>
             </div>
           </div>

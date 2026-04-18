@@ -3,7 +3,7 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 import { motion } from 'framer-motion';
 
-const PETROL = '#9c5d4b';
+const PETROL = '#7d4a3c';
 
 const CriandoPlanoStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) => {
   useEffect(() => {

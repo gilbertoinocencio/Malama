@@ -88,8 +88,8 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
           text: "text-[#181411]",
           subtext: "text-[#897561]",
           accent: "text-Malama-petrol",
-          iconFill: "#9c5d4b",
-          iconStroke: "#9c5d4b"
+          iconFill: "#7d4a3c",
+          iconStroke: "#7d4a3c"
         };
       case 'Dark':
         return {

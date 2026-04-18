@@ -82,7 +82,7 @@ export const PatientsList: React.FC = () => {
           <button
             onClick={handleGetReferralLink}
             disabled={loadingReferral}
-            className="flex items-center gap-2 px-4 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white text-sm font-medium rounded-lg transition disabled:opacity-60"
+            className="flex items-center gap-2 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-medium rounded-lg transition disabled:opacity-60"
           >
             {loadingReferral ? (
               <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
@@ -105,7 +105,7 @@ export const PatientsList: React.FC = () => {
               onClick={handleCopy}
               className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition whitespace-nowrap"
             >
-              {copied ? <Check className="w-4 h-4 text-[#9c5d4b]" /> : <Copy className="w-4 h-4" />}
+              {copied ? <Check className="w-4 h-4 text-[#7d4a3c]" /> : <Copy className="w-4 h-4" />}
               {copied ? 'Copiado!' : 'Copiar'}
             </button>
           </div>
@@ -121,7 +121,7 @@ export const PatientsList: React.FC = () => {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar paciente por nome..."
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
           />
         </div>
       </div>
@@ -130,7 +130,7 @@ export const PatientsList: React.FC = () => {
       <div className="bg-white rounded-xl shadow overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7d4a3c]"></div>
           </div>
         ) : patients.length === 0 ? (
           <div className="p-12 text-center">
@@ -157,7 +157,7 @@ export const PatientsList: React.FC = () => {
                   <tr key={patient.id} className="hover:bg-gray-50 transition">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[#9c5d4b] flex items-center justify-center text-white font-semibold flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-[#7d4a3c] flex items-center justify-center text-white font-semibold flex-shrink-0">
                           {patient.photo_url ? (
                             <img src={patient.photo_url} alt={patient.name} className="w-full h-full object-cover rounded-full" />
                           ) : (
@@ -184,7 +184,7 @@ export const PatientsList: React.FC = () => {
                     <td className="px-4 py-3 text-right">
                       <Link
                         to={`/medico/paciente/${patient.id}`}
-                        className="px-4 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white text-sm rounded-lg transition"
+                        className="px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm rounded-lg transition"
                       >
                         Ver perfil
                       </Link>

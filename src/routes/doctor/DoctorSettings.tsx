@@ -199,7 +199,7 @@ export const DoctorSettings: React.FC = () => {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
               />
             </div>
 
@@ -209,7 +209,7 @@ export const DoctorSettings: React.FC = () => {
                 value={bio}
                 onChange={e => setBio(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b] resize-none"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] resize-none"
               />
             </div>
 
@@ -218,7 +218,7 @@ export const DoctorSettings: React.FC = () => {
               <select
                 value={specialty}
                 onChange={e => setSpecialty(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
               >
                 <option value="">Selecione...</option>
                 {SPECIALTY_OPTIONS.map(opt => (
@@ -230,7 +230,7 @@ export const DoctorSettings: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Foto de Perfil</label>
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-[#9c5d4b] overflow-hidden flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-[#7d4a3c] overflow-hidden flex-shrink-0">
                   {photoPreview ? (
                     <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
@@ -256,7 +256,7 @@ export const DoctorSettings: React.FC = () => {
             <button
               onClick={handleSaveProfile}
               disabled={loading}
-              className="px-6 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               Salvar perfil
@@ -276,7 +276,7 @@ export const DoctorSettings: React.FC = () => {
                 value={consultationPrice}
                 onChange={e => setConsultationPrice(parseFloat(e.target.value) || 80)}
                 min={80}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
               />
             </div>
 
@@ -285,7 +285,7 @@ export const DoctorSettings: React.FC = () => {
               <select
                 value={consultationDuration}
                 onChange={e => setConsultationDuration(parseInt(e.target.value))}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
               >
                 <option value={20}>20 minutos</option>
                 <option value={30}>30 minutos</option>
@@ -297,7 +297,7 @@ export const DoctorSettings: React.FC = () => {
             <button
               onClick={handleSaveConsultation}
               disabled={loading}
-              className="px-6 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               Salvar configurações
@@ -316,7 +316,7 @@ export const DoctorSettings: React.FC = () => {
                 type="text"
                 value={pixKey}
                 onChange={e => setPixKey(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
                 placeholder="CPF, email, telefone ou chave aleatória"
               />
             </div>
@@ -330,7 +330,7 @@ export const DoctorSettings: React.FC = () => {
             <button
               onClick={handleSaveFinancial}
               disabled={loading}
-              className="px-6 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               Salvar configurações financeiras
@@ -412,7 +412,7 @@ export const DoctorSettings: React.FC = () => {
             <button
               onClick={handleUploadCertificate}
               disabled={loading || !certificateFile}
-              className="px-6 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
             >
               <Upload className="w-4 h-4" />
               {loading ? 'Enviando...' : 'Enviar certificado'}

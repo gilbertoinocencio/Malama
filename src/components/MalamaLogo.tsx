@@ -32,7 +32,7 @@ export const MalamaLogo: React.FC<MalamaLogoProps> = ({
           fontSize: config.width === '80px' ? '20px' : config.width === '120px' ? '32px' : config.width === '180px' ? '48px' : '64px',
           letterSpacing: config.width === '80px' ? '4px' : config.width === '120px' ? '8px' : config.width === '180px' ? '14px' : '18px',
           textIndent: config.width === '80px' ? '4px' : config.width === '120px' ? '8px' : config.width === '180px' ? '14px' : '18px',
-          color: '#9c5d4b',
+          color: '#7d4a3c',
           fontFamily: "'Cormorant Garamond', Georgia, serif"
         }}
       >

@@ -11,7 +11,7 @@ interface MalamaAiScanProps {
     onBack: () => void;
 }
 
-const MALAMA_RED = '#9c5d4b';
+const MALAMA_RED = '#7d4a3c';
 const BG_CREAM = '#FDFBF9';
 
 const recalcTotals = (items: MealItem[]): { calories: number; macros: { p: number; c: number; f: number } } => {

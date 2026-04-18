@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { StepContainer } from '../StepContainer';
 import { StepProps } from '../types';
 
-const PETROL = '#9c5d4b';
+const PETROL = '#7d4a3c';
 
 const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const [altura, setAltura] = useState<number>(data.altura || 175);

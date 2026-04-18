@@ -69,7 +69,7 @@ export const AdminLogin: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
                 required
               />
             </div>
@@ -80,7 +80,7 @@ export const AdminLogin: React.FC = () => {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
                 required
               />
             </div>
@@ -88,7 +88,7 @@ export const AdminLogin: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium transition disabled:opacity-50"
+              className="w-full py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium transition disabled:opacity-50"
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>

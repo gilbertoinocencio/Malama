@@ -49,7 +49,7 @@ const CopyLinkButton: React.FC<{ token: string; prefix?: string }> = ({ token, p
       title={link}
       className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
     >
-      {copied ? <Check className="w-3 h-3 text-[#9c5d4b]" /> : <Copy className="w-3 h-3" />}
+      {copied ? <Check className="w-3 h-3 text-[#7d4a3c]" /> : <Copy className="w-3 h-3" />}
       {copied ? 'Copiado!' : 'Link'}
     </button>
   );
@@ -123,7 +123,7 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
           <div>
             <h2 className="text-white font-semibold text-lg">{influencer.name}</h2>
             {influencer.instagram_handle && (
-              <p className="text-[#9c5d4b] text-sm mt-0.5">
+              <p className="text-[#7d4a3c] text-sm mt-0.5">
                 {influencer.instagram_handle.startsWith('@') ? influencer.instagram_handle : `@${influencer.instagram_handle}`}
               </p>
             )}
@@ -141,7 +141,7 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
               <p className="text-xs text-gray-400 mt-0.5">Conversões</p>
             </div>
             <div className="bg-[#FDFBF9] rounded-xl p-3 text-center">
-              <p className="text-xl font-bold text-[#9c5d4b]">{fmtCurrency(influencer.pending_amount)}</p>
+              <p className="text-xl font-bold text-[#7d4a3c]">{fmtCurrency(influencer.pending_amount)}</p>
               <p className="text-xs text-gray-400 mt-0.5">Pendente</p>
             </div>
             <div className="bg-[#FDFBF9] rounded-xl p-3 text-center">
@@ -161,7 +161,7 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
                 onClick={handleCopyLink}
                 className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition whitespace-nowrap"
               >
-                {copied ? <Check className="w-4 h-4 text-[#9c5d4b]" /> : <Copy className="w-4 h-4" />}
+                {copied ? <Check className="w-4 h-4 text-[#7d4a3c]" /> : <Copy className="w-4 h-4" />}
                 {copied ? 'Copiado!' : 'Copiar'}
               </button>
               <a
@@ -214,7 +214,7 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
             <button
               onClick={handlePay}
               disabled={paying}
-              className="w-full py-3 bg-[#9c5d4b] hover:bg-[#7a4839] text-white font-semibold rounded-xl transition disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white font-semibold rounded-xl transition disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {paying
                 ? <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
@@ -228,7 +228,7 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Histórico de conversões</p>
             {loading ? (
               <div className="flex justify-center py-6">
-                <div className="w-6 h-6 rounded-full border-4 border-[#9c5d4b] border-t-transparent animate-spin" />
+                <div className="w-6 h-6 rounded-full border-4 border-[#7d4a3c] border-t-transparent animate-spin" />
               </div>
             ) : refs.length === 0 ? (
               <p className="text-center text-gray-400 text-sm py-6">Nenhuma conversão ainda.</p>
@@ -342,7 +342,7 @@ const InfluencerModal: React.FC<{
               <label className="block text-xs font-medium text-gray-600 mb-1">Nome completo *</label>
               <input
                 required value={form.name} onChange={e => set('name', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
                 placeholder="Nome do influenciador"
               />
             </div>
@@ -351,7 +351,7 @@ const InfluencerModal: React.FC<{
               <label className="block text-xs font-medium text-gray-600 mb-1">E-mail *</label>
               <input
                 required type="email" value={form.email} onChange={e => set('email', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
                 placeholder="email@exemplo.com"
               />
             </div>
@@ -377,7 +377,7 @@ const InfluencerModal: React.FC<{
                 <input
                   required={!initial} type="password"
                   value={form.password || ''} onChange={e => set('password', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
                   placeholder="Senha para o influencer fazer login"
                   minLength={8}
                 />
@@ -391,7 +391,7 @@ const InfluencerModal: React.FC<{
                 <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   value={form.instagram_handle} onChange={e => set('instagram_handle', e.target.value)}
-                  className="w-full pl-9 pr-3 border border-gray-300 rounded-lg py-2 text-sm focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+                  className="w-full pl-9 pr-3 border border-gray-300 rounded-lg py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
                   placeholder="@handle"
                 />
               </div>
@@ -403,7 +403,7 @@ const InfluencerModal: React.FC<{
                 required type="number" min="0" step="0.01"
                 value={form.commission_per_referral}
                 onChange={e => set('commission_per_referral', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
                 placeholder="10.00"
               />
             </div>
@@ -412,7 +412,7 @@ const InfluencerModal: React.FC<{
               <label className="block text-xs font-medium text-gray-600 mb-1">Chave PIX</label>
               <input
                 value={form.pix_key} onChange={e => set('pix_key', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
                 placeholder="CPF, e-mail, telefone ou chave aleatória"
               />
             </div>
@@ -422,7 +422,7 @@ const InfluencerModal: React.FC<{
                 <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
                 <select
                   value={form.status} onChange={e => set('status', e.target.value as Influencer['status'])}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
                 >
                   <option value="active">Ativo</option>
                   <option value="paused">Pausado</option>
@@ -436,7 +436,7 @@ const InfluencerModal: React.FC<{
               <textarea
                 value={form.notes} onChange={e => set('notes', e.target.value)}
                 rows={2}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent resize-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent resize-none"
                 placeholder="Observações sobre o influenciador..."
               />
             </div>
@@ -457,7 +457,7 @@ const InfluencerModal: React.FC<{
             </button>
             <button
               type="submit" disabled={saving}
-              className="flex-1 py-2.5 bg-[#9c5d4b] hover:bg-[#7a4839] text-white text-sm font-semibold rounded-xl transition disabled:opacity-60"
+              className="flex-1 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-xl transition disabled:opacity-60"
             >
               {saving ? 'Salvando...' : initial ? 'Salvar alterações' : 'Criar influenciador'}
             </button>
@@ -563,13 +563,13 @@ export const AdminInfluencers: React.FC = () => {
       {/* ── Cards de métricas ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: <Users className="w-5 h-5 text-[#9c5d4b]" />, label: 'Influenciadores ativos', value: totalActive.toString() },
-          { icon: <TrendingUp className="w-5 h-5 text-[#9c5d4b]" />, label: 'Total de conversões', value: totalRefs.toString() },
-          { icon: <DollarSign className="w-5 h-5 text-[#9c5d4b]" />, label: 'Comissões pendentes', value: fmtCurrency(totalPending) },
-          { icon: <Check className="w-5 h-5 text-[#9c5d4b]" />, label: 'Total pago', value: fmtCurrency(totalPaid) },
+          { icon: <Users className="w-5 h-5 text-[#7d4a3c]" />, label: 'Influenciadores ativos', value: totalActive.toString() },
+          { icon: <TrendingUp className="w-5 h-5 text-[#7d4a3c]" />, label: 'Total de conversões', value: totalRefs.toString() },
+          { icon: <DollarSign className="w-5 h-5 text-[#7d4a3c]" />, label: 'Comissões pendentes', value: fmtCurrency(totalPending) },
+          { icon: <Check className="w-5 h-5 text-[#7d4a3c]" />, label: 'Total pago', value: fmtCurrency(totalPaid) },
         ].map(({ icon, label, value }) => (
           <div key={label} className="bg-white rounded-xl shadow p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#9c5d4b]/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#7d4a3c]/10 flex items-center justify-center flex-shrink-0">
               {icon}
             </div>
             <div>
@@ -607,14 +607,14 @@ export const AdminInfluencers: React.FC = () => {
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-sm font-medium text-gray-800 truncate">{inf.name}</span>
                           {inf.instagram_handle && (
-                            <span className="text-xs text-[#9c5d4b] hidden sm:inline">
+                            <span className="text-xs text-[#7d4a3c] hidden sm:inline">
                               {inf.instagram_handle.startsWith('@') ? inf.instagram_handle : `@${inf.instagram_handle}`}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0 ml-2">
                           <span className="text-xs text-gray-500">{inf.total_referrals} conv.</span>
-                          <span className="text-xs font-semibold text-[#9c5d4b]">{fmtCurrency(inf.total_earned)}</span>
+                          <span className="text-xs font-semibold text-[#7d4a3c]">{fmtCurrency(inf.total_earned)}</span>
                         </div>
                       </div>
                       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -622,7 +622,7 @@ export const AdminInfluencers: React.FC = () => {
                           className="h-full rounded-full transition-all duration-700"
                           style={{
                             width: `${pct}%`,
-                            background: i === 0 ? '#F59E0B' : i === 1 ? '#9CA3AF' : i === 2 ? '#CD7C2F' : '#9c5d4b'
+                            background: i === 0 ? '#F59E0B' : i === 1 ? '#9CA3AF' : i === 2 ? '#CD7C2F' : '#7d4a3c'
                           }}
                         />
                       </div>
@@ -642,12 +642,12 @@ export const AdminInfluencers: React.FC = () => {
           <input
             type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por nome ou @instagram..."
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+            className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
           />
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#9c5d4b] hover:bg-[#7a4839] text-white text-sm font-semibold rounded-lg transition whitespace-nowrap"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition whitespace-nowrap"
         >
           <Plus className="w-4 h-4" />
           Novo influenciador
@@ -658,7 +658,7 @@ export const AdminInfluencers: React.FC = () => {
       <div className="bg-white rounded-xl shadow overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-40">
-            <div className="w-8 h-8 rounded-full border-4 border-[#9c5d4b] border-t-transparent animate-spin" />
+            <div className="w-8 h-8 rounded-full border-4 border-[#7d4a3c] border-t-transparent animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
@@ -689,7 +689,7 @@ export const AdminInfluencers: React.FC = () => {
                           <a
                             href={`https://instagram.com/${inf.instagram_handle.replace('@', '')}`}
                             target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-[#9c5d4b] hover:underline mt-0.5"
+                            className="inline-flex items-center gap-1 text-xs text-[#7d4a3c] hover:underline mt-0.5"
                           >
                             <Instagram className="w-3 h-3" />
                             {inf.instagram_handle.startsWith('@') ? inf.instagram_handle : `@${inf.instagram_handle}`}
@@ -704,7 +704,7 @@ export const AdminInfluencers: React.FC = () => {
                       <span className="text-sm font-medium text-gray-700">{inf.total_referrals}</span>
                     </td>
                     <td className="px-4 py-3 text-right hidden md:table-cell">
-                      <span className={`text-sm font-semibold ${inf.pending_amount > 0 ? 'text-[#9c5d4b]' : 'text-gray-300'}`}>
+                      <span className={`text-sm font-semibold ${inf.pending_amount > 0 ? 'text-[#7d4a3c]' : 'text-gray-300'}`}>
                         {inf.pending_amount > 0 ? fmtCurrency(inf.pending_amount) : '—'}
                       </span>
                     </td>
@@ -739,7 +739,7 @@ export const AdminInfluencers: React.FC = () => {
                           <button
                             onClick={() => handleQuickStatus(inf, 'active')}
                             title="Reativar"
-                            className="p-1 text-[#9c5d4b] hover:bg-green-50 rounded-lg transition"
+                            className="p-1 text-[#7d4a3c] hover:bg-green-50 rounded-lg transition"
                           >
                             <Play className="w-4 h-4" />
                           </button>

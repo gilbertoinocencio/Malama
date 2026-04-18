@@ -2,7 +2,7 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const PETROL = '#9c5d4b';
+const PETROL = '#7d4a3c';
 
 const PesoObjetivoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const target = data.pesoObjetivo || data.targetWeight || 70;

@@ -400,7 +400,7 @@ export const DoctorAgenda: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7d4a3c]"></div>
       </div>
     );
   }
@@ -441,7 +441,7 @@ export const DoctorAgenda: React.FC = () => {
           <div className="w-full lg:w-48 bg-white rounded-xl shadow-sm border border-gray-200 p-4 shrink-0 max-h-[500px] flex flex-col">
             <div className="text-sm font-bold text-gray-700 mb-1 flex items-center justify-between">
               Paleta
-              <span className="text-[10px] bg-[#9c5d4b]/10 text-[#9c5d4b] font-bold px-2 py-0.5 rounded-full">{doctor?.consultation_duration || 20} min</span>
+              <span className="text-[10px] bg-[#7d4a3c]/10 text-[#7d4a3c] font-bold px-2 py-0.5 rounded-full">{doctor?.consultation_duration || 20} min</span>
             </div>
             <p className="text-xs text-gray-400 mb-4 pb-2 border-b border-gray-100">Arraste para as datas</p>
 
@@ -451,7 +451,7 @@ export const DoctorAgenda: React.FC = () => {
                   key={time}
                   draggable
                   onDragStart={(e) => handleDragStart(e, time)}
-                  className="bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-xs text-center py-2 rounded cursor-grab active:cursor-grabbing hover:border-[#9c5d4b] hover:text-[#9c5d4b] hover:shadow-sm transition"
+                  className="bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-xs text-center py-2 rounded cursor-grab active:cursor-grabbing hover:border-[#7d4a3c] hover:text-[#7d4a3c] hover:shadow-sm transition"
                   title="Segure e arraste"
                 >
                   {time}
@@ -468,16 +468,16 @@ export const DoctorAgenda: React.FC = () => {
                   key={dayInfo.dateStr}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, dayInfo.dateStr)}
-                  className={`bg-gray-50/80 rounded-xl p-3 border shadow-sm min-w-[160px] max-w-[180px] snap-start flex-shrink-0 flex flex-col h-full transition relative group ${dayInfo.isToday ? 'border-[#9c5d4b] border-2 bg-[#9c5d4b]/5' : 'border-dashed border-gray-300 hover:border-[#9c5d4b]/60'
+                  className={`bg-gray-50/80 rounded-xl p-3 border shadow-sm min-w-[160px] max-w-[180px] snap-start flex-shrink-0 flex flex-col h-full transition relative group ${dayInfo.isToday ? 'border-[#7d4a3c] border-2 bg-[#7d4a3c]/5' : 'border-dashed border-gray-300 hover:border-[#7d4a3c]/60'
                     }`}
                 >
                   <div className="flex items-center justify-between mb-3 border-b border-gray-200 pb-2">
                     <div>
-                      <span className={`font-bold text-sm ${dayInfo.isToday ? 'text-[#9c5d4b]' : 'text-gray-700'}`}>
+                      <span className={`font-bold text-sm ${dayInfo.isToday ? 'text-[#7d4a3c]' : 'text-gray-700'}`}>
                         {dayInfo.label}
                       </span>
                       {dayInfo.isToday && (
-                        <span className="ml-1 text-[9px] bg-[#9c5d4b] text-white px-1.5 py-0.5 rounded-full font-bold">HOJE</span>
+                        <span className="ml-1 text-[9px] bg-[#7d4a3c] text-white px-1.5 py-0.5 rounded-full font-bold">HOJE</span>
                       )}
                     </div>
                     <span className="text-xs font-semibold text-gray-400">{availabilities[dayInfo.dateStr]?.length || 0}</span>
@@ -490,7 +490,7 @@ export const DoctorAgenda: React.FC = () => {
                       setCopyTargetDays([]);
                     }}
                     disabled={availabilities[dayInfo.dateStr]?.length === 0}
-                    className="absolute top-12 right-2 p-1.5 bg-[#9c5d4b] text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#7a4839] disabled:opacity-30 disabled:cursor-not-allowed z-10"
+                    className="absolute top-12 right-2 p-1.5 bg-[#7d4a3c] text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#623a2f] disabled:opacity-30 disabled:cursor-not-allowed z-10"
                     title="Copiar horários para outras datas"
                   >
                     <Copy className="w-3.5 h-3.5" />
@@ -503,7 +503,7 @@ export const DoctorAgenda: React.FC = () => {
                       </div>
                     ) : (
                       availabilities[dayInfo.dateStr]?.map(avail => (
-                        <div key={avail.id} className="bg-white border text-center border-gray-200 rounded-md py-1.5 px-3 shadow-sm group/slot flex items-center justify-between hover:border-[#9c5d4b] transition">
+                        <div key={avail.id} className="bg-white border text-center border-gray-200 rounded-md py-1.5 px-3 shadow-sm group/slot flex items-center justify-between hover:border-[#7d4a3c] transition">
                           <div className="text-sm font-bold text-gray-700">{formatTime(avail.start_time)}</div>
                           <button
                             onClick={() => removeTimeSlot(dayInfo.dateStr, avail.id)}
@@ -525,7 +525,7 @@ export const DoctorAgenda: React.FC = () => {
         <button
           onClick={handleSaveAvailability}
           disabled={saving}
-          className="mt-6 w-full md:w-auto px-6 py-3 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+          className="mt-6 w-full md:w-auto px-6 py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
           {saving ? 'Salvando...' : 'Salvar disponibilidades'}
@@ -542,7 +542,7 @@ export const DoctorAgenda: React.FC = () => {
             type="date"
             value={selectedDate}
             onChange={e => setSelectedDate(e.target.value)}
-            className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b] text-gray-700"
+            className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] text-gray-700"
           />
         </div>
 
@@ -582,7 +582,7 @@ export const DoctorAgenda: React.FC = () => {
                     <p className="text-md text-gray-700 font-medium">{consult.patient_name || 'Nome do Paciente'}</p>
 
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="inline-block px-2.5 py-1 bg-[#9c5d4b]/10 text-[#9c5d4b] text-xs font-medium rounded-full">
+                      <span className="inline-block px-2.5 py-1 bg-[#7d4a3c]/10 text-[#7d4a3c] text-xs font-medium rounded-full">
                         {consult.type === 'initial' ? 'Inicial' : consult.type === 'follow_up' ? 'Retorno' : 'Renovação de Receita'}
                       </span>
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${isScheduled ? 'bg-blue-50 text-blue-700' :
@@ -607,7 +607,7 @@ export const DoctorAgenda: React.FC = () => {
 
                       <button
                         onClick={() => navigate(`/medico/consulta/${consult.id}`)}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg text-sm font-medium transition"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg text-sm font-medium transition"
                       >
                         <Video className="w-4 h-4" />
                         Iniciar Video
@@ -646,8 +646,8 @@ export const DoctorAgenda: React.FC = () => {
           <div className="relative bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#9c5d4b]/10 flex items-center justify-center">
-                  <Copy className="w-5 h-5 text-[#9c5d4b]" />
+                <div className="w-10 h-10 rounded-full bg-[#7d4a3c]/10 flex items-center justify-center">
+                  <Copy className="w-5 h-5 text-[#7d4a3c]" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800">Copiar Horários</h3>
@@ -715,7 +715,7 @@ export const DoctorAgenda: React.FC = () => {
                     <label
                       key={dayInfo.dateStr}
                       className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 cursor-pointer transition ${isSelected
-                          ? 'border-[#9c5d4b] bg-[#9c5d4b]/5'
+                          ? 'border-[#7d4a3c] bg-[#7d4a3c]/5'
                           : 'border-gray-200 hover:border-gray-300'
                         } ${dayInfo.isToday ? 'bg-yellow-50' : ''}`}
                     >
@@ -729,9 +729,9 @@ export const DoctorAgenda: React.FC = () => {
                             setCopyTargetDays(prev => prev.filter(d => d !== dayInfo.dateStr));
                           }
                         }}
-                        className="w-4 h-4 text-[#9c5d4b] border-gray-300 rounded focus:ring-[#9c5d4b] mb-2"
+                        className="w-4 h-4 text-[#7d4a3c] border-gray-300 rounded focus:ring-[#7d4a3c] mb-2"
                       />
-                      <span className={`text-xs font-bold ${dayInfo.isToday ? 'text-[#9c5d4b]' : 'text-gray-700'}`}>
+                      <span className={`text-xs font-bold ${dayInfo.isToday ? 'text-[#7d4a3c]' : 'text-gray-700'}`}>
                         {dayInfo.label}
                       </span>
                       {hasSlots && (
@@ -740,7 +740,7 @@ export const DoctorAgenda: React.FC = () => {
                         </span>
                       )}
                       {dayInfo.isToday && (
-                        <span className="text-[9px] bg-[#9c5d4b] text-white px-1 py-0.5 rounded-full mt-1">HOJE</span>
+                        <span className="text-[9px] bg-[#7d4a3c] text-white px-1 py-0.5 rounded-full mt-1">HOJE</span>
                       )}
                     </label>
                   );
@@ -759,7 +759,7 @@ export const DoctorAgenda: React.FC = () => {
               <button
                 onClick={() => handleCopySchedule(showCopyModal, copyTargetDays)}
                 disabled={copyTargetDays.length === 0}
-                className="flex-1 px-6 py-3 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Copy className="w-4 h-4" />
                 Copiar para {copyTargetDays.length} dia{copyTargetDays.length !== 1 ? 's' : ''}

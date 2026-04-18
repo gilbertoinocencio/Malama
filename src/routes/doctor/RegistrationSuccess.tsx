@@ -12,8 +12,8 @@ export const RegistrationSuccess: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FDFBF9] flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-12 text-center max-w-md">
-        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#9c5d4b]/10 flex items-center justify-center">
-          <Clock className="w-10 h-10 text-[#9c5d4b]" />
+        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#7d4a3c]/10 flex items-center justify-center">
+          <Clock className="w-10 h-10 text-[#7d4a3c]" />
         </div>
         
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Cadastro enviado com sucesso! ⏳</h1>
@@ -24,7 +24,7 @@ export const RegistrationSuccess: React.FC = () => {
 
         <button
           onClick={() => navigate('/medico')}
-          className="px-8 py-3 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium transition"
+          className="px-8 py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium transition"
         >
           Voltar ao login
         </button>

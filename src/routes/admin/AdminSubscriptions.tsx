@@ -94,7 +94,7 @@ const ReactivateModal: React.FC<ReactivateModalProps> = ({ creditId, onClose, on
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <textarea
-            className="w-full border border-gray-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#9c5d4b]"
+            className="w-full border border-gray-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#7d4a3c]"
             rows={3}
             placeholder="Ex: Solicitação do usuário após bug na plataforma..."
             value={reason}
@@ -112,7 +112,7 @@ const ReactivateModal: React.FC<ReactivateModalProps> = ({ creditId, onClose, on
             <button
               type="submit"
               disabled={loading || !reason.trim()}
-              className="flex-1 px-4 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg text-sm font-medium disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg text-sm font-medium disabled:opacity-50"
             >
               {loading ? 'Salvando...' : 'Confirmar'}
             </button>
@@ -195,7 +195,7 @@ export const AdminSubscriptions: React.FC = () => {
   if (loading && !stats) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7d4a3c]" />
       </div>
     );
   }
@@ -206,7 +206,7 @@ export const AdminSubscriptions: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl shadow p-5">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-green-50 rounded-lg"><TrendingUp className="w-4 h-4 text-[#9c5d4b]" /></div>
+            <div className="p-2 bg-green-50 rounded-lg"><TrendingUp className="w-4 h-4 text-[#7d4a3c]" /></div>
             <p className="text-xs text-gray-500">MRR Total</p>
           </div>
           <p className="text-2xl font-bold text-gray-800">{formatCurrency(stats?.mrr_total ?? 0)}</p>
@@ -253,7 +253,7 @@ export const AdminSubscriptions: React.FC = () => {
           {/* Filtro plano */}
           <div className="relative">
             <select
-              className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#9c5d4b]"
+              className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#7d4a3c]"
               value={filters.plan}
               onChange={e => setFilters(f => ({ ...f, plan: e.target.value as any }))}
             >
@@ -267,7 +267,7 @@ export const AdminSubscriptions: React.FC = () => {
           {/* Filtro status */}
           <div className="relative">
             <select
-              className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#9c5d4b]"
+              className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#7d4a3c]"
               value={filters.status}
               onChange={e => setFilters(f => ({ ...f, status: e.target.value as any }))}
             >
@@ -283,7 +283,7 @@ export const AdminSubscriptions: React.FC = () => {
           <input
             type="text"
             placeholder="Buscar usuário..."
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#9c5d4b]"
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7d4a3c]"
             value={filters.search}
             onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
           />
@@ -358,7 +358,7 @@ export const AdminSubscriptions: React.FC = () => {
                               subscriptionId: sub.id,
                             })}
                             title="Reativar crédito"
-                            className="p-1.5 text-[#9c5d4b] hover:bg-green-50 rounded"
+                            className="p-1.5 text-[#7d4a3c] hover:bg-green-50 rounded"
                           >
                             <CheckCircle className="w-4 h-4" />
                           </button>

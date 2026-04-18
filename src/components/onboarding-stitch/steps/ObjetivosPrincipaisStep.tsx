@@ -4,7 +4,7 @@ import { StepProps } from '../types';
 
 type ObjetivoPrincipal = 'perder_peso' | 'manter_peso' | 'ganhar_peso';
 
-const PETROL = '#9c5d4b';
+const PETROL = '#7d4a3c';
 
 const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const [objetivoPrincipal, setObjetivoPrincipal] = useState<ObjetivoPrincipal>(

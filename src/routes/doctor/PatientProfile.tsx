@@ -128,7 +128,7 @@ export const PatientProfile: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7d4a3c]"></div>
       </div>
     );
   }
@@ -137,7 +137,7 @@ export const PatientProfile: React.FC = () => {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600">Paciente não encontrado</p>
-        <Link to="/medico/pacientes" className="text-[#9c5d4b] hover:underline mt-4 inline-block">
+        <Link to="/medico/pacientes" className="text-[#7d4a3c] hover:underline mt-4 inline-block">
           ← Voltar para pacientes
         </Link>
       </div>
@@ -158,7 +158,7 @@ export const PatientProfile: React.FC = () => {
       {/* Cabeçalho do paciente */}
       <div className="bg-white rounded-xl shadow p-6">
         <div className="flex items-start gap-4">
-          <div className="w-16 h-16 rounded-full bg-[#9c5d4b] flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+          <div className="w-16 h-16 rounded-full bg-[#7d4a3c] flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
             {patient.photo_url ? (
               <img src={patient.photo_url} alt={patient.name} className="w-full h-full rounded-full object-cover" />
             ) : (
@@ -195,7 +195,7 @@ export const PatientProfile: React.FC = () => {
 
           <Link
             to="/medico/agenda"
-            className="px-4 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg text-sm font-medium transition"
+            className="px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg text-sm font-medium transition"
           >
             Agendar consulta
           </Link>
@@ -212,7 +212,7 @@ export const PatientProfile: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'border-[#9c5d4b] text-[#9c5d4b]'
+                    ? 'border-[#7d4a3c] text-[#7d4a3c]'
                     : 'border-transparent text-gray-600 hover:text-gray-800'
                 }`}
               >
@@ -238,7 +238,7 @@ export const PatientProfile: React.FC = () => {
                         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                         <YAxis tick={{ fontSize: 12 }} />
                         <Tooltip />
-                        <Line type="monotone" dataKey="weight" stroke="#9c5d4b" strokeWidth={2} name="Peso real" />
+                        <Line type="monotone" dataKey="weight" stroke="#7d4a3c" strokeWidth={2} name="Peso real" />
                         {patient.weight_history.some(w => w.target_weight) && (
                           <Line type="monotone" dataKey="target_weight" stroke="#3498db" strokeWidth={2} strokeDasharray="5 5" name="Meta" />
                         )}
@@ -258,7 +258,7 @@ export const PatientProfile: React.FC = () => {
                   <h3 className="text-lg font-semibold text-gray-800">Metas Atuais</h3>
                   <button
                     onClick={() => setShowAdjustModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg text-sm font-medium transition"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg text-sm font-medium transition"
                   >
                     <Plus className="w-4 h-4" />
                     Ajustar metas
@@ -279,7 +279,7 @@ export const PatientProfile: React.FC = () => {
                       <p className="text-xs text-gray-600">{goal.unit}</p>
                       <p className="text-xs text-gray-500 mt-1">{goal.label}</p>
                       {patient.doctor_adjustments?.length > 0 && (
-                        <span className="block mt-2 text-[10px] text-[#9c5d4b]">Ajustado por Dr(a)</span>
+                        <span className="block mt-2 text-[10px] text-[#7d4a3c]">Ajustado por Dr(a)</span>
                       )}
                     </div>
                   ))}
@@ -291,11 +291,11 @@ export const PatientProfile: React.FC = () => {
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Adesão do Paciente</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-gray-50 rounded-lg p-6">
-                    <p className="text-4xl font-bold text-[#9c5d4b]">{patient.adherence.registration_percentage}%</p>
+                    <p className="text-4xl font-bold text-[#7d4a3c]">{patient.adherence.registration_percentage}%</p>
                     <p className="text-sm text-gray-600 mt-2">Dias com registro (últimos 30 dias)</p>
                     <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-[#9c5d4b] h-2 rounded-full transition-all"
+                        className="bg-[#7d4a3c] h-2 rounded-full transition-all"
                         style={{ width: `${patient.adherence.registration_percentage}%` }}
                       />
                     </div>
@@ -361,7 +361,7 @@ export const PatientProfile: React.FC = () => {
                         <XAxis dataKey="week_start" tick={{ fontSize: 12 }} />
                         <YAxis tick={{ fontSize: 12 }} />
                         <Tooltip />
-                        <Bar dataKey="avg_calories" fill="#9c5d4b" name="Calorias" />
+                        <Bar dataKey="avg_calories" fill="#7d4a3c" name="Calorias" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -384,7 +384,7 @@ export const PatientProfile: React.FC = () => {
                   {patient.symptom_checkins.map((checkin, idx) => (
                     <div key={idx} className="flex gap-4">
                       <div className="flex flex-col items-center">
-                        <div className="w-3 h-3 rounded-full bg-[#9c5d4b]" />
+                        <div className="w-3 h-3 rounded-full bg-[#7d4a3c]" />
                         {idx < patient.symptom_checkins.length - 1 && (
                           <div className="w-0.5 flex-1 bg-gray-200 my-1" />
                         )}
@@ -450,7 +450,7 @@ export const PatientProfile: React.FC = () => {
                         <span className="text-sm text-gray-600">{consultation.duration_minutes} min</span>
                       </div>
 
-                      <span className="inline-block px-2 py-1 bg-[#9c5d4b]/10 text-[#9c5d4b] text-xs rounded-full mb-2">
+                      <span className="inline-block px-2 py-1 bg-[#7d4a3c]/10 text-[#7d4a3c] text-xs rounded-full mb-2">
                         {consultation.type === 'initial' ? 'Inicial' : consultation.type === 'follow_up' ? 'Retorno' : 'Renovação'}
                       </span>
 
@@ -460,7 +460,7 @@ export const PatientProfile: React.FC = () => {
 
                       <Link
                         to={`/medico/consulta/${consultation.id}`}
-                        className="text-sm text-[#9c5d4b] hover:underline mt-2 inline-block"
+                        className="text-sm text-[#7d4a3c] hover:underline mt-2 inline-block"
                       >
                         Ver detalhes →
                       </Link>
@@ -483,7 +483,7 @@ export const PatientProfile: React.FC = () => {
                 {!briefing && !generatingBriefing && (
                   <button
                     onClick={handleGenerateBriefing}
-                    className="px-4 py-2 bg-[#9c5d4b]/10 text-[#9c5d4b] border border-[#9c5d4b]/20 rounded-lg font-medium hover:bg-[#9c5d4b]/20 transition-colors flex items-center gap-2 text-sm"
+                    className="px-4 py-2 bg-[#7d4a3c]/10 text-[#7d4a3c] border border-[#7d4a3c]/20 rounded-lg font-medium hover:bg-[#7d4a3c]/20 transition-colors flex items-center gap-2 text-sm"
                   >
                     🪄 Gerar Análise IA
                   </button>
@@ -492,8 +492,8 @@ export const PatientProfile: React.FC = () => {
 
               {generatingBriefing ? (
                 <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-8 flex flex-col items-center justify-center text-center">
-                  <div className="animate-spin w-8 h-8 border-4 border-[#9c5d4b] border-t-transparent rounded-full mb-4" />
-                  <p className="text-[#9c5d4b] font-medium pb-1">Analisando histórico e check-ins...</p>
+                  <div className="animate-spin w-8 h-8 border-4 border-[#7d4a3c] border-t-transparent rounded-full mb-4" />
+                  <p className="text-[#7d4a3c] font-medium pb-1">Analisando histórico e check-ins...</p>
                   <p className="text-sm text-gray-500">O Malama Assistant está cruzando os dados e montando os alertas.</p>
                 </div>
               ) : briefing ? (
@@ -505,7 +505,7 @@ export const PatientProfile: React.FC = () => {
                   <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
                     <button
                       onClick={handleGenerateBriefing}
-                      className="text-xs text-[#9c5d4b] hover:underline flex items-center gap-1"
+                      className="text-xs text-[#7d4a3c] hover:underline flex items-center gap-1"
                     >
                       🔄 Gerar novamente
                     </button>
@@ -548,7 +548,7 @@ export const PatientProfile: React.FC = () => {
                         <select
                           value={glp1Prescription.medication || ''}
                           onChange={e => setGlp1Prescription(p => ({ ...p, medication: e.target.value }))}
-                          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#9c5d4b] bg-white"
+                          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#7d4a3c] bg-white"
                         >
                           <option value="">Selecionar medicamento</option>
                           {GLP1_MEDICATION_LIST.map(m => (
@@ -584,7 +584,7 @@ export const PatientProfile: React.FC = () => {
                             ...p,
                             current_dose_mg: e.target.value ? Number(e.target.value) : undefined
                           }))}
-                          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#9c5d4b] bg-white"
+                          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#7d4a3c] bg-white"
                         >
                           <option value="">Selecionar dose</option>
                           {glp1Prescription.medication && GLP1_PROTOCOLS[glp1Prescription.medication]?.dose_steps.map(s => (
@@ -619,7 +619,7 @@ export const PatientProfile: React.FC = () => {
                           ...p,
                           next_dose_mg: e.target.value ? Number(e.target.value) : undefined
                         }))}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#9c5d4b] bg-white"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#7d4a3c] bg-white"
                       >
                         <option value="">Nenhuma (manter dose atual)</option>
                         {glp1Prescription.medication && GLP1_PROTOCOLS[glp1Prescription.medication]?.dose_steps.map(s => (
@@ -638,7 +638,7 @@ export const PatientProfile: React.FC = () => {
                             ...p,
                             frequency: e.target.value as 'weekly' | 'daily'
                           }))}
-                          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#9c5d4b] bg-white"
+                          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#7d4a3c] bg-white"
                         >
                           <option value="weekly">Semanal</option>
                           <option value="daily">Diária</option>
@@ -673,8 +673,8 @@ export const PatientProfile: React.FC = () => {
                               onClick={() => setGlp1Prescription(p => ({ ...p, day_of_week: idx }))}
                               className={`w-10 h-10 rounded-lg text-sm font-medium transition ${
                                 glp1Prescription.day_of_week === idx
-                                  ? 'bg-[#9c5d4b] text-white'
-                                  : 'bg-white border border-gray-300 text-gray-600 hover:border-[#9c5d4b]'
+                                  ? 'bg-[#7d4a3c] text-white'
+                                  : 'bg-white border border-gray-300 text-gray-600 hover:border-[#7d4a3c]'
                               }`}
                             >
                               {d}
@@ -691,7 +691,7 @@ export const PatientProfile: React.FC = () => {
                         type="time"
                         value={glp1Prescription.time || '08:00'}
                         onChange={e => setGlp1Prescription(p => ({ ...p, time: e.target.value }))}
-                        className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#9c5d4b] bg-white"
+                        className="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#7d4a3c] bg-white"
                       />
                     </div>
                   </div>
@@ -717,7 +717,7 @@ export const PatientProfile: React.FC = () => {
                               [key]: e.target.value ? Number(e.target.value) : undefined
                             }))}
                             placeholder="—"
-                            className="w-full px-2 py-1.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#9c5d4b] bg-white"
+                            className="w-full px-2 py-1.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#7d4a3c] bg-white"
                           />
                         </div>
                       ))}
@@ -754,7 +754,7 @@ export const PatientProfile: React.FC = () => {
                       onChange={e => setGlp1Prescription(p => ({ ...p, notes: e.target.value }))}
                       rows={3}
                       placeholder="Ex: Aplicar sempre no mesmo dia da semana. Aumentar dose após 4 semanas sem efeitos adversos."
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#9c5d4b] bg-white resize-none"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#7d4a3c] bg-white resize-none"
                     />
                   </div>
 
@@ -777,7 +777,7 @@ export const PatientProfile: React.FC = () => {
                         }
                       }}
                       disabled={glp1PrescriptionSaving}
-                      className="px-6 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+                      className="px-6 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
                     >
                       <Save className="w-4 h-4" />
                       {glp1PrescriptionSaving ? 'Salvando...' : 'Salvar prescrição'}
@@ -806,7 +806,7 @@ export const PatientProfile: React.FC = () => {
                             updated[i] = { ...updated[i], time: e.target.value };
                             setGlp1Schedule(updated);
                           }}
-                          className="px-2 py-1.5 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-[#9c5d4b]"
+                          className="px-2 py-1.5 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-[#7d4a3c]"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -820,7 +820,7 @@ export const PatientProfile: React.FC = () => {
                             setGlp1Schedule(updated);
                           }}
                           placeholder="Ex: Café da manhã"
-                          className="w-full px-2 py-1.5 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-[#9c5d4b]"
+                          className="w-full px-2 py-1.5 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-[#7d4a3c]"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -834,7 +834,7 @@ export const PatientProfile: React.FC = () => {
                             setGlp1Schedule(updated);
                           }}
                           placeholder="Ex: Proteína + carboidrato leve"
-                          className="w-full px-2 py-1.5 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-[#9c5d4b]"
+                          className="w-full px-2 py-1.5 rounded border border-gray-300 text-sm focus:ring-2 focus:ring-[#7d4a3c]"
                         />
                       </div>
                       <button
@@ -850,7 +850,7 @@ export const PatientProfile: React.FC = () => {
 
                 <button
                   onClick={() => setGlp1Schedule([...glp1Schedule, { time: '12:00', label: '', notes: '' }])}
-                  className="mt-3 flex items-center gap-2 text-sm text-[#9c5d4b] hover:text-[#7a4839] font-medium transition"
+                  className="mt-3 flex items-center gap-2 text-sm text-[#7d4a3c] hover:text-[#623a2f] font-medium transition"
                 >
                   <Plus className="w-4 h-4" />
                   Adicionar horário
@@ -874,7 +874,7 @@ export const PatientProfile: React.FC = () => {
                       }
                     }}
                     disabled={glp1ScheduleSaving}
-                    className="px-6 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+                    className="px-6 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
                   >
                     <Save className="w-4 h-4" />
                     {glp1ScheduleSaving ? 'Salvando...' : 'Salvar horários'}
@@ -906,7 +906,7 @@ export const PatientProfile: React.FC = () => {
                     type="number"
                     value={adjustGoals.calories}
                     onChange={e => setAdjustGoals(prev => ({ ...prev, calories: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
                   />
                 </div>
                 <div>
@@ -915,7 +915,7 @@ export const PatientProfile: React.FC = () => {
                     type="number"
                     value={adjustGoals.protein}
                     onChange={e => setAdjustGoals(prev => ({ ...prev, protein: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
                   />
                 </div>
                 <div>
@@ -924,7 +924,7 @@ export const PatientProfile: React.FC = () => {
                     type="number"
                     value={adjustGoals.carbs}
                     onChange={e => setAdjustGoals(prev => ({ ...prev, carbs: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
                   />
                 </div>
                 <div>
@@ -933,7 +933,7 @@ export const PatientProfile: React.FC = () => {
                     type="number"
                     value={adjustGoals.fat}
                     onChange={e => setAdjustGoals(prev => ({ ...prev, fat: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
                   />
                 </div>
                 <div>
@@ -942,7 +942,7 @@ export const PatientProfile: React.FC = () => {
                     type="number"
                     value={adjustGoals.fiber}
                     onChange={e => setAdjustGoals(prev => ({ ...prev, fiber: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
                   />
                 </div>
                 <div>
@@ -951,7 +951,7 @@ export const PatientProfile: React.FC = () => {
                     type="number"
                     value={adjustGoals.water}
                     onChange={e => setAdjustGoals(prev => ({ ...prev, water: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
                   />
                 </div>
               </div>
@@ -962,7 +962,7 @@ export const PatientProfile: React.FC = () => {
                   value={adjustNotes}
                   onChange={e => setAdjustNotes(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b] resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] resize-none"
                   placeholder="Observações sobre os ajustes..."
                 />
               </div>
@@ -973,7 +973,7 @@ export const PatientProfile: React.FC = () => {
                   type="text"
                   value={adjustTag}
                   onChange={e => setAdjustTag(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
                   placeholder="Ex: Ótimo progresso! 💪"
                 />
               </div>
@@ -988,7 +988,7 @@ export const PatientProfile: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveAdjustments}
-                className="px-6 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center gap-2"
+                className="px-6 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium flex items-center gap-2"
               >
                 <Save className="w-4 h-4" />
                 Aplicar ajustes

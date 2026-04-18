@@ -19,7 +19,7 @@ interface StepContainerProps {
   hideNavigation?: boolean;
 }
 
-const PETROL = '#9c5d4b';
+const PETROL = '#7d4a3c';
 
 export const StepContainer: React.FC<StepContainerProps> = ({
   children,

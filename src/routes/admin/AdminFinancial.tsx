@@ -114,7 +114,7 @@ export const AdminFinancial: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7d4a3c]" />
       </div>
     );
   }
@@ -168,7 +168,7 @@ export const AdminFinancial: React.FC = () => {
             </button>
             <button
               onClick={exportToCSV}
-              className="flex items-center gap-2 px-4 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg text-sm font-medium"
             >
               <Download className="w-4 h-4" />
               Exportar CSV
@@ -207,7 +207,7 @@ export const AdminFinancial: React.FC = () => {
                     <td className="px-4 py-3 text-sm">{payout.consultations_count}</td>
                     <td className="px-4 py-3 text-sm hidden lg:table-cell">{formatCurrency(payout.gross_amount)}</td>
                     <td className="px-4 py-3 text-sm hidden lg:table-cell">{payout.fee_percent}%</td>
-                    <td className="px-4 py-3 font-medium text-[#9c5d4b]">{formatCurrency(payout.net_amount)}</td>
+                    <td className="px-4 py-3 font-medium text-[#7d4a3c]">{formatCurrency(payout.net_amount)}</td>
                     <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell truncate max-w-[150px]">
                       {payout.pix_key || '—'}
                     </td>
@@ -245,7 +245,7 @@ export const AdminFinancial: React.FC = () => {
                         {payout.status === 'pending' && (
                           <button
                             onClick={() => handleMarkAsPaid(payout.id)}
-                            className="px-3 py-1 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded text-xs font-medium flex items-center gap-1 ml-auto"
+                            className="px-3 py-1 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded text-xs font-medium flex items-center gap-1 ml-auto"
                           >
                             <CheckCircle className="w-3 h-3" />
                             Pagar

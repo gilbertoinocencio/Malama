@@ -140,7 +140,7 @@ export const AdminCommunityModeration: React.FC = () => {
               onClick={() => setActiveTab(tab)}
               className={`px-6 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab
-                  ? 'border-b-2 border-[#9c5d4b] text-[#9c5d4b]'
+                  ? 'border-b-2 border-[#7d4a3c] text-[#7d4a3c]'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -254,7 +254,7 @@ export const AdminCommunityModeration: React.FC = () => {
                 {u.avatar_url ? (
                   <img src={u.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#9c5d4b]/20 flex items-center justify-center text-[#9c5d4b] font-bold text-sm">
+                  <div className="w-8 h-8 rounded-full bg-[#7d4a3c]/20 flex items-center justify-center text-[#7d4a3c] font-bold text-sm">
                     {u.display_name[0]?.toUpperCase()}
                   </div>
                 )}
@@ -266,7 +266,7 @@ export const AdminCommunityModeration: React.FC = () => {
 
         {selectedBadgeUser && (
           <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl mb-4">
-            <div className="w-8 h-8 rounded-full bg-[#9c5d4b]/20 flex items-center justify-center text-[#9c5d4b] font-bold text-sm">
+            <div className="w-8 h-8 rounded-full bg-[#7d4a3c]/20 flex items-center justify-center text-[#7d4a3c] font-bold text-sm">
               {selectedBadgeUser.display_name[0]?.toUpperCase()}
             </div>
             <span className="text-sm font-medium text-gray-800 flex-1">{selectedBadgeUser.display_name}</span>
@@ -289,8 +289,8 @@ export const AdminCommunityModeration: React.FC = () => {
           <button
             onClick={handleGrantBadge}
             disabled={!selectedBadgeUser || grantingBadge}
-            className="flex items-center gap-2 px-5 py-2 bg-[#9c5d4b] text-white rounded-xl text-sm font-semibold
-              disabled:bg-gray-200 disabled:text-gray-400 transition-colors hover:bg-[#7a4839]"
+            className="flex items-center gap-2 px-5 py-2 bg-[#7d4a3c] text-white rounded-xl text-sm font-semibold
+              disabled:bg-gray-200 disabled:text-gray-400 transition-colors hover:bg-[#623a2f]"
           >
             {grantingBadge ? <Loader2 size={14} className="animate-spin" /> : <Award size={14} />}
             Conceder

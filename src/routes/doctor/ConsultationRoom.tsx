@@ -13,7 +13,7 @@ export const ConsultationRoom: React.FC = () => {
     <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4">
       <div className="text-center">
         <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-800 flex items-center justify-center">
-          <Video className="w-12 h-12 text-[#9c5d4b]" />
+          <Video className="w-12 h-12 text-[#7d4a3c]" />
         </div>
 
         <h1 className="text-2xl font-bold text-white mb-2">Videochamada</h1>
@@ -26,7 +26,7 @@ export const ConsultationRoom: React.FC = () => {
 
         <Link
           to="/medico/dashboard"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium transition"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium transition"
         >
           <ArrowLeft className="w-4 h-4" />
           Voltar ao dashboard

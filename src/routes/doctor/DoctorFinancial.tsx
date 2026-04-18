@@ -200,7 +200,7 @@ export const DoctorFinancial: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7d4a3c]"></div>
       </div>
     );
   }
@@ -234,7 +234,7 @@ export const DoctorFinancial: React.FC = () => {
                     setPeriod(option.value);
                     setShowPeriodDropdown(false);
                   }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition ${period === option.value ? 'bg-[#9c5d4b]/10 text-[#9c5d4b] font-medium' : 'text-gray-700'
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition ${period === option.value ? 'bg-[#7d4a3c]/10 text-[#7d4a3c] font-medium' : 'text-gray-700'
                     }`}
                 >
                   {option.label}
@@ -248,10 +248,10 @@ export const DoctorFinancial: React.FC = () => {
       {/* Cards de Resumo Financeiro */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Faturado */}
-        <div className="bg-white rounded-xl shadow p-5 border-l-4 border-[#9c5d4b]">
+        <div className="bg-white rounded-xl shadow p-5 border-l-4 border-[#7d4a3c]">
           <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-[#9c5d4b]/10 rounded-lg">
-              <DollarSign className="w-5 h-5 text-[#9c5d4b]" />
+            <div className="p-2 bg-[#7d4a3c]/10 rounded-lg">
+              <DollarSign className="w-5 h-5 text-[#7d4a3c]" />
             </div>
             <span className="text-xs text-gray-500">Bruto</span>
           </div>
@@ -309,8 +309,8 @@ export const DoctorFinancial: React.FC = () => {
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-[#9c5d4b]/10 rounded-lg">
-                <CreditCard className="w-5 h-5 text-[#9c5d4b]" />
+              <div className="p-2 bg-[#7d4a3c]/10 rounded-lg">
+                <CreditCard className="w-5 h-5 text-[#7d4a3c]" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-800">Repasses (Payouts)</h3>
@@ -470,7 +470,7 @@ export const DoctorFinancial: React.FC = () => {
                     <td className="px-4 py-3 text-sm text-right text-red-500 hidden lg:table-cell">
                       -{formatCurrency(consult.platform_fee)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-[#9c5d4b]">
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-[#7d4a3c]">
                       {formatCurrency(consult.doctor_payout)}
                     </td>
                     <td className="px-4 py-3">
@@ -505,7 +505,7 @@ export const DoctorFinancial: React.FC = () => {
                 </div>
                 <div className="text-center">
                   <div className="text-xs text-gray-500">Total líquido</div>
-                  <div className="text-sm font-bold text-[#9c5d4b]">{formatCurrency(
+                  <div className="text-sm font-bold text-[#7d4a3c]">{formatCurrency(
                     filteredConsultations.reduce((sum, c) => sum + (c.doctor_payout || 0), 0)
                   )}</div>
                 </div>
@@ -516,7 +516,7 @@ export const DoctorFinancial: React.FC = () => {
       </div>
 
       {/* Seção: Resumo do Período */}
-      <div className="bg-gradient-to-r from-[#9c5d4b] to-[#7a4839] rounded-xl shadow p-6 text-white">
+      <div className="bg-gradient-to-r from-[#7d4a3c] to-[#623a2f] rounded-xl shadow p-6 text-white">
         <div className="flex items-center gap-3 mb-4">
           <PieChart className="w-6 h-6" />
           <h3 className="text-lg font-semibold">Resumo do Período</h3>

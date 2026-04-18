@@ -57,7 +57,7 @@ export const AdminSettings: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7d4a3c]"></div>
       </div>
     );
   }
@@ -76,7 +76,7 @@ export const AdminSettings: React.FC = () => {
               onChange={e => updateSetting('default_platform_fee', e.target.value)}
               min={0}
               max={100}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
             />
           </div>
 
@@ -87,7 +87,7 @@ export const AdminSettings: React.FC = () => {
               value={settings.min_consultation_price}
               onChange={e => updateSetting('min_consultation_price', e.target.value)}
               min={0}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
             />
           </div>
 
@@ -98,7 +98,7 @@ export const AdminSettings: React.FC = () => {
               value={settings.min_consultation_duration}
               onChange={e => updateSetting('min_consultation_duration', e.target.value)}
               min={10}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
             />
           </div>
 
@@ -108,14 +108,14 @@ export const AdminSettings: React.FC = () => {
               type="email"
               value={settings.support_email}
               onChange={e => updateSetting('support_email', e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
             />
           </div>
 
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-3 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {saving ? 'Salvando...' : 'Salvar configurações'}

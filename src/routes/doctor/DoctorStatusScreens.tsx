@@ -46,7 +46,7 @@ export const DoctorSuspended: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Conta suspensa</h1>
         
         <p className="text-gray-600 mb-8">
-          Entre em contato com o suporte: <a href="mailto:suporte@Malama.app" className="text-[#9c5d4b] hover:underline">suporte@Malama.app</a>
+          Entre em contato com o suporte: <a href="mailto:suporte@Malama.app" className="text-[#7d4a3c] hover:underline">suporte@Malama.app</a>
         </p>
       </div>
     </div>

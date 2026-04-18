@@ -66,7 +66,7 @@ const TypeLabel: Record<string, string> = {
 const Avatar: React.FC<{ name: string | null; url: string | null; size?: 'sm' | 'md' | 'lg' }> = ({ name, url, size = 'sm' }) => {
   const sz = size === 'lg' ? 'w-16 h-16 text-2xl' : size === 'md' ? 'w-10 h-10 text-base' : 'w-8 h-8 text-sm';
   return (
-    <div className={`${sz} rounded-full bg-[#9c5d4b] flex-shrink-0 flex items-center justify-center overflow-hidden`}>
+    <div className={`${sz} rounded-full bg-[#7d4a3c] flex-shrink-0 flex items-center justify-center overflow-hidden`}>
       {url
         ? <img src={url} alt={name ?? ''} className="w-full h-full object-cover" />
         : <span className="text-white font-semibold">{name?.charAt(0)?.toUpperCase() ?? '?'}</span>
@@ -82,13 +82,13 @@ const CustomTooltip: React.FC<any> = ({ active, payload }) => {
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow px-3 py-2 text-sm">
       <p className="font-medium text-gray-800">{name}</p>
-      <p className="text-[#9c5d4b] font-bold">{value} usuário{value !== 1 ? 's' : ''}</p>
+      <p className="text-[#7d4a3c] font-bold">{value} usuário{value !== 1 ? 's' : ''}</p>
     </div>
   );
 };
 
 // ─── Gráfico de pizza simples com legenda própria ──────
-const COLORS = ['#9c5d4b', '#3498DB', '#9B59B6', '#E74C3C', '#F39C12', '#1ABC9C', '#95A5A6'];
+const COLORS = ['#7d4a3c', '#3498DB', '#9B59B6', '#E74C3C', '#F39C12', '#1ABC9C', '#95A5A6'];
 
 const MiniPie: React.FC<{ data: { name: string; value: number }[]; title: string }> = ({ data, title }) => {
   const total = data.reduce((s, d) => s + d.value, 0);
@@ -130,7 +130,7 @@ const MiniPie: React.FC<{ data: { name: string; value: number }[]; title: string
 
 // ─── Gráfico de barras horizontal simples ─────────────
 const MiniBar: React.FC<{ data: { name: string; value: number }[]; title: string; color?: string }> = ({
-  data, title, color = '#9c5d4b'
+  data, title, color = '#7d4a3c'
 }) => {
   const max = Math.max(...data.map(d => d.value), 1);
   return (
@@ -271,7 +271,7 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-4 border-[#9c5d4b] border-t-transparent animate-spin" />
+            <div className="w-8 h-8 rounded-full border-4 border-[#7d4a3c] border-t-transparent animate-spin" />
           </div>
         ) : !user ? (
           <div className="flex-1 flex items-center justify-center text-gray-400">Usuário não encontrado.</div>
@@ -301,7 +301,7 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
             {/* LTV Cards */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-[#FDFBF9] rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-[#9c5d4b]">{fmtCurrency(user.ltv)}</p>
+                <p className="text-2xl font-bold text-[#7d4a3c]">{fmtCurrency(user.ltv)}</p>
                 <p className="text-xs text-gray-500 mt-1">LTV total</p>
               </div>
               <div className="bg-[#FDFBF9] rounded-xl p-4 text-center">
@@ -428,13 +428,13 @@ export const AdminUsersManagement: React.FC = () => {
       {/* ── Cards de métricas ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: <User className="w-5 h-5 text-[#9c5d4b]" />,        label: 'Total de usuários',     value: filtered.length.toString() },
-          { icon: <DollarSign className="w-5 h-5 text-[#9c5d4b]" />,  label: 'LTV acumulado',         value: fmtCurrency(totalLtv) },
-          { icon: <Calendar className="w-5 h-5 text-[#9c5d4b]" />,    label: 'Consultas realizadas',  value: totalConsults.toString() },
-          { icon: <Stethoscope className="w-5 h-5 text-[#9c5d4b]" />, label: 'Via indicação médica',  value: referralCount.toString() },
+          { icon: <User className="w-5 h-5 text-[#7d4a3c]" />,        label: 'Total de usuários',     value: filtered.length.toString() },
+          { icon: <DollarSign className="w-5 h-5 text-[#7d4a3c]" />,  label: 'LTV acumulado',         value: fmtCurrency(totalLtv) },
+          { icon: <Calendar className="w-5 h-5 text-[#7d4a3c]" />,    label: 'Consultas realizadas',  value: totalConsults.toString() },
+          { icon: <Stethoscope className="w-5 h-5 text-[#7d4a3c]" />, label: 'Via indicação médica',  value: referralCount.toString() },
         ].map(({ icon, label, value }) => (
           <div key={label} className="bg-white rounded-xl shadow p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#9c5d4b]/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#7d4a3c]/10 flex items-center justify-center flex-shrink-0">
               {icon}
             </div>
             <div>
@@ -479,13 +479,13 @@ export const AdminUsersManagement: React.FC = () => {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por nome ou médico indicador..."
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+            className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
           />
         </div>
         <select
           value={channelFilter}
           onChange={e => setChannelFilter(e.target.value)}
-          className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
+          className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
         >
           <option value="all">Todos os canais</option>
           <option value="referral">Indicação médica</option>
@@ -500,7 +500,7 @@ export const AdminUsersManagement: React.FC = () => {
       <div className="bg-white rounded-xl shadow overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-40">
-            <div className="w-8 h-8 rounded-full border-4 border-[#9c5d4b] border-t-transparent animate-spin" />
+            <div className="w-8 h-8 rounded-full border-4 border-[#7d4a3c] border-t-transparent animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
@@ -545,14 +545,14 @@ export const AdminUsersManagement: React.FC = () => {
                       <span className="text-sm font-medium text-gray-700">{user.consultations_count}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className="text-sm font-semibold text-[#9c5d4b]">
+                      <span className="text-sm font-semibold text-[#7d4a3c]">
                         {user.ltv > 0 ? fmtCurrency(user.ltv) : <span className="text-gray-300 font-normal">—</span>}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => setSelectedUserId(user.id)}
-                        className="px-3 py-1.5 text-xs font-medium bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg transition"
+                        className="px-3 py-1.5 text-xs font-medium bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg transition"
                       >
                         Ver ficha
                       </button>

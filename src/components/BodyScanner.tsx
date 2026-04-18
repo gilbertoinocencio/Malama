@@ -263,7 +263,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
         <button
           onClick={() => { resetSession(); setStep('front'); }}
           className="mt-4 w-full max-w-xs h-14 rounded-2xl text-white font-light tracking-wider"
-          style={{ background: '#9c5d4b' }}
+          style={{ background: '#7d4a3c' }}
         >
           Tentar novamente
         </button>
@@ -388,7 +388,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                 <button
                   onClick={() => setStep('front')}
                   className="w-full text-white rounded-2xl py-4 font-light tracking-wider transition-opacity hover:opacity-90 active:scale-[0.98]"
-                  style={{ background: '#9c5d4b' }}
+                  style={{ background: '#7d4a3c' }}
                 >
                   Iniciar Scan
                 </button>
@@ -608,7 +608,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                       onClose();
                     }}
                     className="w-full text-white rounded-2xl py-4 font-light tracking-wider transition-opacity hover:opacity-90 active:scale-[0.98]"
-                    style={{ background: '#9c5d4b' }}
+                    style={{ background: '#7d4a3c' }}
                   >
                     Concluir
                   </button>
