@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Portal do Médico: Tipos TypeScript
+// Malama — Portal do Médico: Tipos TypeScript
 // =====================================================
 
 export enum DoctorStatus {

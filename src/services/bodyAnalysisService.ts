@@ -100,7 +100,7 @@ export const analyzeBodyImage = async (
   const langName = language === 'pt' ? 'Portuguese (Brazilian)' : language === 'en' ? 'English' : 'Spanish';
 
   // Build comprehensive prompt based on research
-  const prompt = `You are NURA, an expert AI body composition analyst with advanced computer vision and anthropometric expertise. Analyze this ${poseType} body photo with scientific precision.
+  const prompt = `You are Malama, an expert AI body composition analyst with advanced computer vision and anthropometric expertise. Analyze this ${poseType} body photo with scientific precision.
 
 **USER CONTEXT:**
 - Height: ${heightCm} cm

@@ -53,7 +53,7 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
         backgroundColor: null
       });
       const link = document.createElement('a');
-      link.download = `nura-hydration-${new Date().toISOString().split('T')[0]}.png`;
+      link.download = `Malama-hydration-${new Date().toISOString().split('T')[0]}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     }
@@ -87,9 +87,9 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
           overlay: "",
           text: "text-[#181411]",
           subtext: "text-[#897561]",
-          accent: "text-nura-petrol",
-          iconFill: "#1F4E5F",
-          iconStroke: "#1F4E5F"
+          accent: "text-Malama-petrol",
+          iconFill: "#9c5d4b",
+          iconStroke: "#9c5d4b"
         };
       case 'Dark':
         return {
@@ -121,13 +121,13 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
   const hy = t.hydration;
 
   return (
-    <div className="fixed inset-0 z-50 bg-nura-bg dark:bg-background-dark text-nura-main dark:text-white flex flex-col font-display animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white flex flex-col font-display animate-fade-in">
 
       {/* Header */}
-      <header className="flex items-center justify-between p-4 sticky top-0 z-20 bg-nura-bg/95 dark:bg-background-dark/95 backdrop-blur-sm transition-colors border-b border-nura-border dark:border-white/5">
+      <header className="flex items-center justify-between p-4 sticky top-0 z-20 bg-Malama-bg/95 dark:bg-background-dark/95 backdrop-blur-sm transition-colors border-b border-Malama-border dark:border-white/5">
         <button
           onClick={onBack}
-          className="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-nura-main dark:text-white"
+          className="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-Malama-main dark:text-white"
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
@@ -138,8 +138,8 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
 
         {/* Title */}
         <div className="py-4 text-center">
-          <h2 className="text-nura-main dark:text-white tracking-tight text-2xl font-bold leading-tight">{hy.trackFlow}</h2>
-          <p className="text-sm text-nura-muted dark:text-gray-400 mt-1">{hy.shareGoal}</p>
+          <h2 className="text-Malama-main dark:text-white tracking-tight text-2xl font-bold leading-tight">{hy.trackFlow}</h2>
+          <p className="text-sm text-Malama-muted dark:text-gray-400 mt-1">{hy.shareGoal}</p>
         </div>
 
         {/* Card Preview */}
@@ -186,25 +186,25 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
             <div className="flex-1"></div>
 
             <div className="w-full flex justify-center items-end pb-2">
-              <span className={`text-[10px] font-bold tracking-[0.25em] uppercase ${currentStyles.subtext} opacity-60`}>NURA — Feed the Flow</span>
+              <span className={`text-[10px] font-bold tracking-[0.25em] uppercase ${currentStyles.subtext} opacity-60`}>Malama — Feed the Flow</span>
             </div>
           </div>
         </div>
 
         {/* View Options */}
         <div className="flex justify-between items-center mb-6 px-1">
-          <span className="text-sm font-semibold text-nura-main dark:text-white">{hy.viewOptions}</span>
-          <div className="flex bg-white dark:bg-[#1a2630] rounded-full p-1 shadow-sm border border-nura-border dark:border-white/5">
+          <span className="text-sm font-semibold text-Malama-main dark:text-white">{hy.viewOptions}</span>
+          <div className="flex bg-white dark:bg-[#1a2630] rounded-full p-1 shadow-sm border border-Malama-border dark:border-white/5">
             <button
               onClick={() => setViewOption('goal')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${viewOption === 'goal' ? 'bg-nura-petrol dark:bg-primary text-white shadow-sm' : 'text-nura-muted hover:bg-black/5 dark:hover:bg-white/5'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${viewOption === 'goal' ? 'bg-Malama-petrol dark:bg-primary text-white shadow-sm' : 'text-Malama-muted hover:bg-black/5 dark:hover:bg-white/5'}`}
             >
               <span className="material-symbols-outlined text-[18px]">water_drop</span>
               <span className="text-xs font-bold">{hy.goal}</span>
             </button>
             <button
               onClick={() => setViewOption('quote')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${viewOption === 'quote' ? 'bg-nura-petrol dark:bg-primary text-white shadow-sm' : 'text-nura-muted hover:bg-black/5 dark:hover:bg-white/5'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${viewOption === 'quote' ? 'bg-Malama-petrol dark:bg-primary text-white shadow-sm' : 'text-Malama-muted hover:bg-black/5 dark:hover:bg-white/5'}`}
             >
               <span className="material-symbols-outlined text-[18px]">format_quote</span>
               <span className="text-xs font-medium">{hy.quote}</span>
@@ -215,15 +215,15 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
         {/* Template Style Selector */}
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-end px-1">
-            <span className="text-sm font-semibold text-nura-main dark:text-white">{hy.templateStyle}</span>
-            <span className="text-xs text-nura-petrol dark:text-primary font-medium cursor-pointer">{hy.viewAll}</span>
+            <span className="text-sm font-semibold text-Malama-main dark:text-white">{hy.templateStyle}</span>
+            <span className="text-xs text-Malama-petrol dark:text-primary font-medium cursor-pointer">{hy.viewAll}</span>
           </div>
 
           <div className="flex gap-4 overflow-x-auto pb-4 pt-1 px-1 snap-x no-scrollbar">
             {(['Photo', 'Gradient', 'Minimal', 'Dark'] as TemplateStyle[]).map((style) => (
               <div key={style} onClick={() => setTemplate(style)} className="snap-center shrink-0 flex flex-col items-center gap-2 group cursor-pointer">
                 <div className={`relative w-20 h-32 rounded-xl border overflow-hidden transition-all active:scale-95 ${style === 'Minimal' ? 'bg-white' : style === 'Dark' ? 'bg-[#103e4a]' : ''
-                  } ${template === style ? 'border-2 border-nura-petrol dark:border-primary shadow-lg shadow-nura-petrol/20' : 'border-nura-border dark:border-white/10 opacity-80 hover:opacity-100'}`}>
+                  } ${template === style ? 'border-2 border-Malama-petrol dark:border-primary shadow-lg shadow-Malama-petrol/20' : 'border-Malama-border dark:border-white/10 opacity-80 hover:opacity-100'}`}>
                   {style === 'Photo' && (
                     <div className="absolute inset-0 bg-cover bg-center grayscale opacity-50" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuChM2tXonuf-O9q5XBChK6E-si0BUZmrZy06Bv40sCpK_ttBtqEm2xrSKVxdrR4na08ye1CY29Sq5K6y9B9lUVYUNvqKSR2_I1-ZTCwov4gJPFH9REtUZoORr4km3DYK38qqQLmebKLdKLmfNa1T1XGUFiFqzHzoJI9gNUuhgZhC00ncrmngemBabk7pt3qw3dBWxchcVy9KV6dI0ggrZT1FaKIVe1byFI6GGZTQDQ41D2dvtpvvZxTKCe9Prnb4z96xR6VeTKM6gA')" }}></div>
                   )}
@@ -233,9 +233,9 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
                       {style === 'Photo' ? 'image' : style === 'Gradient' ? 'water_full' : style === 'Dark' ? 'dark_mode' : 'crop_portrait'}
                     </span>
                   </div>
-                  {template === style && <div className="absolute top-1 right-1 bg-nura-petrol dark:bg-primary rounded-full p-0.5"><span className="material-symbols-outlined text-white text-[12px] block">check</span></div>}
+                  {template === style && <div className="absolute top-1 right-1 bg-Malama-petrol dark:bg-primary rounded-full p-0.5"><span className="material-symbols-outlined text-white text-[12px] block">check</span></div>}
                 </div>
-                <span className={`text-xs font-medium ${template === style ? 'text-nura-petrol dark:text-primary font-bold' : 'text-nura-muted'}`}>{style}</span>
+                <span className={`text-xs font-medium ${template === style ? 'text-Malama-petrol dark:text-primary font-bold' : 'text-Malama-muted'}`}>{style}</span>
               </div>
             ))}
           </div>
@@ -244,10 +244,10 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
       </main>
 
       {/* Bottom Action */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-nura-bg via-nura-bg/95 to-transparent dark:from-background-dark dark:via-background-dark/95 pt-8 pointer-events-none z-30">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-Malama-bg via-Malama-bg/95 to-transparent dark:from-background-dark dark:via-background-dark/95 pt-8 pointer-events-none z-30">
         <button
           onClick={handleShare}
-          className="pointer-events-auto w-full bg-nura-petrol hover:brightness-110 dark:bg-primary dark:hover:brightness-110 text-white text-lg font-bold py-4 rounded-xl shadow-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+          className="pointer-events-auto w-full bg-Malama-petrol hover:brightness-110 dark:bg-primary dark:hover:brightness-110 text-white text-lg font-bold py-4 rounded-xl shadow-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
         >
           <span>{hy.shareGoalCta}</span>
           <span className="material-symbols-outlined">ios_share</span>

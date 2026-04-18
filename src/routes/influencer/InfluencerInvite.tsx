@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Página de Convite para Influenciador
+// Malama — Página de Convite para Influenciador
 // =====================================================
 // Link gerado pelo admin: /influencer/convite/:access_token
 // Influencer clica → faz login automático → vai para onboarding
@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
-import { NuraLogo } from '../../components/NuraLogo';
+import { MalamaLogo } from '../../components/MalamaLogo';
 import { Instagram } from 'lucide-react';
 
 type InfluencerInfo = {
@@ -76,7 +76,7 @@ export const InfluencerInvite: React.FC = () => {
 
       if (user) {
         // Login bem-sucedido — redirecionar para onboarding
-        localStorage.setItem('nura_is_influencer_signup', 'true');
+        localStorage.setItem('Malama_is_influencer_signup', 'true');
         window.location.replace('/influencer/onboarding');
       }
     } catch (err: any) {
@@ -96,7 +96,7 @@ export const InfluencerInvite: React.FC = () => {
   if (notFound) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0F0F0F] p-6 text-center">
-        <NuraLogo size="md" />
+        <MalamaLogo size="md" />
         <h1 className="text-xl font-semibold text-white mt-4">Link inválido ou expirado</h1>
         <p className="text-gray-400 text-sm max-w-sm">
           Este link de convite não é válido. Entre em contato com o administrador.
@@ -111,7 +111,7 @@ export const InfluencerInvite: React.FC = () => {
 
         {/* Logo */}
         <div className="flex justify-center mb-10">
-          <NuraLogo size="lg" />
+          <MalamaLogo size="lg" />
         </div>
 
         {/* Card de boas-vindas */}
@@ -147,7 +147,7 @@ export const InfluencerInvite: React.FC = () => {
           {[
             'Você será redirecionado para configurar seu perfil',
             'Defina seus objetivos e preferências',
-            'Comece a usar o Nura gratuitamente como influenciador',
+            'Comece a usar o Malama gratuitamente como influenciador',
             'Depois, gere seu link de indicação para seus seguidores',
           ].map((item, i) => (
             <div key={item} className="flex items-start gap-2 text-sm text-gray-300">

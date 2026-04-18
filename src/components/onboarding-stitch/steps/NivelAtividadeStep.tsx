@@ -4,7 +4,7 @@ import { StepProps } from '../types';
 
 type NivelAtividade = 'sedentario' | 'leve' | 'moderado' | 'muito_ativo';
 
-const PETROL = '#1A6070';
+const PETROL = '#9c5d4b';
 
 const NivelAtividadeStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const [nivel, setNivel] = useState<NivelAtividade>(data.nivelAtividade || 'moderado');

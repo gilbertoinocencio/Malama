@@ -13,7 +13,7 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'nura-language';
+const STORAGE_KEY = 'Malama-language';
 
 // Detect browser language
 const detectBrowserLanguage = (): Language => {

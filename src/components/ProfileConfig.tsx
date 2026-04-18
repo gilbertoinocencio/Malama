@@ -113,14 +113,14 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
   const activityLabels = [pc.sedentary, pc.moderate, pc.intense];
 
   return (
-    <div className="relative flex h-full min-h-screen w-full flex-col bg-nura-bg dark:bg-background-dark font-display text-nura-main dark:text-white pb-32">
+    <div className="relative flex h-full min-h-screen w-full flex-col bg-Malama-bg dark:bg-background-dark font-display text-Malama-main dark:text-white pb-32">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 pt-12 pb-6 z-10 sticky top-0 bg-nura-bg/80 dark:bg-background-dark/80 backdrop-blur-md">
+      <header className="flex items-center justify-between px-6 pt-12 pb-6 z-10 sticky top-0 bg-Malama-bg/80 dark:bg-background-dark/80 backdrop-blur-md">
         <button
           onClick={onBack}
           className="flex items-center justify-center size-10 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
         >
-          <span className="material-symbols-outlined text-nura-main dark:text-white">arrow_back</span>
+          <span className="material-symbols-outlined text-Malama-main dark:text-white">arrow_back</span>
         </button>
         <h1 className="text-xl font-bold">{t.profile.title}</h1>
         <div className="size-10" />
@@ -129,39 +129,39 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
       <main className="flex-1 px-6 space-y-8 overflow-y-auto hide-scrollbar">
         {/* Basic Info */}
         <section className="space-y-6">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-nura-petrol dark:text-primary opacity-70">Informações Básicas</h2>
+          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-Malama-petrol dark:text-primary opacity-70">Informações Básicas</h2>
           
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-nura-muted uppercase tracking-wider">Nome de Exibição</label>
+              <label className="text-xs font-bold text-Malama-muted uppercase tracking-wider">Nome de Exibição</label>
               <input
                 type="text"
                 value={displayName}
                 onChange={e => setDisplayName(e.target.value)}
                 placeholder="Seu nome"
-                className="w-full p-4 rounded-xl border border-nura-border dark:border-white/10 bg-white dark:bg-surface-dark focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary outline-none transition-all shadow-sm"
+                className="w-full p-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-surface-dark focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary outline-none transition-all shadow-sm"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-nura-muted uppercase tracking-wider">{pc.age}</label>
+                <label className="text-xs font-bold text-Malama-muted uppercase tracking-wider">{pc.age}</label>
                 <div className="relative">
                   <input
                     type="number"
                     value={age}
                     onChange={e => setAge(e.target.value)}
-                    className="w-full p-4 rounded-xl border border-nura-border dark:border-white/10 bg-white dark:bg-surface-dark outline-none font-bold"
+                    className="w-full p-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-surface-dark outline-none font-bold"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-nura-muted font-bold">ANOS</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-Malama-muted font-bold">ANOS</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-nura-muted uppercase tracking-wider">Gênero</label>
+                <label className="text-xs font-bold text-Malama-muted uppercase tracking-wider">Gênero</label>
                 <select 
                   value={gender}
                   onChange={e => setGender(e.target.value as 'male' | 'female')}
-                  className="w-full p-4 rounded-xl border border-nura-border dark:border-white/10 bg-white dark:bg-surface-dark outline-none font-bold appearance-none"
+                  className="w-full p-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-surface-dark outline-none font-bold appearance-none"
                 >
                   <option value="male">Masculino</option>
                   <option value="female">Feminino</option>
@@ -173,30 +173,30 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
 
         {/* Composition */}
         <section className="space-y-6">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-nura-petrol dark:text-primary opacity-70">Composição Corporal</h2>
+          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-Malama-petrol dark:text-primary opacity-70">Composição Corporal</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-nura-muted uppercase tracking-wider">{pc.weight}</label>
+              <label className="text-xs font-bold text-Malama-muted uppercase tracking-wider">{pc.weight}</label>
               <div className="relative">
                 <input
                   type="number"
                   value={weight}
                   onChange={e => setWeight(e.target.value)}
-                  className="w-full p-4 rounded-xl border border-nura-border dark:border-white/10 bg-white dark:bg-surface-dark outline-none font-bold"
+                  className="w-full p-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-surface-dark outline-none font-bold"
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-nura-muted font-bold">KG</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-Malama-muted font-bold">KG</span>
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-nura-muted uppercase tracking-wider">{pc.height}</label>
+              <label className="text-xs font-bold text-Malama-muted uppercase tracking-wider">{pc.height}</label>
               <div className="relative">
                 <input
                   type="number"
                   value={height}
                   onChange={e => setHeight(e.target.value)}
-                  className="w-full p-4 rounded-xl border border-nura-border dark:border-white/10 bg-white dark:bg-surface-dark outline-none font-bold"
+                  className="w-full p-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-surface-dark outline-none font-bold"
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-nura-muted font-bold">CM</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-Malama-muted font-bold">CM</span>
               </div>
             </div>
           </div>
@@ -204,18 +204,18 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
 
         {/* Biotype */}
         <section className="space-y-4">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-nura-petrol dark:text-primary opacity-70">Biotipo & Metabolismo</h2>
+          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-Malama-petrol dark:text-primary opacity-70">Biotipo & Metabolismo</h2>
           <div className="grid grid-cols-1 gap-3">
             {biotypes.map((bio) => (
               <button
                 key={bio.id}
                 onClick={() => setBiotype(bio.id as any)}
-                className={`p-4 rounded-xl border text-left transition-all flex items-center gap-4 ${biotype === bio.id ? 'border-nura-petrol dark:border-primary bg-nura-petrol/5 dark:bg-primary/5 ring-1 ring-nura-petrol dark:ring-primary' : 'border-nura-border dark:border-white/5 bg-white dark:bg-surface-dark'}`}
+                className={`p-4 rounded-xl border text-left transition-all flex items-center gap-4 ${biotype === bio.id ? 'border-Malama-petrol dark:border-primary bg-Malama-petrol/5 dark:bg-primary/5 ring-1 ring-Malama-petrol dark:ring-primary' : 'border-Malama-border dark:border-white/5 bg-white dark:bg-surface-dark'}`}
               >
-                <div className={`size-4 rounded-full border-2 ${biotype === bio.id ? 'border-nura-petrol dark:border-primary bg-nura-petrol dark:bg-primary' : 'border-nura-border dark:border-gray-600'}`}></div>
+                <div className={`size-4 rounded-full border-2 ${biotype === bio.id ? 'border-Malama-petrol dark:border-primary bg-Malama-petrol dark:bg-primary' : 'border-Malama-border dark:border-gray-600'}`}></div>
                 <div className="flex flex-col">
                   <span className="text-sm font-bold">{bio.title}</span>
-                  <span className="text-[10px] text-nura-muted">{bio.desc}</span>
+                  <span className="text-[10px] text-Malama-muted">{bio.desc}</span>
                 </div>
               </button>
             ))}
@@ -224,17 +224,17 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
 
         {/* Activity Level */}
         <section className="space-y-4">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-nura-petrol dark:text-primary opacity-70">{pc.activityLevel}</h2>
-          <div className="bg-white dark:bg-white/5 p-6 rounded-2xl border border-nura-border dark:border-white/5">
+          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-Malama-petrol dark:text-primary opacity-70">{pc.activityLevel}</h2>
+          <div className="bg-white dark:bg-white/5 p-6 rounded-2xl border border-Malama-border dark:border-white/5">
             <input
-              className="w-full h-1.5 bg-nura-border dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-nura-petrol dark:accent-primary"
+              className="w-full h-1.5 bg-Malama-border dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-Malama-petrol dark:accent-primary"
               max="3" min="1" step="1" type="range"
               value={activityLevel}
               onChange={(e) => setActivityLevel(Number(e.target.value))}
             />
-            <div className="flex justify-between mt-4 text-[10px] font-black uppercase tracking-widest text-nura-muted">
+            <div className="flex justify-between mt-4 text-[10px] font-black uppercase tracking-widest text-Malama-muted">
               {activityLabels.map((label, i) => (
-                <span key={i} className={activityLevel === i + 1 ? 'text-nura-petrol dark:text-primary' : 'opacity-40'}>
+                <span key={i} className={activityLevel === i + 1 ? 'text-Malama-petrol dark:text-primary' : 'opacity-40'}>
                   {label}
                 </span>
               ))}
@@ -244,13 +244,13 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
 
         {/* Goals */}
         <section className="space-y-4">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-nura-petrol dark:text-primary opacity-70">Objetivo</h2>
+          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-Malama-petrol dark:text-primary opacity-70">Objetivo</h2>
           <div className="grid grid-cols-1 gap-3">
             {goals.map((g) => (
               <button
                 key={g.id}
                 onClick={() => setGoal(g.id as any)}
-                className={`p-4 rounded-xl border flex items-center justify-between transition-all ${goal === g.id ? 'border-nura-petrol dark:border-primary bg-nura-petrol dark:bg-primary text-white' : 'border-nura-border dark:border-white/5 bg-white dark:bg-surface-dark'}`}
+                className={`p-4 rounded-xl border flex items-center justify-between transition-all ${goal === g.id ? 'border-Malama-petrol dark:border-primary bg-Malama-petrol dark:bg-primary text-white' : 'border-Malama-border dark:border-white/5 bg-white dark:bg-surface-dark'}`}
               >
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-xl">{g.icon}</span>
@@ -264,11 +264,11 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
       </main>
 
       {/* Save Button */}
-      <footer className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-nura-bg dark:from-background-dark pt-10 z-20">
+      <footer className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-Malama-bg dark:from-background-dark pt-10 z-20">
         <button
           onClick={handleSave}
           disabled={loading}
-          className="w-full bg-nura-petrol dark:bg-primary text-white font-bold h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+          className="w-full bg-Malama-petrol dark:bg-primary text-white font-bold h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
         >
           {loading ? (
             <span className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></span>
@@ -287,4 +287,4 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
       `}</style>
     </div>
   );
-};
+};

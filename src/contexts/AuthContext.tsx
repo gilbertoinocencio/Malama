@@ -101,9 +101,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Resolve token de indicação do localStorage e salva no profile (roda 1x por cadastro)
     // DEVE vir antes do useEffect que o utiliza!
     const applyReferralData = useCallback(async (userId: string) => {
-        const doctorToken     = localStorage.getItem('nura_referral_token');
-        const influencerToken = localStorage.getItem('nura_influencer_token');
-        const channel         = localStorage.getItem('nura_acquisition_channel');
+        const doctorToken     = localStorage.getItem('Malama_referral_token');
+        const influencerToken = localStorage.getItem('Malama_influencer_token');
+        const channel         = localStorage.getItem('Malama_acquisition_channel');
 
         const updates: Record<string, unknown> = {
             id: userId,
@@ -126,9 +126,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         await supabase.from('profiles').upsert(updates, { onConflict: 'id' });
-        localStorage.removeItem('nura_referral_token');
-        localStorage.removeItem('nura_influencer_token');
-        localStorage.removeItem('nura_acquisition_channel');
+        localStorage.removeItem('Malama_referral_token');
+        localStorage.removeItem('Malama_influencer_token');
+        localStorage.removeItem('Malama_acquisition_channel');
     }, []);
 
     useEffect(() => {
@@ -166,7 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (newSession?.user) {
                     // Se há token de indicação no localStorage e é um SIGNED_IN (ex: Google OAuth),
                     // aplica o rastreamento antes de buscar o profile
-                    if (event === 'SIGNED_IN' && localStorage.getItem('nura_referral_token')) {
+                    if (event === 'SIGNED_IN' && localStorage.getItem('Malama_referral_token')) {
                         applyReferralData(newSession.user.id).then(() => fetchProfile(newSession.user.id));
                     } else {
                         fetchProfile(newSession.user.id);

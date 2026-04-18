@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Tipos: Sistema de Cobrança e Créditos
+// Malama — Tipos: Sistema de Cobrança e Créditos
 // =====================================================
 
 export type SubscriptionPlan   = 'essencial' | 'glp1';

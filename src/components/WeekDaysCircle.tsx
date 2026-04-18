@@ -82,7 +82,7 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
 
           // Number colour
           const numClass = isSelected
-            ? 'font-bold text-nura-main dark:text-gray-800'
+            ? 'font-bold text-Malama-main dark:text-gray-800'
             : goalMet
               ? 'font-semibold text-emerald-600 dark:text-emerald-400'
               : hasData
@@ -93,7 +93,7 @@ export const WeekDaysCircle: React.FC<WeekDaysCircleProps> = ({
 
           // Label colour
           const labelClass = day.isToday || isSelected
-            ? 'text-nura-petrol dark:text-primary font-semibold'
+            ? 'text-Malama-petrol dark:text-primary font-semibold'
             : day.isFuture
               ? 'text-gray-300 dark:text-gray-600'
               : 'text-gray-400 dark:text-gray-500';

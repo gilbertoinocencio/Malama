@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Dashboard do Influenciador
+// Malama — Dashboard do Influenciador
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
@@ -7,7 +7,7 @@ import { Copy, Check, DollarSign, TrendingUp, Clock, Eye, EyeOff, LogOut, Instag
 import { influencerService } from '../../services/doctorPortalService';
 import type { Influencer } from '../../services/doctorPortalService';
 import { supabase } from '../../services/supabase';
-import { NuraLogo } from '../../components/NuraLogo';
+import { MalamaLogo } from '../../components/MalamaLogo';
 
 type InfluencerData = Influencer & {
   pending_amount: number;
@@ -84,7 +84,7 @@ export const InfluencerDashboard: React.FC = () => {
   if (notAuthorized) {
     return (
       <div className="min-h-screen bg-[#0F0F0F] flex flex-col items-center justify-center gap-4 p-6 text-center">
-        <NuraLogo size="md" />
+        <MalamaLogo size="md" />
         <p className="text-white font-semibold mt-4">Acesso não autorizado.</p>
         <a href="/influencer/login" className="text-[#2ECC71] text-sm hover:underline">Ir para o login</a>
       </div>
@@ -95,7 +95,7 @@ export const InfluencerDashboard: React.FC = () => {
     <div className="min-h-screen bg-[#0F0F0F]">
       {/* Header */}
       <header className="bg-[#1A1A1A] border-b border-white/10 px-6 py-4 flex items-center justify-between">
-        <NuraLogo size="sm" />
+        <MalamaLogo size="sm" />
         <div className="flex items-center gap-3">
           <span className="text-gray-400 text-sm hidden sm:block">{influencer?.name}</span>
           <button

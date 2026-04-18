@@ -29,7 +29,7 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<B
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Nura — Nutrição Inteligente', pageW / 2, 23, { align: 'center' });
+  doc.text('Malama — Nutrição Inteligente', pageW / 2, 23, { align: 'center' });
 
   // Reset color
   doc.setTextColor(30, 30, 30);
@@ -101,7 +101,7 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<B
 
   doc.setFontSize(7);
   doc.text(`Hash: ${hashHex.substring(0, 40)}...`, 20, 200);
-  doc.text('Documento assinado digitalmente via Nura Telemedicina', 20, 206);
+  doc.text('Documento assinado digitalmente via Malama Telemedicina', 20, 206);
 
   // Footer
   doc.setFillColor(46, 204, 113);
@@ -109,7 +109,7 @@ export async function generatePrescriptionPDF(data: PrescriptionData): Promise<B
   doc.rect(0, pageH - 14, pageW, 14, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8);
-  doc.text('nura.app — Telemedicina', pageW / 2, pageH - 5, { align: 'center' });
+  doc.text('Malama.app — Telemedicina', pageW / 2, pageH - 5, { align: 'center' });
 
   return doc.output('blob');
 }

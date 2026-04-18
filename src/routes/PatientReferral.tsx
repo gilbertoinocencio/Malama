@@ -1,11 +1,11 @@
 // =====================================================
-// NURA — Página de Indicação de Paciente
+// Malama — Página de Indicação de Paciente
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doctorService } from '../services/doctorPortalService';
-import { NuraLogo } from '../components/NuraLogo';
+import { MalamaLogo } from '../components/MalamaLogo';
 
 type DoctorPreview = {
   id: string;
@@ -34,8 +34,8 @@ export const PatientReferral: React.FC = () => {
 
   const handleSignUp = () => {
     if (token) {
-      localStorage.setItem('nura_referral_token', token);
-      localStorage.setItem('nura_acquisition_channel', 'referral');
+      localStorage.setItem('Malama_referral_token', token);
+      localStorage.setItem('Malama_acquisition_channel', 'referral');
     }
     window.location.href = '/entrar';
   };
@@ -51,7 +51,7 @@ export const PatientReferral: React.FC = () => {
   if (notFound) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#F8F9FA] p-6 text-center">
-        <NuraLogo size="md" />
+        <MalamaLogo size="md" />
         <h1 className="text-xl font-semibold text-gray-800 mt-4">Link inválido ou expirado</h1>
         <p className="text-gray-500 text-sm max-w-sm">
           Este link de indicação não é válido. Peça ao seu médico um novo link.
@@ -69,12 +69,12 @@ export const PatientReferral: React.FC = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-10">
-          <NuraLogo size="lg" />
+          <MalamaLogo size="lg" />
         </div>
 
         {/* Card do médico */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-          <p className="text-sm text-gray-500 text-center mb-4">Seu médico te convidou para o Nura</p>
+          <p className="text-sm text-gray-500 text-center mb-4">Seu médico te convidou para o Malama</p>
 
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-full bg-[#2ECC71] flex-shrink-0 flex items-center justify-center overflow-hidden">
@@ -99,7 +99,7 @@ export const PatientReferral: React.FC = () => {
 
         {/* Benefícios */}
         <div className="bg-white/10 rounded-2xl p-5 mb-6 text-white space-y-3">
-          <h2 className="font-semibold text-base mb-1">O que você vai encontrar no Nura:</h2>
+          <h2 className="font-semibold text-base mb-1">O que você vai encontrar no Malama:</h2>
           {[
             'Acompanhamento nutricional personalizado',
             'Registro de sintomas e bem-estar',

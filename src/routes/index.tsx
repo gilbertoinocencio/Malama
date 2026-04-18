@@ -1,11 +1,11 @@
 // =====================================================
-// NURA — Rotas Principais do Portal do Médico e Admin
+// Malama — Rotas Principais do Portal do Médico e Admin
 // =====================================================
 
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from '../components/ToastProvider';
-import { NuraLogo } from '../components/NuraLogo';
+import { MalamaLogo } from '../components/MalamaLogo';
 import { LandingPage } from './LandingPage';
 
 // Guards
@@ -56,7 +56,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Admin Header */}
       <header className="bg-[#1A1A1A] text-white px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <NuraLogo size="sm" />
+          <MalamaLogo size="sm" />
           <nav className="flex gap-4 flex-wrap">
             <a href="/admin/dashboard" className="text-sm hover:text-[#2ECC71] transition">Dashboard</a>
             <a href="/admin/medicos" className="text-sm hover:text-[#2ECC71] transition">Médicos</a>

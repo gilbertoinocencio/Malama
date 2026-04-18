@@ -1,12 +1,12 @@
 // =====================================================
-// NURA — Login do Super Admin
+// Malama — Login do Super Admin
 // =====================================================
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '../../services/supabase';
-import { NuraLogo } from '../../components/NuraLogo';
+import { MalamaLogo } from '../../components/MalamaLogo';
 
 export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -46,10 +46,10 @@ export const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#FDFBF9] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <NuraLogo size="xl" />
+          <MalamaLogo size="xl" />
           <p className="text-gray-600 mt-3 text-sm tracking-wide uppercase">Super Admin</p>
         </div>
 
@@ -69,7 +69,7 @@ export const AdminLogin: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
                 required
               />
             </div>
@@ -80,7 +80,7 @@ export const AdminLogin: React.FC = () => {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
                 required
               />
             </div>
@@ -88,7 +88,7 @@ export const AdminLogin: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium transition disabled:opacity-50"
+              className="w-full py-3 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium transition disabled:opacity-50"
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>

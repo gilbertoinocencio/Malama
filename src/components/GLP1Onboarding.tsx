@@ -275,7 +275,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
                 disabled={saving}
                 className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
               >
-                {saving ? 'Ativando...' : 'Começar com o Nura'}
+                {saving ? 'Ativando...' : 'Começar com o Malama'}
               </button>
             </div>
           </ScreenWrapper>
@@ -319,7 +319,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
               </div>
               <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100 flex-1">
                 <p className="text-sm text-gray-700 leading-relaxed">
-                  O Nura pode te conectar com um <strong>médico especialista</strong> para avaliar o seu caso.
+                  O Malama pode te conectar com um <strong>médico especialista</strong> para avaliar o seu caso.
                 </p>
               </div>
             </div>
@@ -382,10 +382,10 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-4">
               <h3 className="font-bold text-gray-900 text-sm mb-3">O que está incluído:</h3>
               <div className="space-y-2.5">
-                <FeatureRow icon="🧾" text="Histórico Nura compartilhado com o médico" />
+                <FeatureRow icon="🧾" text="Histórico Malama compartilhado com o médico" />
                 <FeatureRow icon="🎥" text="Videochamada 30 min com especialista" />
                 <FeatureRow icon="📋" text="Receita digital se indicado" />
-                <FeatureRow icon="🛡" text="Suporte nutricional no Nura após consulta" />
+                <FeatureRow icon="🛡" text="Suporte nutricional no Malama após consulta" />
               </div>
             </div>
 

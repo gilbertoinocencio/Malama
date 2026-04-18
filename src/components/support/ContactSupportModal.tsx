@@ -113,17 +113,17 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-nura-border dark:border-white/10">
-              <h3 className="text-lg font-bold text-nura-main dark:text-white">
+            <div className="flex items-center justify-between p-5 border-b border-Malama-border dark:border-white/10">
+              <h3 className="text-lg font-bold text-Malama-main dark:text-white">
                 {step === 'category' && 'Como podemos ajudar?'}
                 {step === 'form' && 'Detalhe seu problema'}
                 {step === 'success' && 'Ticket enviado!'}
               </h3>
               <button
                 onClick={handleClose}
-                className="p-2 rounded-lg hover:bg-nura-bg dark:hover:bg-slate-700 transition-colors"
+                className="p-2 rounded-lg hover:bg-Malama-bg dark:hover:bg-slate-700 transition-colors"
               >
-                <X className="w-5 h-5 text-nura-muted dark:text-slate-400" />
+                <X className="w-5 h-5 text-Malama-muted dark:text-slate-400" />
               </button>
             </div>
 
@@ -132,17 +132,17 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
               {/* Step 1: Category Selection */}
               {step === 'category' && (
                 <div className="flex flex-col gap-3">
-                  <p className="text-sm text-nura-muted dark:text-slate-400 mb-2">
+                  <p className="text-sm text-Malama-muted dark:text-slate-400 mb-2">
                     Selecione a categoria do seu problema para agilizar o atendimento:
                   </p>
                   {CATEGORIES.map(cat => (
                     <button
                       key={cat.value}
                       onClick={() => handleCategorySelect(cat.value)}
-                      className="p-4 bg-nura-bg dark:bg-slate-800 rounded-xl border border-nura-border dark:border-white/10 text-left hover:border-nura-petrol dark:hover:border-primary hover:bg-nura-petrol/5 dark:hover:bg-primary/5 transition-all"
+                      className="p-4 bg-Malama-bg dark:bg-slate-800 rounded-xl border border-Malama-border dark:border-white/10 text-left hover:border-Malama-petrol dark:hover:border-primary hover:bg-Malama-petrol/5 dark:hover:bg-primary/5 transition-all"
                     >
-                      <p className="text-sm font-semibold text-nura-main dark:text-white">{cat.label}</p>
-                      <p className="text-xs text-nura-muted dark:text-slate-400 mt-0.5">{cat.desc}</p>
+                      <p className="text-sm font-semibold text-Malama-main dark:text-white">{cat.label}</p>
+                      <p className="text-xs text-Malama-muted dark:text-slate-400 mt-0.5">{cat.desc}</p>
                     </button>
                   ))}
                 </div>
@@ -152,14 +152,14 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
               {step === 'form' && (
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                   {/* Category badge */}
-                  <div className="flex items-center gap-2 p-3 bg-nura-bg dark:bg-slate-800 rounded-xl">
-                    <span className="text-sm font-medium text-nura-main dark:text-white">
+                  <div className="flex items-center gap-2 p-3 bg-Malama-bg dark:bg-slate-800 rounded-xl">
+                    <span className="text-sm font-medium text-Malama-main dark:text-white">
                       {CATEGORIES.find(c => c.value === selectedCategory)?.label}
                     </span>
                     <button
                       type="button"
                       onClick={() => setStep('category')}
-                      className="text-xs text-nura-petrol dark:text-primary hover:underline"
+                      className="text-xs text-Malama-petrol dark:text-primary hover:underline"
                     >
                       Alterar
                     </button>
@@ -167,7 +167,7 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
 
                   {/* Subject */}
                   <div>
-                    <label className="block text-xs font-semibold text-nura-main dark:text-white mb-1.5">
+                    <label className="block text-xs font-semibold text-Malama-main dark:text-white mb-1.5">
                       Assunto *
                     </label>
                     <input
@@ -175,30 +175,30 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
                       value={subject}
                       onChange={e => setSubject(e.target.value)}
                       placeholder="Resumo do problema (ex: Erro ao registrar refeição)"
-                      className="w-full px-4 py-3 bg-nura-bg dark:bg-slate-800 border border-nura-border dark:border-white/10 rounded-xl text-sm text-nura-main dark:text-white placeholder-nura-muted dark:placeholder-slate-500 focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary focus:border-transparent outline-none"
+                      className="w-full px-4 py-3 bg-Malama-bg dark:bg-slate-800 border border-Malama-border dark:border-white/10 rounded-xl text-sm text-Malama-main dark:text-white placeholder-Malama-muted dark:placeholder-slate-500 focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary focus:border-transparent outline-none"
                       maxLength={100}
                       disabled={submitting}
                     />
-                    <p className="text-[10px] text-nura-muted dark:text-slate-500 mt-1">
+                    <p className="text-[10px] text-Malama-muted dark:text-slate-500 mt-1">
                       {subject.length}/100 caracteres
                     </p>
                   </div>
 
                   {/* Description */}
                   <div>
-                    <label className="block text-xs font-semibold text-nura-main dark:text-white mb-1.5">
+                    <label className="block text-xs font-semibold text-Malama-main dark:text-white mb-1.5">
                       Descrição *
                     </label>
                     <textarea
                       value={description}
                       onChange={e => setDescription(e.target.value)}
                       placeholder="Descreva detalhadamente seu problema ou dúvida. Quanto mais informações, mais rápido poderemos ajudar."
-                      className="w-full px-4 py-3 bg-nura-bg dark:bg-slate-800 border border-nura-border dark:border-white/10 rounded-xl text-sm text-nura-main dark:text-white placeholder-nura-muted dark:placeholder-slate-500 focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary focus:border-transparent outline-none resize-none"
+                      className="w-full px-4 py-3 bg-Malama-bg dark:bg-slate-800 border border-Malama-border dark:border-white/10 rounded-xl text-sm text-Malama-main dark:text-white placeholder-Malama-muted dark:placeholder-slate-500 focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary focus:border-transparent outline-none resize-none"
                       rows={5}
                       minLength={20}
                       disabled={submitting}
                     />
-                    <p className={`text-[10px] mt-1 ${description.length >= 20 ? 'text-emerald-600 dark:text-emerald-400' : 'text-nura-muted dark:text-slate-500'
+                    <p className={`text-[10px] mt-1 ${description.length >= 20 ? 'text-emerald-600 dark:text-emerald-400' : 'text-Malama-muted dark:text-slate-500'
                       }`}>
                       {description.length}/20 caracteres mínimos
                     </p>
@@ -209,7 +209,7 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
                     <button
                       type="button"
                       onClick={handleClose}
-                      className="flex-1 py-3 rounded-xl border border-nura-border dark:border-white/10 text-nura-muted dark:text-slate-400 text-sm font-semibold hover:bg-nura-bg dark:hover:bg-slate-800 transition-colors"
+                      className="flex-1 py-3 rounded-xl border border-Malama-border dark:border-white/10 text-Malama-muted dark:text-slate-400 text-sm font-semibold hover:bg-Malama-bg dark:hover:bg-slate-800 transition-colors"
                       disabled={submitting}
                     >
                       Cancelar
@@ -217,7 +217,7 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
                     <button
                       type="submit"
                       disabled={submitting || !subject.trim() || description.trim().length < 20}
-                      className="flex-1 py-3 rounded-xl bg-nura-main dark:bg-white text-white dark:text-nura-main text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                      className="flex-1 py-3 rounded-xl bg-Malama-main dark:bg-white text-white dark:text-Malama-main text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                     >
                       {submitting ? (
                         <>
@@ -241,15 +241,15 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
                   <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Check className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <h4 className="text-base font-bold text-nura-main dark:text-white mb-2">
+                  <h4 className="text-base font-bold text-Malama-main dark:text-white mb-2">
                     Ticket enviado com sucesso!
                   </h4>
-                  <p className="text-sm text-nura-muted dark:text-slate-400 mb-6">
+                  <p className="text-sm text-Malama-muted dark:text-slate-400 mb-6">
                     Nossa equipe irá analisar e responder em até 24 horas. Você receberá uma notificação quando houver uma resposta.
                   </p>
                   <button
                     onClick={handleClose}
-                    className="px-6 py-3 bg-nura-main dark:bg-white text-white dark:text-nura-main text-sm font-bold rounded-xl hover:opacity-90 transition-opacity"
+                    className="px-6 py-3 bg-Malama-main dark:bg-white text-white dark:text-Malama-main text-sm font-bold rounded-xl hover:opacity-90 transition-opacity"
                   >
                     Fechar
                   </button>

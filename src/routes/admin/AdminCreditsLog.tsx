@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Admin: Log de Créditos de Consulta
+// Malama — Admin: Log de Créditos de Consulta
 // /admin/creditos
 // =====================================================
 
@@ -222,7 +222,7 @@ export const AdminCreditsLog: React.FC = () => {
             <input
               type="text"
               placeholder="Usuário ou médico..."
-              className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2ECC71] w-44"
+              className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#9c5d4b] w-44"
               value={filters.user_search}
               onChange={e => setFilters(f => ({ ...f, user_search: e.target.value }))}
             />
@@ -231,7 +231,7 @@ export const AdminCreditsLog: React.FC = () => {
           {/* Filtro status */}
           <div className="relative">
             <select
-              className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2ECC71]"
+              className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#9c5d4b]"
               value={filters.status}
               onChange={e => setFilters(f => ({ ...f, status: e.target.value as any }))}
             >
@@ -246,7 +246,7 @@ export const AdminCreditsLog: React.FC = () => {
           {/* Filtro mês */}
           <div className="relative">
             <select
-              className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2ECC71]"
+              className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#9c5d4b]"
               value={selectedMonth}
               onChange={e => setSelectedMonth(e.target.value)}
             >
@@ -270,7 +270,7 @@ export const AdminCreditsLog: React.FC = () => {
         {/* Tabela */}
         {loading ? (
           <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2ECC71]" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-gray-500">Nenhum crédito encontrado</div>

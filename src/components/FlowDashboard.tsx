@@ -658,7 +658,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   }, [period, isDaySelected, selectedDayStats, selectedWeekIndex, monthWeeksData]);
 
   return (
-    <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-nura-bg dark:bg-background-dark font-display text-nura-main dark:text-white animate-fade-in transition-colors duration-300">
+    <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-Malama-bg dark:bg-background-dark font-display text-Malama-main dark:text-white animate-fade-in transition-colors duration-300">
       <Confetti active={showConfetti} />
 
       {/* Header */}
@@ -666,7 +666,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
         <div className="flex items-center gap-3">
           <div className="relative group cursor-pointer">
             <div
-              className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-nura-petrol/20 dark:border-primary/20"
+              className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-Malama-petrol/20 dark:border-primary/20"
               style={{ backgroundImage: `url("${profile?.avatar_url || USER_AVATAR}")` }}
             />
             {currentStreak > 0 && (
@@ -677,31 +677,31 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
             )}
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-nura-muted dark:text-slate-400 font-medium tracking-wide uppercase">
+            <span className="text-xs text-Malama-muted dark:text-slate-400 font-medium tracking-wide uppercase">
               {`${t.dashboard.levelPrefix} ${getLevelLabel(currentLevel)}`}
             </span>
-            <h2 className="text-nura-main dark:text-white text-lg font-bold leading-tight">{displayName}</h2>
+            <h2 className="text-Malama-main dark:text-white text-lg font-bold leading-tight">{displayName}</h2>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => onNavClick(AppView.FLOW_ADAPTATION)}
-            className="flex items-center justify-center size-10 rounded-full bg-white dark:bg-surface-dark border border-nura-border dark:border-transparent hover:bg-nura-petrol-light dark:hover:bg-primary/10 transition-colors text-nura-petrol dark:text-primary relative animate-pulse shadow-sm dark:shadow-none"
+            className="flex items-center justify-center size-10 rounded-full bg-white dark:bg-surface-dark border border-Malama-border dark:border-transparent hover:bg-Malama-petrol-light dark:hover:bg-primary/10 transition-colors text-Malama-petrol dark:text-primary relative animate-pulse shadow-sm dark:shadow-none"
             title="Simulate Activity Detected"
           >
             <span className="material-symbols-outlined text-[20px]">sync</span>
-            <span className="absolute top-2 right-2 size-2 bg-nura-petrol dark:bg-primary rounded-full" />
+            <span className="absolute top-2 right-2 size-2 bg-Malama-petrol dark:bg-primary rounded-full" />
           </button>
           <button
             onClick={() => onNavClick(AppView.PROFILE)}
-            className="flex items-center justify-center size-10 rounded-full bg-white dark:bg-surface-dark border border-nura-border dark:border-transparent hover:bg-nura-petrol-light dark:hover:bg-primary/10 transition-colors text-nura-petrol dark:text-primary shadow-sm dark:shadow-none"
+            className="flex items-center justify-center size-10 rounded-full bg-white dark:bg-surface-dark border border-Malama-border dark:border-transparent hover:bg-Malama-petrol-light dark:hover:bg-primary/10 transition-colors text-Malama-petrol dark:text-primary shadow-sm dark:shadow-none"
             title="Perfil"
           >
             <span className="material-symbols-outlined text-[20px]">person</span>
           </button>
           <button
             onClick={onToggleTheme}
-            className="flex items-center justify-center size-10 rounded-full bg-white dark:bg-surface-dark border border-nura-border dark:border-transparent hover:bg-nura-petrol-light dark:hover:bg-primary/10 transition-colors text-nura-muted dark:text-slate-300 shadow-sm dark:shadow-none"
+            className="flex items-center justify-center size-10 rounded-full bg-white dark:bg-surface-dark border border-Malama-border dark:border-transparent hover:bg-Malama-petrol-light dark:hover:bg-primary/10 transition-colors text-Malama-muted dark:text-slate-300 shadow-sm dark:shadow-none"
           >
             <span className="material-symbols-outlined text-[20px]">
               {isDarkMode ? 'light_mode' : 'dark_mode'}
@@ -715,20 +715,20 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
         <LayoutGroup>
           <div className="px-6">
-            <div className="flex h-12 w-full items-center justify-center rounded-2xl bg-white dark:bg-surface-dark p-1 border border-nura-border dark:border-white/5 relative overflow-hidden">
+            <div className="flex h-12 w-full items-center justify-center rounded-2xl bg-white dark:bg-surface-dark p-1 border border-Malama-border dark:border-white/5 relative overflow-hidden">
               {(['day', 'week', 'month'] as PeriodTab[]).map((tab) => (
                 <label
                   key={tab}
                   className={`relative flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-xl transition-all text-sm font-semibold z-10 ${period === tab
-                    ? 'text-nura-petrol dark:text-white'
-                    : 'text-nura-muted dark:text-white/40 hover:text-nura-petrol/60 dark:hover:text-white/60'
+                    ? 'text-Malama-petrol dark:text-white'
+                    : 'text-Malama-muted dark:text-white/40 hover:text-Malama-petrol/60 dark:hover:text-white/60'
                     }`}
                 >
                   <span className="relative z-10">{t.flowScore[tab]}</span>
                   {period === tab && (
                     <motion.div
                       layoutId="tab-bg"
-                      className="absolute inset-0 bg-nura-petrol/10 dark:bg-white/10 z-0"
+                      className="absolute inset-0 bg-Malama-petrol/10 dark:bg-white/10 z-0"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
@@ -810,20 +810,20 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-nura-border dark:border-transparent"
+                  className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-Malama-border dark:border-transparent"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-lg">💪</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-nura-muted dark:text-slate-400 font-semibold">
+                      <p className="text-xs text-Malama-muted dark:text-slate-400 font-semibold">
                         {(doctorMsg.doctors as any)?.name || 'Dr.'} disse:
                       </p>
-                      <p className="text-sm text-nura-main dark:text-white mt-0.5 leading-relaxed">
+                      <p className="text-sm text-Malama-main dark:text-white mt-0.5 leading-relaxed">
                         "{doctorMsg.message}"
                       </p>
-                      <p className="text-[10px] text-nura-muted dark:text-slate-500 mt-1">
+                      <p className="text-[10px] text-Malama-muted dark:text-slate-500 mt-1">
                         {(() => {
                           const diffMs = Date.now() - new Date(doctorMsg.created_at).getTime();
                           const diffDays = Math.floor(diffMs / 86400000);
@@ -905,10 +905,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   )}
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-4xl font-bold tracking-tighter text-nura-main dark:text-white">
+                  <span className="text-4xl font-bold tracking-tighter text-Malama-main dark:text-white">
                     {(stats.consumedCalories ?? 0).toLocaleString()}
                   </span>
-                  <span className="text-sm font-medium text-nura-muted dark:text-slate-400 mt-1">
+                  <span className="text-sm font-medium text-Malama-muted dark:text-slate-400 mt-1">
                     / {(stats.targetCalories ?? 0).toLocaleString()} {t.dashboard.kcal}
                   </span>
                   {isOverTarget && (
@@ -924,10 +924,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
             {/* Motivational Text */}
             <div className="text-center space-y-2 mb-4 px-6">
-              <h2 className="text-2xl font-bold tracking-tight text-nura-main dark:text-white">
+              <h2 className="text-2xl font-bold tracking-tight text-Malama-main dark:text-white">
                 {isWayOverTarget ? 'Atenção ao excesso!' : isOverTarget ? 'Meta ultrapassada' : t.dashboard.keepTheFlow}
               </h2>
-              <p className="text-sm text-nura-muted dark:text-slate-400 font-medium max-w-[200px] mx-auto leading-relaxed">
+              <p className="text-sm text-Malama-muted dark:text-slate-400 font-medium max-w-[200px] mx-auto leading-relaxed">
                 {isWayOverTarget
                   ? `Você consumiu ${Math.round(calorieRatio * 100)}% da sua meta. Que tal fazer uma refeição mais leve no próximo?`
                   : isOverTarget
@@ -938,52 +938,52 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
             {/* Macro Stats */}
             <div className="grid grid-cols-3 gap-2 w-full px-6">
-              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
+              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-Malama-border dark:border-transparent transition-colors duration-300 min-w-0">
                 <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.protein}</span>
-                  <span className={`text-[10px] font-bold ${((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1.2 ? 'text-red-500' : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1 ? 'text-orange-500' : 'text-nura-petrol dark:text-primary'}`}>
+                  <span className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.protein}</span>
+                  <span className={`text-[10px] font-bold ${((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1.2 ? 'text-red-500' : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1 ? 'text-orange-500' : 'text-Malama-petrol dark:text-primary'}`}>
                     {Math.round(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100)}%
                   </span>
                 </div>
                 <div className="flex flex-col gap-1 min-w-0">
-                  <span className="text-base font-bold text-nura-main dark:text-white leading-none">
-                    {Math.round(stats.macros.protein ?? 0)}<span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.protein}g</span>
+                  <span className="text-base font-bold text-Malama-main dark:text-white leading-none">
+                    {Math.round(stats.macros.protein ?? 0)}<span className="text-[10px] font-normal text-Malama-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.protein}g</span>
                   </span>
-                  <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1.2 ? 'bg-red-500' : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1 ? 'bg-orange-500' : 'bg-nura-petrol dark:bg-primary'}`}
+                  <div className="h-1.5 w-full bg-Malama-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1.2 ? 'bg-red-500' : ((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) > 1 ? 'bg-orange-500' : 'bg-Malama-petrol dark:bg-primary'}`}
                       style={{ width: `${Math.min(((stats.macros.protein ?? 0) / (stats.targetMacros.protein || 1)) * 100, 100)}%` }} />
                   </div>
                 </div>
               </div>
-              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
+              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-Malama-border dark:border-transparent transition-colors duration-300 min-w-0">
                 <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.carbs}</span>
+                  <span className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.carbs}</span>
                   <span className={`text-[10px] font-bold ${((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1.2 ? 'text-red-500' : ((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1 ? 'text-orange-500' : 'text-orange-400'}`}>
                     {Math.round(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100)}%
                   </span>
                 </div>
                 <div className="flex flex-col gap-1 min-w-0">
-                  <span className="text-base font-bold text-nura-main dark:text-white leading-none">
-                    {Math.round(stats.macros.carbs ?? 0)}<span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.carbs}g</span>
+                  <span className="text-base font-bold text-Malama-main dark:text-white leading-none">
+                    {Math.round(stats.macros.carbs ?? 0)}<span className="text-[10px] font-normal text-Malama-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.carbs}g</span>
                   </span>
-                  <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-Malama-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1.2 ? 'bg-red-500' : ((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) > 1 ? 'bg-orange-500' : 'bg-orange-400'}`}
                       style={{ width: `${Math.min(((stats.macros.carbs ?? 0) / (stats.targetMacros.carbs || 1)) * 100, 100)}%` }} />
                   </div>
                 </div>
               </div>
-              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300 min-w-0">
+              <div className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-Malama-border dark:border-transparent transition-colors duration-300 min-w-0">
                 <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.fats}</span>
+                  <span className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide truncate">{t.dashboard.fats}</span>
                   <span className={`text-[10px] font-bold ${((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1.2 ? 'text-red-500' : ((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1 ? 'text-orange-500' : 'text-pink-400'}`}>
                     {Math.round(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100)}%
                   </span>
                 </div>
                 <div className="flex flex-col gap-1 min-w-0">
-                  <span className="text-base font-bold text-nura-main dark:text-white leading-none">
-                    {Math.round(stats.macros.fats ?? 0)}<span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.fats}g</span>
+                  <span className="text-base font-bold text-Malama-main dark:text-white leading-none">
+                    {Math.round(stats.macros.fats ?? 0)}<span className="text-[10px] font-normal text-Malama-muted dark:text-slate-500 ml-0.5">/{stats.targetMacros.fats}g</span>
                   </span>
-                  <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-Malama-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1.2 ? 'bg-red-500' : ((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) > 1 ? 'bg-orange-500' : 'bg-pink-400'}`}
                       style={{ width: `${Math.min(((stats.macros.fats ?? 0) / (stats.targetMacros.fats || 1)) * 100, 100)}%` }} />
                   </div>
@@ -999,11 +999,11 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 const glassesTotal = 8;
                 const glassesFilled = Math.round((waterIntake / waterGoal) * glassesTotal);
                 return (
-                  <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300">
+                  <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-Malama-border dark:border-transparent transition-colors duration-300">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-sky-400 text-xl">water_drop</span>
-                        <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Hidratação</span>
+                        <span className="text-xs font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide">Hidratação</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-sky-400 font-bold">{waterPct}%</span>
@@ -1017,16 +1017,16 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                       </div>
                     </div>
                     <div className="flex items-end gap-3">
-                      <span className="text-2xl font-bold text-nura-main dark:text-white leading-none">
-                        {waterIntake}<span className="text-xs font-normal text-nura-muted dark:text-slate-500 ml-1">/{waterGoal} ml</span>
+                      <span className="text-2xl font-bold text-Malama-main dark:text-white leading-none">
+                        {waterIntake}<span className="text-xs font-normal text-Malama-muted dark:text-slate-500 ml-1">/{waterGoal} ml</span>
                       </span>
                     </div>
                     <div className="mt-3 flex gap-1.5">
                       {Array.from({ length: glassesTotal }).map((_, i) => (
-                        <div key={i} className={`flex-1 h-2 rounded-full transition-colors duration-300 ${i < glassesFilled ? 'bg-sky-400' : 'bg-nura-pastel-orange dark:bg-slate-700/50'}`} />
+                        <div key={i} className={`flex-1 h-2 rounded-full transition-colors duration-300 ${i < glassesFilled ? 'bg-sky-400' : 'bg-Malama-pastel-orange dark:bg-slate-700/50'}`} />
                       ))}
                     </div>
-                    <p className="text-[10px] text-nura-muted dark:text-slate-500 mt-1.5">
+                    <p className="text-[10px] text-Malama-muted dark:text-slate-500 mt-1.5">
                       {glassesFilled} de {glassesTotal} copos · meta diária
                     </p>
                   </div>
@@ -1073,16 +1073,16 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
               return (
                 <div className="px-6">
-                  <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent transition-colors duration-300">
+                  <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-Malama-border dark:border-transparent transition-colors duration-300">
                     <div
                       className="flex items-center justify-between cursor-pointer select-none"
                       onClick={() => setShowMicros(!showMicros)}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-xl">biotech</span>
-                        <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Micronutrientes</span>
+                        <span className="material-symbols-outlined text-Malama-petrol dark:text-primary text-xl">biotech</span>
+                        <span className="text-xs font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide">Micronutrientes</span>
                       </div>
-                      <span className="material-symbols-outlined text-nura-muted text-sm transition-transform duration-300" style={{ transform: showMicros ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                      <span className="material-symbols-outlined text-Malama-muted text-sm transition-transform duration-300" style={{ transform: showMicros ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                         expand_more
                       </span>
                     </div>
@@ -1092,23 +1092,23 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                       <div className="flex flex-col gap-4">
                         {grouped.map(({ group, items }) => (
                           <div key={group}>
-                            <p className="text-[10px] font-bold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-2">{group}</p>
+                            <p className="text-[10px] font-bold text-Malama-muted dark:text-slate-500 uppercase tracking-wider mb-2">{group}</p>
                             <div className="flex flex-col gap-2">
                               {items.map(({ key, label, rda, unit, warn, consumed }) => {
                                 const pct = Math.min(Math.round((consumed / rda) * 100), 100);
                                 const over = consumed > rda;
                                 const barColor = warn
-                                  ? over ? 'bg-red-400' : pct > 70 ? 'bg-orange-400' : 'bg-nura-petrol dark:bg-primary'
-                                  : 'bg-nura-petrol dark:bg-primary';
+                                  ? over ? 'bg-red-400' : pct > 70 ? 'bg-orange-400' : 'bg-Malama-petrol dark:bg-primary'
+                                  : 'bg-Malama-petrol dark:bg-primary';
                                 return (
                                   <div key={key}>
                                     <div className="flex justify-between items-baseline mb-1">
-                                      <span className="text-xs font-medium text-nura-main dark:text-white">{label}</span>
-                                      <span className="text-[10px] text-nura-muted dark:text-slate-500">
+                                      <span className="text-xs font-medium text-Malama-main dark:text-white">{label}</span>
+                                      <span className="text-[10px] text-Malama-muted dark:text-slate-500">
                                         {consumed}{unit} / {rda}{unit}
                                       </span>
                                     </div>
-                                    <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                                    <div className="h-1.5 w-full bg-Malama-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
                                       <div className={`h-full ${barColor} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
                                     </div>
                                   </div>
@@ -1159,17 +1159,17 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
-                      className="mx-6 mb-1 flex items-center justify-between px-4 py-2.5 rounded-xl bg-nura-petrol/8 dark:bg-primary/10 border border-nura-petrol/15 dark:border-primary/20"
+                      className="mx-6 mb-1 flex items-center justify-between px-4 py-2.5 rounded-xl bg-Malama-petrol/8 dark:bg-primary/10 border border-Malama-petrol/15 dark:border-primary/20"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-base">history</span>
-                        <span className="text-xs font-semibold text-nura-petrol dark:text-primary">
+                        <span className="material-symbols-outlined text-Malama-petrol dark:text-primary text-base">history</span>
+                        <span className="text-xs font-semibold text-Malama-petrol dark:text-primary">
                           {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </span>
                       </div>
                       <button
                         onClick={() => handleDayClick(selectedDate)}
-                        className="flex items-center gap-1 text-[11px] font-bold text-nura-petrol dark:text-primary bg-white dark:bg-surface-dark px-2.5 py-1 rounded-full shadow-sm"
+                        className="flex items-center gap-1 text-[11px] font-bold text-Malama-petrol dark:text-primary bg-white dark:bg-surface-dark px-2.5 py-1 rounded-full shadow-sm"
                       >
                         <span className="material-symbols-outlined text-[13px]">bar_chart</span>
                         Acumulado
@@ -1193,25 +1193,25 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-nura-border dark:border-transparent"
+                        className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-Malama-border dark:border-transparent"
                       >
                         <div className="flex items-center gap-5">
                           {/* Left: calorie info */}
                           <div className="flex-1 min-w-0">
                             {isDaySelected && selectedDayStats ? (
                               <>
-                                <p className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-1">
+                                <p className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wider mb-1">
                                   Calorias consumidas
                                 </p>
-                                <p className={`text-4xl font-bold tracking-tighter leading-none ${selectedDayStats.consumedCalories > selectedDayStats.targetCalories ? 'text-orange-500' : 'text-nura-main dark:text-white'}`}>
+                                <p className={`text-4xl font-bold tracking-tighter leading-none ${selectedDayStats.consumedCalories > selectedDayStats.targetCalories ? 'text-orange-500' : 'text-Malama-main dark:text-white'}`}>
                                   {(selectedDayStats.consumedCalories ?? 0).toLocaleString()}
                                 </p>
-                                <p className="text-xs text-nura-muted dark:text-slate-400 mt-1">
+                                <p className="text-xs text-Malama-muted dark:text-slate-400 mt-1">
                                   meta: {(selectedDayStats.targetCalories ?? 0).toLocaleString()} kcal
                                 </p>
                                 <div className="flex gap-2 mt-3 flex-wrap">
                                   {[
-                                    { label: 'P', value: Math.round(selectedDayStats.macros.protein), color: 'bg-nura-petrol/10 dark:bg-primary/10 text-nura-petrol dark:text-primary' },
+                                    { label: 'P', value: Math.round(selectedDayStats.macros.protein), color: 'bg-Malama-petrol/10 dark:bg-primary/10 text-Malama-petrol dark:text-primary' },
                                     { label: 'C', value: Math.round(selectedDayStats.macros.carbs), color: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' },
                                     { label: 'G', value: Math.round(selectedDayStats.macros.fats), color: 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400' },
                                   ].map(m => (
@@ -1223,13 +1223,13 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                               </>
                             ) : (
                               <>
-                                <p className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-1">
+                                <p className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wider mb-1">
                                   Calorias restantes hoje
                                 </p>
-                                <p className={`text-4xl font-bold tracking-tighter leading-none ${(weekProg?.todayRemaining ?? 0) === 0 ? 'text-emerald-500' : 'text-nura-main dark:text-white'}`}>
+                                <p className={`text-4xl font-bold tracking-tighter leading-none ${(weekProg?.todayRemaining ?? 0) === 0 ? 'text-emerald-500' : 'text-Malama-main dark:text-white'}`}>
                                   {(weekProg?.todayRemaining ?? Math.max(0, stats.targetCalories - (stats.consumedCalories ?? 0))).toLocaleString()}
                                 </p>
-                                <p className="text-xs text-nura-muted dark:text-slate-400 mt-1">
+                                <p className="text-xs text-Malama-muted dark:text-slate-400 mt-1">
                                   {(stats.consumedCalories ?? 0).toLocaleString()} / {(weekProg?.todayEffectiveTarget ?? stats.targetCalories).toLocaleString()} kcal
                                 </p>
                                 {pastDeficit > 50 && (
@@ -1269,12 +1269,12 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                                 <span className="material-symbols-outlined text-[18px]" style={{ color: ringColor }}>
                                   local_fire_department
                                 </span>
-                                <span className="text-[11px] font-bold text-nura-main dark:text-white leading-none">
+                                <span className="text-[11px] font-bold text-Malama-main dark:text-white leading-none">
                                   {daysMetGoal}/{daysElapsed}
                                 </span>
                               </div>
                             </div>
-                            <span className="text-[10px] font-medium text-nura-muted dark:text-slate-500 text-center leading-tight">
+                            <span className="text-[10px] font-medium text-Malama-muted dark:text-slate-500 text-center leading-tight">
                               Meta<br />semanal
                             </span>
                           </div>
@@ -1283,7 +1283,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                         {/* Weekly progress bar */}
                         <div className="mt-4 pt-4 border-t border-gray-50 dark:border-white/5">
                           <div className="flex justify-between items-center mb-1.5">
-                            <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Progresso semanal</span>
+                            <span className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide">Progresso semanal</span>
                             <span className="text-[10px] font-bold" style={{ color: ringColor }}>{weekPct}%</span>
                           </div>
                           <div className="h-2 w-full bg-gray-100 dark:bg-slate-700/50 rounded-full overflow-hidden">
@@ -1296,10 +1296,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                             />
                           </div>
                           <div className="flex justify-between mt-1">
-                            <span className="text-[9px] text-nura-muted dark:text-slate-500">
+                            <span className="text-[9px] text-Malama-muted dark:text-slate-500">
                               {(weekProg?.totalConsumed ?? 0).toLocaleString()} kcal consumidas
                             </span>
-                            <span className="text-[9px] text-nura-muted dark:text-slate-500">
+                            <span className="text-[9px] text-Malama-muted dark:text-slate-500">
                               meta {(weekProg?.totalTarget ?? 0).toLocaleString()} kcal
                             </span>
                           </div>
@@ -1314,16 +1314,16 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   <div className="px-6">
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { label: t.dashboard.protein, value: selectedDayStats.macros.protein, target: selectedDayStats.targetMacros.protein, color: 'bg-nura-petrol dark:bg-primary' },
+                        { label: t.dashboard.protein, value: selectedDayStats.macros.protein, target: selectedDayStats.targetMacros.protein, color: 'bg-Malama-petrol dark:bg-primary' },
                         { label: t.dashboard.carbs, value: selectedDayStats.macros.carbs, target: selectedDayStats.targetMacros.carbs, color: 'bg-orange-400' },
                         { label: t.dashboard.fats, value: selectedDayStats.macros.fats, target: selectedDayStats.targetMacros.fats, color: 'bg-pink-400' },
                       ].map(m => (
-                        <div key={m.label} className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent">
-                          <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">{m.label}</span>
-                          <span className="text-base font-bold text-nura-main dark:text-white">
-                            {Math.round(m.value ?? 0)}<span className="text-[10px] font-normal text-nura-muted dark:text-slate-500">/{m.target}g</span>
+                        <div key={m.label} className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-Malama-border dark:border-transparent">
+                          <span className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide">{m.label}</span>
+                          <span className="text-base font-bold text-Malama-main dark:text-white">
+                            {Math.round(m.value ?? 0)}<span className="text-[10px] font-normal text-Malama-muted dark:text-slate-500">/{m.target}g</span>
                           </span>
-                          <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                          <div className="h-1.5 w-full bg-Malama-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
                             <div className={`h-full ${m.color} rounded-full`} style={{ width: `${Math.min(((m.value ?? 0) / (m.target || 1)) * 100, 100)}%` }} />
                           </div>
                         </div>
@@ -1335,19 +1335,19 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 {/* ── Hidratação do dia selecionado ── */}
                 {selectedDayStats && (
                   <div className="px-6">
-                    <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent">
+                    <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-Malama-border dark:border-transparent">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="material-symbols-outlined text-sky-400 text-xl">water_drop</span>
-                          <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">{t.week.hydration}</span>
+                          <span className="text-xs font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide">{t.week.hydration}</span>
                         </div>
                         <span className="text-xs text-sky-400 font-bold">
                           {Math.min(Math.round(((selectedDayStats.waterIntake || 0) / (selectedDayStats.waterGoal || 1)) * 100), 100)}%
                         </span>
                       </div>
-                      <span className="text-2xl font-bold text-nura-main dark:text-white">
+                      <span className="text-2xl font-bold text-Malama-main dark:text-white">
                         {selectedDayStats.waterIntake || 0}
-                        <span className="text-xs font-normal text-nura-muted dark:text-slate-500">/{selectedDayStats.waterGoal || 2500} ml</span>
+                        <span className="text-xs font-normal text-Malama-muted dark:text-slate-500">/{selectedDayStats.waterGoal || 2500} ml</span>
                       </span>
                       {(() => {
                         const wg = selectedDayStats.waterGoal || 2500;
@@ -1356,7 +1356,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                         return (
                           <div className="mt-3 flex gap-1.5">
                             {Array.from({ length: 8 }).map((_, i) => (
-                              <div key={i} className={`flex-1 h-2 rounded-full ${i < filled ? 'bg-sky-400' : 'bg-nura-pastel-orange dark:bg-slate-700/50'}`} />
+                              <div key={i} className={`flex-1 h-2 rounded-full ${i < filled ? 'bg-sky-400' : 'bg-Malama-pastel-orange dark:bg-slate-700/50'}`} />
                             ))}
                           </div>
                         );
@@ -1367,7 +1367,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
                 {/* ── Refeições do dia selecionado ── */}
                 <div className="px-6">
-                  <h3 className="text-sm font-bold text-nura-main dark:text-white mb-3">{t.week.meals}</h3>
+                  <h3 className="text-sm font-bold text-Malama-main dark:text-white mb-3">{t.week.meals}</h3>
                   {selectedDayMeals.length > 0 ? (
                     <DailyMealsList
                       meals={selectedDayMeals}
@@ -1375,9 +1375,9 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                       onEditMeal={onEditMeal}
                     />
                   ) : (
-                    <div className="bg-white dark:bg-surface-dark rounded-xl p-6 shadow-sm border border-nura-border dark:border-transparent text-center">
+                    <div className="bg-white dark:bg-surface-dark rounded-xl p-6 shadow-sm border border-Malama-border dark:border-transparent text-center">
                       <span className="text-4xl mb-2 block">🍽️</span>
-                      <p className="text-sm text-nura-muted dark:text-slate-400">{t.week.noMealsLogged}</p>
+                      <p className="text-sm text-Malama-muted dark:text-slate-400">{t.week.noMealsLogged}</p>
                     </div>
                   )}
                 </div>
@@ -1387,7 +1387,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               <>
                 {/* ── Month header ── */}
                 <div className="px-6 pb-1">
-                  <p className="text-[11px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wider">
+                  <p className="text-[11px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wider">
                     {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                   </p>
                 </div>
@@ -1437,17 +1437,17 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
-                      className="mx-6 mb-1 flex items-center justify-between px-4 py-2.5 rounded-xl bg-nura-petrol/8 dark:bg-primary/10 border border-nura-petrol/15 dark:border-primary/20"
+                      className="mx-6 mb-1 flex items-center justify-between px-4 py-2.5 rounded-xl bg-Malama-petrol/8 dark:bg-primary/10 border border-Malama-petrol/15 dark:border-primary/20"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-base">history</span>
-                        <span className="text-xs font-semibold text-nura-petrol dark:text-primary">
+                        <span className="material-symbols-outlined text-Malama-petrol dark:text-primary text-base">history</span>
+                        <span className="text-xs font-semibold text-Malama-petrol dark:text-primary">
                           {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </span>
                       </div>
                       <button
                         onClick={() => { setIsDaySelected(false); setSelectedDayStats(null); setSelectedDayMeals([]); }}
-                        className="flex items-center gap-1 text-[11px] font-bold text-nura-petrol dark:text-primary bg-white dark:bg-surface-dark px-2.5 py-1 rounded-full shadow-sm"
+                        className="flex items-center gap-1 text-[11px] font-bold text-Malama-petrol dark:text-primary bg-white dark:bg-surface-dark px-2.5 py-1 rounded-full shadow-sm"
                       >
                         <span className="material-symbols-outlined text-[13px]">bar_chart</span>
                         Semana
@@ -1494,25 +1494,25 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-nura-border dark:border-transparent"
+                        className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-Malama-border dark:border-transparent"
                       >
                         <div className="flex items-center gap-5">
                           {/* Left: calorie info */}
                           <div className="flex-1 min-w-0">
                             {showDay && selectedDayStats ? (
                               <>
-                                <p className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-1">
+                                <p className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wider mb-1">
                                   Calorias consumidas
                                 </p>
-                                <p className={`text-4xl font-bold tracking-tighter leading-none ${selectedDayStats.consumedCalories > selectedDayStats.targetCalories ? 'text-orange-500' : 'text-nura-main dark:text-white'}`}>
+                                <p className={`text-4xl font-bold tracking-tighter leading-none ${selectedDayStats.consumedCalories > selectedDayStats.targetCalories ? 'text-orange-500' : 'text-Malama-main dark:text-white'}`}>
                                   {(selectedDayStats.consumedCalories ?? 0).toLocaleString()}
                                 </p>
-                                <p className="text-xs text-nura-muted dark:text-slate-400 mt-1">
+                                <p className="text-xs text-Malama-muted dark:text-slate-400 mt-1">
                                   meta: {(selectedDayStats.targetCalories ?? 0).toLocaleString()} kcal
                                 </p>
                                 <div className="flex gap-2 mt-3 flex-wrap">
                                   {[
-                                    { label: 'P', value: Math.round(selectedDayStats.macros.protein), color: 'bg-nura-petrol/10 dark:bg-primary/10 text-nura-petrol dark:text-primary' },
+                                    { label: 'P', value: Math.round(selectedDayStats.macros.protein), color: 'bg-Malama-petrol/10 dark:bg-primary/10 text-Malama-petrol dark:text-primary' },
                                     { label: 'C', value: Math.round(selectedDayStats.macros.carbs), color: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' },
                                     { label: 'G', value: Math.round(selectedDayStats.macros.fats), color: 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400' },
                                   ].map(m => (
@@ -1524,25 +1524,25 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                               </>
                             ) : showWeek && selWeek ? (
                               <>
-                                <p className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-1">
+                                <p className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wider mb-1">
                                   {selWeek.label} — calorias
                                 </p>
-                                <p className="text-4xl font-bold tracking-tighter leading-none text-nura-main dark:text-white">
+                                <p className="text-4xl font-bold tracking-tighter leading-none text-Malama-main dark:text-white">
                                   {selWeek.days.reduce((s, d) => s + (d.stats?.consumedCalories ?? 0), 0).toLocaleString()}
                                 </p>
-                                <p className="text-xs text-nura-muted dark:text-slate-400 mt-1">
+                                <p className="text-xs text-Malama-muted dark:text-slate-400 mt-1">
                                   {selWeek.daysWithData} dia{selWeek.daysWithData !== 1 ? 's' : ''} registrado{selWeek.daysWithData !== 1 ? 's' : ''}
                                 </p>
                               </>
                             ) : (
                               <>
-                                <p className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wider mb-1">
+                                <p className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wider mb-1">
                                   Calorias no mês
                                 </p>
-                                <p className="text-4xl font-bold tracking-tighter leading-none text-nura-main dark:text-white">
+                                <p className="text-4xl font-bold tracking-tighter leading-none text-Malama-main dark:text-white">
                                   {(monthSummary?.totalConsumed ?? 0).toLocaleString()}
                                 </p>
-                                <p className="text-xs text-nura-muted dark:text-slate-400 mt-1">
+                                <p className="text-xs text-Malama-muted dark:text-slate-400 mt-1">
                                   meta {(monthSummary?.totalTarget ?? 0).toLocaleString()} kcal
                                 </p>
                               </>
@@ -1574,12 +1574,12 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                                 <span className="material-symbols-outlined text-[18px]" style={{ color: ringColor }}>
                                   {showDay || showWeek ? 'local_fire_department' : 'calendar_month'}
                                 </span>
-                                <span className="text-[11px] font-bold text-nura-main dark:text-white leading-none">
+                                <span className="text-[11px] font-bold text-Malama-main dark:text-white leading-none">
                                   {ringDaysLabel}
                                 </span>
                               </div>
                             </div>
-                            <span className="text-[10px] font-medium text-nura-muted dark:text-slate-500 text-center leading-tight whitespace-pre-line">
+                            <span className="text-[10px] font-medium text-Malama-muted dark:text-slate-500 text-center leading-tight whitespace-pre-line">
                               {ringLabel}
                             </span>
                           </div>
@@ -1588,7 +1588,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                         {/* Monthly progress bar */}
                         <div className="mt-4 pt-4 border-t border-gray-50 dark:border-white/5">
                           <div className="flex justify-between items-center mb-1.5">
-                            <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Progresso mensal</span>
+                            <span className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide">Progresso mensal</span>
                             <span className="text-[10px] font-bold" style={{ color: monthBarColor }}>{monthPct}%</span>
                           </div>
                           <div className="h-2 w-full bg-gray-100 dark:bg-slate-700/50 rounded-full overflow-hidden">
@@ -1601,10 +1601,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                             />
                           </div>
                           <div className="flex justify-between mt-1">
-                            <span className="text-[9px] text-nura-muted dark:text-slate-500">
+                            <span className="text-[9px] text-Malama-muted dark:text-slate-500">
                               {(monthSummary?.totalConsumed ?? 0).toLocaleString()} kcal consumidas
                             </span>
-                            <span className="text-[9px] text-nura-muted dark:text-slate-500">
+                            <span className="text-[9px] text-Malama-muted dark:text-slate-500">
                               {monthSummary?.daysWithData ?? 0} dias registrados
                             </span>
                           </div>
@@ -1618,10 +1618,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 {monthDisplayStats && (
                   <div className="px-6">
                     <div className="flex items-center gap-1.5 mb-2">
-                      <span className="material-symbols-outlined text-[13px] text-nura-muted dark:text-slate-500">
+                      <span className="material-symbols-outlined text-[13px] text-Malama-muted dark:text-slate-500">
                         {monthDisplayStats.mode === 'day' ? 'today' : 'equalizer'}
                       </span>
-                      <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">
+                      <span className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide">
                         {monthDisplayStats.mode === 'day'
                           ? 'Valores do dia'
                           : monthDisplayStats.mode === 'week'
@@ -1631,16 +1631,16 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { label: t.dashboard.protein, value: monthDisplayStats.stats.macros.protein, target: monthDisplayStats.stats.targetMacros.protein, color: 'bg-nura-petrol dark:bg-primary' },
+                        { label: t.dashboard.protein, value: monthDisplayStats.stats.macros.protein, target: monthDisplayStats.stats.targetMacros.protein, color: 'bg-Malama-petrol dark:bg-primary' },
                         { label: t.dashboard.carbs,   value: monthDisplayStats.stats.macros.carbs,   target: monthDisplayStats.stats.targetMacros.carbs,   color: 'bg-orange-400' },
                         { label: t.dashboard.fats,    value: monthDisplayStats.stats.macros.fats,    target: monthDisplayStats.stats.targetMacros.fats,    color: 'bg-pink-400' },
                       ].map(m => (
-                        <div key={m.label} className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-nura-border dark:border-transparent">
-                          <span className="text-[10px] font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">{m.label}</span>
-                          <span className="text-base font-bold text-nura-main dark:text-white">
-                            {Math.round(m.value ?? 0)}<span className="text-[10px] font-normal text-nura-muted dark:text-slate-500">/{m.target}g</span>
+                        <div key={m.label} className="bg-white dark:bg-surface-dark rounded-xl p-3 flex flex-col gap-2 shadow-sm border border-Malama-border dark:border-transparent">
+                          <span className="text-[10px] font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide">{m.label}</span>
+                          <span className="text-base font-bold text-Malama-main dark:text-white">
+                            {Math.round(m.value ?? 0)}<span className="text-[10px] font-normal text-Malama-muted dark:text-slate-500">/{m.target}g</span>
                           </span>
-                          <div className="h-1.5 w-full bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
+                          <div className="h-1.5 w-full bg-Malama-pastel-orange dark:bg-slate-700/50 rounded-full overflow-hidden">
                             <div className={`h-full ${m.color} rounded-full`} style={{ width: `${Math.min(((m.value ?? 0) / (m.target || 1)) * 100, 100)}%` }} />
                           </div>
                         </div>
@@ -1652,21 +1652,21 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 {/* ── Hidratação — média acumulada / dia / semana ── */}
                 {monthDisplayStats && (
                   <div className="px-6">
-                    <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent">
+                    <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-Malama-border dark:border-transparent">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="material-symbols-outlined text-sky-400 text-xl">water_drop</span>
-                          <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">{t.week.hydration}</span>
+                          <span className="text-xs font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide">{t.week.hydration}</span>
                         </div>
                         <span className="text-xs text-sky-400 font-bold">
                           {Math.min(Math.round(((monthDisplayStats.stats.waterIntake || 0) / (monthDisplayStats.stats.waterGoal || 1)) * 100), 100)}%
                         </span>
                       </div>
-                      <span className="text-2xl font-bold text-nura-main dark:text-white">
+                      <span className="text-2xl font-bold text-Malama-main dark:text-white">
                         {monthDisplayStats.stats.waterIntake || 0}
-                        <span className="text-xs font-normal text-nura-muted dark:text-slate-500">/{monthDisplayStats.stats.waterGoal || 2500} ml</span>
+                        <span className="text-xs font-normal text-Malama-muted dark:text-slate-500">/{monthDisplayStats.stats.waterGoal || 2500} ml</span>
                         {monthDisplayStats.mode !== 'day' && (
-                          <span className="text-[10px] font-normal text-nura-muted dark:text-slate-500 ml-1">/dia</span>
+                          <span className="text-[10px] font-normal text-Malama-muted dark:text-slate-500 ml-1">/dia</span>
                         )}
                       </span>
                       {(() => {
@@ -1676,7 +1676,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                         return (
                           <div className="mt-3 flex gap-1.5">
                             {Array.from({ length: 8 }).map((_, i) => (
-                              <div key={i} className={`flex-1 h-2 rounded-full ${i < filled ? 'bg-sky-400' : 'bg-nura-pastel-orange dark:bg-slate-700/50'}`} />
+                              <div key={i} className={`flex-1 h-2 rounded-full ${i < filled ? 'bg-sky-400' : 'bg-Malama-pastel-orange dark:bg-slate-700/50'}`} />
                             ))}
                           </div>
                         );
@@ -1687,7 +1687,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
                 {/* ── Refeições ── */}
                 <div className="px-6">
-                  <h3 className="text-sm font-bold text-nura-main dark:text-white mb-3">{t.week.meals}</h3>
+                  <h3 className="text-sm font-bold text-Malama-main dark:text-white mb-3">{t.week.meals}</h3>
                   {selectedDayMeals.length > 0 ? (
                     <DailyMealsList
                       meals={selectedDayMeals}
@@ -1695,9 +1695,9 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                       onEditMeal={onEditMeal}
                     />
                   ) : (
-                    <div className="bg-white dark:bg-surface-dark rounded-xl p-6 shadow-sm border border-nura-border dark:border-transparent text-center">
+                    <div className="bg-white dark:bg-surface-dark rounded-xl p-6 shadow-sm border border-Malama-border dark:border-transparent text-center">
                       <span className="text-4xl mb-2 block">🗓️</span>
-                      <p className="text-sm text-nura-muted dark:text-slate-400">
+                      <p className="text-sm text-Malama-muted dark:text-slate-400">
                         {selectedWeekIndex !== null ? 'Selecione um dia para ver refeições' : 'Selecione uma semana'}
                       </p>
                     </div>
@@ -1709,16 +1709,16 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 {/* Weekly Rhythm Chart */}
                 <div className="px-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-nura-main dark:text-white text-lg font-bold">{t.flowScore.weeklyRhythm}</h2>
-                    <button className="text-nura-muted dark:text-white/40 hover:text-nura-main dark:hover:text-white transition-colors">
+                    <h2 className="text-Malama-main dark:text-white text-lg font-bold">{t.flowScore.weeklyRhythm}</h2>
+                    <button className="text-Malama-muted dark:text-white/40 hover:text-Malama-main dark:hover:text-white transition-colors">
                       <span className="material-symbols-outlined">more_horiz</span>
                     </button>
                   </div>
-                  <div className="bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-nura-border dark:border-white/5 rounded-2xl p-5 w-full">
+                  <div className="bg-white/60 dark:bg-surface-dark/60 backdrop-blur-md border border-Malama-border dark:border-white/5 rounded-2xl p-5 w-full">
                     <div className="flex items-end justify-between gap-4 mb-2">
                       <div>
-                        <p className="text-nura-muted dark:text-white/40 text-xs font-medium uppercase tracking-wider">{t.flowScore.consistency}</p>
-                        <p className="text-2xl font-bold text-nura-main dark:text-white">{consistency.label}</p>
+                        <p className="text-Malama-muted dark:text-white/40 text-xs font-medium uppercase tracking-wider">{t.flowScore.consistency}</p>
+                        <p className="text-2xl font-bold text-Malama-main dark:text-white">{consistency.label}</p>
                       </div>
                       <div className={`flex gap-1 items-center px-2 py-1 rounded-lg ${consistency.isPositive ? 'bg-green-500/10' : 'bg-orange-500/10'}`}>
                         <span className={`material-symbols-outlined text-[16px] ${consistency.isPositive ? 'text-green-500 dark:text-green-400' : 'text-orange-500 dark:text-orange-400'}`}>
@@ -1758,7 +1758,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                     </div>
 
                     {/* X Axis Labels */}
-                    <div className="flex justify-between mt-4 text-nura-muted dark:text-white/30 text-xs font-semibold uppercase px-1">
+                    <div className="flex justify-between mt-4 text-Malama-muted dark:text-white/30 text-xs font-semibold uppercase px-1">
                       <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
                     </div>
                   </div>
@@ -1767,9 +1767,9 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 {/* Weekly Metrics Grid */}
                 <div className="px-6 flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-nura-main dark:text-white text-lg font-bold">{t.flowScore.metrics}</h2>
+                    <h2 className="text-Malama-main dark:text-white text-lg font-bold">{t.flowScore.metrics}</h2>
                     {weeklyMetrics && (
-                      <span className="text-xs text-nura-muted dark:text-white/40 font-medium">
+                      <span className="text-xs text-Malama-muted dark:text-white/40 font-medium">
                         {weeklyMetrics.daysLogged}/7 dias registrados
                       </span>
                     )}
@@ -1814,19 +1814,19 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                     return (
                       <div className="grid grid-cols-3 gap-3">
                         {cards.map(card => (
-                          <div key={card.label} className="bg-white dark:bg-surface-dark border border-nura-border dark:border-white/5 rounded-2xl p-4 flex flex-col gap-3">
+                          <div key={card.label} className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/5 rounded-2xl p-4 flex flex-col gap-3">
                             <span className={`material-symbols-outlined text-xl ${card.color}`}>{card.icon}</span>
                             <div>
-                              <p className="text-[10px] font-semibold text-nura-muted dark:text-white/40 uppercase tracking-wide mb-1">{card.label}</p>
-                              <p className="text-xl font-bold text-nura-main dark:text-white leading-none">
-                                {card.value}<span className="text-xs font-medium text-nura-muted dark:text-white/40 ml-0.5">{card.unit}</span>
+                              <p className="text-[10px] font-semibold text-Malama-muted dark:text-white/40 uppercase tracking-wide mb-1">{card.label}</p>
+                              <p className="text-xl font-bold text-Malama-main dark:text-white leading-none">
+                                {card.value}<span className="text-xs font-medium text-Malama-muted dark:text-white/40 ml-0.5">{card.unit}</span>
                               </p>
                             </div>
                             <div className="flex flex-col gap-1">
                               <div className="w-full bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
                                 <div className={`h-full ${card.bg} rounded-full transition-all duration-700`} style={{ width: `${card.pct}%` }} />
                               </div>
-                              <p className="text-[10px] text-nura-muted dark:text-white/30">meta {card.target}</p>
+                              <p className="text-[10px] text-Malama-muted dark:text-white/30">meta {card.target}</p>
                             </div>
                           </div>
                         ))}
@@ -1835,7 +1835,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   })() : (
                     <div className="grid grid-cols-3 gap-3">
                       {[0, 1, 2].map(i => (
-                        <div key={i} className="bg-white dark:bg-surface-dark border border-nura-border dark:border-white/5 rounded-2xl p-4 h-32 animate-pulse" />
+                        <div key={i} className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/5 rounded-2xl p-4 h-32 animate-pulse" />
                       ))}
                     </div>
                   )}
@@ -1853,7 +1853,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
           <button
             onClick={onShareClick}
-            className="w-full bg-transparent hover:bg-white/40 dark:hover:bg-white/5 text-nura-muted dark:text-slate-400 font-semibold h-12 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
+            className="w-full bg-transparent hover:bg-white/40 dark:hover:bg-white/5 text-Malama-muted dark:text-slate-400 font-semibold h-12 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
           >
             <span className="material-symbols-outlined text-[18px]">ios_share</span>
             {t.dashboard.shareMyDay}

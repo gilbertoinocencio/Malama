@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Telas de Status do Médico
+// Malama — Telas de Status do Médico
 // =====================================================
 
 import React from 'react';
@@ -11,7 +11,7 @@ export const DoctorPending: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#FDFBF9] flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-12 text-center max-w-md">
         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-yellow-100 flex items-center justify-center">
           <Clock className="w-10 h-10 text-yellow-600" />
@@ -20,7 +20,7 @@ export const DoctorPending: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Cadastro em análise ⏳</h1>
         
         <p className="text-gray-600 mb-8">
-          Seu cadastro está sendo analisado pela equipe Nura. Você receberá um email quando for aprovado.
+          Seu cadastro está sendo analisado pela equipe Malama. Você receberá um email quando for aprovado.
         </p>
 
         <button
@@ -37,7 +37,7 @@ export const DoctorPending: React.FC = () => {
 // Médico com conta suspensa
 export const DoctorSuspended: React.FC = () => {
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#FDFBF9] flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-12 text-center max-w-md">
         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
           <AlertTriangle className="w-10 h-10 text-red-600" />
@@ -46,7 +46,7 @@ export const DoctorSuspended: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Conta suspensa</h1>
         
         <p className="text-gray-600 mb-8">
-          Entre em contato com o suporte: <a href="mailto:suporte@nura.app" className="text-[#2ECC71] hover:underline">suporte@nura.app</a>
+          Entre em contato com o suporte: <a href="mailto:suporte@Malama.app" className="text-[#9c5d4b] hover:underline">suporte@Malama.app</a>
         </p>
       </div>
     </div>

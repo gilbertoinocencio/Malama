@@ -19,7 +19,7 @@ interface StepContainerProps {
   hideNavigation?: boolean;
 }
 
-const PETROL = '#1A6070';
+const PETROL = '#9c5d4b';
 
 export const StepContainer: React.FC<StepContainerProps> = ({
   children,
@@ -77,7 +77,7 @@ export const StepContainer: React.FC<StepContainerProps> = ({
             className="text-base tracking-[0.2em]"
             style={{ fontFamily: "'Playfair Display', serif", color: PETROL }}
           >
-            NURA
+            Malama
           </span>
 
           <div className="w-9" />

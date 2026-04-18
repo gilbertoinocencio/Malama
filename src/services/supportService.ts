@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Serviço de Suporte ao Usuário
+// Malama — Serviço de Suporte ao Usuário
 // =====================================================
 
 import { supabase } from './supabase';

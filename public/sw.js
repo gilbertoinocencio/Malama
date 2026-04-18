@@ -1,11 +1,11 @@
 // =====================================================
-// NURA — Custom Service Worker
+// MALAMA — Custom Service Worker
 // Handles precaching + Web Push notifications
 // =====================================================
 
 // Precache manifest injected by vite-plugin-pwa (injectManifest strategy)
 const PRECACHE_ENTRIES = self.__WB_MANIFEST || [];
-const CACHE_NAME = 'nura-precache-v1';
+const CACHE_NAME = 'malama-precache-v1';
 
 // ─── Install: cache precache manifest entries ───────────────────────────────
 self.addEventListener('install', event => {
@@ -69,15 +69,15 @@ self.addEventListener('push', event => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: 'Nura', body: event.data ? event.data.text() : '' };
+    data = { title: 'Malama', body: event.data ? event.data.text() : '' };
   }
 
-  const title = data.title || 'Nura';
+  const title = data.title || 'Malama';
   const options = {
     body:    data.body  || '',
     icon:    data.icon  || '/logo.jpg',
     badge:   '/logo.jpg',
-    tag:     data.tag   || 'nura-notification',
+    tag:     data.tag   || 'malama-notification',
     renotify: true,
     data:    data.url   ? { url: data.url } : {},
   };

@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Portal do Médico: Serviço Supabase
+// Malama — Portal do Médico: Serviço Supabase
 // =====================================================
 
 import { supabase } from './supabase';

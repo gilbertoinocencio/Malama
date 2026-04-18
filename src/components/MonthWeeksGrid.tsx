@@ -61,7 +61,7 @@ export const MonthWeeksGrid: React.FC<MonthWeeksGridProps> = ({
                   : '#9ca3af';
 
           const labelClass = week.isCurrent || isSelected
-            ? 'text-nura-petrol dark:text-primary font-bold'
+            ? 'text-Malama-petrol dark:text-primary font-bold'
             : week.isFuture
               ? 'text-gray-300 dark:text-gray-600'
               : 'text-gray-400 dark:text-gray-500';
@@ -81,7 +81,7 @@ export const MonthWeeksGrid: React.FC<MonthWeeksGridProps> = ({
                 flex-1 flex flex-col items-center rounded-2xl py-2 px-1 transition-all duration-200
                 ${isClickable ? 'cursor-pointer' : 'cursor-default'}
                 ${isSelected
-                  ? 'bg-nura-petrol/8 dark:bg-primary/10 shadow-sm ring-1 ring-nura-petrol/15 dark:ring-primary/20'
+                  ? 'bg-Malama-petrol/8 dark:bg-primary/10 shadow-sm ring-1 ring-Malama-petrol/15 dark:ring-primary/20'
                   : 'bg-transparent'}
               `}
             >

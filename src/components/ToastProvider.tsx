@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Toast Provider para notificações
+// Malama — Toast Provider para notificações
 // =====================================================
 
 import React from 'react';

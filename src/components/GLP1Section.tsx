@@ -64,7 +64,7 @@ const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const GoalCard: React.FC<{ icon: string; label: string; value: string; sub: string; prescribed?: boolean }> = ({
   icon, label, value, sub, prescribed,
 }) => (
-  <div className="bg-nura-bg dark:bg-background-dark rounded-lg p-2.5 relative">
+  <div className="bg-Malama-bg dark:bg-background-dark rounded-lg p-2.5 relative">
     {prescribed && (
       <span className="absolute top-1 right-1 text-[7px] font-bold text-purple-600 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400 px-1 py-0.5 rounded-full leading-none">
         Dr.
@@ -72,20 +72,20 @@ const GoalCard: React.FC<{ icon: string; label: string; value: string; sub: stri
     )}
     <div className="flex items-center gap-1 mb-0.5">
       <span className="text-xs">{icon}</span>
-      <span className="text-[10px] text-nura-muted dark:text-slate-500 font-medium">{label}</span>
+      <span className="text-[10px] text-Malama-muted dark:text-slate-500 font-medium">{label}</span>
     </div>
-    <p className="text-sm font-bold text-nura-main dark:text-white leading-none">{value}</p>
-    <p className="text-[9px] text-nura-muted dark:text-slate-500 mt-0.5">{sub}</p>
+    <p className="text-sm font-bold text-Malama-main dark:text-white leading-none">{value}</p>
+    <p className="text-[9px] text-Malama-muted dark:text-slate-500 mt-0.5">{sub}</p>
   </div>
 );
 
 const EnergyBar: React.FC<{ value: number; label: string; color: string }> = ({ value, label, color }) => (
   <div>
     <div className="flex justify-between text-[10px] mb-0.5">
-      <span className="text-nura-muted dark:text-slate-500">{label}</span>
-      <span className="font-semibold text-nura-main dark:text-white">{value}/5</span>
+      <span className="text-Malama-muted dark:text-slate-500">{label}</span>
+      <span className="font-semibold text-Malama-main dark:text-white">{value}/5</span>
     </div>
-    <div className="h-1.5 bg-nura-bg dark:bg-background-dark rounded-full overflow-hidden">
+    <div className="h-1.5 bg-Malama-bg dark:bg-background-dark rounded-full overflow-hidden">
       <div
         className="h-full rounded-full transition-all duration-500"
         style={{ width: `${(value / 5) * 100}%`, backgroundColor: color }}
@@ -331,8 +331,8 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
     if (data.length < 2) {
       return (
         <div className="flex flex-col items-center justify-center py-4 text-center">
-          <span className="material-symbols-outlined text-nura-muted dark:text-slate-500 mb-1" style={{ fontSize: 28 }}>monitoring</span>
-          <p className="text-xs text-nura-muted dark:text-slate-400">Registre peso no diário para ver a curva.</p>
+          <span className="material-symbols-outlined text-Malama-muted dark:text-slate-500 mb-1" style={{ fontSize: 28 }}>monitoring</span>
+          <p className="text-xs text-Malama-muted dark:text-slate-400">Registre peso no diário para ver a curva.</p>
         </div>
       );
     }
@@ -348,7 +348,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
     return (
       <div>
         <div className="flex items-end justify-between mb-2">
-          <span className="text-xl font-bold text-nura-main dark:text-white">{weights[weights.length - 1]}kg</span>
+          <span className="text-xl font-bold text-Malama-main dark:text-white">{weights[weights.length - 1]}kg</span>
           {weightDelta !== null && (
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${weightDelta <= 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'}`}>
               {weightDelta <= 0 ? '▼' : '▲'} {Math.abs(weightDelta)}kg
@@ -366,7 +366,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
           <path d={pathD} fill="none" stroke="#10b981" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
           <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r={3} fill="#10b981" />
         </svg>
-        <div className="flex justify-between text-[10px] text-nura-muted dark:text-slate-500">
+        <div className="flex justify-between text-[10px] text-Malama-muted dark:text-slate-500">
           <span>{data[0].date.slice(5)}</span>
           <span>{data[data.length - 1].date.slice(5)}</span>
         </div>
@@ -381,8 +381,8 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
         <div className="flex items-center gap-2">
           <span className="text-lg">💊</span>
           <div>
-            <h3 className="text-sm font-bold text-nura-main dark:text-white">Programa GLP-1</h3>
-            <p className="text-[10px] text-nura-muted dark:text-slate-500">Semana {weeksOfUse}</p>
+            <h3 className="text-sm font-bold text-Malama-main dark:text-white">Programa GLP-1</h3>
+            <p className="text-[10px] text-Malama-muted dark:text-slate-500">Semana {weeksOfUse}</p>
           </div>
           <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold rounded-full">
             {phaseInfo.emoji} {phaseInfo.label}
@@ -397,7 +397,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
             <span className="material-symbols-outlined text-sm">add</span>
           </button>
           <span
-            className="material-symbols-outlined text-nura-muted dark:text-slate-400 text-sm transition-transform duration-300"
+            className="material-symbols-outlined text-Malama-muted dark:text-slate-400 text-sm transition-transform duration-300"
             style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
           >
             expand_more
@@ -426,14 +426,14 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
           {/* Quick stats row */}
           <div className="grid grid-cols-2 gap-3">
             {/* Next application */}
-            <div className="bg-white dark:bg-surface-dark rounded-xl p-3 shadow-sm border border-nura-border dark:border-transparent">
-              <p className="text-[10px] text-nura-muted dark:text-slate-500 uppercase tracking-wide mb-1">Próxima aplicação</p>
+            <div className="bg-white dark:bg-surface-dark rounded-xl p-3 shadow-sm border border-Malama-border dark:border-transparent">
+              <p className="text-[10px] text-Malama-muted dark:text-slate-500 uppercase tracking-wide mb-1">Próxima aplicação</p>
               {nextApplicationDate ? (
                 <>
-                  <p className="text-base font-bold text-nura-main dark:text-white">
+                  <p className="text-base font-bold text-Malama-main dark:text-white">
                     {daysUntilApplication === 0 ? 'Hoje!' : daysUntilApplication === 1 ? 'Amanhã' : `Em ${daysUntilApplication} dias`}
                   </p>
-                  <p className="text-[10px] text-nura-muted dark:text-slate-400 mt-0.5">
+                  <p className="text-[10px] text-Malama-muted dark:text-slate-400 mt-0.5">
                     {nextApplicationDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
                   </p>
                   <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
@@ -451,9 +451,9 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
             </div>
 
             {/* Dose */}
-            <div className="bg-white dark:bg-surface-dark rounded-xl p-3 shadow-sm border border-nura-border dark:border-transparent">
-              <p className="text-[10px] text-nura-muted dark:text-slate-500 uppercase tracking-wide mb-1">Dose atual</p>
-              <p className="text-base font-bold text-nura-main dark:text-white leading-tight">
+            <div className="bg-white dark:bg-surface-dark rounded-xl p-3 shadow-sm border border-Malama-border dark:border-transparent">
+              <p className="text-[10px] text-Malama-muted dark:text-slate-500 uppercase tracking-wide mb-1">Dose atual</p>
+              <p className="text-base font-bold text-Malama-main dark:text-white leading-tight">
                 {currentDoseMg ? `${currentDoseMg}mg` : '—'}
               </p>
               {nextEscalationStep && (
@@ -469,8 +469,8 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
             <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${daysUntilExpiry <= 14 ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30'}`}>
               <span className="material-symbols-outlined text-amber-500 dark:text-amber-400">event</span>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-nura-main dark:text-white">Renovação da receita</p>
-                <p className="text-xs text-nura-muted dark:text-slate-400">
+                <p className="text-sm font-semibold text-Malama-main dark:text-white">Renovação da receita</p>
+                <p className="text-xs text-Malama-muted dark:text-slate-400">
                   {daysUntilExpiry === 0 ? 'Vencida hoje' : `Vence em ${daysUntilExpiry} dias`}
                 </p>
               </div>
@@ -478,9 +478,9 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
           )}
 
           {/* Goals card */}
-          <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent">
+          <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-Malama-border dark:border-transparent">
             <div className="flex items-center gap-2 mb-3">
-              <h3 className="text-sm font-bold text-nura-main dark:text-white">
+              <h3 className="text-sm font-bold text-Malama-main dark:text-white">
                 Metas {prescription ? 'prescritas' : 'ajustadas'}
               </h3>
               {prescription?.macro_calories && (
@@ -496,17 +496,17 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
               <GoalCard icon="💧" label="Hidratação" value={`${(goals.hydration / 1000).toFixed(1)}L`} sub={`35ml × ${weightKg}kg`} />
             </div>
             {prescription?.notes && (
-              <div className="mt-3 pt-3 border-t border-nura-border dark:border-white/10">
-                <p className="text-[10px] text-nura-muted dark:text-slate-500 font-semibold uppercase tracking-wide mb-1">Orientações do médico</p>
-                <p className="text-xs text-nura-muted dark:text-slate-400 leading-relaxed">{prescription.notes}</p>
+              <div className="mt-3 pt-3 border-t border-Malama-border dark:border-white/10">
+                <p className="text-[10px] text-Malama-muted dark:text-slate-500 font-semibold uppercase tracking-wide mb-1">Orientações do médico</p>
+                <p className="text-xs text-Malama-muted dark:text-slate-400 leading-relaxed">{prescription.notes}</p>
               </div>
             )}
           </div>
 
           {/* Dose escalation tracker */}
           {protocol && currentDoseMg && (
-            <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent">
-              <h3 className="text-sm font-bold text-nura-main dark:text-white mb-3">Progressão de dose</h3>
+            <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-Malama-border dark:border-transparent">
+              <h3 className="text-sm font-bold text-Malama-main dark:text-white mb-3">Progressão de dose</h3>
               <div className="relative flex items-center gap-1">
                 {protocol.dose_steps.map((step, i) => {
                   const isActive = step.dose_mg === currentDoseMg;
@@ -515,13 +515,13 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                   return (
                     <React.Fragment key={step.dose_mg}>
                       {i > 0 && (
-                        <div className={`flex-1 h-0.5 ${isPast || isActive ? 'bg-emerald-400' : 'bg-nura-border dark:bg-slate-600'}`} />
+                        <div className={`flex-1 h-0.5 ${isPast || isActive ? 'bg-emerald-400' : 'bg-Malama-border dark:bg-slate-600'}`} />
                       )}
                       <div className="flex flex-col items-center">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold border-2 transition-all ${isActive ? 'bg-emerald-500 border-emerald-500 text-white scale-110' : isPast ? 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400' : isNext ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400' : 'bg-nura-bg dark:bg-slate-700 border-nura-border dark:border-slate-600 text-nura-muted dark:text-slate-500'}`}>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold border-2 transition-all ${isActive ? 'bg-emerald-500 border-emerald-500 text-white scale-110' : isPast ? 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400' : isNext ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400' : 'bg-Malama-bg dark:bg-slate-700 border-Malama-border dark:border-slate-600 text-Malama-muted dark:text-slate-500'}`}>
                           {isPast ? '✓' : `${step.dose_mg}`}
                         </div>
-                        <span className="text-[8px] text-nura-muted dark:text-slate-500 mt-0.5 w-10 text-center leading-tight">
+                        <span className="text-[8px] text-Malama-muted dark:text-slate-500 mt-0.5 w-10 text-center leading-tight">
                           {step.dose_mg}mg
                         </span>
                       </div>
@@ -530,33 +530,33 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                 })}
               </div>
               {protocol.escalation_note && (
-                <p className="text-[10px] text-nura-muted dark:text-slate-500 mt-3 leading-relaxed">{protocol.escalation_note}</p>
+                <p className="text-[10px] text-Malama-muted dark:text-slate-500 mt-3 leading-relaxed">{protocol.escalation_note}</p>
               )}
             </div>
           )}
 
           {/* Weight evolution */}
-          <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent">
+          <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-Malama-border dark:border-transparent">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-bold text-nura-main dark:text-white">Evolução de peso</h3>
+              <h3 className="text-sm font-bold text-Malama-main dark:text-white">Evolução de peso</h3>
             </div>
             {renderWeightChart()}
           </div>
 
           {/* Weekly checkin */}
-          <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent">
+          <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-Malama-border dark:border-transparent">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Check-in semanal de sintomas</span>
+              <span className="text-xs font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide">Check-in semanal de sintomas</span>
               {checkinDone && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Feito</span>}
             </div>
             {checkinDone ? (
               <div className="flex items-center gap-2 py-1">
                 <span className="text-sm">✅</span>
-                <p className="text-xs text-nura-muted dark:text-slate-400">Check-in registrado. Próximo em 7 dias.</p>
+                <p className="text-xs text-Malama-muted dark:text-slate-400">Check-in registrado. Próximo em 7 dias.</p>
               </div>
             ) : (
               <>
-                <p className="text-xs text-nura-muted dark:text-slate-400 mb-2">Como você se sentiu esta semana?</p>
+                <p className="text-xs text-Malama-muted dark:text-slate-400 mb-2">Como você se sentiu esta semana?</p>
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {Object.entries(SYMPTOM_LABELS).map(([id, s]) => (
                     <button
@@ -564,7 +564,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                       onClick={() => toggleCheckinSymptom(id)}
                       className={`px-2.5 py-1.5 rounded-full border text-[11px] font-medium transition-all ${checkinSymptoms.includes(id)
                         ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
-                        : 'border-nura-border dark:border-white/10 text-nura-muted dark:text-slate-400 hover:border-nura-petrol/30 dark:hover:border-white/20'
+                        : 'border-Malama-border dark:border-white/10 text-Malama-muted dark:text-slate-400 hover:border-Malama-petrol/30 dark:hover:border-white/20'
                         }`}
                     >
                       {s.emoji} {s.label}
@@ -574,20 +574,20 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                 <button
                   onClick={handleCheckin}
                   disabled={checkinSymptoms.length === 0 || checkinSaving}
-                  className="w-full py-2 rounded-xl bg-nura-main dark:bg-white text-white dark:text-nura-main text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-30"
+                  className="w-full py-2 rounded-xl bg-Malama-main dark:bg-white text-white dark:text-Malama-main text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-30"
                 >
                   {checkinSaving ? 'Registrando...' : 'Registrar check-in'}
                 </button>
               </>
             )}
             {recentCheckins.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-nura-border dark:border-white/10 space-y-2">
+              <div className="mt-3 pt-3 border-t border-Malama-border dark:border-white/10 space-y-2">
                 {recentCheckins.map((c: any, i) => (
                   <div key={i} className="flex items-center gap-2 text-[10px]">
-                    <span className="text-nura-muted dark:text-slate-500 w-12 flex-shrink-0">{c.date?.slice(5)}</span>
+                    <span className="text-Malama-muted dark:text-slate-500 w-12 flex-shrink-0">{c.date?.slice(5)}</span>
                     <div className="flex flex-wrap gap-1">
                       {(c.symptoms || []).map((s: string) => (
-                        <span key={s} className="px-1.5 py-0.5 bg-nura-pastel-orange dark:bg-slate-700/50 rounded-full text-nura-muted dark:text-slate-400">
+                        <span key={s} className="px-1.5 py-0.5 bg-Malama-pastel-orange dark:bg-slate-700/50 rounded-full text-Malama-muted dark:text-slate-400">
                           {SYMPTOM_LABELS[s]?.emoji} {SYMPTOM_LABELS[s]?.label || s}
                         </span>
                       ))}
@@ -604,14 +604,14 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
               <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-2">Rotação de local</p>
               <div className="flex items-center gap-3">
                 <div className="text-center">
-                  <p className="text-[10px] text-nura-muted dark:text-slate-500">Última</p>
-                  <p className="text-xs font-semibold text-nura-main dark:text-white">
+                  <p className="text-[10px] text-Malama-muted dark:text-slate-500">Última</p>
+                  <p className="text-xs font-semibold text-Malama-main dark:text-white">
                     {APPLICATION_SITES.find(s => s.value === lastDose.application_site)?.label || lastDose.application_site}
                   </p>
                 </div>
                 <span className="material-symbols-outlined text-amber-400 dark:text-amber-500 text-sm">arrow_forward</span>
                 <div className="text-center">
-                  <p className="text-[10px] text-nura-muted dark:text-slate-500">Sugerida</p>
+                  <p className="text-[10px] text-Malama-muted dark:text-slate-500">Sugerida</p>
                   <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                     {suggestedSite.emoji} {suggestedSite.label}
                   </p>
@@ -622,9 +622,9 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
 
           {/* Dose history */}
           {doseHistory.length > 0 && (
-            <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-nura-border dark:border-transparent">
+            <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-Malama-border dark:border-transparent">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-nura-muted dark:text-slate-500 uppercase tracking-wide">Histórico de aplicações</span>
+                <span className="text-xs font-semibold text-Malama-muted dark:text-slate-500 uppercase tracking-wide">Histórico de aplicações</span>
                 {pushActive && (
                   <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold rounded-full">
                     <span className="material-symbols-outlined text-[11px]">notifications_active</span>
@@ -634,14 +634,14 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
               </div>
               {/* Next dose countdown */}
               {nextDose && daysUntilNextDose !== null && (
-                <div className="mb-3 flex items-center gap-3 p-3 bg-nura-pastel-orange dark:bg-slate-700/40 rounded-xl">
+                <div className="mb-3 flex items-center gap-3 p-3 bg-Malama-pastel-orange dark:bg-slate-700/40 rounded-xl">
                   <span className="text-xl">💉</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-nura-main dark:text-white">Próxima dose</p>
-                    <p className="text-[11px] text-nura-muted dark:text-slate-400">
+                    <p className="text-xs font-bold text-Malama-main dark:text-white">Próxima dose</p>
+                    <p className="text-[11px] text-Malama-muted dark:text-slate-400">
                       {nextDose.medication}{nextDose.dose_mg ? ` ${nextDose.dose_mg}mg` : ''} — {daysUntilNextDose === 0 ? 'Hoje!' : daysUntilNextDose === 1 ? 'Amanhã' : `em ${daysUntilNextDose} dias`}
                     </p>
-                    <p className="text-[10px] text-nura-muted dark:text-slate-500">
+                    <p className="text-[10px] text-Malama-muted dark:text-slate-500">
                       {new Date(nextDose.next_dose_scheduled_at!).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
@@ -654,7 +654,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                   return (
                     <div key={dose.id || i} className="relative">
                       {i < doseHistory.length - 1 && (
-                        <div className="absolute left-3 top-8 bottom-0 w-px bg-nura-border dark:bg-slate-700" />
+                        <div className="absolute left-3 top-8 bottom-0 w-px bg-Malama-border dark:bg-slate-700" />
                       )}
                       <div className="flex gap-3">
                         <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 border-2 border-emerald-300 dark:border-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 z-10">
@@ -663,7 +663,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                         <div className="flex-1 pb-2">
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="text-xs font-semibold text-nura-main dark:text-white">
+                              <p className="text-xs font-semibold text-Malama-main dark:text-white">
                                 {dose.medication} {dose.dose_mg ? `${dose.dose_mg}mg` : ''}
                                 {dose.is_first && (
                                   <span className="ml-1.5 text-[8px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full">
@@ -671,12 +671,12 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                                   </span>
                                 )}
                               </p>
-                              <p className="text-[10px] text-nura-muted dark:text-slate-500 mt-0.5">
+                              <p className="text-[10px] text-Malama-muted dark:text-slate-500 mt-0.5">
                                 {new Date(dose.applied_at).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })} · {new Date(dose.applied_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                               </p>
                             </div>
                             {site && (
-                              <span className="text-[10px] text-nura-muted dark:text-slate-500 flex-shrink-0">{site.emoji} {site.label}</span>
+                              <span className="text-[10px] text-Malama-muted dark:text-slate-500 flex-shrink-0">{site.emoji} {site.label}</span>
                             )}
                           </div>
                           {dose.side_effects && dose.side_effects.length > 0 && (
@@ -693,11 +693,11 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                           )}
                           {(dose.energy_level || dose.mood_level) && (
                             <div className="mt-1.5 flex gap-3">
-                              {dose.energy_level && <span className="text-[9px] text-nura-muted dark:text-slate-500">⚡ {dose.energy_level}/5</span>}
-                              {dose.mood_level && <span className="text-[9px] text-nura-muted dark:text-slate-500">😊 {dose.mood_level}/5</span>}
+                              {dose.energy_level && <span className="text-[9px] text-Malama-muted dark:text-slate-500">⚡ {dose.energy_level}/5</span>}
+                              {dose.mood_level && <span className="text-[9px] text-Malama-muted dark:text-slate-500">😊 {dose.mood_level}/5</span>}
                             </div>
                           )}
-                          {dose.notes && <p className="text-[9px] text-nura-muted dark:text-slate-500 italic mt-1">{dose.notes}</p>}
+                          {dose.notes && <p className="text-[9px] text-Malama-muted dark:text-slate-500 italic mt-1">{dose.notes}</p>}
                         </div>
                       </div>
                     </div>
@@ -714,7 +714,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                 <span className="text-lg">⚠️</span>
                 <div>
                   <p className="text-[10px] font-bold text-red-700 dark:text-red-400 uppercase tracking-wide mb-1">Regra de segurança</p>
-                  <p className="text-xs text-nura-muted dark:text-slate-400">
+                  <p className="text-xs text-Malama-muted dark:text-slate-400">
                     Se você esqueceu a aplicação há mais de <strong>{protocol.max_skip_days} dias</strong>, não aplique a dose — consulte seu médico antes de retomar.
                   </p>
                 </div>
@@ -729,10 +729,10 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                 <span className="text-lg">🌡️</span>
                 <div>
                   <p className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide mb-1">Armazenamento</p>
-                  <p className="text-xs text-nura-muted dark:text-slate-400">
+                  <p className="text-xs text-Malama-muted dark:text-slate-400">
                     <strong>Frasco lacrado:</strong> {protocol.storage_sealed}
                   </p>
-                  <p className="text-xs text-nura-muted dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-Malama-muted dark:text-slate-400 mt-0.5">
                     <strong>Após abertura:</strong> {protocol.storage_open}
                   </p>
                 </div>
@@ -746,7 +746,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
               <span className="text-base flex-shrink-0 mt-0.5">🧠</span>
               <div>
                 <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-1">Dica para hoje</p>
-                <p className="text-xs text-nura-main dark:text-white leading-relaxed">{dailyTip}</p>
+                <p className="text-xs text-Malama-main dark:text-white leading-relaxed">{dailyTip}</p>
               </div>
             </div>
           </div>
@@ -767,27 +767,27 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             >
-              <div className="w-10 h-1 bg-nura-border dark:bg-slate-600 rounded-full mx-auto mb-5" />
-              <h3 className="text-base font-bold text-nura-main dark:text-white mb-4">Registrar aplicação</h3>
+              <div className="w-10 h-1 bg-Malama-border dark:bg-slate-600 rounded-full mx-auto mb-5" />
+              <h3 className="text-base font-bold text-Malama-main dark:text-white mb-4">Registrar aplicação</h3>
 
               {/* Dose info */}
               <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl mb-4">
                 <span className="text-2xl">💉</span>
                 <div>
-                  <p className="text-sm font-bold text-nura-main dark:text-white">{medication} {currentDoseMg ? `${currentDoseMg}mg` : ''}</p>
-                  <p className="text-xs text-nura-muted dark:text-slate-400">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</p>
+                  <p className="text-sm font-bold text-Malama-main dark:text-white">{medication} {currentDoseMg ? `${currentDoseMg}mg` : ''}</p>
+                  <p className="text-xs text-Malama-muted dark:text-slate-400">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</p>
                 </div>
               </div>
 
               {/* Application site */}
               <div className="mb-4">
-                <p className="text-xs font-semibold text-nura-main dark:text-white mb-2">Local de aplicação</p>
+                <p className="text-xs font-semibold text-Malama-main dark:text-white mb-2">Local de aplicação</p>
                 <div className="grid grid-cols-3 gap-2">
                   {APPLICATION_SITES.map(s => (
                     <button
                       key={s.value}
                       onClick={() => setLogSite(s.value)}
-                      className={`py-2 px-2 rounded-xl border text-xs font-medium transition-all text-center ${logSite === s.value ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'border-nura-border dark:border-white/10 text-nura-muted dark:text-slate-400'}`}
+                      className={`py-2 px-2 rounded-xl border text-xs font-medium transition-all text-center ${logSite === s.value ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'border-Malama-border dark:border-white/10 text-Malama-muted dark:text-slate-400'}`}
                     >
                       <span className="block text-lg mb-0.5">{s.emoji}</span>
                       {s.label}
@@ -801,7 +801,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
 
               {/* Side effects */}
               <div className="mb-4">
-                <p className="text-xs font-semibold text-nura-main dark:text-white mb-2">Efeitos colaterais hoje</p>
+                <p className="text-xs font-semibold text-Malama-main dark:text-white mb-2">Efeitos colaterais hoje</p>
                 <div className="flex flex-wrap gap-2">
                   {SIDE_EFFECTS.map(s => (
                     <button
@@ -810,7 +810,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                         if (s.value === 'well') { setLogEffects(['well']); return; }
                         setLogEffects(prev => prev.includes(s.value) ? prev.filter(x => x !== s.value) : [...prev.filter(x => x !== 'well'), s.value]);
                       }}
-                      className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${logEffects.includes(s.value) ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'border-nura-border dark:border-white/10 text-nura-muted dark:text-slate-400'}`}
+                      className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${logEffects.includes(s.value) ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'border-Malama-border dark:border-white/10 text-Malama-muted dark:text-slate-400'}`}
                     >
                       {s.emoji} {s.label}
                     </button>
@@ -824,11 +824,11 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
                 <EnergyBar value={logMood} label="Humor" color="#f59e0b" />
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <p className="text-[10px] text-nura-muted dark:text-slate-500 mb-1">Energia</p>
+                    <p className="text-[10px] text-Malama-muted dark:text-slate-500 mb-1">Energia</p>
                     <input type="range" min="1" max="5" value={logEnergy} onChange={e => setLogEnergy(Number(e.target.value))} className="w-full accent-emerald-500" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-[10px] text-nura-muted dark:text-slate-500 mb-1">Humor</p>
+                    <p className="text-[10px] text-Malama-muted dark:text-slate-500 mb-1">Humor</p>
                     <input type="range" min="1" max="5" value={logMood} onChange={e => setLogMood(Number(e.target.value))} className="w-full accent-amber-500" />
                   </div>
                 </div>
@@ -836,12 +836,12 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
 
               {/* Notes */}
               <div className="mb-4">
-                <p className="text-xs font-semibold text-nura-main dark:text-white mb-2">Observações</p>
+                <p className="text-xs font-semibold text-Malama-main dark:text-white mb-2">Observações</p>
                 <textarea
                   value={logNotes}
                   onChange={e => setLogNotes(e.target.value)}
                   placeholder="Como foi a aplicação? Alguma observação?"
-                  className="w-full p-3 bg-nura-bg dark:bg-background-dark border border-nura-border dark:border-white/10 rounded-xl text-xs text-nura-main dark:text-white placeholder-nura-muted dark:placeholder-slate-500 resize-none"
+                  className="w-full p-3 bg-Malama-bg dark:bg-background-dark border border-Malama-border dark:border-white/10 rounded-xl text-xs text-Malama-main dark:text-white placeholder-Malama-muted dark:placeholder-slate-500 resize-none"
                   rows={3}
                 />
               </div>
@@ -850,7 +850,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowLogDoseModal(false)}
-                  className="flex-1 py-3 rounded-xl border border-nura-border dark:border-white/10 text-nura-muted dark:text-slate-400 text-sm font-semibold"
+                  className="flex-1 py-3 rounded-xl border border-Malama-border dark:border-white/10 text-Malama-muted dark:text-slate-400 text-sm font-semibold"
                 >
                   Cancelar
                 </button>
@@ -880,18 +880,18 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             >
-              <div className="w-10 h-1 bg-nura-border dark:bg-slate-600 rounded-full mx-auto mb-5" />
-              <h3 className="text-base font-bold text-nura-main dark:text-white mb-4">Horário de aplicação</h3>
+              <div className="w-10 h-1 bg-Malama-border dark:bg-slate-600 rounded-full mx-auto mb-5" />
+              <h3 className="text-base font-bold text-Malama-main dark:text-white mb-4">Horário de aplicação</h3>
 
               {/* Frequency */}
               <div className="mb-4">
-                <p className="text-xs font-semibold text-nura-main dark:text-white mb-2">Frequência</p>
+                <p className="text-xs font-semibold text-Malama-main dark:text-white mb-2">Frequência</p>
                 <div className="flex gap-2">
                   {(['weekly', 'daily'] as const).map(f => (
                     <button
                       key={f}
                       onClick={() => setSchedFreq(f)}
-                      className={`flex-1 py-2 rounded-xl border text-xs font-medium transition-all ${schedFreq === f ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'border-nura-border dark:border-white/10 text-nura-muted dark:text-slate-400'}`}
+                      className={`flex-1 py-2 rounded-xl border text-xs font-medium transition-all ${schedFreq === f ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'border-Malama-border dark:border-white/10 text-Malama-muted dark:text-slate-400'}`}
                     >
                       {f === 'weekly' ? 'Semanal' : 'Diária'}
                     </button>
@@ -902,13 +902,13 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
               {/* Day of week */}
               {schedFreq === 'weekly' && (
                 <div className="mb-4">
-                  <p className="text-xs font-semibold text-nura-main dark:text-white mb-2">Dia da semana</p>
+                  <p className="text-xs font-semibold text-Malama-main dark:text-white mb-2">Dia da semana</p>
                   <div className="grid grid-cols-7 gap-1">
                     {DAY_NAMES.map((d, i) => (
                       <button
                         key={d}
                         onClick={() => setSchedDay(i)}
-                        className={`py-2 rounded-xl text-[10px] font-medium transition-all ${schedDay === i ? 'bg-emerald-500 text-white' : 'bg-nura-bg dark:bg-background-dark text-nura-muted dark:text-slate-400'}`}
+                        className={`py-2 rounded-xl text-[10px] font-medium transition-all ${schedDay === i ? 'bg-emerald-500 text-white' : 'bg-Malama-bg dark:bg-background-dark text-Malama-muted dark:text-slate-400'}`}
                       >
                         {d}
                       </button>
@@ -919,12 +919,12 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
 
               {/* Time */}
               <div className="mb-4">
-                <p className="text-xs font-semibold text-nura-main dark:text-white mb-2">Horário</p>
+                <p className="text-xs font-semibold text-Malama-main dark:text-white mb-2">Horário</p>
                 <input
                   type="time"
                   value={schedTime}
                   onChange={e => setSchedTime(e.target.value)}
-                  className="w-full p-3 bg-nura-bg dark:bg-background-dark border border-nura-border dark:border-white/10 rounded-xl text-sm text-nura-main dark:text-white"
+                  className="w-full p-3 bg-Malama-bg dark:bg-background-dark border border-Malama-border dark:border-white/10 rounded-xl text-sm text-Malama-main dark:text-white"
                 />
               </div>
 
@@ -932,7 +932,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowScheduleModal(false)}
-                  className="flex-1 py-3 rounded-xl border border-nura-border dark:border-white/10 text-nura-muted dark:text-slate-400 text-sm font-semibold"
+                  className="flex-1 py-3 rounded-xl border border-Malama-border dark:border-white/10 text-Malama-muted dark:text-slate-400 text-sm font-semibold"
                 >
                   Cancelar
                 </button>

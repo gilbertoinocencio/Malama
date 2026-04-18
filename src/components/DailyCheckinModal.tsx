@@ -65,15 +65,15 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
       <div className="bg-white dark:bg-surface-dark rounded-t-3xl sm:rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white dark:bg-surface-dark border-b border-nura-border dark:border-gray-700 px-6 py-4 rounded-t-3xl">
+        <div className="sticky top-0 z-10 bg-white dark:bg-surface-dark border-b border-Malama-border dark:border-gray-700 px-6 py-4 rounded-t-3xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-2xl bg-nura-petrol/10 dark:bg-primary/10 flex items-center justify-center">
-                <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-[24px]">
+              <div className="size-10 rounded-2xl bg-Malama-petrol/10 dark:bg-primary/10 flex items-center justify-center">
+                <span className="material-symbols-outlined text-Malama-petrol dark:text-primary text-[24px]">
                   psychology
                 </span>
               </div>
-              <h2 className="text-lg font-bold text-nura-main dark:text-white">
+              <h2 className="text-lg font-bold text-Malama-main dark:text-white">
                 Check-in Diário
               </h2>
             </div>
@@ -81,7 +81,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
               onClick={onClose}
               className="size-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition-colors"
             >
-              <span className="material-symbols-outlined text-nura-muted text-[20px]">
+              <span className="material-symbols-outlined text-Malama-muted text-[20px]">
                 close
               </span>
             </button>
@@ -94,7 +94,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
           {step === 'metrics' && (
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <p className="text-sm text-nura-muted dark:text-gray-400">
+                <p className="text-sm text-Malama-muted dark:text-gray-400">
                   Como você está se sentindo hoje?
                 </p>
               </div>
@@ -137,7 +137,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
 
               <button
                 onClick={handleSubmitMetrics}
-                className="w-full py-4 rounded-2xl bg-nura-petrol dark:bg-primary text-white font-bold
+                className="w-full py-4 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold
                   shadow-lg hover:shadow-xl hover:brightness-110 active:scale-[0.98] transition-all
                   flex items-center justify-center gap-2"
               >
@@ -151,14 +151,14 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
           {step === 'feedback' && (
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <p className="text-sm text-nura-muted dark:text-gray-400">
+                <p className="text-sm text-Malama-muted dark:text-gray-400">
                   Informações adicionais (opcional)
                 </p>
               </div>
 
               {/* Sleep */}
               <div className="space-y-3">
-                <label className="block text-sm font-semibold text-nura-main dark:text-white">
+                <label className="block text-sm font-semibold text-Malama-main dark:text-white">
                   Quantas horas você dormiu?
                 </label>
                 <input
@@ -169,10 +169,10 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                   min="0"
                   max="24"
                   step="0.5"
-                  className="w-full px-4 py-3.5 rounded-2xl border-2 border-nura-border dark:border-gray-700
-                    bg-white dark:bg-background-dark text-nura-main dark:text-white
-                    placeholder-nura-muted dark:placeholder-gray-500
-                    focus:outline-none focus:border-nura-petrol dark:focus:border-primary
+                  className="w-full px-4 py-3.5 rounded-2xl border-2 border-Malama-border dark:border-gray-700
+                    bg-white dark:bg-background-dark text-Malama-main dark:text-white
+                    placeholder-Malama-muted dark:placeholder-gray-500
+                    focus:outline-none focus:border-Malama-petrol dark:focus:border-primary
                     transition-colors"
                 />
               </div>
@@ -190,7 +190,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
 
               {/* Notes */}
               <div className="space-y-3">
-                <label className="block text-sm font-semibold text-nura-main dark:text-white">
+                <label className="block text-sm font-semibold text-Malama-main dark:text-white">
                   Algo mais que você queira compartilhar?
                 </label>
                 <textarea
@@ -198,10 +198,10 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Ex: Senti dor de cabeça hoje, tive um dia estressante..."
                   rows={4}
-                  className="w-full px-4 py-3.5 rounded-2xl border-2 border-nura-border dark:border-gray-700
-                    bg-white dark:bg-background-dark text-nura-main dark:text-white
-                    placeholder-nura-muted dark:placeholder-gray-500
-                    focus:outline-none focus:border-nura-petrol dark:focus:border-primary
+                  className="w-full px-4 py-3.5 rounded-2xl border-2 border-Malama-border dark:border-gray-700
+                    bg-white dark:bg-background-dark text-Malama-main dark:text-white
+                    placeholder-Malama-muted dark:placeholder-gray-500
+                    focus:outline-none focus:border-Malama-petrol dark:focus:border-primary
                     transition-colors resize-none"
                 />
               </div>
@@ -209,8 +209,8 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep('metrics')}
-                  className="flex-1 py-4 rounded-2xl border-2 border-nura-border dark:border-gray-700
-                    text-nura-main dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-gray-800
+                  className="flex-1 py-4 rounded-2xl border-2 border-Malama-border dark:border-gray-700
+                    text-Malama-main dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-gray-800
                     transition-colors flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-[20px]">arrow_back</span>
@@ -219,7 +219,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                 <button
                   onClick={handleSubmitCheckin}
                   disabled={submitting}
-                  className="flex-1 py-4 rounded-2xl bg-nura-petrol dark:bg-primary text-white font-bold
+                  className="flex-1 py-4 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold
                     shadow-lg hover:shadow-xl hover:brightness-110 active:scale-[0.98] transition-all
                     disabled:opacity-50 disabled:cursor-not-allowed
                     flex items-center justify-center gap-2"
@@ -249,20 +249,20 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                 </span>
               </div>
 
-              <h3 className="text-xl font-bold text-nura-main dark:text-white">
+              <h3 className="text-xl font-bold text-Malama-main dark:text-white">
                 Check-in completo!
               </h3>
 
-              <div className="bg-nura-pastel-orange/20 dark:bg-primary/10 border border-nura-petrol/30 dark:border-primary/30 rounded-2xl p-5">
+              <div className="bg-Malama-pastel-orange/20 dark:bg-primary/10 border border-Malama-petrol/30 dark:border-primary/30 rounded-2xl p-5">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-[24px]">
+                  <span className="material-symbols-outlined text-Malama-petrol dark:text-primary text-[24px]">
                     psychology
                   </span>
-                  <p className="text-sm font-semibold text-nura-main dark:text-white text-left">
+                  <p className="text-sm font-semibold text-Malama-main dark:text-white text-left">
                     Feedback do seu Coach:
                   </p>
                 </div>
-                <p className="text-sm text-nura-muted dark:text-gray-300 text-left leading-relaxed">
+                <p className="text-sm text-Malama-muted dark:text-gray-300 text-left leading-relaxed">
                   {coachFeedback}
                 </p>
               </div>
@@ -278,7 +278,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
 
               <button
                 onClick={handleFinish}
-                className="w-full py-4 rounded-2xl bg-nura-petrol dark:bg-primary text-white font-bold
+                className="w-full py-4 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold
                   shadow-lg hover:shadow-xl hover:brightness-110 active:scale-[0.98] transition-all"
               >
                 Voltar para Início
@@ -312,17 +312,17 @@ const MetricSlider: React.FC<MetricSliderProps> = ({
   const percentage = ((value - 1) / 9) * 100;
 
   return (
-    <div className="space-y-3 bg-white dark:bg-background-dark border border-nura-border dark:border-gray-700 rounded-2xl p-4">
+    <div className="space-y-3 bg-white dark:bg-background-dark border border-Malama-border dark:border-gray-700 rounded-2xl p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-nura-petrol dark:text-primary text-[20px]">
+          <span className="material-symbols-outlined text-Malama-petrol dark:text-primary text-[20px]">
             {icon}
           </span>
-          <span className="text-sm font-semibold text-nura-main dark:text-white">
+          <span className="text-sm font-semibold text-Malama-main dark:text-white">
             {label}
           </span>
         </div>
-        <span className="text-lg font-bold text-nura-petrol dark:text-primary">
+        <span className="text-lg font-bold text-Malama-petrol dark:text-primary">
           {value}
         </span>
       </div>
@@ -337,14 +337,14 @@ const MetricSlider: React.FC<MetricSliderProps> = ({
         className="w-full h-2 rounded-full appearance-none cursor-pointer"
         style={{
           background: `linear-gradient(to right,
-            rgb(var(--color-nura-petrol) / 1) 0%,
-            rgb(var(--color-nura-petrol) / 1) ${percentage}%,
+            rgb(var(--color-Malama-petrol) / 1) 0%,
+            rgb(var(--color-Malama-petrol) / 1) ${percentage}%,
             rgb(229 231 235 / 1) ${percentage}%,
             rgb(229 231 235 / 1) 100%)`,
         }}
       />
 
-      <div className="flex items-center justify-between text-xs text-nura-muted dark:text-gray-500">
+      <div className="flex items-center justify-between text-xs text-Malama-muted dark:text-gray-500">
         <span>{lowLabel}</span>
         <span>{highLabel}</span>
       </div>

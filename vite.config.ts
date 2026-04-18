@@ -19,10 +19,10 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['logo.jpg', 'apple-touch-icon.png'],
         manifest: {
-          name: 'NURA - Feed the Flow',
-          short_name: 'NURA',
+          name: 'Malama - Feed the Flow',
+          short_name: 'Malama',
           description: 'Align your nutrition with your natural rhythm using AI.',
-          theme_color: '#1F4E5F',
+          theme_color: '#9c5d4b',
           background_color: '#FDFBF9',
           display: 'standalone',
           orientation: 'portrait',

@@ -63,28 +63,28 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
           { icon: <Clock className="w-5 h-5 text-[#2ECC71]" />, label: 'Pendente', value: fmtCurrency(influencerRecord.pending_amount ?? 0) },
           { icon: <DollarSign className="w-5 h-5 text-[#2ECC71]" />, label: 'Total ganho', value: fmtCurrency(influencerRecord.total_earned ?? 0) },
         ].map(({ icon, label, value }) => (
-          <div key={label} className="bg-white dark:bg-[#1a2630] border border-nura-border dark:border-gray-800 rounded-xl p-4 text-center">
+          <div key={label} className="bg-white dark:bg-[#1a2630] border border-Malama-border dark:border-gray-800 rounded-xl p-4 text-center">
             <div className="flex justify-center mb-2">{icon}</div>
-            <p className="text-nura-main dark:text-white font-bold text-base leading-tight">{value}</p>
-            <p className="text-nura-muted dark:text-gray-400 text-xs mt-0.5">{label}</p>
+            <p className="text-Malama-main dark:text-white font-bold text-base leading-tight">{value}</p>
+            <p className="text-Malama-muted dark:text-gray-400 text-xs mt-0.5">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Link de indicação */}
-      <div className="bg-white dark:bg-[#1a2630] border border-nura-border dark:border-gray-800 rounded-2xl p-5">
-        <p className="text-sm font-bold text-nura-main dark:text-white mb-1">Seu link de indicação</p>
-        <p className="text-xs text-nura-muted dark:text-gray-400 mb-3">
+      <div className="bg-white dark:bg-[#1a2630] border border-Malama-border dark:border-gray-800 rounded-2xl p-5">
+        <p className="text-sm font-bold text-Malama-main dark:text-white mb-1">Seu link de indicação</p>
+        <p className="text-xs text-Malama-muted dark:text-gray-400 mb-3">
           Compartilhe este link. A cada novo usuário cadastrado, você ganha{' '}
           <span className="text-[#2ECC71] font-semibold">{fmtCurrency(influencerRecord.commission_per_referral ?? 0)}</span>.
         </p>
         <div className="flex gap-2">
-          <div className="flex-1 bg-nura-bg dark:bg-white/5 border border-nura-border dark:border-white/10 rounded-lg px-3 py-2 text-xs text-nura-muted dark:text-gray-300 truncate">
+          <div className="flex-1 bg-Malama-bg dark:bg-white/5 border border-Malama-border dark:border-white/10 rounded-lg px-3 py-2 text-xs text-Malama-muted dark:text-gray-300 truncate">
             {influencerLink}
           </div>
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-2 border border-nura-border dark:border-white/10 rounded-lg text-xs text-nura-muted dark:text-gray-300 hover:bg-nura-bg dark:hover:bg-white/5 transition whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-2 border border-Malama-border dark:border-white/10 rounded-lg text-xs text-Malama-muted dark:text-gray-300 hover:bg-Malama-bg dark:hover:bg-white/5 transition whitespace-nowrap"
           >
             {copied ? <Check className="w-4 h-4 text-[#2ECC71]" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copiado!' : 'Copiar'}
@@ -93,9 +93,9 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
       </div>
 
       {/* Alterar senha */}
-      <div className="bg-white dark:bg-[#1a2630] border border-nura-border dark:border-gray-800 rounded-2xl p-5">
+      <div className="bg-white dark:bg-[#1a2630] border border-Malama-border dark:border-gray-800 rounded-2xl p-5">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-bold text-nura-main dark:text-white">Alterar senha</p>
+          <p className="text-sm font-bold text-Malama-main dark:text-white">Alterar senha</p>
           <button
             onClick={() => setShowChangePass(v => !v)}
             className="text-[#2ECC71] text-sm hover:underline"
@@ -112,9 +112,9 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
                 value={newPass}
                 onChange={e => setNewPass(e.target.value)}
                 placeholder="Nova senha (mínimo 8 caracteres)"
-                className="w-full pr-10 px-3 py-2.5 bg-nura-bg dark:bg-white/5 border border-nura-border dark:border-white/10 rounded-lg text-nura-main dark:text-white text-sm placeholder-gray-400 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent outline-none"
+                className="w-full pr-10 px-3 py-2.5 bg-Malama-bg dark:bg-white/5 border border-Malama-border dark:border-white/10 rounded-lg text-Malama-main dark:text-white text-sm placeholder-gray-400 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent outline-none"
               />
-              <button type="button" onClick={() => setShowPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-nura-muted dark:text-gray-400">
+              <button type="button" onClick={() => setShowPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-Malama-muted dark:text-gray-400">
                 {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
@@ -123,7 +123,7 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
               value={confirmPass}
               onChange={e => setConfirmPass(e.target.value)}
               placeholder="Confirmar nova senha"
-              className="w-full px-3 py-2.5 bg-nura-bg dark:bg-white/5 border border-nura-border dark:border-white/10 rounded-lg text-nura-main dark:text-white text-sm placeholder-gray-400 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent outline-none"
+              className="w-full px-3 py-2.5 bg-Malama-bg dark:bg-white/5 border border-Malama-border dark:border-white/10 rounded-lg text-Malama-main dark:text-white text-sm placeholder-gray-400 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent outline-none"
             />
             {passMsg && (
               <p className={`text-sm px-3 py-2 rounded-lg border ${passMsg.type === 'success'
@@ -338,12 +338,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         const entry = heatmapData.find(d => d.date === dateStr);
         const score = entry?.score || 0;
 
-        let intensity = 'bg-nura-pastel-orange dark:bg-gray-700';
-        if (score >= 85) intensity = 'bg-nura-petrol dark:bg-primary';
-        else if (score >= 70) intensity = 'bg-nura-petrol/80 dark:bg-primary/80';
-        else if (score >= 50) intensity = 'bg-nura-petrol/60 dark:bg-primary/60';
-        else if (score >= 30) intensity = 'bg-nura-petrol/40 dark:bg-primary/40';
-        else if (score > 0) intensity = 'bg-nura-petrol/20 dark:bg-primary/20';
+        let intensity = 'bg-Malama-pastel-orange dark:bg-gray-700';
+        if (score >= 85) intensity = 'bg-Malama-petrol dark:bg-primary';
+        else if (score >= 70) intensity = 'bg-Malama-petrol/80 dark:bg-primary/80';
+        else if (score >= 50) intensity = 'bg-Malama-petrol/60 dark:bg-primary/60';
+        else if (score >= 30) intensity = 'bg-Malama-petrol/40 dark:bg-primary/40';
+        else if (score > 0) intensity = 'bg-Malama-petrol/20 dark:bg-primary/20';
 
         colCells.push(
           <div key={`${c}-${r}`} className={`w-3 h-3 rounded-[2px] ${intensity}`}></div>
@@ -413,17 +413,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const achievements = getAchievements();
 
   return (
-    <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden bg-nura-bg dark:bg-background-dark font-display text-nura-main dark:text-white animate-fade-in transition-colors duration-300">
+    <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden bg-Malama-bg dark:bg-background-dark font-display text-Malama-main dark:text-white animate-fade-in transition-colors duration-300">
 
       {/* Header */}
       <header className="flex items-center justify-between p-4 pt-12 pb-2">
-        <h2 className="text-3xl font-serif italic text-nura-main dark:text-white flex-1">{t.profile.title}</h2>
+        <h2 className="text-3xl font-serif italic text-Malama-main dark:text-white flex-1">{t.profile.title}</h2>
         <div className="flex items-center gap-1">
           <button
             onClick={onToggleTheme}
             className="flex items-center justify-center p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           >
-            <span className="material-symbols-outlined text-nura-main dark:text-white" style={{ fontSize: '24px' }}>
+            <span className="material-symbols-outlined text-Malama-main dark:text-white" style={{ fontSize: '24px' }}>
               {isDarkMode ? 'light_mode' : 'dark_mode'}
             </span>
           </button>
@@ -431,7 +431,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             onClick={onSettingsClick}
             className="flex items-center justify-center p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           >
-            <span className="material-symbols-outlined text-nura-main dark:text-white" style={{ fontSize: '24px' }}>settings</span>
+            <span className="material-symbols-outlined text-Malama-main dark:text-white" style={{ fontSize: '24px' }}>settings</span>
           </button>
         </div>
       </header>
@@ -446,7 +446,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             >
               {uploadingAvatar && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-nura-petrol dark:border-primary"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-Malama-petrol dark:border-primary"></div>
                 </div>
               )}
             </div>
@@ -456,7 +456,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <span className="material-symbols-outlined text-white text-3xl">photo_camera</span>
               </div>
             )}
-            <div className="absolute bottom-1 right-1 bg-nura-petrol dark:bg-primary text-white rounded-full p-1 border-2 border-white dark:border-[#101a22]">
+            <div className="absolute bottom-1 right-1 bg-Malama-petrol dark:bg-primary text-white rounded-full p-1 border-2 border-white dark:border-[#101a22]">
               <span className="material-symbols-outlined block text-[16px] leading-none">edit</span>
             </div>
             <input
@@ -467,21 +467,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               onChange={handleAvatarUpload}
             />
           </div>
-          <h1 className="text-nura-main dark:text-white text-2xl font-bold leading-tight tracking-tight text-center">
+          <h1 className="text-Malama-main dark:text-white text-2xl font-bold leading-tight tracking-tight text-center">
             {profile?.display_name || profile?.email || t.dashboard.defaultUser}
           </h1>
-          <p className="text-nura-muted dark:text-gray-400 text-sm font-medium mt-1">
+          <p className="text-Malama-muted dark:text-gray-400 text-sm font-medium mt-1">
             {profile?.goal ? t.profile.goals[profile.goal as keyof typeof t.profile.goals] : t.profile.defineProfile}
           </p>
         </section>
 
         {/* Language Selector */}
         <section className="w-full px-6 mb-6">
-          <div className="bg-white dark:bg-[#1a2630] rounded-2xl p-4 shadow-sm border border-nura-border dark:border-gray-800 transition-colors">
+          <div className="bg-white dark:bg-[#1a2630] rounded-2xl p-4 shadow-sm border border-Malama-border dark:border-gray-800 transition-colors">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-nura-petrol dark:text-primary">translate</span>
-                <span className="text-sm font-bold text-nura-main dark:text-white">{t.profile.language}</span>
+                <span className="material-symbols-outlined text-Malama-petrol dark:text-primary">translate</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white">{t.profile.language}</span>
               </div>
             </div>
             <div className="flex gap-2">
@@ -490,8 +490,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   key={lang.code}
                   onClick={() => setLanguage(lang.code as 'en' | 'pt' | 'es')}
                   className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${language === lang.code
-                    ? 'bg-nura-petrol dark:bg-primary text-white shadow-md'
-                    : 'bg-nura-bg dark:bg-white/5 text-nura-muted dark:text-gray-400 hover:bg-nura-petrol/10 dark:hover:bg-primary/10'
+                    ? 'bg-Malama-petrol dark:bg-primary text-white shadow-md'
+                    : 'bg-Malama-bg dark:bg-white/5 text-Malama-muted dark:text-gray-400 hover:bg-Malama-petrol/10 dark:hover:bg-primary/10'
                     }`}
                 >
                   {lang.label}
@@ -504,19 +504,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {/* Heatmap Section */}
         <section className="w-full px-6 mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-nura-main dark:text-white text-lg font-bold leading-tight">{t.profile.flowStatus}</h3>
-            <span className="text-nura-petrol dark:text-primary text-xs font-semibold uppercase tracking-wider">{t.profile.last3Months}</span>
+            <h3 className="text-Malama-main dark:text-white text-lg font-bold leading-tight">{t.profile.flowStatus}</h3>
+            <span className="text-Malama-petrol dark:text-primary text-xs font-semibold uppercase tracking-wider">{t.profile.last3Months}</span>
           </div>
-          <div className="bg-white dark:bg-[#1a2630] p-5 rounded-2xl shadow-sm border border-nura-border dark:border-gray-800 overflow-x-auto no-scrollbar transition-colors">
+          <div className="bg-white dark:bg-[#1a2630] p-5 rounded-2xl shadow-sm border border-Malama-border dark:border-gray-800 overflow-x-auto no-scrollbar transition-colors">
             {loading ? (
               <div className="flex justify-center py-6">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-nura-petrol dark:border-primary"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-Malama-petrol dark:border-primary"></div>
               </div>
             ) : heatmapData.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <span className="material-symbols-outlined text-nura-muted dark:text-gray-500 mb-2" style={{ fontSize: '48px' }}>calendar_month</span>
-                <p className="text-sm font-medium text-nura-main dark:text-white mb-1">{t.profile.noDataYet || 'Nenhum dado ainda'}</p>
-                <p className="text-xs text-nura-muted dark:text-gray-400 max-w-[200px]">
+                <span className="material-symbols-outlined text-Malama-muted dark:text-gray-500 mb-2" style={{ fontSize: '48px' }}>calendar_month</span>
+                <p className="text-sm font-medium text-Malama-main dark:text-white mb-1">{t.profile.noDataYet || 'Nenhum dado ainda'}</p>
+                <p className="text-xs text-Malama-muted dark:text-gray-400 max-w-[200px]">
                   {language === 'pt'
                     ? 'Registre suas refeições para ver seu progresso aqui.'
                     : 'Log your meals to see your progress here.'}
@@ -532,11 +532,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </div>
                 {/* Legend */}
                 <div className="flex items-center justify-end gap-2 mt-4">
-                  <span className="text-[10px] text-nura-muted dark:text-gray-400 font-medium">{t.profile.low}</span>
-                  <div className="w-2 h-2 rounded-[1px] bg-nura-pastel-orange dark:bg-gray-700"></div>
-                  <div className="w-2 h-2 rounded-[1px] bg-nura-petrol/40 dark:bg-primary/40"></div>
-                  <div className="w-2 h-2 rounded-[1px] bg-nura-petrol dark:bg-primary"></div>
-                  <span className="text-[10px] text-nura-muted dark:text-gray-400 font-medium">{t.profile.high}</span>
+                  <span className="text-[10px] text-Malama-muted dark:text-gray-400 font-medium">{t.profile.low}</span>
+                  <div className="w-2 h-2 rounded-[1px] bg-Malama-pastel-orange dark:bg-gray-700"></div>
+                  <div className="w-2 h-2 rounded-[1px] bg-Malama-petrol/40 dark:bg-primary/40"></div>
+                  <div className="w-2 h-2 rounded-[1px] bg-Malama-petrol dark:bg-primary"></div>
+                  <span className="text-[10px] text-Malama-muted dark:text-gray-400 font-medium">{t.profile.high}</span>
                 </div>
               </>
             )}
@@ -546,32 +546,32 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {/* Stats Section */}
         <section className="w-full px-6 mb-8">
           <div className="grid grid-cols-3 gap-3">
-            <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-[#1a2630] rounded-xl shadow-sm border border-nura-border dark:border-gray-800 h-28 transition-colors">
-              <span className="material-symbols-outlined text-nura-petrol dark:text-primary mb-2" style={{ fontSize: '24px' }}>calendar_today</span>
-              <p className="text-2xl font-bold text-nura-main dark:text-white leading-none">
+            <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-[#1a2630] rounded-xl shadow-sm border border-Malama-border dark:border-gray-800 h-28 transition-colors">
+              <span className="material-symbols-outlined text-Malama-petrol dark:text-primary mb-2" style={{ fontSize: '24px' }}>calendar_today</span>
+              <p className="text-2xl font-bold text-Malama-main dark:text-white leading-none">
                 {loading ? '—' : gamification?.totalFlowDays || 0}
               </p>
-              <p className="text-xs text-center text-nura-muted dark:text-gray-400 mt-1 font-medium">{t.profile.flowDays}</p>
+              <p className="text-xs text-center text-Malama-muted dark:text-gray-400 mt-1 font-medium">{t.profile.flowDays}</p>
             </div>
-            <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-[#1a2630] rounded-xl shadow-sm border border-nura-border dark:border-gray-800 h-28 transition-colors">
-              <span className="material-symbols-outlined text-nura-petrol dark:text-primary mb-2" style={{ fontSize: '24px' }}>restaurant_menu</span>
-              <p className="text-2xl font-bold text-nura-main dark:text-white leading-none">
+            <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-[#1a2630] rounded-xl shadow-sm border border-Malama-border dark:border-gray-800 h-28 transition-colors">
+              <span className="material-symbols-outlined text-Malama-petrol dark:text-primary mb-2" style={{ fontSize: '24px' }}>restaurant_menu</span>
+              <p className="text-2xl font-bold text-Malama-main dark:text-white leading-none">
                 {loading ? '—' : totalMeals}
               </p>
-              <p className="text-xs text-center text-nura-muted dark:text-gray-400 mt-1 font-medium">{t.profile.meals}</p>
+              <p className="text-xs text-center text-Malama-muted dark:text-gray-400 mt-1 font-medium">{t.profile.meals}</p>
             </div>
             <div
               onClick={() => onNavClick(AppView.QUARTERLY_ANALYSIS)}
-              className="flex flex-col items-center justify-center p-4 bg-white dark:bg-[#1a2630] rounded-xl shadow-sm border border-nura-border dark:border-gray-800 h-28 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors relative overflow-hidden group"
+              className="flex flex-col items-center justify-center p-4 bg-white dark:bg-[#1a2630] rounded-xl shadow-sm border border-Malama-border dark:border-gray-800 h-28 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors relative overflow-hidden group"
             >
               <div className="absolute top-1 right-1">
                 <span className="material-symbols-outlined text-gray-300 text-xs">arrow_outward</span>
               </div>
-              <span className="material-symbols-outlined text-nura-petrol dark:text-primary mb-2" style={{ fontSize: '24px' }}>trending_up</span>
-              <p className="text-2xl font-bold text-nura-main dark:text-white leading-none">
+              <span className="material-symbols-outlined text-Malama-petrol dark:text-primary mb-2" style={{ fontSize: '24px' }}>trending_up</span>
+              <p className="text-2xl font-bold text-Malama-main dark:text-white leading-none">
                 {loading ? '—' : `${consistencyPercent}%`}
               </p>
-              <p className="text-xs text-center text-nura-muted dark:text-gray-400 mt-1 font-medium">{t.profile.consistency}</p>
+              <p className="text-xs text-center text-Malama-muted dark:text-gray-400 mt-1 font-medium">{t.profile.consistency}</p>
             </div>
           </div>
         </section>
@@ -580,34 +580,34 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         <section className="w-full px-6 mb-8 flex flex-col gap-3">
           <div
             onClick={() => onNavClick(AppView.DAILY_JOURNAL)}
-            className="w-full bg-gradient-to-r from-nura-petrol/10 to-transparent dark:from-primary/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-nura-petrol/20 dark:border-primary/20 cursor-pointer hover:bg-nura-petrol/10 transition-colors group"
+            className="w-full bg-gradient-to-r from-Malama-petrol/10 to-transparent dark:from-primary/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-Malama-petrol/20 dark:border-primary/20 cursor-pointer hover:bg-Malama-petrol/10 transition-colors group"
           >
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-nura-petrol dark:text-primary shadow-sm border border-nura-border dark:border-transparent">
+              <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-Malama-petrol dark:text-primary shadow-sm border border-Malama-border dark:border-transparent">
                 <span className="material-symbols-outlined filled" style={{ fontVariationSettings: "'FILL' 1" }}>book</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-nura-main dark:text-white">Diário Pessoal</span>
-                <span className="text-xs text-nura-muted dark:text-gray-400">Suas anotações, evoluções e reflexões</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white">Diário Pessoal</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">Suas anotações, evoluções e reflexões</span>
               </div>
             </div>
-            <span className="material-symbols-outlined text-nura-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>
+            <span className="material-symbols-outlined text-Malama-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>
           </div>
 
           <div
             onClick={() => onNavClick(AppView.INTEGRATIONS)}
-            className="w-full bg-gradient-to-r from-nura-petrol/5 to-transparent dark:from-primary/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-nura-petrol/10 dark:border-primary/20 cursor-pointer hover:bg-nura-petrol/5 transition-colors group"
+            className="w-full bg-gradient-to-r from-Malama-petrol/5 to-transparent dark:from-primary/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-Malama-petrol/10 dark:border-primary/20 cursor-pointer hover:bg-Malama-petrol/5 transition-colors group"
           >
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-nura-petrol dark:text-primary shadow-sm border border-nura-border dark:border-transparent">
+              <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-Malama-petrol dark:text-primary shadow-sm border border-Malama-border dark:border-transparent">
                 <span className="material-symbols-outlined filled" style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-nura-main dark:text-white">{t.profile.integrations}</span>
-                <span className="text-xs text-nura-muted dark:text-gray-400">Strava, Apple Health, Garmin...</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white">{t.profile.integrations}</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">Strava, Apple Health, Garmin...</span>
               </div>
             </div>
-            <span className="material-symbols-outlined text-nura-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>
+            <span className="material-symbols-outlined text-Malama-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>
           </div>
 
           {/* Teleconsulta */}
@@ -616,12 +616,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             className="w-full bg-gradient-to-r from-emerald-500/10 to-transparent dark:from-emerald-500/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-emerald-500/20 dark:border-emerald-500/20 cursor-pointer hover:bg-emerald-500/10 transition-colors group"
           >
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm border border-nura-border dark:border-transparent">
+              <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm border border-Malama-border dark:border-transparent">
                 <span className="material-symbols-outlined">videocam</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-nura-main dark:text-white">Teleconsulta médica</span>
-                <span className="text-xs text-nura-muted dark:text-gray-400">Agendar consulta com especialista</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white">Teleconsulta médica</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">Agendar consulta com especialista</span>
               </div>
             </div>
             <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
@@ -630,18 +630,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           {/* Minhas Consultas */}
           <div
             onClick={() => onNavClick(AppView.MINHAS_CONSULTAS)}
-            className="w-full bg-gradient-to-r from-nura-petrol/5 to-transparent dark:from-primary/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-nura-petrol/10 dark:border-primary/20 cursor-pointer hover:bg-nura-petrol/5 transition-colors group"
+            className="w-full bg-gradient-to-r from-Malama-petrol/5 to-transparent dark:from-primary/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-Malama-petrol/10 dark:border-primary/20 cursor-pointer hover:bg-Malama-petrol/5 transition-colors group"
           >
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-nura-petrol dark:text-primary shadow-sm border border-nura-border dark:border-transparent">
+              <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-Malama-petrol dark:text-primary shadow-sm border border-Malama-border dark:border-transparent">
                 <span className="material-symbols-outlined">event_note</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-nura-main dark:text-white">Minhas consultas</span>
-                <span className="text-xs text-nura-muted dark:text-gray-400">Histórico, receitas e avaliações</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white">Minhas consultas</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">Histórico, receitas e avaliações</span>
               </div>
             </div>
-            <span className="material-symbols-outlined text-nura-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>
+            <span className="material-symbols-outlined text-Malama-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>
           </div>
         </section>
 
@@ -655,10 +655,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-nura-main dark:text-white font-bold text-sm">Programa GLP-1</h3>
+                    <h3 className="text-Malama-main dark:text-white font-bold text-sm">Programa GLP-1</h3>
                     <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold rounded-full">Ativo</span>
                   </div>
-                  <p className="text-nura-muted dark:text-gray-400 text-xs leading-relaxed">
+                  <p className="text-Malama-muted dark:text-gray-400 text-xs leading-relaxed">
                     {profile.glp1_medication || 'GLP-1'} — Veja todos os detalhes na aba <span className="font-semibold text-green-600 dark:text-green-400">Início</span>
                   </p>
                 </div>
@@ -678,8 +678,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <HelpCircle className="w-7 h-7 text-blue-500 dark:text-blue-400" />
               </div>
               <div className="flex-1">
-                <h3 className="text-nura-main dark:text-white font-bold text-sm mb-1">Central de Ajuda</h3>
-                <p className="text-nura-muted dark:text-gray-400 text-xs leading-relaxed">FAQ, tutoriais e suporte ao vivo</p>
+                <h3 className="text-Malama-main dark:text-white font-bold text-sm mb-1">Central de Ajuda</h3>
+                <p className="text-Malama-muted dark:text-gray-400 text-xs leading-relaxed">FAQ, tutoriais e suporte ao vivo</p>
               </div>
               <span className="material-symbols-outlined text-blue-500 dark:text-blue-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
             </div>
@@ -688,20 +688,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
         {/* Corpo & Métricas */}
         <section className="w-full px-6 mb-8">
-          <h3 className="text-nura-main dark:text-white text-base font-bold mb-3">Corpo & Métricas</h3>
-          <div className="bg-white dark:bg-[#1a2630] rounded-2xl border border-nura-border dark:border-gray-800 overflow-hidden shadow-sm">
+          <h3 className="text-Malama-main dark:text-white text-base font-bold mb-3">Corpo & Métricas</h3>
+          <div className="bg-white dark:bg-[#1a2630] rounded-2xl border border-Malama-border dark:border-gray-800 overflow-hidden shadow-sm">
 
             {/* Body Scan row */}
             <div
               onClick={() => setShowBodyScanner(true)}
-              className="flex items-center gap-4 p-4 border-b border-nura-border dark:border-gray-800 cursor-pointer hover:bg-nura-bg dark:hover:bg-white/5 transition-colors group"
+              className="flex items-center gap-4 p-4 border-b border-Malama-border dark:border-gray-800 cursor-pointer hover:bg-Malama-bg dark:hover:bg-white/5 transition-colors group"
             >
               <div className="size-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,0.12)' }}>
                 <span className="material-symbols-outlined text-[22px]" style={{ color: '#8b5cf6' }}>photo_camera</span>
               </div>
               <div className="flex-1">
-                <span className="text-sm font-bold text-nura-main dark:text-white block">Body Scan AI</span>
-                <span className="text-xs text-nura-muted dark:text-gray-400">Fotos + análise de composição corporal</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white block">Body Scan AI</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">Fotos + análise de composição corporal</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -711,45 +711,45 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 >
                   <span className="material-symbols-outlined text-sm leading-none">add_photo_alternate</span>
                 </button>
-                <span className="material-symbols-outlined text-nura-muted dark:text-gray-500 group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+                <span className="material-symbols-outlined text-Malama-muted dark:text-gray-500 group-hover:translate-x-0.5 transition-transform">chevron_right</span>
               </div>
             </div>
 
             {/* Metrics chart row */}
             <div
               onClick={() => setShowMetricsChart(true)}
-              className="flex items-center gap-4 p-4 cursor-pointer hover:bg-nura-bg dark:hover:bg-white/5 transition-colors group"
+              className="flex items-center gap-4 p-4 cursor-pointer hover:bg-Malama-bg dark:hover:bg-white/5 transition-colors group"
             >
               <div className="size-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(16,185,129,0.12)' }}>
                 <span className="material-symbols-outlined text-[22px]" style={{ color: '#10b981' }}>insights</span>
               </div>
               <div className="flex-1">
-                <span className="text-sm font-bold text-nura-main dark:text-white block">Gráficos de Evolução</span>
-                <span className="text-xs text-nura-muted dark:text-gray-400">Peso, gordura, músculo e medidas</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white block">Gráficos de Evolução</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">Peso, gordura, músculo e medidas</span>
               </div>
-              <span className="material-symbols-outlined text-nura-muted dark:text-gray-500 group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+              <span className="material-symbols-outlined text-Malama-muted dark:text-gray-500 group-hover:translate-x-0.5 transition-transform">chevron_right</span>
             </div>
           </div>
         </section>
 
         {/* Achievements Section */}
         <section className="w-full px-6 mb-8">
-          <h3 className="text-nura-main dark:text-white text-lg font-bold leading-tight mb-4">{t.profile.recentAchievements}</h3>
+          <h3 className="text-Malama-main dark:text-white text-lg font-bold leading-tight mb-4">{t.profile.recentAchievements}</h3>
           <div className="flex flex-col gap-3">
             {achievements.length === 0 ? (
-              <div className="text-center py-8 text-nura-muted dark:text-gray-500 flex flex-col items-center gap-2">
+              <div className="text-center py-8 text-Malama-muted dark:text-gray-500 flex flex-col items-center gap-2">
                 <span className="material-symbols-outlined text-3xl">emoji_events</span>
                 <span className="text-sm">{t.quarterlyPlan.noData}</span>
               </div>
             ) : (
               achievements.map((ach, idx) => (
-                <div key={idx} className="flex items-center gap-4 p-4 bg-white dark:bg-[#1a2630] rounded-xl border border-nura-border dark:border-gray-800 transition-colors shadow-sm dark:shadow-none">
+                <div key={idx} className="flex items-center gap-4 p-4 bg-white dark:bg-[#1a2630] rounded-xl border border-Malama-border dark:border-gray-800 transition-colors shadow-sm dark:shadow-none">
                   <div className={`flex items-center justify-center w-12 h-12 rounded-full ${ach.color}`}>
                     <span className="material-symbols-outlined">{ach.icon}</span>
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-base font-bold text-nura-main dark:text-white">{ach.title}</h4>
-                    <p className="text-sm text-nura-muted dark:text-gray-400">{ach.subtitle}</p>
+                    <h4 className="text-base font-bold text-Malama-main dark:text-white">{ach.title}</h4>
+                    <p className="text-sm text-Malama-muted dark:text-gray-400">{ach.subtitle}</p>
                   </div>
                 </div>
               ))
@@ -799,22 +799,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         >
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowSupportModal(false)} />
           <motion.div
-            className="relative w-full max-w-2xl bg-nura-bg dark:bg-background-dark rounded-t-3xl max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-2xl bg-Malama-bg dark:bg-background-dark rounded-t-3xl max-h-[90vh] overflow-y-auto"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           >
             {/* Handle */}
-            <div className="sticky top-0 bg-nura-bg dark:bg-background-dark pt-3 pb-2 px-6 border-b border-nura-border dark:border-white/10">
-              <div className="w-10 h-1 bg-nura-border dark:bg-slate-600 rounded-full mx-auto mb-3" />
+            <div className="sticky top-0 bg-Malama-bg dark:bg-background-dark pt-3 pb-2 px-6 border-b border-Malama-border dark:border-white/10">
+              <div className="w-10 h-1 bg-Malama-border dark:bg-slate-600 rounded-full mx-auto mb-3" />
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-nura-main dark:text-white">Central de Ajuda</h3>
+                <h3 className="text-lg font-bold text-Malama-main dark:text-white">Central de Ajuda</h3>
                 <button
                   onClick={() => setShowSupportModal(false)}
-                  className="p-2 rounded-lg hover:bg-nura-main/5 dark:hover:bg-white/10 transition-colors"
+                  className="p-2 rounded-lg hover:bg-Malama-main/5 dark:hover:bg-white/10 transition-colors"
                 >
-                  <span className="material-symbols-outlined text-nura-muted dark:text-slate-400">close</span>
+                  <span className="material-symbols-outlined text-Malama-muted dark:text-slate-400">close</span>
                 </button>
               </div>
             </div>

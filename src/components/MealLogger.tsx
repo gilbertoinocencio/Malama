@@ -3,7 +3,7 @@ import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
 import { lookupBarcode, barcodeResultToAIResponse, enrichBarcodeWithAI } from '../services/openFoodFactsService';
-import { NuraAiScan } from './NuraAiScan';
+import { MalamaAiScan } from './MalamaAiScan';
 import { USER_AVATAR } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { MealService } from '../services/mealService';
@@ -157,7 +157,7 @@ const renderMarkdown = (text: string): React.ReactNode[] => {
     if (numberedMatch) {
       elements.push(
         <div key={`li-${i}`} className="flex gap-2 mt-1">
-          <span className="text-nura-petrol dark:text-primary font-bold shrink-0">{numberedMatch[1]}.</span>
+          <span className="text-Malama-petrol dark:text-primary font-bold shrink-0">{numberedMatch[1]}.</span>
           <span>{formatInline(numberedMatch[2], `li-${i}`)}</span>
         </div>
       );
@@ -169,7 +169,7 @@ const renderMarkdown = (text: string): React.ReactNode[] => {
     if (bulletMatch) {
       elements.push(
         <div key={`bl-${i}`} className="flex gap-2 mt-1">
-          <span className="text-nura-petrol dark:text-primary shrink-0">•</span>
+          <span className="text-Malama-petrol dark:text-primary shrink-0">•</span>
           <span>{formatInline(bulletMatch[1], `bl-${i}`)}</span>
         </div>
       );
@@ -300,7 +300,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [draftMeal, setDraftMeal] = useState<AIResponse | null>(() => {
     if (!user) return null;
     try {
-      const draftKey = `nura_draft_meal_${user.id}`;
+      const draftKey = `Malama_draft_meal_${user.id}`;
       const savedDraft = localStorage.getItem(draftKey);
       if (savedDraft) {
         const { meal, source, ts } = JSON.parse(savedDraft);
@@ -312,7 +312,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         }
       }
     } catch {
-      localStorage.removeItem(`nura_draft_meal_${user?.id}`);
+      localStorage.removeItem(`Malama_draft_meal_${user?.id}`);
     }
     return null;
   });
@@ -327,7 +327,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [scanResult, setScanResult] = useState<AIResponse | null>(() => {
     if (!user) return null;
     try {
-      const saved = localStorage.getItem(`nura_draft_meal_${user.id}`);
+      const saved = localStorage.getItem(`Malama_draft_meal_${user.id}`);
       if (saved) {
         const { scanResult: sr, ts } = JSON.parse(saved);
         if (sr && Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) return sr;
@@ -338,7 +338,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [scannedImageUri, setScannedImageUri] = useState<string | null>(() => {
     if (!user) return null;
     try {
-      const saved = localStorage.getItem(`nura_draft_meal_${user.id}`);
+      const saved = localStorage.getItem(`Malama_draft_meal_${user.id}`);
       if (saved) {
         const { imageUri, ts } = JSON.parse(saved);
         if (imageUri && Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) return imageUri;
@@ -356,7 +356,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [draftSource, setDraftSource] = useState<'chat' | 'photo' | 'barcode'>(() => {
     if (!user) return 'chat';
     try {
-      const draftKey = `nura_draft_meal_${user.id}`;
+      const draftKey = `Malama_draft_meal_${user.id}`;
       const savedDraft = localStorage.getItem(draftKey);
       if (savedDraft) {
         const { source, ts } = JSON.parse(savedDraft);
@@ -394,7 +394,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   // Persist draftMeal/scanResult/imageUri to localStorage whenever they change (after initial load)
   useEffect(() => {
     if (!user || !draftPersistedRef.current) return;
-    const key = `nura_draft_meal_${user.id}`;
+    const key = `Malama_draft_meal_${user.id}`;
     if (draftMeal || scanResult) {
       const draft: Record<string, any> = {
         meal: draftMeal ?? scanResult,
@@ -420,7 +420,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && user) {
         try {
-          const draftKey = `nura_draft_meal_${user.id}`;
+          const draftKey = `Malama_draft_meal_${user.id}`;
           const savedDraft = localStorage.getItem(draftKey);
           if (savedDraft) {
             const { meal, source, ts, scanResult: sr, imageUri } = JSON.parse(savedDraft);
@@ -431,7 +431,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             }
           }
         } catch {
-          if (user) localStorage.removeItem(`nura_draft_meal_${user.id}`);
+          if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
         }
       }
     };
@@ -1026,7 +1026,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       onLog(newMeal); // Optimistic update / update parent state
 
       setSuccess(true);
-      if (user) localStorage.removeItem(`nura_draft_meal_${user.id}`);
+      if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
       setTimeout(() => {
         onClose();
       }, 1500);
@@ -1039,7 +1039,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   const handleCancel = () => {
     // Remove pending draft from localStorage
-    if (user) localStorage.removeItem(`nura_draft_meal_${user.id}`);
+    if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
 
     // Remove the last ai-card message from chat (the pending nutritional analysis)
     setMessages((prev: Message[]) => {
@@ -1067,7 +1067,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   // Discard everything and close
   const handleDiscardAndClose = () => {
-    if (user) localStorage.removeItem(`nura_draft_meal_${user.id}`);
+    if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
     setScanResult(null);
     setScannedImageUri(null);
     setDraftMeal(null);
@@ -1130,7 +1130,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   // If we have a scan result, show the new PhotoScanResult component
   if (scanResult && scannedImageUri) {
     return (
-      <NuraAiScan
+      <MalamaAiScan
         data={scanResult}
         imageUri={scannedImageUri}
         onConfirm={(finalData) => handleConfirmLog(finalData, 'ai-photo')}
@@ -1147,13 +1147,13 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       return (
         <div key={msg.id} className="flex items-end gap-3 justify-end w-full animate-fade-in-up">
           <div className="flex flex-col gap-1 items-end max-w-[85%]">
-            <div className="bg-nura-petrol dark:bg-primary text-white text-base font-normal leading-relaxed rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm">
+            <div className="bg-Malama-petrol dark:bg-primary text-white text-base font-normal leading-relaxed rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm">
               {msg.content}
             </div>
-            <span className="text-nura-muted dark:text-slate-400 text-[11px] font-medium pr-1">Você</span>
+            <span className="text-Malama-muted dark:text-slate-400 text-[11px] font-medium pr-1">Você</span>
           </div>
           <div
-            className="bg-center bg-no-repeat bg-cover rounded-full w-8 h-8 shrink-0 border border-nura-border dark:border-white/10"
+            className="bg-center bg-no-repeat bg-cover rounded-full w-8 h-8 shrink-0 border border-Malama-border dark:border-white/10"
             style={{ backgroundImage: `url("${profile?.avatar_url || USER_AVATAR}")` }}
           />
         </div>
@@ -1164,14 +1164,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       return (
         <div key={msg.id} className="flex gap-3 w-full max-w-full animate-fade-in-up">
           <div className="shrink-0 flex flex-col justify-end pb-6">
-            <div className="bg-gradient-to-br from-nura-petrol to-[#0a90bd] dark:from-primary dark:to-[#0a90bd] flex items-center justify-center rounded-full w-8 h-8 shrink-0 shadow-lg shadow-nura-petrol/20 dark:shadow-primary/20">
+            <div className="bg-gradient-to-br from-Malama-petrol to-[#9c5d4b] dark:from-primary dark:to-[#9c5d4b] flex items-center justify-center rounded-full w-8 h-8 shrink-0 shadow-lg shadow-Malama-petrol/20 dark:shadow-primary/20">
               <span className="material-symbols-outlined text-white text-sm">smart_toy</span>
             </div>
           </div>
           <div className="flex flex-col gap-3 flex-1 min-w-0">
             <div className="flex flex-col gap-1 items-start max-w-[95%]">
-              <span className="text-nura-muted dark:text-slate-400 text-[11px] font-medium pl-1">NURA AI</span>
-              <div className="bg-white dark:bg-surface-dark text-nura-main dark:text-slate-200 text-base font-normal leading-relaxed rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm border border-nura-border dark:border-white/5">
+              <span className="text-Malama-muted dark:text-slate-400 text-[11px] font-medium pl-1">Malama AI</span>
+              <div className="bg-white dark:bg-surface-dark text-Malama-main dark:text-slate-200 text-base font-normal leading-relaxed rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm border border-Malama-border dark:border-white/5">
                 {renderMarkdown(msg.content)}
               </div>
             </div>
@@ -1194,22 +1194,22 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
       return (
         <div key={msg.id} className="flex gap-3 w-full max-w-full animate-fade-in-up pl-11">
-          <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-lg border border-nura-border dark:border-white/5 w-full overflow-hidden relative group">
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-nura-petrol/10 dark:bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-lg border border-Malama-border dark:border-white/5 w-full overflow-hidden relative group">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-Malama-petrol/10 dark:bg-primary/10 rounded-full blur-3xl pointer-events-none" />
             <div className="flex justify-between items-start mb-6 relative z-10">
               <div>
-                <h3 className="text-nura-main dark:text-white text-lg font-bold">{t.mealLogger.summary}</h3>
-                <p className="text-nura-muted dark:text-slate-500 text-sm capitalize">{data.foodName}</p>
+                <h3 className="text-Malama-main dark:text-white text-lg font-bold">{t.mealLogger.summary}</h3>
+                <p className="text-Malama-muted dark:text-slate-500 text-sm capitalize">{data.foodName}</p>
               </div>
               <div className="text-right">
-                <span className="block text-2xl font-bold text-nura-petrol dark:text-primary tracking-tight">{data.calories}</span>
-                <span className="text-xs text-nura-muted dark:text-slate-400 uppercase tracking-wider font-semibold">{t.mealLogger.kcalTotal}</span>
+                <span className="block text-2xl font-bold text-Malama-petrol dark:text-primary tracking-tight">{data.calories}</span>
+                <span className="text-xs text-Malama-muted dark:text-slate-400 uppercase tracking-wider font-semibold">{t.mealLogger.kcalTotal}</span>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-6 mb-6">
               <div className="relative shrink-0 size-24 rounded-full flex items-center justify-center" style={gradientStyle}>
                 <div className="absolute inset-0 rounded-full bg-white dark:bg-surface-dark m-[10px] flex items-center justify-center">
-                  <span className="material-symbols-outlined text-nura-muted dark:text-slate-400">restaurant</span>
+                  <span className="material-symbols-outlined text-Malama-muted dark:text-slate-400">restaurant</span>
                 </div>
               </div>
               <div className="flex-1 grid grid-cols-3 sm:grid-cols-1 gap-2 w-full">
@@ -1218,54 +1218,54 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                   { label: t.macros.carb, value: data.macros.c, color: 'bg-accent-carbs' },
                   { label: t.macros.fat, value: data.macros.f, color: 'bg-accent-fat' },
                 ].map(({ label, value, color }) => (
-                  <div key={label} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-nura-bg dark:bg-white/5 p-2 rounded-lg">
+                  <div key={label} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-Malama-bg dark:bg-white/5 p-2 rounded-lg">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${color}`} />
-                      <span className="text-xs text-nura-muted dark:text-slate-400 font-medium">{label}</span>
+                      <span className="text-xs text-Malama-muted dark:text-slate-400 font-medium">{label}</span>
                     </div>
-                    <span className="text-sm font-bold text-nura-main dark:text-white">{value}g</span>
+                    <span className="text-sm font-bold text-Malama-main dark:text-white">{value}g</span>
                   </div>
                 ))}
               </div>
             </div>
             <div className="flex flex-col gap-2 mt-2">
               {data.items?.map((item, idx) => (
-                <div key={idx} className="p-3 rounded-xl bg-nura-bg dark:bg-[#152226] border border-transparent hover:border-nura-petrol/20 dark:hover:border-primary/20 transition-all">
+                <div key={idx} className="p-3 rounded-xl bg-Malama-bg dark:bg-[#152226] border border-transparent hover:border-Malama-petrol/20 dark:hover:border-primary/20 transition-all">
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="bg-nura-border dark:bg-white/10 rounded-lg size-9 shrink-0 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-nura-muted dark:text-slate-500 text-sm">lunch_dining</span>
+                      <div className="bg-Malama-border dark:bg-white/10 rounded-lg size-9 shrink-0 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-Malama-muted dark:text-slate-500 text-sm">lunch_dining</span>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-nura-main dark:text-white text-sm font-semibold truncate">{item.name}</p>
-                        <p className="text-nura-muted dark:text-slate-500 text-xs">
+                        <p className="text-Malama-main dark:text-white text-sm font-semibold truncate">{item.name}</p>
+                        <p className="text-Malama-muted dark:text-slate-500 text-xs">
                           {item.quantity ?? ''}{item.weightGrams ? ` · ${item.weightGrams}g` : ''}
                         </p>
                       </div>
                     </div>
-                    <span className="text-nura-petrol dark:text-primary text-sm font-bold shrink-0">{item.calories} kcal</span>
+                    <span className="text-Malama-petrol dark:text-primary text-sm font-bold shrink-0">{item.calories} kcal</span>
                   </div>
                   {(item.protein != null || item.carbs != null || item.fats != null) && (
                     <div className="flex gap-2 pl-12">
                       {item.protein != null && (
                         <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-protein inline-block" />
-                          <span className="text-nura-muted dark:text-slate-400">P</span>
-                          <span className="text-nura-main dark:text-white">{item.protein}g</span>
+                          <span className="text-Malama-muted dark:text-slate-400">P</span>
+                          <span className="text-Malama-main dark:text-white">{item.protein}g</span>
                         </span>
                       )}
                       {item.carbs != null && (
                         <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-carbs inline-block" />
-                          <span className="text-nura-muted dark:text-slate-400">C</span>
-                          <span className="text-nura-main dark:text-white">{item.carbs}g</span>
+                          <span className="text-Malama-muted dark:text-slate-400">C</span>
+                          <span className="text-Malama-main dark:text-white">{item.carbs}g</span>
                         </span>
                       )}
                       {item.fats != null && (
                         <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-fat inline-block" />
-                          <span className="text-nura-muted dark:text-slate-400">G</span>
-                          <span className="text-nura-main dark:text-white">{item.fats}g</span>
+                          <span className="text-Malama-muted dark:text-slate-400">G</span>
+                          <span className="text-Malama-main dark:text-white">{item.fats}g</span>
                         </span>
                       )}
                     </div>
@@ -1274,8 +1274,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               ))}
             </div>
             {data.message && (
-              <div className="mt-4 pt-4 border-t border-nura-border dark:border-white/10">
-                <div className="flex items-center gap-2 text-nura-petrol dark:text-primary">
+              <div className="mt-4 pt-4 border-t border-Malama-border dark:border-white/10">
+                <div className="flex items-center gap-2 text-Malama-petrol dark:text-primary">
                   <span className="material-symbols-outlined text-lg">auto_awesome</span>
                   <p className="text-sm font-medium italic">{data.message}</p>
                 </div>
@@ -1289,21 +1289,21 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-nura-bg dark:bg-background-dark text-nura-main dark:text-white flex flex-col font-display animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white flex flex-col font-display animate-fade-in">
 
       {/* Top Navigation */}
-      <header className="flex items-center px-4 py-3 justify-between shrink-0 z-10 bg-nura-bg/95 dark:bg-background-dark/95 backdrop-blur-sm sticky top-0 border-b border-nura-border dark:border-white/5">
-        <div onClick={handleClose} className="text-nura-main dark:text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+      <header className="flex items-center px-4 py-3 justify-between shrink-0 z-10 bg-Malama-bg/95 dark:bg-background-dark/95 backdrop-blur-sm sticky top-0 border-b border-Malama-border dark:border-white/5">
+        <div onClick={handleClose} className="text-Malama-main dark:text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
           <span className="material-symbols-outlined text-2xl">arrow_back</span>
         </div>
         <div className="flex flex-col items-center">
-          <h2 className="text-nura-main dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">{t.mealLogger.title}</h2>
+          <h2 className="text-Malama-main dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">{t.mealLogger.title}</h2>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-nura-petrol dark:bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-nura-petrol dark:bg-primary"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-Malama-petrol dark:bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-Malama-petrol dark:bg-primary"></span>
             </span>
-            <span className="text-xs font-medium text-nura-petrol dark:text-primary tracking-wide uppercase">{t.mealLogger.online}</span>
+            <span className="text-xs font-medium text-Malama-petrol dark:text-primary tracking-wide uppercase">{t.mealLogger.online}</span>
           </div>
         </div>
         <div className="flex size-10 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
@@ -1333,7 +1333,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
         {/* Empty state after history loaded */}
         {!loadingHistory && messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full opacity-50 mt-10 text-nura-muted dark:text-slate-500">
+          <div className="flex flex-col items-center justify-center h-full opacity-50 mt-10 text-Malama-muted dark:text-slate-500">
             <span className="material-symbols-outlined text-4xl mb-2">nutrition</span>
             <p>{t.mealLogger.describeMeal}</p>
           </div>
@@ -1341,9 +1341,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
         {/* Loading State Overlay for Scan */}
         {loading && !messages.length && (
-          <div className="absolute inset-0 bg-nura-bg/50 dark:bg-background-dark/50 backdrop-blur-sm z-20 flex flex-col items-center justify-center">
-            <div className="w-16 h-16 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="font-medium animate-pulse text-nura-petrol dark:text-primary">{t.mealLogger.analyzing}</p>
+          <div className="absolute inset-0 bg-Malama-bg/50 dark:bg-background-dark/50 backdrop-blur-sm z-20 flex flex-col items-center justify-center">
+            <div className="w-16 h-16 border-4 border-Malama-petrol dark:border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="font-medium animate-pulse text-Malama-petrol dark:text-primary">{t.mealLogger.analyzing}</p>
           </div>
         )}
 
@@ -1362,7 +1362,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               <React.Fragment key={msg.id}>
                 {showSeparator && (
                   <div className="flex justify-center">
-                    <span className="text-xs font-medium text-nura-muted dark:text-slate-500 bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-full">
+                    <span className="text-xs font-medium text-Malama-muted dark:text-slate-500 bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-full">
                       {dateLabel}
                     </span>
                   </div>
@@ -1376,7 +1376,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
         {loading && messages.length > 0 && (
           <div className="flex gap-3 animate-pulse pl-11">
-            <div className="bg-white dark:bg-surface-dark px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm border border-nura-border dark:border-white/5">
+            <div className="bg-white dark:bg-surface-dark px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm border border-Malama-border dark:border-white/5">
               <div className="flex gap-1">
                 <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce"></div>
                 <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce delay-75"></div>
@@ -1389,7 +1389,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       </main>
 
       {/* Bottom Fixed Action Area */}
-      <div className="fixed bottom-0 left-0 w-full bg-nura-bg/95 dark:bg-background-dark/95 backdrop-blur-md pt-2 pb-6 px-4 z-20 border-t border-nura-border dark:border-white/5">
+      <div className="fixed bottom-0 left-0 w-full bg-Malama-bg/95 dark:bg-background-dark/95 backdrop-blur-md pt-2 pb-6 px-4 z-20 border-t border-Malama-border dark:border-white/5">
         <div className="flex flex-col gap-4 max-w-lg mx-auto">
 
           {/* Action Dock Buttons - Only Show if Draft Exists in Chat Mode */}
@@ -1397,20 +1397,20 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             <div className="flex items-center gap-3 w-full animate-fade-in-up">
               <button
                 onClick={handleCancel}
-                className="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-nura-muted hover:text-nura-main dark:text-slate-400 dark:hover:text-white font-semibold text-sm transition-colors active:scale-95"
+                className="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-Malama-muted hover:text-Malama-main dark:text-slate-400 dark:hover:text-white font-semibold text-sm transition-colors active:scale-95"
               >
                 {t.mealLogger.cancel}
               </button>
               <button
                 onClick={handleOpenEdit}
-                className="flex-1 h-12 rounded-xl border border-nura-border dark:border-white/10 bg-transparent flex items-center justify-center gap-2 text-nura-main dark:text-white font-semibold text-sm hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-95"
+                className="flex-1 h-12 rounded-xl border border-Malama-border dark:border-white/10 bg-transparent flex items-center justify-center gap-2 text-Malama-main dark:text-white font-semibold text-sm hover:bg-gray-100 dark:hover:bg-white/5 transition-colors active:scale-95"
               >
                 <span className="material-symbols-outlined text-base">edit</span>
                 {t.mealLogger.edit}
               </button>
               <button
                 onClick={() => handleConfirmLog(draftMeal, draftSource === 'barcode' ? 'ai-barcode' : draftSource === 'photo' ? 'ai-photo' : 'ai-chat')}
-                className="flex-[2] h-12 rounded-xl bg-nura-petrol dark:bg-primary shadow-lg shadow-nura-petrol/25 dark:shadow-primary/25 flex items-center justify-center gap-2 text-white font-bold text-sm hover:brightness-110 transition-all active:scale-95"
+                className="flex-[2] h-12 rounded-xl bg-Malama-petrol dark:bg-primary shadow-lg shadow-Malama-petrol/25 dark:shadow-primary/25 flex items-center justify-center gap-2 text-white font-bold text-sm hover:brightness-110 transition-all active:scale-95"
               >
                 <span className="material-symbols-outlined text-base">check</span>
                 {t.mealLogger.confirm}
@@ -1443,7 +1443,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                 disabled={loading}
                 className={`size-12 flex-shrink-0 flex items-center justify-center rounded-xl transition-all disabled:opacity-50 ${isListening
                   ? 'bg-red-500 text-white shadow-lg shadow-red-500/30 animate-pulse'
-                  : 'bg-white dark:bg-surface-dark ring-1 ring-nura-border dark:ring-white/10 text-nura-petrol dark:text-primary hover:bg-nura-petrol/10 dark:hover:bg-primary/10'
+                  : 'bg-white dark:bg-surface-dark ring-1 ring-Malama-border dark:ring-white/10 text-Malama-petrol dark:text-primary hover:bg-Malama-petrol/10 dark:hover:bg-primary/10'
                   }`}
               >
                 <span className="material-symbols-outlined text-xl">
@@ -1456,7 +1456,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 h-12 px-4 rounded-xl bg-white dark:bg-surface-dark border-none ring-1 ring-nura-border dark:ring-white/10 focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary text-nura-main dark:text-white placeholder-nura-muted dark:placeholder-slate-500 transition-all text-sm shadow-sm"
+                className="flex-1 h-12 px-4 rounded-xl bg-white dark:bg-surface-dark border-none ring-1 ring-Malama-border dark:ring-white/10 focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary text-Malama-main dark:text-white placeholder-Malama-muted dark:placeholder-slate-500 transition-all text-sm shadow-sm"
                 placeholder={isListening ? t.mealLogger.speakMeal : messages.length > 0 ? t.mealLogger.addDetails : t.mealLogger.describeMeal}
                 type="text"
                 disabled={loading || isListening}
@@ -1466,7 +1466,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               <button
                 onClick={() => setShowBarcodeScanner(true)}
                 disabled={loading || isListening}
-                className="size-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark ring-1 ring-nura-border dark:ring-white/10 text-nura-petrol dark:text-primary hover:bg-nura-petrol/10 dark:hover:bg-primary/10 transition-all disabled:opacity-50"
+                className="size-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-white dark:bg-surface-dark ring-1 ring-Malama-border dark:ring-white/10 text-Malama-petrol dark:text-primary hover:bg-Malama-petrol/10 dark:hover:bg-primary/10 transition-all disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-xl">barcode_scanner</span>
               </button>
@@ -1482,7 +1482,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                   }
                 }}
                 disabled={loading || isListening}
-                className="size-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-nura-petrol dark:bg-primary text-white shadow-lg shadow-nura-petrol/25 dark:shadow-primary/25 hover:brightness-110 transition-all disabled:opacity-50"
+                className="size-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-Malama-petrol dark:bg-primary text-white shadow-lg shadow-Malama-petrol/25 dark:shadow-primary/25 hover:brightness-110 transition-all disabled:opacity-50"
               >
                 {input ? (
                   <span className="material-symbols-outlined text-xl">send</span>
@@ -1499,25 +1499,25 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       </div>
       {/* Edit Panel — full-screen slide-in sheet */}
       {editMode && (
-        <div className="absolute inset-0 z-30 bg-nura-bg dark:bg-background-dark flex flex-col animate-fade-in">
+        <div className="absolute inset-0 z-30 bg-Malama-bg dark:bg-background-dark flex flex-col animate-fade-in">
           {/* Header */}
-          <header className="flex items-center gap-3 p-4 border-b border-nura-border dark:border-white/5">
+          <header className="flex items-center gap-3 p-4 border-b border-Malama-border dark:border-white/5">
             <button
               onClick={() => setEditMode(false)}
-              className="size-10 flex items-center justify-center rounded-full hover:bg-nura-pastel-orange dark:hover:bg-white/5 transition-colors text-nura-petrol dark:text-slate-300"
+              className="size-10 flex items-center justify-center rounded-full hover:bg-Malama-pastel-orange dark:hover:bg-white/5 transition-colors text-Malama-petrol dark:text-slate-300"
             >
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
             <div>
-              <h2 className="font-bold text-nura-main dark:text-white text-base">Editar refeição</h2>
-              <p className="text-xs text-nura-muted dark:text-slate-500">Ajuste ingredientes e quantidades</p>
+              <h2 className="font-bold text-Malama-main dark:text-white text-base">Editar refeição</h2>
+              <p className="text-xs text-Malama-muted dark:text-slate-500">Ajuste ingredientes e quantidades</p>
             </div>
           </header>
 
           {/* Items list */}
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 pb-36">
             {editItems.map((item: MealItem, idx: number) => (
-              <div key={idx} className="bg-white dark:bg-surface-dark rounded-2xl p-4 border border-nura-border dark:border-white/5 shadow-sm flex flex-col gap-3">
+              <div key={idx} className="bg-white dark:bg-surface-dark rounded-2xl p-4 border border-Malama-border dark:border-white/5 shadow-sm flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 flex flex-col gap-2">
                     <input
@@ -1527,7 +1527,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                         updated[idx] = { ...updated[idx], name: e.target.value };
                         setEditItems(updated);
                       }}
-                      className="w-full text-sm font-semibold text-nura-main dark:text-white bg-nura-bg dark:bg-white/5 rounded-xl px-3 py-2 border border-nura-border dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary"
+                      className="w-full text-sm font-semibold text-Malama-main dark:text-white bg-Malama-bg dark:bg-white/5 rounded-xl px-3 py-2 border border-Malama-border dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary"
                       placeholder="Nome do ingrediente"
                     />
                     <div className="flex gap-2">
@@ -1538,7 +1538,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                           updated[idx] = { ...updated[idx], quantity: e.target.value };
                           setEditItems(updated);
                         }}
-                        className="flex-1 text-sm text-nura-main dark:text-white bg-nura-bg dark:bg-white/5 rounded-xl px-3 py-2 border border-nura-border dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary"
+                        className="flex-1 text-sm text-Malama-main dark:text-white bg-Malama-bg dark:bg-white/5 rounded-xl px-3 py-2 border border-Malama-border dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary"
                         placeholder="Quantidade (ex: 3 unidades)"
                       />
                       <input
@@ -1549,7 +1549,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                           updated[idx] = { ...updated[idx], weightGrams: Number(e.target.value) || undefined };
                           setEditItems(updated);
                         }}
-                        className="w-24 text-sm text-nura-main dark:text-white bg-nura-bg dark:bg-white/5 rounded-xl px-3 py-2 border border-nura-border dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary"
+                        className="w-24 text-sm text-Malama-main dark:text-white bg-Malama-bg dark:bg-white/5 rounded-xl px-3 py-2 border border-Malama-border dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary"
                         placeholder="Peso (g)"
                       />
                     </div>
@@ -1567,7 +1567,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             {/* Add ingredient button */}
             <button
               onClick={() => setEditItems((prev: MealItem[]) => [...prev, { name: '', calories: 0 }])}
-              className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl border-2 border-dashed border-nura-petrol/30 dark:border-primary/30 text-nura-petrol dark:text-primary font-semibold text-sm hover:bg-nura-petrol/5 dark:hover:bg-primary/5 transition-colors"
+              className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl border-2 border-dashed border-Malama-petrol/30 dark:border-primary/30 text-Malama-petrol dark:text-primary font-semibold text-sm hover:bg-Malama-petrol/5 dark:hover:bg-primary/5 transition-colors"
             >
               <span className="material-symbols-outlined text-base">add</span>
               Adicionar ingrediente
@@ -1575,12 +1575,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           </div>
 
           {/* Footer action */}
-          <div className="fixed bottom-0 left-0 w-full bg-white/80 dark:bg-background-dark/90 backdrop-blur-xl border-t border-nura-border dark:border-white/5 p-4 z-40">
+          <div className="fixed bottom-0 left-0 w-full bg-white/80 dark:bg-background-dark/90 backdrop-blur-xl border-t border-Malama-border dark:border-white/5 p-4 z-40">
             <div className="max-w-lg mx-auto">
               <button
                 onClick={handleRecalculate}
                 disabled={editItems.length === 0 || loading}
-                className="w-full h-14 rounded-2xl bg-nura-petrol dark:bg-primary text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-nura-petrol/25 dark:shadow-primary/25 hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50"
+                className="w-full h-14 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-Malama-petrol/25 dark:shadow-primary/25 hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 {loading ? (
                   <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1596,12 +1596,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
       {/* Success Overlay */}
       {success && (
-        <div className="fixed inset-0 z-[60] bg-nura-bg/90 dark:bg-background-dark/90 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in text-nura-main dark:text-white">
+        <div className="fixed inset-0 z-[60] bg-Malama-bg/90 dark:bg-background-dark/90 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in text-Malama-main dark:text-white">
           <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.4)] animate-bounce mb-6">
             <span className="material-symbols-outlined text-white text-4xl">check</span>
           </div>
           <h2 className="text-2xl font-bold tracking-tight mb-2">Refeição Salva!</h2>
-          <p className="text-nura-muted dark:text-slate-400 font-medium">Sincronizado com sucesso</p>
+          <p className="text-Malama-muted dark:text-slate-400 font-medium">Sincronizado com sucesso</p>
         </div>
       )}
 
@@ -1609,26 +1609,26 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       {showDiscardConfirm && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDiscardConfirm(false)} />
-          <div className="relative w-full max-w-md bg-nura-bg dark:bg-[#111c1e] rounded-t-3xl">
-            <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-4 bg-nura-border dark:bg-white/20" />
+          <div className="relative w-full max-w-md bg-Malama-bg dark:bg-[#111c1e] rounded-t-3xl">
+            <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-4 bg-Malama-border dark:bg-white/20" />
             <div className="px-6 pb-10">
-              <h3 className="text-nura-main dark:text-white text-lg font-bold text-center mb-1">
+              <h3 className="text-Malama-main dark:text-white text-lg font-bold text-center mb-1">
                 Análise em andamento
               </h3>
-              <p className="text-nura-muted dark:text-slate-400 text-sm text-center mb-6">
+              <p className="text-Malama-muted dark:text-slate-400 text-sm text-center mb-6">
                 Você tem uma refeição não registrada. O que deseja fazer?
               </p>
               <div className="flex flex-col gap-3">
                 <button
                   onClick={handleConfirmAndClose}
-                  className="w-full h-14 rounded-2xl bg-nura-petrol dark:bg-primary text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-nura-petrol/25 dark:shadow-primary/25"
+                  className="w-full h-14 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-Malama-petrol/25 dark:shadow-primary/25"
                 >
                   <span className="material-symbols-outlined text-base">check</span>
                   Confirmar e salvar
                 </button>
                 <button
                   onClick={() => setShowDiscardConfirm(false)}
-                  className="w-full h-12 rounded-2xl border border-nura-border dark:border-white/10 text-nura-main dark:text-white font-semibold flex items-center justify-center"
+                  className="w-full h-12 rounded-2xl border border-Malama-border dark:border-white/10 text-Malama-main dark:text-white font-semibold flex items-center justify-center"
                 >
                   Continuar aqui
                 </button>

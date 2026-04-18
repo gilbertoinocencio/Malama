@@ -21,21 +21,28 @@ export default {
         lexend: ['Lexend', 'sans-serif'],
       },
       colors: {
-        // NURA Brand Palette (Light Mode)
-        "nura-bg": "#FDFBF9",       // Off-white warmer
-        "nura-card": "#FFFFFF",     // White
-        "nura-main": "#1C1917",     // Soft Black (Stone 900)
-        "nura-muted": "#57534E",    // Brown/Stone (Stone 500)
-        "nura-petrol": "#1F4E5F",   // Petroleum Blue
-        "nura-petrol-light": "#E0F2F1", // Pastel Petrol
-        "nura-brown": "#8C6A4B",    // Classic Brown
-        "nura-pastel-orange": "#F2EBE6",
-        "nura-border": "#E7E5E4",   // Stone 200
+        // MALAMA Brand Palette (Light Mode)
+        "Malama-bg": "#FDFBF9",           // Off-white warmer
+        "Malama-card": "#FFFFFF",         // White
+        "Malama-main": "#1C1917",         // Soft Black (Stone 900)
+        "Malama-muted": "#57534E",        // Brown/Stone (Stone 500)
+        "Malama-petrol": "#9c5d4b",       // Vermelho Queimado
+        "Malama-petrol-light": "#F2EBE6", // Light background
+        "Malama-brown": "#8C6A4B",        // Classic Brown
+        "Malama-pastel-orange": "#F2EBE6",
+        "Malama-border": "#E7E5E4",       // Stone 200
+        "Malama-offwhite": "#FDFBF9",     // Warm white (text on dark buttons)
+        "Malama-petroleum": "#9c5d4b",    // Alias → petrol
+        "Malama-neon": "#E8A898",         // Warm salmon (dark mode accent)
+        "Malama-cyan": "#C4856A",         // Warm terracotta (dark mode secondary)
+        "Malama-black": "#1C1917",        // Near black (dark mode surfaces)
+        "Malama-dark": "#292524",         // Dark surface
+        "Malama-stone": "#78716C",        // Stone muted (Stone 500)
 
         // Flow Dashboard Specific
-        "primary": "#1a6272",
-        "primary-old": "#0a90bd",
-        "background-light": "#FDFBF9", // Updated to Nura Off-white
+        "primary": "#9c5d4b",
+        "primary-old": "#1F4E5F",
+        "background-light": "#FDFBF9", // Malama Off-white
         "background-dark": "#102022",
         "surface-dark": "#1a2c2e",
         "surface-light": "#ffffff",

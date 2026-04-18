@@ -88,7 +88,7 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
         backgroundColor: '#101e22'
       });
       const link = document.createElement('a');
-      link.download = `nura-progress-${new Date().toISOString().split('T')[0]}.png`;
+      link.download = `Malama-progress-${new Date().toISOString().split('T')[0]}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     }
@@ -228,7 +228,7 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
               <div className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center">
                 <div className="w-2 h-2 bg-white rounded-full"></div>
               </div>
-              <span className="text-white font-bold tracking-widest text-sm">NURA</span>
+              <span className="text-white font-bold tracking-widest text-sm">Malama</span>
             </div>
             <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400">{qp.feedTheFlow}</p>
           </div>

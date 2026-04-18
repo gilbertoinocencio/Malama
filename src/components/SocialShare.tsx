@@ -30,7 +30,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
         backgroundColor: null
       });
       const link = document.createElement('a');
-      link.download = `nura-share-${new Date().toISOString().split('T')[0]}.png`;
+      link.download = `Malama-share-${new Date().toISOString().split('T')[0]}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     }
@@ -94,7 +94,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
         <div className="flex flex-col items-center justify-end w-full gap-1 opacity-40 mt-2">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[16px] text-[#1a1a1a]">spa</span> 
-            <p className="text-[#1a1a1a] text-[10px] font-bold tracking-[0.2em] uppercase">NURA</p>
+            <p className="text-[#1a1a1a] text-[10px] font-bold tracking-[0.2em] uppercase">Malama</p>
           </div>
           <p className="text-[#1a1a1a] text-[8px] font-medium tracking-[0.1em] uppercase">Feed the Flow</p>
         </div>
@@ -129,7 +129,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
            <div className="glass-panel bg-white/75 backdrop-blur-xl border border-white/80 w-full rounded-xl p-6 flex flex-col items-center gap-6 shadow-[0_25px_50px_-12px_rgba(16,34,18,0.15)]">
               {/* Header */}
               <div className="text-center">
-                <h1 className="text-[#102212] tracking-widest text-xs font-bold uppercase mb-1 opacity-60">Nura Daily</h1>
+                <h1 className="text-[#102212] tracking-widest text-xs font-bold uppercase mb-1 opacity-60">Malama Daily</h1>
                 <h2 className="text-[#102212] tracking-tight text-3xl font-bold leading-tight">Flow do Dia</h2>
               </div>
               
@@ -173,7 +173,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
            <div className="flex flex-col items-center gap-3 mb-4">
               <div className="bg-white/90 backdrop-blur-sm rounded-full px-5 py-2 flex items-center gap-2 shadow-lg">
                 <span className="material-symbols-outlined text-[#11d421] text-lg">eco</span>
-                <span className="text-[#102212] font-semibold text-sm tracking-wide">NURA</span>
+                <span className="text-[#102212] font-semibold text-sm tracking-wide">Malama</span>
                 <span className="w-1 h-1 bg-[#102212]/30 rounded-full"></span>
                 <span className="text-[#102212]/70 font-light text-sm italic">Feed the Flow</span>
               </div>
@@ -201,7 +201,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
          <div className="absolute inset-0 bg-cover bg-center" style={{ background: config.bg }}></div>
          <div className={`absolute inset-0 flex flex-col justify-between p-6 ${config.text}`}>
             <div className="flex justify-between items-start pt-2">
-               <span className="font-bold">NURA</span>
+               <span className="font-bold">Malama</span>
                <span>{new Date().toLocaleTimeString()}</span>
             </div>
             <div className="mb-4">

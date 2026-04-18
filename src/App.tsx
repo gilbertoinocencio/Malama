@@ -133,7 +133,7 @@ const App: React.FC = () => {
   // Handle Theme Toggle — persisted in localStorage
   const [darkMode, setDarkMode] = useState(() => {
     // Initialize from localStorage, default to false (light mode)
-    try { return localStorage.getItem('nura_dark_mode') === 'true'; } catch { return false; }
+    try { return localStorage.getItem('Malama_dark_mode') === 'true'; } catch { return false; }
   });
 
   useEffect(() => {
@@ -142,7 +142,7 @@ const App: React.FC = () => {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    try { localStorage.setItem('nura_dark_mode', String(darkMode)); } catch {}
+    try { localStorage.setItem('Malama_dark_mode', String(darkMode)); } catch {}
   }, [darkMode]);
 
   const toggleTheme = () => {
@@ -268,7 +268,7 @@ const App: React.FC = () => {
   // Loading Spinner Component for Suspense fallback
   const LoadingSpinner = () => (
     <div className="flex items-center justify-center p-8">
-      <div className="w-10 h-10 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-10 h-10 border-4 border-Malama-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
 
@@ -280,8 +280,8 @@ const App: React.FC = () => {
   // Initial Auth Loading
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-nura-bg dark:bg-background-dark">
-        <div className="w-16 h-16 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-Malama-bg dark:bg-background-dark">
+        <div className="w-16 h-16 border-4 border-Malama-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -294,8 +294,8 @@ const App: React.FC = () => {
   // Profile still loading from Supabase — show brief spinner (NOT onboarding)
   if (profileLoading || (!profile && user)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-nura-bg dark:bg-background-dark">
-        <div className="w-12 h-12 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-Malama-bg dark:bg-background-dark">
+        <div className="w-12 h-12 border-4 border-Malama-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }

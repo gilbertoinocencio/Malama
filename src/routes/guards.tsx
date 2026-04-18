@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Guards de Rotas para Portal do Médico e Admin
+// Malama — Guards de Rotas para Portal do Médico e Admin
 // =====================================================
 
 import React, { useEffect, useState } from 'react';

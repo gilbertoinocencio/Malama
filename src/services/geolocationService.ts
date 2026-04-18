@@ -1,5 +1,5 @@
 /**
- * GeolocationService - Serviço de geolocalização para o Nura
+ * GeolocationService - Serviço de geolocalização para o Malama
  * Detecta a localização do usuário para personalizar sugestões regionais
  */
 

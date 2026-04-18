@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Login do Médico
+// Malama — Login do Médico
 // =====================================================
 
 import React, { useState } from 'react';
@@ -7,7 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '../../services/supabase';
 import { doctorService } from '../../services/doctorPortalService';
-import { NuraLogo } from '../../components/NuraLogo';
+import { MalamaLogo } from '../../components/MalamaLogo';
 
 export const DoctorLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -62,11 +62,11 @@ export const DoctorLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#FDFBF9] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <NuraLogo size="xl" />
+          <MalamaLogo size="xl" />
           <p className="text-gray-600 mt-3 text-sm tracking-wide uppercase">Portal do Médico</p>
         </div>
 
@@ -87,7 +87,7 @@ export const DoctorLogin: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
                 placeholder="seu@email.com"
                 required
               />
@@ -99,7 +99,7 @@ export const DoctorLogin: React.FC = () => {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b] focus:border-transparent"
                 placeholder="Sua senha"
                 required
               />
@@ -108,7 +108,7 @@ export const DoctorLogin: React.FC = () => {
             <div className="flex justify-end">
               <button
                 type="button"
-                className="text-sm text-[#2ECC71] hover:underline"
+                className="text-sm text-[#9c5d4b] hover:underline"
                 onClick={() => toast('Funcionalidade em desenvolvimento', { icon: '🔧' })}
               >
                 Esqueci minha senha
@@ -118,7 +118,7 @@ export const DoctorLogin: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium transition disabled:opacity-50"
+              className="w-full py-3 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium transition disabled:opacity-50"
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
@@ -126,10 +126,10 @@ export const DoctorLogin: React.FC = () => {
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Novo no Nura?{' '}
+              Novo no Malama?{' '}
               <button
                 onClick={() => navigate('/medico/cadastro')}
-                className="text-[#2ECC71] hover:underline font-medium"
+                className="text-[#9c5d4b] hover:underline font-medium"
               >
                 Quero me cadastrar →
               </button>

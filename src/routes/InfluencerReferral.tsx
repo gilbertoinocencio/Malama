@@ -1,12 +1,12 @@
 // =====================================================
-// NURA — Página de Indicação de Influenciador
+// Malama — Página de Indicação de Influenciador
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Instagram } from 'lucide-react';
 import { influencerService } from '../services/doctorPortalService';
-import { NuraLogo } from '../components/NuraLogo';
+import { MalamaLogo } from '../components/MalamaLogo';
 import { supabase } from '../services/supabase';
 
 type InfluencerPreview = {
@@ -34,10 +34,10 @@ export const InfluencerReferral: React.FC = () => {
 
   const handleSignUp = async () => {
     if (token) {
-      localStorage.setItem('nura_influencer_token', token);
-      localStorage.setItem('nura_acquisition_channel', 'influencer');
+      localStorage.setItem('Malama_influencer_token', token);
+      localStorage.setItem('Malama_acquisition_channel', 'influencer');
       // Flag explícita para indicar que é onboarding de influencer
-      localStorage.setItem('nura_is_influencer_signup', 'true');
+      localStorage.setItem('Malama_is_influencer_signup', 'true');
     }
     // Garante que nenhuma sessão anterior interfira no cadastro do novo usuário
     const { data: { session } } = await supabase.auth.getSession();
@@ -57,7 +57,7 @@ export const InfluencerReferral: React.FC = () => {
   if (notFound) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0F0F0F] p-6 text-center">
-        <NuraLogo size="md" />
+        <MalamaLogo size="md" />
         <h1 className="text-xl font-semibold text-white mt-4">Link inválido ou expirado</h1>
         <p className="text-gray-400 text-sm max-w-sm">
           Este link de indicação não é válido. Peça ao influenciador um link atualizado.
@@ -72,7 +72,7 @@ export const InfluencerReferral: React.FC = () => {
 
         {/* Logo */}
         <div className="flex justify-center mb-10">
-          <NuraLogo size="lg" />
+          <MalamaLogo size="lg" />
         </div>
 
         {/* Card do influenciador */}
@@ -101,13 +101,13 @@ export const InfluencerReferral: React.FC = () => {
           )}
 
           <p className="text-gray-400 text-sm mt-4">
-            te convidou para o <span className="text-white font-semibold">Nura</span>
+            te convidou para o <span className="text-white font-semibold">Malama</span>
           </p>
         </div>
 
         {/* Benefícios */}
         <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-5 mb-6 space-y-3">
-          <h2 className="text-white font-semibold text-sm mb-2">O que você vai encontrar no Nura:</h2>
+          <h2 className="text-white font-semibold text-sm mb-2">O que você vai encontrar no Malama:</h2>
           {[
             'Acompanhamento nutricional com IA',
             'Registro de refeições por foto ou voz',
@@ -134,9 +134,9 @@ export const InfluencerReferral: React.FC = () => {
           <button
             onClick={async () => {
               if (token) {
-                localStorage.setItem('nura_influencer_token', token);
-                localStorage.setItem('nura_acquisition_channel', 'influencer');
-                localStorage.setItem('nura_is_influencer_signup', 'true');
+                localStorage.setItem('Malama_influencer_token', token);
+                localStorage.setItem('Malama_acquisition_channel', 'influencer');
+                localStorage.setItem('Malama_is_influencer_signup', 'true');
               }
               const { data: { session } } = await supabase.auth.getSession();
               if (session) await supabase.auth.signOut();

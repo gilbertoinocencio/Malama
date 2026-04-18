@@ -15,9 +15,9 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = "inline-flex items-center justify-center rounded-2xl font-medium transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
   
   const variants = {
-    primary: "bg-nura-brown text-nura-offwhite hover:bg-opacity-90 dark:bg-nura-neon dark:text-black",
-    secondary: "bg-nura-petroleum text-white hover:bg-opacity-90 dark:bg-nura-cyan dark:text-black",
-    ghost: "bg-transparent text-nura-brown hover:bg-black/5 dark:text-nura-offwhite dark:hover:bg-white/10",
+    primary: "bg-Malama-brown text-Malama-offwhite hover:bg-opacity-90 dark:bg-Malama-neon dark:text-black",
+    secondary: "bg-Malama-petroleum text-white hover:bg-opacity-90 dark:bg-Malama-cyan dark:text-black",
+    ghost: "bg-transparent text-Malama-brown hover:bg-black/5 dark:text-Malama-offwhite dark:hover:bg-white/10",
     icon: "p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
   };
 

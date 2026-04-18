@@ -93,10 +93,10 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-nura-main dark:text-white">
+        <h2 className="text-2xl font-bold text-Malama-main dark:text-white">
           Seu Plano de 3 Meses
         </h2>
-        <p className="text-sm text-nura-muted dark:text-gray-400">
+        <p className="text-sm text-Malama-muted dark:text-gray-400">
           Jornada estruturada em 3 fases • Semana {currentWeek} de 12
         </p>
       </div>
@@ -142,7 +142,7 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
                     {isCompleted ? 'check_circle' : phase.icon}
                   </span>
                 </div>
-                <span className="text-xs font-semibold text-nura-muted dark:text-gray-500 text-center">
+                <span className="text-xs font-semibold text-Malama-muted dark:text-gray-500 text-center">
                   {phase.weeks}
                 </span>
               </div>
@@ -167,7 +167,7 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
                   ? `${phase.borderColor} shadow-lg`
                   : isCompleted
                   ? 'border-green-200 dark:border-green-700'
-                  : 'border-nura-border dark:border-gray-700'
+                  : 'border-Malama-border dark:border-gray-700'
                 }
               `}
             >
@@ -216,11 +216,11 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
                 {/* Content */}
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-lg font-bold text-nura-main dark:text-white">
+                    <h3 className="text-lg font-bold text-Malama-main dark:text-white">
                       {phase.title}
                     </h3>
                     {isActive && (
-                      <span className="px-2 py-0.5 rounded-full bg-nura-petrol dark:bg-primary text-white text-xs font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-Malama-petrol dark:bg-primary text-white text-xs font-bold">
                         Atual
                       </span>
                     )}
@@ -230,10 +230,10 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-medium text-nura-muted dark:text-gray-400 mb-1">
+                  <p className="text-sm font-medium text-Malama-muted dark:text-gray-400 mb-1">
                     {phase.subtitle}
                   </p>
-                  <p className="text-xs text-nura-muted dark:text-gray-500">
+                  <p className="text-xs text-Malama-muted dark:text-gray-500">
                     {phase.weeks}
                   </p>
                 </div>
@@ -241,7 +241,7 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
                 {/* Expand Icon */}
                 <span
                   className={`
-                    material-symbols-outlined text-nura-muted dark:text-gray-400 transition-transform
+                    material-symbols-outlined text-Malama-muted dark:text-gray-400 transition-transform
                     ${isExpanded ? 'rotate-180' : ''}
                   `}
                 >
@@ -252,13 +252,13 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
               {/* Expanded Content */}
               {isExpanded && (
                 <div className="px-5 pb-5 space-y-4 bg-white dark:bg-surface-dark animate-fade-in">
-                  <p className="text-sm text-nura-main dark:text-white leading-relaxed">
+                  <p className="text-sm text-Malama-main dark:text-white leading-relaxed">
                     {phase.description}
                   </p>
 
                   {/* Key Actions */}
                   <div className="space-y-2">
-                    <h4 className="text-sm font-bold text-nura-main dark:text-white flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-Malama-main dark:text-white flex items-center gap-2">
                       <span className="material-symbols-outlined text-[18px]">checklist</span>
                       Ações-Chave desta Fase:
                     </h4>
@@ -266,7 +266,7 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
                       {phase.keyActions.map((action, index) => (
                         <li
                           key={index}
-                          className="flex items-start gap-3 text-sm text-nura-muted dark:text-gray-300"
+                          className="flex items-start gap-3 text-sm text-Malama-muted dark:text-gray-300"
                         >
                           <span className={`material-symbols-outlined text-[18px] mt-0.5 ${phase.color}`}>
                             check_circle
@@ -284,8 +284,8 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
                         psychology
                       </span>
                       <p className="text-sm">
-                        <span className="font-bold text-nura-main dark:text-white">Foco: </span>
-                        <span className="text-nura-muted dark:text-gray-300">{phase.focus}</span>
+                        <span className="font-bold text-Malama-main dark:text-white">Foco: </span>
+                        <span className="text-Malama-muted dark:text-gray-300">{phase.focus}</span>
                       </p>
                     </div>
                   </div>
@@ -297,9 +297,9 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
       </div>
 
       {/* Bottom CTA */}
-      <div className="bg-nura-pastel-orange/20 dark:bg-primary/10 border border-nura-petrol/30 dark:border-primary/30 rounded-2xl p-5 text-center">
-        <p className="text-sm text-nura-muted dark:text-gray-300 leading-relaxed">
-          <span className="font-bold text-nura-main dark:text-white">Lembre-se:</span> Este plano é flexível e será ajustado conforme seus check-ins diários e progresso semanal.
+      <div className="bg-Malama-pastel-orange/20 dark:bg-primary/10 border border-Malama-petrol/30 dark:border-primary/30 rounded-2xl p-5 text-center">
+        <p className="text-sm text-Malama-muted dark:text-gray-300 leading-relaxed">
+          <span className="font-bold text-Malama-main dark:text-white">Lembre-se:</span> Este plano é flexível e será ajustado conforme seus check-ins diários e progresso semanal.
         </p>
       </div>
     </div>

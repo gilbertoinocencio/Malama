@@ -1,12 +1,12 @@
 // =====================================================
-// NURA — Location Auto-Permission Service
+// Malama — Location Auto-Permission Service
 // Gerencia a solicitação automática de localização no primeiro uso
 // =====================================================
 
 import { supabase } from '../services/supabase';
 
-const LOCATION_PROMPTED_KEY = 'nura_location_prompted';
-const LOCATION_ENABLED_KEY = 'nura_location_enabled';
+const LOCATION_PROMPTED_KEY = 'Malama_location_prompted';
+const LOCATION_ENABLED_KEY = 'Malama_location_enabled';
 
 export const LocationAutoPermission = {
   /**

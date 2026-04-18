@@ -31,7 +31,7 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
         >
           <span className="material-symbols-outlined text-xl">arrow_back</span>
         </div>
-        <h2 className="text-slate-900 dark:text-white text-base font-semibold tracking-wide uppercase opacity-80">NURA AI Scan</h2>
+        <h2 className="text-slate-900 dark:text-white text-base font-semibold tracking-wide uppercase opacity-80">Malama AI Scan</h2>
         <div className="flex size-10 items-center justify-center rounded-full bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 text-slate-900 dark:text-white hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer backdrop-blur-sm">
           <span className="material-symbols-outlined text-xl">more_vert</span>
         </div>

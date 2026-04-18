@@ -81,20 +81,20 @@ export const TodayMissionsCard: React.FC<TodayMissionsCardProps> = ({ onNavClick
   }
 
   return (
-    <div className="bg-gradient-to-br from-nura-petrol/5 to-nura-pastel-orange/10 dark:from-primary/5 dark:to-primary/10 rounded-3xl p-6 border border-nura-petrol/20 dark:border-primary/20">
+    <div className="bg-gradient-to-br from-Malama-petrol/5 to-Malama-pastel-orange/10 dark:from-primary/5 dark:to-primary/10 rounded-3xl p-6 border border-Malama-petrol/20 dark:border-primary/20">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-2xl bg-nura-petrol dark:bg-primary flex items-center justify-center shadow-md">
+          <div className="size-10 rounded-2xl bg-Malama-petrol dark:bg-primary flex items-center justify-center shadow-md">
             <span className="material-symbols-outlined text-white text-[24px]">
               task_alt
             </span>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-nura-main dark:text-white">
+            <h3 className="text-lg font-bold text-Malama-main dark:text-white">
               Missões de Hoje
             </h3>
-            <p className="text-xs text-nura-muted dark:text-gray-400">
+            <p className="text-xs text-Malama-muted dark:text-gray-400">
               {completedCount}/{totalCount} completas
             </p>
           </div>
@@ -117,7 +117,7 @@ export const TodayMissionsCard: React.FC<TodayMissionsCardProps> = ({ onNavClick
       <div className="mb-5">
         <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-nura-petrol to-green-500 dark:from-primary dark:to-green-400 transition-all duration-500 rounded-full"
+            className="h-full bg-gradient-to-r from-Malama-petrol to-green-500 dark:from-primary dark:to-green-400 transition-all duration-500 rounded-full"
             style={{ width: `${progressPercentage}%` }}
           />
         </div>
@@ -186,7 +186,7 @@ const MissionItem: React.FC<MissionItemProps> = ({ mission, onComplete }) => {
         ${
           mission.completed
             ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700'
-            : 'bg-white dark:bg-surface-dark border-2 border-nura-border dark:border-gray-700 hover:border-nura-petrol/50 dark:hover:border-primary/50 active:scale-[0.98]'
+            : 'bg-white dark:bg-surface-dark border-2 border-Malama-border dark:border-gray-700 hover:border-Malama-petrol/50 dark:hover:border-primary/50 active:scale-[0.98]'
         }
       `}
     >
@@ -197,14 +197,14 @@ const MissionItem: React.FC<MissionItemProps> = ({ mission, onComplete }) => {
           ${
             mission.completed
               ? 'bg-green-500 dark:bg-green-600'
-              : 'bg-nura-petrol/10 dark:bg-primary/10'
+              : 'bg-Malama-petrol/10 dark:bg-primary/10'
           }
         `}
       >
         <span
           className={`
             material-symbols-outlined text-2xl
-            ${mission.completed ? 'text-white' : 'text-nura-petrol dark:text-primary'}
+            ${mission.completed ? 'text-white' : 'text-Malama-petrol dark:text-primary'}
           `}
         >
           {mission.completed ? 'check_circle' : getIcon(mission.mission_type)}
@@ -219,7 +219,7 @@ const MissionItem: React.FC<MissionItemProps> = ({ mission, onComplete }) => {
             ${
               mission.completed
                 ? 'text-green-800 dark:text-green-300 line-through'
-                : 'text-nura-main dark:text-white'
+                : 'text-Malama-main dark:text-white'
             }
           `}
         >
@@ -227,7 +227,7 @@ const MissionItem: React.FC<MissionItemProps> = ({ mission, onComplete }) => {
         </h4>
 
         {mission.description && (
-          <p className="text-xs text-nura-muted dark:text-gray-400 mb-2">
+          <p className="text-xs text-Malama-muted dark:text-gray-400 mb-2">
             {mission.description}
           </p>
         )}
@@ -242,13 +242,13 @@ const MissionItem: React.FC<MissionItemProps> = ({ mission, onComplete }) => {
                   ${
                     mission.completed
                       ? 'bg-green-500'
-                      : 'bg-nura-petrol dark:bg-primary'
+                      : 'bg-Malama-petrol dark:bg-primary'
                   }
                 `}
                 style={{ width: `${progressPercentage}%` }}
               />
             </div>
-            <span className="text-xs font-semibold text-nura-muted dark:text-gray-400">
+            <span className="text-xs font-semibold text-Malama-muted dark:text-gray-400">
               {mission.current_value}/{mission.target_value} {mission.unit}
             </span>
           </div>

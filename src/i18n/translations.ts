@@ -1,5 +1,5 @@
 // i18n/translations.ts
-// All translations for NURA app - PT-BR, EN, ES
+// All translations for Malama app - PT-BR, EN, ES
 
 export type Language = 'en' | 'pt' | 'es';
 
@@ -399,7 +399,7 @@ export interface Translations {
 export const translations: Record<Language, Translations> = {
     en: {
         app: {
-            name: 'NURA',
+            name: 'Malama',
             slogan: 'Feed the Flow',
         },
         nav: {
@@ -470,7 +470,7 @@ export const translations: Record<Language, Translations> = {
             proteins: 'Proteins',
             carbohydrates: 'Carbs',
             fatsLabel: 'Fats',
-            aiInsightLabel: 'NURA AI Insight',
+            aiInsightLabel: 'Malama AI Insight',
             aiInsightText: 'With the <b>Premium</b> profile active, we prioritize high bioavailability sources like wild salmon to optimize your cognition today.',
             insightEconomic: 'With <b>Economic</b> focus, we prioritize cost-effective high-protein sources: eggs, sardines, and rice with beans.',
             insightBalanced: 'With the <b>Balanced</b> profile, we combine cost-benefit with nutritional quality. Chicken, sweet potato, and avocado are your allies.',
@@ -485,7 +485,7 @@ export const translations: Record<Language, Translations> = {
             logThis: 'Log this food',
         },
         mealLogger: {
-            title: 'NURA Assistant',
+            title: 'Malama Assistant',
             online: 'Online',
             today: 'Today',
             describeMeal: 'Describe your meal...',
@@ -535,7 +535,7 @@ export const translations: Record<Language, Translations> = {
             feedTheFlow: 'Feed the Flow',
             title: 'AI Generated Plan',
             yourPlan: 'Your Personalized Plan',
-            planDescription: 'NURA AI will analyze your profile, biotype, and goals to create a unique quarterly strategy.',
+            planDescription: 'Malama AI will analyze your profile, biotype, and goals to create a unique quarterly strategy.',
             generateNow: 'Generate Plan Now',
             generating: 'Generating Strategy...',
             dailyKcal: 'Daily Kcal',
@@ -547,7 +547,7 @@ export const translations: Record<Language, Translations> = {
             startNow: 'Start Now',
             planActive: 'Plan Active',
             viewProgress: 'View Progress',
-            myFlow: 'My NURA Flow',
+            myFlow: 'My Malama Flow',
             summaryOf: 'Summary of',
             flowConsistency: 'Flow Consistency',
             days: 'Days',
@@ -603,7 +603,7 @@ export const translations: Record<Language, Translations> = {
             shareGoalCta: 'Share Goal',
         },
         journal: {
-            title: 'NURA Journal',
+            title: 'Malama Journal',
             myFlow: 'My Flow',
             flowStatus: 'Flow Status',
             inProgress: 'In Progress',
@@ -626,7 +626,7 @@ export const translations: Record<Language, Translations> = {
         },
         profileConfig: {
             title: 'Biometric Profile',
-            subtitle: 'Feed the Flow. Personalize NURA intelligence for your metabolism.',
+            subtitle: 'Feed the Flow. Personalize Malama intelligence for your metabolism.',
             bodyData: 'Body Data',
             weight: 'Weight (kg)',
             height: 'Height (cm)',
@@ -649,13 +649,13 @@ export const translations: Record<Language, Translations> = {
             intense: 'Intense',
             calculateMacros: 'Calculate Macros',
             saveError: 'Error saving profile. Please try again.',
-            welcome: 'Welcome to Nura',
+            welcome: 'Welcome to Malama',
             setupProfile: 'Let\'s set up your profile to customize your experience.',
         },
         integrations: {
             title: 'Integrations',
             headline: 'Connect your <accent>ecosystem</accent> for a smarter Flow',
-            subtitle: 'Centralize your health data to maximize results. NURA syncs in real-time to adapt your nutrition.',
+            subtitle: 'Centralize your health data to maximize results. Malama syncs in real-time to adapt your nutrition.',
             connected: 'Connected',
             pending: 'Sync pending',
             disconnected: 'Disconnected',
@@ -677,7 +677,7 @@ export const translations: Record<Language, Translations> = {
             orContinueWith: 'Or continue with',
             continueGoogle: 'Continue with Google',
             terms: 'By continuing, you agree to our Terms of Service and Privacy Policy.',
-            aiNote: 'Nura uses AI to optimize your nutrition.',
+            aiNote: 'Malama uses AI to optimize your nutrition.',
         },
         planRenewal: {
             header: 'Plan Renewal',
@@ -750,7 +750,7 @@ export const translations: Record<Language, Translations> = {
 
     pt: {
         app: {
-            name: 'NURA',
+            name: 'Malama',
             slogan: 'Alimente o Flow',
         },
         nav: {
@@ -821,7 +821,7 @@ export const translations: Record<Language, Translations> = {
             proteins: 'Proteínas',
             carbohydrates: 'Carboidratos',
             fatsLabel: 'Gorduras',
-            aiInsightLabel: 'NURA AI Insight',
+            aiInsightLabel: 'Malama AI Insight',
             aiInsightText: 'Com o perfil <b>Premium</b> ativo, priorizamos fontes de alta biodisponibilidade como salmão selvagem para otimizar sua cognição hoje.',
             insightEconomic: 'Com foco <b>Econômico</b>, priorizamos fontes de alta densidade proteica que cabem no bolso: ovos, sardinha e arroz com feijão.',
             insightBalanced: 'Com o perfil <b>Equilibrado</b>, combinamos custo-benefício com qualidade nutricional. Frango, batata doce e abacate são seus aliados.',
@@ -836,7 +836,7 @@ export const translations: Record<Language, Translations> = {
             logThis: 'Registrar este alimento',
         },
         mealLogger: {
-            title: 'Assistente NURA',
+            title: 'Assistente Malama',
             online: 'Online',
             today: 'Hoje',
             describeMeal: 'Descreva sua refeição...',
@@ -886,7 +886,7 @@ export const translations: Record<Language, Translations> = {
             feedTheFlow: 'Feed the Flow',
             title: 'Plano Gerado IA',
             yourPlan: 'Seu Plano Personalizado',
-            planDescription: 'A IA Nura analisará seu perfil, biotipo e objetivos para criar uma estratégia trimestral única.',
+            planDescription: 'A IA Malama analisará seu perfil, biotipo e objetivos para criar uma estratégia trimestral única.',
             generateNow: 'Gerar Plano Agora',
             generating: 'Gerando Estratégia...',
             dailyKcal: 'Kcal Diárias',
@@ -898,7 +898,7 @@ export const translations: Record<Language, Translations> = {
             startNow: 'Começar Agora',
             planActive: 'Plano Ativo',
             viewProgress: 'Ver Progresso',
-            myFlow: 'My NURA Flow',
+            myFlow: 'My Malama Flow',
             summaryOf: 'Resumo de',
             flowConsistency: 'Consistência do Flow',
             days: 'Dias',
@@ -954,7 +954,7 @@ export const translations: Record<Language, Translations> = {
             shareGoalCta: 'Compartilhar Meta',
         },
         journal: {
-            title: 'Diário NURA',
+            title: 'Diário Malama',
             myFlow: 'Meu Flow',
             flowStatus: 'Flow Status',
             inProgress: 'Em Progresso',
@@ -977,7 +977,7 @@ export const translations: Record<Language, Translations> = {
         },
         profileConfig: {
             title: 'Perfil Biométrico',
-            subtitle: 'Feed the Flow. Personalize a inteligência da NURA para o seu metabolismo.',
+            subtitle: 'Feed the Flow. Personalize a inteligência da Malama para o seu metabolismo.',
             bodyData: 'Dados Corporais',
             weight: 'Peso (kg)',
             height: 'Altura (cm)',
@@ -1000,13 +1000,13 @@ export const translations: Record<Language, Translations> = {
             intense: 'Intenso',
             calculateMacros: 'Calcular Macros',
             saveError: 'Erro ao salvar perfil. Tente novamente.',
-            welcome: 'Bem-vindo ao Nura',
+            welcome: 'Bem-vindo ao Malama',
             setupProfile: 'Vamos configurar seu perfil para personalizar sua experiência.',
         },
         integrations: {
             title: 'Integrações',
             headline: 'Conecte seu <accent>ecossistema</accent> para um Flow inteligente',
-            subtitle: 'Centralize seus dados de saúde para maximizar seus resultados. O NURA sincroniza em tempo real para adaptar sua nutrição.',
+            subtitle: 'Centralize seus dados de saúde para maximizar seus resultados. O Malama sincroniza em tempo real para adaptar sua nutrição.',
             connected: 'Conectado',
             pending: 'Sincronização pendente',
             disconnected: 'Desconectado',
@@ -1028,7 +1028,7 @@ export const translations: Record<Language, Translations> = {
             orContinueWith: 'Ou continue com',
             continueGoogle: 'Continuar com Google',
             terms: 'Ao continuar, você concorda com nossos Termos de Serviço e Política de Privacidade.',
-            aiNote: 'Nura usa IA para otimizar sua nutrição.',
+            aiNote: 'Malama usa IA para otimizar sua nutrição.',
         },
         planRenewal: {
             header: 'Renovação de Plano',
@@ -1101,7 +1101,7 @@ export const translations: Record<Language, Translations> = {
 
     es: {
         app: {
-            name: 'NURA',
+            name: 'Malama',
             slogan: 'Alimenta el Flow',
         },
         nav: {
@@ -1172,7 +1172,7 @@ export const translations: Record<Language, Translations> = {
             proteins: 'Proteínas',
             carbohydrates: 'Carbohidratos',
             fatsLabel: 'Grasas',
-            aiInsightLabel: 'NURA AI Insight',
+            aiInsightLabel: 'Malama AI Insight',
             aiInsightText: 'Con el perfil <b>Premium</b> activo, priorizamos fuentes de alta biodisponibilidad como salmón salvaje para optimizar tu cognición hoy.',
             insightEconomic: 'Con enfoque <b>Económico</b>, priorizamos fuentes de alta densidad proteica accesibles: huevos, sardinas y arroz con frijoles.',
             insightBalanced: 'Con el perfil <b>Equilibrado</b>, combinamos costo-beneficio con calidad nutricional. Pollo, batata y aguacate son tus aliados.',
@@ -1187,7 +1187,7 @@ export const translations: Record<Language, Translations> = {
             logThis: 'Registrar este alimento',
         },
         mealLogger: {
-            title: 'Asistente NURA',
+            title: 'Asistente Malama',
             online: 'En línea',
             today: 'Hoy',
             describeMeal: 'Describe tu comida...',
@@ -1237,7 +1237,7 @@ export const translations: Record<Language, Translations> = {
             feedTheFlow: 'Feed the Flow',
             title: 'Plan Generado IA',
             yourPlan: 'Tu Plan Personalizado',
-            planDescription: 'La IA Nura analizará tu perfil, biotipo y objetivos para crear una estrategia trimestral única.',
+            planDescription: 'La IA Malama analizará tu perfil, biotipo y objetivos para crear una estrategia trimestral única.',
             generateNow: 'Generar Plan Ahora',
             generating: 'Generando Estrategia...',
             dailyKcal: 'Kcal Diarias',
@@ -1249,7 +1249,7 @@ export const translations: Record<Language, Translations> = {
             startNow: 'Comenzar Ahora',
             planActive: 'Plan Activo',
             viewProgress: 'Ver Progreso',
-            myFlow: 'My NURA Flow',
+            myFlow: 'My Malama Flow',
             summaryOf: 'Resumen de',
             flowConsistency: 'Consistencia del Flow',
             days: 'Días',
@@ -1305,7 +1305,7 @@ export const translations: Record<Language, Translations> = {
             shareGoalCta: 'Compartir Meta',
         },
         journal: {
-            title: 'Diario NURA',
+            title: 'Diario Malama',
             myFlow: 'Mi Flow',
             flowStatus: 'Estado del Flow',
             inProgress: 'En Progreso',
@@ -1328,7 +1328,7 @@ export const translations: Record<Language, Translations> = {
         },
         profileConfig: {
             title: 'Perfil Biométrico',
-            subtitle: 'Feed the Flow. Personaliza la inteligencia de NURA para tu metabolismo.',
+            subtitle: 'Feed the Flow. Personaliza la inteligencia de Malama para tu metabolismo.',
             bodyData: 'Datos Corporales',
             weight: 'Peso (kg)',
             height: 'Altura (cm)',
@@ -1351,13 +1351,13 @@ export const translations: Record<Language, Translations> = {
             intense: 'Intenso',
             calculateMacros: 'Calcular Macros',
             saveError: 'Error al guardar perfil. Inténtalo de nuevo.',
-            welcome: 'Bienvenido a Nura',
+            welcome: 'Bienvenido a Malama',
             setupProfile: 'Vamos a configurar tu perfil para personalizar tu experiencia.',
         },
         integrations: {
             title: 'Integraciones',
             headline: 'Conecta tu <accent>ecosistema</accent> para un Flow inteligente',
-            subtitle: 'Centraliza tus datos de salud para maximizar resultados. NURA sincroniza en tiempo real para adaptar tu nutrición.',
+            subtitle: 'Centraliza tus datos de salud para maximizar resultados. Malama sincroniza en tiempo real para adaptar tu nutrición.',
             connected: 'Conectado',
             pending: 'Sincronización pendiente',
             disconnected: 'Desconectado',
@@ -1379,7 +1379,7 @@ export const translations: Record<Language, Translations> = {
             orContinueWith: 'O contin\u00faa con',
             continueGoogle: 'Continuar con Google',
             terms: 'Al continuar, aceptas nuestros T\u00e9rminos de Servicio y Pol\u00edtica de Privacidad.',
-            aiNote: 'Nura usa IA para optimizar tu nutrici\u00f3n.',
+            aiNote: 'Malama usa IA para optimizar tu nutrici\u00f3n.',
         },
         planRenewal: {
             header: 'Renovaci\u00f3n de Plan',

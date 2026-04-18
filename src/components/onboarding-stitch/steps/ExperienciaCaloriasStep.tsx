@@ -2,7 +2,7 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const PETROL = '#1A6070';
+const PETROL = '#9c5d4b';
 
 const ExperienciaCaloriasStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const options = [

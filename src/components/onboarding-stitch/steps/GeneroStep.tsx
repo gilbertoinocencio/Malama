@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StepContainer } from '../StepContainer';
 import { StepProps } from '../types';
 
-const PETROL = '#1A6070';
+const PETROL = '#9c5d4b';
 
 const GeneroStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const [genero, setGenero] = useState<'masculino' | 'feminino' | null>(data.genero || null);

@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — GLP-1 Medication Protocols
+// Malama — GLP-1 Medication Protocols
 // Source: official prescribing information
 // =====================================================
 

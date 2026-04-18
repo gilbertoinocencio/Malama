@@ -50,7 +50,7 @@ export const LoginView: React.FC = () => {
     // Se é signup de influencer e já está logado, redirecionar para onboarding
     useEffect(() => {
         const isSignup = new URLSearchParams(window.location.search).get('signup') === 'true';
-        const isInfluencerSignup = localStorage.getItem('nura_is_influencer_signup') === 'true';
+        const isInfluencerSignup = localStorage.getItem('Malama_is_influencer_signup') === 'true';
 
         if (isSignup && isInfluencerSignup && user) {
             // Usuário influencer acabou de fazer signup e está logado
@@ -68,14 +68,14 @@ export const LoginView: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-nura-bg dark:bg-background-dark">
-                <div className="w-16 h-16 border-4 border-nura-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="min-h-screen flex items-center justify-center bg-Malama-bg dark:bg-background-dark">
+                <div className="w-16 h-16 border-4 border-Malama-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-nura-bg dark:bg-background-dark font-display relative">
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-Malama-bg dark:bg-background-dark font-display relative">
             <div className="absolute top-6 right-6 flex gap-2">
                 {[
                     { code: 'en', label: 'EN' },
@@ -86,8 +86,8 @@ export const LoginView: React.FC = () => {
                         key={lang.code}
                         onClick={() => setLanguage(lang.code as any)}
                         className={`text-xs font-bold px-2 py-1 rounded-lg transition-colors ${language === lang.code
-                            ? 'bg-nura-petrol dark:bg-primary text-white'
-                            : 'text-nura-muted dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/10'
+                            ? 'bg-Malama-petrol dark:bg-primary text-white'
+                            : 'text-Malama-muted dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/10'
                             }`}
                     >
                         {lang.label}
@@ -98,10 +98,10 @@ export const LoginView: React.FC = () => {
             <div className="w-full max-w-sm flex flex-col items-center gap-8 animate-fade-in-up">
                 {/* Logo */}
                 <div className="flex flex-col items-center gap-4">
-                    <div className="bg-nura-petrol rounded-xl px-10 py-5 shadow-xl">
-                        <span className="text-white font-serif text-5xl font-light tracking-[12px]">NURA</span>
+                    <div className="bg-Malama-petrol rounded-xl px-10 py-5 shadow-xl">
+                        <span className="text-white font-serif text-5xl font-light tracking-[12px]">Malama</span>
                     </div>
-                    <p className="text-nura-muted dark:text-slate-400 text-lg font-medium">{a.subtitle}</p>
+                    <p className="text-Malama-muted dark:text-slate-400 text-lg font-medium">{a.subtitle}</p>
                 </div>
 
                 {/* Action */}
@@ -112,32 +112,32 @@ export const LoginView: React.FC = () => {
                             placeholder="Email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full h-12 px-4 rounded-xl border border-nura-border dark:border-white/10 bg-white dark:bg-black/20 text-nura-main dark:text-white placeholder-nura-muted focus:outline-none focus:ring-2 focus:ring-nura-petrol/20 transition-all"
+                            className="w-full h-12 px-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-black/20 text-Malama-main dark:text-white placeholder-Malama-muted focus:outline-none focus:ring-2 focus:ring-Malama-petrol/20 transition-all"
                         />
                         <input
                             type="password"
                             placeholder={a.password}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full h-12 px-4 rounded-xl border border-nura-border dark:border-white/10 bg-white dark:bg-black/20 text-nura-main dark:text-white placeholder-nura-muted focus:outline-none focus:ring-2 focus:ring-nura-petrol/20 transition-all"
+                            className="w-full h-12 px-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-black/20 text-Malama-main dark:text-white placeholder-Malama-muted focus:outline-none focus:ring-2 focus:ring-Malama-petrol/20 transition-all"
                         />
                         <button
                             type="submit"
                             disabled={authLoading}
-                            className="w-full h-12 bg-nura-petrol dark:bg-primary text-white rounded-xl font-semibold shadow-lg shadow-nura-petrol/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full h-12 bg-Malama-petrol dark:bg-primary text-white rounded-xl font-semibold shadow-lg shadow-Malama-petrol/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {authLoading ? a.processing : (isSignUp ? a.signUp : a.signIn)}
                         </button>
                     </form>
 
                     <div className="w-full flex items-center justify-between text-sm">
-                        <span className="text-nura-muted">
+                        <span className="text-Malama-muted">
                             {isSignUp ? a.hasAccount : a.noAccount}
                         </span>
                         <button
                             type="button"
                             onClick={() => setIsSignUp(!isSignUp)}
-                            className="text-nura-petrol dark:text-primary font-semibold hover:underline"
+                            className="text-Malama-petrol dark:text-primary font-semibold hover:underline"
                         >
                             {isSignUp ? a.doLogin : a.createAccount}
                         </button>
@@ -148,13 +148,13 @@ export const LoginView: React.FC = () => {
                             <div className="w-full border-t border-gray-200 dark:border-white/10"></div>
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-nura-bg dark:bg-background-dark text-nura-muted">{a.orContinueWith}</span>
+                            <span className="px-2 bg-Malama-bg dark:bg-background-dark text-Malama-muted">{a.orContinueWith}</span>
                         </div>
                     </div>
 
                     <button
                         onClick={handleGoogleLogin}
-                        className="w-full h-14 bg-white dark:bg-surface-dark border border-nura-border dark:border-white/10 rounded-xl flex items-center justify-center gap-3 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-nura-main dark:text-white font-semibold relative overflow-hidden group"
+                        className="w-full h-14 bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/10 rounded-xl flex items-center justify-center gap-3 shadow-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-Malama-main dark:text-white font-semibold relative overflow-hidden group"
                     >
                         <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
                         <span>{a.continueGoogle}</span>
@@ -167,7 +167,7 @@ export const LoginView: React.FC = () => {
                     )}
                 </div>
 
-                <p className="text-xs text-center text-nura-muted dark:text-slate-500 max-w-xs leading-relaxed">
+                <p className="text-xs text-center text-Malama-muted dark:text-slate-500 max-w-xs leading-relaxed">
                     {a.terms}
                     <br /><br />
                     {a.aiNote}

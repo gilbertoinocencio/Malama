@@ -100,7 +100,7 @@ const PlanoPersonalizadoStep: React.FC<StepProps> = ({ onNext, onBack, currentSt
             </div>
             <div className="flex items-center gap-3 text-xs text-on-surface font-medium">
               <span className="material-symbols-outlined text-secondary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-              Certificação NURA
+              Certificação Malama
             </div>
           </div>
         </motion.div>
@@ -119,7 +119,7 @@ const PlanoPersonalizadoStep: React.FC<StepProps> = ({ onNext, onBack, currentSt
           <p className="text-xl font-body italic text-primary leading-snug">
             "O sucesso não vem da intensidade, mas da consistência. Este plano foi feito para você nunca mais precisar recomeçar."
           </p>
-          <p className="text-sm font-headline font-bold text-primary">Dra. Helena Souza, Head de Neurociência NURA</p>
+          <p className="text-sm font-headline font-bold text-primary">Dra. Helena Souza, Head de Neurociência Malama</p>
         </div>
       </div>
     </StepContainer>

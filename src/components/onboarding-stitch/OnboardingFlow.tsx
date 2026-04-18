@@ -40,7 +40,7 @@ import RecomendacaoMacrosStep from './steps/RecomendacaoMacrosStep';
 import VantagensPremiumStep from './steps/VantagensPremiumStep';
 import AssinaturasStep from './steps/AssinaturasStep';
 import ExperienciaCaloriasStep from './steps/ExperienciaCaloriasStep';
-import NuraFlowStep from './steps/NuraFlowStep';
+import MalamaFlowStep from './steps/MalamaFlowStep';
 import HomeFeedStep from './steps/HomeFeedStep';
 
 export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
@@ -49,7 +49,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
   const [isFinishing, setIsFinishing] = useState(false);
   const [isInfluencer, setIsInfluencer] = useState(() => {
     // Verifica localStorage como fallback imediato (antes da query ao banco)
-    const flag = localStorage.getItem('nura_is_influencer_signup') === 'true';
+    const flag = localStorage.getItem('Malama_is_influencer_signup') === 'true';
     console.log('🟢 [OnboardingFlow] Verificação inicial - Flag localStorage:', flag);
     return flag;
   });
@@ -60,7 +60,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
     if (!user) return;
 
     console.log('🟢 [OnboardingFlow] Verificando se é influencer para user:', user.id);
-    console.log('🟢 [OnboardingFlow] Flag atual no localStorage:', localStorage.getItem('nura_is_influencer_signup'));
+    console.log('🟢 [OnboardingFlow] Flag atual no localStorage:', localStorage.getItem('Malama_is_influencer_signup'));
 
     influencerService.getByUserId(user.id).then(data => {
       const isInf = !!data;
@@ -68,11 +68,11 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
       if (isInf) {
         setIsInfluencer(true);
         console.log('🟢 [OnboardingFlow] Limpando flag localStorage (já confirmado pelo banco)');
-        localStorage.removeItem('nura_is_influencer_signup');
+        localStorage.removeItem('Malama_is_influencer_signup');
       } else {
         // Banco retornou null — verificar localStorage antes de sobrescrever
         // (race condition: activateAccount pode não ter propagado ainda)
-        const flagSet = localStorage.getItem('nura_is_influencer_signup') === 'true';
+        const flagSet = localStorage.getItem('Malama_is_influencer_signup') === 'true';
         if (!flagSet) {
           console.log('🔴 [OnboardingFlow] Definindo isInfluencer=false (sem registro no banco e sem flag)');
           setIsInfluencer(false);
@@ -84,7 +84,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
       console.error('🔴 [OnboardingFlow] Erro na query ao banco:', err);
       // Se não encontrou no banco mas a flag está setada, mantém como influencer
       // (pode ser race condition - o registro ainda não foi criado)
-      if (localStorage.getItem('nura_is_influencer_signup') === 'true') {
+      if (localStorage.getItem('Malama_is_influencer_signup') === 'true') {
         console.log('🟡 [OnboardingFlow] Mantendo isInfluencer=true (flag no localStorage, race condition)');
         setIsInfluencer(true);
       } else {
@@ -233,7 +233,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
       console.error('Error finishing onboarding:', err);
     } finally {
       // Limpa flag de influencer do localStorage
-      localStorage.removeItem('nura_is_influencer_signup');
+      localStorage.removeItem('Malama_is_influencer_signup');
 
       // Sempre completa o onboarding, independente das permissões
       onComplete();
@@ -317,7 +317,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
       case OnboardingStep.EXPERIENCIA_CALORIAS:
         return <ExperienciaCaloriasStep {...props} />;
       case OnboardingStep.FLOW:
-        return <NuraFlowStep {...props} />;
+        return <MalamaFlowStep {...props} />;
       case OnboardingStep.HOME_FEED:
         return <HomeFeedStep {...props} />;
       default:

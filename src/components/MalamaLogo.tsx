@@ -1,10 +1,10 @@
 // =====================================================
-// NURA — Logo Component (reutilizável)
+// Malama — Logo Component (reutilizável)
 // =====================================================
 
 import React from 'react';
 
-interface NuraLogoProps {
+interface MalamaLogoProps {
   variant?: 'light' | 'dark' | 'text-only';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
@@ -17,7 +17,7 @@ const sizeConfig = {
   xl: { width: '240px', height: 'auto', borderRadius: '24px' }
 };
 
-export const NuraLogo: React.FC<NuraLogoProps> = ({
+export const MalamaLogo: React.FC<MalamaLogoProps> = ({
   variant = 'light',
   size = 'md',
   className = ''
@@ -32,11 +32,11 @@ export const NuraLogo: React.FC<NuraLogoProps> = ({
           fontSize: config.width === '80px' ? '20px' : config.width === '120px' ? '32px' : config.width === '180px' ? '48px' : '64px',
           letterSpacing: config.width === '80px' ? '4px' : config.width === '120px' ? '8px' : config.width === '180px' ? '14px' : '18px',
           textIndent: config.width === '80px' ? '4px' : config.width === '120px' ? '8px' : config.width === '180px' ? '14px' : '18px',
-          color: '#1A6070',
+          color: '#9c5d4b',
           fontFamily: "'Cormorant Garamond', Georgia, serif"
         }}
       >
-        NURA
+        Malama
       </span>
     );
   }
@@ -47,18 +47,16 @@ export const NuraLogo: React.FC<NuraLogoProps> = ({
     <div
       className={`inline-flex items-center justify-center ${className}`}
       style={{
-        background: isDark
-          ? 'linear-gradient(135deg, #1A6070 0%, #0C4352 100%)'
-          : 'linear-gradient(135deg, #1A6070 0%, #0C4352 100%)',
+        background: 'transparent', // Transparent background for a cleaner look with the new logo
         borderRadius: config.borderRadius,
-        padding: '8px',
+        padding: '0px',
         position: 'relative',
         overflow: 'hidden'
       }}
     >
       <img
-        src="/logo.jpg"
-        alt="NURA Logo"
+        src="/malama-logo.png"
+        alt="Malama Logo"
         style={{
           width: config.width,
           height: config.height,
@@ -72,10 +70,10 @@ export const NuraLogo: React.FC<NuraLogoProps> = ({
 };
 
 // Variantes predefinidas para uso rápido
-export const NuraLogoLight: React.FC<{ size?: NuraLogoProps['size'] }> = (props) => (
-  <NuraLogo variant="light" {...props} />
+export const MalamaLogoLight: React.FC<{ size?: MalamaLogoProps['size'] }> = (props) => (
+  <MalamaLogo variant="light" {...props} />
 );
 
-export const NuraLogoText: React.FC<{ size?: NuraLogoProps['size'] }> = (props) => (
-  <NuraLogo variant="text-only" {...props} />
+export const MalamaLogoText: React.FC<{ size?: MalamaLogoProps['size'] }> = (props) => (
+  <MalamaLogo variant="text-only" {...props} />
 );

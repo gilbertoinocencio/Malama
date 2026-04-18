@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Gestão de Médicos (Admin)
+// Malama — Gestão de Médicos (Admin)
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
@@ -142,7 +142,7 @@ export const AdminDoctorsManagement: React.FC = () => {
         </div>
         <button
           onClick={() => setShowInviteModal(true)}
-          className="px-4 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center gap-2 transition"
+          className="px-4 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center gap-2 transition"
         >
           <Link2 className="w-4 h-4" />
           Gerar Link de Convite
@@ -191,7 +191,7 @@ export const AdminDoctorsManagement: React.FC = () => {
       <div className="bg-white rounded-xl shadow overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2ECC71]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]"></div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -213,7 +213,7 @@ export const AdminDoctorsManagement: React.FC = () => {
                     <tr key={doctor.id} className="hover:bg-gray-50 transition">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#2ECC71] flex items-center justify-center text-white font-semibold flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-[#9c5d4b] flex items-center justify-center text-white font-semibold flex-shrink-0">
                             {doctor.photo_url ? (
                               <img src={doctor.photo_url} alt={doctor.name} className="w-full h-full rounded-full object-cover" />
                             ) : (
@@ -292,7 +292,7 @@ export const AdminDoctorsManagement: React.FC = () => {
                 href={`https://portal.cfm.org.br/${selectedDoctor.crm_state}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-[#2ECC71] hover:underline inline-block"
+                className="text-sm text-[#9c5d4b] hover:underline inline-block"
               >
                 Verificar CRM no CFM →
               </a>
@@ -343,7 +343,7 @@ export const AdminDoctorsManagement: React.FC = () => {
               <button onClick={() => setShowApproveModal(null)} className="px-6 py-2 text-gray-600">Cancelar</button>
               <button
                 onClick={handleApprove}
-                className="px-6 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center gap-2"
+                className="px-6 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center gap-2"
               >
                 <CheckCircle className="w-4 h-4" />
                 Aprovar médico
@@ -409,7 +409,7 @@ export const AdminDoctorsManagement: React.FC = () => {
 
             <button
               onClick={generateInviteLink}
-              className="w-full py-3 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium mb-4 transition"
+              className="w-full py-3 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium mb-4 transition"
             >
               Gerar link de convite
             </button>
@@ -423,7 +423,7 @@ export const AdminDoctorsManagement: React.FC = () => {
                     readOnly
                     className="flex-1 px-3 py-2 text-sm bg-white rounded-lg border border-gray-300"
                   />
-                  <button onClick={copyToClipboard} className="p-2 text-[#2ECC71] hover:bg-gray-100 rounded-lg transition">
+                  <button onClick={copyToClipboard} className="p-2 text-[#9c5d4b] hover:bg-gray-100 rounded-lg transition">
                     <Copy className="w-4 h-4" />
                   </button>
                 </div>

@@ -20,7 +20,7 @@ export const QuickReply: React.FC<QuickReplyProps> = ({ options, onSelect, disab
           key={index}
           onClick={() => onSelect(option.value)}
           disabled={disabled}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-nura-petrol/20 dark:border-primary/20 bg-white dark:bg-surface-dark text-nura-main dark:text-white hover:border-nura-petrol dark:hover:border-primary hover:bg-nura-petrol/5 dark:hover:bg-primary/5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm shadow-sm"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-Malama-petrol/20 dark:border-primary/20 bg-white dark:bg-surface-dark text-Malama-main dark:text-white hover:border-Malama-petrol dark:hover:border-primary hover:bg-Malama-petrol/5 dark:hover:bg-primary/5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm shadow-sm"
           style={{ animationDelay: `${index * 50}ms` }}
         >
           {option.icon && (

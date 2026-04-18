@@ -158,10 +158,10 @@ export const MealSuggestionsCarousel: React.FC<MealSuggestionsCarouselProps> = (
               restaurant
             </span>
           </div>
-          <h3 className="text-lg font-bold text-nura-main dark:text-white">
+          <h3 className="text-lg font-bold text-Malama-main dark:text-white">
             Todas as sugestões revisadas!
           </h3>
-          <p className="text-sm text-nura-muted dark:text-gray-400">
+          <p className="text-sm text-Malama-muted dark:text-gray-400">
             Volte amanhã para novas recomendações de refeições.
           </p>
         </div>
@@ -199,10 +199,10 @@ export const MealSuggestionsCarousel: React.FC<MealSuggestionsCarouselProps> = (
             </span>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-nura-main dark:text-white">
+            <h3 className="text-lg font-bold text-Malama-main dark:text-white">
               Sugestões de Hoje
             </h3>
-            <p className="text-xs text-nura-muted dark:text-gray-400">
+            <p className="text-xs text-Malama-muted dark:text-gray-400">
               {currentIndex + 1} de {suggestions.length} refeições
             </p>
           </div>
@@ -281,7 +281,7 @@ export const MealSuggestionsCarousel: React.FC<MealSuggestionsCarouselProps> = (
             <button
               onClick={handleLogNow}
               disabled={logging}
-              className="flex-1 py-3.5 rounded-2xl bg-nura-petrol dark:bg-primary text-white font-bold
+              className="flex-1 py-3.5 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold
                 shadow-lg hover:shadow-xl hover:brightness-110 active:scale-95 transition-all
                 flex items-center justify-center gap-2 disabled:opacity-70"
             >
@@ -324,7 +324,7 @@ export const MealSuggestionsCarousel: React.FC<MealSuggestionsCarouselProps> = (
       </AnimatePresence>
 
       {/* Swipe Hint */}
-      <p className="text-center text-xs text-nura-muted dark:text-gray-500 mt-3">
+      <p className="text-center text-xs text-Malama-muted dark:text-gray-500 mt-3">
         Arraste para os lados ou use os botões
       </p>
     </div>
@@ -370,7 +370,7 @@ const MealCard: React.FC<MealCardProps> = ({ suggestion, accepted }) => {
     <div className={`bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-lg border transition-colors
       ${accepted
         ? 'border-green-400 dark:border-green-600 ring-2 ring-green-300 dark:ring-green-700'
-        : 'border-nura-border dark:border-gray-700'
+        : 'border-Malama-border dark:border-gray-700'
       }`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
@@ -389,13 +389,13 @@ const MealCard: React.FC<MealCardProps> = ({ suggestion, accepted }) => {
               </span>
             )}
           </div>
-          <h4 className="text-xl font-bold text-nura-main dark:text-white leading-tight">
+          <h4 className="text-xl font-bold text-Malama-main dark:text-white leading-tight">
             {suggestion.meal_name}
           </h4>
         </div>
         <div className="text-right ml-3 flex-shrink-0">
-          <span className="text-xs text-nura-muted dark:text-gray-500">Horário</span>
-          <p className="text-lg font-bold text-nura-petrol dark:text-primary">
+          <span className="text-xs text-Malama-muted dark:text-gray-500">Horário</span>
+          <p className="text-lg font-bold text-Malama-petrol dark:text-primary">
             {suggestion.suggested_hour}
           </p>
         </div>
@@ -403,41 +403,41 @@ const MealCard: React.FC<MealCardProps> = ({ suggestion, accepted }) => {
 
       {/* Description */}
       {suggestion.description && (
-        <p className="text-sm text-nura-muted dark:text-gray-300 leading-relaxed mb-3">
+        <p className="text-sm text-Malama-muted dark:text-gray-300 leading-relaxed mb-3">
           {suggestion.description}
         </p>
       )}
 
       {/* Macros */}
       <div className="grid grid-cols-4 gap-2 mb-3">
-        <div className="bg-nura-pastel-orange/30 dark:bg-orange-900/20 rounded-xl p-2.5 text-center">
-          <span className="text-[10px] text-nura-muted dark:text-gray-500 block mb-0.5">Calorias</span>
-          <span className="text-base font-bold text-nura-main dark:text-white">{suggestion.calories}</span>
+        <div className="bg-Malama-pastel-orange/30 dark:bg-orange-900/20 rounded-xl p-2.5 text-center">
+          <span className="text-[10px] text-Malama-muted dark:text-gray-500 block mb-0.5">Calorias</span>
+          <span className="text-base font-bold text-Malama-main dark:text-white">{suggestion.calories}</span>
         </div>
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-2.5 text-center">
-          <span className="text-[10px] text-nura-muted dark:text-gray-500 block mb-0.5">Proteína</span>
-          <span className="text-base font-bold text-nura-main dark:text-white">{suggestion.protein}g</span>
+          <span className="text-[10px] text-Malama-muted dark:text-gray-500 block mb-0.5">Proteína</span>
+          <span className="text-base font-bold text-Malama-main dark:text-white">{suggestion.protein}g</span>
         </div>
         <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-2.5 text-center">
-          <span className="text-[10px] text-nura-muted dark:text-gray-500 block mb-0.5">Carbs</span>
-          <span className="text-base font-bold text-nura-main dark:text-white">{suggestion.carbs}g</span>
+          <span className="text-[10px] text-Malama-muted dark:text-gray-500 block mb-0.5">Carbs</span>
+          <span className="text-base font-bold text-Malama-main dark:text-white">{suggestion.carbs}g</span>
         </div>
         <div className="bg-teal-50 dark:bg-teal-900/20 rounded-xl p-2.5 text-center">
-          <span className="text-[10px] text-nura-muted dark:text-gray-500 block mb-0.5">Gordura</span>
-          <span className="text-base font-bold text-nura-main dark:text-white">{suggestion.fats}g</span>
+          <span className="text-[10px] text-Malama-muted dark:text-gray-500 block mb-0.5">Gordura</span>
+          <span className="text-base font-bold text-Malama-main dark:text-white">{suggestion.fats}g</span>
         </div>
       </div>
 
       {/* Ingredients */}
       {suggestion.ingredients && suggestion.ingredients.length > 0 && (
         <div className="mb-3">
-          <h5 className="text-sm font-bold text-nura-main dark:text-white flex items-center gap-2 mb-2">
+          <h5 className="text-sm font-bold text-Malama-main dark:text-white flex items-center gap-2 mb-2">
             <span className="material-symbols-outlined text-[18px]">shopping_basket</span>
             Ingredientes:
           </h5>
           <ul className="grid grid-cols-2 gap-x-2 gap-y-1.5">
             {suggestion.ingredients.map((ing: any, index: number) => (
-              <li key={index} className="text-xs text-nura-muted dark:text-gray-300 flex items-start gap-1.5">
+              <li key={index} className="text-xs text-Malama-muted dark:text-gray-300 flex items-start gap-1.5">
                 <span className="material-symbols-outlined text-orange-500 text-[14px] mt-0.5 flex-shrink-0">check</span>
                 <span className="leading-snug">
                   <span className="font-semibold">{ing.name}</span> - {ing.quantity}
@@ -450,13 +450,13 @@ const MealCard: React.FC<MealCardProps> = ({ suggestion, accepted }) => {
 
       {/* Reasoning */}
       {suggestion.reasoning && (
-        <div className="bg-nura-pastel-orange/20 dark:bg-primary/10 border border-orange-200 dark:border-orange-700 rounded-xl p-3">
+        <div className="bg-Malama-pastel-orange/20 dark:bg-primary/10 border border-orange-200 dark:border-orange-700 rounded-xl p-3">
           <div className="flex items-start gap-2">
             <span className="material-symbols-outlined text-orange-500 text-[18px] mt-0.5 flex-shrink-0">
               lightbulb
             </span>
-            <p className="text-xs text-nura-muted dark:text-gray-300 leading-relaxed">
-              <span className="font-semibold text-nura-main dark:text-white">Por quê agora?</span> {suggestion.reasoning}
+            <p className="text-xs text-Malama-muted dark:text-gray-300 leading-relaxed">
+              <span className="font-semibold text-Malama-main dark:text-white">Por quê agora?</span> {suggestion.reasoning}
             </p>
           </div>
         </div>

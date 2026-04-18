@@ -132,7 +132,7 @@ export const analyzeTextLog = async (text: string, language: string = 'pt', prof
 - **Daily Protein Target:** ${profile.target_protein ? profile.target_protein + 'g' : 'Not defined'}
 ` : '';
 
-    const prompt = `You are NURA, a clinical-grade nutrition analysis engine AND a strict, evidence-based nutritionist who cares about the user's health.
+    const prompt = `You are Malama, a clinical-grade nutrition analysis engine AND a strict, evidence-based nutritionist who cares about the user's health.
 
 Analyze this food log: "${text}".
 
@@ -279,7 +279,7 @@ export const analyzeImageLog = async (base64Image: string, language: string = 'p
     const model = getGenAI().getGenerativeModel({ model: MODEL_NAME });
 
     const langName = LANG_NAMES[language] || LANG_NAMES.pt;
-    const prompt = `You are NURA, a clinical-grade nutrition analysis engine. Identify ALL food items visible in this image.
+    const prompt = `You are Malama, a clinical-grade nutrition analysis engine. Identify ALL food items visible in this image.
 
 ## NUTRITIONAL DATABASE PRIORITY
 Use values from these databases in order of priority:
@@ -397,7 +397,7 @@ export const generatePlanContent = async (profile: any, onboardingData?: any, la
     }
 
     const prompt = `
-      Você é NURA, uma nutricionista clínica experiente especializada em composição corporal e saúde metabólica.
+      Você é Malama, uma nutricionista clínica experiente especializada em composição corporal e saúde metabólica.
 
       ${userDataSection}
 
@@ -499,7 +499,7 @@ export const generateDoctorBriefing = async (patient: any): Promise<string> => {
     const model = getGenAI().getGenerativeModel({ model: MODEL_NAME });
 
     const prompt = `
-      Você é um assistente clínico de IA (NURA Assistant) projetado para médicos endocrinologistas e nutricionistas.
+      Você é um assistente clínico de IA (Malama Assistant) projetado para médicos endocrinologistas e nutricionistas.
       Seu papel é ler os dados do paciente abaixo e gerar um BRIEFING CLÍNICO EXECUTIVO para o médico ler ANTES da consulta.
       
       DADOS DO PACIENTE:

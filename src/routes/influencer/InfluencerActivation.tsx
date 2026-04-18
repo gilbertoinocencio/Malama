@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Ativação de Conta do Influenciador
+// Malama — Ativação de Conta do Influenciador
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
@@ -7,7 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { influencerService } from '../../services/doctorPortalService';
 import { supabase } from '../../services/supabase';
-import { NuraLogo } from '../../components/NuraLogo';
+import { MalamaLogo } from '../../components/MalamaLogo';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const InfluencerActivation: React.FC = () => {
@@ -87,7 +87,7 @@ export const InfluencerActivation: React.FC = () => {
 
       // 4. Setar flag para garantir que o OnboardingFlow detecte como influencer
       // (essencial para pular telas de planos premium)
-      localStorage.setItem('nura_is_influencer_signup', 'true');
+      localStorage.setItem('Malama_is_influencer_signup', 'true');
 
       // 5. Ir para o app principal — OnboardingFlow detecta influencer automaticamente
       window.location.replace('/');
@@ -109,10 +109,10 @@ export const InfluencerActivation: React.FC = () => {
   if (notFound) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0F0F0F] p-6 text-center">
-        <NuraLogo size="md" />
+        <MalamaLogo size="md" />
         <h1 className="text-xl font-semibold text-white mt-4">Link inválido ou já utilizado</h1>
         <p className="text-gray-400 text-sm max-w-sm">
-          Este link de ativação não é válido ou já foi usado. Entre em contato com o time Nura.
+          Este link de ativação não é válido ou já foi usado. Entre em contato com o time Malama.
         </p>
       </div>
     );
@@ -122,7 +122,7 @@ export const InfluencerActivation: React.FC = () => {
     <div className="min-h-screen bg-[#0F0F0F] flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-10">
-          <NuraLogo size="lg" />
+          <MalamaLogo size="lg" />
         </div>
 
         <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-8">

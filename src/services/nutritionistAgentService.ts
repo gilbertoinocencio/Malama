@@ -221,11 +221,11 @@ export const NutritionistAgentService = {
     if (initialData.weight && initialData.height) facts.push(`seu peso (${initialData.weight}kg) e altura (${initialData.height}cm)`);
     if (initialData.mainGoal) facts.push(`seu objetivo (${initialData.mainGoal})`);
 
-    let content = 'Olá! Sou a nutricionista virtual da NURA. Vou te ajudar a montar um plano alimentar personalizado de 3 meses, baseado em evidências científicas e adaptado à sua realidade.\n\nVou fazer algumas perguntas para conhecer você melhor. Vamos começar?';
+    let content = 'Olá! Sou a nutricionista virtual da Malama. Vou te ajudar a montar um plano alimentar personalizado de 3 meses, baseado em evidências científicas e adaptado à sua realidade.\n\nVou fazer algumas perguntas para conhecer você melhor. Vamos começar?';
 
     if (facts.length > 0) {
       const factList = facts.join(', ');
-      content = `Olá${initialData.fullName ? ' ' + initialData.fullName : ''}! Sou a nutricionista da NURA. Já importei ${factList} do seu perfil para agilizar nosso atendimento.\n\nVamos continuar de onde paramos para montar seu plano de 3 meses?`;
+      content = `Olá${initialData.fullName ? ' ' + initialData.fullName : ''}! Sou a nutricionista da Malama. Já importei ${factList} do seu perfil para agilizar nosso atendimento.\n\nVamos continuar de onde paramos para montar seu plano de 3 meses?`;
     }
 
     // Create new session

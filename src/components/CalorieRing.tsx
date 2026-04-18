@@ -45,10 +45,10 @@ export const CalorieRing: React.FC<CalorieRingProps> = ({ consumed, target }) =>
       </ResponsiveContainer>
       
       <div className="absolute flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-4xl font-serif font-light text-nura-brown dark:text-white">
+        <span className="text-4xl font-serif font-light text-Malama-brown dark:text-white">
           {consumed}
         </span>
-        <span className="text-xs uppercase tracking-widest text-nura-brown/60 dark:text-nura-stone mt-1">
+        <span className="text-xs uppercase tracking-widest text-Malama-brown/60 dark:text-Malama-stone mt-1">
           / {target} kcal
         </span>
       </div>

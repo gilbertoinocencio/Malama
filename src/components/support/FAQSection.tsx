@@ -172,12 +172,12 @@ export const FAQSection: React.FC<FAQProps> = ({ onContactSupport }) => {
   return (
     <div className="flex flex-col gap-4">
       {/* Header */}
-      <div className="bg-gradient-to-br from-nura-petrol/10 to-emerald-50 dark:from-primary/20 dark:to-emerald-900/10 rounded-2xl p-5 border border-nura-petrol/20 dark:border-primary/20">
+      <div className="bg-gradient-to-br from-Malama-petrol/10 to-emerald-50 dark:from-primary/20 dark:to-emerald-900/10 rounded-2xl p-5 border border-Malama-petrol/20 dark:border-primary/20">
         <div className="flex items-center gap-3 mb-2">
           <span className="text-2xl">❓</span>
-          <h3 className="text-lg font-bold text-nura-main dark:text-white">Perguntas Frequentes</h3>
+          <h3 className="text-lg font-bold text-Malama-main dark:text-white">Perguntas Frequentes</h3>
         </div>
-        <p className="text-sm text-nura-muted dark:text-slate-400">
+        <p className="text-sm text-Malama-muted dark:text-slate-400">
           Encontre respostas rápidas antes de entrar em contato com o suporte
         </p>
       </div>
@@ -187,8 +187,8 @@ export const FAQSection: React.FC<FAQProps> = ({ onContactSupport }) => {
         <button
           onClick={() => setSelectedCategory('all')}
           className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${selectedCategory === 'all'
-            ? 'bg-nura-main dark:bg-white text-white dark:text-nura-main'
-            : 'bg-nura-bg dark:bg-slate-700 text-nura-muted dark:text-slate-400 hover:bg-nura-petrol/10 dark:hover:bg-primary/10'
+            ? 'bg-Malama-main dark:bg-white text-white dark:text-Malama-main'
+            : 'bg-Malama-bg dark:bg-slate-700 text-Malama-muted dark:text-slate-400 hover:bg-Malama-petrol/10 dark:hover:bg-primary/10'
             }`}
         >
           Todas
@@ -198,8 +198,8 @@ export const FAQSection: React.FC<FAQProps> = ({ onContactSupport }) => {
             key={key}
             onClick={() => setSelectedCategory(key)}
             className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${selectedCategory === key
-              ? 'bg-nura-main dark:bg-white text-white dark:text-nura-main'
-              : 'bg-nura-bg dark:bg-slate-700 text-nura-muted dark:text-slate-400 hover:bg-nura-petrol/10 dark:hover:bg-primary/10'
+              ? 'bg-Malama-main dark:bg-white text-white dark:text-Malama-main'
+              : 'bg-Malama-bg dark:bg-slate-700 text-Malama-muted dark:text-slate-400 hover:bg-Malama-petrol/10 dark:hover:bg-primary/10'
               }`}
           >
             {label}
@@ -211,29 +211,29 @@ export const FAQSection: React.FC<FAQProps> = ({ onContactSupport }) => {
       <div className="flex flex-col gap-3">
         {Object.entries(groupedFAQs).map(([category, faqs]) => (
           <div key={category} className="flex flex-col gap-2">
-            <h4 className="text-sm font-bold text-nura-main dark:text-white flex items-center gap-2">
+            <h4 className="text-sm font-bold text-Malama-main dark:text-white flex items-center gap-2">
               <span>{CATEGORY_LABELS[category]}</span>
             </h4>
             {faqs.map(faq => (
               <div
                 key={faq.id}
-                className="bg-white dark:bg-surface-dark rounded-xl border border-nura-border dark:border-transparent overflow-hidden"
+                className="bg-white dark:bg-surface-dark rounded-xl border border-Malama-border dark:border-transparent overflow-hidden"
               >
                 <button
                   onClick={() => setExpandedId(expandedId === faq.id ? null : faq.id)}
-                  className="w-full p-4 flex items-center justify-between text-left hover:bg-nura-bg dark:hover:bg-slate-800 transition-colors"
+                  className="w-full p-4 flex items-center justify-between text-left hover:bg-Malama-bg dark:hover:bg-slate-800 transition-colors"
                 >
-                  <span className="text-sm font-medium text-nura-main dark:text-white pr-4">{faq.question}</span>
+                  <span className="text-sm font-medium text-Malama-main dark:text-white pr-4">{faq.question}</span>
                   {expandedId === faq.id ? (
-                    <ChevronUp className="w-5 h-5 text-nura-muted dark:text-slate-400 flex-shrink-0" />
+                    <ChevronUp className="w-5 h-5 text-Malama-muted dark:text-slate-400 flex-shrink-0" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-nura-muted dark:text-slate-400 flex-shrink-0" />
+                    <ChevronDown className="w-5 h-5 text-Malama-muted dark:text-slate-400 flex-shrink-0" />
                   )}
                 </button>
                 <div className={`overflow-hidden transition-all duration-300 ${expandedId === faq.id ? 'max-h-96' : 'max-h-0'
                   }`}>
                   <div className="px-4 pb-4 pt-0">
-                    <p className="text-sm text-nura-muted dark:text-slate-400 leading-relaxed">{faq.answer}</p>
+                    <p className="text-sm text-Malama-muted dark:text-slate-400 leading-relaxed">{faq.answer}</p>
                   </div>
                 </div>
               </div>
@@ -243,17 +243,17 @@ export const FAQSection: React.FC<FAQProps> = ({ onContactSupport }) => {
       </div>
 
       {/* Contact Support CTA */}
-      <div className="bg-nura-bg dark:bg-slate-800 rounded-2xl p-5 text-center">
-        <MessageCircle className="w-10 h-10 text-nura-petrol dark:text-primary mx-auto mb-2" />
-        <p className="text-sm font-semibold text-nura-main dark:text-white mb-1">
+      <div className="bg-Malama-bg dark:bg-slate-800 rounded-2xl p-5 text-center">
+        <MessageCircle className="w-10 h-10 text-Malama-petrol dark:text-primary mx-auto mb-2" />
+        <p className="text-sm font-semibold text-Malama-main dark:text-white mb-1">
           Não encontrou o que procurava?
         </p>
-        <p className="text-xs text-nura-muted dark:text-slate-400 mb-3">
+        <p className="text-xs text-Malama-muted dark:text-slate-400 mb-3">
           Nossa equipe está pronta para ajudar!
         </p>
         <button
           onClick={onContactSupport}
-          className="px-6 py-2.5 bg-nura-main dark:bg-white text-white dark:text-nura-main text-sm font-bold rounded-xl hover:opacity-90 transition-opacity"
+          className="px-6 py-2.5 bg-Malama-main dark:bg-white text-white dark:text-Malama-main text-sm font-bold rounded-xl hover:opacity-90 transition-opacity"
         >
           Entrar em contato com o suporte
         </button>

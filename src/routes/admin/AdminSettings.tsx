@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Configurações Globais (Admin)
+// Malama — Configurações Globais (Admin)
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
@@ -12,7 +12,7 @@ export const AdminSettings: React.FC = () => {
     default_platform_fee: '25',
     min_consultation_duration: '20',
     min_consultation_price: '80',
-    support_email: 'suporte@nura.app'
+    support_email: 'suporte@Malama.app'
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -57,7 +57,7 @@ export const AdminSettings: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2ECC71]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]"></div>
       </div>
     );
   }
@@ -76,7 +76,7 @@ export const AdminSettings: React.FC = () => {
               onChange={e => updateSetting('default_platform_fee', e.target.value)}
               min={0}
               max={100}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2ECC71]"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
             />
           </div>
 
@@ -87,7 +87,7 @@ export const AdminSettings: React.FC = () => {
               value={settings.min_consultation_price}
               onChange={e => updateSetting('min_consultation_price', e.target.value)}
               min={0}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2ECC71]"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
             />
           </div>
 
@@ -98,7 +98,7 @@ export const AdminSettings: React.FC = () => {
               value={settings.min_consultation_duration}
               onChange={e => updateSetting('min_consultation_duration', e.target.value)}
               min={10}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2ECC71]"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
             />
           </div>
 
@@ -108,14 +108,14 @@ export const AdminSettings: React.FC = () => {
               type="email"
               value={settings.support_email}
               onChange={e => updateSetting('support_email', e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2ECC71]"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#9c5d4b]"
             />
           </div>
 
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-3 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-3 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {saving ? 'Salvando...' : 'Salvar configurações'}

@@ -3,7 +3,7 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 import { motion } from 'framer-motion';
 
-const NuraFlowStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) => {
+const MalamaFlowStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) => {
   return (
     <StepContainer
       currentStep={currentStep}
@@ -31,7 +31,7 @@ const NuraFlowStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) 
           </h1>
           <p className="text-xl text-on-surface-variant font-light leading-relaxed">
             Sua jornada para uma vida mais leve e consciente começa agora. 
-            O Nura está pronto para guiar cada passo da sua transformação.
+            O Malama está pronto para guiar cada passo da sua transformação.
           </p>
         </div>
 
@@ -59,4 +59,4 @@ const NuraFlowStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) 
   );
 };
 
-export default NuraFlowStep;
+export default MalamaFlowStep;

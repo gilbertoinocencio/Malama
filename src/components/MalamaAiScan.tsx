@@ -4,14 +4,14 @@ import { AIResponse, MealItem } from '../types';
 import { lookupSingleItem } from '../services/geminiService';
 import { useLanguage } from '../i18n';
 
-interface NuraAiScanProps {
+interface MalamaAiScanProps {
     data: AIResponse;
     imageUri: string;
     onConfirm: (finalData: AIResponse) => void;
     onBack: () => void;
 }
 
-const PETROL = '#1A6070';
+const MALAMA_RED = '#9c5d4b';
 const BG_CREAM = '#FDFBF9';
 
 const recalcTotals = (items: MealItem[]): { calories: number; macros: { p: number; c: number; f: number } } => {
@@ -22,7 +22,7 @@ const recalcTotals = (items: MealItem[]): { calories: number; macros: { p: numbe
     return { calories, macros: { p, c, f } };
 };
 
-export const NuraAiScan: React.FC<NuraAiScanProps> = ({
+export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
     data,
     imageUri,
     onConfirm,
@@ -134,9 +134,9 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                 <div className="w-10"></div>
                 <h2 
                     className="text-stone-800 text-lg tracking-[0.2em] uppercase"
-                    style={{ fontFamily: "'Playfair Display', serif", color: PETROL }}
+                    style={{ fontFamily: "'Playfair Display', serif", color: MALAMA_RED }}
                 >
-                    Nura Scan
+                    Malama Scan
                 </h2>
                 <button
                     onClick={onBack}
@@ -179,7 +179,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                         </div>
                                         <div 
                                             className="size-14 rounded-full flex items-center justify-center shadow-sm shrink-0"
-                                            style={{ background: PETROL }}
+                                            style={{ background: MALAMA_RED }}
                                         >
                                             <span className="material-symbols-outlined text-white text-3xl">done_all</span>
                                         </div>
@@ -207,7 +207,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                             <circle cx="18" cy="18" r="16" fill="none" className="stroke-stone-100" strokeWidth="2" />
                                             <circle 
                                                 cx="18" cy="18" r="16" fill="none" 
-                                                stroke={PETROL}
+                                                stroke={MALAMA_RED}
                                                 strokeWidth="3.5" 
                                                 strokeDasharray="100 100" 
                                                 strokeDashoffset="25"
@@ -227,7 +227,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${getPercent(macros.p)}%` }}
                                                 className="h-full rounded-full"
-                                                style={{ background: PETROL }} 
+                                                style={{ background: MALAMA_RED }} 
                                             />
                                         </div>
                                     </div>
@@ -271,7 +271,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                 <button 
                                     onClick={addItem}
                                     className="text-base font-light flex items-center gap-1 bg-white px-4 py-2 rounded-full border border-stone-200 shadow-sm active:scale-95"
-                                    style={{ color: PETROL }}
+                                    style={{ color: MALAMA_RED }}
                                 >
                                     <span className="material-symbols-outlined text-lg">add</span>
                                     Item
@@ -289,7 +289,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                             placeholder="Ingrediente..."
                                         />
                                         {lookingUp === idx && (
-                                            <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin shrink-0 mr-2" style={{ borderColor: PETROL, borderTopColor: 'transparent' }} />
+                                            <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin shrink-0 mr-2" style={{ borderColor: MALAMA_RED, borderTopColor: 'transparent' }} />
                                         )}
                                         <button
                                             onClick={() => removeItem(idx)}
@@ -309,7 +309,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                                     value={item.weightGrams || 0}
                                                     onChange={(e) => updateItem(idx, 'weightGrams', parseInt(e.target.value) || 0)}
                                                     className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2.5 text-base text-stone-800 focus:ring-1"
-                                                    style={{ outlineColor: PETROL }}
+                                                    style={{ outlineColor: MALAMA_RED }}
                                                 />
                                             </div>
                                         </div>
@@ -320,7 +320,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                                 value={item.calories || 0}
                                                 onChange={(e) => updateItem(idx, 'calories', parseInt(e.target.value) || 0)}
                                                 className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2.5 text-base text-stone-800 focus:ring-1"
-                                                style={{ outlineColor: PETROL }}
+                                                style={{ outlineColor: MALAMA_RED }}
                                             />
                                         </div>
                                         <div className="col-span-1 flex flex-col gap-1.5">
@@ -330,7 +330,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                                 value={item.protein || 0}
                                                 onChange={(e) => updateItem(idx, 'protein', parseInt(e.target.value) || 0)}
                                                 className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2.5 text-base text-stone-800 focus:ring-1"
-                                                style={{ outlineColor: PETROL }}
+                                                style={{ outlineColor: MALAMA_RED }}
                                             />
                                         </div>
                                         <div className="col-span-1 flex flex-col gap-1.5">
@@ -340,7 +340,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                                 value={item.carbs || 0}
                                                 onChange={(e) => updateItem(idx, 'carbs', parseInt(e.target.value) || 0)}
                                                 className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2.5 text-base text-stone-800 focus:ring-1"
-                                                style={{ outlineColor: PETROL }}
+                                                style={{ outlineColor: MALAMA_RED }}
                                             />
                                         </div>
                                         <div className="col-span-1 flex flex-col gap-1.5">
@@ -350,7 +350,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                                 value={item.fats || 0}
                                                 onChange={(e) => updateItem(idx, 'fats', parseInt(e.target.value) || 0)}
                                                 className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2.5 text-base text-stone-800 focus:ring-1"
-                                                style={{ outlineColor: PETROL }}
+                                                style={{ outlineColor: MALAMA_RED }}
                                             />
                                         </div>
                                     </div>
@@ -376,7 +376,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                                 onClick={handleConfirm}
                                 disabled={confirming}
                                 className="flex-[2] py-4 rounded-2xl text-white text-lg font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
-                                style={{ background: PETROL }}
+                                style={{ background: MALAMA_RED }}
                             >
                                 {confirming ? (
                                     <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -391,7 +391,7 @@ export const NuraAiScan: React.FC<NuraAiScanProps> = ({
                         <button
                             onClick={() => setIsEditing(false)}
                             className="w-full py-4 rounded-2xl text-white text-lg font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98]"
-                            style={{ background: PETROL }}
+                            style={{ background: MALAMA_RED }}
                         >
                             Salvar Alterações
                         </button>

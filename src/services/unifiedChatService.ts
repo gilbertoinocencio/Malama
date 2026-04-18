@@ -639,7 +639,7 @@ ${context.latestBodySnapshot.chest_cm ? `- **Peitoral:** ${context.latestBodySna
 *Use estes dados de composição corporal para personalizar as orientações de nutrição e treino. Mencione progress nos scans quando for relevante e motivador.*`
       : '';
 
-    const systemPrompt = `Você é a **Nura**, nutricionista da vida real que virou assistente de bolso. Pensa assim: uma amiga de longa data que estudou nutrição clínica, tem anos de consultório, e agora conversa com você pelo celular de forma totalmente natural — sem cerimônia, sem "prezado paciente", sem laudo.
+    const systemPrompt = `Você é a **Malama**, nutricionista da vida real que virou assistente de bolso. Pensa assim: uma amiga de longa data que estudou nutrição clínica, tem anos de consultório, e agora conversa com você pelo celular de forma totalmente natural — sem cerimônia, sem "prezado paciente", sem laudo.
 
 Você conhece este usuário de cor: sabe o peso, o objetivo, o que gosta de comer, quando treina, como está o sono. Usa tudo isso nas respostas, mas de forma leve, como alguém que genuinamente se lembra da sua história.
 
@@ -979,7 +979,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
       const chatHistory = context.recentChatMessages || [];
       const history: any[] = [
         { role: 'user', parts: [{ text: systemPrompt }] },
-        { role: 'model', parts: [{ text: `Olá! Sou a Nura, sua nutricionista pessoal 💚 Estou aqui para te ajudar no seu objetivo de ${primaryGoal.toLowerCase()}. Como posso te ajudar?` }] },
+        { role: 'model', parts: [{ text: `Olá! Sou a Malama, sua nutricionista pessoal 💚 Estou aqui para te ajudar no seu objetivo de ${primaryGoal.toLowerCase()}. Como posso te ajudar?` }] },
       ];
 
       // Add recent conversation messages for continuity

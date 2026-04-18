@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Serviço de Cobrança, Créditos e Repasses
+// Malama — Serviço de Cobrança, Créditos e Repasses
 // billingService.ts
 // =====================================================
 

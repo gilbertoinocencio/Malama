@@ -3,7 +3,7 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 import { motion } from 'framer-motion';
 
-const PETROL = '#1A6070';
+const PETROL = '#9c5d4b';
 
 const MetodologiaStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) => {
   return (
@@ -12,14 +12,14 @@ const MetodologiaStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps 
       totalSteps={totalSteps}
       onNext={onNext}
       showBack={false}
-      nextLabel="Entendi o NURA Flow"
+      nextLabel="Entendi o Malama Flow"
     >
       <header className="mb-10 space-y-4">
         <h1 
           className="text-4xl md:text-5xl text-stone-800 leading-tight"
           style={{ fontFamily: "'Playfair Display', serif" }}
         >
-          O que torna o <span style={{ color: PETROL }}>NURA</span> diferente?
+          O que torna o <span style={{ color: PETROL }}>Malama</span> diferente?
         </h1>
         <p className="text-stone-500 text-lg font-light leading-relaxed">
           Nossa metodologia foi desenhada para quem busca harmonia, não restrição.

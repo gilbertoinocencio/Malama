@@ -116,7 +116,7 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({
           <button
             onClick={handleSubmit}
             disabled={loading || (!caption.trim() && !imageUrl)}
-            className="px-4 py-2 bg-nura-petrol dark:bg-primary text-white text-sm font-bold rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+            className="px-4 py-2 bg-Malama-petrol dark:bg-primary text-white text-sm font-bold rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
           >
             {loading ? 'Postando...' : 'Postar'}
           </button>
@@ -143,7 +143,7 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({
                   onClick={() => setPostType(type.value)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
                     postType === type.value
-                      ? 'bg-nura-petrol dark:bg-primary text-white'
+                      ? 'bg-Malama-petrol dark:bg-primary text-white'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                 >
@@ -172,7 +172,7 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({
             ) : (
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-nura-petrol dark:hover:border-primary transition-colors"
+                className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-Malama-petrol dark:hover:border-primary transition-colors"
               >
                 <span className="material-symbols-outlined text-gray-400 text-3xl">add_photo_alternate</span>
                 <span className="text-sm text-gray-500 dark:text-gray-400">Adicionar foto</span>
@@ -196,7 +196,7 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               placeholder="Compartilhe seu progresso, dica ou pensamento..."
-              className="w-full h-24 p-3 border border-gray-300 dark:border-gray-600 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-nura-petrol dark:focus:ring-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
+              className="w-full h-24 p-3 border border-gray-300 dark:border-gray-600 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
               maxLength={500}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">

@@ -35,11 +35,11 @@ const ProvaSucessoStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, to
               <span className="material-symbols-outlined text-white text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
             </div>
             <h2 className="text-white font-headline text-2xl md:text-3xl font-bold leading-snug">
-              87% das pessoas com o seu perfil atingem a meta seguindo o plano NURA.
+              87% das pessoas com o seu perfil atingem a meta seguindo o plano Malama.
             </h2>
             <div className="h-px w-24 bg-white/30"></div>
             <p className="text-secondary-fixed font-medium tracking-wide text-sm uppercase">
-              Selo de Confiança NURA Science
+              Selo de Confiança Malama Science
             </p>
           </div>
         </div>

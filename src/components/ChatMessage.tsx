@@ -18,7 +18,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLast }) => 
         <div
           className={`flex-shrink-0 size-6 rounded-full flex items-center justify-center ${
             isAgent
-              ? 'bg-nura-petrol dark:bg-primary text-white shadow-md'
+              ? 'bg-Malama-petrol dark:bg-primary text-white shadow-md'
               : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
           }`}
         >
@@ -35,8 +35,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLast }) => 
           <div
             className={`px-4 py-2.5 rounded-2xl ${
               isAgent
-                ? 'bg-white dark:bg-surface-dark border border-nura-border/50 dark:border-gray-700/50 text-nura-main dark:text-white rounded-bl-md shadow-sm'
-                : 'bg-nura-petrol dark:bg-primary text-white rounded-br-md shadow-md'
+                ? 'bg-white dark:bg-surface-dark border border-Malama-border/50 dark:border-gray-700/50 text-Malama-main dark:text-white rounded-bl-md shadow-sm'
+                : 'bg-Malama-petrol dark:bg-primary text-white rounded-br-md shadow-md'
             }`}
           >
             {/* Format message with line breaks */}
@@ -46,7 +46,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLast }) => 
           </div>
 
           {/* Timestamp */}
-          <span className="text-[10px] text-nura-muted/80 dark:text-gray-500 mt-1 px-1">
+          <span className="text-[10px] text-Malama-muted/80 dark:text-gray-500 mt-1 px-1">
             {new Date(message.timestamp).toLocaleTimeString('pt-BR', {
               hour: '2-digit',
               minute: '2-digit',

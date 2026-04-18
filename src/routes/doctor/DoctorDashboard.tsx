@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Dashboard do Médico
+// Malama — Dashboard do Médico
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
@@ -79,7 +79,7 @@ export const DoctorDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2ECC71]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]"></div>
       </div>
     );
   }
@@ -90,13 +90,13 @@ export const DoctorDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl shadow p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 rounded-lg bg-[#2ECC71]/10 flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-[#2ECC71]" />
+            <div className="w-12 h-12 rounded-lg bg-[#9c5d4b]/10 flex items-center justify-center">
+              <Calendar className="w-6 h-6 text-[#9c5d4b]" />
             </div>
           </div>
           <p className="text-3xl font-bold text-gray-800">{summary?.todayConsultations || 0}</p>
           <p className="text-gray-600 text-sm">Consultas hoje</p>
-          <Link to="/medico/agenda" className="text-[#2ECC71] text-sm hover:underline mt-2 inline-block">
+          <Link to="/medico/agenda" className="text-[#9c5d4b] text-sm hover:underline mt-2 inline-block">
             Ver agenda →
           </Link>
         </div>
@@ -145,7 +145,7 @@ export const DoctorDashboard: React.FC = () => {
               return (
                 <div key={consultation.id} className="p-4 flex items-center gap-4">
                   {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-[#2ECC71] flex items-center justify-center text-white font-semibold flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-[#9c5d4b] flex items-center justify-center text-white font-semibold flex-shrink-0">
                     {consultation.patient_name?.charAt(0) || 'P'}
                   </div>
 
@@ -153,7 +153,7 @@ export const DoctorDashboard: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-800 truncate">{consultation.patient_name || 'Paciente'}</p>
                     <p className="text-sm text-gray-600">{formatConsultationTime(consultation.scheduled_at)}</p>
-                    <span className="inline-block mt-1 px-2 py-0.5 bg-[#2ECC71]/10 text-[#2ECC71] text-xs rounded-full">
+                    <span className="inline-block mt-1 px-2 py-0.5 bg-[#9c5d4b]/10 text-[#9c5d4b] text-xs rounded-full">
                       {getConsultationTypeLabel(consultation.type)}
                     </span>
                   </div>
@@ -169,7 +169,7 @@ export const DoctorDashboard: React.FC = () => {
                     <Link
                       to={`/medico/consulta/${consultation.id}`}
                       className={`px-4 py-2 text-sm rounded-lg transition flex items-center gap-2 ${available
-                        ? 'bg-[#2ECC71] hover:bg-[#27ae60] text-white'
+                        ? 'bg-[#9c5d4b] hover:bg-[#7a4839] text-white'
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         }`}
                       title={!available ? 'Disponível 10 min antes' : 'Entrar na consulta'}

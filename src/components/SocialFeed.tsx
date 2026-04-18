@@ -106,10 +106,10 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ onNavigate, onFabClick, 
   // Empty state
   if (!loading && posts.length === 0) {
     return (
-      <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-nura-bg dark:bg-background-dark font-display text-nura-main dark:text-white">
+      <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-Malama-bg dark:bg-background-dark font-display text-Malama-main dark:text-white">
         {/* Header */}
-        <header className="sticky top-0 z-50 bg-nura-bg/90 dark:bg-background-dark/90 backdrop-blur-md px-6 py-4 flex items-center justify-between">
-          <button onClick={onBack} className="text-nura-petrol dark:text-white p-2 -ml-2">
+        <header className="sticky top-0 z-50 bg-Malama-bg/90 dark:bg-background-dark/90 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+          <button onClick={onBack} className="text-Malama-petrol dark:text-white p-2 -ml-2">
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <h1 className="text-lg font-bold">{t.social.community}</h1>
@@ -121,15 +121,15 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ onNavigate, onFabClick, 
           <div className="size-20 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-4">
             <span className="material-symbols-outlined text-orange-500 text-4xl">groups</span>
           </div>
-          <h2 className="text-xl font-bold text-nura-main dark:text-white mb-2">
+          <h2 className="text-xl font-bold text-Malama-main dark:text-white mb-2">
             Feed do Flow
           </h2>
-          <p className="text-sm text-nura-muted dark:text-gray-400 mb-6 max-w-[280px]">
+          <p className="text-sm text-Malama-muted dark:text-gray-400 mb-6 max-w-[280px]">
             Nenhum post ainda. Seja o primeiro a compartilhar seu flow!
           </p>
           <button
             onClick={() => setShowComposer(true)}
-            className="px-6 py-3 bg-nura-petrol dark:bg-primary text-white rounded-full font-bold hover:opacity-90 transition-opacity flex items-center gap-2"
+            className="px-6 py-3 bg-Malama-petrol dark:bg-primary text-white rounded-full font-bold hover:opacity-90 transition-opacity flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[20px]">add_circle</span>
             Postar Agora
@@ -148,14 +148,14 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ onNavigate, onFabClick, 
   }
 
   return (
-    <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-nura-bg dark:bg-background-dark font-display text-nura-main dark:text-white">
+    <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-Malama-bg dark:bg-background-dark font-display text-Malama-main dark:text-white">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-nura-bg/90 dark:bg-background-dark/90 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
-        <button onClick={onBack} className="text-nura-petrol dark:text-white p-2 -ml-2">
+      <header className="sticky top-0 z-50 bg-Malama-bg/90 dark:bg-background-dark/90 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+        <button onClick={onBack} className="text-Malama-petrol dark:text-white p-2 -ml-2">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-lg font-bold">{t.social.community}</h1>
-        <button className="text-nura-muted dark:text-gray-400 p-2 -mr-2">
+        <button className="text-Malama-muted dark:text-gray-400 p-2 -mr-2">
           <span className="material-symbols-outlined">filter_list</span>
         </button>
       </header>
@@ -164,7 +164,7 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ onNavigate, onFabClick, 
       <div className="flex-1 overflow-y-auto pb-24">
         {loading && posts.length === 0 ? (
           <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-nura-petrol dark:border-primary"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-Malama-petrol dark:border-primary"></div>
           </div>
         ) : (
           <div className="space-y-4 p-4">
@@ -241,7 +241,7 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ onNavigate, onFabClick, 
               <button
                 onClick={() => loadPosts(page + 1)}
                 disabled={loading}
-                className="w-full py-3 text-sm font-medium text-nura-petrol dark:text-primary hover:opacity-80 disabled:opacity-50"
+                className="w-full py-3 text-sm font-medium text-Malama-petrol dark:text-primary hover:opacity-80 disabled:opacity-50"
               >
                 {loading ? 'Carregando...' : 'Carregar mais'}
               </button>
@@ -253,7 +253,7 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ onNavigate, onFabClick, 
       {/* FAB */}
       <button
         onClick={() => setShowComposer(true)}
-        className="fixed bottom-24 right-6 size-14 bg-nura-petrol dark:bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-40"
+        className="fixed bottom-24 right-6 size-14 bg-Malama-petrol dark:bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-40"
       >
         <span className="material-symbols-outlined text-[28px]">add</span>
       </button>

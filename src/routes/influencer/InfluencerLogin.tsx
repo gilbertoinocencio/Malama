@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Login do Influenciador
+// Malama — Login do Influenciador
 // =====================================================
 // Redireciona para o login unificado do app principal.
 // A detecção de influencer é feita automaticamente pelo

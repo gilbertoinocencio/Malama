@@ -883,7 +883,7 @@ export async function createMilestonePost(
   data: Record<string, unknown>
 ): Promise<string | null> {
   const captions: Record<MilestoneType, string> = {
-    first_day: `🌱 ${data.display_name} acabou de começar a jornada no Nura!`,
+    first_day: `🌱 ${data.display_name} acabou de começar a jornada no Malama!`,
     one_week: `🎉 ${data.display_name} completou 1 semana!`,
     one_month: `🏆 ${data.display_name} está há 1 mês na jornada!`,
     first_kg: `⚡ ${data.display_name} perdeu o primeiro quilo!`,

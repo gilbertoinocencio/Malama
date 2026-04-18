@@ -15,7 +15,7 @@ const ImpactoAguaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
 
         {/* Header */}
         <section className="w-full mb-12">
-          <p className="font-headline text-xs uppercase tracking-[0.2em] text-on-surface-variant mb-3 font-semibold">NURA Flow Identity</p>
+          <p className="font-headline text-xs uppercase tracking-[0.2em] text-on-surface-variant mb-3 font-semibold">Malama Flow Identity</p>
           <h2 className="font-headline text-4xl font-extrabold tracking-tight text-primary leading-tight">
             O impacto visual <br />da água
           </h2>

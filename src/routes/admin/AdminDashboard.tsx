@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Dashboard do Super Admin
+// Malama — Dashboard do Super Admin
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
@@ -78,7 +78,7 @@ export const AdminDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2ECC71]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9c5d4b]"></div>
       </div>
     );
   }
@@ -154,7 +154,7 @@ export const AdminDashboard: React.FC = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleApproveDoctor(doctor.id)}
-                    className="px-4 py-2 bg-[#2ECC71] hover:bg-[#27ae60] text-white rounded-lg text-sm font-medium flex items-center gap-1 transition"
+                    className="px-4 py-2 bg-[#9c5d4b] hover:bg-[#7a4839] text-white rounded-lg text-sm font-medium flex items-center gap-1 transition"
                   >
                     <CheckCircle className="w-4 h-4" />
                     Aprovar
@@ -178,7 +178,7 @@ export const AdminDashboard: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl shadow p-5">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-[#2ECC71]" />
+              <TrendingUp className="w-4 h-4 text-[#9c5d4b]" />
               <p className="text-xs text-gray-500">MRR Total</p>
             </div>
             <p className="text-2xl font-bold text-gray-800">{formatCurrency(billingStats.mrr_total)}</p>
@@ -226,7 +226,7 @@ export const AdminDashboard: React.FC = () => {
           to="/admin/medicos"
           className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition"
         >
-          <Users className="w-8 h-8 text-[#2ECC71] mb-2" />
+          <Users className="w-8 h-8 text-[#9c5d4b] mb-2" />
           <h4 className="font-semibold text-gray-800">Médicos</h4>
           <p className="text-sm text-gray-600">Aprovar e gerenciar</p>
         </Link>

@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — Layout do Médico com Sidebar
+// Malama — Layout do Médico com Sidebar
 // =====================================================
 
 import React, { useState, useEffect } from 'react';
@@ -7,7 +7,7 @@ import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { doctorService } from '../../services/doctorPortalService';
 import type { Doctor } from '../../types/doctorPortal';
-import { NuraLogo } from '../../components/NuraLogo';
+import { MalamaLogo } from '../../components/MalamaLogo';
 import {
   LayoutDashboard,
   Calendar,
@@ -73,9 +73,9 @@ export const DoctorLayout: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFBF9]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2ECC71] mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#9c5d4b] mx-auto"></div>
           <p className="mt-4 text-gray-600">Carregando...</p>
         </div>
       </div>
@@ -83,12 +83,12 @@ export const DoctorLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#F8F9FA]">
+    <div className="min-h-screen flex bg-[#FDFBF9]">
       {/* Sidebar Desktop */}
       <aside className="hidden lg:flex flex-col w-64 bg-[#1A1A1A] text-white fixed h-full z-30">
         {/* Logo */}
         <div className="p-6 border-b border-gray-800">
-          <NuraLogo size="md" />
+          <MalamaLogo size="md" />
         </div>
 
         {/* Menu */}
@@ -98,7 +98,7 @@ export const DoctorLayout: React.FC = () => {
               key={item.path}
               to={item.path}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${isActive(item.path)
-                ? 'bg-[#2ECC71] text-white'
+                ? 'bg-[#9c5d4b] text-white'
                 : 'text-gray-300 hover:bg-gray-800'
                 }`}
             >
@@ -111,7 +111,7 @@ export const DoctorLayout: React.FC = () => {
         {/* User */}
         <div className="p-4 border-t border-gray-800">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-[#2ECC71] flex items-center justify-center font-semibold">
+            <div className="w-10 h-10 rounded-full bg-[#9c5d4b] flex items-center justify-center font-semibold">
               {doctor?.name?.charAt(0) || 'D'}
             </div>
             <div className="flex-1 min-w-0">
@@ -135,7 +135,7 @@ export const DoctorLayout: React.FC = () => {
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <aside className="relative w-64 h-full bg-[#1A1A1A] text-white">
             <div className="flex justify-between items-center p-4 border-b border-gray-800">
-              <NuraLogo size="sm" />
+              <MalamaLogo size="sm" />
               <button onClick={() => setSidebarOpen(false)}>
                 <X className="w-6 h-6" />
               </button>
@@ -148,7 +148,7 @@ export const DoctorLayout: React.FC = () => {
                   to={item.path}
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${isActive(item.path)
-                    ? 'bg-[#2ECC71] text-white'
+                    ? 'bg-[#9c5d4b] text-white'
                     : 'text-gray-300 hover:bg-gray-800'
                     }`}
                 >
@@ -178,8 +178,8 @@ export const DoctorLayout: React.FC = () => {
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="w-6 h-6 text-gray-600" />
           </button>
-          <NuraLogo size="sm" />
-          <div className="w-8 h-8 rounded-full bg-[#2ECC71] flex items-center justify-center text-white font-semibold text-sm">
+          <MalamaLogo size="sm" />
+          <div className="w-8 h-8 rounded-full bg-[#9c5d4b] flex items-center justify-center text-white font-semibold text-sm">
             {doctor?.name?.charAt(0) || 'D'}
           </div>
         </header>

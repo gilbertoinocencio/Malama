@@ -111,7 +111,7 @@ const ProjecaoSucessoStep: React.FC<StepProps> = ({ data, onNext, onBack, curren
           </div>
           <div>
             <h4 className="font-headline font-bold text-primary">Seu "Novo Eu" em 90 dias</h4>
-            <p className="text-sm text-on-surface-variant">72% dos usuários NURA alcançam a meta projetada mantendo a consistência sugerida.</p>
+            <p className="text-sm text-on-surface-variant">72% dos usuários Malama alcançam a meta projetada mantendo a consistência sugerida.</p>
           </div>
         </div>
       </div>

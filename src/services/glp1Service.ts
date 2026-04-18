@@ -1,5 +1,5 @@
 // =====================================================
-// NURA — GLP-1 Service
+// Malama — GLP-1 Service
 // Dose logging, push subscription, goal reformulation,
 // schedule management, and doctor prescription support.
 // =====================================================
