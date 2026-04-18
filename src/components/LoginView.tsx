@@ -76,31 +76,36 @@ export const LoginView: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-Malama-bg dark:bg-background-dark font-display relative">
-            <div className="absolute top-6 right-6 flex gap-2">
-                {[
-                    { code: 'en', label: 'EN' },
-                    { code: 'pt', label: 'PT' },
-                    { code: 'es', label: 'ES' }
-                ].map((lang) => (
-                    <button
-                        key={lang.code}
-                        onClick={() => setLanguage(lang.code as any)}
-                        className={`text-xs font-bold px-2 py-1 rounded-lg transition-colors ${language === lang.code
-                            ? 'bg-Malama-petrol dark:bg-primary text-white'
-                            : 'text-Malama-muted dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/10'
-                            }`}
-                    >
-                        {lang.label}
-                    </button>
-                ))}
+        <div className="min-h-screen flex flex-col bg-Malama-bg dark:bg-background-dark font-display">
+            {/* Top bar — language switcher no fluxo, sem sobreposição */}
+            <div className="flex justify-end px-5 pt-5 pb-0">
+                <div className="flex gap-1">
+                    {[
+                        { code: 'en', label: 'EN' },
+                        { code: 'pt', label: 'PT' },
+                        { code: 'es', label: 'ES' }
+                    ].map((lang) => (
+                        <button
+                            key={lang.code}
+                            onClick={() => setLanguage(lang.code as any)}
+                            className={`text-xs font-bold px-2.5 py-1 rounded-lg transition-colors ${language === lang.code
+                                ? 'bg-Malama-petrol dark:bg-primary text-white'
+                                : 'text-Malama-muted dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/10'
+                                }`}
+                        >
+                            {lang.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
+            {/* Conteúdo principal centralizado no espaço restante */}
+            <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8">
             <div className="w-full max-w-sm flex flex-col items-center gap-8 animate-fade-in-up">
                 {/* Logo */}
-                <div className="flex flex-col items-center gap-4">
-                    <MalamaLogo size="xl" />
-                    <p className="text-Malama-muted dark:text-slate-400 text-lg font-medium">{a.subtitle}</p>
+                <div className="flex flex-col items-center gap-3">
+                    <MalamaLogo size="lg" />
+                    <p className="text-Malama-muted dark:text-slate-400 text-base font-medium">{a.subtitle}</p>
                 </div>
 
                 {/* Action */}
@@ -171,6 +176,7 @@ export const LoginView: React.FC = () => {
                     <br /><br />
                     {a.aiNote}
                 </p>
+            </div>
             </div>
         </div>
     );
