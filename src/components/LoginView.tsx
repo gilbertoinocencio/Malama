@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
+import { MalamaLogo } from './MalamaLogo';
 
 export const LoginView: React.FC = () => {
     const { signInWithGoogle, signInWithEmail, signUpWithEmail, loading, user } = useAuth();
@@ -98,9 +99,7 @@ export const LoginView: React.FC = () => {
             <div className="w-full max-w-sm flex flex-col items-center gap-8 animate-fade-in-up">
                 {/* Logo */}
                 <div className="flex flex-col items-center gap-4">
-                    <div className="bg-Malama-petrol rounded-xl px-10 py-5 shadow-xl">
-                        <span className="text-white font-serif text-5xl font-light tracking-[12px]">Malama</span>
-                    </div>
+                    <MalamaLogo size="xl" />
                     <p className="text-Malama-muted dark:text-slate-400 text-lg font-medium">{a.subtitle}</p>
                 </div>
 

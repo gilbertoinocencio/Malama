@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { MalamaLogo } from '../components/MalamaLogo';
 import {
   Brain,
   Clock,
@@ -54,9 +55,7 @@ const LandingPage: React.FC = () => {
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <div className="bg-Malama-petrol rounded-lg px-4 py-2">
-                <span className="text-white font-serif text-2xl font-light tracking-[8px]">Malama</span>
-              </div>
+              <MalamaLogo size="sm" />
             </div>
 
             {/* Desktop Navigation */}
@@ -543,8 +542,8 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div className="md:col-span-2">
-              <div className="bg-Malama-petrol rounded-lg px-4 py-2 inline-block mb-4">
-                <span className="text-white font-serif text-xl font-light tracking-[6px]">Malama</span>
+              <div className="mb-4">
+                <MalamaLogo size="sm" />
               </div>
               <p className="text-gray-400 max-w-sm">
                 Nutrição inteligente com acompanhamento médico personalizado.
