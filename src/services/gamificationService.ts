@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { Language } from '../i18n/translations';
 
 export type UserLevel = 'seed' | 'root' | 'stem' | 'flower' | 'fruit';
 
@@ -37,6 +38,39 @@ export const GamificationService = {
         if (xp >= LEVEL_THRESHOLDS.stem) return 'stem';
         if (xp >= LEVEL_THRESHOLDS.root) return 'root';
         return 'seed';
+    },
+
+    // Returns a progress phrase based on XP and user language
+    getProgressPhrase(xp: number, language: Language): string {
+        const phrases: Record<Language, string[]> = {
+            pt: [
+                'Você está construindo consistência.',
+                'Sua disciplina está se tornando hábito.',
+                'Você encontrou seu ritmo.',
+                'Seu equilíbrio está se consolidando.',
+                'Você atingiu clareza.',
+            ],
+            en: [
+                "You're building consistency.",
+                'Your discipline is becoming a habit.',
+                "You've found your rhythm.",
+                'Your balance is solidifying.',
+                "You've achieved clarity.",
+            ],
+            es: [
+                'Estás construyendo consistencia.',
+                'Tu disciplina se está convirtiendo en hábito.',
+                'Has encontrado tu ritmo.',
+                'Tu equilibrio se está consolidando.',
+                'Has alcanzado la claridad.',
+            ],
+        };
+        const thresholds = [0, 1000, 3000, 8000, 20000];
+        let idx = 0;
+        for (let i = thresholds.length - 1; i >= 0; i--) {
+            if (xp >= thresholds[i]) { idx = i; break; }
+        }
+        return phrases[language][idx];
     },
 
     // Calculate current streak based on flow_stats (client-side logic preserved for now)

@@ -381,21 +381,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         });
       }
 
-      const levelMap: Record<string, { icon: string; color: string; title: string }> = {
-        seed: { icon: 'spa', color: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400', title: '🌱 Seed' },
-        root: { icon: 'nest_eco_leaf', color: 'bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400', title: '🌿 Root' },
-        stem: { icon: 'forest', color: 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400', title: '🌾 Stem' },
-        flower: { icon: 'local_florist', color: 'bg-pink-100 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400', title: '🌸 Flower' },
-        fruit: { icon: 'nutrition', color: 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400', title: '🍎 Fruit' },
-      };
-
-      const lvl = levelMap[gamification.level] || levelMap.seed;
-      achievements.push({
-        icon: lvl.icon,
-        color: lvl.color,
-        title: `Level: ${lvl.title}`,
-        subtitle: `${gamification.totalFlowDays} ${t.profile.flowDays}`,
-      });
     }
 
     if (totalMeals >= 10) {
@@ -473,6 +458,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <p className="text-Malama-muted dark:text-gray-400 text-sm font-medium mt-1">
             {profile?.goal ? t.profile.goals[profile.goal as keyof typeof t.profile.goals] : t.profile.defineProfile}
           </p>
+          {gamification && (
+            <p className="text-sm font-light text-Malama-muted dark:text-gray-400 mt-1">
+              {GamificationService.getProgressPhrase(gamification.xp, language)}
+            </p>
+          )}
         </section>
 
         {/* Language Selector */}
