@@ -43,8 +43,8 @@ export default {
         "primary": "#7d4a3c",
         "primary-old": "#1F4E5F",
         "background-light": "#FDFBF9", // Malama Off-white
-        "background-dark": "#102022",
-        "surface-dark": "#1a2c2e",
+        "background-dark": "#1A1817",
+        "surface-dark": "#242220",
         "surface-light": "#ffffff",
         "accent-protein": "#FFB7B2",
         "accent-carbs": "#B2F7EF",
