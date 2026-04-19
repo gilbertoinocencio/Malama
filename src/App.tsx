@@ -200,9 +200,9 @@ const App: React.FC = () => {
         headers: { Authorization: `Bearer ${jwt}` },
       });
 
-      // Limpar URL e navegar para o perfil independente do resultado
+      // Limpar URL e navegar para Integrações para mostrar o status atualizado
       window.history.replaceState({}, '', '/');
-      setView(AppView.PROFILE);
+      setView(AppView.INTEGRATIONS);
 
       if (error) console.error('Strava OAuth callback error:', error);
     };

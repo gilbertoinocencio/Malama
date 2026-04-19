@@ -8,21 +8,44 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_FIT_CLIENT_ID as string;
 export const IntegrationService = {
 
   // Retorna todas as integrações ativas do usuário no banco
+  // Combina user_integrations (Google Fit, etc.) + strava_connections (Strava)
   async getConnectedIntegrations(userId: string): Promise<ConnectedIntegration[]> {
-    const { data } = await supabase
-      .from('user_integrations')
-      .select('service, is_connected, last_sync, external_user_id')
-      .eq('user_id', userId);
-    return (data ?? []) as ConnectedIntegration[];
+    const [{ data: intRows }, { data: stravaRow }] = await Promise.all([
+      supabase
+        .from('user_integrations')
+        .select('service, is_connected, last_sync, external_user_id')
+        .eq('user_id', userId),
+      supabase
+        .from('strava_connections')
+        .select('strava_athlete_id, connected_at')
+        .eq('user_id', userId)
+        .maybeSingle(),
+    ]);
+
+    const result: ConnectedIntegration[] = (intRows ?? []) as ConnectedIntegration[];
+
+    // Adicionar Strava vindo de strava_connections (evitar duplicata se já existir em user_integrations)
+    const hasStravaInUserIntegrations = result.some(r => r.service === 'strava');
+    if (stravaRow && !hasStravaInUserIntegrations) {
+      result.push({
+        service: 'strava',
+        is_connected: true,
+        last_sync: stravaRow.connected_at ?? null,
+        external_user_id: String(stravaRow.strava_athlete_id),
+      });
+    }
+
+    return result;
   },
 
   // Inicia o fluxo OAuth redirecionando o usuário para a plataforma
   initiateOAuth(service: 'strava' | 'google_fit'): void {
     if (service === 'strava') {
+      const redirectUri = `${APP_URL}/strava/callback`;
       const params = new URLSearchParams({
         client_id: STRAVA_CLIENT_ID,
         response_type: 'code',
-        redirect_uri: `${APP_URL}?strava_code=1`,
+        redirect_uri: redirectUri,
         scope: 'activity:read_all',
         approval_prompt: 'auto',
       });
@@ -30,10 +53,11 @@ export const IntegrationService = {
     }
 
     if (service === 'google_fit') {
+      const redirectUri = `${APP_URL}/google/callback`;
       const params = new URLSearchParams({
         client_id: GOOGLE_CLIENT_ID,
         response_type: 'code',
-        redirect_uri: `${APP_URL}?google_code=1`,
+        redirect_uri: redirectUri,
         scope: 'https://www.googleapis.com/auth/fitness.activity.read',
         access_type: 'offline',
         prompt: 'consent',
@@ -60,11 +84,19 @@ export const IntegrationService = {
 
   // Marca o serviço como desconectado e limpa os tokens
   async disconnectService(service: FitnessService, userId: string): Promise<void> {
-    await supabase
-      .from('user_integrations')
-      .update({ is_connected: false, access_token: '', refresh_token: null })
-      .eq('user_id', userId)
-      .eq('service', service);
+    if (service === 'strava') {
+      // Strava usa a tabela strava_connections
+      await supabase
+        .from('strava_connections')
+        .delete()
+        .eq('user_id', userId);
+    } else {
+      await supabase
+        .from('user_integrations')
+        .update({ is_connected: false, access_token: '', refresh_token: null })
+        .eq('user_id', userId)
+        .eq('service', service);
+    }
   },
 
   // Retorna a atividade mais recente das últimas 24h (para FlowAdaptation)
