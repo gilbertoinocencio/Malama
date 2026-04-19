@@ -176,6 +176,41 @@ const App: React.FC = () => {
     glp1Service.subscribeToPush(user.id).catch(() => {});
   }, [user?.id, profile?.glp1_mode]);
 
+  // Detectar callback do Strava em /strava/callback?code=xxx
+  useEffect(() => {
+    if (window.location.pathname !== '/strava/callback') return;
+
+    const code = new URLSearchParams(window.location.search).get('code');
+    if (!code) {
+      window.history.replaceState({}, '', '/');
+      return;
+    }
+
+    // Aguardar sessão do usuário estar disponível
+    const run = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const jwt = session?.access_token;
+      if (!jwt) {
+        window.history.replaceState({}, '', '/');
+        return;
+      }
+
+      const { error } = await supabase.functions.invoke('strava-oauth-callback', {
+        body: { code },
+        headers: { Authorization: `Bearer ${jwt}` },
+      });
+
+      // Limpar URL e navegar para o perfil independente do resultado
+      window.history.replaceState({}, '', '/');
+      setView(AppView.PROFILE);
+
+      if (error) console.error('Strava OAuth callback error:', error);
+    };
+
+    run();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadStats = async () => {
     if (!user || statsLoading) return;
     try {

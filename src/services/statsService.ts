@@ -3,6 +3,7 @@ import { DailyStats, MicroNutrients, WeekDay, MonthWeek, MonthSummary } from '..
 import { INITIAL_STATS } from '../constants';
 import { MealService } from './mealService';
 import { getLocalDateString } from '../utils/dateUtils';
+import { IntegrationService } from './integrationService';
 
 // Shared helper: returns true if all macro + hydration goals are ≥ 85%
 export const checkDayGoalMet = (stats: DailyStats | null): boolean => {
@@ -97,8 +98,13 @@ export const StatsService = {
             target_fats = activePlan.content.macros?.fats || target_fats;
         }
 
+        // Buscar calorias queimadas em atividades do dia (Strava, Google Fit, etc.)
+        // O target efetivo aumenta proporcionalmente, permitindo comer mais sem penalizar o flow_score
+        const activityCalories = await IntegrationService.getActivityCaloriesToday(userId, dateStr);
+        const effectiveTargetCalories = target_calories + activityCalories;
+
         const targets = {
-            target_calories,
+            target_calories: effectiveTargetCalories,
             target_protein,
             target_carbs,
             target_fats
@@ -138,7 +144,7 @@ export const StatsService = {
 
         return {
             consumedCalories: consumed.calories,
-            targetCalories: targets.target_calories,
+            targetCalories: effectiveTargetCalories,
             macros: {
                 protein: consumed.protein,
                 carbs: consumed.carbs,

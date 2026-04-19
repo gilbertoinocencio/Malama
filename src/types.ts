@@ -125,6 +125,26 @@ export enum AppView {
 
 export type Theme = 'light' | 'dark';
 
+export type FitnessService = 'strava' | 'google_fit' | 'garmin' | 'polar' | 'samsung';
+
+export interface ConnectedIntegration {
+  service: FitnessService;
+  is_connected: boolean;
+  last_sync: string | null;
+  external_user_id: string | null;
+}
+
+export interface Activity {
+  id: string;
+  service: FitnessService;
+  activity_type: string;
+  name: string;
+  calories_burned: number;
+  duration_seconds: number;
+  distance_meters: number | null;
+  activity_date: string;
+}
+
 export interface AIResponse {
   foodName: string;
   calories: number;
