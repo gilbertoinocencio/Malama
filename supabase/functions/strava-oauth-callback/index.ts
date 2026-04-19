@@ -86,18 +86,34 @@ serve(async (req) => {
         const stravaActivities = await activitiesRes.json();
 
         if (Array.isArray(stravaActivities) && stravaActivities.length > 0) {
-          const rows = stravaActivities.map((a: any) => ({
-            user_id:          user.id,
-            service:          'strava',
-            external_id:      String(a.id),
-            activity_type:    a.type ?? 'Unknown',
-            name:             a.name ?? 'Atividade Strava',
-            calories_burned:  a.calories ?? 0,
-            duration_seconds: a.moving_time ?? 0,
-            distance_meters:  a.distance ?? null,
-            activity_date:    a.start_date,
-            raw_data:         a,
-          }));
+          const MET_BY_TYPE: Record<string, number> = {
+            Walk: 3.5, Hike: 5.5, Run: 9.0, VirtualRun: 8.0,
+            Ride: 6.0, VirtualRide: 5.5, MountainBikeRide: 8.5,
+            Swim: 6.0, WeightTraining: 4.5, Workout: 4.5,
+            Yoga: 2.5, Crossfit: 7.0, Rowing: 7.0,
+          };
+          const estimateCalories = (type: string, durationSeconds: number) => {
+            const met = MET_BY_TYPE[type] ?? 4.0;
+            return Math.round(met * 70 * (durationSeconds / 3600));
+          };
+
+          const rows = stravaActivities.map((a: any) => {
+            const stravaCalories = a.calories ?? 0;
+            const duration = a.moving_time ?? 0;
+            const calories = stravaCalories > 0 ? stravaCalories : estimateCalories(a.type ?? 'Workout', duration);
+            return {
+              user_id:          user.id,
+              service:          'strava',
+              external_id:      String(a.id),
+              activity_type:    a.type ?? 'Unknown',
+              name:             a.name ?? 'Atividade Strava',
+              calories_burned:  calories,
+              duration_seconds: duration,
+              distance_meters:  a.distance ?? null,
+              activity_date:    a.start_date,
+              raw_data:         a,
+            };
+          });
 
           const { error: actErr } = await supabase
             .from('activities')

@@ -20,10 +20,40 @@ function formatDuration(seconds: number): string {
 /** Estimativa de macro breakdown a partir de calorias (atividade aeróbica geral) */
 function estimateMacros(calories: number) {
   return {
-    carbs:   Math.round(calories * 0.55 / 4),  // 55% das kcal → g de carbo
-    protein: Math.round(calories * 0.20 / 4),  // 20% das kcal → g de proteína
-    fat:     Math.round(calories * 0.25 / 9),  // 25% das kcal → g de gordura
+    carbs:   Math.round(calories * 0.55 / 4),
+    protein: Math.round(calories * 0.20 / 4),
+    fat:     Math.round(calories * 0.25 / 9),
   };
+}
+
+/**
+ * MET (Metabolic Equivalent of Task) por tipo de atividade Strava.
+ * Fórmula: kcal = MET × peso_kg × duração_horas
+ * Peso padrão: 70 kg (usado quando não há dado de peso disponível)
+ */
+const MET_BY_TYPE: Record<string, number> = {
+  Walk:           3.5,
+  Hike:           5.5,
+  Run:            9.0,
+  VirtualRun:     8.0,
+  Ride:           6.0,
+  VirtualRide:    5.5,
+  MountainBikeRide: 8.5,
+  Swim:           6.0,
+  WeightTraining: 4.5,
+  Workout:        4.5,
+  Yoga:           2.5,
+  Crossfit:       7.0,
+  Rowing:         7.0,
+  Soccer:         7.0,
+  Tennis:         6.0,
+  Skateboard:     5.0,
+};
+
+function estimateCaloriesFromActivity(activity: Activity, weightKg = 70): number {
+  const met = MET_BY_TYPE[activity.activity_type] ?? 4.0;
+  const hours = activity.duration_seconds / 3600;
+  return Math.round(met * weightKg * hours);
 }
 
 /** Badge visual por serviço */
@@ -64,7 +94,12 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
       .finally(() => setActivityLoading(false));
   }, [user?.id]);
 
-  const macros = activity ? estimateMacros(activity.calories_burned) : null;
+  // Usa calorias do Strava se disponível; caso contrário estima por MET
+  const effectiveCalories = activity
+    ? (activity.calories_burned > 0 ? activity.calories_burned : estimateCaloriesFromActivity(activity))
+    : 0;
+  const isEstimated = activity !== null && activity.calories_burned === 0 && effectiveCalories > 0;
+  const macros = activity ? estimateMacros(effectiveCalories) : null;
 
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col mx-auto max-w-md bg-Malama-bg dark:bg-background-dark shadow-xl text-Malama-main dark:text-white font-display animate-fade-in">
@@ -149,8 +184,13 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-Malama-petrol dark:text-primary" style={{ fontSize: '20px' }}>local_fire_department</span>
-                      <span className="font-bold text-base">{activity.calories_burned} kcal</span>
+                      <span className="font-bold text-base">{effectiveCalories} kcal</span>
                       <span className="text-Malama-muted text-sm">{fa.burned}</span>
+                      {isEstimated && (
+                        <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-full">
+                          estimado
+                        </span>
+                      )}
                     </div>
                     {activity.distance_meters && activity.distance_meters > 0 && (
                       <span className="text-sm text-Malama-muted dark:text-slate-400 font-medium">
@@ -170,7 +210,7 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
                   <div className="w-full h-full bg-Malama-bg dark:bg-background-dark rounded-full flex flex-col items-center justify-center relative">
                     <div className="flex flex-col items-center gap-1 animate-pulse">
                       <span className="material-symbols-outlined text-Malama-petrol dark:text-primary mb-1" style={{ fontSize: '32px' }}>add_circle</span>
-                      <h2 className="text-4xl font-bold tracking-tighter">+{activity.calories_burned}</h2>
+                      <h2 className="text-4xl font-bold tracking-tighter">+{effectiveCalories}</h2>
                       <p className="text-Malama-muted dark:text-gray-400 font-medium text-sm uppercase tracking-widest">{fa.kcalAdded}</p>
                     </div>
                   </div>
@@ -183,7 +223,7 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
                 <p className="text-Malama-main/80 dark:text-gray-300 text-lg leading-relaxed">
                   {fa.addedMessage.split(/<bold>(.*?)<\/bold>/).map((part, i) =>
                     i % 2 === 1
-                      ? <span key={i} className="font-bold text-Malama-petrol dark:text-primary">{part.replace('{kcal}', String(activity.calories_burned))}</span>
+                      ? <span key={i} className="font-bold text-Malama-petrol dark:text-primary">{part.replace('{kcal}', String(effectiveCalories))}</span>
                       : <span key={i}>{part}</span>
                   )}
                 </p>
