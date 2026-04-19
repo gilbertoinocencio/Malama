@@ -65,7 +65,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
       <div className="bg-white dark:bg-surface-dark rounded-t-3xl sm:rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white dark:bg-surface-dark border-b border-Malama-border dark:border-gray-700 px-6 py-4 rounded-t-3xl">
+        <div className="sticky top-0 z-10 bg-white dark:bg-surface-dark border-b border-Malama-border dark:border-white/10 px-6 py-4 rounded-t-3xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-2xl bg-Malama-petrol/10 dark:bg-primary/10 flex items-center justify-center">
@@ -169,7 +169,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                   min="0"
                   max="24"
                   step="0.5"
-                  className="w-full px-4 py-3.5 rounded-2xl border-2 border-Malama-border dark:border-gray-700
+                  className="w-full px-4 py-3.5 rounded-2xl border-2 border-Malama-border dark:border-white/10
                     bg-white dark:bg-background-dark text-Malama-main dark:text-white
                     placeholder-Malama-muted dark:placeholder-gray-500
                     focus:outline-none focus:border-Malama-petrol dark:focus:border-primary
@@ -198,7 +198,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Ex: Senti dor de cabeça hoje, tive um dia estressante..."
                   rows={4}
-                  className="w-full px-4 py-3.5 rounded-2xl border-2 border-Malama-border dark:border-gray-700
+                  className="w-full px-4 py-3.5 rounded-2xl border-2 border-Malama-border dark:border-white/10
                     bg-white dark:bg-background-dark text-Malama-main dark:text-white
                     placeholder-Malama-muted dark:placeholder-gray-500
                     focus:outline-none focus:border-Malama-petrol dark:focus:border-primary
@@ -209,7 +209,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep('metrics')}
-                  className="flex-1 py-4 rounded-2xl border-2 border-Malama-border dark:border-gray-700
+                  className="flex-1 py-4 rounded-2xl border-2 border-Malama-border dark:border-white/10
                     text-Malama-main dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-gray-800
                     transition-colors flex items-center justify-center gap-2"
                 >
@@ -312,7 +312,7 @@ const MetricSlider: React.FC<MetricSliderProps> = ({
   const percentage = ((value - 1) / 9) * 100;
 
   return (
-    <div className="space-y-3 bg-white dark:bg-background-dark border border-Malama-border dark:border-gray-700 rounded-2xl p-4">
+    <div className="space-y-3 bg-white dark:bg-background-dark border border-Malama-border dark:border-white/10 rounded-2xl p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-Malama-petrol dark:text-primary text-[20px]">

@@ -63,7 +63,7 @@ export const MediaUploadGrid: React.FC<MediaUploadGridProps> = ({
           <button
             onClick={() => imgInputRef.current?.click()}
             className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border-2
-              border-dashed border-gray-200 dark:border-gray-700 hover:border-[#2ECC71] transition-colors text-gray-400 hover:text-[#2ECC71]"
+              border-dashed border-gray-200 dark:border-white/10 hover:border-[#2ECC71] transition-colors text-gray-400 hover:text-[#2ECC71]"
           >
             <ImagePlus size={22} />
             <span className="text-xs">Até {maxImages} fotos</span>
@@ -71,7 +71,7 @@ export const MediaUploadGrid: React.FC<MediaUploadGridProps> = ({
           <button
             onClick={() => vidInputRef.current?.click()}
             className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border-2
-              border-dashed border-gray-200 dark:border-gray-700 hover:border-[#2ECC71] transition-colors text-gray-400 hover:text-[#2ECC71]"
+              border-dashed border-gray-200 dark:border-white/10 hover:border-[#2ECC71] transition-colors text-gray-400 hover:text-[#2ECC71]"
           >
             <Video size={22} />
             <span className="text-xs">1 vídeo (60s)</span>

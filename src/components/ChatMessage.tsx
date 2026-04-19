@@ -35,7 +35,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLast }) => 
           <div
             className={`px-4 py-2.5 rounded-2xl ${
               isAgent
-                ? 'bg-white dark:bg-surface-dark border border-Malama-border/50 dark:border-gray-700/50 text-Malama-main dark:text-white rounded-bl-md shadow-sm'
+                ? 'bg-white dark:bg-surface-dark border border-Malama-border/50 dark:border-white/10/50 text-Malama-main dark:text-white rounded-bl-md shadow-sm'
                 : 'bg-Malama-petrol dark:bg-primary text-white rounded-br-md shadow-md'
             }`}
           >

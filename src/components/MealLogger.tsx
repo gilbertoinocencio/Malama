@@ -1230,7 +1230,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             </div>
             <div className="flex flex-col gap-2 mt-2">
               {data.items?.map((item, idx) => (
-                <div key={idx} className="p-3 rounded-xl bg-Malama-bg dark:bg-[#152226] border border-transparent hover:border-Malama-petrol/20 dark:hover:border-primary/20 transition-all">
+                <div key={idx} className="p-3 rounded-xl bg-Malama-bg dark:bg-surface-dark border border-transparent hover:border-Malama-petrol/20 dark:hover:border-primary/20 transition-all">
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="bg-Malama-border dark:bg-white/10 rounded-lg size-9 shrink-0 flex items-center justify-center">
@@ -1609,7 +1609,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       {showDiscardConfirm && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDiscardConfirm(false)} />
-          <div className="relative w-full max-w-md bg-Malama-bg dark:bg-[#111c1e] rounded-t-3xl">
+          <div className="relative w-full max-w-md bg-Malama-bg dark:bg-background-dark rounded-t-3xl">
             <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-4 bg-Malama-border dark:bg-white/20" />
             <div className="px-6 pb-10">
               <h3 className="text-Malama-main dark:text-white text-lg font-bold text-center mb-1">

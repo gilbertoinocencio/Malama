@@ -57,7 +57,7 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
           </div>
 
           <div className="absolute bottom-4 left-4 right-4">
-            <div className="bg-white/90 dark:bg-[#1a2c33]/90 backdrop-blur-xl p-5 rounded-2xl border border-white/40 dark:border-white/10 shadow-lg">
+            <div className="bg-white/90 dark:bg-surface-dark/90 backdrop-blur-xl p-5 rounded-2xl border border-white/40 dark:border-white/10 shadow-lg">
               <div className="flex items-start justify-between">
                 <div>
                   <span className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Refeição</span>
@@ -102,7 +102,7 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Protein</span>
               <span className="text-lg font-bold text-slate-900 dark:text-white">{data.macros.p}g</span>
-              <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-gray-100 dark:bg-Malama-dark rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-primary rounded-full" 
                   style={{ width: `${getPercent(data.macros.p)}%` }}
@@ -112,7 +112,7 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Carbs</span>
               <span className="text-lg font-bold text-slate-900 dark:text-white">{data.macros.c}g</span>
-              <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-gray-100 dark:bg-Malama-dark rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-orange-400 rounded-full" 
                   style={{ width: `${getPercent(data.macros.c)}%` }}
@@ -122,7 +122,7 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Fat</span>
               <span className="text-lg font-bold text-slate-900 dark:text-white">{data.macros.f}g</span>
-              <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-gray-100 dark:bg-Malama-dark rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-purple-400 rounded-full" 
                   style={{ width: `${getPercent(data.macros.f)}%` }}
@@ -138,7 +138,7 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
         <div className="flex items-center gap-4 max-w-md mx-auto">
           <button 
             onClick={onEdit}
-            className="flex-1 h-14 rounded-2xl border border-gray-300 dark:border-gray-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all active:scale-95"
+            className="flex-1 h-14 rounded-2xl border border-gray-300 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-all active:scale-95"
           >
             Editar
           </button>

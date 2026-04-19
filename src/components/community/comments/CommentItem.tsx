@@ -24,17 +24,17 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId
   if (deleted) return null;
 
   return (
-    <div className={depth > 0 ? 'ml-8 border-l-2 border-gray-100 dark:border-gray-800 pl-3' : ''}>
+    <div className={depth > 0 ? 'ml-8 border-l-2 border-gray-100 dark:border-white/10 pl-3' : ''}>
       <div className="flex gap-2.5 mb-1">
         {comment.author.avatar_url ? (
           <img src={comment.author.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5" />
         ) : (
-          <div className="w-7 h-7 rounded-full bg-[#2ECC71]/20 flex items-center justify-center text-[#2ECC71] text-xs font-bold shrink-0 mt-0.5">
+          <div className="w-7 h-7 rounded-full bg-Malama-petrol/20 flex items-center justify-center text-[#2ECC71] text-xs font-bold shrink-0 mt-0.5">
             {comment.author.display_name[0]?.toUpperCase()}
           </div>
         )}
         <div className="flex-1">
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2">
+          <div className="bg-gray-50 dark:bg-Malama-dark rounded-xl px-3 py-2">
             <div className="flex items-center justify-between mb-0.5">
               <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
                 {comment.author.display_name}
@@ -45,7 +45,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId
                 </button>
               )}
             </div>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+            <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
               {comment.content}
             </p>
           </div>

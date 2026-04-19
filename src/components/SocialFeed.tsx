@@ -150,7 +150,7 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ onNavigate, onFabClick, 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-Malama-bg dark:bg-background-dark font-display text-Malama-main dark:text-white">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-Malama-bg/90 dark:bg-background-dark/90 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+      <header className="sticky top-0 z-50 bg-Malama-bg/90 dark:bg-background-dark/90 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-gray-200 dark:border-white/10">
         <button onClick={onBack} className="text-Malama-petrol dark:text-white p-2 -ml-2">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
@@ -169,10 +169,10 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ onNavigate, onFabClick, 
         ) : (
           <div className="space-y-4 p-4">
             {posts.map((post) => (
-              <div key={post.id} className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800">
+              <div key={post.id} className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm border border-gray-200 dark:border-white/10">
                 {/* Post Header */}
                 <div className="flex items-center gap-3 p-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#363330] overflow-hidden flex-shrink-0">
                     {post.profiles?.avatar_url ? (
                       <img src={post.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
                     ) : (
@@ -194,7 +194,7 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ onNavigate, onFabClick, 
 
                 {/* Post Image */}
                 {post.image_url && (
-                  <div className="w-full aspect-square bg-gray-100 dark:bg-gray-800">
+                  <div className="w-full aspect-square bg-gray-100 dark:bg-Malama-dark">
                     <img src={post.image_url} alt={post.caption || ''} className="w-full h-full object-cover" />
                   </div>
                 )}

@@ -115,7 +115,7 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate }) => {
   if (!user || !profile) return null;
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-950">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-background-dark">
       <FeedHeader
         mode={mode}
         onModeChange={m => setMode(m)}
@@ -184,7 +184,7 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate }) => {
       {/* FAB de novo post */}
       <button
         onClick={() => setComposerOpen(true)}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-[#2ECC71] rounded-full shadow-lg
+        className="fixed bottom-20 right-4 w-14 h-14 bg-Malama-petrol rounded-full shadow-lg
           shadow-[#2ECC71]/40 flex items-center justify-center z-30 active:scale-95 transition-transform"
       >
         <Plus size={24} className="text-white" />

@@ -35,8 +35,8 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
       disabled={loading}
       className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
         isFollowing
-          ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-500'
-          : 'bg-[#2ECC71] text-white hover:bg-[#27ae60]'
+          ? 'bg-gray-100 dark:bg-Malama-dark text-gray-600 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-500'
+          : 'bg-Malama-petrol text-white hover:bg-[#27ae60]'
       }`}
     >
       {loading ? (

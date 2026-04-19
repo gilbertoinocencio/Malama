@@ -194,7 +194,7 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
         {/* View Options */}
         <div className="flex justify-between items-center mb-6 px-1">
           <span className="text-sm font-semibold text-Malama-main dark:text-white">{hy.viewOptions}</span>
-          <div className="flex bg-white dark:bg-[#1a2630] rounded-full p-1 shadow-sm border border-Malama-border dark:border-white/5">
+          <div className="flex bg-white dark:bg-surface-dark rounded-full p-1 shadow-sm border border-Malama-border dark:border-white/5">
             <button
               onClick={() => setViewOption('goal')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${viewOption === 'goal' ? 'bg-Malama-petrol dark:bg-primary text-white shadow-sm' : 'text-Malama-muted hover:bg-black/5 dark:hover:bg-white/5'}`}

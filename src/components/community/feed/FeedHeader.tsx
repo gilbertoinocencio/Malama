@@ -11,7 +11,7 @@ interface FeedHeaderProps {
 }
 
 export const FeedHeader: React.FC<FeedHeaderProps> = ({ mode, onModeChange, onNavigate, userId }) => (
-  <div className="sticky top-0 z-20 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800">
+  <div className="sticky top-0 z-20 bg-white dark:bg-background-dark border-b border-gray-100 dark:border-white/10">
     <div className="flex items-center justify-between px-4 py-3">
       <h1 className="text-lg font-bold text-gray-900 dark:text-white">Comunidade</h1>
       <div className="flex items-center gap-2">
@@ -29,7 +29,7 @@ export const FeedHeader: React.FC<FeedHeaderProps> = ({ mode, onModeChange, onNa
         onClick={() => onModeChange('all')}
         className={`text-sm font-medium px-4 py-1.5 rounded-full transition-all ${
           mode === 'all'
-            ? 'bg-[#2ECC71] text-white'
+            ? 'bg-Malama-petrol text-white'
             : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
         }`}
       >
@@ -39,7 +39,7 @@ export const FeedHeader: React.FC<FeedHeaderProps> = ({ mode, onModeChange, onNa
         onClick={() => onModeChange('following')}
         className={`text-sm font-medium px-4 py-1.5 rounded-full transition-all ${
           mode === 'following'
-            ? 'bg-[#2ECC71] text-white'
+            ? 'bg-Malama-petrol text-white'
             : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
         }`}
       >

@@ -187,7 +187,7 @@ export const UnifiedChatModal: React.FC<UnifiedChatModalProps> = ({ onClose, onO
       {isOnboarding && session && (
         <div className="px-6 py-3 bg-white dark:bg-surface-dark border-b border-Malama-border dark:border-white/5">
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div className="flex-1 h-2 bg-gray-200 dark:bg-[#363330] rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-orange-500 to-orange-600"
                 initial={{ width: 0 }}
@@ -300,7 +300,7 @@ export const UnifiedChatModal: React.FC<UnifiedChatModalProps> = ({ onClose, onO
             placeholder={isOnboarding ? "Digite sua resposta..." : "Digite sua mensagem..."}
             rows={1}
             disabled={isLoading}
-            className="flex-1 px-4 py-3 rounded-2xl border-2 border-Malama-border dark:border-gray-700 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white placeholder-Malama-muted dark:placeholder-gray-500 focus:outline-none focus:border-Malama-petrol dark:focus:border-primary transition-colors resize-none max-h-32 disabled:opacity-50"
+            className="flex-1 px-4 py-3 rounded-2xl border-2 border-Malama-border dark:border-white/10 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white placeholder-Malama-muted dark:placeholder-gray-500 focus:outline-none focus:border-Malama-petrol dark:focus:border-primary transition-colors resize-none max-h-32 disabled:opacity-50"
             style={{ minHeight: '48px' }}
           />
           <button

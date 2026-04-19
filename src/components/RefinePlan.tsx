@@ -52,7 +52,7 @@ export const RefinePlan: React.FC<RefinePlanProps> = ({ onBack, onNavigate }) =>
         {/* Goal Selector */}
         <div className="px-5 mt-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           <h3 className="text-sm font-bold uppercase tracking-wider text-Malama-muted dark:text-gray-500 mb-3 text-[11px]">{rp.currentGoal}</h3>
-          <div className="flex p-1 bg-white dark:bg-[#1a2630] rounded-xl border border-Malama-border dark:border-gray-800 shadow-sm">
+          <div className="flex p-1 bg-white dark:bg-surface-dark rounded-xl border border-Malama-border dark:border-white/10 shadow-sm">
             {goalOptions.map((option) => {
               const isSelected = goal === option.key;
               return (
@@ -70,7 +70,7 @@ export const RefinePlan: React.FC<RefinePlanProps> = ({ onBack, onNavigate }) =>
         {/* Workout Routine */}
         <div className="px-5 mt-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           <h3 className="text-sm font-bold uppercase tracking-wider text-Malama-muted dark:text-gray-500 mb-4 text-[11px]">{rp.workoutRoutine}</h3>
-          <div className="bg-white dark:bg-[#1a2630] p-5 rounded-2xl shadow-sm border border-Malama-border dark:border-gray-800">
+          <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-Malama-border dark:border-white/10">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-Malama-petrol dark:text-primary">fitness_center</span>
@@ -80,13 +80,13 @@ export const RefinePlan: React.FC<RefinePlanProps> = ({ onBack, onNavigate }) =>
             </div>
             <div className="relative w-full h-6 flex items-center">
               <input className="w-full z-10 accent-Malama-petrol dark:accent-primary" max="7" min="1" type="range" value={frequency} onChange={(e) => setFrequency(Number(e.target.value))} />
-              <div className="absolute top-1/2 left-0 w-full h-1 bg-Malama-border dark:bg-gray-700 -translate-y-1/2 rounded-full"></div>
+              <div className="absolute top-1/2 left-0 w-full h-1 bg-Malama-border dark:bg-[#363330] -translate-y-1/2 rounded-full"></div>
               <div className="absolute top-1/2 left-0 h-1 bg-Malama-petrol dark:bg-primary -translate-y-1/2 rounded-full pointer-events-none" style={{ width: `${((frequency - 1) / 6) * 100}%` }}></div>
             </div>
             <div className="flex justify-between text-xs text-Malama-muted mt-2 font-medium"><span>1x</span><span>7x</span></div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between bg-white dark:bg-[#1a2630] p-4 rounded-2xl shadow-sm border border-Malama-border dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1e3038] transition-colors">
+          <div className="mt-3 flex items-center justify-between bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-Malama-border dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-Malama-dark transition-colors">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-full bg-Malama-petrol/10 dark:bg-primary/10 flex items-center justify-center text-Malama-petrol dark:text-primary">
                 <span className="material-symbols-outlined">schedule</span>
@@ -107,14 +107,14 @@ export const RefinePlan: React.FC<RefinePlanProps> = ({ onBack, onNavigate }) =>
         <div className="px-5 mt-8 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
           <h3 className="text-sm font-bold uppercase tracking-wider text-Malama-muted dark:text-gray-500 mb-4 text-[11px]">{rp.updateBiotype}</h3>
           <div className="flex gap-4">
-            <div className="flex-1 bg-white dark:bg-[#1a2630] p-4 rounded-2xl shadow-sm border border-Malama-border dark:border-gray-800 flex flex-col justify-between">
+            <div className="flex-1 bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-Malama-border dark:border-white/10 flex flex-col justify-between">
               <span className="text-xs font-medium text-Malama-muted dark:text-gray-400 mb-1">{rp.currentWeight}</span>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-bold">{profile?.weight || '—'}</span>
                 <span className="text-sm text-Malama-muted">kg</span>
               </div>
             </div>
-            <div className="flex-1 bg-white dark:bg-[#1a2630] p-4 rounded-2xl shadow-sm border border-Malama-border dark:border-gray-800 flex flex-col justify-between relative overflow-hidden">
+            <div className="flex-1 bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-Malama-border dark:border-white/10 flex flex-col justify-between relative overflow-hidden">
               <div className="absolute -right-4 -top-4 size-16 bg-Malama-petrol/10 dark:bg-primary/10 rounded-full blur-xl"></div>
               <span className="text-xs font-medium text-Malama-muted dark:text-gray-400 mb-1">{rp.bodyFat}</span>
               <div className="flex items-baseline gap-1 relative z-10">
@@ -127,7 +127,7 @@ export const RefinePlan: React.FC<RefinePlanProps> = ({ onBack, onNavigate }) =>
 
         {/* Plan Preview — real target macros */}
         <div className="px-5 mt-8 mb-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-          <div className="bg-white dark:bg-[#1a2630] rounded-[2rem] p-6 shadow-lg border border-Malama-border dark:border-gray-800 relative overflow-hidden group">
+          <div className="bg-white dark:bg-surface-dark rounded-[2rem] p-6 shadow-lg border border-Malama-border dark:border-white/10 relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-br from-Malama-petrol/5 dark:from-primary/5 to-transparent opacity-50 dark:opacity-20 pointer-events-none"></div>
             <div className="flex items-center justify-between mb-6 relative z-10">
               <h3 className="text-lg font-bold">{rp.planPreview}</h3>

@@ -8,7 +8,7 @@ interface VisualEvolutionProps {
 
 export const VisualEvolution: React.FC<VisualEvolutionProps> = ({ onBack, onNavigate }) => {
   return (
-    <div className="relative flex flex-col h-full min-h-screen w-full max-w-md mx-auto bg-[#FDFBF9] dark:bg-[#152024] shadow-2xl overflow-hidden font-display animate-fade-in transition-colors duration-300">
+    <div className="relative flex flex-col h-full min-h-screen w-full max-w-md mx-auto bg-[#FDFBF9] dark:bg-surface-dark shadow-2xl overflow-hidden font-display animate-fade-in transition-colors duration-300">
       
       {/* Top App Bar */}
       <header className="flex items-center justify-between p-6 pb-2 bg-transparent z-10">
@@ -33,7 +33,7 @@ export const VisualEvolution: React.FC<VisualEvolutionProps> = ({ onBack, onNavi
             <span className="text-xs font-semibold tracking-widest text-primary uppercase">Início</span>
             <span className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">12 JAN</span>
           </div>
-          <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 mx-2"></div>
+          <div className="h-8 w-px bg-gray-200 dark:bg-[#363330] mx-2"></div>
           <div className="flex flex-col items-center w-1/2">
             <span className="text-xs font-semibold tracking-widest text-primary uppercase">Atual</span>
             <span className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">12 ABR</span>
@@ -44,7 +44,7 @@ export const VisualEvolution: React.FC<VisualEvolutionProps> = ({ onBack, onNavi
         <div className="grid grid-cols-2 gap-4 mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           {/* Before Image Frame */}
           <div className="relative group cursor-pointer">
-            <div className="aspect-[9/16] w-full rounded-xl overflow-hidden shadow-sm bg-gray-100 dark:bg-gray-800 border-4 border-white dark:border-[#1e2930] transition-transform duration-300 hover:scale-[1.02]">
+            <div className="aspect-[9/16] w-full rounded-xl overflow-hidden shadow-sm bg-gray-100 dark:bg-Malama-dark border-4 border-white dark:border-[#1e2930] transition-transform duration-300 hover:scale-[1.02]">
               <div 
                 className="w-full h-full bg-cover bg-center" 
                 style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBJ9AMrl2iYBCoa6gVp0XmrfbUPcbdt3Ajxd81T9_U7hHTjp4vgzc_tMbPKwB84tva-atJPDgofRr6uEiusDD3L7A3N3hmUmQZ4DHFNH0pTvzam_iCy5Gkm-zBMyug6XhQ6Z7WM2RIe5REZ2AVVKk0vEBjb0X8a60wEPCgbGA4P_L-XQMyd-fFX66XCY7FqiJBRPZOtCg77Abg63HVQy4UoC2Z8oxh2kyS3ETM3uMsu0ChOHJ3BtuwvaVp-Sw7Gubp3Rdtl2s3EJNo')" }}
@@ -58,7 +58,7 @@ export const VisualEvolution: React.FC<VisualEvolutionProps> = ({ onBack, onNavi
 
           {/* After Image Frame */}
           <div className="relative group cursor-pointer">
-            <div className="aspect-[9/16] w-full rounded-xl overflow-hidden shadow-sm bg-gray-100 dark:bg-gray-800 border-4 border-white dark:border-[#1e2930] ring-1 ring-primary/20 dark:ring-primary/40 transition-transform duration-300 hover:scale-[1.02]">
+            <div className="aspect-[9/16] w-full rounded-xl overflow-hidden shadow-sm bg-gray-100 dark:bg-Malama-dark border-4 border-white dark:border-[#1e2930] ring-1 ring-primary/20 dark:ring-primary/40 transition-transform duration-300 hover:scale-[1.02]">
               <div 
                 className="w-full h-full bg-cover bg-center" 
                 style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBawMmAqrZ1VOFxDHhGcM-5rQ8FxzDb7MVFvOjnqG9AZ3DCS3_fIqI36vvPsaDWNENBGxzuj7tZVS4rfUdVd1-n2OAZb27XvnU6M4BHIzCuuUYwdGHJFqgTuiC3l7U-Co55Y4vl2rpq5hh99eb1ca8rHa4GxwtGBJ9QSOJlNWOQFPSpp_5pe5PIFBHsnspW65mfFM_1A5w-J_bKIFi35OXnUNsQM0cATWBL3GqRm5M59uHKTy5vcuMUdZhi96ZPUrdYB8XvNr9jUoI')" }}

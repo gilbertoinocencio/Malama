@@ -212,7 +212,7 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
                 onClick={() => setBiotype(bio.id as any)}
                 className={`p-4 rounded-xl border text-left transition-all flex items-center gap-4 ${biotype === bio.id ? 'border-Malama-petrol dark:border-primary bg-Malama-petrol/5 dark:bg-primary/5 ring-1 ring-Malama-petrol dark:ring-primary' : 'border-Malama-border dark:border-white/5 bg-white dark:bg-surface-dark'}`}
               >
-                <div className={`size-4 rounded-full border-2 ${biotype === bio.id ? 'border-Malama-petrol dark:border-primary bg-Malama-petrol dark:bg-primary' : 'border-Malama-border dark:border-gray-600'}`}></div>
+                <div className={`size-4 rounded-full border-2 ${biotype === bio.id ? 'border-Malama-petrol dark:border-primary bg-Malama-petrol dark:bg-primary' : 'border-Malama-border dark:border-white/10'}`}></div>
                 <div className="flex flex-col">
                   <span className="text-sm font-bold">{bio.title}</span>
                   <span className="text-[10px] text-Malama-muted">{bio.desc}</span>
@@ -227,7 +227,7 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
           <h2 className="text-sm font-black uppercase tracking-[0.2em] text-Malama-petrol dark:text-primary opacity-70">{pc.activityLevel}</h2>
           <div className="bg-white dark:bg-white/5 p-6 rounded-2xl border border-Malama-border dark:border-white/5">
             <input
-              className="w-full h-1.5 bg-Malama-border dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-Malama-petrol dark:accent-primary"
+              className="w-full h-1.5 bg-Malama-border dark:bg-Malama-dark rounded-lg appearance-none cursor-pointer accent-Malama-petrol dark:accent-primary"
               max="3" min="1" step="1" type="range"
               value={activityLevel}
               onChange={(e) => setActivityLevel(Number(e.target.value))}

@@ -103,7 +103,7 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
 
       {/* Progress Timeline */}
       <div className="relative px-8">
-        <div className="absolute left-8 right-8 top-6 h-1 bg-gray-200 dark:bg-gray-700 rounded-full">
+        <div className="absolute left-8 right-8 top-6 h-1 bg-gray-200 dark:bg-[#363330] rounded-full">
           <div
             className="h-full bg-gradient-to-r from-blue-500 via-green-500 to-purple-500 rounded-full transition-all duration-500"
             style={{ width: `${(currentWeek / 12) * 100}%` }}
@@ -124,7 +124,7 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
                       ? `${phase.bgColor} ${phase.borderColor} shadow-lg scale-110`
                       : isCompleted
                       ? 'bg-green-100 dark:bg-green-900/30 border-green-500'
-                      : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+                      : 'bg-gray-100 dark:bg-Malama-dark border-gray-300 dark:border-white/10'
                     }
                   `}
                 >
@@ -167,7 +167,7 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
                   ? `${phase.borderColor} shadow-lg`
                   : isCompleted
                   ? 'border-green-200 dark:border-green-700'
-                  : 'border-Malama-border dark:border-gray-700'
+                  : 'border-Malama-border dark:border-white/10'
                 }
               `}
             >
@@ -194,7 +194,7 @@ export const PlanRoadmap: React.FC<PlanRoadmapProps> = ({ currentWeek = 1 }) => 
                       ? 'bg-white dark:bg-surface-dark shadow-md'
                       : isCompleted
                       ? 'bg-green-100 dark:bg-green-900/30'
-                      : 'bg-gray-100 dark:bg-gray-800'
+                      : 'bg-gray-100 dark:bg-Malama-dark'
                     }
                   `}
                 >

@@ -66,17 +66,17 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full bg-white dark:bg-gray-950">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-          <button onClick={onBack}><ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" /></button>
-          <div className="h-5 w-32 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+      <div className="flex flex-col h-full bg-white dark:bg-background-dark">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-white/10">
+          <button onClick={onBack}><ArrowLeft size={20} className="text-gray-600 dark:text-slate-300" /></button>
+          <div className="h-5 w-32 bg-gray-100 dark:bg-Malama-dark rounded animate-pulse" />
         </div>
         <div className="p-4 space-y-4">
           <div className="flex gap-4 items-center">
-            <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
+            <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-Malama-dark animate-pulse" />
             <div className="flex-1 space-y-2">
-              <div className="h-5 w-36 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-              <div className="h-4 w-24 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+              <div className="h-5 w-36 bg-gray-100 dark:bg-Malama-dark rounded animate-pulse" />
+              <div className="h-4 w-24 bg-gray-100 dark:bg-Malama-dark rounded animate-pulse" />
             </div>
           </div>
         </div>
@@ -86,7 +86,7 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
 
   if (!profile) {
     return (
-      <div className="flex flex-col h-full bg-white dark:bg-gray-950 items-center justify-center">
+      <div className="flex flex-col h-full bg-white dark:bg-background-dark items-center justify-center">
         <p className="text-gray-400 text-sm">Perfil não encontrado.</p>
         <button onClick={onBack} className="mt-4 text-[#2ECC71] text-sm font-medium">Voltar</button>
       </div>
@@ -99,12 +99,12 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="flex flex-col h-full bg-white dark:bg-gray-950 overflow-y-auto pb-24"
+      className="flex flex-col h-full bg-white dark:bg-background-dark overflow-y-auto pb-24"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-950 z-10">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/10 sticky top-0 bg-white dark:bg-background-dark z-10">
         <button onClick={onBack} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-          <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
+          <ArrowLeft size={20} className="text-gray-600 dark:text-slate-300" />
         </button>
         <span className="text-base font-semibold text-gray-900 dark:text-white">Perfil</span>
         {isOwnProfile && (
@@ -119,9 +119,9 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-start gap-4">
           {profile.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="w-20 h-20 rounded-full object-cover border-2 border-gray-100 dark:border-gray-800" />
+            <img src={profile.avatar_url} alt="" className="w-20 h-20 rounded-full object-cover border-2 border-gray-100 dark:border-white/10" />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-[#2ECC71]/20 flex items-center justify-center text-[#2ECC71] text-2xl font-bold border-2 border-[#2ECC71]/30">
+            <div className="w-20 h-20 rounded-full bg-Malama-petrol/20 flex items-center justify-center text-[#2ECC71] text-2xl font-bold border-2 border-[#2ECC71]/30">
               {profile.display_name[0]?.toUpperCase()}
             </div>
           )}
@@ -163,7 +163,7 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
         </div>
 
         {profile.bio && (
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-3 leading-relaxed">{profile.bio}</p>
+          <p className="text-sm text-gray-600 dark:text-slate-300 mt-3 leading-relaxed">{profile.bio}</p>
         )}
 
         <div className="flex flex-wrap gap-2 mt-3">
@@ -188,7 +188,7 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
-          className="mx-4 mb-4 bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 space-y-4 overflow-hidden"
+          className="mx-4 mb-4 bg-gray-50 dark:bg-Malama-dark rounded-2xl p-4 space-y-4 overflow-hidden"
         >
           <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Configurações da Comunidade</h4>
           <div>
@@ -199,7 +199,7 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
               onChange={e => setAlias(e.target.value)}
               placeholder={profile.display_name}
               maxLength={30}
-              className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700
+              className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10
                 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-gray-200 outline-none
                 focus:ring-2 focus:ring-[#2ECC71]/40"
             />
@@ -211,7 +211,7 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
             </div>
             <button
               onClick={() => setIsPrivate(p => !p)}
-              className={`w-11 h-6 rounded-full transition-colors ${isPrivate ? 'bg-[#2ECC71]' : 'bg-gray-200 dark:bg-gray-700'}`}
+              className={`w-11 h-6 rounded-full transition-colors ${isPrivate ? 'bg-Malama-petrol' : 'bg-gray-200 dark:bg-[#363330]'}`}
             >
               <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${isPrivate ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
@@ -223,7 +223,7 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
             </div>
             <button
               onClick={() => setMilestoneOptOut(p => !p)}
-              className={`w-11 h-6 rounded-full transition-colors ${milestoneOptOut ? 'bg-[#2ECC71]' : 'bg-gray-200 dark:bg-gray-700'}`}
+              className={`w-11 h-6 rounded-full transition-colors ${milestoneOptOut ? 'bg-Malama-petrol' : 'bg-gray-200 dark:bg-[#363330]'}`}
             >
               <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${milestoneOptOut ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
@@ -231,7 +231,7 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
           <button
             onClick={saveSettings}
             disabled={savingSettings}
-            className="w-full bg-[#2ECC71] text-white rounded-xl py-2.5 text-sm font-semibold
+            className="w-full bg-Malama-petrol text-white rounded-xl py-2.5 text-sm font-semibold
               disabled:opacity-60 transition-colors hover:bg-[#27ae60]"
           >
             {savingSettings ? 'Salvando…' : 'Salvar configurações'}

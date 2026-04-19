@@ -16,7 +16,7 @@ export const DailyQuestionCard: React.FC<DailyQuestionCardProps> = ({ post, onOp
       border border-[#2ECC71]/30 rounded-2xl p-4 mb-2"
   >
     <div className="flex items-start gap-3">
-      <div className="w-9 h-9 rounded-full bg-[#2ECC71]/20 flex items-center justify-center shrink-0">
+      <div className="w-9 h-9 rounded-full bg-Malama-petrol/20 flex items-center justify-center shrink-0">
         <span className="text-lg">📌</span>
       </div>
       <div className="flex-1">

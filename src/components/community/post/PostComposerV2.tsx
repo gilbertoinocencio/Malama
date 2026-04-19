@@ -77,14 +77,14 @@ export const PostComposerV2: React.FC<PostComposerV2Props> = ({ userId, onClose,
         exit={{ opacity: 0 }}
       >
         <motion.div
-          className="bg-white dark:bg-gray-900 rounded-t-2xl flex flex-col max-h-[92vh]"
+          className="bg-white dark:bg-surface-dark rounded-t-2xl flex flex-col max-h-[92vh]"
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/10 shrink-0">
             <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
               <X size={18} className="text-gray-500" />
             </button>
@@ -94,7 +94,7 @@ export const PostComposerV2: React.FC<PostComposerV2Props> = ({ userId, onClose,
             <button
               onClick={step === 'compose' ? () => setStep('preview') : handlePublish}
               disabled={!canPublish || publishing}
-              className="flex items-center gap-1.5 bg-[#2ECC71] disabled:bg-gray-200 dark:disabled:bg-gray-700
+              className="flex items-center gap-1.5 bg-Malama-petrol disabled:bg-gray-200 dark:disabled:bg-gray-700
                 text-white disabled:text-gray-400 text-sm font-semibold px-4 py-1.5 rounded-full transition-colors"
             >
               {publishing ? (
@@ -132,7 +132,7 @@ export const PostComposerV2: React.FC<PostComposerV2Props> = ({ userId, onClose,
               placeholder="O que você quer compartilhar com a comunidade? Use #tags para categorizar…"
               rows={4}
               maxLength={1000}
-              className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+              className="w-full bg-gray-50 dark:bg-Malama-dark border border-gray-200 dark:border-white/10
                 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400
                 resize-none outline-none focus:ring-2 focus:ring-[#2ECC71]/40"
             />

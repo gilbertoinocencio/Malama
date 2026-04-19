@@ -145,7 +145,7 @@ export const NutritionistChat: React.FC<NutritionistChatProps> = ({ onComplete, 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-hidden max-w-md mx-auto bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white font-display">
       {/* Header - Redesigned Compact */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-Malama-border dark:border-gray-800 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-lg z-10">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-Malama-border dark:border-white/10 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-lg z-10">
         {onBack && (
           <button
             onClick={onBack}
@@ -220,7 +220,7 @@ export const NutritionistChat: React.FC<NutritionistChatProps> = ({ onComplete, 
         {/* Typing Indicator */}
         {sending && (
           <div className="flex justify-start">
-            <div className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-surface-dark border border-Malama-border dark:border-gray-700 rounded-2xl rounded-tl-sm shadow-sm">
+            <div className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/10 rounded-2xl rounded-tl-sm shadow-sm">
               <div className="flex gap-1">
                 <div className="w-2 h-2 bg-Malama-petrol dark:bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                 <div className="w-2 h-2 bg-Malama-petrol dark:bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -292,7 +292,7 @@ export const NutritionistChat: React.FC<NutritionistChatProps> = ({ onComplete, 
 
       {/* Input Area - Improved with Textarea */}
       {!session?.completed && (
-        <div className="border-t border-Malama-border dark:border-gray-800 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-lg p-4">
+        <div className="border-t border-Malama-border dark:border-white/10 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-lg p-4">
           <div className="flex gap-2 items-end max-w-2xl mx-auto">
             <div className="flex-1 relative">
               <textarea
@@ -313,7 +313,7 @@ export const NutritionistChat: React.FC<NutritionistChatProps> = ({ onComplete, 
                 placeholder="Digite sua resposta..."
                 disabled={sending}
                 rows={1}
-                className="w-full px-4 py-3 pr-12 rounded-2xl border border-Malama-border dark:border-gray-700 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white placeholder-Malama-muted focus:outline-none focus:ring-2 focus:ring-Malama-petrol/20 dark:focus:ring-primary/20 transition-all disabled:opacity-50 resize-none max-h-[120px] text-[15px] leading-relaxed"
+                className="w-full px-4 py-3 pr-12 rounded-2xl border border-Malama-border dark:border-white/10 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white placeholder-Malama-muted focus:outline-none focus:ring-2 focus:ring-Malama-petrol/20 dark:focus:ring-primary/20 transition-all disabled:opacity-50 resize-none max-h-[120px] text-[15px] leading-relaxed"
               />
               {input && (
                 <button

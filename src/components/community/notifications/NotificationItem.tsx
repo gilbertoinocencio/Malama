@@ -34,7 +34,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
   <button
     onClick={onClick}
     className={`w-full flex items-start gap-3 px-4 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
-      !notification.is_read ? 'bg-[#2ECC71]/5 dark:bg-[#2ECC71]/5' : ''
+      !notification.is_read ? 'bg-Malama-petrol/5 dark:bg-Malama-petrol/5' : ''
     }`}
   >
     {/* Avatar ou ícone de tipo */}
@@ -42,19 +42,19 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
       {notification.actor?.avatar_url ? (
         <img src={notification.actor.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
       ) : (
-        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 font-bold text-sm">
+        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-Malama-dark flex items-center justify-center text-gray-500 font-bold text-sm">
           {notification.actor?.display_name?.[0]?.toUpperCase() ?? '?'}
         </div>
       )}
-      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white dark:bg-gray-900 rounded-full
-        flex items-center justify-center border border-gray-100 dark:border-gray-800">
+      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white dark:bg-surface-dark rounded-full
+        flex items-center justify-center border border-gray-100 dark:border-white/10">
         {TYPE_ICON[notification.type]}
       </div>
     </div>
 
     {/* Texto */}
     <div className="flex-1 text-left">
-      <p className={`text-sm leading-snug ${!notification.is_read ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+      <p className={`text-sm leading-snug ${!notification.is_read ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-600 dark:text-slate-300'}`}>
         {TYPE_LABEL[notification.type](notification)}
       </p>
       <p className="text-xs text-gray-400 mt-0.5">
@@ -63,7 +63,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
     </div>
 
     {!notification.is_read && (
-      <div className="w-2 h-2 bg-[#2ECC71] rounded-full shrink-0 mt-1.5" />
+      <div className="w-2 h-2 bg-Malama-petrol rounded-full shrink-0 mt-1.5" />
     )}
   </button>
 );

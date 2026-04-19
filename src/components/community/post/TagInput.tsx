@@ -27,11 +27,11 @@ export const TagInput: React.FC<TagInputProps> = ({ tags, onChange, maxTags = 5 
   };
 
   return (
-    <div className="flex flex-wrap gap-1.5 items-center p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl
-      border border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-[#2ECC71]/40 min-h-[42px]">
+    <div className="flex flex-wrap gap-1.5 items-center p-2.5 bg-gray-50 dark:bg-Malama-dark rounded-xl
+      border border-gray-200 dark:border-white/10 focus-within:ring-2 focus-within:ring-[#2ECC71]/40 min-h-[42px]">
       {tags.map(tag => (
         <span key={tag} className="inline-flex items-center gap-1 text-xs font-medium text-[#2ECC71]
-          bg-[#2ECC71]/10 rounded-full px-2 py-0.5">
+          bg-Malama-petrol/10 rounded-full px-2 py-0.5">
           #{tag}
           <button onClick={() => onChange(tags.filter(t => t !== tag))} className="hover:text-red-400 transition-colors">
             <X size={10} />

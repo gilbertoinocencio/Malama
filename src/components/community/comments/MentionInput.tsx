@@ -59,18 +59,18 @@ export const MentionInput: React.FC<MentionInputProps> = ({
   return (
     <div className="relative">
       {suggestions.length > 0 && mentionQuery !== null && (
-        <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-gray-800 border
-          border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden z-20">
+        <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-Malama-dark border
+          border-gray-200 dark:border-white/10 rounded-xl shadow-lg overflow-hidden z-20">
           {suggestions.map(u => (
             <button
               key={u.id}
               onMouseDown={e => { e.preventDefault(); handleSelect(u); }}
-              className="flex items-center gap-2 w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-2 w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-[#403d3a] transition-colors"
             >
               {u.avatar_url ? (
                 <img src={u.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
               ) : (
-                <div className="w-7 h-7 rounded-full bg-[#2ECC71]/20 flex items-center justify-center text-[#2ECC71] text-xs font-bold">
+                <div className="w-7 h-7 rounded-full bg-Malama-petrol/20 flex items-center justify-center text-[#2ECC71] text-xs font-bold">
                   {u.display_name[0]?.toUpperCase()}
                 </div>
               )}
@@ -89,7 +89,7 @@ export const MentionInput: React.FC<MentionInputProps> = ({
         onKeyDown={e => {
           if (e.key === 'Enter' && !e.shiftKey && onSubmit) { e.preventDefault(); onSubmit(); }
         }}
-        className="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+        className="w-full text-sm bg-gray-50 dark:bg-Malama-dark border border-gray-200 dark:border-white/10
           rounded-xl px-3 py-2 resize-none outline-none focus:ring-2 focus:ring-[#2ECC71]/40
           text-gray-800 dark:text-gray-200 placeholder-gray-400 disabled:opacity-50"
       />

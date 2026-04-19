@@ -44,7 +44,7 @@ export const ReportSheet: React.FC<ReportSheetProps> = ({ postId, reporterId, on
         onClick={onClose}
       >
         <motion.div
-          className="bg-white dark:bg-gray-900 rounded-t-2xl p-5 pb-10"
+          className="bg-white dark:bg-surface-dark rounded-t-2xl p-5 pb-10"
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25 }}
           onClick={e => e.stopPropagation()}
@@ -59,7 +59,7 @@ export const ReportSheet: React.FC<ReportSheetProps> = ({ postId, reporterId, on
           {done ? (
             <div className="flex flex-col items-center py-6 text-center">
               <span className="text-4xl mb-3">✅</span>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Denúncia enviada.</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-slate-300">Denúncia enviada.</p>
               <p className="text-xs text-gray-400 mt-1">Nossa equipe vai analisar em breve.</p>
             </div>
           ) : (
@@ -72,7 +72,7 @@ export const ReportSheet: React.FC<ReportSheetProps> = ({ postId, reporterId, on
                     className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
                       selected === r.value
                         ? 'border-red-400 bg-red-50 dark:bg-red-950/30'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        : 'border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                   >
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
@@ -80,7 +80,7 @@ export const ReportSheet: React.FC<ReportSheetProps> = ({ postId, reporterId, on
                     }`}>
                       {selected === r.value && <div className="w-2 h-2 bg-red-500 rounded-full" />}
                     </div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{r.label}</span>
+                    <span className="text-sm text-gray-700 dark:text-slate-300">{r.label}</span>
                   </button>
                 ))}
               </div>
@@ -91,8 +91,8 @@ export const ReportSheet: React.FC<ReportSheetProps> = ({ postId, reporterId, on
                 placeholder="Detalhes adicionais (opcional)…"
                 rows={2}
                 maxLength={300}
-                className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-                  rounded-xl px-3 py-2 text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400
+                className="w-full bg-gray-50 dark:bg-Malama-dark border border-gray-200 dark:border-white/10
+                  rounded-xl px-3 py-2 text-sm text-gray-700 dark:text-slate-300 placeholder-gray-400
                   resize-none outline-none focus:ring-2 focus:ring-red-400/30 mb-4"
               />
 

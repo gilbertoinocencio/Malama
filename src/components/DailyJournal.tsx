@@ -117,7 +117,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
         </div>
 
         {/* Flow Status Card */}
-        <div className="bg-white dark:bg-[#1a2630] rounded-2xl p-6 mb-10 shadow-sm border border-Malama-border dark:border-gray-800 transition-colors animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+        <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 mb-10 shadow-sm border border-Malama-border dark:border-white/10 transition-colors animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           <div className="flex justify-between items-end mb-4">
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-bold text-Malama-muted dark:text-gray-500 uppercase tracking-widest">{jt.flowStatus}</span>
@@ -131,7 +131,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
         <div className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           <h3 className="text-Malama-main dark:text-white text-lg font-medium mb-5 px-1 flex items-center gap-2">
             {jt.energyOfDay}
-            <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800 ml-2"></span>
+            <span className="h-px flex-1 bg-gray-200 dark:bg-Malama-dark ml-2"></span>
           </h3>
           <div className="flex justify-between items-center gap-3">
             {energyOptions.map((item) => {
@@ -146,10 +146,10 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
                     ${item.special
                       ? isActive
                         ? 'bg-Malama-petrol dark:bg-primary border-Malama-petrol dark:border-primary text-white scale-110 shadow-lg'
-                        : 'bg-white dark:bg-[#1a2630] border-Malama-petrol/50 dark:border-primary/50 text-Malama-petrol dark:text-primary hover:bg-Malama-petrol hover:text-white dark:hover:bg-primary'
+                        : 'bg-white dark:bg-surface-dark border-Malama-petrol/50 dark:border-primary/50 text-Malama-petrol dark:text-primary hover:bg-Malama-petrol hover:text-white dark:hover:bg-primary'
                       : isActive
                         ? 'bg-Malama-petrol dark:bg-primary border-Malama-petrol dark:border-primary text-white scale-105'
-                        : 'bg-white dark:bg-[#1a2630] border-Malama-border dark:border-gray-700 text-gray-400 hover:border-Malama-petrol dark:hover:border-primary hover:text-Malama-petrol dark:hover:text-primary'
+                        : 'bg-white dark:bg-surface-dark border-Malama-border dark:border-white/10 text-gray-400 hover:border-Malama-petrol dark:hover:border-primary hover:text-Malama-petrol dark:hover:text-primary'
                     }`}
                   >
                     <span className="material-symbols-outlined text-[26px]">{item.icon}</span>
@@ -170,7 +170,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
             <span className="text-[10px] uppercase tracking-wider text-Malama-petrol dark:text-primary font-bold bg-Malama-petrol/10 dark:bg-primary/10 px-3 py-1.5 rounded-full">Feed the Flow</span>
           </div>
 
-          <label className={`relative block w-full aspect-[4/3] rounded-2xl border border-dashed hover:border-Malama-petrol dark:hover:border-primary transition-all cursor-pointer group overflow-hidden bg-white dark:bg-[#1a2630] shadow-sm ${imagePreview ? 'border-transparent' : 'border-Malama-border dark:border-gray-700 hover:bg-Malama-petrol/5 dark:hover:bg-primary/5'}`}>
+          <label className={`relative block w-full aspect-[4/3] rounded-2xl border border-dashed hover:border-Malama-petrol dark:hover:border-primary transition-all cursor-pointer group overflow-hidden bg-white dark:bg-surface-dark shadow-sm ${imagePreview ? 'border-transparent' : 'border-Malama-border dark:border-white/10 hover:bg-Malama-petrol/5 dark:hover:bg-primary/5'}`}>
             <input
               accept="image/*"
               className="hidden"
@@ -186,7 +186,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
               </div>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 transition-opacity group-hover:opacity-90">
-                <div className="size-16 rounded-full bg-Malama-bg dark:bg-background-dark flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-Malama-border dark:border-gray-800">
+                <div className="size-16 rounded-full bg-Malama-bg dark:bg-background-dark flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-Malama-border dark:border-white/10">
                   <span className="material-symbols-outlined text-Malama-petrol dark:text-primary text-3xl font-light">add_a_photo</span>
                 </div>
                 <h1 className="text-xl font-serif italic text-Malama-main dark:text-white mb-1">{jt.captureFlow}</h1>
@@ -203,7 +203,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-transparent text-Malama-main dark:text-white placeholder-gray-400 dark:placeholder-gray-600 text-base leading-relaxed border-0 border-b border-Malama-border dark:border-gray-700 focus:ring-0 focus:border-Malama-petrol dark:focus:border-primary px-1 py-3 resize-none transition-colors"
+              className="w-full bg-transparent text-Malama-main dark:text-white placeholder-gray-400 dark:placeholder-gray-600 text-base leading-relaxed border-0 border-b border-Malama-border dark:border-white/10 focus:ring-0 focus:border-Malama-petrol dark:focus:border-primary px-1 py-3 resize-none transition-colors"
               placeholder={jt.notesPlaceholder}
               rows={3}
             ></textarea>
@@ -215,7 +215,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
         <div className="mb-6 animate-fade-in-up flex items-center gap-3 px-1" style={{ animationDelay: '0.45s' }}>
           <div
             onClick={() => setShareToFeed(!shareToFeed)}
-            className={`size-6 rounded-md border flex items-center justify-center cursor-pointer transition-colors ${shareToFeed ? 'bg-Malama-petrol dark:bg-primary border-Malama-petrol dark:border-primary' : 'border-Malama-border dark:border-gray-600'}`}
+            className={`size-6 rounded-md border flex items-center justify-center cursor-pointer transition-colors ${shareToFeed ? 'bg-Malama-petrol dark:bg-primary border-Malama-petrol dark:border-primary' : 'border-Malama-border dark:border-white/10'}`}
           >
             {shareToFeed && <span className="material-symbols-outlined text-white text-sm">check</span>}
           </div>

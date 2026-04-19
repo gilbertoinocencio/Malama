@@ -143,8 +143,8 @@ export const MealSuggestionsCarousel: React.FC<MealSuggestionsCarouselProps> = (
   if (loading) {
     return (
       <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 shadow-md animate-pulse">
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
-        <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-2xl"></div>
+        <div className="h-6 bg-gray-200 dark:bg-[#363330] rounded w-1/2 mb-4"></div>
+        <div className="h-48 bg-gray-200 dark:bg-[#363330] rounded-2xl"></div>
       </div>
     );
   }
@@ -271,7 +271,7 @@ export const MealSuggestionsCarousel: React.FC<MealSuggestionsCarouselProps> = (
           >
             <button
               onClick={handleLogLater}
-              className="flex-1 py-3.5 rounded-2xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark
+              className="flex-1 py-3.5 rounded-2xl border-2 border-gray-200 dark:border-white/10 bg-white dark:bg-surface-dark
                 text-gray-500 dark:text-gray-400 font-bold hover:bg-gray-50 dark:hover:bg-gray-800
                 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
@@ -370,7 +370,7 @@ const MealCard: React.FC<MealCardProps> = ({ suggestion, accepted }) => {
     <div className={`bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-lg border transition-colors
       ${accepted
         ? 'border-green-400 dark:border-green-600 ring-2 ring-green-300 dark:ring-green-700'
-        : 'border-Malama-border dark:border-gray-700'
+        : 'border-Malama-border dark:border-white/10'
       }`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-3">

@@ -101,11 +101,11 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-white dark:bg-gray-900 w-full max-w-lg max-h-[90vh] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col animate-slide-up"
+        className="bg-white dark:bg-surface-dark w-full max-w-lg max-h-[90vh] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/10">
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -144,7 +144,7 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
                     postType === type.value
                       ? 'bg-Malama-petrol dark:bg-primary text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      : 'bg-gray-100 dark:bg-Malama-dark text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#403d3a]'
                   }`}
                 >
                   <span className="material-symbols-outlined text-[16px]">{type.icon}</span>
@@ -172,7 +172,7 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({
             ) : (
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-Malama-petrol dark:hover:border-primary transition-colors"
+                className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-white/10 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-Malama-petrol dark:hover:border-primary transition-colors"
               >
                 <span className="material-symbols-outlined text-gray-400 text-3xl">add_photo_alternate</span>
                 <span className="text-sm text-gray-500 dark:text-gray-400">Adicionar foto</span>
@@ -196,7 +196,7 @@ export const PostComposerModal: React.FC<PostComposerModalProps> = ({
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               placeholder="Compartilhe seu progresso, dica ou pensamento..."
-              className="w-full h-24 p-3 border border-gray-300 dark:border-gray-600 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
+              className="w-full h-24 p-3 border border-gray-300 dark:border-white/10 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary bg-white dark:bg-Malama-dark text-gray-900 dark:text-white placeholder-gray-400"
               maxLength={500}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">

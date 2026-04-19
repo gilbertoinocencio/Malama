@@ -55,12 +55,12 @@ export const NotificationPreferencesSheet: React.FC<NotificationPreferencesSheet
         onClick={onClose}
       >
         <motion.div
-          className="bg-white dark:bg-gray-900 rounded-t-2xl flex flex-col max-h-[85vh]"
+          className="bg-white dark:bg-surface-dark rounded-t-2xl flex flex-col max-h-[85vh]"
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25 }}
           onClick={e => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/10 shrink-0">
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">Notificações</h3>
             <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
               <X size={18} className="text-gray-500" />
@@ -69,18 +69,18 @@ export const NotificationPreferencesSheet: React.FC<NotificationPreferencesSheet
           <div className="flex-1 overflow-y-auto">
             {!prefs ? (
               <div className="p-4 space-y-3">
-                {[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />)}
+                {[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-gray-100 dark:bg-Malama-dark rounded-xl animate-pulse" />)}
               </div>
             ) : (
               PREFS_LABELS.map(({ key, label, description }) => (
-                <div key={key} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 dark:border-gray-800">
+                <div key={key} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 dark:border-white/10">
                   <div>
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</p>
                     <p className="text-xs text-gray-400">{description}</p>
                   </div>
                   <button
                     onClick={() => toggle(key)}
-                    className={`w-11 h-6 rounded-full transition-colors shrink-0 ${prefs[key] ? 'bg-[#2ECC71]' : 'bg-gray-200 dark:bg-gray-700'}`}
+                    className={`w-11 h-6 rounded-full transition-colors shrink-0 ${prefs[key] ? 'bg-Malama-petrol' : 'bg-gray-200 dark:bg-[#363330]'}`}
                   >
                     <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${prefs[key] ? 'translate-x-5' : 'translate-x-0.5'}`} />
                   </button>
@@ -88,11 +88,11 @@ export const NotificationPreferencesSheet: React.FC<NotificationPreferencesSheet
               ))
             )}
           </div>
-          <div className="p-4 border-t border-gray-100 dark:border-gray-800 pb-safe">
+          <div className="p-4 border-t border-gray-100 dark:border-white/10 pb-safe">
             <button
               onClick={handleSave}
               disabled={saving || !prefs}
-              className="w-full bg-[#2ECC71] text-white rounded-xl py-3 text-sm font-semibold disabled:opacity-60"
+              className="w-full bg-Malama-petrol text-white rounded-xl py-3 text-sm font-semibold disabled:opacity-60"
             >
               {saving ? 'Salvando…' : 'Salvar preferências'}
             </button>

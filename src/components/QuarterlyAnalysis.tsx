@@ -106,14 +106,14 @@ export const QuarterlyAnalysis: React.FC<QuarterlyAnalysisProps> = ({ onBack, on
               90 {qa.daysOfFlow.split(' ').slice(0, 1)} <span className="font-serif italic text-Malama-main dark:text-gray-200">{qa.daysOfFlow.split(' ').slice(-1)}</span>
             </h2>
             <div className="mt-3 flex items-center gap-2">
-              <span className="h-px w-6 bg-gray-300 dark:bg-gray-700"></span>
+              <span className="h-px w-6 bg-gray-300 dark:bg-[#363330]"></span>
               <p className="text-Malama-muted dark:text-gray-400 text-xs font-semibold tracking-wider uppercase">{dateRange}</p>
-              <span className="h-px w-6 bg-gray-300 dark:bg-gray-700"></span>
+              <span className="h-px w-6 bg-gray-300 dark:bg-[#363330]"></span>
             </div>
           </div>
 
           {/* Body Evolution Chart Card */}
-          <div className="animate-fade-in-up bg-white dark:bg-surface-dark rounded-3xl p-6 shadow-sm border border-Malama-border dark:border-gray-800 mb-8 relative" style={{ animationDelay: '0.1s' }}>
+          <div className="animate-fade-in-up bg-white dark:bg-surface-dark rounded-3xl p-6 shadow-sm border border-Malama-border dark:border-white/10 mb-8 relative" style={{ animationDelay: '0.1s' }}>
             <div className="flex justify-between items-start mb-6">
               <div>
                 <span className="block text-[10px] font-bold text-Malama-muted uppercase tracking-widest mb-1">{qa.bodyEvolution}</span>
@@ -175,11 +175,11 @@ export const QuarterlyAnalysis: React.FC<QuarterlyAnalysisProps> = ({ onBack, on
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-4 mb-6 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-Malama-border dark:border-gray-800 flex flex-col justify-between h-36 relative overflow-hidden group">
+            <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-Malama-border dark:border-white/10 flex flex-col justify-between h-36 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                 <span className="material-symbols-outlined text-4xl text-Malama-petrol dark:text-primary">calendar_month</span>
               </div>
-              <div className="size-10 rounded-full bg-Malama-bg dark:bg-gray-800 border border-Malama-border dark:border-gray-700 flex items-center justify-center text-Malama-petrol dark:text-primary mb-2">
+              <div className="size-10 rounded-full bg-Malama-bg dark:bg-Malama-dark border border-Malama-border dark:border-white/10 flex items-center justify-center text-Malama-petrol dark:text-primary mb-2">
                 <span className="material-symbols-outlined text-xl">check_circle</span>
               </div>
               <div>
@@ -187,11 +187,11 @@ export const QuarterlyAnalysis: React.FC<QuarterlyAnalysisProps> = ({ onBack, on
                 <p className="text-xs font-medium text-Malama-muted mt-1">{qa.consistencyPercent}</p>
               </div>
             </div>
-            <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-Malama-border dark:border-gray-800 flex flex-col justify-between h-36 relative overflow-hidden group">
+            <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-Malama-border dark:border-white/10 flex flex-col justify-between h-36 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                 <span className="material-symbols-outlined text-4xl text-Malama-petrol dark:text-primary">data_usage</span>
               </div>
-              <div className="size-10 rounded-full bg-Malama-bg dark:bg-gray-800 border border-Malama-border dark:border-gray-700 flex items-center justify-center text-Malama-petrol dark:text-primary mb-2">
+              <div className="size-10 rounded-full bg-Malama-bg dark:bg-Malama-dark border border-Malama-border dark:border-white/10 flex items-center justify-center text-Malama-petrol dark:text-primary mb-2">
                 <span className="material-symbols-outlined text-xl">pie_chart</span>
               </div>
               <div>
@@ -222,7 +222,7 @@ export const QuarterlyAnalysis: React.FC<QuarterlyAnalysisProps> = ({ onBack, on
               <span className="material-symbols-outlined text-Malama-petrol dark:text-primary text-xl animate-pulse">auto_awesome</span>
               <h3 className="text-Malama-main dark:text-white font-medium text-sm uppercase tracking-wide">{qa.aiInsights}</h3>
             </div>
-            <div className="bg-gradient-to-br from-white to-gray-50 dark:from-surface-dark dark:to-background-dark rounded-2xl p-6 border border-Malama-border dark:border-gray-700 shadow-sm relative">
+            <div className="bg-gradient-to-br from-white to-gray-50 dark:from-surface-dark dark:to-background-dark rounded-2xl p-6 border border-Malama-border dark:border-white/10 shadow-sm relative">
               <span className="absolute top-4 right-4 text-gray-200 dark:text-gray-700">
                 <span className="material-symbols-outlined">format_quote</span>
               </span>

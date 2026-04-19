@@ -63,7 +63,7 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
           { icon: <Clock className="w-5 h-5 text-[#2ECC71]" />, label: 'Pendente', value: fmtCurrency(influencerRecord.pending_amount ?? 0) },
           { icon: <DollarSign className="w-5 h-5 text-[#2ECC71]" />, label: 'Total ganho', value: fmtCurrency(influencerRecord.total_earned ?? 0) },
         ].map(({ icon, label, value }) => (
-          <div key={label} className="bg-white dark:bg-[#1a2630] border border-Malama-border dark:border-gray-800 rounded-xl p-4 text-center">
+          <div key={label} className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/10 rounded-xl p-4 text-center">
             <div className="flex justify-center mb-2">{icon}</div>
             <p className="text-Malama-main dark:text-white font-bold text-base leading-tight">{value}</p>
             <p className="text-Malama-muted dark:text-gray-400 text-xs mt-0.5">{label}</p>
@@ -72,7 +72,7 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
       </div>
 
       {/* Link de indicação */}
-      <div className="bg-white dark:bg-[#1a2630] border border-Malama-border dark:border-gray-800 rounded-2xl p-5">
+      <div className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/10 rounded-2xl p-5">
         <p className="text-sm font-bold text-Malama-main dark:text-white mb-1">Seu link de indicação</p>
         <p className="text-xs text-Malama-muted dark:text-gray-400 mb-3">
           Compartilhe este link. A cada novo usuário cadastrado, você ganha{' '}
@@ -93,7 +93,7 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
       </div>
 
       {/* Alterar senha */}
-      <div className="bg-white dark:bg-[#1a2630] border border-Malama-border dark:border-gray-800 rounded-2xl p-5">
+      <div className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/10 rounded-2xl p-5">
         <div className="flex items-center justify-between">
           <p className="text-sm font-bold text-Malama-main dark:text-white">Alterar senha</p>
           <button
@@ -338,7 +338,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         const entry = heatmapData.find(d => d.date === dateStr);
         const score = entry?.score || 0;
 
-        let intensity = 'bg-Malama-pastel-orange dark:bg-gray-700';
+        let intensity = 'bg-Malama-pastel-orange dark:bg-[#363330]';
         if (score >= 85) intensity = 'bg-Malama-petrol dark:bg-primary';
         else if (score >= 70) intensity = 'bg-Malama-petrol/80 dark:bg-primary/80';
         else if (score >= 50) intensity = 'bg-Malama-petrol/60 dark:bg-primary/60';
@@ -467,7 +467,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
         {/* Language Selector */}
         <section className="w-full px-6 mb-6">
-          <div className="bg-white dark:bg-[#1a2630] rounded-2xl p-4 shadow-sm border border-Malama-border dark:border-gray-800 transition-colors">
+          <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-Malama-border dark:border-white/10 transition-colors">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-Malama-petrol dark:text-primary">translate</span>
@@ -497,7 +497,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <h3 className="text-Malama-main dark:text-white text-lg font-bold leading-tight">{t.profile.flowStatus}</h3>
             <span className="text-Malama-petrol dark:text-primary text-xs font-semibold uppercase tracking-wider">{t.profile.last3Months}</span>
           </div>
-          <div className="bg-white dark:bg-[#1a2630] p-5 rounded-2xl shadow-sm border border-Malama-border dark:border-gray-800 overflow-x-auto no-scrollbar transition-colors">
+          <div className="bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-Malama-border dark:border-white/10 overflow-x-auto no-scrollbar transition-colors">
             {loading ? (
               <div className="flex justify-center py-6">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-Malama-petrol dark:border-primary"></div>
@@ -523,7 +523,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 {/* Legend */}
                 <div className="flex items-center justify-end gap-2 mt-4">
                   <span className="text-[10px] text-Malama-muted dark:text-gray-400 font-medium">{t.profile.low}</span>
-                  <div className="w-2 h-2 rounded-[1px] bg-Malama-pastel-orange dark:bg-gray-700"></div>
+                  <div className="w-2 h-2 rounded-[1px] bg-Malama-pastel-orange dark:bg-[#363330]"></div>
                   <div className="w-2 h-2 rounded-[1px] bg-Malama-petrol/40 dark:bg-primary/40"></div>
                   <div className="w-2 h-2 rounded-[1px] bg-Malama-petrol dark:bg-primary"></div>
                   <span className="text-[10px] text-Malama-muted dark:text-gray-400 font-medium">{t.profile.high}</span>
@@ -536,14 +536,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {/* Stats Section */}
         <section className="w-full px-6 mb-8">
           <div className="grid grid-cols-3 gap-3">
-            <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-[#1a2630] rounded-xl shadow-sm border border-Malama-border dark:border-gray-800 h-28 transition-colors">
+            <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-Malama-border dark:border-white/10 h-28 transition-colors">
               <span className="material-symbols-outlined text-Malama-petrol dark:text-primary mb-2" style={{ fontSize: '24px' }}>calendar_today</span>
               <p className="text-2xl font-bold text-Malama-main dark:text-white leading-none">
                 {loading ? '—' : gamification?.totalFlowDays || 0}
               </p>
               <p className="text-xs text-center text-Malama-muted dark:text-gray-400 mt-1 font-medium">{t.profile.flowDays}</p>
             </div>
-            <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-[#1a2630] rounded-xl shadow-sm border border-Malama-border dark:border-gray-800 h-28 transition-colors">
+            <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-Malama-border dark:border-white/10 h-28 transition-colors">
               <span className="material-symbols-outlined text-Malama-petrol dark:text-primary mb-2" style={{ fontSize: '24px' }}>restaurant_menu</span>
               <p className="text-2xl font-bold text-Malama-main dark:text-white leading-none">
                 {loading ? '—' : totalMeals}
@@ -552,7 +552,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
             <div
               onClick={() => onNavClick(AppView.QUARTERLY_ANALYSIS)}
-              className="flex flex-col items-center justify-center p-4 bg-white dark:bg-[#1a2630] rounded-xl shadow-sm border border-Malama-border dark:border-gray-800 h-28 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors relative overflow-hidden group"
+              className="flex flex-col items-center justify-center p-4 bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-Malama-border dark:border-white/10 h-28 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors relative overflow-hidden group"
             >
               <div className="absolute top-1 right-1">
                 <span className="material-symbols-outlined text-gray-300 text-xs">arrow_outward</span>
@@ -679,12 +679,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {/* Corpo & Métricas */}
         <section className="w-full px-6 mb-8">
           <h3 className="text-Malama-main dark:text-white text-base font-bold mb-3">Corpo & Métricas</h3>
-          <div className="bg-white dark:bg-[#1a2630] rounded-2xl border border-Malama-border dark:border-gray-800 overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-surface-dark rounded-2xl border border-Malama-border dark:border-white/10 overflow-hidden shadow-sm">
 
             {/* Body Scan row */}
             <div
               onClick={() => setShowBodyScanner(true)}
-              className="flex items-center gap-4 p-4 border-b border-Malama-border dark:border-gray-800 cursor-pointer hover:bg-Malama-bg dark:hover:bg-white/5 transition-colors group"
+              className="flex items-center gap-4 p-4 border-b border-Malama-border dark:border-white/10 cursor-pointer hover:bg-Malama-bg dark:hover:bg-white/5 transition-colors group"
             >
               <div className="size-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,92,246,0.12)' }}>
                 <span className="material-symbols-outlined text-[22px]" style={{ color: '#8b5cf6' }}>photo_camera</span>
@@ -733,7 +733,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </div>
             ) : (
               achievements.map((ach, idx) => (
-                <div key={idx} className="flex items-center gap-4 p-4 bg-white dark:bg-[#1a2630] rounded-xl border border-Malama-border dark:border-gray-800 transition-colors shadow-sm dark:shadow-none">
+                <div key={idx} className="flex items-center gap-4 p-4 bg-white dark:bg-surface-dark rounded-xl border border-Malama-border dark:border-white/10 transition-colors shadow-sm dark:shadow-none">
                   <div className={`flex items-center justify-center w-12 h-12 rounded-full ${ach.color}`}>
                     <span className="material-symbols-outlined">{ach.icon}</span>
                   </div>

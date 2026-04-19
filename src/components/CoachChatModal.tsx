@@ -253,7 +253,7 @@ export const CoachChatModal: React.FC<CoachChatModalProps> = ({ onClose }) => {
             placeholder="Digite sua mensagem..."
             rows={1}
             disabled={isLoading}
-            className="flex-1 px-4 py-3 rounded-2xl border-2 border-Malama-border dark:border-gray-700 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white placeholder-Malama-muted dark:placeholder-gray-500 focus:outline-none focus:border-Malama-petrol dark:focus:border-primary transition-colors resize-none max-h-32 disabled:opacity-50"
+            className="flex-1 px-4 py-3 rounded-2xl border-2 border-Malama-border dark:border-white/10 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white placeholder-Malama-muted dark:placeholder-gray-500 focus:outline-none focus:border-Malama-petrol dark:focus:border-primary transition-colors resize-none max-h-32 disabled:opacity-50"
             style={{ minHeight: '48px' }}
           />
           <button

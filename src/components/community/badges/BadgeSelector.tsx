@@ -39,7 +39,7 @@ export const BadgeSelector: React.FC<BadgeSelectorProps> = ({ userId, onClose })
         onClick={onClose}
       >
         <motion.div
-          className="w-full max-w-md bg-white dark:bg-gray-900 rounded-t-2xl p-6 pb-10"
+          className="w-full max-w-md bg-white dark:bg-surface-dark rounded-t-2xl p-6 pb-10"
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
@@ -59,7 +59,7 @@ export const BadgeSelector: React.FC<BadgeSelectorProps> = ({ userId, onClose })
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-12 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
+                <div key={i} className="h-12 bg-gray-100 dark:bg-Malama-dark rounded-xl animate-pulse" />
               ))}
             </div>
           ) : badges.length === 0 ? (
@@ -74,7 +74,7 @@ export const BadgeSelector: React.FC<BadgeSelectorProps> = ({ userId, onClose })
                   onClick={() => handleSelect(ub.badge_id)}
                   disabled={saving}
                   className="w-full flex items-center justify-between p-3 rounded-xl border transition-all
-                    border-gray-200 dark:border-gray-700 hover:border-[#2ECC71] dark:hover:border-[#2ECC71]"
+                    border-gray-200 dark:border-white/10 hover:border-[#2ECC71] dark:hover:border-[#2ECC71]"
                 >
                   <BadgeChip badge={{ ...ub.badge, is_featured: ub.is_featured }} size="md" />
                   {ub.is_featured && <CheckCircle size={18} className="text-[#2ECC71]" />}

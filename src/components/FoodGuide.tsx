@@ -271,14 +271,14 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                         </span>
                         <span className="text-xs text-Malama-muted dark:text-gray-400">{t.foodGuide.filteredByAi}</span>
                     </div>
-                    <div className="flex p-1 bg-Malama-pastel-orange dark:bg-gray-800 rounded-xl border border-Malama-border dark:border-gray-700">
+                    <div className="flex p-1 bg-Malama-pastel-orange dark:bg-Malama-dark rounded-xl border border-Malama-border dark:border-white/10">
                         {(['economic', 'balanced', 'premium'] as BudgetTier[]).map((tier) => (
                             <button
                                 key={tier}
                                 onClick={() => setBudgetTier(tier)}
                                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${budgetTier === tier
-                                    ? 'text-Malama-petrol dark:text-white bg-white dark:bg-gray-700 shadow-sm font-bold ring-1 ring-black/5 dark:ring-white/10'
-                                    : 'text-Malama-muted dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-700'
+                                    ? 'text-Malama-petrol dark:text-white bg-white dark:bg-[#363330] shadow-sm font-bold ring-1 ring-black/5 dark:ring-white/10'
+                                    : 'text-Malama-muted dark:text-gray-400 hover:bg-white/50 dark:hover:bg-[#403d3a]'
                                     }`}
                             >
                                 {t.foodGuide[tier]}
@@ -295,7 +295,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                             onClick={() => setActiveCategory(cat)}
                             className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-transform hover:scale-105 active:scale-95 ${activeCategory === cat
                                 ? 'bg-Malama-petrol dark:bg-primary text-white shadow-lg shadow-Malama-petrol/20 dark:shadow-primary/20'
-                                : 'bg-Malama-pastel-orange dark:bg-gray-800 text-Malama-petrol dark:text-gray-200 border border-transparent dark:border-gray-700'
+                                : 'bg-Malama-pastel-orange dark:bg-Malama-dark text-Malama-petrol dark:text-gray-200 border border-transparent dark:border-white/10'
                                 }`}
                         >
                             <span className="material-symbols-outlined text-[18px]">{macroIcons[cat]}</span>
@@ -379,7 +379,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                                 <p className="text-sm">{t.foodGuide.noFoods || 'Nenhum item encontrado para este filtro.'}</p>
                                 <p className="text-xs text-Malama-petrol/60 dark:text-gray-500 px-4">
                                     Se esta é a primeira vez usando o Food Guide, execute o arquivo{' '}
-                                    <code className="bg-Malama-pastel-orange dark:bg-gray-800 px-1.5 py-0.5 rounded text-xs">
+                                    <code className="bg-Malama-pastel-orange dark:bg-Malama-dark px-1.5 py-0.5 rounded text-xs">
                                         supabase-food-guide-setup.sql
                                     </code>{' '}
                                     no Supabase SQL Editor.
@@ -399,7 +399,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                             {foods.map((item, idx) => (
                                 <div
                                     key={`${item.name}-${idx}`}
-                                    className={`group flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-Malama-border dark:border-gray-800 hover:shadow-md transition-all duration-300 ${item.swapping ? 'opacity-50 scale-95' : 'opacity-100 scale-100'}`}
+                                    className={`group flex flex-col bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-Malama-border dark:border-white/10 hover:shadow-md transition-all duration-300 ${item.swapping ? 'opacity-50 scale-95' : 'opacity-100 scale-100'}`}
                                 >
                                     {/* Main Row */}
                                     <div
@@ -407,7 +407,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                                         onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
                                     >
                                         {/* Food Image */}
-                                        <div className="size-16 rounded-xl bg-gray-100 dark:bg-gray-800 shrink-0 overflow-hidden relative mr-4">
+                                        <div className="size-16 rounded-xl bg-gray-100 dark:bg-Malama-dark shrink-0 overflow-hidden relative mr-4">
                                             <div
                                                 className="absolute inset-0 bg-cover bg-center"
                                                 style={{ backgroundImage: `url('${item.image}')` }}
@@ -437,7 +437,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                                                 e.stopPropagation();
                                                 handleSwap(idx);
                                             }}
-                                            className="shrink-0 ml-3 flex flex-col items-center justify-center size-10 rounded-xl bg-Malama-pastel-orange dark:bg-gray-800 text-Malama-petrol dark:text-white hover:bg-Malama-petrol/10 hover:text-Malama-petrol dark:hover:bg-primary/10 dark:hover:text-primary transition-all group-hover:scale-105 active:scale-95"
+                                            className="shrink-0 ml-3 flex flex-col items-center justify-center size-10 rounded-xl bg-Malama-pastel-orange dark:bg-Malama-dark text-Malama-petrol dark:text-white hover:bg-Malama-petrol/10 hover:text-Malama-petrol dark:hover:bg-primary/10 dark:hover:text-primary transition-all group-hover:scale-105 active:scale-95"
                                             title={t.foodGuide.swap}
                                         >
                                             <span className={`material-symbols-outlined text-[20px] transition-transform duration-300 ${item.swapping ? 'animate-spin' : ''}`}>swap_horiz</span>
@@ -446,7 +446,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
 
                                     {/* Expanded Detail */}
                                     {expandedIdx === idx && (
-                                        <div className="px-4 pb-4 pt-1 border-t border-Malama-border/50 dark:border-gray-800 animate-fade-in">
+                                        <div className="px-4 pb-4 pt-1 border-t border-Malama-border/50 dark:border-white/10 animate-fade-in">
                                             <div className="flex items-center justify-between mb-3">
                                                 <span className="text-xs text-Malama-muted dark:text-gray-400 uppercase tracking-wider font-bold">
                                                     {t.foodGuide.per100g || 'Por 100g'}
@@ -462,7 +462,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                                                 ].map((macro) => (
                                                     <div key={macro.label} className="flex items-center gap-3">
                                                         <span className="text-xs font-medium text-Malama-muted dark:text-gray-400 w-10">{macro.label}</span>
-                                                        <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                                        <div className="flex-1 h-2 bg-gray-100 dark:bg-Malama-dark rounded-full overflow-hidden">
                                                             <div
                                                                 className={`h-full rounded-full ${macro.color} transition-all duration-500`}
                                                                 style={{ width: `${Math.min((macro.value / macro.max) * 100, 100)}%` }}

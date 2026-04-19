@@ -15,7 +15,7 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
     <div className="relative flex h-auto min-h-screen w-full flex-col mx-auto max-w-md bg-Malama-bg dark:bg-background-dark shadow-xl text-Malama-main dark:text-white font-display animate-fade-in">
 
       {/* Top App Bar */}
-      <header className="sticky top-0 z-50 flex items-center bg-Malama-bg/90 dark:bg-background-dark/90 backdrop-blur-md p-4 pb-2 justify-between border-b border-Malama-border dark:border-gray-800">
+      <header className="sticky top-0 z-50 flex items-center bg-Malama-bg/90 dark:bg-background-dark/90 backdrop-blur-md p-4 pb-2 justify-between border-b border-Malama-border dark:border-white/10">
         <div onClick={onBack} className="flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors">
           <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>arrow_back</span>
         </div>
@@ -38,8 +38,8 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
 
         {/* Activity Card */}
         <section className="@container animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="group flex flex-col items-stretch justify-start rounded-2xl shadow-sm border border-Malama-border dark:border-gray-800 bg-white dark:bg-[#1a2630] overflow-hidden transition-transform hover:scale-[1.01] duration-300">
-            <div className="relative h-48 w-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+          <div className="group flex flex-col items-stretch justify-start rounded-2xl shadow-sm border border-Malama-border dark:border-white/10 bg-white dark:bg-surface-dark overflow-hidden transition-transform hover:scale-[1.01] duration-300">
+            <div className="relative h-48 w-full bg-gray-200 dark:bg-[#363330] overflow-hidden">
               <div className="absolute inset-0 bg-cover bg-center opacity-90 transition-opacity group-hover:opacity-100"
                 style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBuUeg5VMPFMGsggXXx3-l9ItWg35ojCZlQpuUF3UPW-W3iidkgHPveoIrgDCbQ_QywSw_dNSlbOHxK116YFiNT8TlDTbArtMPT4rbDZxAz-2XoLJca4gIxSKy_Sm_2Mv6XX2Aos1hjbml-6RoJCPszTgw0ebWqbjPkNc-7EmGBSBVR32FCc_ZEcYI894D0Dbz8Y64Oj8z19_igabBNAxvGe5_bRkrNvo9kYPdKVn8OuVSRPcFF-cf7X3aO1iSuooaRwg8JsXOUhUU")' }}
               ></div>
@@ -62,7 +62,7 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
                   <p className="text-xl font-bold leading-tight">32:14</p>
                 </div>
               </div>
-              <div className="h-px w-full bg-Malama-border dark:bg-gray-700"></div>
+              <div className="h-px w-full bg-Malama-border dark:bg-[#363330]"></div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-Malama-petrol dark:text-primary" style={{ fontSize: '20px' }}>local_fire_department</span>
@@ -114,10 +114,10 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
             { label: fa.protein, value: '+20g', pct: 45, color: 'text-Malama-petrol dark:text-primary' },
             { label: fa.fat, value: '+10g', pct: 30, color: 'text-Malama-main dark:text-white' },
           ].map((macro) => (
-            <div key={macro.label} className="flex flex-col gap-2 p-3 bg-white dark:bg-[#1a2630] rounded-xl border border-Malama-border dark:border-gray-800 shadow-sm text-center">
+            <div key={macro.label} className="flex flex-col gap-2 p-3 bg-white dark:bg-surface-dark rounded-xl border border-Malama-border dark:border-white/10 shadow-sm text-center">
               <span className="text-xs text-Malama-muted dark:text-slate-400 font-bold uppercase">{macro.label}</span>
               <span className={`text-xl font-bold ${macro.color}`}>{macro.value}</span>
-              <div className="w-full h-1.5 bg-Malama-border dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-Malama-border dark:bg-[#363330] rounded-full overflow-hidden">
                 <div className={`h-full rounded-full bg-current ${macro.color}`} style={{ width: `${macro.pct}%` }}></div>
               </div>
             </div>

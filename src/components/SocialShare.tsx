@@ -224,7 +224,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
       <div className="fixed inset-0 z-50 bg-background-light dark:bg-background-dark flex flex-col h-full animate-fade-in font-display overflow-y-auto hide-scrollbar text-slate-900 dark:text-white">
         
         {/* Header */}
-        <header className="sticky top-0 z-10 flex items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm p-4 pb-2 justify-between border-b border-gray-100 dark:border-gray-800/50">
+        <header className="sticky top-0 z-10 flex items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm p-4 pb-2 justify-between border-b border-gray-100 dark:border-white/10/50">
           <div onClick={onClose} className="flex size-12 shrink-0 items-center justify-start cursor-pointer hover:opacity-70 transition-opacity">
             <span className="material-symbols-outlined text-2xl">arrow_back</span>
           </div>
@@ -250,19 +250,19 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
           <div className="w-full">
             <div className="grid grid-cols-3 gap-4 px-2">
               <button onClick={() => handleDownload(previewCardRef)} className="flex flex-col items-center gap-3 group/btn focus:outline-none">
-                <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
+                <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-Malama-dark shadow-sm border border-gray-100 dark:border-white/10 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
                   <span className="material-symbols-outlined text-gray-700 dark:text-gray-200 group-hover/btn:text-primary transition-colors">download</span>
                 </div>
                 <span className="text-xs font-medium leading-normal">Save Image</span>
               </button>
               <button onClick={() => handleDownload(previewCardRef)} className="flex flex-col items-center gap-3 group/btn focus:outline-none">
-                <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
+                <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-Malama-dark shadow-sm border border-gray-100 dark:border-white/10 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
                   <span className="material-symbols-outlined text-gray-700 dark:text-gray-200 group-hover/btn:text-primary transition-colors">auto_awesome_motion</span>
                 </div>
                 <span className="text-xs font-medium leading-normal">Stories</span>
               </button>
               <button onClick={handleCopyLink} className="flex flex-col items-center gap-3 group/btn focus:outline-none">
-                <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
+                <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-Malama-dark shadow-sm border border-gray-100 dark:border-white/10 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
                   <span className="material-symbols-outlined text-gray-700 dark:text-gray-200 group-hover/btn:text-primary transition-colors">content_copy</span>
                 </div>
                 <span className="text-xs font-medium leading-normal">Copy Link</span>

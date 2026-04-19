@@ -49,11 +49,11 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ postId, onClose })
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-white dark:bg-gray-900 w-full max-w-lg max-h-[80vh] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col animate-slide-up"
+        className="bg-white dark:bg-surface-dark w-full max-w-lg max-h-[80vh] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/10">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">
             Comentários ({comments.length})
           </h3>
@@ -81,7 +81,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ postId, onClose })
           ) : (
             comments.map((comment) => (
               <div key={comment.id} className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-[#363330] flex-shrink-0 overflow-hidden">
                   {comment.profiles?.avatar_url ? (
                     <img src={comment.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -91,7 +91,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ postId, onClose })
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-3 py-2">
+                  <div className="bg-gray-100 dark:bg-Malama-dark rounded-2xl px-3 py-2">
                     <p className="text-xs font-semibold text-gray-900 dark:text-white">
                       {comment.profiles?.display_name || 'Usuário'}
                     </p>
@@ -120,14 +120,14 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ postId, onClose })
 
         {/* Comment Input */}
         {user && (
-          <form onSubmit={handleSubmitComment} className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <form onSubmit={handleSubmitComment} className="p-4 border-t border-gray-200 dark:border-white/10">
             <div className="flex gap-2">
               <input
                 type="text"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Adicione um comentário..."
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-white/10 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary bg-white dark:bg-Malama-dark text-gray-900 dark:text-white placeholder-gray-400"
                 disabled={submitting}
               />
               <button

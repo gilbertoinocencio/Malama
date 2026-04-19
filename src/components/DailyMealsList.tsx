@@ -144,7 +144,7 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteM
             {expandedMeals[meal.id] && meal.items && meal.items.length > 0 && (
               <div className="ml-[56px] flex flex-col gap-1.5 relative z-10 animate-fade-in-up">
                 {meal.items.map((item, idx) => (
-                  <div key={idx} className="bg-Malama-bg dark:bg-[#152226] rounded-md p-2 border border-transparent hover:border-Malama-petrol/10 dark:hover:border-primary/10 transition-colors text-xs text-Malama-muted dark:text-slate-400">
+                  <div key={idx} className="bg-Malama-bg dark:bg-surface-dark rounded-md p-2 border border-transparent hover:border-Malama-petrol/10 dark:hover:border-primary/10 transition-colors text-xs text-Malama-muted dark:text-slate-400">
                     <span className="font-semibold text-Malama-main dark:text-white">
                       {item.weightGrams ? `${item.weightGrams}g` : item.quantity ? item.quantity : '1x'} {item.name}
                     </span>
@@ -177,14 +177,14 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteM
                   type="text" 
                   value={editingMeal.name} 
                   onChange={e => setEditingMeal({...editingMeal, name: e.target.value})}
-                  className="bg-Malama-bg dark:bg-[#152226] border border-Malama-border dark:border-white/10 rounded-xl px-4 py-2 text-Malama-main dark:text-white focus:border-Malama-petrol dark:focus:border-primary outline-none transition-colors"
+                  className="bg-Malama-bg dark:bg-surface-dark border border-Malama-border dark:border-white/10 rounded-xl px-4 py-2 text-Malama-main dark:text-white focus:border-Malama-petrol dark:focus:border-primary outline-none transition-colors"
                 />
               </label>
 
               <div className="flex flex-col gap-3 mt-2">
                 <h4 className="text-xs font-bold text-Malama-muted dark:text-slate-400 uppercase tracking-wider">Itens</h4>
                 {editingMeal.items?.map((item, idx) => (
-                  <div key={idx} className="p-3 bg-Malama-bg dark:bg-[#152226] rounded-xl border border-Malama-border dark:border-white/5 flex flex-col gap-2 relative">
+                  <div key={idx} className="p-3 bg-Malama-bg dark:bg-surface-dark rounded-xl border border-Malama-border dark:border-white/5 flex flex-col gap-2 relative">
                     <input 
                       type="text" 
                       placeholder="Nome"

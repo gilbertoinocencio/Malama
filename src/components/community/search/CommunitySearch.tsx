@@ -50,14 +50,14 @@ export const CommunitySearch: React.FC<CommunitySearchProps> = ({ onBack, onNavi
   if (!user) return null;
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-950">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-background-dark">
       {/* Header com input */}
-      <div className="bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-20">
+      <div className="bg-white dark:bg-background-dark border-b border-gray-100 dark:border-white/10 sticky top-0 z-20">
         <div className="flex items-center gap-3 px-4 py-3">
           <button onClick={onBack} className="shrink-0">
-            <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
+            <ArrowLeft size={20} className="text-gray-600 dark:text-slate-300" />
           </button>
-          <div className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-3 py-2">
+          <div className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-Malama-dark rounded-full px-3 py-2">
             <Search size={15} className="text-gray-400 shrink-0" />
             <input
               ref={inputRef}
@@ -82,7 +82,7 @@ export const CommunitySearch: React.FC<CommunitySearchProps> = ({ onBack, onNavi
               onClick={() => setActiveTab(tab)}
               className={`text-sm font-medium px-4 py-1.5 rounded-full transition-all ${
                 activeTab === tab
-                  ? 'bg-[#2ECC71] text-white'
+                  ? 'bg-Malama-petrol text-white'
                   : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
@@ -130,8 +130,8 @@ export const CommunitySearch: React.FC<CommunitySearchProps> = ({ onBack, onNavi
                   key={u.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-3 bg-white dark:bg-gray-900 rounded-2xl p-3
-                    border border-gray-100 dark:border-gray-800"
+                  className="flex items-center gap-3 bg-white dark:bg-surface-dark rounded-2xl p-3
+                    border border-gray-100 dark:border-white/10"
                 >
                   <button
                     onClick={() => onNavigate(AppView.COMMUNITY_PROFILE, u.id)}
@@ -140,7 +140,7 @@ export const CommunitySearch: React.FC<CommunitySearchProps> = ({ onBack, onNavi
                     {u.avatar_url ? (
                       <img src={u.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-[#2ECC71]/20 flex items-center justify-center text-[#2ECC71] font-bold shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-Malama-petrol/20 flex items-center justify-center text-[#2ECC71] font-bold shrink-0">
                         {u.display_name[0]?.toUpperCase()}
                       </div>
                     )}

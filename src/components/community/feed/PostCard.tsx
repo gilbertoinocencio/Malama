@@ -99,10 +99,10 @@ export const PostCard: React.FC<PostCardProps> = ({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className={`bg-white dark:bg-gray-900 rounded-2xl border overflow-hidden
+      className={`bg-white dark:bg-surface-dark rounded-2xl border overflow-hidden
         ${isMilestone
           ? 'border-yellow-300 dark:border-yellow-700 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950 dark:to-gray-900'
-          : 'border-gray-100 dark:border-gray-800'
+          : 'border-gray-100 dark:border-white/10'
         }`}
     >
       {isMilestone && (
@@ -119,7 +119,7 @@ export const PostCard: React.FC<PostCardProps> = ({
             {post.author.avatar_url ? (
               <img src={post.author.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-[#2ECC71]/20 flex items-center justify-center text-[#2ECC71] font-semibold text-sm">
+              <div className="w-9 h-9 rounded-full bg-Malama-petrol/20 flex items-center justify-center text-[#2ECC71] font-semibold text-sm">
                 {post.author.display_name[0]?.toUpperCase()}
               </div>
             )}
@@ -149,8 +149,8 @@ export const PostCard: React.FC<PostCardProps> = ({
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-8 z-20 bg-white dark:bg-gray-800 rounded-xl shadow-lg border
-                  border-gray-200 dark:border-gray-700 overflow-hidden min-w-[150px]">
+                <div className="absolute right-0 top-8 z-20 bg-white dark:bg-Malama-dark rounded-xl shadow-lg border
+                  border-gray-200 dark:border-white/10 overflow-hidden min-w-[150px]">
                   {canDelete && (
                     <button onClick={handleDelete}
                       className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors">
@@ -159,13 +159,13 @@ export const PostCard: React.FC<PostCardProps> = ({
                   )}
                   {canHide && (
                     <button onClick={handleHide}
-                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#403d3a] transition-colors">
                       <EyeOff size={14} /> Ocultar
                     </button>
                   )}
                   {!isOwn && (
                     <button onClick={() => { onOpenReport(post.id); setMenuOpen(false); }}
-                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#403d3a] transition-colors">
                       Denunciar
                     </button>
                   )}

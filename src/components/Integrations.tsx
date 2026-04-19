@@ -22,7 +22,7 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
 
   const [items, setItems] = useState<IntegrationItem[]>([
     { id: 'strava', name: 'Strava', icon: 'directions_run', status: 'connected', color: 'text-[#FC4C02]', iconBg: 'bg-[#FC4C02]/10', darkIconBg: 'dark:bg-[#FC4C02]/20' },
-    { id: 'apple', name: 'Apple Health', icon: 'favorite', status: 'pending', color: 'text-Malama-main dark:text-white', iconBg: 'bg-Malama-bg', darkIconBg: 'dark:bg-gray-700' },
+    { id: 'apple', name: 'Apple Health', icon: 'favorite', status: 'pending', color: 'text-Malama-main dark:text-white', iconBg: 'bg-Malama-bg', darkIconBg: 'dark:bg-[#363330]' },
     { id: 'google', name: 'Google Health', icon: 'health_and_safety', status: 'disconnected', color: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50', darkIconBg: 'dark:bg-blue-900/30' },
     { id: 'garmin', name: 'Garmin', icon: 'watch', status: 'connected', color: 'text-[#007cc3]', iconBg: 'bg-blue-100', darkIconBg: 'dark:bg-blue-800/30' },
     { id: 'polar', name: 'Polar', icon: 'monitor_heart', status: 'disconnected', color: 'text-[#E60012]', iconBg: 'bg-red-50', darkIconBg: 'dark:bg-red-900/20' },
@@ -90,7 +90,7 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
       {/* Integration List */}
       <div className="flex-1 px-4 pb-8 space-y-4">
         {items.map((item) => (
-          <div key={item.id} className={`flex items-center gap-4 bg-white dark:bg-[#1a2630] px-4 py-4 rounded-xl shadow-sm dark:shadow-none border border-Malama-border dark:border-white/5 transition-all hover:shadow-md ${item.opacity || ''}`}>
+          <div key={item.id} className={`flex items-center gap-4 bg-white dark:bg-surface-dark px-4 py-4 rounded-xl shadow-sm dark:shadow-none border border-Malama-border dark:border-white/5 transition-all hover:shadow-md ${item.opacity || ''}`}>
             <div className="flex items-center gap-4 flex-1">
               <div className={`flex items-center justify-center rounded-xl shrink-0 size-12 ${item.iconBg} ${item.darkIconBg} ${item.color}`}>
                 <span className="material-symbols-outlined text-[24px]">{item.icon}</span>
@@ -112,7 +112,7 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
 
       {/* Footer Note */}
       <div className="px-6 pb-8 text-center mt-auto">
-        <div className="flex items-center justify-center gap-2 text-Malama-muted dark:text-slate-500 text-xs font-medium bg-white dark:bg-[#1a2630] p-3 rounded-lg mx-auto w-fit shadow-sm border border-Malama-border dark:border-white/5">
+        <div className="flex items-center justify-center gap-2 text-Malama-muted dark:text-slate-500 text-xs font-medium bg-white dark:bg-surface-dark p-3 rounded-lg mx-auto w-fit shadow-sm border border-Malama-border dark:border-white/5">
           <span className="material-symbols-outlined text-[16px]">verified_user</span>
           <span>{ig.securityNote}</span>
         </div>

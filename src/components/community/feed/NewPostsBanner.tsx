@@ -16,7 +16,7 @@ export const NewPostsBanner: React.FC<NewPostsBannerProps> = ({ count, onRefresh
         exit={{ y: -48, opacity: 0 }}
         transition={{ type: 'spring', damping: 20 }}
         onClick={onRefresh}
-        className="sticky top-2 z-30 mx-auto flex items-center gap-2 bg-[#2ECC71] text-white
+        className="sticky top-2 z-30 mx-auto flex items-center gap-2 bg-Malama-petrol text-white
           text-xs font-semibold px-4 py-2 rounded-full shadow-lg shadow-[#2ECC71]/30"
       >
         <ArrowUp size={13} />

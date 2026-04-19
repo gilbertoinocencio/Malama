@@ -230,7 +230,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
     <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-gray-50 dark:bg-[#0a0f10] text-gray-900 dark:text-white">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-[#111c1e]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
         <button
           onClick={onClose}
           className="flex items-center gap-2 text-gray-600 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors"

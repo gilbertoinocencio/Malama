@@ -100,7 +100,7 @@ export const PlanRenewal: React.FC<PlanRenewalProps> = ({ onBack, onNavigate }) 
 
         {/* Consistency Card — real data */}
         <section className="px-6 py-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="bg-white dark:bg-[#1a2630] rounded-2xl p-6 shadow-sm border border-Malama-border dark:border-gray-800 flex flex-col gap-4 relative overflow-hidden">
+          <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 shadow-sm border border-Malama-border dark:border-white/10 flex flex-col gap-4 relative overflow-hidden">
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-Malama-petrol/5 dark:bg-primary/20 rounded-full blur-2xl"></div>
             <div className="flex items-start justify-between relative z-10">
               <div className="flex flex-col gap-1">
@@ -121,7 +121,7 @@ export const PlanRenewal: React.FC<PlanRenewalProps> = ({ onBack, onNavigate }) 
                 </svg>
               </div>
             </div>
-            <div className="h-px w-full bg-Malama-border dark:bg-gray-800"></div>
+            <div className="h-px w-full bg-Malama-border dark:bg-Malama-dark"></div>
             <div className="flex justify-between items-center text-sm relative z-10">
               <span className="font-medium">{weeksCompleted} {pr.weeksCompleted}</span>
               <div className="flex -space-x-2">
@@ -144,7 +144,7 @@ export const PlanRenewal: React.FC<PlanRenewalProps> = ({ onBack, onNavigate }) 
           {goals.map((g) => (
             <label key={g.id} className="group cursor-pointer block">
               <input className="peer sr-only" name="goal" type="radio" value={g.id} checked={selectedGoal === g.id} onChange={() => setSelectedGoal(g.id)} />
-              <div className="relative flex items-center p-4 rounded-xl border border-Malama-border dark:border-gray-700 bg-white dark:bg-[#1a2630] transition-all duration-300 hover:border-Malama-petrol/30 peer-checked:border-Malama-petrol dark:peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-Malama-petrol dark:peer-checked:ring-primary peer-checked:bg-Malama-petrol/5 dark:peer-checked:bg-primary/10">
+              <div className="relative flex items-center p-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-surface-dark transition-all duration-300 hover:border-Malama-petrol/30 peer-checked:border-Malama-petrol dark:peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-Malama-petrol dark:peer-checked:ring-primary peer-checked:bg-Malama-petrol/5 dark:peer-checked:bg-primary/10">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-Malama-petrol/10 dark:bg-primary/10 text-Malama-petrol dark:text-primary transition-colors">
                   <span className="material-symbols-outlined">{g.icon}</span>
                 </div>
@@ -152,7 +152,7 @@ export const PlanRenewal: React.FC<PlanRenewalProps> = ({ onBack, onNavigate }) 
                   <p className="text-base font-bold leading-snug">{g.label}</p>
                   <p className="text-Malama-muted dark:text-gray-400 text-sm font-normal">{g.desc}</p>
                 </div>
-                <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${selectedGoal === g.id ? 'border-Malama-petrol dark:border-primary bg-Malama-petrol dark:bg-primary' : 'border-Malama-border dark:border-gray-600'}`}>
+                <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${selectedGoal === g.id ? 'border-Malama-petrol dark:border-primary bg-Malama-petrol dark:bg-primary' : 'border-Malama-border dark:border-white/10'}`}>
                   {selectedGoal === g.id && <span className="material-symbols-outlined text-white text-[14px]">check</span>}
                 </div>
               </div>

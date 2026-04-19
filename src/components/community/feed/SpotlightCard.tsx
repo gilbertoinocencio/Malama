@@ -17,7 +17,7 @@ export const SpotlightCard: React.FC<SpotlightCardProps> = ({ post, onOpenCommen
     animate={{ opacity: 1, y: 0 }}
     className="relative bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500 rounded-2xl p-px overflow-hidden mb-2"
   >
-    <div className="bg-white dark:bg-gray-900 rounded-2xl p-4">
+    <div className="bg-white dark:bg-surface-dark rounded-2xl p-4">
       <div className="flex items-center gap-2 mb-3">
         <Crown size={16} className="text-yellow-500" />
         <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-wide">
@@ -41,7 +41,7 @@ export const SpotlightCard: React.FC<SpotlightCardProps> = ({ post, onOpenCommen
         </div>
       </button>
       {post.caption && (
-        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3 line-clamp-4">{post.caption}</p>
+        <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed mb-3 line-clamp-4">{post.caption}</p>
       )}
       {(post.media_urls?.[0] ?? post.image_url) && (
         <img src={post.media_urls?.[0] ?? post.image_url!} alt="" className="w-full max-h-52 object-cover rounded-xl mb-3" />
