@@ -57,7 +57,8 @@ export interface DailyStats {
   micronutrients?: Partial<MicroNutrients>;
   waterIntake?: number; // ml
   waterGoal?: number;  // ml
-  activityCalories?: number; // kcal queimadas em atividade física hoje
+  activityCalories?: number;      // kcal queimadas em atividade física hoje
+  activityCaloriesApplied?: boolean; // true = adicionadas à meta (manter/ganhar); false = viram déficit (perder peso)
 }
 
 export interface WeekDay {

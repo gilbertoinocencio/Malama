@@ -57,7 +57,7 @@ export const StatsService = {
             MealService.getMeals(userId, date),
             supabase
                 .from('profiles')
-                .select('target_calories, target_protein, target_carbs, target_fats, weight, activity_level')
+                .select('target_calories, target_protein, target_carbs, target_fats, weight, activity_level, primary_goal')
                 .eq('id', userId)
                 .maybeSingle(),
             supabase
@@ -99,14 +99,19 @@ export const StatsService = {
         }
 
         // Buscar calorias queimadas em atividades do dia (Strava, Google Fit, etc.)
-        // O target efetivo aumenta proporcionalmente, permitindo comer mais sem penalizar o flow_score
         const activityCalories = await IntegrationService.getActivityCaloriesToday(userId, dateStr);
-        const effectiveTargetCalories = target_calories + activityCalories;
 
-        // Distribuir as calorias extras da atividade nos macros (55% carbs, 20% proteína, 25% gordura)
-        const extraCarbs   = Math.round(activityCalories * 0.55 / 4);
-        const extraProtein = Math.round(activityCalories * 0.20 / 4);
-        const extraFat     = Math.round(activityCalories * 0.25 / 9);
+        // Apenas manter_peso e ganhar_peso aumentam a meta calórica com a atividade.
+        // perder_peso mantém a meta original — as calorias queimadas viram déficit extra.
+        const primaryGoal = profile?.primary_goal ?? 'perder_peso';
+        const applyActivityToTarget = primaryGoal !== 'perder_peso' && activityCalories > 0;
+
+        const extraCarbs   = applyActivityToTarget ? Math.round(activityCalories * 0.55 / 4) : 0;
+        const extraProtein = applyActivityToTarget ? Math.round(activityCalories * 0.20 / 4) : 0;
+        const extraFat     = applyActivityToTarget ? Math.round(activityCalories * 0.25 / 9) : 0;
+        const effectiveTargetCalories = applyActivityToTarget
+            ? target_calories + activityCalories
+            : target_calories;
 
         const targets = {
             target_calories: effectiveTargetCalories,
@@ -165,6 +170,7 @@ export const StatsService = {
             waterIntake,
             waterGoal,
             activityCalories: activityCalories > 0 ? activityCalories : undefined,
+            activityCaloriesApplied: activityCalories > 0 ? applyActivityToTarget : undefined,
         };
     },
 

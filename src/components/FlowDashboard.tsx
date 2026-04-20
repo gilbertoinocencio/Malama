@@ -912,10 +912,17 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                     / {(stats.targetCalories ?? 0).toLocaleString()} {t.dashboard.kcal}
                   </span>
                   {(stats.activityCalories ?? 0) > 0 && !isOverTarget && (
-                    <span className="text-[10px] font-bold mt-1 px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center gap-0.5">
-                      <span className="material-symbols-outlined" style={{ fontSize: '11px', fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-                      +{stats.activityCalories}
-                    </span>
+                    stats.activityCaloriesApplied ? (
+                      <span className="text-[10px] font-bold mt-1 px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center gap-0.5">
+                        <span className="material-symbols-outlined" style={{ fontSize: '11px', fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+                        +{stats.activityCalories}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold mt-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                        <span className="material-symbols-outlined" style={{ fontSize: '11px', fontVariationSettings: "'FILL' 1" }}>trending_down</span>
+                        -{stats.activityCalories}
+                      </span>
+                    )
                   )}
                   {isOverTarget && (
                     <span className={`text-xs font-bold mt-1 px-2 py-0.5 rounded-full ${isWayOverTarget
@@ -928,15 +935,24 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               </div>
             </div>
 
-            {/* Activity Boost Banner */}
+            {/* Activity Boost / Deficit Banner */}
             {(stats.activityCalories ?? 0) > 0 && (
               <div className="px-6 -mt-2 mb-1 flex justify-center">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-full border border-amber-200 dark:border-amber-800/30">
-                  <span className="material-symbols-outlined text-amber-500 dark:text-amber-400" style={{ fontSize: '14px', fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-                  <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
-                    Treino desbloqueou +{stats.activityCalories} kcal na sua meta de hoje
-                  </span>
-                </div>
+                {stats.activityCaloriesApplied ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-full border border-amber-200 dark:border-amber-800/30">
+                    <span className="material-symbols-outlined text-amber-500 dark:text-amber-400" style={{ fontSize: '14px', fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+                    <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                      Treino desbloqueou +{stats.activityCalories} kcal na sua meta de hoje
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-full border border-emerald-200 dark:border-emerald-800/30">
+                    <span className="material-symbols-outlined text-emerald-500 dark:text-emerald-400" style={{ fontSize: '14px', fontVariationSettings: "'FILL' 1" }}>trending_down</span>
+                    <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                      Treino gerou -{stats.activityCalories} kcal de déficit extra hoje
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
