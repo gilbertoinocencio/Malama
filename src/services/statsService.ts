@@ -103,11 +103,16 @@ export const StatsService = {
         const activityCalories = await IntegrationService.getActivityCaloriesToday(userId, dateStr);
         const effectiveTargetCalories = target_calories + activityCalories;
 
+        // Distribuir as calorias extras da atividade nos macros (55% carbs, 20% proteína, 25% gordura)
+        const extraCarbs   = Math.round(activityCalories * 0.55 / 4);
+        const extraProtein = Math.round(activityCalories * 0.20 / 4);
+        const extraFat     = Math.round(activityCalories * 0.25 / 9);
+
         const targets = {
             target_calories: effectiveTargetCalories,
-            target_protein,
-            target_carbs,
-            target_fats
+            target_protein:  target_protein + extraProtein,
+            target_carbs:    target_carbs + extraCarbs,
+            target_fats:     target_fats + extraFat,
         };
 
         const consumed = meals.reduce((acc, meal) => ({
@@ -159,6 +164,7 @@ export const StatsService = {
             micronutrients: Object.keys(micronutrients).length > 0 ? micronutrients : undefined,
             waterIntake,
             waterGoal,
+            activityCalories: activityCalories > 0 ? activityCalories : undefined,
         };
     },
 
