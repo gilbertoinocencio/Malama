@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" style="background-color: #FDFBF9;">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8" />
@@ -212,6 +212,13 @@
   </style>
 
   <link rel="stylesheet" href="/src/index.css">
+  <script>
+    try {
+      if (localStorage.getItem('Malama_dark_mode') === 'true') {
+        document.documentElement.classList.add('dark');
+      }
+    } catch(e) {}
+  </script>
 </head>
 
 <body

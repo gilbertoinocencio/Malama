@@ -106,20 +106,12 @@ const App: React.FC = () => {
     const checkPath = () => {
       const path = window.location.pathname;
 
-      // Clean up /entrar URL — app doesn't have this route, redirect to root
-      if (path === '/entrar') {
-        window.history.replaceState({}, '', '/');
-        setIsPortalRoute(false);
-        return;
-      }
-
       if (isPortalPath(path)) {
         setIsPortalRoute(true);
         return;
       }
 
       // For root path (/), only show portal/landing when there's no active session
-      // Use user state (more reliable than localStorage during PKCE exchange)
       if (path === '/' || path === '') {
         const hasSession = _supabaseStorageKey
           ? !!localStorage.getItem(_supabaseStorageKey)
@@ -128,6 +120,7 @@ const App: React.FC = () => {
         return;
       }
 
+      // All other paths (/entrar, /strava/callback, etc.) — never a portal route
       setIsPortalRoute(false);
     };
 
@@ -164,6 +157,13 @@ const App: React.FC = () => {
       }
     }
   }, [user, isPortalRoute]);
+
+  // Clean up stale /entrar URL when user is already authenticated
+  useEffect(() => {
+    if (user && window.location.pathname === '/entrar') {
+      window.history.replaceState({}, '', '/');
+    }
+  }, [user]);
 
   // Handle Theme Toggle — persisted in localStorage
   const [darkMode, setDarkMode] = useState(() => {
