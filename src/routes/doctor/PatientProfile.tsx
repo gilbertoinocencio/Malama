@@ -5,16 +5,18 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { User, TrendingUp, Activity, FileText, MessageSquare, Calendar, Plus, X, Save } from 'lucide-react';
-import { patientService, planAdjustmentService, glp1DoctorService } from '../../services/doctorPortalService';
+import { User, TrendingUp, Activity, FileText, MessageSquare, Calendar, Plus, X, Save, Paperclip } from 'lucide-react';
+import { patientService, planAdjustmentService, glp1DoctorService, clinicalNoteService } from '../../services/doctorPortalService';
 import type { GLP1MealSlot, GLP1DoctorPrescriptionInput } from '../../services/doctorPortalService';
 import { GLP1_MEDICATION_LIST, GLP1_PROTOCOLS } from '../../constants/glp1Protocols';
 import { generateDoctorBriefing } from '../../services/geminiService';
-import type { Doctor, PatientFullProfile, PatientGoals } from '../../types/doctorPortal';
+import type { Doctor, PatientFullProfile, PatientGoals, PatientFullHistory } from '../../types/doctorPortal';
 import { IMC_CLASSIFICATION, IMC_COLOR } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
+import { AppointmentChatPanel } from '../../components/doctor/AppointmentChatPanel';
+import { PatientExamPanel } from '../../components/doctor/PatientExamPanel';
 
-type TabType = 'overview' | 'history' | 'symptoms' | 'consultations' | 'briefing' | 'glp1';
+type TabType = 'overview' | 'history' | 'symptoms' | 'consultations' | 'exams' | 'chat' | 'briefing' | 'glp1';
 
 export const PatientProfile: React.FC = () => {
   const { doctor } = useOutletContext<{ doctor: Doctor }>();
@@ -33,6 +35,7 @@ export const PatientProfile: React.FC = () => {
   });
   const [adjustNotes, setAdjustNotes] = useState('');
   const [adjustTag, setAdjustTag] = useState('');
+  const [history, setHistory] = useState<PatientFullHistory | null>(null);
   const [briefing, setBriefing] = useState<string | null>(null);
   const [generatingBriefing, setGeneratingBriefing] = useState(false);
   const [glp1Schedule, setGlp1Schedule] = useState<GLP1MealSlot[]>([]);
@@ -65,6 +68,14 @@ export const PatientProfile: React.FC = () => {
         if (data) {
           setAdjustGoals(data.current_goals);
         }
+        // Load clinical history (prontuários + exames + chat aberto)
+        try {
+          const hist = await clinicalNoteService.getPatientHistory(patientId, doctor.id);
+          setHistory(hist);
+        } catch {
+          // History load failure is non-blocking
+        }
+
         // Load GLP-1 meal schedule
         const schedule = await glp1DoctorService.getPatientGlp1Schedule(patientId);
         setGlp1Schedule(schedule.length > 0 ? schedule : [{ time: '08:00', label: '', notes: '' }]);
@@ -144,13 +155,19 @@ export const PatientProfile: React.FC = () => {
     );
   }
 
+  const unreadChat = history?.open_chat?.unread_count ?? 0;
+
   const tabs = [
-    { id: 'overview' as TabType, label: 'Visão Geral', icon: TrendingUp },
-    { id: 'history' as TabType, label: 'Histórico Nutricional', icon: Activity },
-    { id: 'symptoms' as TabType, label: 'Sintomas e Check-ins', icon: MessageSquare },
-    { id: 'consultations' as TabType, label: 'Consultas Anteriores', icon: FileText },
-    { id: 'briefing' as TabType, label: 'Briefing IA', icon: Calendar },
-    ...(patient?.is_glp1_active ? [{ id: 'glp1' as TabType, label: '💉 GLP-1', icon: Plus }] : []),
+    { id: 'overview'      as TabType, label: 'Visão Geral',         icon: TrendingUp },
+    { id: 'history'       as TabType, label: 'Histórico Nutricional', icon: Activity },
+    { id: 'symptoms'      as TabType, label: 'Check-ins',            icon: MessageSquare },
+    { id: 'consultations' as TabType, label: 'Prontuários',          icon: FileText },
+    { id: 'exams'         as TabType, label: 'Exames',               icon: Paperclip,
+      badge: undefined },
+    { id: 'chat'          as TabType, label: 'Chat',                 icon: MessageSquare,
+      badge: unreadChat > 0 ? unreadChat : undefined },
+    { id: 'briefing'      as TabType, label: 'Briefing IA',          icon: Calendar },
+    ...(patient?.is_glp1_active ? [{ id: 'glp1' as TabType, label: '💉 GLP-1', icon: Plus, badge: undefined }] : []),
   ];
 
   return (
@@ -218,6 +235,11 @@ export const PatientProfile: React.FC = () => {
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
+                {'badge' in tab && tab.badge ? (
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-red-500 text-white rounded-full">
+                    {tab.badge}
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
@@ -428,44 +450,60 @@ export const PatientProfile: React.FC = () => {
             </div>
           )}
 
-          {/* Aba 4: Consultas Anteriores */}
+          {/* Aba 4: Prontuários */}
           {activeTab === 'consultations' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">Consultas Anteriores</h3>
+              <h3 className="text-lg font-semibold text-gray-800">Prontuários</h3>
 
-              {patient.past_consultations.length > 0 ? (
+              {(history?.consultations ?? patient.past_consultations).length > 0 ? (
                 <div className="space-y-4">
-                  {patient.past_consultations.map(consultation => (
-                    <div key={consultation.id} className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="font-medium">
-                          {new Date(consultation.scheduled_at).toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: 'long',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                        <span className="text-sm text-gray-600">{consultation.duration_minutes} min</span>
+                  {(history?.consultations ?? patient.past_consultations).map((consultation) => {
+                    const note = 'clinical_note' in consultation ? consultation.clinical_note : null;
+                    return (
+                      <div key={consultation.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-semibold text-gray-800">
+                            {new Date(consultation.scheduled_at).toLocaleDateString('pt-BR', {
+                              day: '2-digit', month: 'long', year: 'numeric'
+                            })}
+                          </p>
+                          <span className="text-xs px-2 py-1 rounded-full bg-[#7d4a3c]/10 text-[#7d4a3c]">
+                            {consultation.type === 'initial' ? 'Inicial' : consultation.type === 'follow_up' ? 'Retorno' : 'Renovação'}
+                          </span>
+                        </div>
+
+                        {note ? (
+                          <div className="mt-2 space-y-1">
+                            {note.diagnosis && (
+                              <p className="text-sm text-gray-700">
+                                <span className="font-medium text-gray-500 text-xs">Diagnóstico:</span>{' '}
+                                {note.diagnosis}
+                              </p>
+                            )}
+                            {note.plan && (
+                              <p className="text-sm text-gray-700">
+                                <span className="font-medium text-gray-500 text-xs">Plano:</span>{' '}
+                                {note.plan}
+                              </p>
+                            )}
+                            {note.weight_kg && (
+                              <p className="text-xs text-gray-500">
+                                Peso: <strong>{note.weight_kg} kg</strong>
+                                {note.bmi ? ` · IMC: ${note.bmi.toFixed(1)}` : ''}
+                              </p>
+                            )}
+                            {note.is_draft && (
+                              <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded-full">
+                                Rascunho
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic mt-2">Prontuário não preenchido</p>
+                        )}
                       </div>
-
-                      <span className="inline-block px-2 py-1 bg-[#7d4a3c]/10 text-[#7d4a3c] text-xs rounded-full mb-2">
-                        {consultation.type === 'initial' ? 'Inicial' : consultation.type === 'follow_up' ? 'Retorno' : 'Renovação'}
-                      </span>
-
-                      {consultation.notes && (
-                        <p className="text-sm text-gray-600 mt-2">{consultation.notes}</p>
-                      )}
-
-                      <Link
-                        to={`/medico/consulta/${consultation.id}`}
-                        className="text-sm text-[#7d4a3c] hover:underline mt-2 inline-block"
-                      >
-                        Ver detalhes →
-                      </Link>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="h-40 flex items-center justify-center bg-gray-50 rounded-lg">
@@ -475,7 +513,21 @@ export const PatientProfile: React.FC = () => {
             </div>
           )}
 
-          {/* Aba 5: Briefing IA */}
+          {/* Aba 5: Exames */}
+          {activeTab === 'exams' && patientId && (
+            <PatientExamPanel doctorId={doctor.id} patientId={patientId} />
+          )}
+
+          {/* Aba 6: Chat */}
+          {activeTab === 'chat' && patientId && (
+            <AppointmentChatPanel
+              doctorId={doctor.id}
+              patientId={patientId}
+              patientName={patient.name}
+            />
+          )}
+
+          {/* Aba Briefing IA */}
           {activeTab === 'briefing' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
