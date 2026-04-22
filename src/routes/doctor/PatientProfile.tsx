@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { User, TrendingUp, Activity, FileText, MessageSquare, Calendar, Plus, X, Save, Paperclip } from 'lucide-react';
+import { User, TrendingUp, Activity, FileText, MessageSquare, Calendar, Plus, X, Save, Paperclip, Brain } from 'lucide-react';
 import { patientService, planAdjustmentService, glp1DoctorService, clinicalNoteService } from '../../services/doctorPortalService';
 import type { GLP1MealSlot, GLP1DoctorPrescriptionInput } from '../../services/doctorPortalService';
 import { GLP1_MEDICATION_LIST, GLP1_PROTOCOLS } from '../../constants/glp1Protocols';
@@ -15,8 +15,10 @@ import { IMC_CLASSIFICATION, IMC_COLOR } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
 import { AppointmentChatPanel } from '../../components/doctor/AppointmentChatPanel';
 import { PatientExamPanel } from '../../components/doctor/PatientExamPanel';
+import { AIInsightsSidebar } from '../../components/doctor/AIInsightsSidebar';
+import { AIPlanCustomization } from '../../components/doctor/AIPlanCustomization';
 
-type TabType = 'overview' | 'history' | 'symptoms' | 'consultations' | 'exams' | 'chat' | 'briefing' | 'glp1';
+type TabType = 'overview' | 'history' | 'symptoms' | 'consultations' | 'exams' | 'chat' | 'plano' | 'briefing' | 'glp1';
 
 export const PatientProfile: React.FC = () => {
   const { doctor } = useOutletContext<{ doctor: Doctor }>();
@@ -166,7 +168,8 @@ export const PatientProfile: React.FC = () => {
       badge: undefined },
     { id: 'chat'          as TabType, label: 'Chat',                 icon: MessageSquare,
       badge: unreadChat > 0 ? unreadChat : undefined },
-    { id: 'briefing'      as TabType, label: 'Briefing IA',          icon: Calendar },
+    { id: 'plano'         as TabType, label: 'Plano IA',             icon: Brain, badge: undefined },
+    { id: 'briefing'      as TabType, label: 'Briefing',             icon: Calendar },
     ...(patient?.is_glp1_active ? [{ id: 'glp1' as TabType, label: '💉 GLP-1', icon: Plus, badge: undefined }] : []),
   ];
 
@@ -248,7 +251,8 @@ export const PatientProfile: React.FC = () => {
         <div className="p-6">
           {/* Aba 1: Visão Geral */}
           {activeTab === 'overview' && (
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
               {/* Gráfico de peso */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Evololução de Peso</h3>
@@ -336,6 +340,11 @@ export const PatientProfile: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+              </div>{/* end lg:col-span-2 */}
+              {/* AI Insights Sidebar */}
+              <div className="lg:col-span-1">
+                <AIInsightsSidebar patient={patient} />
               </div>
             </div>
           )}
@@ -524,6 +533,15 @@ export const PatientProfile: React.FC = () => {
               doctorId={doctor.id}
               patientId={patientId}
               patientName={patient.name}
+            />
+          )}
+
+          {/* Aba Plano IA */}
+          {activeTab === 'plano' && patientId && (
+            <AIPlanCustomization
+              patientId={patientId}
+              doctorId={doctor.id}
+              doctorName={doctor.name}
             />
           )}
 

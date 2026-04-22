@@ -2,7 +2,7 @@
 // Malama — Layout do Médico com Sidebar
 // =====================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { doctorService } from '../../services/doctorPortalService';
@@ -16,8 +16,10 @@ import {
   LogOut,
   Menu,
   X,
-  DollarSign
+  DollarSign,
+  Bell
 } from 'lucide-react';
+import { DoctorNotificationsPanel } from '../../components/doctor/DoctorNotificationsPanel';
 
 export const DoctorLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -25,12 +27,20 @@ export const DoctorLayout: React.FC = () => {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const refreshUnread = useCallback(async () => {
+    const { data } = await supabase.rpc('get_doctor_notifications', { p_limit: 50 });
+    setUnreadCount((data ?? []).filter((n: any) => !n.is_read).length);
+  }, []);
 
   useEffect(() => {
     const loadDoctor = async () => {
       try {
         const d = await doctorService.getOwnDoctorProfile();
         setDoctor(d);
+        if (d) refreshUnread();
       } catch (error) {
         console.error('Error loading doctor:', error);
       } finally {
@@ -38,7 +48,7 @@ export const DoctorLayout: React.FC = () => {
       }
     };
     loadDoctor();
-  }, []);
+  }, [refreshUnread]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -120,6 +130,18 @@ export const DoctorLayout: React.FC = () => {
             </div>
           </div>
           <button
+            onClick={() => setNotifOpen(o => !o)}
+            className="relative flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition mb-2"
+          >
+            <Bell className="w-4 h-4" />
+            Notificações
+            {unreadCount > 0 && (
+              <span className="ml-auto inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-red-500 text-white rounded-full">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+          <button
             onClick={handleLogout}
             className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition"
           >
@@ -179,9 +201,17 @@ export const DoctorLayout: React.FC = () => {
             <Menu className="w-6 h-6 text-gray-600" />
           </button>
           <MalamaLogo size="sm" />
-          <div className="w-8 h-8 rounded-full bg-[#7d4a3c] flex items-center justify-center text-white font-semibold text-sm">
-            {doctor?.name?.charAt(0) || 'D'}
-          </div>
+          <button
+            onClick={() => setNotifOpen(o => !o)}
+            className="relative p-1.5 rounded-lg hover:bg-gray-100 transition"
+          >
+            <Bell className="w-5 h-5 text-gray-600" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold bg-red-500 text-white rounded-full">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
         </header>
 
         {/* Content */}
@@ -197,6 +227,13 @@ export const DoctorLayout: React.FC = () => {
           <Outlet context={{ doctor }} />
         </div>
       </main>
+
+      {/* Notifications panel */}
+      {notifOpen && (
+        <DoctorNotificationsPanel
+          onClose={() => { setNotifOpen(false); refreshUnread(); }}
+        />
+      )}
     </div>
   );
 };
