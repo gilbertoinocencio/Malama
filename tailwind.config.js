@@ -26,13 +26,13 @@ export default {
         "Malama-card": "#FFFFFF",         // White
         "Malama-main": "#1C1917",         // Soft Black (Stone 900)
         "Malama-muted": "#57534E",        // Brown/Stone (Stone 500)
-        "Malama-petrol": "#802820",       // Vermelho Queimado (Mais escuro e mais vermelho)
+        "Malama-petrol": "#8c473e",       // Vermelho Queimado (Mais pastel/suave)
         "Malama-petrol-light": "#F2EBE6", // Light background
         "Malama-brown": "#8C6A4B",        // Classic Brown
         "Malama-pastel-orange": "#F2EBE6",
         "Malama-border": "#E7E5E4",       // Stone 200
         "Malama-offwhite": "#FDFBF9",     // Warm white (text on dark buttons)
-        "Malama-petroleum": "#802820",    // Alias → petrol
+        "Malama-petroleum": "#8c473e",    // Alias → petrol
         "Malama-neon": "#E8A898",         // Warm salmon (dark mode accent)
         "Malama-cyan": "#C4856A",         // Warm terracotta (dark mode secondary)
         "Malama-black": "#1C1917",        // Near black (dark mode surfaces)
@@ -40,7 +40,7 @@ export default {
         "Malama-stone": "#78716C",        // Stone muted (Stone 500)
 
         // Flow Dashboard Specific
-        "primary": "#802820",
+        "primary": "#8c473e",
         "primary-old": "#1F4E5F",
         "background-light": "#FDFBF9", // Malama Off-white
         "background-dark": "#1A1817",
