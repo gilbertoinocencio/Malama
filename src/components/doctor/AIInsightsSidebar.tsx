@@ -7,13 +7,15 @@ import React, { useEffect, useState } from 'react';
 import {
   Brain, AlertTriangle, TrendingDown, TrendingUp,
   Activity, RefreshCw, ChevronDown, ChevronRight,
-  Zap, CheckCircle, Minus
+  Zap, CheckCircle, Minus, Sparkles
 } from 'lucide-react';
 import { generateDoctorBriefing } from '../../services/geminiService';
+import { supabase } from '../../services/supabase';
 import type { PatientFullProfile } from '../../types/doctorPortal';
 
 interface Props {
   patient: PatientFullProfile;
+  patientId: string;
 }
 
 interface Alert {
@@ -140,69 +142,122 @@ const Trend: React.FC<{ values: number[]; label: string; unit: string }> = ({ va
   );
 };
 
-// ─── AI Summary section ──────────────────────────────
+// ─── Collapsible AI block ────────────────────────────
 
-const AISummary: React.FC<{ patient: PatientFullProfile }> = ({ patient }) => {
-  const [summary, setSummary]   = useState<string | null>(null);
-  const [loading, setLoading]   = useState(false);
-  const [open, setOpen]         = useState(false);
+const AIBlock: React.FC<{
+  title: string;
+  icon: React.ReactNode;
+  accentClass: string;
+  loading: boolean;
+  content: string | null;
+  open: boolean;
+  onToggle: () => void;
+  onRegenerate: () => void;
+  cta: string;
+}> = ({ title, icon, accentClass, loading, content, open, onToggle, onRegenerate, cta }) => (
+  <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <button
+      onClick={onToggle}
+      className={`w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r ${accentClass} hover:opacity-90 transition`}
+    >
+      <div className="flex items-center gap-2">
+        {icon}
+        <span className="text-xs font-semibold text-gray-700">{title}</span>
+      </div>
+      {loading
+        ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-gray-500" />
+        : content
+          ? (open ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />)
+          : <Zap className="w-3.5 h-3.5 text-gray-500" />
+      }
+    </button>
 
-  const generate = async () => {
-    setLoading(true);
-    try {
-      const text = await generateDoctorBriefing(patient);
-      setSummary(text);
-      setOpen(true);
-    } catch {
-      setSummary('Erro ao gerar resumo. Verifique a chave de API.');
-      setOpen(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+    {!content && !loading && (
+      <div className="px-4 py-3">
+        <p className="text-xs text-gray-400 mb-2">{cta}</p>
+        <button
+          onClick={onRegenerate}
+          className="text-xs font-medium text-[#7d4a3c] hover:underline flex items-center gap-1"
+        >
+          <Zap className="w-3 h-3" /> Gerar agora
+        </button>
+      </div>
+    )}
 
-  return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
-      <button
-        onClick={() => summary ? setOpen(o => !o) : generate()}
-        className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#7d4a3c]/5 to-transparent hover:from-[#7d4a3c]/10 transition"
-      >
-        <div className="flex items-center gap-2">
-          <Brain className="w-4 h-4 text-[#7d4a3c]" />
-          <span className="text-xs font-semibold text-gray-700">Resumo IA</span>
-        </div>
-        {loading
-          ? <RefreshCw className="w-3.5 h-3.5 text-[#7d4a3c] animate-spin" />
-          : summary
-            ? (open ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />)
-            : <Zap className="w-3.5 h-3.5 text-[#7d4a3c]" />
-        }
-      </button>
+    {loading && (
+      <div className="flex items-center gap-2 px-4 py-3">
+        <RefreshCw className="w-3.5 h-3.5 text-[#7d4a3c] animate-spin" />
+        <p className="text-xs text-gray-500">Analisando dados…</p>
+      </div>
+    )}
 
-      {open && summary && (
-        <div className="px-4 pb-4 pt-2">
-          <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{summary}</p>
-          <button
-            onClick={generate}
-            disabled={loading}
-            className="mt-3 flex items-center gap-1 text-[10px] text-[#7d4a3c] hover:underline disabled:opacity-50"
-          >
-            <RefreshCw className="w-3 h-3" /> Regerar
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
+    {open && content && (
+      <div className="px-4 pb-4 pt-2 space-y-2">
+        <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{content}</p>
+        <button
+          onClick={onRegenerate}
+          disabled={loading}
+          className="flex items-center gap-1 text-[10px] text-[#7d4a3c] hover:underline disabled:opacity-50"
+        >
+          <RefreshCw className="w-3 h-3" /> Regerar
+        </button>
+      </div>
+    )}
+  </div>
+);
 
 // ─── Main component ──────────────────────────────────
 
-export const AIInsightsSidebar: React.FC<Props> = ({ patient }) => {
+export const AIInsightsSidebar: React.FC<Props> = ({ patient, patientId }) => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
+
+  // Gemini quick briefing state
+  const [geminiText, setGeminiText]     = useState<string | null>(null);
+  const [geminiLoading, setGeminiLoading] = useState(false);
+  const [geminiOpen, setGeminiOpen]     = useState(false);
+
+  // Claude full report state
+  const [claudeText, setClaudeText]     = useState<string | null>(null);
+  const [claudeLoading, setClaudeLoading] = useState(false);
+  const [claudeOpen, setClaudeOpen]     = useState(false);
+  const [claudeError, setClaudeError]   = useState<string | null>(null);
 
   useEffect(() => {
     setAlerts(deriveAlerts(patient));
   }, [patient]);
+
+  const generateGemini = async () => {
+    setGeminiLoading(true);
+    try {
+      const text = await generateDoctorBriefing(patient);
+      setGeminiText(text);
+      setGeminiOpen(true);
+    } catch {
+      setGeminiText('Erro ao gerar resumo. Verifique a chave Gemini.');
+      setGeminiOpen(true);
+    } finally {
+      setGeminiLoading(false);
+    }
+  };
+
+  const generateClaude = async () => {
+    setClaudeLoading(true);
+    setClaudeError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-patient-ai-report', {
+        body: { patient_id: patientId },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setClaudeText(data?.report ?? 'Sem conteúdo retornado.');
+      setClaudeOpen(true);
+    } catch (e: any) {
+      setClaudeError(e?.message ?? 'Erro desconhecido');
+      setClaudeText(null);
+    } finally {
+      setClaudeLoading(false);
+    }
+  };
 
   const calTrend  = patient.weekly_history.map(w => w.avg_calories);
   const protTrend = patient.weekly_history.map(w => w.avg_protein);
@@ -247,8 +302,43 @@ export const AIInsightsSidebar: React.FC<Props> = ({ patient }) => {
         </div>
       )}
 
-      {/* AI Summary */}
-      <AISummary patient={patient} />
+      {/* Gemini — resumo rápido */}
+      <AIBlock
+        title="Resumo Rápido (Gemini)"
+        icon={<Brain className="w-4 h-4 text-[#7d4a3c]" />}
+        accentClass="from-[#7d4a3c]/5 to-transparent"
+        loading={geminiLoading}
+        content={geminiText}
+        open={geminiOpen}
+        onToggle={() => geminiText ? setGeminiOpen(o => !o) : generateGemini()}
+        onRegenerate={generateGemini}
+        cta="Análise rápida dos dados nutricionais e check-ins."
+      />
+
+      {/* Claude — relatório clínico completo */}
+      <AIBlock
+        title="Relatório Clínico (Claude)"
+        icon={<Sparkles className="w-4 h-4 text-purple-600" />}
+        accentClass="from-purple-50 to-transparent"
+        loading={claudeLoading}
+        content={claudeText}
+        open={claudeOpen}
+        onToggle={() => claudeText ? setClaudeOpen(o => !o) : generateClaude()}
+        onRegenerate={generateClaude}
+        cta="Relatório completo com alertas prioritários e sugestões de conduta."
+      />
+
+      {/* Erro Claude */}
+      {claudeError && (
+        <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-xs text-red-700">{claudeError}</p>
+          {claudeError.includes('ANTHROPIC_API_KEY') || claudeError.includes('API') ? (
+            <p className="text-[10px] text-red-500 mt-1">
+              Verifique se <code>ANTHROPIC_API_KEY</code> está setada nos secrets do Supabase.
+            </p>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 };

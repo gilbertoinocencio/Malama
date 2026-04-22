@@ -344,7 +344,7 @@ export const PatientProfile: React.FC = () => {
               </div>{/* end lg:col-span-2 */}
               {/* AI Insights Sidebar */}
               <div className="lg:col-span-1">
-                <AIInsightsSidebar patient={patient} />
+                <AIInsightsSidebar patient={patient} patientId={patientId!} />
               </div>
             </div>
           )}
