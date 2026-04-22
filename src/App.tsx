@@ -70,46 +70,65 @@ const App: React.FC = () => {
 
   const [isPortalRoute, setIsPortalRoute] = useState(() => {
     const path = window.location.pathname;
-    const hasSession = _supabaseStorageKey
-      ? !!localStorage.getItem(_supabaseStorageKey)
-      : false;
 
-    // Se há sessão e a rota é /, NÃO é portal (vai para o app)
-    if (path === '/' || path === '') {
-      return !hasSession; // Só é portal se NÃO há sessão
-    }
+    // /entrar is not a real route — never a portal
+    if (path === '/entrar') return false;
 
-    return (
+    if (
       path.startsWith('/medico') ||
       path.startsWith('/admin') ||
       path.startsWith('/influencer') ||
       path.startsWith('/convite') ||
       path.startsWith('/i/')
-    );
+    ) return true;
+
+    // For root path, show landing only if no active session
+    if (path === '/' || path === '') {
+      const hasSession = _supabaseStorageKey
+        ? !!localStorage.getItem(_supabaseStorageKey)
+        : false;
+      return !hasSession;
+    }
+
+    return false;
   });
   const [videoConsultation, setVideoConsultation] = useState<Consultation | null>(null);
 
   // Check if current path is a portal route (/medico/* or /admin/*) or landing page
   useEffect(() => {
+    const isPortalPath = (path: string) =>
+      path.startsWith('/medico') ||
+      path.startsWith('/admin') ||
+      path.startsWith('/influencer') ||
+      path.startsWith('/convite') ||
+      path.startsWith('/i/');
+
     const checkPath = () => {
       const path = window.location.pathname;
-      const hasSession = _supabaseStorageKey
-        ? !!localStorage.getItem(_supabaseStorageKey)
-        : false;
 
-      // Se há sessão e a rota é /, NÃO é portal (vai para o app)
+      // Clean up /entrar URL — app doesn't have this route, redirect to root
+      if (path === '/entrar') {
+        window.history.replaceState({}, '', '/');
+        setIsPortalRoute(false);
+        return;
+      }
+
+      if (isPortalPath(path)) {
+        setIsPortalRoute(true);
+        return;
+      }
+
+      // For root path (/), only show portal/landing when there's no active session
+      // Use user state (more reliable than localStorage during PKCE exchange)
       if (path === '/' || path === '') {
+        const hasSession = _supabaseStorageKey
+          ? !!localStorage.getItem(_supabaseStorageKey)
+          : false;
         setIsPortalRoute(!hasSession);
         return;
       }
 
-      setIsPortalRoute(
-        path.startsWith('/medico') ||
-        path.startsWith('/admin') ||
-        path.startsWith('/influencer') ||
-        path.startsWith('/convite') ||
-        path.startsWith('/i/')
-      );
+      setIsPortalRoute(false);
     };
 
     checkPath();
@@ -129,6 +148,22 @@ const App: React.FC = () => {
       window.history.replaceState = originalReplace;
     };
   }, []);
+
+  // When user authenticates, ensure we're not stuck showing the portal/landing
+  useEffect(() => {
+    if (user && isPortalRoute) {
+      const path = window.location.pathname;
+      const isPortalPath =
+        path.startsWith('/medico') ||
+        path.startsWith('/admin') ||
+        path.startsWith('/influencer') ||
+        path.startsWith('/convite') ||
+        path.startsWith('/i/');
+      if (!isPortalPath) {
+        setIsPortalRoute(false);
+      }
+    }
+  }, [user, isPortalRoute]);
 
   // Handle Theme Toggle — persisted in localStorage
   const [darkMode, setDarkMode] = useState(() => {
