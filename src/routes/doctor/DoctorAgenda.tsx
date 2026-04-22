@@ -4,11 +4,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Save, X, Trash2, AlertTriangle, Plus, Video, FileText, CheckCircle, Clock, Copy, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Save, X, Trash2, AlertTriangle, Plus, Video, FileText, CheckCircle, Clock, Copy, ChevronLeft, ChevronRight, Calendar, LogOut } from 'lucide-react';
 import { availabilityService, consultationService } from '../../services/doctorPortalService';
 import type { Doctor, DoctorAvailability, Consultation } from '../../types/doctorPortal';
-import { DAY_OF_WEEK_LABELS } from '../../types/doctorPortal';
+import { DAY_OF_WEEK_LABELS, ConsultationStatus } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
+import { ClinicalNoteModal } from '../../components/doctor/ClinicalNoteModal';
 
 // Helper para formatar data curta (DD/MM)
 const formatDateShort = (date: Date): string => {
@@ -66,6 +67,9 @@ export const DoctorAgenda: React.FC = () => {
 
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+
+  // Clinical note / close consultation gate
+  const [closeGate, setCloseGate] = useState<Consultation | null>(null);
 
   // Copy schedule modal state
   const [showCopyModal, setShowCopyModal] = useState<string | null>(null);
@@ -613,6 +617,15 @@ export const DoctorAgenda: React.FC = () => {
                         Iniciar Video
                       </button>
 
+                      <button
+                        onClick={() => setCloseGate(consult)}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition"
+                        title="Encerrar consulta e preencher prontuário"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Encerrar
+                      </button>
+
                       <div className="w-full md:hidden"></div>
 
                       <button
@@ -767,6 +780,22 @@ export const DoctorAgenda: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Prontuário / Gate de encerramento */}
+      {closeGate && (
+        <ClinicalNoteModal
+          consultationId={closeGate.id}
+          doctorId={doctor.id}
+          patientId={closeGate.patient_id}
+          patientName={closeGate.patient_name ?? 'Paciente'}
+          onClose={() => setCloseGate(null)}
+          onConsultationClosed={(id) => {
+            setDayConsultations(prev =>
+              prev.map(c => c.id === id ? { ...c, status: ConsultationStatus.COMPLETED } : c)
+            );
+          }}
+        />
       )}
 
       {/* Modal de cancelamento */}

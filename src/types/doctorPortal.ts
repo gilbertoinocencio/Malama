@@ -403,3 +403,138 @@ export const IMC_COLOR = (imc: number): string => {
   if (imc < 34.9) return '#e67e22';
   return '#e74c3c';
 };
+
+// =====================================================
+// Tipos — Etapa 2: Prontuário clínico, chats e exames
+// =====================================================
+
+export interface ClinicalNote {
+  id: string;
+  consultation_id: string;
+  doctor_id: string;
+  patient_id: string;
+  // Seções estruturadas
+  chief_complaint: string | null;
+  history_illness: string | null;
+  relevant_history: string | null;
+  physical_exam: string | null;
+  diagnosis: string | null;
+  plan: string | null;
+  free_text: string | null;
+  // Métricas clínicas
+  weight_kg: number | null;
+  height_cm: number | null;
+  bmi: number | null;
+  blood_pressure_sys: number | null;
+  blood_pressure_dia: number | null;
+  heart_rate: number | null;
+  waist_cm: number | null;
+  // Controle
+  is_draft: boolean;
+  finalized_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ChatStatus = 'open' | 'closed' | 'expired';
+
+export interface AppointmentChat {
+  id: string;
+  consultation_id: string;
+  doctor_id: string;
+  patient_id: string;
+  status: ChatStatus;
+  sla_hours: number;
+  last_patient_msg_at: string | null;
+  last_doctor_msg_at: string | null;
+  sla_breach_at: string | null;
+  opened_at: string;
+  expires_at: string;
+  closed_at: string | null;
+  closed_by: string | null;
+  created_at: string;
+  // Campos computed (join)
+  unread_count?: number;
+  patient_name?: string;
+  patient_photo?: string | null;
+}
+
+export type ChatSenderRole = 'doctor' | 'patient';
+
+export interface ChatMessage {
+  id: string;
+  chat_id: string;
+  sender_id: string;
+  sender_role: ChatSenderRole;
+  content: string | null;
+  file_url: string | null;
+  file_name: string | null;
+  file_type: string | null;
+  file_size_kb: number | null;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+  // Campos joined
+  sender_name?: string;
+  sender_photo?: string | null;
+}
+
+export interface PatientExam {
+  id: string;
+  patient_id: string;
+  doctor_id: string | null;
+  consultation_id: string | null;
+  chat_id: string | null;
+  exam_name: string;
+  exam_date: string | null;
+  lab_name: string | null;
+  file_url: string;
+  file_name: string;
+  file_type: string | null;
+  file_size_kb: number | null;
+  doctor_note: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  created_at: string;
+}
+
+// Resposta da RPC can_close_appointment
+export interface CanCloseResult {
+  can_close: boolean;
+  reason: string | null;
+}
+
+// Resposta da RPC get_patient_full_history
+export interface PatientFullHistory {
+  consultations: Array<{
+    id: string;
+    scheduled_at: string;
+    status: ConsultationStatus;
+    type: ConsultationType;
+    notes: string | null;
+    clinical_note: Pick<ClinicalNote,
+      'id' | 'is_draft' | 'finalized_at' | 'diagnosis' | 'plan' | 'weight_kg' | 'bmi'
+    > | null;
+  }>;
+  exams: PatientExam[];
+  open_chat: (Pick<AppointmentChat,
+    'id' | 'status' | 'expires_at' | 'last_patient_msg_at' | 'last_doctor_msg_at' | 'sla_breach_at'
+  > & { unread_count: number }) | null;
+}
+
+// Formulário de prontuário
+export interface ClinicalNoteFormData {
+  chief_complaint: string;
+  history_illness: string;
+  relevant_history: string;
+  physical_exam: string;
+  diagnosis: string;
+  plan: string;
+  free_text: string;
+  weight_kg: string;
+  height_cm: string;
+  blood_pressure_sys: string;
+  blood_pressure_dia: string;
+  heart_rate: string;
+  waist_cm: string;
+}

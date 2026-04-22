@@ -21,7 +21,14 @@ import type {
   DoctorStatus,
   ConsultationStatus,
   ConsultationType,
-  PayoutStatus
+  PayoutStatus,
+  ClinicalNote,
+  ClinicalNoteFormData,
+  AppointmentChat,
+  ChatMessage,
+  PatientExam,
+  CanCloseResult,
+  PatientFullHistory,
 } from '../types/doctorPortal';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -419,6 +426,20 @@ export const consultationService = {
 
     if (error) throw error;
     return data;
+  },
+
+  // Atualizar status de uma consulta
+  async updateStatus(consultationId: string, status: ConsultationStatus): Promise<void> {
+    const updates: Record<string, unknown> = { status };
+    if (status === 'in_progress') updates.started_at = new Date().toISOString();
+    if (status === 'completed')   updates.ended_at   = new Date().toISOString();
+
+    const { error } = await supabase
+      .from('consultations')
+      .update(updates)
+      .eq('id', consultationId);
+
+    if (error) throw error;
   },
 
   // Buscar consultas por dia
@@ -1641,5 +1662,272 @@ export const glp1DoctorService = {
 
     if (error) throw error;
     return (data?.glp1_doctor_prescription as GLP1DoctorPrescriptionInput) || null;
+  },
+};
+
+// =====================================================
+// PRONTUÁRIO CLÍNICO (clinical_notes)
+// =====================================================
+
+export const clinicalNoteService = {
+  async getByConsultation(consultationId: string): Promise<ClinicalNote | null> {
+    const { data, error } = await supabase
+      .from('clinical_notes')
+      .select('*')
+      .eq('consultation_id', consultationId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async upsert(consultationId: string, doctorId: string, patientId: string, fields: Partial<ClinicalNoteFormData>): Promise<ClinicalNote> {
+    const numericField = (v: string | undefined) => v ? parseFloat(v) || null : null;
+    const intField    = (v: string | undefined) => v ? parseInt(v)   || null : null;
+
+    const payload = {
+      consultation_id:    consultationId,
+      doctor_id:          doctorId,
+      patient_id:         patientId,
+      chief_complaint:    fields.chief_complaint    ?? null,
+      history_illness:    fields.history_illness    ?? null,
+      relevant_history:   fields.relevant_history   ?? null,
+      physical_exam:      fields.physical_exam      ?? null,
+      diagnosis:          fields.diagnosis          ?? null,
+      plan:               fields.plan               ?? null,
+      free_text:          fields.free_text          ?? null,
+      weight_kg:          numericField(fields.weight_kg),
+      height_cm:          numericField(fields.height_cm),
+      blood_pressure_sys: intField(fields.blood_pressure_sys),
+      blood_pressure_dia: intField(fields.blood_pressure_dia),
+      heart_rate:         intField(fields.heart_rate),
+      waist_cm:           numericField(fields.waist_cm),
+    };
+
+    const { data, error } = await supabase
+      .from('clinical_notes')
+      .upsert(payload, { onConflict: 'consultation_id' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async finalize(noteId: string): Promise<ClinicalNote> {
+    const { data, error } = await supabase
+      .from('clinical_notes')
+      .update({ is_draft: false, finalized_at: new Date().toISOString() })
+      .eq('id', noteId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async canCloseConsultation(consultationId: string): Promise<CanCloseResult> {
+    const { data, error } = await supabase.rpc('can_close_appointment', {
+      p_consultation_id: consultationId,
+    });
+    if (error) throw error;
+    return data as CanCloseResult;
+  },
+
+  async getPatientHistory(patientId: string, doctorId: string): Promise<PatientFullHistory> {
+    const { data, error } = await supabase.rpc('get_patient_full_history', {
+      p_patient_id: patientId,
+      p_doctor_id:  doctorId,
+    });
+    if (error) throw error;
+    return data as PatientFullHistory;
+  },
+};
+
+// =====================================================
+// CHATS PÓS-CONSULTA (appointment_chats + chat_messages)
+// =====================================================
+
+export const appointmentChatService = {
+  async openChat(consultationId: string, slaHours = 48): Promise<string> {
+    const { data, error } = await supabase.rpc('open_appointment_chat', {
+      p_consultation_id: consultationId,
+      p_sla_hours:       slaHours,
+    });
+    if (error) throw error;
+    return data as string;
+  },
+
+  async getDoctorChats(doctorId: string, status?: 'open' | 'closed' | 'expired'): Promise<AppointmentChat[]> {
+    let query = supabase
+      .from('appointment_chats')
+      .select(`
+        *,
+        patient:profiles!appointment_chats_patient_id_fkey (
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('doctor_id', doctorId)
+      .order('opened_at', { ascending: false });
+
+    if (status) query = query.eq('status', status);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return (data || []).map((c: any) => ({
+      ...c,
+      patient_name:  c.patient?.display_name ?? 'Paciente',
+      patient_photo: c.patient?.avatar_url   ?? null,
+    }));
+  },
+
+  async getMessages(chatId: string): Promise<ChatMessage[]> {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('chat_id', chatId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async sendMessage(chatId: string, content: string | null, file?: {
+    url: string; name: string; type: string; sizeKb: number;
+  }): Promise<ChatMessage> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    // Determinar role do remetente
+    const { data: doctor } = await supabase
+      .from('doctors')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const senderRole = doctor ? 'doctor' : 'patient';
+
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .insert([{
+        chat_id:     chatId,
+        sender_id:   user.id,
+        sender_role: senderRole,
+        content,
+        file_url:    file?.url     ?? null,
+        file_name:   file?.name    ?? null,
+        file_type:   file?.type    ?? null,
+        file_size_kb: file?.sizeKb ?? null,
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async markRead(chatId: string, senderRole: 'doctor' | 'patient'): Promise<void> {
+    const oppositeRole = senderRole === 'doctor' ? 'patient' : 'doctor';
+    const { error } = await supabase
+      .from('chat_messages')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('chat_id', chatId)
+      .eq('sender_role', oppositeRole)
+      .eq('is_read', false);
+
+    if (error) throw error;
+  },
+
+  async closeChat(chatId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from('appointment_chats')
+      .update({ status: 'closed', closed_at: new Date().toISOString(), closed_by: user?.id })
+      .eq('id', chatId);
+
+    if (error) throw error;
+  },
+
+  subscribeToMessages(chatId: string, onMessage: (msg: ChatMessage) => void) {
+    return supabase
+      .channel(`chat:${chatId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `chat_id=eq.${chatId}` },
+        (payload) => onMessage(payload.new as ChatMessage)
+      )
+      .subscribe();
+  },
+};
+
+// =====================================================
+// EXAMES DO PACIENTE (patient_exams)
+// =====================================================
+
+export const patientExamService = {
+  async uploadExam(file: File, patientId: string): Promise<string> {
+    const ext = file.name.split('.').pop();
+    const path = `${patientId}/${Date.now()}.${ext}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from('patient-exams')
+      .upload(path, file);
+
+    if (uploadErr) throw uploadErr;
+
+    const { data } = supabase.storage.from('patient-exams').getPublicUrl(path);
+    return data.publicUrl;
+  },
+
+  async createExam(exam: Omit<PatientExam, 'id' | 'created_at' | 'doctor_note' | 'reviewed_at' | 'reviewed_by'>): Promise<PatientExam> {
+    const { data, error } = await supabase
+      .from('patient_exams')
+      .insert([exam])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getPatientExams(patientId: string, doctorId?: string): Promise<PatientExam[]> {
+    let query = supabase
+      .from('patient_exams')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('exam_date', { ascending: false, nullsFirst: false });
+
+    if (doctorId) query = query.eq('doctor_id', doctorId);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+
+  async reviewExam(examId: string, doctorNote: string, doctorId: string): Promise<PatientExam> {
+    const { data, error } = await supabase
+      .from('patient_exams')
+      .update({
+        doctor_note:  doctorNote,
+        reviewed_at:  new Date().toISOString(),
+        reviewed_by:  doctorId,
+      })
+      .eq('id', examId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteExam(examId: string): Promise<void> {
+    const { error } = await supabase
+      .from('patient_exams')
+      .delete()
+      .eq('id', examId);
+
+    if (error) throw error;
   },
 };
