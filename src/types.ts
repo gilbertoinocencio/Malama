@@ -178,6 +178,7 @@ export interface Profile {
   weight?: number;
   height?: number;
   age?: number;
+  date_of_birth?: string;
   gender?: string;
   body_fat?: number;
   meals_per_day?: number;

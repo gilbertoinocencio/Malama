@@ -2,7 +2,7 @@ import { Profile } from '../../types';
 
 export interface StitchOnboardingData extends Partial<Profile> {
   // Dados biométricos
-  idade?: number;
+  dataNascimento?: string;
   genero?: 'masculino' | 'feminino';
   altura?: number;
   peso?: number;

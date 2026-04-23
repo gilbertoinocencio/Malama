@@ -11,7 +11,7 @@ import { WeightLogService } from '../../services/weightLogService';
 import ObjetivosPrincipaisStep from './steps/ObjetivosPrincipaisStep';
 import MetodologiaStep from './steps/MetodologiaStep';
 import ObjetivosAdicionaisStep from './steps/ObjetivosAdicionaisStep';
-import IdadeStep from './steps/IdadeStep';
+import DataNascimentoStep from './steps/DataNascimentoStep';
 import GeneroStep from './steps/GeneroStep';
 import AlturaEPesoStep from './steps/AlturaEPesoStep';
 import NivelAtividadeStep from './steps/NivelAtividadeStep';
@@ -97,7 +97,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
   const [data, setData] = useState<StitchOnboardingData>({
     // Initialize with safe defaults to prevent null errors
     primary_goal: 'perder_peso',
-    idade: 25,
+    dataNascimento: '1998-01-01',
     genero: 'masculino',
     altura: 170,
     peso: 70,
@@ -165,7 +165,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
 
       await supabase.from('profiles').upsert({
         id: user.id,
-        age: data.idade,
+        date_of_birth: data.dataNascimento,
         gender: data.genero,
         height: data.altura,
         weight: data.peso,
@@ -259,7 +259,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
       case OnboardingStep.OBJETIVOS:
         return <ObjetivosAdicionaisStep {...props} />;
       case OnboardingStep.IDADE:
-        return <IdadeStep {...props} />;
+        return <DataNascimentoStep {...props} />;
       case OnboardingStep.GENERO:
         return <GeneroStep {...props} />;
       case OnboardingStep.ALTURA_PESO:
