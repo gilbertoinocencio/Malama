@@ -15,9 +15,7 @@ import DataNascimentoStep from './steps/DataNascimentoStep';
 import GeneroStep from './steps/GeneroStep';
 import AlturaEPesoStep from './steps/AlturaEPesoStep';
 import NivelAtividadeStep from './steps/NivelAtividadeStep';
-import ConheceJejumStep from './steps/ConheceJejumStep';
-import BeneficiosJejumStep from './steps/BeneficiosJejumStep';
-import EducaJejumStep from './steps/EducaJejumStep';
+
 import JanelaAlimentarStep from './steps/JanelaAlimentarStep';
 import RefeicoesDiariasStep from './steps/RefeicoesDiariasStep';
 import LocalRefeicoesStep from './steps/LocalRefeicoesStep';
@@ -266,12 +264,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         return <AlturaEPesoStep {...props} />;
       case OnboardingStep.NIVEL_ATIVIDADE:
         return <NivelAtividadeStep {...props} />;
-      case OnboardingStep.CONHECE_JEJUM:
-        return <ConheceJejumStep {...props} />;
-      case OnboardingStep.BENEFICIOS_JEJUM:
-        return <BeneficiosJejumStep {...props} />;
-      case OnboardingStep.EDUCA_JEJUM:
-        return <EducaJejumStep {...props} />;
+
       case OnboardingStep.JANELA_ALIMENTAR:
         return <JanelaAlimentarStep {...props} />;
       case OnboardingStep.REFEICOES_DIARIAS:
