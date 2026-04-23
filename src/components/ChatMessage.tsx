@@ -40,7 +40,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLast }) => 
             }`}
           >
             {/* Format message with line breaks */}
-            <div className="text-[15px] leading-relaxed whitespace-pre-wrap">
+            <div className="text-base leading-relaxed whitespace-pre-wrap">
               {message.content}
             </div>
           </div>

@@ -1198,12 +1198,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-Malama-petrol/10 dark:bg-primary/10 rounded-full blur-3xl pointer-events-none" />
             <div className="flex justify-between items-start mb-6 relative z-10">
               <div>
-                <h3 className="text-Malama-main dark:text-white text-lg font-bold">{t.mealLogger.summary}</h3>
-                <p className="text-Malama-muted dark:text-slate-500 text-sm capitalize">{data.foodName}</p>
+                <h3 className="text-Malama-main dark:text-white text-xl font-bold">{t.mealLogger.summary}</h3>
+                <p className="text-Malama-muted dark:text-slate-500 text-base capitalize">{data.foodName}</p>
               </div>
               <div className="text-right">
-                <span className="block text-2xl font-bold text-Malama-petrol dark:text-primary tracking-tight">{data.calories}</span>
-                <span className="text-xs text-Malama-muted dark:text-slate-400 uppercase tracking-wider font-semibold">{t.mealLogger.kcalTotal}</span>
+                <span className="block text-3xl font-bold text-Malama-petrol dark:text-primary tracking-tight">{data.calories}</span>
+                <span className="text-sm text-Malama-muted dark:text-slate-400 uppercase tracking-wider font-semibold">{t.mealLogger.kcalTotal}</span>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-6 mb-6">
@@ -1221,9 +1221,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                   <div key={label} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-Malama-bg dark:bg-white/5 p-2 rounded-lg">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${color}`} />
-                      <span className="text-xs text-Malama-muted dark:text-slate-400 font-medium">{label}</span>
+                      <span className="text-sm text-Malama-muted dark:text-slate-400 font-medium">{label}</span>
                     </div>
-                    <span className="text-sm font-bold text-Malama-main dark:text-white">{value}g</span>
+                    <span className="text-base font-bold text-Malama-main dark:text-white">{value}g</span>
                   </div>
                 ))}
               </div>
@@ -1237,32 +1237,32 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                         <span className="material-symbols-outlined text-Malama-muted dark:text-slate-500 text-sm">lunch_dining</span>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-Malama-main dark:text-white text-sm font-semibold truncate">{item.name}</p>
-                        <p className="text-Malama-muted dark:text-slate-500 text-xs">
+                        <p className="text-Malama-main dark:text-white text-base font-semibold truncate">{item.name}</p>
+                        <p className="text-Malama-muted dark:text-slate-500 text-sm">
                           {item.quantity ?? ''}{item.weightGrams ? ` · ${item.weightGrams}g` : ''}
                         </p>
                       </div>
                     </div>
-                    <span className="text-Malama-petrol dark:text-primary text-sm font-bold shrink-0">{item.calories} kcal</span>
+                    <span className="text-Malama-petrol dark:text-primary text-base font-bold shrink-0">{item.calories} kcal</span>
                   </div>
                   {(item.protein != null || item.carbs != null || item.fats != null) && (
                     <div className="flex gap-2 pl-12">
                       {item.protein != null && (
-                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-xs font-semibold">
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-protein inline-block" />
                           <span className="text-Malama-muted dark:text-slate-400">P</span>
                           <span className="text-Malama-main dark:text-white">{item.protein}g</span>
                         </span>
                       )}
                       {item.carbs != null && (
-                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-xs font-semibold">
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-carbs inline-block" />
                           <span className="text-Malama-muted dark:text-slate-400">C</span>
                           <span className="text-Malama-main dark:text-white">{item.carbs}g</span>
                         </span>
                       )}
                       {item.fats != null && (
-                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-xs font-semibold">
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-fat inline-block" />
                           <span className="text-Malama-muted dark:text-slate-400">G</span>
                           <span className="text-Malama-main dark:text-white">{item.fats}g</span>
@@ -1275,9 +1275,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             </div>
             {data.message && (
               <div className="mt-4 pt-4 border-t border-Malama-border dark:border-white/10">
-                <div className="flex items-center gap-2 text-Malama-petrol dark:text-primary">
-                  <span className="material-symbols-outlined text-lg">auto_awesome</span>
-                  <p className="text-sm font-medium italic">{data.message}</p>
+                <div className="flex items-start gap-2 text-Malama-petrol dark:text-Malama-offwhite">
+                  <span className="material-symbols-outlined text-xl mt-0.5">auto_awesome</span>
+                  <p className="text-base font-medium italic">{data.message}</p>
                 </div>
               </div>
             )}
