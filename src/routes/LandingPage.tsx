@@ -1,38 +1,45 @@
 // =====================================================
-// Malama — Landing Page Principal
+// Malama — Landing Page Principal (Quiet Luxury)
 // =====================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { MalamaLogo } from '../components/MalamaLogo';
 import {
-  Brain,
-  Clock,
-  Shield,
-  TrendingUp,
-  Users,
-  Star,
-  ArrowRight,
-  CheckCircle,
-  Video,
-  BarChart3,
-  Calendar,
-  Stethoscope,
-  Leaf,
-  Zap,
-  Target,
-  ChevronDown,
   Menu,
-  X
+  X,
+  ArrowRight,
+  Star,
+  Activity,
+  Heart,
+  Droplets,
+  ChevronRight
 } from 'lucide-react';
+
+// Animações
+const fadeInUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.2 }
+  }
+};
 
 const LandingPage: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { scrollYProgress } = useScroll();
+  const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+      setScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -47,532 +54,369 @@ const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-Malama-bg text-Malama-main overflow-hidden font-sans selection:bg-Malama-petrol selection:text-white">
       {/* ==================== HEADER ==================== */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-transparent'
-        }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-b border-transparent ${
+        scrolled ? 'bg-Malama-bg/80 backdrop-blur-xl border-Malama-border/50 py-4' : 'bg-transparent py-6'
+      }`}>
+        <div className="max-w-[1400px] mx-auto px-6 md:px-12">
+          <div className="flex items-center justify-between">
             {/* Logo */}
-            <div className="flex items-center gap-2">
+            <div className="relative z-10 flex items-center gap-2">
               <MalamaLogo size="sm" />
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-8">
-              <button onClick={() => scrollToSection('diferenciais')} className="text-gray-700 hover:text-Malama-petrol font-medium transition">
-                Diferenciais
-              </button>
-              <button onClick={() => scrollToSection('como-funciona')} className="text-gray-700 hover:text-Malama-petrol font-medium transition">
-                Como Funciona
-              </button>
-              <button onClick={() => scrollToSection('medicos')} className="text-gray-700 hover:text-Malama-petrol font-medium transition">
-                Para Médicos
-              </button>
-              <button onClick={() => scrollToSection('depoimentos')} className="text-gray-700 hover:text-Malama-petrol font-medium transition">
-                Depoimentos
-              </button>
+            <nav className="hidden md:flex items-center gap-10">
+              {['A Abordagem', 'Como Funciona', 'Para Médicos'].map((item, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => scrollToSection(item.toLowerCase().replace(' ', '-'))} 
+                  className="text-sm font-medium tracking-wide text-Malama-muted hover:text-Malama-petrol transition-colors"
+                >
+                  {item}
+                </button>
+              ))}
             </nav>
 
             {/* CTA Buttons */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-6">
               <Link
-                to="/medico"
-                className="text-Malama-petrol font-semibold hover:opacity-80 transition"
+                to="/entrar"
+                className="text-sm font-medium text-Malama-main hover:text-Malama-petrol transition-colors"
               >
-                Para Médicos
+                Entrar
               </Link>
               <Link
                 to="/entrar?signup=true"
-                className="bg-Malama-petrol text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-Malama-petrol/90 transition shadow-lg shadow-Malama-petrol/20"
+                className="relative overflow-hidden group bg-Malama-main text-white px-7 py-2.5 rounded-full text-sm font-medium transition-all"
               >
-                Sou Malama
+                <span className="relative z-10">Começar Jornada</span>
+                <div className="absolute inset-0 h-full w-full bg-Malama-petrol transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500 ease-out"></div>
               </Link>
             </div>
 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 text-gray-700"
+              className="md:hidden relative z-10 p-2 text-Malama-main"
             >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
-            <div className="px-4 py-4 space-y-3">
-              <button onClick={() => scrollToSection('diferenciais')} className="block w-full text-left py-2 text-gray-700 font-medium">
-                Diferenciais
-              </button>
-              <button onClick={() => scrollToSection('como-funciona')} className="block w-full text-left py-2 text-gray-700 font-medium">
-                Como Funciona
-              </button>
-              <button onClick={() => scrollToSection('medicos')} className="block w-full text-left py-2 text-gray-700 font-medium">
-                Para Médicos
-              </button>
-              <button onClick={() => scrollToSection('depoimentos')} className="block w-full text-left py-2 text-gray-700 font-medium">
-                Depoimentos
-              </button>
-              <div className="pt-3 border-t border-gray-100 space-y-2">
-                <Link to="/medico" className="block text-center py-2 text-Malama-petrol font-semibold">
-                  Para Médicos
-                </Link>
-                <Link to="/entrar?signup=true" className="block text-center bg-Malama-petrol text-white py-3 rounded-xl font-semibold">
-                  Sou Malama
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Mobile Menu Overlay */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-full left-0 right-0 bg-Malama-bg border-b border-Malama-border/50 shadow-2xl py-8 px-6 flex flex-col gap-6"
+            >
+              {['A Abordagem', 'Como Funciona', 'Para Médicos'].map((item, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => scrollToSection(item.toLowerCase().replace(' ', '-'))} 
+                  className="text-left text-xl font-serif text-Malama-main"
+                >
+                  {item}
+                </button>
+              ))}
+              <div className="h-px bg-Malama-border my-2"></div>
+              <Link to="/entrar" className="text-lg font-medium text-Malama-main">Entrar</Link>
+              <Link to="/entrar?signup=true" className="inline-block bg-Malama-main text-white px-6 py-3 rounded-full text-center font-medium mt-2">
+                Começar Jornada
+              </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ==================== HERO SECTION ==================== */}
-      <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 bg-gradient-to-br from-Malama-petrol-light/30 via-white to-white" />
-        <div className="absolute top-20 right-0 w-96 h-96 bg-Malama-petrol/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-Malama-brown/5 rounded-full blur-3xl" />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
-            <div className="text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 bg-Malama-petrol/10 text-Malama-petrol px-4 py-2 rounded-full text-sm font-semibold mb-6">
-                <Zap className="w-4 h-4" />
-                Nutrição Inteligente com IA
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-Malama-main leading-tight mb-6">
-                Alimente seu{' '}
-                <span className="text-Malama-petrol">fluxo</span> natural
+      <section className="relative min-h-screen flex items-center pt-24 pb-12 px-6 md:px-12 max-w-[1400px] mx-auto">
+        <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center w-full">
+          
+          {/* Hero Text */}
+          <motion.div 
+            className="lg:col-span-6 z-10"
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+          >
+            <motion.div variants={fadeInUp} className="mb-6 flex items-center gap-3">
+              <div className="h-px w-8 bg-Malama-petrol"></div>
+              <span className="text-xs font-semibold tracking-widest uppercase text-Malama-petrol">Nutrição Inteligente</span>
+            </motion.div>
+            
+            <motion.div variants={fadeInUp} className="mb-8">
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-serif leading-[1.1] text-Malama-main">
+                Alimente seu <br />
+                <span className="italic text-Malama-petrol font-light">fluxo natural</span>
               </h1>
+            </motion.div>
 
-              <p className="text-lg text-Malama-muted mb-8 max-w-xl mx-auto lg:mx-0">
-                O Malama combina inteligência artificial com acompanhamento médico personalizado
-                para transformar sua relação com a nutrição. Alcance seus objetivos de forma
-                saudável e sustentável.
-              </p>
+            <motion.p variants={fadeInUp} className="text-lg text-Malama-muted mb-10 max-w-lg leading-relaxed font-light">
+              Uma abordagem elegante para sua saúde. O Malama combina precisão clínica com inteligência artificial para esculpir uma rotina que respeita o seu tempo e o seu corpo.
+            </motion.p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link
-                  to="/entrar?signup=true"
-                  className="inline-flex items-center justify-center gap-2 bg-Malama-petrol text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-Malama-petrol/90 transition shadow-xl shadow-Malama-petrol/25 hover:shadow-Malama-petrol/40"
-                >
-                  Começar Agora
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-                <button
-                  onClick={() => scrollToSection('como-funciona')}
-                  className="inline-flex items-center justify-center gap-2 border-2 border-Malama-petrol text-Malama-petrol px-8 py-4 rounded-xl font-semibold text-lg hover:bg-Malama-petrol/5 transition"
-                >
-                  Saiba Mais
-                </button>
-              </div>
-
-              {/* Stats */}
-              <div className="mt-12 grid grid-cols-3 gap-6">
-                <div>
-                  <div className="text-3xl font-bold text-Malama-petrol">10k+</div>
-                  <div className="text-sm text-Malama-muted">Usuários Ativos</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-Malama-petrol">50+</div>
-                  <div className="text-sm text-Malama-muted">Médicos Parceiros</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-Malama-petrol">98%</div>
-                  <div className="text-sm text-Malama-muted">Satisfação</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Image/Illustration */}
-            <div className="relative">
-              <div className="relative bg-gradient-to-br from-Malama-petrol to-Malama-petrol/80 rounded-3xl p-8 shadow-2xl">
-                <div className="bg-white rounded-2xl p-6 space-y-4">
-                  {/* Mock Dashboard */}
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="font-semibold text-Malama-main">Seu Plano de Hoje</span>
-                    <span className="text-xs bg-Malama-petrol-light text-Malama-petrol px-2 py-1 rounded-full">Em dia!</span>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-Malama-main">Café da manhã</div>
-                        <div className="text-xs text-Malama-muted">450 kcal • 08:30</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Leaf className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-Malama-main">Almoço</div>
-                        <div className="text-xs text-Malama-muted">650 kcal • 12:30</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-3 bg-Malama-petrol-light rounded-xl border border-Malama-petrol/20">
-                      <div className="w-10 h-10 bg-Malama-petrol/20 rounded-full flex items-center justify-center">
-                        <Clock className="w-5 h-5 text-Malama-petrol" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-Malama-main">Próxima refeição</div>
-                        <div className="text-xs text-Malama-petrol">Em 45 minutos</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="pt-4 border-t border-gray-100">
-                    <div className="flex justify-between text-xs text-Malama-muted mb-2">
-                      <span>Progresso diário</span>
-                      <span>75%</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full w-3/4 bg-gradient-to-r from-Malama-petrol to-Malama-petrol/60 rounded-full" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating Badge */}
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg p-4 flex items-center gap-3">
-                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <Star className="w-6 h-6 text-yellow-600" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-Malama-main">4.9/5.0</div>
-                  <div className="text-xs text-Malama-muted">Avaliação média</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== DIFERENCIAIS ==================== */}
-      <section id="diferenciais" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-Malama-main mb-4">
-              Por que escolher o <span className="text-Malama-petrol">Malama</span>?
-            </h2>
-            <p className="text-lg text-Malama-muted max-w-2xl mx-auto">
-              Tecnologia de ponta combinada com acompanhamento humano para resultados reais
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: Brain,
-                title: 'IA Personalizada',
-                description: 'Algoritmos inteligentes que adaptam seu plano nutricional baseado nos seus resultados e preferências.'
-              },
-              {
-                icon: Users,
-                title: 'Acompanhamento Médico',
-                description: 'Consultas online com médicos especializados para ajustes e orientação personalizada.'
-              },
-              {
-                icon: TrendingUp,
-                title: 'Evolução Visual',
-                description: 'Acompanhe seu progresso com gráficos detalhados e análises de composição corporal.'
-              },
-              {
-                icon: Shield,
-                title: 'Segurança Total',
-                description: 'Seus dados protegidos com criptografia e compliance com LGPD e regulamentações médicas.'
-              },
-              {
-                icon: Calendar,
-                title: 'Agenda Inteligente',
-                description: 'Agendamento flexível de consultas com lembretes automáticos e cancelamento fácil.'
-              },
-              {
-                icon: Target,
-                title: 'Metas Alcançáveis',
-                description: 'Objetivos realistas definidos por profissionais, com monitoramento contínuo.'
-              }
-            ].map((feature, index) => (
-              <div key={index} className="group p-6 bg-white border border-gray-100 rounded-2xl hover:shadow-xl hover:border-Malama-petrol/20 transition-all duration-300">
-                <div className="w-14 h-14 bg-Malama-petrol-light rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <feature.icon className="w-7 h-7 text-Malama-petrol" />
-                </div>
-                <h3 className="text-xl font-bold text-Malama-main mb-2">{feature.title}</h3>
-                <p className="text-Malama-muted">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== COMO FUNCIONA ==================== */}
-      <section id="como-funciona" className="py-20 bg-Malama-petrol-light/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-Malama-main mb-4">
-              Como funciona o <span className="text-Malama-petrol">Malama</span>
-            </h2>
-            <p className="text-lg text-Malama-muted max-w-2xl mx-auto">
-              Três passos simples para transformar sua saúde
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            {/* Connecting Line (Desktop) */}
-            <div className="hidden md:block absolute top-24 left-1/4 right-1/4 h-0.5 bg-Malama-petrol/20" />
-
-            {[
-              {
-                step: '01',
-                icon: Stethoscope,
-                title: 'Cadastre-se',
-                description: 'Crie sua conta gratuitamente e complete seu perfil com suas informações de saúde e objetivos.'
-              },
-              {
-                step: '02',
-                icon: BarChart3,
-                title: 'Receba seu Plano',
-                description: 'Nossa IA cria um plano nutricional personalizado, revisado por médicos especialistas.'
-              },
-              {
-                step: '03',
-                icon: TrendingUp,
-                title: 'Acompanhe sua Evolução',
-                description: 'Registre suas refeições, consulte seu médico e veja seus resultados em tempo real.'
-              }
-            ].map((step, index) => (
-              <div key={index} className="relative text-center">
-                <div className="relative z-10 w-20 h-20 bg-Malama-petrol rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-Malama-petrol/30">
-                  <step.icon className="w-10 h-10 text-white" />
-                  <span className="absolute -top-2 -right-2 w-8 h-8 bg-Malama-brown text-white rounded-full flex items-center justify-center text-sm font-bold">
-                    {step.step}
-                  </span>
-                </div>
-                <h3 className="text-2xl font-bold text-Malama-main mb-3">{step.title}</h3>
-                <p className="text-Malama-muted max-w-xs mx-auto">{step.description}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-12">
-            <Link
-              to="/entrar?signup=true"
-              className="inline-flex items-center gap-2 bg-Malama-petrol text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-Malama-petrol/90 transition shadow-xl shadow-Malama-petrol/25"
-            >
-              Começar Gratuitamente
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== PARA MÉDICOS ==================== */}
-      <section id="medicos" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* Left - Image/Illustration */}
-            <div className="relative">
-              <div className="bg-gradient-to-br from-Malama-petrol to-Malama-petrol/80 rounded-3xl p-8 shadow-2xl">
-                <div className="bg-white rounded-2xl p-6 space-y-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="font-semibold text-Malama-main">Painel do Médico</span>
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Online</span>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                      <span className="text-sm text-Malama-muted">Pacientes Ativos</span>
-                      <span className="text-lg font-bold text-Malama-main">127</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                      <span className="text-sm text-Malama-muted">Consultas Hoje</span>
-                      <span className="text-lg font-bold text-Malama-main">8</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-Malama-petrol-light rounded-xl">
-                      <span className="text-sm text-Malama-petrol">Próxima Consulta</span>
-                      <span className="text-lg font-bold text-Malama-petrol">14:00</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl">
-                      <Video className="w-5 h-5 text-green-600" />
-                      <span className="text-sm font-medium text-green-700">Consulta em andamento</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right - Content */}
-            <div>
-              <div className="inline-flex items-center gap-2 bg-Malama-petrol/10 text-Malama-petrol px-4 py-2 rounded-full text-sm font-semibold mb-6">
-                <Stethoscope className="w-4 h-4" />
-                Para Profissionais de Saúde
-              </div>
-
-              <h2 className="text-3xl sm:text-4xl font-bold text-Malama-main mb-6">
-                Amplie seu alcance com o <span className="text-Malama-petrol">Malama</span>
-              </h2>
-
-              <p className="text-lg text-Malama-muted mb-8">
-                Junte-se à nossa rede de médicos especializados e ofereça acompanhamento
-                nutricional de qualidade para centenas de pacientes.
-              </p>
-
-              <div className="space-y-4 mb-8">
-                {[
-                  'Painel completo de acompanhamento de pacientes',
-                  'Agenda flexível com gerenciamento de horários',
-                  'Telemedicina integrada com vídeo e prontuário',
-                  'Relatórios detalhados de evolução',
-                  'Pagamentos automáticos e transparentes'
-                ].map((benefit, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-Malama-petrol flex-shrink-0" />
-                    <span className="text-Malama-main">{benefit}</span>
-                  </div>
-                ))}
-              </div>
-
+            <motion.div variants={fadeInUp} className="flex flex-wrap items-center gap-6">
               <Link
-                to="/medico/cadastro"
-                className="inline-flex items-center gap-2 bg-Malama-petrol text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-Malama-petrol/90 transition shadow-xl shadow-Malama-petrol/25"
+                to="/entrar?signup=true"
+                className="group flex items-center gap-4 bg-Malama-petrol text-white px-8 py-4 rounded-full font-medium transition-transform hover:scale-105"
               >
-                Cadastrar como Médico
-                <ArrowRight className="w-5 h-5" />
+                Explorar Malama
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
-            </div>
-          </div>
+              <div className="flex items-center gap-4 text-sm font-medium text-Malama-main">
+                <div className="flex -space-x-3">
+                  <div className="w-10 h-10 rounded-full border-2 border-Malama-bg overflow-hidden"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="User" /></div>
+                  <div className="w-10 h-10 rounded-full border-2 border-Malama-bg overflow-hidden"><img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80" alt="User" /></div>
+                  <div className="w-10 h-10 rounded-full border-2 border-Malama-bg bg-Malama-main text-white flex items-center justify-center text-xs">+2k</div>
+                </div>
+                <div>
+                  <div className="flex text-Malama-petrol mb-1"><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /></div>
+                  <span className="text-xs text-Malama-muted">Membros Premium</span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Hero Image (Animated) */}
+          <motion.div 
+            className="lg:col-span-6 relative h-[60vh] lg:h-[80vh] w-full rounded-2xl overflow-hidden"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.div 
+              className="absolute inset-0 w-full h-full"
+              style={{ y: heroY }}
+            >
+              <img 
+                src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=2000" 
+                alt="Lifestyle saudável" 
+                className="w-full h-[120%] object-cover object-center"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-Malama-main/40 to-transparent"></div>
+            </motion.div>
+
+            {/* Floating Widget */}
+            <motion.div 
+              className="absolute bottom-8 left-8 right-8 bg-white/90 backdrop-blur-xl p-6 rounded-2xl border border-white/20 shadow-2xl"
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.8, ease: "easeOut" }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-serif font-medium text-Malama-main">Análise Diária</span>
+                <span className="text-xs bg-Malama-petrol/10 text-Malama-petrol px-3 py-1 rounded-full font-medium tracking-wide">Em Sintonia</span>
+              </div>
+              <div className="h-1.5 w-full bg-Malama-bg rounded-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-Malama-petrol"
+                  initial={{ width: 0 }}
+                  animate={{ width: "75%" }}
+                  transition={{ delay: 1.2, duration: 1.5, ease: "easeOut" }}
+                ></motion.div>
+              </div>
+            </motion.div>
+          </motion.div>
+
         </div>
       </section>
 
-      {/* ==================== DEPOIMENTOS ==================== */}
-      <section id="depoimentos" className="py-20 bg-Malama-petrol-light/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-Malama-main mb-4">
-              O que dizem nossos <span className="text-Malama-petrol">usuários</span>
-            </h2>
+      {/* ==================== A ABORDAGEM (DIFERENCIAIS) ==================== */}
+      <section id="a-abordagem" className="py-32 px-6 md:px-12 bg-white">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
+            <div className="max-w-2xl">
+              <h2 className="text-4xl md:text-5xl font-serif text-Malama-main mb-6">
+                A arte de viver bem,<br />
+                <span className="italic text-Malama-petrol">apoiada pela ciência.</span>
+              </h2>
+              <p className="text-lg text-Malama-muted font-light">
+                Não acreditamos em dietas restritivas. Acreditamos em sintonia fina. 
+                Uma convergência de especialistas de alto nível e inteligência artificial preditiva.
+              </p>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                name: 'Maria Silva',
-                role: 'Perdeu 15kg em 6 meses',
-                text: 'O Malama mudou minha relação com a comida. O acompanhamento médico fez toda a diferença nos meus resultados.',
-                rating: 5
+                icon: Activity,
+                title: 'Adaptação Preditiva',
+                desc: 'Nossa IA analisa sua biometria e rotina, ajustando seus macros sutilmente antes mesmo que você perceba a necessidade.',
+                img: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800'
               },
               {
-                name: 'Dr. João Santos',
-                role: 'Endocrinologista',
-                text: 'Como médico, o painel do Malama me permite acompanhar meus pacientes de forma muito mais eficiente e personalizada.',
-                rating: 5
+                icon: Heart,
+                title: 'Acompanhamento Premium',
+                desc: 'Conecte-se com nossa rede curada de endocrinologistas e nutricionistas, tudo em um ambiente digital impecável.',
+                img: 'https://images.unsplash.com/photo-1605280263929-1c42952ee4e4?auto=format&fit=crop&q=80&w=800'
               },
               {
-                name: 'Carlos Oliveira',
-                role: 'Ganhou massa muscular',
-                text: 'A IA do Malama adaptou meu plano conforme minha evolução. Em 3 meses vi resultados que nunca tinha conseguido.',
-                rating: 5
+                icon: Droplets,
+                title: 'Sintonia Diária',
+                desc: 'Rastreamento minimalista que foca no que importa. Sem contagem obsessiva, apenas o fluxo natural do seu corpo.',
+                img: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800'
               }
-            ].map((testimonial, index) => (
-              <div key={index} className="bg-white rounded-2xl p-6 shadow-lg">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-500 fill-current" />
-                  ))}
-                </div>
-                <p className="text-Malama-muted mb-6 italic">"{testimonial.text}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-Malama-petrol-light rounded-full flex items-center justify-center">
-                    <span className="text-Malama-petrol font-bold">{testimonial.name.charAt(0)}</span>
+            ].map((feature, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.8, delay: i * 0.2 }}
+                className="group"
+              >
+                <div className="overflow-hidden rounded-2xl mb-8 h-80 relative">
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500 z-10"></div>
+                  <motion.img 
+                    src={feature.img} 
+                    alt={feature.title}
+                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                  />
+                  <div className="absolute top-4 left-4 z-20 w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-Malama-main">
+                    <feature.icon className="w-5 h-5" />
                   </div>
-                  <div>
-                    <div className="font-semibold text-Malama-main">{testimonial.name}</div>
-                    <div className="text-sm text-Malama-muted">{testimonial.role}</div>
-                  </div>
                 </div>
-              </div>
+                <h3 className="text-2xl font-serif text-Malama-main mb-3">{feature.title}</h3>
+                <p className="text-Malama-muted font-light leading-relaxed">{feature.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ==================== CTA FINAL ==================== */}
-      <section className="py-20 bg-Malama-petrol">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Pronto para transformar sua saúde?
-          </h2>
-          <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
-            Junte-se a milhares de pessoas que já alcançaram seus objetivos nutricionais com o Malama.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/entrar?signup=true"
-              className="inline-flex items-center justify-center gap-2 bg-white text-Malama-petrol px-8 py-4 rounded-xl font-semibold text-lg hover:bg-gray-100 transition shadow-xl"
+      {/* ==================== COMO FUNCIONA (NARRATIVA) ==================== */}
+      <section id="como-funciona" className="py-32 px-6 md:px-12 bg-Malama-petrol text-white">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="grid lg:grid-cols-2 gap-20 items-center">
+            
+            <motion.div 
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
             >
-              Criar Conta Gratuita
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              to="/entrar"
-              className="inline-flex items-center justify-center gap-2 border-2 border-white text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-white/10 transition"
+              <h2 className="text-4xl md:text-5xl font-serif mb-12">
+                Sua evolução,<br /> <span className="italic font-light opacity-80">sem atritos.</span>
+              </h2>
+
+              <div className="space-y-12">
+                {[
+                  { step: '01', title: 'O Diagnóstico', desc: 'Sua jornada começa com uma análise detalhada. O Malama entende seu metabolismo, rotina e preferências como nenhum outro.' },
+                  { step: '02', title: 'O Algoritmo', desc: 'A inteligência artificial desenha um plano perfeito, não apenas para seus objetivos, mas para a realidade dos seus dias.' },
+                  { step: '03', title: 'A Transformação', desc: 'Acompanhe seu progresso em um painel elegante, com suporte de especialistas reais a um toque de distância.' }
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-6 group">
+                    <div className="text-2xl font-serif opacity-40 group-hover:opacity-100 transition-opacity text-Malama-bg">{item.step}</div>
+                    <div>
+                      <h3 className="text-xl font-medium mb-2">{item.title}</h3>
+                      <p className="text-white/70 font-light leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-16">
+                <Link
+                  to="/entrar?signup=true"
+                  className="inline-flex items-center gap-4 border border-white/30 px-8 py-4 rounded-full font-medium transition-all hover:bg-white hover:text-Malama-petrol"
+                >
+                  Iniciar Avaliação
+                </Link>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="relative h-[800px] rounded-3xl overflow-hidden hidden lg:block"
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1 }}
             >
-              Já tenho conta
-            </Link>
+              <img 
+                src="https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&q=80&w=1000" 
+                alt="Preparação" 
+                className="w-full h-full object-cover"
+              />
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* ==================== FOOTER ==================== */}
-      <footer className="bg-Malama-main text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div className="md:col-span-2">
-              <div className="mb-4">
+      {/* ==================== TESTIMONIALS ==================== */}
+      <section className="py-32 px-6 md:px-12 bg-Malama-bg">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <div className="text-Malama-petrol mb-8">
+              <Star className="w-6 h-6 inline-block mx-1 fill-current" />
+              <Star className="w-6 h-6 inline-block mx-1 fill-current" />
+              <Star className="w-6 h-6 inline-block mx-1 fill-current" />
+              <Star className="w-6 h-6 inline-block mx-1 fill-current" />
+              <Star className="w-6 h-6 inline-block mx-1 fill-current" />
+            </div>
+            
+            <h3 className="text-3xl md:text-4xl font-serif text-Malama-main leading-relaxed mb-12 italic">
+              "O Malama não parece um aplicativo de dieta. Parece um concierge particular para minha saúde. É silencioso, elegante e incrivelmente eficaz."
+            </h3>
+
+            <div className="flex items-center justify-center gap-4">
+              <div className="w-12 h-12 rounded-full overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&q=80" alt="Isabella C." />
+              </div>
+              <div className="text-left">
+                <div className="font-medium text-Malama-main">Isabella C.</div>
+                <div className="text-sm text-Malama-muted">Diretora Criativa</div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ==================== FOOTER MINIMALISTA ==================== */}
+      <footer className="bg-Malama-main text-white py-20 px-6 md:px-12">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-12 mb-20">
+            <div>
+              <div className="mb-8">
                 <MalamaLogo size="sm" />
               </div>
-              <p className="text-gray-400 max-w-sm">
-                Nutrição inteligente com acompanhamento médico personalizado.
-                Transforme sua relação com a alimentação.
-              </p>
+              <h2 className="text-3xl md:text-4xl font-serif text-white/90 max-w-md">
+                Eleve sua experiência de bem-estar.
+              </h2>
             </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Links Rápidos</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><button onClick={() => scrollToSection('diferenciais')} className="hover:text-white transition">Diferenciais</button></li>
-                <li><button onClick={() => scrollToSection('como-funciona')} className="hover:text-white transition">Como Funciona</button></li>
-                <li><button onClick={() => scrollToSection('medicos')} className="hover:text-white transition">Para Médicos</button></li>
-                <li><button onClick={() => scrollToSection('depoimentos')} className="hover:text-white transition">Depoimentos</button></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Área do Médico</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/medico" className="hover:text-white transition">Login</Link></li>
-                <li><Link to="/medico/cadastro" className="hover:text-white transition">Cadastrar-se</Link></li>
-                <li><Link to="/admin" className="hover:text-white transition">Painel Admin</Link></li>
-              </ul>
+            <div className="flex gap-4">
+               <Link
+                to="/entrar?signup=true"
+                className="bg-white text-Malama-main px-8 py-4 rounded-full font-medium transition-transform hover:scale-105"
+              >
+                Criar Conta
+              </Link>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 pt-8 text-center text-gray-400 text-sm">
-            <p>&copy; 2026 Malama - Feed the Flow. Todos os direitos reservados.</p>
+          <div className="grid md:grid-cols-3 gap-8 border-t border-white/10 pt-12 text-sm text-white/50">
+            <div>
+              <p>&copy; {new Date().getFullYear()} Malama. Todos os direitos reservados.</p>
+            </div>
+            <div className="flex gap-8 md:justify-center">
+              <Link to="/medico" className="hover:text-white transition-colors">Portal do Médico</Link>
+              <Link to="/admin" className="hover:text-white transition-colors">Admin</Link>
+            </div>
+            <div className="flex gap-8 md:justify-end">
+              <a href="#" className="hover:text-white transition-colors">Termos</a>
+              <a href="#" className="hover:text-white transition-colors">Privacidade</a>
+            </div>
           </div>
         </div>
       </footer>
