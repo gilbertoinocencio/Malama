@@ -5,6 +5,23 @@
 -- ================================================================
 
 -- ----------------------------------------------------------------
+-- 0. CLEANUP — garante reexecução idempotente
+--    (remove state parcial de runs anteriores com falha)
+-- ----------------------------------------------------------------
+DROP TABLE IF EXISTS public.patient_exams    CASCADE;
+DROP TABLE IF EXISTS public.chat_messages    CASCADE;
+DROP TABLE IF EXISTS public.appointment_chats CASCADE;
+DROP TABLE IF EXISTS public.clinical_notes   CASCADE;
+
+DROP FUNCTION IF EXISTS public.set_clinical_notes_updated_at() CASCADE;
+DROP FUNCTION IF EXISTS public.set_chat_expires_at()           CASCADE;
+DROP FUNCTION IF EXISTS public.update_chat_last_msg()          CASCADE;
+DROP FUNCTION IF EXISTS public.close_expired_chats()           CASCADE;
+DROP FUNCTION IF EXISTS public.can_close_appointment(UUID)     CASCADE;
+DROP FUNCTION IF EXISTS public.get_patient_full_history(UUID, UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.open_appointment_chat(UUID, INT)     CASCADE;
+
+-- ----------------------------------------------------------------
 -- 1. CLINICAL_NOTES — Prontuário estruturado por consulta
 -- ----------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.clinical_notes (
@@ -78,8 +95,7 @@ CREATE TABLE IF NOT EXISTS public.appointment_chats (
 
   -- Vida útil do canal
   opened_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-  expires_at        TIMESTAMPTZ NOT NULL
-                      GENERATED ALWAYS AS (opened_at + INTERVAL '20 days') STORED,
+  expires_at        TIMESTAMPTZ,           -- set by trigger on INSERT (opened_at + 20 days)
   closed_at         TIMESTAMPTZ,
   closed_by         UUID REFERENCES auth.users(id),
 
@@ -92,6 +108,21 @@ CREATE INDEX IF NOT EXISTS appt_chats_doctor_id_idx    ON public.appointment_cha
 CREATE INDEX IF NOT EXISTS appt_chats_patient_id_idx   ON public.appointment_chats(patient_id);
 CREATE INDEX IF NOT EXISTS appt_chats_status_idx       ON public.appointment_chats(status);
 CREATE INDEX IF NOT EXISTS appt_chats_expires_at_idx   ON public.appointment_chats(expires_at);
+
+-- Trigger: setar expires_at = opened_at + 20 days no INSERT
+-- (GENERATED ALWAYS AS não suporta TIMESTAMPTZ + INTERVAL pois é STABLE, não IMMUTABLE)
+CREATE OR REPLACE FUNCTION public.set_chat_expires_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.expires_at := NEW.opened_at + INTERVAL '20 days';
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_appointment_chats_expires_at ON public.appointment_chats;
+CREATE TRIGGER trg_appointment_chats_expires_at
+  BEFORE INSERT ON public.appointment_chats
+  FOR EACH ROW EXECUTE FUNCTION public.set_chat_expires_at();
 
 -- ----------------------------------------------------------------
 -- 3. CHAT_MESSAGES — Mensagens do canal pós-consulta
@@ -180,6 +211,9 @@ CREATE INDEX IF NOT EXISTS patient_exams_exam_date_idx       ON public.patient_e
 -- ── clinical_notes ──────────────────────────────────────────────
 ALTER TABLE public.clinical_notes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "clinical_notes_doctor_crud"  ON public.clinical_notes;
+DROP POLICY IF EXISTS "clinical_notes_patient_read" ON public.clinical_notes;
+
 -- Médico: CRUD apenas nos seus prontuários
 CREATE POLICY "clinical_notes_doctor_crud" ON public.clinical_notes
   FOR ALL TO authenticated
@@ -206,18 +240,11 @@ CREATE POLICY "clinical_notes_patient_read" ON public.clinical_notes
     AND is_draft = false
   );
 
--- Admin: leitura total
-CREATE POLICY "clinical_notes_admin_read" ON public.clinical_notes
-  FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid() AND p.role = 'admin'
-    )
-  );
-
 -- ── appointment_chats ────────────────────────────────────────────
 ALTER TABLE public.appointment_chats ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "appt_chats_doctor_access"  ON public.appointment_chats;
+DROP POLICY IF EXISTS "appt_chats_patient_access" ON public.appointment_chats;
 
 -- Médico: acesso aos seus próprios chats
 CREATE POLICY "appt_chats_doctor_access" ON public.appointment_chats
@@ -244,6 +271,10 @@ CREATE POLICY "appt_chats_patient_access" ON public.appointment_chats
 
 -- ── chat_messages ────────────────────────────────────────────────
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "chat_messages_participant_read"   ON public.chat_messages;
+DROP POLICY IF EXISTS "chat_messages_participant_insert" ON public.chat_messages;
+DROP POLICY IF EXISTS "chat_messages_update_read"        ON public.chat_messages;
 
 -- Participantes do chat: leitura e envio
 CREATE POLICY "chat_messages_participant_read" ON public.chat_messages
@@ -300,6 +331,10 @@ CREATE POLICY "chat_messages_update_read" ON public.chat_messages
 
 -- ── patient_exams ────────────────────────────────────────────────
 ALTER TABLE public.patient_exams ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "patient_exams_patient_crud"   ON public.patient_exams;
+DROP POLICY IF EXISTS "patient_exams_doctor_read"    ON public.patient_exams;
+DROP POLICY IF EXISTS "patient_exams_doctor_update"  ON public.patient_exams;
 
 -- Paciente: CRUD nos seus exames
 CREATE POLICY "patient_exams_patient_crud" ON public.patient_exams
