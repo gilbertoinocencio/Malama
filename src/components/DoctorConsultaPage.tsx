@@ -77,6 +77,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   const [showGoalsModal, setShowGoalsModal] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [goalAdjust, setGoalAdjust] = useState({ calories: '', protein: '', carbs: '', fat: '', fiber: '', water: '', meals: '', notes: '' });
+  const [goalsLastUpdated, setGoalsLastUpdated] = useState<string | null>(null);
   const [prescription, setPrescription] = useState({ medication: '', dosage: '', instructions: '' });
   const [saving, setSaving] = useState(false);
   const [actionMsg, setActionMsg] = useState('');
@@ -230,6 +231,30 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
     finally { setBriefingLoading(false); }
   };
 
+  const openGoalsModal = async () => {
+    // Pré-preenche com os valores atuais do perfil
+    setGoalAdjust({
+      calories: patientData?.target_calories?.toString() || '',
+      protein:  patientData?.target_protein?.toString()  || '',
+      carbs:    patientData?.target_carbs?.toString()    || '',
+      fat:      patientData?.target_fat?.toString()      || '',
+      fiber:    patientData?.target_fiber?.toString()    || '',
+      water:    patientData?.water_goal_ml?.toString()   || '',
+      meals:    patientData?.meals_per_day?.toString()   || '',
+      notes:    '',
+    });
+    // Busca a data da última atualização feita por algum médico
+    const { data } = await supabase
+      .from('doctor_plan_adjustments')
+      .select('applied_at')
+      .eq('patient_id', patientId)
+      .order('applied_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setGoalsLastUpdated(data?.applied_at ?? null);
+    setShowGoalsModal(true);
+  };
+
   const handleSaveGoals = async () => {
     setSaving(true);
     try {
@@ -273,7 +298,13 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
         },
       });
 
+      // Reflectir localmente no patientData para não precisar recarregar
+      if (Object.keys(profileUpdate).length > 0) {
+        setPatientData((prev: any) => ({ ...prev, ...profileUpdate }));
+      }
+
       setShowGoalsModal(false);
+      setGoalsLastUpdated(new Date().toISOString());
       setActionMsg('Metas ajustadas!');
       setTimeout(() => setActionMsg(''), 3000);
     } catch (err) {
@@ -627,7 +658,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
         <div className="p-3 border-t border-gray-700 space-y-1.5 shrink-0">
           {actionMsg && <p className="text-xs text-green-400 text-center mb-1">{actionMsg}</p>}
           <div className="grid grid-cols-2 gap-1.5">
-            <ActionBtn icon={<Target className="w-3.5 h-3.5" />}      label="Ajustar metas"  onClick={() => setShowGoalsModal(true)} />
+            <ActionBtn icon={<Target className="w-3.5 h-3.5" />}      label="Ajustar metas"  onClick={openGoalsModal} />
             <ActionBtn icon={<Stethoscope className="w-3.5 h-3.5" />} label="Emitir receita" onClick={() => setShowPrescriptionModal(true)} />
           </div>
         </div>
@@ -636,6 +667,23 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
       {/* ── MODAIS ── */}
       {showGoalsModal && (
         <FloatingModal title="Ajustar metas do paciente" onClose={() => setShowGoalsModal(false)} className="max-w-md">
+          {/* Origem dos valores */}
+          <div className="flex items-center gap-1.5 -mt-1 mb-1">
+            {goalsLastUpdated ? (
+              <p className="text-[11px] text-amber-400 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                Atualizado por médico em{' '}
+                {new Date(goalsLastUpdated).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                {' às '}
+                {new Date(goalsLastUpdated).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            ) : (
+              <p className="text-[11px] text-blue-400 flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                Metas definidas no onboarding
+              </p>
+            )}
+          </div>
           <div className="overflow-y-auto max-h-[65vh] space-y-3 pr-0.5">
 
             {/* Energia */}
