@@ -17,7 +17,11 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
   onEnd,
 }) => {
   const [elapsed, setElapsed] = useState(0);
-  const [goalsUpdate, setGoalsUpdate] = useState<{ calorie_goal?: number; protein_goal?: number; doctor_name?: string } | null>(null);
+  const [goalsUpdate, setGoalsUpdate] = useState<{
+    calorie_goal?: number; protein_goal?: number; carbs_goal?: number;
+    fat_goal?: number; fiber_goal?: number; water_goal?: number; meals_goal?: number;
+    doctor_name?: string;
+  } | null>(null);
   const [showGoalsToast, setShowGoalsToast] = useState(false);
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -173,12 +177,18 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
         {showGoalsToast && goalsUpdate && (
           <div className="absolute top-4 left-4 right-4 bg-green-600/95 text-white px-4 py-3 rounded-2xl shadow-xl">
             <p className="font-semibold text-sm">✅ Suas metas foram atualizadas!</p>
-            <p className="text-xs mt-0.5 opacity-90">
-              Dr. {goalsUpdate.doctor_name || 'Médico'} ajustou{' '}
-              {goalsUpdate.calorie_goal ? `calorias para ${goalsUpdate.calorie_goal}kcal` : ''}
-              {goalsUpdate.calorie_goal && goalsUpdate.protein_goal ? ' e ' : ''}
-              {goalsUpdate.protein_goal ? `proteína para ${goalsUpdate.protein_goal}g` : ''}
+            <p className="text-xs mt-1 opacity-90">
+              Dr. {goalsUpdate.doctor_name || 'Médico'} ajustou seus objetivos:
             </p>
+            <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs opacity-90">
+              {goalsUpdate.calorie_goal && <span>🔥 {goalsUpdate.calorie_goal} kcal</span>}
+              {goalsUpdate.protein_goal && <span>🥩 {goalsUpdate.protein_goal}g proteína</span>}
+              {goalsUpdate.carbs_goal   && <span>🌾 {goalsUpdate.carbs_goal}g carbs</span>}
+              {goalsUpdate.fat_goal     && <span>🥑 {goalsUpdate.fat_goal}g gordura</span>}
+              {goalsUpdate.fiber_goal   && <span>🥦 {goalsUpdate.fiber_goal}g fibras</span>}
+              {goalsUpdate.water_goal   && <span>💧 {goalsUpdate.water_goal}ml água</span>}
+              {goalsUpdate.meals_goal   && <span>🍽 {goalsUpdate.meals_goal} refeições</span>}
+            </div>
           </div>
         )}
       </div>

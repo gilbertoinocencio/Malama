@@ -76,7 +76,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   // Modais de ação
   const [showGoalsModal, setShowGoalsModal] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
-  const [goalAdjust, setGoalAdjust] = useState({ calories: '', protein: '', notes: '' });
+  const [goalAdjust, setGoalAdjust] = useState({ calories: '', protein: '', carbs: '', fat: '', fiber: '', water: '', meals: '', notes: '' });
   const [prescription, setPrescription] = useState({ medication: '', dosage: '', instructions: '' });
   const [saving, setSaving] = useState(false);
   const [actionMsg, setActionMsg] = useState('');
@@ -233,18 +233,55 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   const handleSaveGoals = async () => {
     setSaving(true);
     try {
+      const toInt = (v: string) => v ? parseInt(v) : null;
+
+      // 1. Registrar ajuste no histórico
       await supabase.from('doctor_plan_adjustments').insert({
         consultation_id: consultationId, doctor_id: doctorId, patient_id: patientId,
-        calorie_goal: goalAdjust.calories ? parseInt(goalAdjust.calories) : null,
-        protein_goal: goalAdjust.protein ? parseInt(goalAdjust.protein) : null,
+        calorie_goal: toInt(goalAdjust.calories),
+        protein_goal: toInt(goalAdjust.protein),
         notes: goalAdjust.notes || null,
         applied_at: new Date().toISOString(),
       });
+
+      // 2. Atualizar perfil do paciente com os novos objetivos
+      const profileUpdate: Record<string, number> = {};
+      if (goalAdjust.calories) profileUpdate.target_calories    = parseInt(goalAdjust.calories);
+      if (goalAdjust.protein)  profileUpdate.target_protein     = parseInt(goalAdjust.protein);
+      if (goalAdjust.carbs)    profileUpdate.target_carbs       = parseInt(goalAdjust.carbs);
+      if (goalAdjust.fat)      profileUpdate.target_fat         = parseInt(goalAdjust.fat);
+      if (goalAdjust.fiber)    profileUpdate.target_fiber       = parseInt(goalAdjust.fiber);
+      if (goalAdjust.water)    profileUpdate.water_goal_ml      = parseInt(goalAdjust.water);
+      if (goalAdjust.meals)    profileUpdate.meals_per_day      = parseInt(goalAdjust.meals);
+      if (Object.keys(profileUpdate).length > 0) {
+        await supabase.from('profiles').update(profileUpdate).eq('id', patientId);
+      }
+
+      // 3. Notificar o paciente em tempo real
+      await supabase.channel(`patient:${patientId}`).send({
+        type: 'broadcast',
+        event: 'goals_updated',
+        payload: {
+          calorie_goal: toInt(goalAdjust.calories),
+          protein_goal: toInt(goalAdjust.protein),
+          carbs_goal:   toInt(goalAdjust.carbs),
+          fat_goal:     toInt(goalAdjust.fat),
+          fiber_goal:   toInt(goalAdjust.fiber),
+          water_goal:   toInt(goalAdjust.water),
+          meals_goal:   toInt(goalAdjust.meals),
+          doctor_name:  doctorName,
+        },
+      });
+
       setShowGoalsModal(false);
       setActionMsg('Metas ajustadas!');
       setTimeout(() => setActionMsg(''), 3000);
-    } catch (err) { console.error(err); }
-    finally { setSaving(false); }
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao ajustar metas');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEmitPrescription = async () => {
@@ -598,19 +635,53 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
 
       {/* ── MODAIS ── */}
       {showGoalsModal && (
-        <FloatingModal title="Ajustar metas do paciente" onClose={() => setShowGoalsModal(false)}>
-          <ModalInput label="Meta calórica (kcal/dia)" value={goalAdjust.calories}
-            onChange={v => setGoalAdjust(p => ({ ...p, calories: v }))} placeholder={patientData?.target_calories?.toString() || '1800'} />
-          <ModalInput label="Meta proteína (g/dia)" value={goalAdjust.protein}
-            onChange={v => setGoalAdjust(p => ({ ...p, protein: v }))} placeholder={patientData?.target_protein?.toString() || '120'} />
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Observação</label>
-            <textarea value={goalAdjust.notes} onChange={e => setGoalAdjust(p => ({ ...p, notes: e.target.value }))}
-              placeholder="Justificativa..."
-              className="w-full bg-gray-700 text-white rounded-lg p-3 text-sm resize-none h-20 focus:outline-none focus:ring-1 focus:ring-green-500" />
+        <FloatingModal title="Ajustar metas do paciente" onClose={() => setShowGoalsModal(false)} className="max-w-md">
+          <div className="overflow-y-auto max-h-[65vh] space-y-3 pr-0.5">
+
+            {/* Energia */}
+            <div>
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Energia</p>
+              <ModalInput type="number" label="Calorias (kcal/dia)" value={goalAdjust.calories}
+                onChange={v => setGoalAdjust(p => ({ ...p, calories: v }))} placeholder={patientData?.target_calories?.toString() || '1800'} />
+            </div>
+
+            {/* Macros */}
+            <div>
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Macronutrientes</p>
+              <div className="grid grid-cols-2 gap-2">
+                <ModalInput type="number" label="Proteína (g/dia)" value={goalAdjust.protein}
+                  onChange={v => setGoalAdjust(p => ({ ...p, protein: v }))} placeholder={patientData?.target_protein?.toString() || '120'} />
+                <ModalInput type="number" label="Carboidratos (g/dia)" value={goalAdjust.carbs}
+                  onChange={v => setGoalAdjust(p => ({ ...p, carbs: v }))} placeholder={patientData?.target_carbs?.toString() || '200'} />
+                <ModalInput type="number" label="Gorduras (g/dia)" value={goalAdjust.fat}
+                  onChange={v => setGoalAdjust(p => ({ ...p, fat: v }))} placeholder={patientData?.target_fat?.toString() || '60'} />
+                <ModalInput type="number" label="Fibras (g/dia)" value={goalAdjust.fiber}
+                  onChange={v => setGoalAdjust(p => ({ ...p, fiber: v }))} placeholder={patientData?.target_fiber?.toString() || '25'} />
+              </div>
+            </div>
+
+            {/* Hábitos */}
+            <div>
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Hábitos</p>
+              <div className="grid grid-cols-2 gap-2">
+                <ModalInput type="number" label="Água (ml/dia)" value={goalAdjust.water}
+                  onChange={v => setGoalAdjust(p => ({ ...p, water: v }))} placeholder={patientData?.water_goal_ml?.toString() || '2500'} />
+                <ModalInput type="number" label="Refeições/dia" value={goalAdjust.meals}
+                  onChange={v => setGoalAdjust(p => ({ ...p, meals: v }))} placeholder={patientData?.meals_per_day?.toString() || '4'} />
+              </div>
+            </div>
+
+            {/* Observação */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Observação / justificativa</label>
+              <textarea value={goalAdjust.notes} onChange={e => setGoalAdjust(p => ({ ...p, notes: e.target.value }))}
+                placeholder="Ex: redução calórica por estagnação de peso..."
+                className="w-full bg-gray-700 text-white rounded-lg p-3 text-sm resize-none h-16 focus:outline-none focus:ring-1 focus:ring-green-500 placeholder-gray-500" />
+            </div>
           </div>
+
           <button onClick={handleSaveGoals} disabled={saving}
-            className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm disabled:opacity-50">
+            className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm disabled:opacity-50 transition">
             {saving ? 'Salvando...' : 'Aplicar ajustes'}
           </button>
         </FloatingModal>
@@ -663,9 +734,9 @@ const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) =
   </div>
 );
 
-const FloatingModal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
+const FloatingModal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode; className?: string }> = ({ title, onClose, children, className = '' }) => (
   <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10 p-4">
-    <div className="bg-gray-800 rounded-2xl w-full max-w-sm p-5 shadow-xl space-y-3">
+    <div className={`bg-gray-800 rounded-2xl w-full p-5 shadow-xl space-y-3 max-w-sm ${className}`}>
       <div className="flex items-center justify-between">
         <h3 className="text-white font-bold text-sm">{title}</h3>
         <button onClick={onClose} className="text-gray-400 hover:text-white p-1"><X className="w-4 h-4" /></button>
@@ -675,10 +746,10 @@ const FloatingModal: React.FC<{ title: string; onClose: () => void; children: Re
   </div>
 );
 
-const ModalInput: React.FC<{ label: string; value: string; onChange: (v: string) => void; placeholder?: string }> = ({ label, value, onChange, placeholder }) => (
+const ModalInput: React.FC<{ label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }> = ({ label, value, onChange, placeholder, type = 'text' }) => (
   <div>
     <label className="block text-xs text-gray-400 mb-1">{label}</label>
-    <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
       className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 placeholder-gray-500" />
   </div>
 );
