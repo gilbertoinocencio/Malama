@@ -89,6 +89,7 @@ export const ConsultationRoom: React.FC = () => {
       doctorName={doctor.name}
       doctorCrm={`${doctor.crm}/${doctor.crm_state}`}
       doctorSpecialty={doctor.specialty_custom || doctor.specialty}
+      doctorHasCertificate={!!doctor.icp_certificate_url}
       patientName={consultation.patient_name}
       onEnd={() => navigate('/medico/agenda')}
     />

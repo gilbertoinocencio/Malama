@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { VideoStream } from './VideoStream';
 import { supabase } from '../services/supabase';
-import { generatePrescriptionPDF, savePrescription } from '../lib/prescription';
+import { generatePrescriptionPDF, savePrescription, signPrescriptionPDF } from '../lib/prescription';
 import { generateConsultationBriefing } from '../lib/briefing';
 import { clinicalNoteService, appointmentChatService } from '../services/doctorPortalService';
 import { AppointmentChatPanel } from './doctor/AppointmentChatPanel';
@@ -25,6 +25,7 @@ interface DoctorConsultaPageProps {
   doctorName: string;
   doctorCrm: string;
   doctorSpecialty: string;
+  doctorHasCertificate: boolean;
   patientName: string;
   onEnd: () => void;
 }
@@ -48,7 +49,8 @@ const EMPTY_FORM: ClinicalNoteFormData = {
 };
 
 export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
-  consultationId, roomId, patientId, doctorId, doctorName, doctorCrm, doctorSpecialty, patientName, onEnd,
+  consultationId, roomId, patientId, doctorId, doctorName, doctorCrm, doctorSpecialty,
+  doctorHasCertificate, patientName, onEnd,
 }) => {
   const [videoMinimized, setVideoMinimized] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -81,6 +83,8 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   const [goalAdjust, setGoalAdjust] = useState({ calories: '', protein: '', carbs: '', fat: '', fiber: '', water: '', meals: '', notes: '' });
   const [goalsLastUpdated, setGoalsLastUpdated] = useState<string | null>(null);
   const [prescription, setPrescription] = useState({ medication: '', dosage: '', instructions: '' });
+  const [pfxPassword, setPfxPassword] = useState('');
+  const [signingError, setSigningError] = useState('');
   const [saving, setSaving] = useState(false);
   const [actionMsg, setActionMsg] = useState('');
 
@@ -325,7 +329,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 90);
 
-      const pdfBlob = await generatePrescriptionPDF({
+      let pdfBlob = await generatePrescriptionPDF({
         doctorName,
         doctorCRM: doctorCrm,
         doctorSpecialty,
@@ -336,6 +340,23 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
         issuedAt,
         expiresAt,
       });
+
+      // Assinar com certificado ICP-Brasil do médico, se cadastrado
+      if (doctorHasCertificate) {
+        if (!pfxPassword) {
+          setSigningError('Digite a senha do seu certificado ICP-Brasil');
+          setSaving(false);
+          return;
+        }
+        try {
+          pdfBlob = await signPrescriptionPDF(pdfBlob, doctorId, pfxPassword);
+          setSigningError('');
+        } catch (e: any) {
+          setSigningError(e.message ?? 'Senha incorreta ou certificado inválido');
+          setSaving(false);
+          return;
+        }
+      }
 
       await savePrescription({
         consultationId, doctorId, patientId, pdfBlob,
@@ -773,7 +794,11 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
       )}
 
       {showPrescriptionModal && (
-        <FloatingModal title="Emitir receita digital" onClose={() => setShowPrescriptionModal(false)}>
+        <FloatingModal title="Emitir receita digital" onClose={() => {
+          setShowPrescriptionModal(false);
+          setPfxPassword('');
+          setSigningError('');
+        }}>
           <ModalInput label="Medicamento" value={prescription.medication}
             onChange={v => setPrescription(p => ({ ...p, medication: v }))} placeholder="Ex: Ozempic 0,5mg" />
           <ModalInput label="Posologia" value={prescription.dosage}
@@ -784,9 +809,45 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
               placeholder="Instruções ao paciente..."
               className="w-full bg-gray-700 text-white rounded-lg p-3 text-sm resize-none h-20 focus:outline-none focus:ring-1 focus:ring-green-500" />
           </div>
+
+          {/* Assinatura ICP-Brasil */}
+          {doctorHasCertificate ? (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs text-green-400">
+                <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                Certificado ICP-Brasil cadastrado — receita terá validade jurídica
+              </div>
+              <ModalInput
+                type="password"
+                label="Senha do certificado (.pfx)"
+                value={pfxPassword}
+                onChange={setPfxPassword}
+                placeholder="Senha do seu e-CRM / e-CPF"
+              />
+              {signingError && (
+                <p className="text-xs text-red-400 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />{signingError}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-start gap-2 p-3 bg-amber-900/20 border border-amber-700/40 rounded-lg">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-400">
+                Sem certificado ICP-Brasil — receita não terá validade jurídica nas farmácias.
+                Cadastre em <span className="font-semibold">Configurações</span>.
+              </p>
+            </div>
+          )}
+
           <button onClick={handleEmitPrescription} disabled={saving || !prescription.medication || !prescription.dosage}
-            className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm disabled:opacity-50">
-            {saving ? 'Gerando PDF...' : 'Emitir e baixar PDF'}
+            className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm disabled:opacity-50 transition">
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                {doctorHasCertificate ? 'Assinando e gerando PDF...' : 'Gerando PDF...'}
+              </span>
+            ) : 'Emitir e baixar PDF'}
           </button>
         </FloatingModal>
       )}

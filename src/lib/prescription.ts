@@ -1,6 +1,26 @@
 import jsPDF from 'jspdf';
 import { supabase } from '../services/supabase';
 
+export async function signPrescriptionPDF(
+  pdfBlob: Blob,
+  doctorId: string,
+  pfxPassword: string,
+): Promise<Blob> {
+  const bytes      = new Uint8Array(await pdfBlob.arrayBuffer());
+  const pdf_base64 = btoa(String.fromCharCode(...bytes));
+
+  const { data, error } = await supabase.functions.invoke('sign-prescription', {
+    body: { pdf_base64, pfx_password: pfxPassword, doctor_id: doctorId },
+  });
+
+  if (error || !data?.signed_pdf_base64) {
+    throw new Error(data?.error ?? error?.message ?? 'Falha ao assinar receita');
+  }
+
+  const signed = Uint8Array.from(atob(data.signed_pdf_base64), c => c.charCodeAt(0));
+  return new Blob([signed], { type: 'application/pdf' });
+}
+
 export interface PrescriptionData {
   doctorName: string;
   doctorCRM: string;
