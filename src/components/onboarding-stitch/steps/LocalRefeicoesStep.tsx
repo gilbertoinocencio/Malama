@@ -16,41 +16,54 @@ const LocalRefeicoesStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
       currentStep={currentStep}
       totalSteps={totalSteps}
       onNext={onNext}
-      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
-      <div className="mb-12 space-y-4">
-        <h2 className="font-headline text-4xl md:text-5xl text-primary font-bold leading-tight tracking-tight">Onde você costuma comer?</h2>
-        <p className="text-on-surface-variant text-lg leading-relaxed max-w-md">Para personalizar seu plano alimentar, precisamos entender sua rotina.</p>
+      <div className="text-center mb-10">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1 
+          className="text-4xl text-stone-800 leading-tight mb-4"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Onde você costuma comer?
+        </h1>
+        <p className="text-stone-400 text-base font-light max-w-md mx-auto leading-relaxed">
+          Para personalizar seu plano alimentar, precisamos entender sua rotina.
+        </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="w-full max-w-md mx-auto space-y-3">
         {LOCAIS.map((local) => {
           const isSelected = selected === local.id;
           return (
             <button
               key={local.id}
               onClick={() => updateData({ eatingLocation: local.id })}
-              className={`w-full group transition-all duration-300 ease-in-out p-8 rounded-lg text-left flex items-center gap-8 border-2 ${
+              className={`w-full group flex items-center justify-between p-5 rounded-2xl cursor-pointer transition-all duration-300 border shadow-sm ${
                 isSelected 
-                  ? 'bg-primary-fixed-dim border-primary-container/20 ring-2 ring-primary-container/10 shadow-lg' 
-                  : 'bg-surface-container-low border-transparent hover:bg-surface-container-highest'
+                  ? 'bg-stone-50/50 border-Malama-petrol' 
+                  : 'bg-white border-stone-100 hover:bg-stone-50/30'
               }`}
             >
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-transform duration-500 group-hover:scale-110 ${isSelected ? 'bg-surface-container-lowest' : 'bg-surface-container-highest'}`}>
-                <span className={`material-symbols-outlined text-3xl ${isSelected ? 'text-primary' : 'text-primary/70'}`}>
-                  {local.icon}
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
+                  isSelected ? 'bg-Malama-petrol/10 text-Malama-petrol' : 'bg-stone-50 text-stone-400'
+                }`}>
+                  <span className="material-symbols-outlined text-xl">
+                    {local.icon}
+                  </span>
+                </div>
+                <span className={`text-base transition-colors ${
+                  isSelected ? 'text-stone-800 font-medium' : 'text-stone-600 font-light'
+                }`}>
+                  {local.label}
                 </span>
               </div>
-              <div className="flex-grow">
-                <p className={`font-headline text-xl font-medium ${isSelected ? 'text-primary' : 'text-primary/80'}`}>
-                  {local.label}
-                </p>
-              </div>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                isSelected ? 'bg-secondary text-surface' : 'border-2 border-outline-variant opacity-40'
+              <div className={`flex items-center justify-center w-6 h-6 rounded-full transition-all duration-300 ${
+                isSelected ? 'bg-Malama-petrol border-Malama-petrol' : 'border border-stone-200 bg-white'
               }`}>
-                {isSelected && <span className="material-symbols-outlined text-lg">check</span>}
+                {isSelected && <span className="material-symbols-outlined text-white text-sm">check</span>}
               </div>
             </button>
           );

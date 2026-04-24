@@ -25,47 +25,54 @@ const ObjetivosAdicionaisStep: React.FC<StepProps> = ({ data, updateData, onNext
       currentStep={currentStep}
       totalSteps={totalSteps}
       onNext={onNext}
-      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
-      <section className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tight leading-tight mb-4">
+      <div className="text-center mb-10">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1 
+          className="text-4xl text-stone-800 leading-tight mb-4"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
           Algum objetivo adicional?
         </h1>
-        <p className="text-on-surface-variant text-lg max-w-md">
+        <p className="text-stone-400 text-base font-light max-w-md mx-auto leading-relaxed">
           Personalizamos a sua jornada para focar no que realmente importa hoje.
         </p>
-      </section>
+      </div>
 
-      <div className="space-y-4">
+      <div className="w-full max-w-md mx-auto space-y-3">
         {OBJETIVOS.map((goal) => {
           const isSelected = selectedGoals.includes(goal.id);
           return (
             <div
               key={goal.id}
               onClick={() => toggleGoal(goal.id)}
-              className={`group relative flex items-center justify-between p-8 rounded-[1.5rem] cursor-pointer transition-all duration-300 border-2 ${
+              className={`group flex items-center justify-between p-5 rounded-2xl cursor-pointer transition-all duration-300 border shadow-sm ${
                 isSelected 
-                  ? 'bg-primary-fixed-dim border-secondary/20 shadow-lg shadow-primary/5 ring-2 ring-secondary/10' 
-                  : 'bg-surface-container-low border-transparent hover:bg-surface-container-high'
+                  ? 'bg-stone-50/50 border-Malama-petrol' 
+                  : 'bg-white border-stone-100 hover:bg-stone-50/30'
               }`}
             >
-              <div className="flex items-center gap-6">
-                <div className={`w-12 h-12 flex items-center justify-center rounded-2xl ${isSelected ? 'bg-secondary-container/30' : 'bg-white/60'}`}>
-                  <span className={`material-symbols-outlined ${isSelected ? 'text-secondary' : 'text-primary opacity-70'}`}>
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
+                  isSelected ? 'bg-Malama-petrol/10 text-Malama-petrol' : 'bg-stone-50 text-stone-400'
+                }`}>
+                  <span className="material-symbols-outlined text-xl">
                     {goal.icon}
                   </span>
                 </div>
-                <div>
-                  <span className={`text-xl font-medium block ${isSelected ? 'text-primary' : 'text-primary/80'}`}>
-                    {goal.label}
-                  </span>
-                </div>
+                <span className={`text-base transition-colors ${
+                  isSelected ? 'text-stone-800 font-medium' : 'text-stone-600 font-light'
+                }`}>
+                  {goal.label}
+                </span>
               </div>
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 ${
-                isSelected ? 'bg-secondary text-on-secondary' : 'border-2 border-outline-variant opacity-40'
+              <div className={`flex items-center justify-center w-6 h-6 rounded-full transition-all duration-300 ${
+                isSelected ? 'bg-Malama-petrol border-Malama-petrol' : 'border border-stone-200 bg-white'
               }`}>
-                {isSelected && <span className="material-symbols-outlined text-sm">check</span>}
+                {isSelected && <span className="material-symbols-outlined text-white text-sm">check</span>}
               </div>
             </div>
           );

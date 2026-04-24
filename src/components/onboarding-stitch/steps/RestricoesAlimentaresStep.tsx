@@ -5,7 +5,7 @@ import { StepContainer } from '../StepContainer';
 const RESTRICOES = [
   { id: 'lactose', label: 'Sem lactose', desc: 'Evita derivados de leite e produtos contendo lactose.', icon: 'water_drop' },
   { id: 'gluten', label: 'Sem glúten', desc: 'Ideal para celíacos ou sensibilidade ao trigo e cevada.', icon: 'bakery_dining' },
-  { id: 'acucar', label: 'Sem açúcar', desc: 'Foco em alimentos naturais sem adição de sacarose.', icon: 'destruction' },
+  { id: 'acucar', label: 'Sem açúcar', desc: 'Foco em alimentos naturais sem adição de sacarose.', icon: 'eco' }, // Changed icon to eco for without sugar (destruction is too aggressive)
   { id: 'alergias', label: 'Alergias', desc: 'Amendoim, frutos do mar, ovos ou outros específicos.', icon: 'warning' },
 ];
 
@@ -27,42 +27,56 @@ const RestricoesAlimentaresStep: React.FC<StepProps> = ({ data, updateData, onNe
       onNext={onNext}
       nextLabel={selected.length === 0 ? 'Não tenho restrições' : 'Isso é tudo'}
     >
-      <header className="w-full mb-12 space-y-4">
-        <h1 className="font-headline text-4xl md:text-5xl text-primary font-bold leading-tight tracking-tight">
+      <div className="text-center mb-10">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1 
+          className="text-4xl text-stone-800 leading-tight mb-4"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
           Tem alguma restrição alimentar?
         </h1>
-        <p className="text-on-surface-variant text-lg max-w-md">
+        <p className="text-stone-400 text-base font-light max-w-md mx-auto leading-relaxed">
           Isso nos ajuda a personalizar suas recomendações e receitas para o seu bem-estar.
         </p>
-      </header>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
         {RESTRICOES.map((res) => {
           const isSelected = selected.includes(res.id);
           return (
             <button
               key={res.id}
               onClick={() => toggleRestriction(res.id)}
-              className={`group flex flex-col items-start p-8 rounded-xl text-left transition-all duration-500 border-2 ${
+              className={`group relative flex flex-col items-start p-6 rounded-[1.5rem] text-left transition-all duration-300 border shadow-sm ${
                 isSelected 
-                  ? 'bg-primary-fixed-dim border-secondary/40 ring-2 ring-secondary/10 shadow-lg' 
-                  : 'bg-surface-container-low border-transparent hover:bg-surface-container-high'
-              } relative`}
+                  ? 'bg-stone-50/50 border-Malama-petrol' 
+                  : 'bg-white border-stone-100 hover:bg-stone-50/30'
+              }`}
             >
-              {isSelected && (
-                <div className="absolute top-6 right-6 w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-white shadow-sm">
-                  <span className="material-symbols-outlined text-lg">check</span>
+              <div className="absolute top-6 right-6">
+                <div className={`flex items-center justify-center w-6 h-6 rounded-full transition-all duration-300 ${
+                  isSelected ? 'bg-Malama-petrol border-Malama-petrol' : 'border border-stone-200 bg-white'
+                }`}>
+                  {isSelected && <span className="material-symbols-outlined text-white text-sm">check</span>}
                 </div>
-              )}
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-6 transition-colors duration-500 ${isSelected ? 'bg-secondary-container' : 'bg-surface-container-highest group-hover:bg-secondary-container/20'}`}>
-                <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-primary' : 'text-primary opacity-70'}`}>
+              </div>
+              
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 transition-colors duration-300 ${
+                isSelected ? 'bg-Malama-petrol/10 text-Malama-petrol' : 'bg-stone-50 text-stone-400 group-hover:bg-stone-100'
+              }`}>
+                <span className="material-symbols-outlined text-2xl">
                   {res.icon}
                 </span>
               </div>
-              <span className={`text-xl font-headline font-medium mb-2 ${isSelected ? 'text-primary' : 'text-primary opacity-80'}`}>
+              
+              <span className={`text-lg font-medium mb-1 transition-colors ${
+                isSelected ? 'text-stone-800' : 'text-stone-700'
+              }`}>
                 {res.label}
               </span>
-              <span className="text-sm text-on-surface-variant leading-relaxed opacity-80">
+              <span className="text-sm text-stone-400 leading-relaxed font-light">
                 {res.desc}
               </span>
             </button>
@@ -71,16 +85,16 @@ const RestricoesAlimentaresStep: React.FC<StepProps> = ({ data, updateData, onNe
       </div>
 
       {selected.length > 0 && (
-        <div className="w-full mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <label htmlFor="restrictionsDetail" className="block text-sm font-medium text-primary mb-2">
+        <div className="w-full mt-6 animate-fade-in-up">
+          <label htmlFor="restrictionsDetail" className="block text-sm font-medium text-stone-500 mb-2 ml-1">
             Especifique suas alergias ou restrições (Opcional)
           </label>
           <textarea
             id="restrictionsDetail"
             value={data.restrictionsDetail || ''}
             onChange={(e) => updateData({ restrictionsDetail: e.target.value })}
-            placeholder="Ex: Alergia a frutos do mar, intolerância severa a lactose, não como carne de porco..."
-            className="w-full bg-surface-container-low border border-outline/30 rounded-xl p-4 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary min-h-[100px] resize-y transition-all"
+            placeholder="Ex: Alergia a frutos do mar, intolerância severa a lactose..."
+            className="w-full bg-white border border-stone-200 rounded-2xl p-4 text-stone-800 focus:outline-none focus:border-Malama-petrol focus:ring-1 focus:ring-Malama-petrol min-h-[100px] resize-y transition-all placeholder:text-stone-300 font-light shadow-sm"
           />
         </div>
       )}

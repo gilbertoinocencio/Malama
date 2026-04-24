@@ -3,9 +3,9 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
 const OPTIONS = [
-  { id: 'sim', label: 'Sim', icon: 'check_circle', selectedIcon: 'check_circle', isBinary: true },
+  { id: 'sim', label: 'Sim', icon: 'check', selectedIcon: 'check_circle', isBinary: true },
   { id: 'nao', label: 'Não', icon: 'close', selectedIcon: 'check_circle', isBinary: false },
-  { id: 'incerto', label: 'Não tenho a certeza', icon: 'question_mark', isBinary: null },
+  { id: 'incerto', label: 'Não tenho certeza', icon: 'question_mark', isBinary: null },
 ];
 
 const ConsumoAguaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
@@ -20,57 +20,66 @@ const ConsumoAguaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
       currentStep={currentStep}
       totalSteps={totalSteps}
       onNext={onNext}
-      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextDisabled={!selected}
     >
       <div className="w-full max-w-xl mx-auto flex flex-col items-center">
-        {/* Subtle Water Drop Icon */}
-        <div className="mb-12 flex items-center justify-center w-24 h-24 rounded-full bg-surface-container-lowest shadow-sm border border-outline-variant/10">
-          <span className="material-symbols-outlined text-5xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>
-            water_drop
+        
+        <div className="text-center mb-10 w-full">
+          <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+            Passo {currentStep} de {totalSteps}
           </span>
-        </div>
-
-        {/* Header Section */}
-        <div className="text-center mb-16 px-4">
-          <h1 className="text-4xl md:text-5xl font-headline font-bold tracking-tight text-primary leading-tight">
+          <h1 
+            className="text-4xl text-stone-800 leading-tight mb-4"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
             Bebe água suficiente?
           </h1>
-          <p className="mt-6 text-on-surface-variant text-lg max-w-sm mx-auto leading-relaxed">
+          <p className="mt-4 text-stone-400 text-base font-light max-w-sm mx-auto leading-relaxed">
             A hidratação é o pilar invisível da sua performance cognitiva e física.
           </p>
         </div>
 
+        {/* Subtle Water Drop Icon */}
+        <div className="mb-10 flex items-center justify-center w-20 h-20 rounded-full bg-white shadow-sm border border-stone-100">
+          <span className="material-symbols-outlined text-4xl text-Malama-petrol opacity-80" style={{ fontVariationSettings: "'FILL' 1" }}>
+            water_drop
+          </span>
+        </div>
+
         {/* Elegance Selector Cards */}
-        <div className="w-full space-y-4">
+        <div className="w-full max-w-md mx-auto space-y-3">
           {OPTIONS.map((opt) => {
             const isSelected = selected === opt.id;
             return (
               <button
                 key={opt.id}
                 onClick={() => handleSelect(opt.id)}
-                className={`group w-full flex items-center justify-between p-8 rounded-xl transition-all duration-300 ease-in-out text-left border-2 ${
+                className={`w-full group flex items-center justify-between p-5 rounded-2xl cursor-pointer transition-all duration-300 border shadow-sm ${
                   isSelected 
-                    ? 'bg-primary-fixed-dim/30 border-primary-fixed-dim ring-2 ring-primary/5 shadow-md' 
-                    : 'bg-surface-container-low border-transparent hover:bg-surface-container-high'
+                    ? 'bg-stone-50/50 border-Malama-petrol' 
+                    : 'bg-white border-stone-100 hover:bg-stone-50/30'
                 }`}
               >
-                <div className="flex items-center gap-6">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-primary-fixed-dim' : 'bg-surface-container-lowest group-hover:bg-primary-container/10'}`}>
-                    <span className={`material-symbols-outlined ${isSelected ? 'text-primary' : 'text-primary/70'}`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
+                    isSelected ? 'bg-Malama-petrol/10 text-Malama-petrol' : 'bg-stone-50 text-stone-400'
+                  }`}>
+                    <span className="material-symbols-outlined text-xl">
                       {opt.icon}
                     </span>
                   </div>
-                  <span className={`text-xl font-headline font-medium ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
+                  <span className={`text-base transition-colors ${
+                    isSelected ? 'text-stone-800 font-medium' : 'text-stone-600 font-light'
+                  }`}>
                     {opt.label}
                   </span>
                 </div>
-                {isSelected && (
-                  <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    check_circle
-                  </span>
-                )}
+                <div className={`flex items-center justify-center w-6 h-6 rounded-full transition-all duration-300 ${
+                  isSelected ? 'bg-Malama-petrol border-Malama-petrol' : 'border border-stone-200 bg-white'
+                }`}>
+                  {isSelected && <span className="material-symbols-outlined text-white text-sm">check</span>}
+                </div>
               </button>
             );
           })}
