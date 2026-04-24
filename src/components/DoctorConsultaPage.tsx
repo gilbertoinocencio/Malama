@@ -102,11 +102,14 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
       supabase.from('consultations')
         .update({ status: 'in_progress', started_at: new Date().toISOString() })
         .eq('id', consultationId);
-      // Abre o canal de acompanhamento assim que a chamada conecta
-      appointmentChatService.openChat(consultationId, 48).catch(() => {/* já existe */});
     },
     onDisconnected: () => { if (timerRef.current) clearInterval(timerRef.current); },
   });
+
+  // Abrir canal de chat assim que a página da consulta carrega
+  useEffect(() => {
+    appointmentChatService.openChat(consultationId, 48).catch(() => {/* já existe */});
+  }, [consultationId]);
 
   // Carregar dados do paciente
   useEffect(() => {
