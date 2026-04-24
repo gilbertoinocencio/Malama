@@ -105,7 +105,36 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col overflow-hidden z-50">
-      {/* Remote video (fullscreen) */}
+
+      {/* ── Barra de status + timer (sempre visível) ── */}
+      <div className="shrink-0 bg-black/70 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between z-10">
+        {/* Médico */}
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-gray-300 text-base">stethoscope</span>
+          </div>
+          <span className="text-white text-sm font-semibold truncate max-w-[140px]">{doctorName}</span>
+        </div>
+
+        {/* Timer central */}
+        <div className="flex items-center gap-1.5">
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${
+              connectionState === 'connected' ? 'bg-green-400 animate-pulse' :
+              connectionState === 'connecting' ? 'bg-yellow-400 animate-pulse' :
+              'bg-red-400'
+            }`}
+          />
+          <span className="text-white font-mono text-base font-bold tabular-nums tracking-wider">
+            {connectionState === 'connected' ? formatTime(elapsed) : connectionLabel}
+          </span>
+        </div>
+
+        {/* Placeholder direito para simetria */}
+        <div className="w-24" />
+      </div>
+
+      {/* Remote video */}
       <div className="flex-1 relative">
         {remoteStream ? (
           <VideoStream stream={remoteStream} className="w-full h-full object-cover" />
@@ -115,14 +144,13 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
               <span className="material-symbols-outlined text-4xl text-gray-400">person</span>
             </div>
             <p className="text-base font-semibold">{doctorName}</p>
-            <p className={`text-sm mt-1 ${connectionColor}`}>{connectionLabel}</p>
             {connectionState === 'connecting' && (
               <div className="mt-3 w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
             )}
           </div>
         )}
 
-        {/* Self view - small corner */}
+        {/* Self view */}
         {localStream && (
           <div className="absolute bottom-4 right-4 w-24 h-32 rounded-2xl overflow-hidden border-2 border-white/20 shadow-xl">
             <VideoStream stream={localStream} muted mirror className="w-full h-full object-cover" />
@@ -134,28 +162,16 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
           </div>
         )}
 
-        {/* Timer */}
-        {connectionState === 'connected' && (
-          <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-black/60 text-white text-sm font-mono px-3 py-1 rounded-full">
-            ⏱ {formatTime(elapsed)}
-          </div>
-        )}
-
         {/* Error */}
         {error && (
-          <div className="absolute top-12 left-4 right-4 bg-red-500/90 text-white text-sm px-3 py-2 rounded-xl text-center">
+          <div className="absolute top-4 left-4 right-4 bg-red-500/90 text-white text-sm px-3 py-2 rounded-xl text-center">
             {error}
           </div>
         )}
 
-        {/* Doctor message */}
-        <div className="absolute top-4 left-4 right-20">
-          <p className="text-white text-sm font-semibold drop-shadow">{doctorName}</p>
-        </div>
-
         {/* Goals updated toast */}
         {showGoalsToast && goalsUpdate && (
-          <div className="absolute top-16 left-4 right-4 bg-green-600/95 text-white px-4 py-3 rounded-2xl shadow-xl">
+          <div className="absolute top-4 left-4 right-4 bg-green-600/95 text-white px-4 py-3 rounded-2xl shadow-xl">
             <p className="font-semibold text-sm">✅ Suas metas foram atualizadas!</p>
             <p className="text-xs mt-0.5 opacity-90">
               Dr. {goalsUpdate.doctor_name || 'Médico'} ajustou{' '}

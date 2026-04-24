@@ -127,9 +127,11 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
 
   // Load chat + messages
   useEffect(() => {
-    let sub: ReturnType<typeof supabase.channel> | null = null;
+    let msgSub: ReturnType<typeof supabase.channel> | null = null;
+    let chatWatchSub: ReturnType<typeof supabase.channel> | null = null;
 
-    const load = async () => {
+    const load = async (silent = false) => {
+      if (!silent) setLoading(true);
       try {
         const chats = await appointmentChatService.getDoctorChats(doctorId, 'open');
         const found = chats.find(c => c.patient_id === patientId) ?? null;
@@ -138,10 +140,8 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
         if (found) {
           const msgs = await appointmentChatService.getMessages(found.id);
           setMessages(msgs);
-          // Mark patient messages as read
           await appointmentChatService.markRead(found.id, 'doctor');
-          // Subscribe to new messages
-          sub = appointmentChatService.subscribeToMessages(found.id, (msg) => {
+          msgSub = appointmentChatService.subscribeToMessages(found.id, (msg) => {
             setMessages(prev => [...prev, msg]);
           });
         }
@@ -153,7 +153,22 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
     };
 
     load();
-    return () => { sub?.unsubscribe(); };
+
+    // Detecta quando o canal é criado para este paciente (abre ao conectar a chamada)
+    chatWatchSub = supabase
+      .channel(`chat-watch-${patientId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'appointment_chats',
+        filter: `patient_id=eq.${patientId}`,
+      }, () => { load(true); })
+      .subscribe();
+
+    return () => {
+      msgSub?.unsubscribe();
+      chatWatchSub?.unsubscribe();
+    };
   }, [doctorId, patientId]);
 
   // Auto-scroll on new message
@@ -229,10 +244,11 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
         <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
           <MessageSquare className="w-8 h-8 text-gray-300" />
         </div>
-        <p className="font-semibold text-gray-700 mb-1">Sem canal ativo</p>
+        <p className="font-semibold text-gray-700 mb-1">Canal ainda não aberto</p>
         <p className="text-sm text-gray-400 max-w-xs">
-          O canal de acompanhamento é aberto automaticamente ao encerrar uma consulta.
-          Após 20 dias o canal expira.
+          O canal abre automaticamente assim que a videochamada conectar.
+          Use-o para enviar links, orientações ou arquivos durante a consulta.
+          Fica ativo por 20 dias após o encerramento.
         </p>
       </div>
     );

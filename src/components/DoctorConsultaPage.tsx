@@ -95,6 +95,8 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
       supabase.from('consultations')
         .update({ status: 'in_progress', started_at: new Date().toISOString() })
         .eq('id', consultationId);
+      // Abre o canal de acompanhamento assim que a chamada conecta
+      appointmentChatService.openChat(consultationId, 48).catch(() => {/* já existe */});
     },
     onDisconnected: () => { if (timerRef.current) clearInterval(timerRef.current); },
   });
@@ -379,6 +381,21 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-sm truncate">{patientName}</p>
             <p className="text-gray-400 text-xs">IMC {bmi} · {patientData?.weight || '—'} kg · {patientData?.height || '—'} cm</p>
+          </div>
+          {/* Timer / status — sempre visível no painel do paciente */}
+          <div className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-bold tabular-nums ${
+            connectionState === 'connected'
+              ? 'bg-green-900/40 text-green-400'
+              : connectionState === 'connecting'
+              ? 'bg-yellow-900/40 text-yellow-400'
+              : 'bg-gray-700 text-gray-400'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+              connectionState === 'connected' ? 'bg-green-400 animate-pulse' :
+              connectionState === 'connecting' ? 'bg-yellow-400 animate-pulse' :
+              'bg-gray-500'
+            }`} />
+            {connectionState === 'connected' ? formatTime(elapsed) : connLabel}
           </div>
           {patientData?.glp1_mode && (
             <span className="shrink-0 px-2 py-0.5 bg-green-900/40 rounded-full text-xs text-green-400">
