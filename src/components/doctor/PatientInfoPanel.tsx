@@ -231,6 +231,8 @@ function Glp1StatusPanel({ profile, lastDose }: { profile: any; lastDose: any })
 
 // ─── Ativar GLP-1 ────────────────────────────────────
 
+const MANIPULADO = 'Manipulado';
+
 const GLP1_MEDICATIONS = [
   { label: 'Ozempic (semaglutida)', value: 'Ozempic' },
   { label: 'Mounjaro (tirzepatida)', value: 'Mounjaro' },
@@ -238,6 +240,7 @@ const GLP1_MEDICATIONS = [
   { label: 'Saxenda (liraglutida)', value: 'Saxenda' },
   { label: 'Victoza (liraglutida)', value: 'Victoza' },
   { label: 'Rybelsus (semaglutida oral)', value: 'Rybelsus' },
+  { label: 'Manipulado (fórmula personalizada)', value: MANIPULADO },
 ];
 
 const GLP1_DOSES: Record<string, number[]> = {
@@ -251,12 +254,13 @@ const GLP1_DOSES: Record<string, number[]> = {
 
 // Defaults de macros por medicamento (kcal, proteína g)
 const GLP1_MACRO_DEFAULTS: Record<string, { calories: number; protein: number }> = {
-  Ozempic:  { calories: 1600, protein: 100 },
-  Mounjaro: { calories: 1500, protein: 110 },
-  Wegovy:   { calories: 1400, protein: 100 },
-  Saxenda:  { calories: 1500, protein: 100 },
-  Victoza:  { calories: 1600, protein: 100 },
-  Rybelsus: { calories: 1600, protein: 100 },
+  Ozempic:    { calories: 1600, protein: 100 },
+  Mounjaro:   { calories: 1500, protein: 110 },
+  Wegovy:     { calories: 1400, protein: 100 },
+  Saxenda:    { calories: 1500, protein: 100 },
+  Victoza:    { calories: 1600, protein: 100 },
+  Rybelsus:   { calories: 1600, protein: 100 },
+  Manipulado: { calories: 1500, protein: 100 },
 };
 
 function ActivateGlp1Form({
@@ -268,17 +272,22 @@ function ActivateGlp1Form({
   onActivated: (updated: any) => void;
 }) {
   const [medication, setMedication] = useState('Ozempic');
+  const [customMedName, setCustomMedName] = useState('');
   const [dose, setDose] = useState<number>(0.25);
+  const [customDose, setCustomDose] = useState<string>('');
   const [phase, setPhase] = useState<'start' | 'adjust' | 'maintain'>('start');
   const [calories, setCalories] = useState<string>(String(GLP1_MACRO_DEFAULTS.Ozempic.calories));
   const [protein, setProtein] = useState<string>(String(GLP1_MACRO_DEFAULTS.Ozempic.protein));
   const [saving, setSaving] = useState(false);
 
+  const isManipulado = medication === MANIPULADO;
   const doses = GLP1_DOSES[medication] || [];
+  const effectiveMedName = isManipulado ? (customMedName.trim() || 'Manipulado') : medication;
+  const effectiveDose = isManipulado ? (parseFloat(customDose) || 0) : dose;
 
   const handleMedChange = (med: string) => {
     setMedication(med);
-    setDose((GLP1_DOSES[med] || [])[0] || 0);
+    if (med !== MANIPULADO) setDose((GLP1_DOSES[med] || [])[0] || 0);
     const def = GLP1_MACRO_DEFAULTS[med];
     if (def) { setCalories(String(def.calories)); setProtein(String(def.protein)); }
   };
@@ -304,18 +313,18 @@ function ActivateGlp1Form({
 
       // 2. Aplica a prescrição completa (medication, dose, macros, schedule)
       await glp1DoctorService.prescribeGlp1(patientId, {
-        doctor_id:      doctorId,
-        doctor_name:    doctorName,
-        medication,
-        current_dose_mg: dose,
-        frequency:      'weekly',
-        day_of_week:    1,
-        time:           '08:00',
-        macro_calories: calories  ? Number(calories)  : undefined,
-        macro_protein_g: protein  ? Number(protein)   : undefined,
+        doctor_id:       doctorId,
+        doctor_name:     doctorName,
+        medication:      effectiveMedName,
+        current_dose_mg: effectiveDose || undefined,
+        frequency:       'weekly',
+        day_of_week:     1,
+        time:            '08:00',
+        macro_calories:  calories ? Number(calories) : undefined,
+        macro_protein_g: protein  ? Number(protein)  : undefined,
       });
 
-      toast.success(`GLP-1 ativado: ${medication} ${dose} mg`);
+      toast.success(`GLP-1 ativado: ${effectiveMedName}${effectiveDose ? ` ${effectiveDose} mg` : ''}`);
       onActivated({ ...profileData, glp1_medication: medication, glp1_current_dose_mg: dose });
     } catch (err: any) {
       if (err?.code === '42501') {
@@ -349,21 +358,50 @@ function ActivateGlp1Form({
         </select>
       </div>
 
+      {/* Nome do manipulado */}
+      {isManipulado && (
+        <div>
+          <label className="block text-[10px] text-gray-400 uppercase tracking-wide mb-1">Nome da fórmula</label>
+          <input
+            type="text"
+            value={customMedName}
+            onChange={e => setCustomMedName(e.target.value)}
+            placeholder="Ex: Semaglutida 0,5mg manipulada"
+            className="w-full bg-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs border border-gray-600 focus:outline-none focus:ring-1 focus:ring-green-500 placeholder-gray-500"
+          />
+        </div>
+      )}
+
       {/* Dose inicial */}
       <div>
         <label className="block text-[10px] text-gray-400 uppercase tracking-wide mb-1">Dose inicial</label>
-        <div className="flex flex-wrap gap-1.5">
-          {doses.map(d => (
-            <button key={d} onClick={() => setDose(d)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
-                dose === d
-                  ? 'bg-green-600 border-green-500 text-white'
-                  : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-green-600'
-              }`}>
-              {d} mg
-            </button>
-          ))}
-        </div>
+        {isManipulado ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={customDose}
+              onChange={e => setCustomDose(e.target.value)}
+              placeholder="0.00"
+              min={0}
+              step={0.01}
+              className="w-full bg-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs border border-gray-600 focus:outline-none focus:ring-1 focus:ring-green-500"
+            />
+            <span className="text-xs text-gray-400 shrink-0">mg</span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {doses.map(d => (
+              <button key={d} onClick={() => setDose(d)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                  dose === d
+                    ? 'bg-green-600 border-green-500 text-white'
+                    : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-green-600'
+                }`}>
+                {d} mg
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Macros */}
@@ -398,7 +436,7 @@ function ActivateGlp1Form({
       <button onClick={handleActivate} disabled={saving}
         className="w-full flex items-center justify-center gap-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold disabled:opacity-50 transition">
         <ToggleRight className="w-4 h-4" />
-        {saving ? 'Ativando...' : `Ativar ${medication} ${dose} mg`}
+        {saving ? 'Ativando...' : `Ativar ${effectiveMedName}${effectiveDose ? ` ${effectiveDose} mg` : ''}`}
       </button>
     </div>
   );
