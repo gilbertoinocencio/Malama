@@ -87,89 +87,108 @@ const DataNascimentoStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
       onBack={onBack}
       onNext={handleContinue}
     >
-      <main className="flex-grow flex flex-col items-center justify-center pt-10 pb-10 max-w-2xl mx-auto w-full relative">
-        <div className="text-center mb-12 space-y-2 w-full px-4">
-          <span className="text-stone-400 text-xs tracking-widest uppercase font-light">
-            Passo {currentStep} de {totalSteps}
-          </span>
-          <h1 
-            className="text-4xl text-stone-800 leading-tight"
+      <div className="text-center mb-10">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1 
+          className="text-4xl text-stone-800 leading-tight mb-4"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Qual é a sua data de nascimento?
+        </h1>
+        <p className="text-stone-400 text-base font-light max-w-md mx-auto leading-relaxed">
+          A idade influencia diretamente nas suas recomendações metabólicas.
+        </p>
+      </div>
+
+      {/* Main Input Card */}
+      <div className={`w-full bg-white rounded-2xl p-10 flex flex-col items-center justify-center relative shadow-sm border ${error ? 'border-red-200' : 'border-stone-100'} transition-colors`}>
+        <span className={`tracking-widest text-xs uppercase mb-8 font-light ${error ? 'text-red-400' : 'text-stone-400'}`}>
+          {error ? error : 'Sua Data de Nascimento'}
+        </span>
+        
+        <div className="flex items-end justify-center gap-2 sm:gap-4 mb-4">
+          
+          {/* Dia */}
+          <div className="relative group">
+            <input
+              ref={dayRef}
+              className="w-16 sm:w-20 bg-transparent border-none text-center text-5xl sm:text-6xl text-stone-800 p-0 focus:ring-0 transition-all duration-300 placeholder:text-stone-200"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+              type="text"
+              inputMode="numeric"
+              maxLength={2}
+              placeholder="DD"
+              value={day}
+              onChange={handleDayChange}
+              onKeyDown={(e) => handleKeyDown(e, 'day')}
+            />
+            <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-10 sm:w-12 h-px ${error ? 'bg-red-300' : 'bg-stone-200'} group-focus-within:w-full group-focus-within:bg-Malama-petrol transition-all duration-500`}></div>
+          </div>
+
+          <span 
+            className="text-5xl sm:text-6xl text-stone-200 font-light pb-2 sm:pb-3"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
-            Qual é a sua data de nascimento?
-          </h1>
-          <p className="text-stone-400 text-base font-light">
-            A idade influencia nas recomendações metabólicas.
+            /
+          </span>
+
+          {/* Mês */}
+          <div className="relative group">
+            <input
+              ref={monthRef}
+              className="w-16 sm:w-20 bg-transparent border-none text-center text-5xl sm:text-6xl text-stone-800 p-0 focus:ring-0 transition-all duration-300 placeholder:text-stone-200"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+              type="text"
+              inputMode="numeric"
+              maxLength={2}
+              placeholder="MM"
+              value={month}
+              onChange={handleMonthChange}
+              onKeyDown={(e) => handleKeyDown(e, 'month')}
+            />
+            <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-10 sm:w-12 h-px ${error ? 'bg-red-300' : 'bg-stone-200'} group-focus-within:w-full group-focus-within:bg-Malama-petrol transition-all duration-500`}></div>
+          </div>
+
+          <span 
+            className="text-5xl sm:text-6xl text-stone-200 font-light pb-2 sm:pb-3"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
+            /
+          </span>
+
+          {/* Ano */}
+          <div className="relative group">
+            <input
+              ref={yearRef}
+              className="w-24 sm:w-32 bg-transparent border-none text-center text-5xl sm:text-6xl text-stone-800 p-0 focus:ring-0 transition-all duration-300 placeholder:text-stone-200"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+              type="text"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="AAAA"
+              value={year}
+              onChange={handleYearChange}
+              onKeyDown={(e) => handleKeyDown(e, 'year')}
+            />
+            <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-16 sm:w-20 h-px ${error ? 'bg-red-300' : 'bg-stone-200'} group-focus-within:w-full group-focus-within:bg-Malama-petrol transition-all duration-500`}></div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Info Card */}
+      <div className="mt-6 w-full animate-fade-in-up" style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
+        <div className="bg-white border border-stone-100 p-6 rounded-2xl flex items-center gap-4 shadow-sm">
+          <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-stone-50">
+            <span className="material-symbols-outlined text-stone-400 text-lg">calendar_month</span>
+          </div>
+          <p className="text-sm font-light text-stone-500 leading-relaxed">
+            Sua idade nos ajuda a ajustar os cálculos metabólicos com maior precisão e segurança.
           </p>
         </div>
-
-        {/* Quiet Luxury Custom Date Picker */}
-        <div className="w-full max-w-[22rem] flex flex-col items-center bg-white rounded-[2rem] p-8 shadow-sm border border-stone-100">
-          <div className="flex items-center justify-center gap-2 sm:gap-4 w-full">
-            
-            <div className="flex flex-col items-center gap-3">
-              <input
-                ref={dayRef}
-                type="text"
-                inputMode="numeric"
-                maxLength={2}
-                placeholder="DD"
-                value={day}
-                onChange={handleDayChange}
-                onKeyDown={(e) => handleKeyDown(e, 'day')}
-                className={`w-16 h-20 sm:w-20 sm:h-24 text-center text-3xl sm:text-4xl text-stone-800 bg-stone-50 rounded-2xl border ${error ? 'border-red-300 bg-red-50' : 'border-stone-100'} focus:border-Malama-petrol focus:ring-1 focus:ring-Malama-petrol outline-none transition-all placeholder:text-stone-200`}
-                style={{ fontFamily: "'Playfair Display', serif" }}
-              />
-              <span className="text-[10px] text-stone-400 font-medium tracking-[0.2em] uppercase">Dia</span>
-            </div>
-
-            <span className="text-4xl text-stone-200 font-light mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>/</span>
-
-            <div className="flex flex-col items-center gap-3">
-              <input
-                ref={monthRef}
-                type="text"
-                inputMode="numeric"
-                maxLength={2}
-                placeholder="MM"
-                value={month}
-                onChange={handleMonthChange}
-                onKeyDown={(e) => handleKeyDown(e, 'month')}
-                className={`w-16 h-20 sm:w-20 sm:h-24 text-center text-3xl sm:text-4xl text-stone-800 bg-stone-50 rounded-2xl border ${error ? 'border-red-300 bg-red-50' : 'border-stone-100'} focus:border-Malama-petrol focus:ring-1 focus:ring-Malama-petrol outline-none transition-all placeholder:text-stone-200`}
-                style={{ fontFamily: "'Playfair Display', serif" }}
-              />
-              <span className="text-[10px] text-stone-400 font-medium tracking-[0.2em] uppercase">Mês</span>
-            </div>
-
-            <span className="text-4xl text-stone-200 font-light mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>/</span>
-
-            <div className="flex flex-col items-center gap-3">
-              <input
-                ref={yearRef}
-                type="text"
-                inputMode="numeric"
-                maxLength={4}
-                placeholder="AAAA"
-                value={year}
-                onChange={handleYearChange}
-                onKeyDown={(e) => handleKeyDown(e, 'year')}
-                className={`w-20 h-20 sm:w-24 sm:h-24 text-center text-3xl sm:text-4xl text-stone-800 bg-stone-50 rounded-2xl border ${error ? 'border-red-300 bg-red-50' : 'border-stone-100'} focus:border-Malama-petrol focus:ring-1 focus:ring-Malama-petrol outline-none transition-all placeholder:text-stone-200`}
-                style={{ fontFamily: "'Playfair Display', serif" }}
-              />
-              <span className="text-[10px] text-stone-400 font-medium tracking-[0.2em] uppercase">Ano</span>
-            </div>
-
-          </div>
-
-          <div className="mt-6 h-6 flex items-center justify-center">
-            {error && (
-              <span className="text-red-500 text-sm font-medium animate-fade-in-up">
-                {error}
-              </span>
-            )}
-          </div>
-        </div>
-      </main>
+      </div>
     </StepContainer>
   );
 };
