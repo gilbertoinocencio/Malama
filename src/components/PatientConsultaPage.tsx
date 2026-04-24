@@ -23,6 +23,7 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
     doctor_name?: string;
   } | null>(null);
   const [showGoalsToast, setShowGoalsToast] = useState(false);
+  const [rxToast, setRxToast] = useState<{ medication: string; doctor_name: string } | null>(null);
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
   const {
@@ -67,6 +68,10 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
         setGoalsUpdate(payload);
         setShowGoalsToast(true);
         setTimeout(() => setShowGoalsToast(false), 6000);
+      })
+      .on('broadcast', { event: 'prescription_issued' }, ({ payload }) => {
+        setRxToast(payload);
+        setTimeout(() => setRxToast(null), 10000);
       })
       .subscribe();
 
@@ -170,6 +175,18 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
         {error && (
           <div className="absolute top-4 left-4 right-4 bg-red-500/90 text-white text-sm px-3 py-2 rounded-xl text-center">
             {error}
+          </div>
+        )}
+
+        {/* Prescription issued toast */}
+        {rxToast && (
+          <div className="absolute top-4 left-4 right-4 bg-blue-600/95 text-white px-4 py-3 rounded-2xl shadow-xl">
+            <p className="font-semibold text-sm">📋 Nova receita disponível!</p>
+            <p className="text-xs mt-0.5 opacity-90">
+              Dr. {rxToast.doctor_name} emitiu uma receita para{' '}
+              <span className="font-semibold">{rxToast.medication}</span>.
+            </p>
+            <p className="text-xs mt-1 opacity-75">Acesse Minhas Consultas para baixar o PDF.</p>
           </div>
         )}
 

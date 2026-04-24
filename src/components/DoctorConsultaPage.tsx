@@ -23,6 +23,8 @@ interface DoctorConsultaPageProps {
   patientId: string;
   doctorId: string;
   doctorName: string;
+  doctorCrm: string;
+  doctorSpecialty: string;
   patientName: string;
   onEnd: () => void;
 }
@@ -46,7 +48,7 @@ const EMPTY_FORM: ClinicalNoteFormData = {
 };
 
 export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
-  consultationId, roomId, patientId, doctorId, doctorName, patientName, onEnd,
+  consultationId, roomId, patientId, doctorId, doctorName, doctorCrm, doctorSpecialty, patientName, onEnd,
 }) => {
   const [videoMinimized, setVideoMinimized] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -322,24 +324,59 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
       const issuedAt = new Date();
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 90);
+
       const pdfBlob = await generatePrescriptionPDF({
-        doctorName: 'Dr. Médico', doctorCRM: 'CRM—', doctorSpecialty: 'Endocrinologista',
+        doctorName,
+        doctorCRM: doctorCrm,
+        doctorSpecialty,
         patientName: patientData?.display_name || patientName,
-        medication: prescription.medication, dosage: prescription.dosage,
-        instructions: prescription.instructions, issuedAt, expiresAt,
+        medication: prescription.medication,
+        dosage: prescription.dosage,
+        instructions: prescription.instructions,
+        issuedAt,
+        expiresAt,
       });
-      await savePrescription({ consultationId, doctorId, patientId, pdfBlob,
-        medication: prescription.medication, dosage: prescription.dosage,
-        instructions: prescription.instructions });
+
+      await savePrescription({
+        consultationId, doctorId, patientId, pdfBlob,
+        medication: prescription.medication,
+        dosage: prescription.dosage,
+        instructions: prescription.instructions,
+      });
+
+      // Download automático para o médico
       const url = URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
-      a.href = url; a.download = `receita_${prescription.medication.replace(/\s+/g, '_')}.pdf`;
-      a.click(); URL.revokeObjectURL(url);
+      a.href = url;
+      a.download = `receita_${prescription.medication.replace(/\s+/g, '_')}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // Notificar paciente no banco (visível em Minhas Consultas / sino)
+      await supabase.from('patient_notifications').insert({
+        user_id: patientId,
+        type: 'prescription_issued',
+        title: 'Nova receita disponível',
+        body: `Dr. ${doctorName} emitiu uma receita para ${prescription.medication}. Acesse Minhas Consultas para baixar.`,
+        data: { medication: prescription.medication, consultation_id: consultationId },
+      });
+
+      // Notificar em tempo real se paciente estiver na videochamada
+      await supabase.channel(`patient:${patientId}`).send({
+        type: 'broadcast',
+        event: 'prescription_issued',
+        payload: { medication: prescription.medication, doctor_name: doctorName },
+      });
+
       setShowPrescriptionModal(false);
       setActionMsg('Receita emitida!');
       setTimeout(() => setActionMsg(''), 3000);
-    } catch (err) { console.error(err); }
-    finally { setSaving(false); }
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao emitir receita');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const bmi = patientData?.weight && patientData?.height
