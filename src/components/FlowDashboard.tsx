@@ -18,6 +18,7 @@ import { WeekDaysCircle } from './WeekDaysCircle';
 import { MonthWeeksGrid } from './MonthWeeksGrid';
 import { StatsService } from '../services/statsService';
 import { MealService } from '../services/mealService';
+import { PatientNotificationBell } from './PatientNotificationBell';
 
 interface FlowDashboardProps {
   stats: DailyStats;
@@ -692,6 +693,9 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
             <span className="material-symbols-outlined text-[20px]">sync</span>
             <span className="absolute top-2 right-2 size-2 bg-Malama-petrol dark:bg-primary rounded-full" />
           </button>
+          {user?.id && (
+            <PatientNotificationBell userId={user.id} isDarkMode={isDarkMode} />
+          )}
           <button
             onClick={() => onNavClick(AppView.PROFILE)}
             className="flex items-center justify-center size-10 rounded-full bg-white dark:bg-surface-dark border border-Malama-border dark:border-transparent hover:bg-Malama-petrol-light dark:hover:bg-primary/10 transition-colors text-Malama-petrol dark:text-primary shadow-sm dark:shadow-none"
