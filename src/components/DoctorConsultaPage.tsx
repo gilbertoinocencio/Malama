@@ -74,8 +74,9 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   const [savingDraft, setSavingDraft] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
 
-  // Encerramento
+  // Encerramento — callEnded = vídeo encerrado mas análise ainda pendente
   const [endingCall, setEndingCall] = useState(false);
+  const [callEnded, setCallEnded] = useState(false);
 
   // Modais de ação
   const [showGoalsModal, setShowGoalsModal] = useState(false);
@@ -192,12 +193,22 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
     }
     setFinalizing(true);
     try {
-      const note = await clinicalNoteService.upsert(consultationId, doctorId, patientId, clinicalForm);
+      const note     = await clinicalNoteService.upsert(consultationId, doctorId, patientId, clinicalForm);
       const finalized = await clinicalNoteService.finalize(note.id);
       setExistingNote(finalized);
-      toast.success('Análise clínica finalizada e salva no histórico');
       // Abre o chat pós-consulta de 20 dias (silencia se já existir)
       try { await appointmentChatService.openChat(consultationId, 48); } catch { /* já aberto */ }
+
+      if (callEnded) {
+        // Chamada já encerrada — marcar consulta como completa e sair
+        await supabase.from('consultations')
+          .update({ status: 'completed' })
+          .eq('id', consultationId);
+        toast.success('Consulta finalizada com sucesso!');
+        onEnd();
+      } else {
+        toast.success('Análise clínica finalizada e salva no histórico');
+      }
     } catch {
       toast.error('Erro ao finalizar análise clínica');
     } finally {
@@ -211,26 +222,20 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   };
 
   const handleEndCall = async () => {
+    // Encerra o vídeo imediatamente — sem gate
     setEndingCall(true);
-    try {
-      const check = await clinicalNoteService.canCloseConsultation(consultationId);
-      if (!check.can_close) {
-        toast.error(check.reason ?? 'Finalize a análise clínica antes de encerrar');
-        setTab('clinical');
-        return;
-      }
-      endCall();
-      if (timerRef.current) clearInterval(timerRef.current);
-      try { await appointmentChatService.openChat(consultationId, 48); } catch { /* já aberto */ }
-      await supabase.from('consultations')
-        .update({ status: 'completed', ended_at: new Date().toISOString() })
-        .eq('id', consultationId);
-      onEnd();
-    } catch {
-      toast.error('Erro ao verificar encerramento. Tente novamente.');
-    } finally {
-      setEndingCall(false);
-    }
+    endCall();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setEndingCall(false);
+
+    // Registra fim da chamada e força aba de análise clínica
+    await supabase.from('consultations')
+      .update({ ended_at: new Date().toISOString() })
+      .eq('id', consultationId);
+
+    setCallEnded(true);
+    setTab('clinical');
+    toast('Preencha a análise clínica para finalizar a consulta.', { icon: '📋', duration: 5000 });
   };
 
   const handleGenerateBriefing = async () => {
@@ -545,6 +550,16 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
           ))}
         </div>
 
+        {/* Banner pós-chamada: análise obrigatória para sair */}
+        {callEnded && existingNote?.is_draft !== false && (
+          <div className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/30">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <p className="text-xs text-amber-300 font-medium">
+              Videochamada encerrada — preencha e finalize a análise clínica para sair.
+            </p>
+          </div>
+        )}
+
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto">
 
@@ -638,7 +653,13 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
                     <button onClick={handleFinalize} disabled={finalizing || existingNote?.is_draft === false}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition">
                       <CheckCircle className="w-3.5 h-3.5" />
-                      {finalizing ? 'Finalizando...' : existingNote?.is_draft === false ? 'Já finalizada' : 'Finalizar e salvar no histórico'}
+                      {finalizing
+                        ? 'Finalizando...'
+                        : existingNote?.is_draft === false
+                        ? 'Já finalizada'
+                        : callEnded
+                        ? 'Finalizar e sair'
+                        : 'Finalizar e salvar no histórico'}
                     </button>
                   </div>
 
