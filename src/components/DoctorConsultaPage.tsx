@@ -4,7 +4,7 @@ import { VideoStream } from './VideoStream';
 import { supabase } from '../services/supabase';
 import { generatePrescriptionPDF, savePrescription } from '../lib/prescription';
 import { generateConsultationBriefing } from '../lib/briefing';
-import { clinicalNoteService } from '../services/doctorPortalService';
+import { clinicalNoteService, appointmentChatService } from '../services/doctorPortalService';
 import { AppointmentChatPanel } from './doctor/AppointmentChatPanel';
 import { PatientExamPanel } from './doctor/PatientExamPanel';
 import { PatientInfoPanel } from './doctor/PatientInfoPanel';
@@ -22,6 +22,7 @@ interface DoctorConsultaPageProps {
   roomId: string;
   patientId: string;
   doctorId: string;
+  doctorName: string;
   patientName: string;
   onEnd: () => void;
 }
@@ -45,7 +46,7 @@ const EMPTY_FORM: ClinicalNoteFormData = {
 };
 
 export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
-  consultationId, roomId, patientId, doctorId, patientName, onEnd,
+  consultationId, roomId, patientId, doctorId, doctorName, patientName, onEnd,
 }) => {
   const [videoMinimized, setVideoMinimized] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -68,6 +69,9 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   const [clinicalLoading, setClinicalLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+
+  // Encerramento
+  const [endingCall, setEndingCall] = useState(false);
 
   // Modais de ação
   const [showGoalsModal, setShowGoalsModal] = useState(false);
@@ -180,6 +184,8 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
       const finalized = await clinicalNoteService.finalize(note.id);
       setExistingNote(finalized);
       toast.success('Análise clínica finalizada e salva no histórico');
+      // Abre o chat pós-consulta de 20 dias (silencia se já existir)
+      try { await appointmentChatService.openChat(consultationId, 48); } catch { /* já aberto */ }
     } catch {
       toast.error('Erro ao finalizar análise clínica');
     } finally {
@@ -193,12 +199,26 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   };
 
   const handleEndCall = async () => {
-    endCall();
-    if (timerRef.current) clearInterval(timerRef.current);
-    await supabase.from('consultations')
-      .update({ status: 'completed', ended_at: new Date().toISOString() })
-      .eq('id', consultationId);
-    onEnd();
+    setEndingCall(true);
+    try {
+      const check = await clinicalNoteService.canCloseConsultation(consultationId);
+      if (!check.can_close) {
+        toast.error(check.reason ?? 'Finalize a análise clínica antes de encerrar');
+        setTab('clinical');
+        return;
+      }
+      endCall();
+      if (timerRef.current) clearInterval(timerRef.current);
+      try { await appointmentChatService.openChat(consultationId, 48); } catch { /* já aberto */ }
+      await supabase.from('consultations')
+        .update({ status: 'completed', ended_at: new Date().toISOString() })
+        .eq('id', consultationId);
+      onEnd();
+    } catch {
+      toast.error('Erro ao verificar encerramento. Tente novamente.');
+    } finally {
+      setEndingCall(false);
+    }
   };
 
   const handleGenerateBriefing = async () => {
@@ -307,9 +327,11 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
               <>
                 <CtrlBtn icon={isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />} active={!isMuted} onClick={toggleMute} />
                 <CtrlBtn icon={isCameraOff ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />} active={!isCameraOff} onClick={toggleCamera} />
-                <button onClick={handleEndCall}
-                  className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold text-sm flex items-center gap-2">
-                  <PhoneOff className="w-4 h-4" /> Encerrar
+                <button onClick={handleEndCall} disabled={endingCall}
+                  className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold text-sm flex items-center gap-2 disabled:opacity-60">
+                  {endingCall
+                    ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Verificando...</>
+                    : <><PhoneOff className="w-4 h-4" /> Encerrar</>}
                 </button>
               </>
             )}
@@ -335,8 +357,11 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
               <Maximize2 className="w-3 h-3" />
             </button>
           </div>
-          <button onClick={handleEndCall} className="absolute bottom-2 left-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full" title="Encerrar">
-            <PhoneOff className="w-3 h-3" />
+          <button onClick={handleEndCall} disabled={endingCall}
+            className="absolute bottom-2 left-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full disabled:opacity-60" title="Encerrar">
+            {endingCall
+              ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin block" />
+              : <PhoneOff className="w-3 h-3" />}
           </button>
         </div>
       )}
@@ -382,6 +407,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
             <PatientInfoPanel
               patientId={patientId}
               doctorId={doctorId}
+              doctorName={doctorName}
               patientData={patientData}
               onPatientUpdated={(updated) => setPatientData(updated)}
             />

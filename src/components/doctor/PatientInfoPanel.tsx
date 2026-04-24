@@ -6,15 +6,16 @@
 import React, { useEffect, useState } from 'react';
 import {
   TrendingDown, TrendingUp, Minus, Activity, Heart,
-  Zap, Pill, ChevronRight, AlertTriangle, CheckCircle,
-  ToggleRight, Save
+  Zap, Pill, AlertTriangle, ToggleRight,
 } from 'lucide-react';
 import { supabase } from '../../services/supabase';
+import { glp1DoctorService } from '../../services/doctorPortalService';
 import toast from 'react-hot-toast';
 
 interface Props {
   patientId: string;
   doctorId: string;
+  doctorName: string;
   patientData: any; // profile row
   onPatientUpdated: (updated: any) => void;
 }
@@ -248,10 +249,29 @@ const GLP1_DOSES: Record<string, number[]> = {
   Rybelsus: [3, 7, 14],
 };
 
-function ActivateGlp1Form({ patientId, onActivated }: { patientId: string; onActivated: (updated: any) => void }) {
+// Defaults de macros por medicamento (kcal, proteína g)
+const GLP1_MACRO_DEFAULTS: Record<string, { calories: number; protein: number }> = {
+  Ozempic:  { calories: 1600, protein: 100 },
+  Mounjaro: { calories: 1500, protein: 110 },
+  Wegovy:   { calories: 1400, protein: 100 },
+  Saxenda:  { calories: 1500, protein: 100 },
+  Victoza:  { calories: 1600, protein: 100 },
+  Rybelsus: { calories: 1600, protein: 100 },
+};
+
+function ActivateGlp1Form({
+  patientId, doctorId, doctorName, onActivated,
+}: {
+  patientId: string;
+  doctorId: string;
+  doctorName: string;
+  onActivated: (updated: any) => void;
+}) {
   const [medication, setMedication] = useState('Ozempic');
   const [dose, setDose] = useState<number>(0.25);
   const [phase, setPhase] = useState<'start' | 'adjust' | 'maintain'>('start');
+  const [calories, setCalories] = useState<string>(String(GLP1_MACRO_DEFAULTS.Ozempic.calories));
+  const [protein, setProtein] = useState<string>(String(GLP1_MACRO_DEFAULTS.Ozempic.protein));
   const [saving, setSaving] = useState(false);
 
   const doses = GLP1_DOSES[medication] || [];
@@ -259,32 +279,47 @@ function ActivateGlp1Form({ patientId, onActivated }: { patientId: string; onAct
   const handleMedChange = (med: string) => {
     setMedication(med);
     setDose((GLP1_DOSES[med] || [])[0] || 0);
+    const def = GLP1_MACRO_DEFAULTS[med];
+    if (def) { setCalories(String(def.calories)); setProtein(String(def.protein)); }
   };
 
   const handleActivate = async () => {
     setSaving(true);
     try {
       const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase
+
+      // 1. Ativa os flags de GLP-1 no perfil
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .update({
           glp1_mode: true,
           glp1_mode_active: true,
-          glp1_medication: medication,
-          glp1_current_dose_mg: dose,
           glp1_phase: phase,
           glp1_start_date: today,
         })
         .eq('id', patientId)
         .select()
         .single();
+      if (profileError) throw profileError;
 
-      if (error) throw error;
+      // 2. Aplica a prescrição completa (medication, dose, macros, schedule)
+      await glp1DoctorService.prescribeGlp1(patientId, {
+        doctor_id:      doctorId,
+        doctor_name:    doctorName,
+        medication,
+        current_dose_mg: dose,
+        frequency:      'weekly',
+        day_of_week:    1,
+        time:           '08:00',
+        macro_calories: calories  ? Number(calories)  : undefined,
+        macro_protein_g: protein  ? Number(protein)   : undefined,
+      });
+
       toast.success(`GLP-1 ativado: ${medication} ${dose} mg`);
-      onActivated(data);
+      onActivated({ ...profileData, glp1_medication: medication, glp1_current_dose_mg: dose });
     } catch (err: any) {
       if (err?.code === '42501') {
-        toast.error('Sem permissão para atualizar o perfil do paciente via app. Configure a RLS ou use uma Edge Function.');
+        toast.error('Sem permissão para atualizar o perfil do paciente. Verifique a RLS.');
       } else {
         toast.error('Erro ao ativar GLP-1');
       }
@@ -299,7 +334,7 @@ function ActivateGlp1Form({ patientId, onActivated }: { patientId: string; onAct
       <div className="flex items-start gap-2 p-2.5 bg-blue-900/20 border border-blue-700/40 rounded-xl">
         <AlertTriangle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
         <p className="text-[11px] text-blue-300">
-          Paciente não está em tratamento medicamentoso. Você pode ativar e configurar o GLP-1 diretamente por aqui.
+          Paciente não está em tratamento medicamentoso. Ative e configure o GLP-1 diretamente por aqui.
         </p>
       </div>
 
@@ -331,6 +366,20 @@ function ActivateGlp1Form({ patientId, onActivated }: { patientId: string; onAct
         </div>
       </div>
 
+      {/* Macros */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[10px] text-gray-400 uppercase tracking-wide mb-1">Meta calórica (kcal)</label>
+          <input type="number" value={calories} onChange={e => setCalories(e.target.value)} min={800} max={4000}
+            className="w-full bg-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs border border-gray-600 focus:outline-none focus:ring-1 focus:ring-green-500" />
+        </div>
+        <div>
+          <label className="block text-[10px] text-gray-400 uppercase tracking-wide mb-1">Meta proteína (g)</label>
+          <input type="number" value={protein} onChange={e => setProtein(e.target.value)} min={40} max={300}
+            className="w-full bg-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs border border-gray-600 focus:outline-none focus:ring-1 focus:ring-green-500" />
+        </div>
+      </div>
+
       {/* Fase */}
       <div>
         <label className="block text-[10px] text-gray-400 uppercase tracking-wide mb-1">Fase</label>
@@ -357,7 +406,7 @@ function ActivateGlp1Form({ patientId, onActivated }: { patientId: string; onAct
 
 // ─── Main Component ───────────────────────────────────
 
-export const PatientInfoPanel: React.FC<Props> = ({ patientId, doctorId, patientData, onPatientUpdated }) => {
+export const PatientInfoPanel: React.FC<Props> = ({ patientId, doctorId, doctorName, patientData, onPatientUpdated }) => {
   const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
   const [checkins, setCheckins] = useState<any[]>([]);
   const [lastDose, setLastDose] = useState<any>(null);
@@ -466,7 +515,12 @@ export const PatientInfoPanel: React.FC<Props> = ({ patientId, doctorId, patient
         {patientData?.glp1_mode ? (
           <Glp1StatusPanel profile={patientData} lastDose={lastDose} />
         ) : (
-          <ActivateGlp1Form patientId={patientId} onActivated={onPatientUpdated} />
+          <ActivateGlp1Form
+            patientId={patientId}
+            doctorId={doctorId}
+            doctorName={doctorName}
+            onActivated={onPatientUpdated}
+          />
         )}
       </Section>
     </div>

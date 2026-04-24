@@ -47,13 +47,35 @@ export const DoctorNotificationsPanel: React.FC<Props> = ({ onClose }) => {
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
 
-  useEffect(() => {
+  const fetchNotifications = () => {
     supabase.rpc('get_doctor_notifications', { p_limit: 40 })
-      .then(({ data }) => {
-        setNotifications((data ?? []) as DoctorNotification[]);
-        setLoading(false);
-      })
-      .catch(e => { console.error(e); setLoading(false); });
+      .then(
+        ({ data }) => { setNotifications((data ?? []) as DoctorNotification[]); setLoading(false); },
+        (e) => { console.error(e); setLoading(false); },
+      );
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+
+    // Realtime: re-busca quando uma nova notificação chega para o médico
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id;
+      if (!uid) return;
+      channel = supabase
+        .channel(`doctor-notifs-${uid}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'doctor_notifications',
+          filter: `doctor_id=eq.${uid}`,
+        }, () => { fetchNotifications(); })
+        .subscribe();
+    });
+
+    return () => { channel?.unsubscribe(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const markAllRead = async () => {

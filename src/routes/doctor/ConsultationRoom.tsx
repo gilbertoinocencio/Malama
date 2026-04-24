@@ -86,6 +86,7 @@ export const ConsultationRoom: React.FC = () => {
       roomId={consultation.room_id}
       patientId={consultation.patient_id}
       doctorId={consultation.doctor_id}
+      doctorName={doctor.name}
       patientName={consultation.patient_name}
       onEnd={() => navigate('/medico/agenda')}
     />
