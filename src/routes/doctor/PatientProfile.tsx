@@ -9,7 +9,7 @@ import { User, TrendingUp, Activity, FileText, MessageSquare, Calendar, Plus, X,
 import { patientService, planAdjustmentService, glp1DoctorService, clinicalNoteService } from '../../services/doctorPortalService';
 import type { GLP1MealSlot, GLP1DoctorPrescriptionInput } from '../../services/doctorPortalService';
 import { GLP1_MEDICATION_LIST, GLP1_PROTOCOLS } from '../../constants/glp1Protocols';
-import { generateDoctorBriefing } from '../../services/geminiService';
+import { generateConsultationBriefing } from '../../lib/briefing';
 import type { Doctor, PatientFullProfile, PatientGoals, PatientFullHistory } from '../../types/doctorPortal';
 import { IMC_CLASSIFICATION, IMC_COLOR } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
@@ -124,10 +124,10 @@ export const PatientProfile: React.FC = () => {
   };
 
   const handleGenerateBriefing = async () => {
-    if (!patient) return;
+    if (!patientId) return;
     try {
       setGeneratingBriefing(true);
-      const res = await generateDoctorBriefing(patient);
+      const res = await generateConsultationBriefing(patientId);
       setBriefing(res);
       toast.success('Briefing gerado com sucesso!');
     } catch (err) {

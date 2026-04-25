@@ -714,74 +714,61 @@ export const settingsService = {
 export const patientService = {
   // Buscar pacientes únicos que tiveram consulta com o médico
   async getDoctorPatients(doctorId: string, search?: string): Promise<PatientSummary[]> {
+    // Step 1: get all consultation records for this doctor
     const { data: consultations, error } = await supabase
       .from('consultations')
-      .select(`
-        patient_id,
-        scheduled_at,
-        patient:profiles!consultations_patient_id_fkey (
-          id,
-          display_name,
-          avatar_url,
-          age,
-          gender,
-          weight,
-          height,
-          glp1_mode,
-          glp1_phase
-        )
-      `)
+      .select('patient_id, scheduled_at')
       .eq('doctor_id', doctorId)
       .order('scheduled_at', { ascending: false });
 
-    if (error) {
-      console.warn("Using raw_user_meta_data fallback due to profile relation lack", error.message);
-    }
+    if (error) throw error;
+    if (!consultations || consultations.length === 0) return [];
 
-    // Agrupar por paciente e pegar última/próxima consulta
-    const patientMap = new Map<string, any>();
+    // Step 2: collect unique patient IDs and build last/next consultation map
+    const patientIds = [...new Set(consultations.map(c => c.patient_id))];
+    const consultationMap = new Map<string, { last: string | null; next: string | null }>();
 
-    for (const c of (consultations || [])) {
-      const patientId = c.patient_id;
-      const patientData = Array.isArray(c.patient) ? c.patient[0] : c.patient;
-
-      if (!patientMap.has(patientId)) {
-        let imc = null;
-        if (patientData?.weight && patientData?.height) {
-          imc = patientData.weight / ((patientData.height / 100) * (patientData.height / 100));
-        }
-
-        patientMap.set(patientId, {
-          id: patientId,
-          name: patientData?.display_name || 'Paciente',
-          photo_url: patientData?.avatar_url || null,
-          lastConsultation: null as string | null,
-          nextConsultation: null as string | null,
-          imc: imc,
-          age: patientData?.age || null,
-          gender: patientData?.gender || null,
-          is_glp1_active: patientData?.glp1_mode || false,
-          glp1_phase: patientData?.glp1_phase || null
-        });
-      }
-
-      const patient = patientMap.get(patientId);
-      const scheduledAt = c.scheduled_at;
-
-      if (new Date(scheduledAt) < new Date()) {
-        if (!patient.lastConsultation || new Date(scheduledAt) > new Date(patient.lastConsultation)) {
-          patient.lastConsultation = scheduledAt;
-        }
+    const now = new Date();
+    for (const c of consultations) {
+      const pid = c.patient_id;
+      if (!consultationMap.has(pid)) consultationMap.set(pid, { last: null, next: null });
+      const entry = consultationMap.get(pid)!;
+      const dt = new Date(c.scheduled_at);
+      if (dt < now) {
+        if (!entry.last || dt > new Date(entry.last)) entry.last = c.scheduled_at;
       } else {
-        if (!patient.nextConsultation || new Date(scheduledAt) < new Date(patient.nextConsultation)) {
-          patient.nextConsultation = scheduledAt;
-        }
+        if (!entry.next || dt < new Date(entry.next)) entry.next = c.scheduled_at;
       }
     }
 
-    let patients = Array.from(patientMap.values());
+    // Step 3: fetch profiles for those patient IDs
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, age, gender, weight, height, glp1_mode, glp1_phase')
+      .in('id', patientIds);
 
-    // Filtrar por busca
+    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+
+    let patients: PatientSummary[] = patientIds.map(pid => {
+      const p = profileMap.get(pid) as any;
+      const imc = p?.weight && p?.height
+        ? p.weight / ((p.height / 100) ** 2)
+        : null;
+      const dates = consultationMap.get(pid)!;
+      return {
+        id: pid,
+        name: p?.display_name || 'Paciente',
+        photo_url: p?.avatar_url || null,
+        lastConsultation: dates.last,
+        nextConsultation: dates.next,
+        imc,
+        age: p?.age || null,
+        gender: p?.gender || null,
+        is_glp1_active: p?.glp1_mode || false,
+        glp1_phase: p?.glp1_phase || null,
+      };
+    });
+
     if (search) {
       patients = patients.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase())
@@ -793,9 +780,6 @@ export const patientService = {
 
   // Buscar perfil completo de um paciente
   async getPatientFullProfile(patientId: string, doctorId: string): Promise<PatientFullProfile | null> {
-    // Buscar dados básicos do paciente (via auth metadata)
-    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(patientId);
-
     // Buscar consultas do paciente com este médico
     const { data: consultations, error: consultError } = await supabase
       .from('consultations')
@@ -817,7 +801,7 @@ export const patientService = {
     // Real data fetching: Profiles
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('display_name, avatar_url, age, gender, weight, height, goal, target_calories, target_protein, target_carbs, target_fats, glp1_mode, glp1_phase, glp1_medication')
+      .select('display_name, avatar_url, age, gender, weight, height, goal, target_calories, target_protein, target_carbs, target_fats, target_fiber, glp1_mode, glp1_phase, glp1_medication')
       .eq('id', patientId)
       .single();
 
@@ -885,6 +869,22 @@ export const patientService = {
       .eq('user_id', patientId)
       .gte('created_at', fiftySixDaysAgo.toISOString())
       .order('created_at', { ascending: false });
+
+    // Weight history (last 90 days from daily_logs)
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    const { data: weightLogs } = await supabase
+      .from('daily_logs')
+      .select('date, weight')
+      .eq('user_id', patientId)
+      .not('weight', 'is', null)
+      .gte('date', ninetyDaysAgo.toISOString().split('T')[0])
+      .order('date', { ascending: true });
+
+    const weight_history = (weightLogs || [])
+      .filter((w: any) => w.weight)
+      .map((w: any) => ({ date: w.date, weight: w.weight, target_weight: null }));
 
     // Group meals by date dynamically (same structure as flow_stats)
     const mapByDate = new Map<string, any>();
@@ -998,13 +998,13 @@ export const patientService = {
       glp1_phase: profile?.glp1_phase || null,
       glp1_medication: profile?.glp1_medication || null,
       current_weight: profile?.weight || null,
-      weight_history: [],
+      weight_history,
       current_goals: {
         calories: cal,
         protein: prot,
         carbs: carb,
         fat: fat,
-        fiber: 25,
+        fiber: profile?.target_fiber || 25,
         water: water
       },
       adherence: {
