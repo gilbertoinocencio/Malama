@@ -1,4 +1,8 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from '../services/supabase';
+
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
+const MODEL_NAME = 'gemini-2.5-flash';
 
 export async function generateConsultationBriefing(patientId: string): Promise<string> {
   // 1. Fetch patient profile
@@ -36,20 +40,96 @@ export async function generateConsultationBriefing(patientId: string): Promise<s
 
   const { data: mealLogs } = await supabase
     .from('meals')
-    .select('calories, protein, created_at')
+    .select('name, calories, protein, created_at')
     .eq('user_id', patientId)
     .gte('created_at', since28.toISOString());
 
   const totalDays = 28;
-  const loggedDays = new Set((mealLogs || []).map((m: any) => m.created_at?.split('T')[0])).size;
+  const meals = mealLogs || [];
+  const loggedDays = new Set(meals.map((m: any) => m.created_at?.split('T')[0])).size;
   const adherencePercent = Math.round((loggedDays / totalDays) * 100);
 
-  const totalCal = (mealLogs || []).reduce((s: number, m: any) => s + (m.calories || 0), 0);
-  const totalProt = (mealLogs || []).reduce((s: number, m: any) => s + (m.protein || 0), 0);
-  const avgCalories = loggedDays > 0 ? Math.round(totalCal / loggedDays) : 0;
-  const avgProtein = loggedDays > 0 ? Math.round(totalProt / loggedDays) : 0;
+  const totalCal  = meals.reduce((s: number, m: any) => s + (m.calories || 0), 0);
+  const totalProt = meals.reduce((s: number, m: any) => s + (m.protein  || 0), 0);
+  const avgCalories = loggedDays > 0 ? Math.round(totalCal  / loggedDays) : 0;
+  const avgProtein  = loggedDays > 0 ? Math.round(totalProt / loggedDays) : 0;
 
-  // 4. GLP-1 symptoms (last 4 check-ins)
+  // Pratos mais consumidos (top 5 por frequência)
+  const mealFreq: Record<string, { count: number; avgCal: number }> = {};
+  meals.forEach((m: any) => {
+    const key = (m.name || '').trim().toLowerCase();
+    if (!key) return;
+    if (!mealFreq[key]) mealFreq[key] = { count: 0, avgCal: 0 };
+    mealFreq[key].count++;
+    mealFreq[key].avgCal += (m.calories || 0);
+  });
+  Object.values(mealFreq).forEach(v => { v.avgCal = Math.round(v.avgCal / v.count); });
+
+  const topMeals = Object.entries(mealFreq)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 5)
+    .map(([name, { count, avgCal }]) => `${name} (${count}x, ~${avgCal}kcal)`);
+
+  // Refeições pesadas repetidas: > 700 kcal consumidas 2+ vezes
+  const heavyMeals = Object.entries(mealFreq)
+    .filter(([, { count, avgCal }]) => avgCal > 700 && count >= 2)
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(([name, { count, avgCal }]) => `${name} (${count}x, ~${avgCal}kcal)`);
+
+  // 4. Integrações de fitness (Strava / Google Fit)
+  const [{ data: integrations }, { data: activityLogs }, { data: hydrationLogs }] = await Promise.all([
+    // Quais serviços estão conectados
+    supabase
+      .from('user_integrations')
+      .select('service')
+      .eq('user_id', patientId)
+      .eq('is_connected', true),
+
+    // Treinos dos últimos 28 dias
+    supabase
+      .from('activities')
+      .select('activity_type, calories_burned, duration_seconds, activity_date')
+      .eq('user_id', patientId)
+      .gte('activity_date', since28.toISOString()),
+
+    // Hidratação dos últimos 28 dias
+    supabase
+      .from('daily_logs')
+      .select('water_intake, water_goal, date')
+      .eq('user_id', patientId)
+      .gte('date', since28.toISOString().split('T')[0])
+      .not('water_intake', 'is', null),
+  ]);
+
+  const connectedServices = (integrations || []).map((i: any) => i.service);
+
+  // Resumo de treinos por tipo
+  const activitySummary: Record<string, { count: number; totalCal: number; totalMin: number }> = {};
+  (activityLogs || []).forEach((a: any) => {
+    const type = a.activity_type || 'Outro';
+    if (!activitySummary[type]) activitySummary[type] = { count: 0, totalCal: 0, totalMin: 0 };
+    activitySummary[type].count++;
+    activitySummary[type].totalCal += a.calories_burned || 0;
+    activitySummary[type].totalMin += Math.round((a.duration_seconds || 0) / 60);
+  });
+  const topActivities = Object.entries(activitySummary)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 4)
+    .map(([type, { count, totalCal, totalMin }]) =>
+      `${type} (${count}x, ${Math.round(totalCal / count)}kcal médio, ~${Math.round(totalMin / count)}min)`);
+  const avgDailyBurn = activityLogs && activityLogs.length > 0
+    ? Math.round((activityLogs as any[]).reduce((s: number, a: any) => s + (a.calories_burned || 0), 0) / 28)
+    : 0;
+
+  // Hidratação
+  const waterLogs = hydrationLogs || [];
+  const avgWater = waterLogs.length > 0
+    ? Math.round(waterLogs.reduce((s: number, l: any) => s + (l.water_intake || 0), 0) / waterLogs.length)
+    : null;
+  const waterGoal = waterLogs[0]?.water_goal || patient.water_goal_ml || 2000;
+  const waterAdherence = avgWater != null ? Math.round((avgWater / waterGoal) * 100) : null;
+
+  // 5. GLP-1 symptoms (last 4 check-ins)
   const checkins = (patient.glp1_weekly_checkins || []).slice(-4);
   const symptomCounts: Record<string, number> = {};
   checkins.forEach((c: any) => {
@@ -86,56 +166,51 @@ Paciente: ${patient.display_name || 'Paciente'}, ${patient.age || '—'} anos, $
 IMC: ${bmi} | Peso: ${patient.weight || '—'}kg | Altura: ${patient.height || '—'}cm
 GLP-1: ${patient.glp1_medication || 'Não usa'} — Fase: ${phaseMap[patient.glp1_phase] || 'N/A'}
 
-Evolução de peso (90 dias): ${weightStart}kg → ${weightCurrent}kg (${weightDiff > 0 ? '+' : ''}${weightDiff}kg)
+Evolução de peso (90 dias): ${weightStart}kg → ${weightCurrent}kg (${parseFloat(weightDiff) > 0 ? '+' : ''}${weightDiff}kg)
 
 Nutrição (média 28 dias):
 - Calorias: ${avgCalories}kcal/dia (meta: ${patient.target_calories || '—'}kcal)
 - Proteína: ${avgProtein}g/dia (meta: ${patient.target_protein || '—'}g)
 - Adesão ao plano: ${adherencePercent}% dos dias
 
+Pratos mais consumidos (28 dias): ${topMeals.length > 0 ? topMeals.join(', ') : 'Sem dados'}
+Refeições pesadas repetidas (>700kcal, 2+ vezes): ${heavyMeals.length > 0 ? heavyMeals.join(', ') : 'Nenhuma'}
+
+Atividade física (28 dias):
+- Integrações ativas: ${connectedServices.length > 0 ? connectedServices.join(', ') : 'Nenhuma'}
+- Treinos: ${topActivities.length > 0 ? topActivities.join(' | ') : 'Sem dados'}
+- Gasto calórico médio com treinos: ${avgDailyBurn > 0 ? `${avgDailyBurn}kcal/dia` : 'Sem dados'}
+
+Hidratação (28 dias):
+- Média: ${avgWater != null ? `${avgWater}ml/dia` : 'Sem dados'} (meta: ${waterGoal}ml${waterAdherence != null ? `, ${waterAdherence}% de adesão` : ''})
+
 Sintomas frequentes GLP-1: ${topSymptoms.length > 0 ? topSymptoms.join(', ') : 'Nenhum relatado'}
 Principal preocupação: ${concernMap[patient.glp1_main_concern] || 'N/A'}
   `.trim();
 
-  // 6. Call Claude API
-  const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-
-  if (!apiKey) {
-    // Fallback: return a structured template without API
-    return buildFallbackBriefing(context, patient, weightDiff, adherencePercent, topSymptoms);
-  }
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 800,
-      system: `Você é um assistente médico especializado em nutrição e emagrecimento.
-Gere um briefing pré-consulta objetivo e clinicamente relevante.
+  // 6. Gerar briefing via Gemini (mesmo padrão do chat do paciente)
+  try {
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    const result = await model.generateContent(
+      `Você é um assistente médico especializado em nutrição e emagrecimento.
+Gere um briefing pré-consulta objetivo e clinicamente relevante para o médico.
 Use português brasileiro. Seja direto e prático.
-Formato: seções com emojis, máximo 300 palavras.
-Inclua: progresso, pontos de atenção, sugestões para a consulta.`,
-      messages: [
-        {
-          role: 'user',
-          content: `Gere um briefing pré-consulta para o seguinte paciente:\n\n${context}`,
-        },
-      ],
-    }),
-  });
+Formato: seções com emojis, máximo 400 palavras.
 
-  if (!response.ok) {
-    console.warn('[Briefing] Claude API error, using fallback');
+Inclua obrigatoriamente:
+- Progresso de peso e adesão ao plano
+- Padrão alimentar: comente os pratos mais consumidos e destaque refeições pesadas repetidas com nome e frequência (ex: "consumiu tiramisu 3x na semana")
+- Atividade física e hidratação: se há dados de treinos, comente o gasto calórico vs ingestão; alerte se o paciente treina mas não compensa na hidratação ou proteína; se não há integração ativa, mencione brevemente
+- Pontos de atenção clínicos
+- Sugestões objetivas para a consulta
+
+Dados do paciente:
+${context}`
+    );
+    return result.response.text() || buildFallbackBriefing(context, patient, weightDiff, adherencePercent, topSymptoms);
+  } catch {
     return buildFallbackBriefing(context, patient, weightDiff, adherencePercent, topSymptoms);
   }
-
-  const data = await response.json();
-  return data.content?.[0]?.text || buildFallbackBriefing(context, patient, weightDiff, adherencePercent, topSymptoms);
 }
 
 function buildFallbackBriefing(
