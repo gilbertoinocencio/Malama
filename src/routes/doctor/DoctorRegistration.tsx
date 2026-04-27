@@ -19,6 +19,9 @@ export const DoctorRegistration: React.FC = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [inviteData, setInviteData] = useState<{ email: string; doctorId: string } | null>(null);
+  const [crmValidating, setCrmValidating] = useState(false);
+  const [crmValidated, setCrmValidated] = useState<{ name: string; situation: string; specialty: string | null } | null>(null);
+  const [crmError, setCrmError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<DoctorRegistrationFormData>({
     name: '',
@@ -108,6 +111,31 @@ export const DoctorRegistration: React.FC = () => {
     }
   };
 
+  const handleValidateCRM = async () => {
+    if (!formData.crm.trim() || !formData.crmState) {
+      setCrmError('Preencha o CRM e o estado antes de verificar.');
+      return;
+    }
+    setCrmValidating(true);
+    setCrmValidated(null);
+    setCrmError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-crm', {
+        body: { crm: formData.crm, uf: formData.crmState },
+      });
+      if (error) throw error;
+      if (!data?.valid) {
+        setCrmError('CRM não encontrado ou inativo no CFM. Verifique o número e o estado.');
+      } else {
+        setCrmValidated({ name: data.name, situation: data.situation, specialty: data.specialty });
+      }
+    } catch {
+      setCrmError('Não foi possível consultar o CFM. Tente novamente.');
+    } finally {
+      setCrmValidating(false);
+    }
+  };
+
   // Validação por etapa
   const validateStep = (currentStep: number): boolean => {
     const newErrors: Partial<Record<keyof DoctorRegistrationFormData, string>> = {};
@@ -131,6 +159,7 @@ export const DoctorRegistration: React.FC = () => {
     if (currentStep === 2) {
       if (!formData.crm.trim()) newErrors.crm = 'CRM é obrigatório';
       if (!formData.crmState) newErrors.crmState = 'Estado do CRM é obrigatório';
+      if (!crmValidated) newErrors.crm = 'Verifique o CRM antes de continuar';
       if (!formData.specialty) newErrors.specialty = 'Especialidade é obrigatória';
       if (formData.bio.length > 300) newErrors.bio = 'Bio deve ter no máximo 300 caracteres';
     }
@@ -408,18 +437,17 @@ export const DoctorRegistration: React.FC = () => {
           <input
             type="text"
             value={formData.crm}
-            onChange={e => updateField('crm', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${errors.crm ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            onChange={e => { updateField('crm', e.target.value); setCrmValidated(null); setCrmError(null); }}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.crm ? 'border-red-500' : crmValidated ? 'border-green-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
             placeholder="000000"
           />
-          {errors.crm && <p className="text-red-500 text-sm mt-1">{errors.crm}</p>}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
           <select
             value={formData.crmState}
-            onChange={e => updateField('crmState', e.target.value)}
+            onChange={e => { updateField('crmState', e.target.value); setCrmValidated(null); setCrmError(null); }}
             className={`w-full px-4 py-3 rounded-lg border ${errors.crmState ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
           >
             <option value="">UF</option>
@@ -427,9 +455,36 @@ export const DoctorRegistration: React.FC = () => {
               <option key={uf} value={uf}>{uf}</option>
             ))}
           </select>
-          {errors.crmState && <p className="text-red-500 text-sm mt-1">{errors.crmState}</p>}
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={handleValidateCRM}
+        disabled={crmValidating || !formData.crm || !formData.crmState}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#7d4a3c] text-[#7d4a3c] text-sm font-medium hover:bg-[#7d4a3c]/5 disabled:opacity-50 transition"
+      >
+        {crmValidating ? (
+          <span className="w-4 h-4 rounded-full border-2 border-[#7d4a3c] border-t-transparent animate-spin" />
+        ) : null}
+        {crmValidating ? 'Consultando CFM...' : 'Verificar CRM no CFM'}
+      </button>
+
+      {crmValidated && (
+        <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-300 rounded-lg text-sm text-green-800">
+          <span className="text-green-600 font-bold mt-0.5">✓</span>
+          <div>
+            <p className="font-semibold">{crmValidated.name}</p>
+            <p className="text-xs text-green-700">Situação: {crmValidated.situation}{crmValidated.specialty ? ` · ${crmValidated.specialty}` : ''}</p>
+          </div>
+        </div>
+      )}
+
+      {crmError && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{crmError}</p>
+      )}
+
+      {errors.crm && !crmError && <p className="text-red-500 text-sm">{errors.crm}</p>}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Especialidade *</label>
