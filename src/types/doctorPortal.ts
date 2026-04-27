@@ -61,20 +61,29 @@ export interface Doctor {
   user_id: string;
   name: string;
   email: string;
+  cpf?: string | null;
+  phone?: string | null;
   crm: string;
   crm_state: string;
   specialty: DoctorSpecialty | string;
-  specialty_custom?: string | null; // Especialidade personalizada quando specialty == 'Outro'
+  specialty_custom?: string | null;
   bio: string | null;
   photo_url: string | null;
   status: DoctorStatus;
   icp_certificate_url: string | null;
   consultation_price: number | null;
-  consultation_duration: number; // minutos
+  consultation_duration: number;
   invite_token: string | null;
   patient_referral_token: string | null;
   platform_fee_percent: number;
   pix_key: string | null;
+  address_zip?: string | null;
+  address_street?: string | null;
+  address_number?: string | null;
+  address_complement?: string | null;
+  address_neighborhood?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -204,6 +213,14 @@ export interface DoctorRegistrationFormData {
   phone: string;
   password: string;
   confirmPassword: string;
+  // Endereço
+  addressZip: string;
+  addressStreet: string;
+  addressNumber: string;
+  addressComplement: string;
+  addressNeighborhood: string;
+  addressCity: string;
+  addressState: string;
 
   // Etapa 2: Dados profissionais
   crm: string;

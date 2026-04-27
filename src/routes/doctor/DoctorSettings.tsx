@@ -7,7 +7,7 @@ import { useOutletContext } from 'react-router-dom';
 import { Save, Upload, AlertTriangle } from 'lucide-react';
 import { doctorService, storageService, payoutService, settingsService } from '../../services/doctorPortalService';
 import type { Doctor, Payout } from '../../types/doctorPortal';
-import { SPECIALTY_OPTIONS, CONSULTATION_TYPE_OPTIONS } from '../../types/doctorPortal';
+import { SPECIALTY_OPTIONS, CONSULTATION_TYPE_OPTIONS, BRAZILIAN_STATES } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
 
 export const DoctorSettings: React.FC = () => {
@@ -21,8 +21,18 @@ export const DoctorSettings: React.FC = () => {
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [specialty, setSpecialty] = useState('');
+  const [phone, setPhone] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  // Address fields
+  const [addressZip, setAddressZip] = useState('');
+  const [addressStreet, setAddressStreet] = useState('');
+  const [addressNumber, setAddressNumber] = useState('');
+  const [addressComplement, setAddressComplement] = useState('');
+  const [addressNeighborhood, setAddressNeighborhood] = useState('');
+  const [addressCity, setAddressCity] = useState('');
+  const [addressState, setAddressState] = useState('');
 
   // Consultation fields
   const [consultationPrice, setConsultationPrice] = useState(80);
@@ -42,11 +52,19 @@ export const DoctorSettings: React.FC = () => {
     setName(doctor.name || '');
     setBio(doctor.bio || '');
     setSpecialty(doctor.specialty || '');
+    setPhone(doctor.phone || '');
     setPhotoPreview(doctor.photo_url);
     setConsultationPrice(doctor.consultation_price || 80);
     setConsultationDuration(doctor.consultation_duration || 30);
     setPixKey(doctor.pix_key || '');
     setConsultationTypes(['initial', 'follow_up']);
+    setAddressZip(doctor.address_zip || '');
+    setAddressStreet(doctor.address_street || '');
+    setAddressNumber(doctor.address_number || '');
+    setAddressComplement(doctor.address_complement || '');
+    setAddressNeighborhood(doctor.address_neighborhood || '');
+    setAddressCity(doctor.address_city || '');
+    setAddressState(doctor.address_state || '');
 
     // Load global platform fee
     loadGlobalFee();
@@ -96,7 +114,15 @@ export const DoctorSettings: React.FC = () => {
         name,
         bio: bio || null,
         specialty,
-        photo_url: photoUrl
+        phone: phone || null,
+        photo_url: photoUrl,
+        address_zip: addressZip || null,
+        address_street: addressStreet || null,
+        address_number: addressNumber || null,
+        address_complement: addressComplement || null,
+        address_neighborhood: addressNeighborhood || null,
+        address_city: addressCity || null,
+        address_state: addressState || null,
       });
 
       setDoctor(updated);
@@ -247,6 +273,102 @@ export const DoctorSettings: React.FC = () => {
                     className="hidden"
                   />
                 </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+              <input
+                type="text"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="(00) 00000-0000"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+              />
+            </div>
+
+            <p className="text-sm font-semibold text-gray-700 pt-2">Endereço</p>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                <input
+                  type="text"
+                  value={addressZip}
+                  onChange={e => setAddressZip(e.target.value.replace(/\D/g, '').replace(/^(\d{5})(\d)/, '$1-$2').slice(0, 9))}
+                  placeholder="00000-000"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Logradouro</label>
+                <input
+                  type="text"
+                  value={addressStreet}
+                  onChange={e => setAddressStreet(e.target.value)}
+                  placeholder="Rua, Av., Alameda..."
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                <input
+                  type="text"
+                  value={addressNumber}
+                  onChange={e => setAddressNumber(e.target.value)}
+                  placeholder="123"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+                <input
+                  type="text"
+                  value={addressComplement}
+                  onChange={e => setAddressComplement(e.target.value)}
+                  placeholder="Apto, sala..."
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+              <input
+                type="text"
+                value={addressNeighborhood}
+                onChange={e => setAddressNeighborhood(e.target.value)}
+                placeholder="Bairro"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                <input
+                  type="text"
+                  value={addressCity}
+                  onChange={e => setAddressCity(e.target.value)}
+                  placeholder="Cidade"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">UF</label>
+                <select
+                  value={addressState}
+                  onChange={e => setAddressState(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                >
+                  <option value="">UF</option>
+                  {BRAZILIAN_STATES.map(uf => (
+                    <option key={uf} value={uf}>{uf}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

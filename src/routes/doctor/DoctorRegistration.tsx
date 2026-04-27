@@ -27,6 +27,13 @@ export const DoctorRegistration: React.FC = () => {
     phone: '',
     password: '',
     confirmPassword: '',
+    addressZip: '',
+    addressStreet: '',
+    addressNumber: '',
+    addressComplement: '',
+    addressNeighborhood: '',
+    addressCity: '',
+    addressState: '',
     crm: '',
     crmState: '',
     specialty: '',
@@ -113,6 +120,12 @@ export const DoctorRegistration: React.FC = () => {
       if (!formData.phone.trim() || formData.phone.replace(/\D/g, '').length !== 11) newErrors.phone = 'Telefone inválido';
       if (formData.password.length < 8) newErrors.password = 'Senha deve ter no mínimo 8 caracteres';
       if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Senhas não coincidem';
+      if (!formData.addressZip.trim()) newErrors.addressZip = 'CEP é obrigatório';
+      if (!formData.addressStreet.trim()) newErrors.addressStreet = 'Logradouro é obrigatório';
+      if (!formData.addressNumber.trim()) newErrors.addressNumber = 'Número é obrigatório';
+      if (!formData.addressNeighborhood.trim()) newErrors.addressNeighborhood = 'Bairro é obrigatório';
+      if (!formData.addressCity.trim()) newErrors.addressCity = 'Cidade é obrigatória';
+      if (!formData.addressState) newErrors.addressState = 'Estado é obrigatório';
     }
 
     if (currentStep === 2) {
@@ -178,6 +191,8 @@ export const DoctorRegistration: React.FC = () => {
         user_id: authData.user.id,
         name: formData.name,
         email: formData.email,
+        cpf: formData.cpf,
+        phone: formData.phone,
         crm: formData.crm,
         crm_state: formData.crmState,
         specialty: formData.specialty,
@@ -187,6 +202,13 @@ export const DoctorRegistration: React.FC = () => {
         consultation_price: formData.consultationPrice,
         consultation_duration: formData.consultationDuration,
         pix_key: formData.pixKey || null,
+        address_zip: formData.addressZip || null,
+        address_street: formData.addressStreet || null,
+        address_number: formData.addressNumber || null,
+        address_complement: formData.addressComplement || null,
+        address_neighborhood: formData.addressNeighborhood || null,
+        address_city: formData.addressCity || null,
+        address_state: formData.addressState || null,
         invite_token: inviteData?.doctorId ? undefined : doctorService.generateInviteToken()
       });
 
@@ -279,6 +301,100 @@ export const DoctorRegistration: React.FC = () => {
         />
         {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
       </div>
+
+      <p className="text-sm font-semibold text-gray-700 pt-2">Endereço</p>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="col-span-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">CEP *</label>
+          <input
+            type="text"
+            value={formData.addressZip}
+            onChange={e => updateField('addressZip', e.target.value.replace(/\D/g, '').replace(/^(\d{5})(\d)/, '$1-$2').slice(0, 9))}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.addressZip ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            placeholder="00000-000"
+          />
+          {errors.addressZip && <p className="text-red-500 text-sm mt-1">{errors.addressZip}</p>}
+        </div>
+
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Logradouro *</label>
+          <input
+            type="text"
+            value={formData.addressStreet}
+            onChange={e => updateField('addressStreet', e.target.value)}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.addressStreet ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            placeholder="Rua, Av., Alameda..."
+          />
+          {errors.addressStreet && <p className="text-red-500 text-sm mt-1">{errors.addressStreet}</p>}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Número *</label>
+          <input
+            type="text"
+            value={formData.addressNumber}
+            onChange={e => updateField('addressNumber', e.target.value)}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.addressNumber ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            placeholder="123"
+          />
+          {errors.addressNumber && <p className="text-red-500 text-sm mt-1">{errors.addressNumber}</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+          <input
+            type="text"
+            value={formData.addressComplement}
+            onChange={e => updateField('addressComplement', e.target.value)}
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+            placeholder="Apto, sala, bloco..."
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Bairro *</label>
+        <input
+          type="text"
+          value={formData.addressNeighborhood}
+          onChange={e => updateField('addressNeighborhood', e.target.value)}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.addressNeighborhood ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+          placeholder="Bairro"
+        />
+        {errors.addressNeighborhood && <p className="text-red-500 text-sm mt-1">{errors.addressNeighborhood}</p>}
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Cidade *</label>
+          <input
+            type="text"
+            value={formData.addressCity}
+            onChange={e => updateField('addressCity', e.target.value)}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.addressCity ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            placeholder="Cidade"
+          />
+          {errors.addressCity && <p className="text-red-500 text-sm mt-1">{errors.addressCity}</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">UF *</label>
+          <select
+            value={formData.addressState}
+            onChange={e => updateField('addressState', e.target.value)}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.addressState ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+          >
+            <option value="">UF</option>
+            {BRAZILIAN_STATES.map(uf => (
+              <option key={uf} value={uf}>{uf}</option>
+            ))}
+          </select>
+          {errors.addressState && <p className="text-red-500 text-sm mt-1">{errors.addressState}</p>}
+        </div>
+      </div>
     </div>
   );
 
@@ -317,16 +433,13 @@ export const DoctorRegistration: React.FC = () => {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Especialidade *</label>
-        <select
+        <input
+          type="text"
           value={formData.specialty}
           onChange={e => updateField('specialty', e.target.value)}
+          placeholder="Ex: Endocrinologista, Nutrólogo para gestantes..."
           className={`w-full px-4 py-3 rounded-lg border ${errors.specialty ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
-        >
-          <option value="">Selecione...</option>
-          {SPECIALTY_OPTIONS.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+        />
         {errors.specialty && <p className="text-red-500 text-sm mt-1">{errors.specialty}</p>}
       </div>
 
@@ -440,7 +553,9 @@ export const DoctorRegistration: React.FC = () => {
           className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
         >
           <option value={20}>20 minutos</option>
+          <option value={25}>25 minutos</option>
           <option value={30}>30 minutos</option>
+          <option value={40}>40 minutos</option>
           <option value={45}>45 minutos</option>
           <option value={60}>60 minutos</option>
         </select>
@@ -455,28 +570,6 @@ export const DoctorRegistration: React.FC = () => {
           className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
           placeholder="CPF, email, telefone ou chave aleatória"
         />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Tipos de Consulta Oferecidos</label>
-        <div className="space-y-2">
-          {CONSULTATION_TYPE_OPTIONS.map(opt => (
-            <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.consultationTypes.includes(opt.value)}
-                onChange={e => {
-                  const types = e.target.checked
-                    ? [...formData.consultationTypes, opt.value]
-                    : formData.consultationTypes.filter(t => t !== opt.value);
-                  updateField('consultationTypes', types);
-                }}
-                className="w-4 h-4 text-[#7d4a3c] border-gray-300 rounded focus:ring-[#7d4a3c]"
-              />
-              <span className="text-sm text-gray-700">{opt.label}</span>
-            </label>
-          ))}
-        </div>
       </div>
     </div>
   );
