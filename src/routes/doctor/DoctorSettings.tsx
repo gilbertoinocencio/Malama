@@ -215,16 +215,13 @@ export const DoctorSettings: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Especialidade</label>
-              <select
+              <input
+                type="text"
                 value={specialty}
                 onChange={e => setSpecialty(e.target.value)}
+                placeholder="Ex: Nutrólogo para gestantes, Endocrinologista..."
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
-              >
-                <option value="">Selecione...</option>
-                {SPECIALTY_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+              />
             </div>
 
             <div>
@@ -288,7 +285,9 @@ export const DoctorSettings: React.FC = () => {
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
               >
                 <option value={20}>20 minutos</option>
+                <option value={25}>25 minutos</option>
                 <option value={30}>30 minutos</option>
+                <option value={40}>40 minutos</option>
                 <option value={45}>45 minutos</option>
                 <option value={60}>60 minutos</option>
               </select>
