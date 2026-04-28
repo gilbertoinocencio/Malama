@@ -1172,13 +1172,34 @@ export const dashboardService = {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // 1. Buscar todos os IDs de pacientes do médico
+    // 1. Buscar todos os IDs de pacientes do médico (com nome real via raw_user_meta_data)
     const { data: allConsults } = await supabase
       .from('consultations')
-      .select('patient_id, type')
+      .select(`
+        patient_id,
+        type,
+        patient:patient_id (
+          id,
+          email,
+          raw_user_meta_data
+        )
+      `)
       .eq('doctor_id', doctorId);
 
+    // Mapa de patient_id → { name, photo_url } usando raw_user_meta_data (nome real)
+    const patientInfoMap: Record<string, { name: string; photo_url: string | null }> = {};
+    for (const c of (allConsults || [])) {
+      const pd = Array.isArray((c as any).patient) ? (c as any).patient[0] : (c as any).patient;
+      if (pd && !patientInfoMap[c.patient_id]) {
+        patientInfoMap[c.patient_id] = {
+          name: pd.raw_user_meta_data?.name || pd.email || 'Paciente',
+          photo_url: pd.raw_user_meta_data?.photo_url || null,
+        };
+      }
+    }
+
     const allPatientIds = [...new Set((allConsults || []).map(c => c.patient_id))];
+
 
     // 2. Funil de conversão — indicados pelo link do médico
     const { data: referredProfiles } = await supabase
@@ -1286,13 +1307,6 @@ export const dashboardService = {
     // 7a. Sintomas críticos (últimos 7 dias)
     const criticalSymptomKeywords = ['náusea severa', 'vômito', 'dor abdominal', 'tontura forte', 'desmaio', 'febre'];
     if (checkins) {
-      const profileIds = [...new Set(checkins.map(c => c.user_id))];
-      const { data: alertProfiles } = profileIds.length > 0
-        ? await supabase.from('profiles').select('id, display_name, avatar_url').in('id', profileIds)
-        : { data: [] };
-      const profileMap: Record<string, any> = {};
-      (alertProfiles || []).forEach(p => { profileMap[p.id] = p; });
-
       for (const checkin of checkins) {
         const symptoms: string[] = Array.isArray(checkin.symptoms)
           ? checkin.symptoms
@@ -1301,11 +1315,11 @@ export const dashboardService = {
           criticalSymptomKeywords.some(k => s.toLowerCase().includes(k))
         );
         if (hasCritical && !alertPatients.find(a => a.id === checkin.user_id)) {
-          const p = profileMap[checkin.user_id];
+          const info = patientInfoMap[checkin.user_id];
           alertPatients.push({
             id: checkin.user_id,
-            name: p?.display_name || 'Paciente',
-            photo_url: p?.avatar_url || null,
+            name: info?.name || 'Paciente',
+            photo_url: info?.photo_url || null,
             alertType: 'symptom',
             detail: `Sintoma crítico: ${symptoms.filter(s => criticalSymptomKeywords.some(k => s.toLowerCase().includes(k))).join(', ')}`,
           });
@@ -1327,24 +1341,19 @@ export const dashboardService = {
     });
 
     const lowAdherenceIds = allPatientIds.filter(id => (daysByPatientRecent[id]?.size || 0) < 3);
-    if (lowAdherenceIds.length > 0) {
-      const { data: lowProfiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_url')
-        .in('id', lowAdherenceIds);
-      (lowProfiles || []).forEach(p => {
-        if (!alertPatients.find(a => a.id === p.id)) {
-          const days = daysByPatientRecent[p.id]?.size || 0;
-          alertPatients.push({
-            id: p.id,
-            name: p.display_name || 'Paciente',
-            photo_url: p.avatar_url || null,
-            alertType: 'low_adherence',
-            detail: `Apenas ${days} dias com registro nos últimos 10 dias`,
-          });
-        }
-      });
-    }
+    lowAdherenceIds.forEach(id => {
+      if (!alertPatients.find(a => a.id === id)) {
+        const info = patientInfoMap[id];
+        const days = daysByPatientRecent[id]?.size || 0;
+        alertPatients.push({
+          id,
+          name: info?.name || 'Paciente',
+          photo_url: info?.photo_url || null,
+          alertType: 'low_adherence',
+          detail: `Apenas ${days} dias com registro nos últimos 10 dias`,
+        });
+      }
+    });
 
     // 7c. Estagnação de peso (peso não reduziu nas últimas 3 pesagens)
     const { data: recentWeights } = await supabase
@@ -1365,24 +1374,19 @@ export const dashboardService = {
       .filter(([, weights]) => weights.length >= 3 && weights[0] >= weights[2])
       .map(([id]) => id);
 
-    if (stagnantIds.length > 0) {
-      const { data: stagnantProfiles } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_url')
-        .in('id', stagnantIds);
-      (stagnantProfiles || []).forEach(p => {
-        if (!alertPatients.find(a => a.id === p.id)) {
-          const weights = weightsByPatient[p.id];
-          alertPatients.push({
-            id: p.id,
-            name: p.display_name || 'Paciente',
-            photo_url: p.avatar_url || null,
-            alertType: 'weight_stagnation',
-            detail: `Peso estagnado: ${weights[weights.length - 1]}kg → ${weights[0]}kg`,
-          });
-        }
-      });
-    }
+    stagnantIds.forEach(id => {
+      if (!alertPatients.find(a => a.id === id)) {
+        const info = patientInfoMap[id];
+        const weights = weightsByPatient[id];
+        alertPatients.push({
+          id,
+          name: info?.name || 'Paciente',
+          photo_url: info?.photo_url || null,
+          alertType: 'weight_stagnation',
+          detail: `Peso estagnado: ${weights[weights.length - 1]}kg → ${weights[0]}kg`,
+        });
+      }
+    });
 
     return {
       alertPatients,
