@@ -17,8 +17,9 @@ import { AppointmentChatPanel } from '../../components/doctor/AppointmentChatPan
 import { PatientExamPanel } from '../../components/doctor/PatientExamPanel';
 import { AIInsightsSidebar } from '../../components/doctor/AIInsightsSidebar';
 import { AIPlanCustomization } from '../../components/doctor/AIPlanCustomization';
+import { BodyCompositionDashboard } from '../../components/doctor/BodyCompositionDashboard';
 
-type TabType = 'overview' | 'history' | 'symptoms' | 'consultations' | 'exams' | 'chat' | 'plano' | 'briefing' | 'glp1';
+type TabType = 'overview' | 'history' | 'symptoms' | 'consultations' | 'exams' | 'chat' | 'plano' | 'briefing' | 'glp1' | 'composicao';
 
 export const PatientProfile: React.FC = () => {
   const { doctor } = useOutletContext<{ doctor: Doctor }>();
@@ -170,6 +171,7 @@ export const PatientProfile: React.FC = () => {
       badge: unreadChat > 0 ? unreadChat : undefined },
     { id: 'plano'         as TabType, label: 'Plano IA',             icon: Brain, badge: undefined },
     { id: 'briefing'      as TabType, label: 'Briefing',             icon: Calendar },
+    { id: 'composicao'    as TabType, label: 'Composição',           icon: Activity, badge: undefined },
     ...(patient?.is_glp1_active ? [{ id: 'glp1' as TabType, label: '💉 GLP-1', icon: Plus, badge: undefined }] : []),
   ];
 
@@ -594,6 +596,14 @@ export const PatientProfile: React.FC = () => {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Aba Composição Corporal */}
+          {activeTab === 'composicao' && patientId && (
+            <BodyCompositionDashboard
+              patientId={patientId}
+              gender={patient?.gender as 'male' | 'female' | undefined}
+            />
           )}
 
           {/* Aba GLP-1: Prescrição + Horários de refeição */}

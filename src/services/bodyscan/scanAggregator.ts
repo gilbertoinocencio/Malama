@@ -13,24 +13,13 @@ import type { AnthroMeasurements } from './measurements';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-/** Minimum estimation_confidence (0–100) for a cycle to be accepted. */
 export const CONFIDENCE_MIN = 75;
-
-/** Target number of valid cycles per session. */
 export const TARGET_VALID = 3;
-
-/** Maximum total attempts (valid + discarded) before forcing a decision. */
 export const MAX_ATTEMPTS = 6;
-
-/** How many standard deviations from the mean before a measurement is an outlier. */
 export const OUTLIER_SIGMA = 1.5;
 
 // ─── Confidence hint ─────────────────────────────────────────────────────────
 
-/**
- * Returns a user-facing hint when a cycle is discarded due to low confidence.
- * Returns empty string if confidence is already above the threshold.
- */
 export function getConfidenceHint(confidence: number): string {
   if (confidence < 60) return 'Iluminação insuficiente ou fundo muito complexo';
   if (confidence < 70) return 'Tente se afastar um pouco mais da câmera';
@@ -52,13 +41,6 @@ function stdDev(values: number[]): number {
   return Math.sqrt(values.reduce((sum, x) => sum + Math.pow(x - m, 2), 0) / values.length);
 }
 
-/**
- * Removes scans whose measurements deviate more than OUTLIER_SIGMA standard
- * deviations from the group mean on any key dimension.
- *
- * With ≤ 2 scans there is no statistical basis for outlier removal, so all
- * scans are returned unchanged.
- */
 export function removeOutliers(scans: AnthroMeasurements[]): AnthroMeasurements[] {
   if (scans.length <= 2) return scans;
 
@@ -66,7 +48,7 @@ export function removeOutliers(scans: AnthroMeasurements[]): AnthroMeasurements[
     KEYS.every(k => {
       const vals = scans.map(x => x[k]);
       const sd = stdDev(vals);
-      if (sd === 0) return true; // all identical — no outlier
+      if (sd === 0) return true;
       return Math.abs(s[k] - mean(vals)) <= OUTLIER_SIGMA * sd;
     }),
   );
@@ -75,19 +57,17 @@ export function removeOutliers(scans: AnthroMeasurements[]): AnthroMeasurements[
 // ─── Weighted average ────────────────────────────────────────────────────────
 
 /**
- * Aggregates 2–3 valid AnthroMeasurements into a single result using a
+ * Aggregates valid AnthroMeasurements into a single result using
  * confidence-weighted average for circumferences.
  *
- * bf_percentage is taken from the first scan (Deurenberg formula is
- * pose-independent — same weight/height/age/gender input every time).
- *
- * @throws {Error} 'NO_VALID_SCANS' if the input array is empty.
+ * neck_cm: averaged from scans that have it; null if none have it.
+ * bf_formula: 'navy' if any scan used the Navy formula, 'deurenberg' otherwise.
  */
 export function aggregateScans(valid: AnthroMeasurements[]): AnthroMeasurements {
   if (valid.length === 0) throw new Error('NO_VALID_SCANS');
 
   const pool = removeOutliers(valid);
-  const use  = pool.length >= 1 ? pool : valid; // fallback: skip removal if all are outliers
+  const use = pool.length >= 1 ? pool : valid;
 
   if (use.length === 1) return { ...use[0] };
 
@@ -95,14 +75,31 @@ export function aggregateScans(valid: AnthroMeasurements[]): AnthroMeasurements 
 
   const weightedAvg = (k: MeasKey): number =>
     Math.round(
-      use.reduce((s, x) => s + x[k] * x.estimation_confidence, 0) / totalWeight * 10,
+      (use.reduce((s, x) => s + x[k] * x.estimation_confidence, 0) / totalWeight) * 10,
     ) / 10;
 
+  // Weighted average for neck where available
+  const scansWithNeck = use.filter(s => s.neck_cm !== null);
+  let neck_cm: number | null = null;
+  if (scansWithNeck.length > 0) {
+    const neckWeight = scansWithNeck.reduce((s, x) => s + x.estimation_confidence, 0);
+    neck_cm =
+      Math.round(
+        (scansWithNeck.reduce((s, x) => s + (x.neck_cm as number) * x.estimation_confidence, 0) /
+          neckWeight) *
+          10,
+      ) / 10;
+  }
+
+  const bf_formula = use.some(s => s.bf_formula === 'navy') ? 'navy' : 'deurenberg';
+
   return {
-    waist_cm:              weightedAvg('waist_cm'),
-    hip_cm:                weightedAvg('hip_cm'),
-    bust_cm:               weightedAvg('bust_cm'),
-    bf_percentage:         use[0].bf_percentage,
+    waist_cm: weightedAvg('waist_cm'),
+    hip_cm: weightedAvg('hip_cm'),
+    bust_cm: weightedAvg('bust_cm'),
+    neck_cm,
+    bf_percentage: use[0].bf_percentage,
+    bf_formula,
     estimation_confidence: Math.round(totalWeight / use.length),
   };
 }

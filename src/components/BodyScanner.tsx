@@ -8,14 +8,19 @@
  *        └─ confidence < 75 → show hint, retry (until MAX_ATTEMPTS)
  *   └─> aggregateScans(validCaptures) → saving → result
  *
- * Architecture:
- *   - Camera guidance:  BodyScanCamera (MediaPipe Pose Landmarker, 100 % local)
- *   - Measurements:     computeMeasurements + deurenbergBF (no data leaves the device)
- *   - Aggregation:      scanAggregator (confidence-weighted average, outlier removal)
- *   - Persistence:      useBodyScan → Supabase body_scan_measurements table
+ * Precision improvements:
+ *   - Side-scan landmarks passed to computeMeasurements → real sagittal depth used
+ *     instead of fixed population-average depth ratios.
+ *   - Dynamic waist detection (anatomically narrowest point, not fixed 38%).
+ *   - US Navy BF% when neck visible; Deurenberg fallback otherwise.
  *
- * UI: Quiet Luxury — off-white, 1 px guides, Playfair Display numbers,
- *     sage-green on valid state, no aggressive animations.
+ * Architecture:
+ *   - Camera guidance:  BodyScanCamera (MediaPipe, 100 % local)
+ *   - Measurements:     computeMeasurements (with side depth integration)
+ *   - Aggregation:      scanAggregator (confidence-weighted average, outlier removal)
+ *   - Persistence:      useBodyScan → Supabase
+ *
+ * UI: Quiet Luxury — off-white, Playfair Display, sage-green accents.
  */
 
 import React, { useState, useCallback, useRef } from 'react';
@@ -24,6 +29,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { BodyScanCamera, type BodyScanCaptureResult, type ScanPose } from './BodyScanCamera';
 import { useBodyScan } from '../hooks/useBodyScan';
 import type { AnthroMeasurements } from '../services/bodyscan';
+import { computeMeasurements } from '../services/bodyscan';
 import {
   CONFIDENCE_MIN,
   TARGET_VALID,
@@ -31,6 +37,11 @@ import {
   getConfidenceHint,
   aggregateScans,
 } from '../services/bodyscan/scanAggregator';
+import {
+  computeClinicalIndices,
+  whrRisk,
+  rceRisk,
+} from '../utils/bodyCompositionCalculators';
 
 interface BodyScannerProps {
   onClose: () => void;
@@ -44,6 +55,15 @@ interface CaptureState {
   side?: BodyScanCaptureResult;
 }
 
+// ─── Risk colour helper ───────────────────────────────────────────────────────
+
+const RISK_COLORS = {
+  low: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+  moderate: 'text-amber-600 bg-amber-50 border-amber-200',
+  high: 'text-rose-500 bg-rose-50 border-rose-200',
+  very_high: 'text-rose-700 bg-rose-100 border-rose-300',
+} as const;
+
 // ─── Small UI primitives ──────────────────────────────────────────────────────
 
 const StepDot: React.FC<{ active: boolean; done: boolean }> = ({ active, done }) => (
@@ -54,20 +74,27 @@ const StepDot: React.FC<{ active: boolean; done: boolean }> = ({ active, done })
   />
 );
 
-// Single measurement card
 const MeasCard: React.FC<{
   label: string;
   value: number;
   unit: string;
+  badge?: string;
   delta?: number;
-}> = ({ label, value, unit, delta }) => (
-  <div className="flex flex-col gap-1 bg-white rounded-2xl p-4 shadow-sm">
-    <span className="text-[10px] font-light tracking-widest uppercase text-stone-400">
-      {label}
-    </span>
+}> = ({ label, value, unit, badge, delta }) => (
+  <div className="flex flex-col gap-1 bg-white rounded-2xl p-3.5 shadow-sm">
+    <div className="flex items-center gap-1">
+      <span className="text-[10px] font-light tracking-widest uppercase text-stone-400 flex-1">
+        {label}
+      </span>
+      {badge && (
+        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-400 border border-stone-200">
+          {badge}
+        </span>
+      )}
+    </div>
     <div className="flex items-end gap-1">
       <span
-        className="text-3xl text-stone-800 leading-none"
+        className="text-2xl text-stone-800 leading-none"
         style={{ fontFamily: "'Playfair Display', serif" }}
       >
         {value.toFixed(1)}
@@ -86,6 +113,17 @@ const MeasCard: React.FC<{
   </div>
 );
 
+const IndexChip: React.FC<{
+  label: string;
+  value: string;
+  risk: 'low' | 'moderate' | 'high' | 'very_high';
+}> = ({ label, value, risk }) => (
+  <div className={`flex flex-col items-center px-3 py-2 rounded-xl border text-center ${RISK_COLORS[risk]}`}>
+    <span className="text-[9px] font-light tracking-widest uppercase opacity-70">{label}</span>
+    <span className="text-base font-medium leading-tight">{value}</span>
+  </div>
+);
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplete }) => {
@@ -98,13 +136,11 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [finalMeasurements, setFinalMeasurements] = useState<AnthroMeasurements | null>(null);
 
-  // Multi-scan state
   const [validCaptures, setValidCaptures] = useState<AnthroMeasurements[]>([]);
   const [sessionAttempt, setSessionAttempt] = useState(0);
   const [lastDiscardHint, setLastDiscardHint] = useState<string | null>(null);
   const [sessionFailed, setSessionFailed] = useState(false);
 
-  // Ref mirrors so callbacks always read fresh values without stale closures
   const capturesRef = useRef<CaptureState>({});
   capturesRef.current = captures;
 
@@ -119,16 +155,15 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
     if (!user) return;
     setSaveError(null);
     try {
-      await saveScan({ measurements, heightCmUsed: heightCm, weightKg });
+      await saveScan({ measurements, heightCmUsed: heightCm, weightKg, age, gender });
       setStep('result');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro ao salvar';
       setSaveError(msg);
-      setStep('result'); // show results even if save fails
+      setStep('result');
     }
-  }, [user, saveScan, heightCm, weightKg]);
+  }, [user, saveScan, heightCm, weightKg, age, gender]);
 
-  // Trigger persist once we reach 'saving'
   React.useEffect(() => {
     if (step === 'saving' && finalMeasurements) {
       persistAndFinish(finalMeasurements);
@@ -137,10 +172,6 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
 
   // ── Multi-scan cycle decision ────────────────────────────────────────────────
 
-  /**
-   * Called after each front+side cycle completes with the merged measurements.
-   * Decides whether to: accept the cycle, discard it, or finalize the session.
-   */
   const handleCycleComplete = useCallback((merged: AnthroMeasurements) => {
     const newAttempt = sessionAttempt + 1;
     setSessionAttempt(newAttempt);
@@ -151,32 +182,26 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
       setLastDiscardHint(null);
 
       if (newValid.length >= TARGET_VALID || newAttempt >= MAX_ATTEMPTS) {
-        // Enough valid captures — aggregate and save
         const final = aggregateScans(newValid);
         setFinalMeasurements(final);
         setStep('saving');
       } else {
-        // Start the next cycle
         setCaptures({});
         setStep('front');
       }
     } else {
-      // Cycle discarded — show hint and decide next action
       const hint = getConfidenceHint(merged.estimation_confidence);
       setLastDiscardHint(hint);
 
       if (newAttempt >= MAX_ATTEMPTS) {
         if (validCaptures.length >= 2) {
-          // Enough valid captures despite hitting the limit
           const final = aggregateScans(validCaptures);
           setFinalMeasurements(final);
           setStep('saving');
         } else {
-          // Not enough valid captures — session failed
           setSessionFailed(true);
         }
       } else {
-        // Wait 2 s so the user can read the hint, then restart
         setTimeout(() => {
           setLastDiscardHint(null);
           setCaptures({});
@@ -195,26 +220,42 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
   }, []);
 
   const handleSideCapture = useCallback((result: BodyScanCaptureResult) => {
-    // Read the current front capture from the ref (avoids stale closure)
     const front = capturesRef.current.front;
-    const side  = result;
 
-    // Merge front + side measurements (same logic as before)
-    const merged: AnthroMeasurements = {
-      waist_cm:  ((front?.measurements.waist_cm ?? 0) + side.measurements.waist_cm) / (front ? 2 : 1),
-      hip_cm:    ((front?.measurements.hip_cm   ?? 0) + side.measurements.hip_cm)   / (front ? 2 : 1),
-      bust_cm:   front?.measurements.bust_cm ?? side.measurements.bust_cm,
-      bf_percentage:        side.measurements.bf_percentage, // Deurenberg: pose-independent
-      estimation_confidence: Math.min(
-        front?.measurements.estimation_confidence ?? 100,
-        side.measurements.estimation_confidence,
-      ),
-    };
+    // Recompute with actual sagittal depth from the side scan landmarks.
+    // Front landmarks give bilateral widths; side landmarks give depth.
+    let merged: AnthroMeasurements;
+
+    if (front) {
+      const recomputed = computeMeasurements({
+        landmarks:       front.landmarks,
+        frameWidth:      front.frameWidth,
+        frameHeight:     front.frameHeight,
+        heightCm,
+        weightKg,
+        age,
+        gender,
+        sideLandmarks:   result.landmarks,
+        sideFrameWidth:  result.frameWidth,
+        sideFrameHeight: result.frameHeight,
+      });
+
+      merged = recomputed ?? {
+        // Fallback to front-only measurements if recompute fails
+        ...front.measurements,
+        estimation_confidence: Math.min(
+          front.measurements.estimation_confidence,
+          result.measurements.estimation_confidence,
+        ),
+      };
+    } else {
+      merged = result.measurements;
+    }
 
     setCaptures((prev: CaptureState) => ({ ...prev, side: result }));
     setCameraError(null);
     handleCycleComplete(merged);
-  }, [handleCycleComplete]);
+  }, [handleCycleComplete, heightCm, weightKg, age, gender]);
 
   // ── Pose step config ─────────────────────────────────────────────────────────
 
@@ -238,11 +279,9 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
     setSessionFailed(false);
   }, []);
 
-  // ── Camera step render ───────────────────────────────────────────────────────
-
   const isCamera = step === 'front' || step === 'side';
 
-  // ── session_failed screen ────────────────────────────────────────────────────
+  // ── Session failed screen ────────────────────────────────────────────────────
 
   if (sessionFailed) {
     return (
@@ -258,7 +297,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
         </h2>
         <p className="text-white/60 text-sm leading-relaxed max-w-xs">
           Não foi possível obter capturas confiáveis suficientes.
-          Tente em um ambiente com melhor iluminação, fundo simples e mais espaço atrás de você.
+          Tente em ambiente com melhor iluminação, fundo simples e mais espaço.
         </p>
         <button
           onClick={() => { resetSession(); setStep('front'); }}
@@ -267,20 +306,30 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
         >
           Tentar novamente
         </button>
-        <button
-          onClick={onClose}
-          className="text-white/40 text-sm font-light"
-        >
+        <button onClick={onClose} className="text-white/40 text-sm font-light">
           Cancelar
         </button>
       </div>
     );
   }
 
+  // ── Clinical indices (computed from final measurements for result screen) ───
+
+  const indices = finalMeasurements
+    ? computeClinicalIndices({
+        waist_cm: finalMeasurements.waist_cm,
+        hip_cm: finalMeasurements.hip_cm,
+        height_cm: heightCm,
+        weight_kg: weightKg,
+        bf_percentage: finalMeasurements.bf_percentage,
+        gender,
+      })
+    : null;
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#FDFBF9]">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      {/* ── Header ───────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-5 pt-safe-top py-4 border-b border-stone-100">
         <button
           onClick={onClose}
@@ -297,24 +346,19 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
           Body Scan
         </h1>
 
-        {/* Step dots */}
         <div className="flex items-center gap-1.5 pr-1">
           {poseSteps.map((ps) => (
-            <StepDot
-              key={ps.id}
-              active={step === ps.id}
-              done={donePoses.includes(ps.id)}
-            />
+            <StepDot key={ps.id} active={step === ps.id} done={donePoses.includes(ps.id)} />
           ))}
           <StepDot active={step === 'result' || step === 'saving'} done={false} />
         </div>
       </div>
 
-      {/* ── Content ────────────────────────────────────────────────────────── */}
+      {/* ── Content ──────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden relative">
         <AnimatePresence mode="wait">
 
-          {/* ── Tutorial ─────────────────────────────────────────────────── */}
+          {/* ── Tutorial ─────────────────────────────────────────────────────── */}
           {step === 'tutorial' && (
             <motion.div
               key="tutorial"
@@ -324,7 +368,6 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
               className="h-full overflow-y-auto px-6 pb-8"
             >
               <div className="max-w-sm mx-auto pt-8">
-                {/* Icon */}
                 <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-6">
                   <span className="material-symbols-outlined text-stone-500 text-2xl">accessibility</span>
                 </div>
@@ -340,14 +383,13 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   Nenhuma imagem sai do seu dispositivo.
                 </p>
 
-                {/* Preparation list */}
                 <div className="space-y-3 mb-8">
                   {[
-                    { icon: 'checkroom',    text: 'Vista roupa justa ou traje de banho' },
-                    { icon: 'lightbulb',    text: 'Escolha local bem iluminado' },
-                    { icon: 'straighten',   text: 'Fique a 2–3 m da câmera' },
-                    { icon: 'accessibility',text: 'Corpo inteiro visível (70–85% do frame)' },
-                    { icon: 'back_hand',    text: 'Levante o braço direito quando solicitado' },
+                    { icon: 'checkroom',     text: 'Vista roupa justa ou traje de banho' },
+                    { icon: 'lightbulb',     text: 'Escolha local bem iluminado' },
+                    { icon: 'straighten',    text: 'Fique a 2–3 m da câmera' },
+                    { icon: 'accessibility', text: 'Corpo inteiro visível (70–85% do frame)' },
+                    { icon: 'back_hand',     text: 'Levante o braço direito quando solicitado' },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-4 bg-white rounded-xl px-4 py-3 shadow-sm">
                       <span className="material-symbols-outlined text-stone-400 text-xl">{item.icon}</span>
@@ -356,7 +398,6 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   ))}
                 </div>
 
-                {/* Poses */}
                 <div className="grid grid-cols-2 gap-3 mb-8">
                   {poseSteps.map((ps) => (
                     <div key={ps.id} className="bg-white rounded-2xl p-4 text-center shadow-sm">
@@ -368,15 +409,13 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   ))}
                 </div>
 
-                {/* Disclaimer */}
                 <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-8">
                   <p className="text-amber-700 text-xs text-center font-light leading-relaxed">
-                    Estimativa com margem ±4 cm para circunferências e ±4% para gordura corporal.
+                    Estimativa com margem ±2–4 cm para circunferências e ±4% para gordura corporal.
                     Não substitui avaliação profissional.
                   </p>
                 </div>
 
-                {/* Profile warning */}
                 {(!profile?.height || !profile?.weight) && (
                   <div className="bg-rose-50 border border-rose-100 rounded-xl px-4 py-3 mb-6">
                     <p className="text-rose-600 text-xs text-center font-light">
@@ -396,7 +435,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
             </motion.div>
           )}
 
-          {/* ── Camera (front or side) ──────────────────────────────────── */}
+          {/* ── Camera ───────────────────────────────────────────────────────── */}
           {isCamera && (
             <motion.div
               key={step}
@@ -405,13 +444,11 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
               exit={{ opacity: 0 }}
               className="h-full flex flex-col"
             >
-              {/* Pose label + multi-scan progress */}
               <div className="px-4 py-3 flex items-center justify-between gap-3 bg-[#0a0a0a]">
                 <span className="text-white/50 text-xs font-light tracking-widest uppercase shrink-0">
                   {step === 'front' ? 'Pose Frontal' : 'Perfil Direito'}
                 </span>
 
-                {/* Progress bar — 1/3, 2/3, 3/3 */}
                 <div className="flex items-center gap-1.5 flex-1 max-w-[120px]">
                   {Array.from({ length: TARGET_VALID }).map((_, i) => (
                     <div
@@ -427,7 +464,6 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                 </div>
               </div>
 
-              {/* Camera */}
               <div className="flex-1 relative">
                 <BodyScanCamera
                   pose={step as ScanPose}
@@ -440,7 +476,6 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   onError={(msg: string) => setCameraError(msg)}
                 />
 
-                {/* Discard hint banner — shown after a low-confidence cycle */}
                 <AnimatePresence>
                   {lastDiscardHint && (
                     <motion.div
@@ -457,7 +492,6 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                 </AnimatePresence>
               </div>
 
-              {/* Camera error */}
               <AnimatePresence>
                 {cameraError && (
                   <motion.div
@@ -479,7 +513,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
             </motion.div>
           )}
 
-          {/* ── Saving ───────────────────────────────────────────────────── */}
+          {/* ── Saving ───────────────────────────────────────────────────────── */}
           {step === 'saving' && (
             <motion.div
               key="saving"
@@ -495,7 +529,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
             </motion.div>
           )}
 
-          {/* ── Result ───────────────────────────────────────────────────── */}
+          {/* ── Result ───────────────────────────────────────────────────────── */}
           {step === 'result' && finalMeasurements && (
             <motion.div
               key="result"
@@ -506,7 +540,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
             >
               <div className="max-w-sm mx-auto px-5 pt-6">
 
-                {/* Confidence badge + aggregation badge */}
+                {/* Badges */}
                 <div className="flex justify-center gap-2 mb-6 flex-wrap">
                   <div
                     className={`px-4 py-1.5 rounded-full text-xs font-light tracking-widest uppercase border ${
@@ -518,7 +552,6 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                     Confiança {finalMeasurements.estimation_confidence.toFixed(0)}%
                   </div>
 
-                  {/* Badge showing how many captures were aggregated */}
                   {validCaptures.length > 1 && (
                     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10">
                       <span className="material-symbols-outlined text-emerald-500 text-xs">check_circle</span>
@@ -529,8 +562,8 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   )}
                 </div>
 
-                {/* Main number — BF% */}
-                <div className="text-center mb-8">
+                {/* BF% hero */}
+                <div className="text-center mb-6">
                   <p className="text-stone-400 text-xs tracking-widest uppercase font-light mb-1">
                     Gordura Corporal
                   </p>
@@ -543,6 +576,11 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                     </span>
                     <span className="text-stone-400 text-lg mb-1.5 font-light">%</span>
                   </div>
+                  <p className="text-stone-400 text-[10px] mt-1 font-light">
+                    {finalMeasurements.bf_formula === 'navy'
+                      ? 'Fórmula da Marinha dos EUA (câmera-derivada)'
+                      : 'Fórmula de Deurenberg (IMC + idade + sexo)'}
+                  </p>
                   {progress?.bf_delta !== undefined && (
                     <p
                       className={`text-sm mt-1 ${
@@ -554,69 +592,120 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   )}
                 </div>
 
-                {/* Measurement cards grid */}
-                <div className="grid grid-cols-3 gap-3 mb-6">
+                {/* Clinical indices */}
+                {indices && (
+                  <div className="mb-5">
+                    <p className="text-stone-400 text-[10px] tracking-widest uppercase font-light mb-2 text-center">
+                      Índices Clínicos
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {indices.whr !== null && (
+                        <IndexChip
+                          label="RCQ"
+                          value={indices.whr.toFixed(2)}
+                          risk={whrRisk(indices.whr, gender)}
+                        />
+                      )}
+                      {indices.rce !== null && (
+                        <IndexChip
+                          label="RCE"
+                          value={indices.rce.toFixed(2)}
+                          risk={rceRisk(indices.rce)}
+                        />
+                      )}
+                      {indices.bmi !== null && (
+                        <IndexChip
+                          label="IMC"
+                          value={indices.bmi.toFixed(1)}
+                          risk={
+                            indices.bmi < 18.5 ? 'moderate'
+                            : indices.bmi < 25 ? 'low'
+                            : indices.bmi < 30 ? 'moderate'
+                            : 'high'
+                          }
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Main circumference cards */}
+                <p className="text-stone-400 text-[10px] tracking-widest uppercase font-light mb-2 text-center">
+                  Circunferências
+                </p>
+                <div className="grid grid-cols-3 gap-2 mb-3">
                   <MeasCard
                     label="Cintura"
                     value={finalMeasurements.waist_cm}
                     unit="cm"
+                    badge="📷"
                     delta={progress?.waist_delta}
                   />
                   <MeasCard
                     label="Quadril"
                     value={finalMeasurements.hip_cm}
                     unit="cm"
+                    badge="📷"
                     delta={progress?.hip_delta}
                   />
                   <MeasCard
                     label="Busto"
                     value={finalMeasurements.bust_cm}
                     unit="cm"
+                    badge="📷"
                   />
                 </div>
 
+                {/* Neck (if detected) */}
+                {finalMeasurements.neck_cm !== null && (
+                  <div className="grid grid-cols-1 gap-2 mb-3">
+                    <MeasCard
+                      label="Pescoço"
+                      value={finalMeasurements.neck_cm}
+                      unit="cm"
+                      badge="📷 ±2cm"
+                    />
+                  </div>
+                )}
+
+                {/* Legend */}
+                <div className="flex gap-4 justify-center text-[10px] text-stone-400 font-light mb-5">
+                  <span>📷 Câmera-derivado</span>
+                  <span>📊 Estimativa estatística</span>
+                </div>
+
                 {/* Disclaimer */}
-                <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-6">
+                <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-5">
                   <p className="text-amber-700 text-xs text-center font-light leading-relaxed">
-                    Estimativa local com margem ±4 cm / ±4%.
-                    BF% calculado pela fórmula de Deurenberg (IMC + idade + sexo).
-                    Use para acompanhar evolução, não como diagnóstico.
+                    Circunferências com margem ±2 cm (scan lateral) a ±4 cm (regressão).
+                    BF% com margem ±4%. Use para acompanhar evolução, não como diagnóstico.
                   </p>
                 </div>
 
-                {/* Save error */}
                 {saveError && (
-                  <div className="bg-rose-50 border border-rose-100 rounded-xl px-4 py-3 mb-6">
+                  <div className="bg-rose-50 border border-rose-100 rounded-xl px-4 py-3 mb-5">
                     <p className="text-rose-600 text-xs text-center font-light">
                       Não foi possível salvar: {saveError}
                     </p>
                   </div>
                 )}
 
-                {/* Reference data used */}
                 <div className="flex justify-center gap-6 text-xs text-stone-400 font-light mb-8">
                   <span>Altura: {heightCm} cm</span>
                   <span>Peso: {weightKg} kg</span>
                   <span>Idade: {age} a</span>
                 </div>
 
-                {/* Actions */}
                 <div className="space-y-3">
                   <button
-                    onClick={() => {
-                      onScanComplete?.();
-                      onClose();
-                    }}
+                    onClick={() => { onScanComplete?.(); onClose(); }}
                     className="w-full text-white rounded-2xl py-4 font-light tracking-wider transition-opacity hover:opacity-90 active:scale-[0.98]"
                     style={{ background: '#7d4a3c' }}
                   >
                     Concluir
                   </button>
                   <button
-                    onClick={() => {
-                      resetSession();
-                      setStep('tutorial');
-                    }}
+                    onClick={() => { resetSession(); setStep('tutorial'); }}
                     className="w-full text-stone-500 text-sm font-light py-2 hover:text-stone-700 transition-colors"
                   >
                     Fazer novo scan

@@ -42,6 +42,11 @@ export type ScanPose = 'front' | 'side';
 export interface BodyScanCaptureResult {
   pose: ScanPose;
   measurements: AnthroMeasurements;
+  /** Raw landmarks from the captured frame — used by BodyScanner to recompute
+   *  measurements with depth information from the paired side/front scan. */
+  landmarks: PoseLandmark[];
+  frameWidth: number;
+  frameHeight: number;
   /** JPEG data-URL of the captured frame (not uploaded — stays on device) */
   imageDataUrl: string;
 }
@@ -279,7 +284,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
       stopCamera();
 
-      onCapture({ pose, measurements, imageDataUrl });
+      onCapture({ pose, measurements, landmarks, frameWidth: frameW, frameHeight: frameH, imageDataUrl });
     },
     [heightCm, weightKg, age, gender, pose, onCapture, onError, stopCamera, speak],
   );
