@@ -416,6 +416,38 @@ export const consultationService = {
     return data as unknown as Consultation;
   },
 
+  // Reagendar consulta (médico sugere nova data)
+  async rescheduleConsultation(consultationId: string, newScheduledAt: string, message?: string): Promise<Consultation> {
+    const { data, error } = await supabase
+      .from('consultations')
+      .update({
+        scheduled_at: newScheduledAt,
+        ...(message ? { notes: `[Reagendado pelo médico] ${message}` } : {}),
+      })
+      .eq('id', consultationId)
+      .select('*, patient_id')
+      .single();
+
+    if (error) throw error;
+
+    // Notificar o paciente sobre o reagendamento
+    if (data?.patient_id) {
+      const newDate = new Date(newScheduledAt).toLocaleString('pt-BR', {
+        weekday: 'long', day: 'numeric', month: 'long',
+        hour: '2-digit', minute: '2-digit',
+      });
+      await supabase.from('notifications').insert({
+        user_id: data.patient_id,
+        type: 'appointment_rescheduled',
+        title: 'Consulta reagendada',
+        body: `Sua consulta foi reagendada para ${newDate}.${message ? ` Mensagem do médico: ${message}` : ''}`,
+        data: { consultation_id: consultationId },
+      }).select().maybeSingle();
+    }
+
+    return data as unknown as Consultation;
+  },
+
   // Criar consulta
   async createConsultation(consultation: Partial<Consultation>): Promise<Consultation> {
     const { data, error } = await supabase

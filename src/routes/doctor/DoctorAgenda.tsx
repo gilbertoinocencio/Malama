@@ -7,7 +7,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
   Save, X, Trash2, AlertTriangle, Video, FileText, CheckCircle,
   Copy, ChevronLeft, ChevronRight, Calendar, LogOut, LayoutGrid,
-  CalendarDays, User, Clock, CreditCard, ChevronDown
+  CalendarDays, User, Clock, ChevronDown, RefreshCw, MessageSquare
 } from 'lucide-react';
 import { availabilityService, consultationService } from '../../services/doctorPortalService';
 import type { Doctor, DoctorAvailability, Consultation } from '../../types/doctorPortal';
@@ -141,7 +141,8 @@ const ConsultSidebar: React.FC<{
   onCloseConsult: () => void;
   onNoShow: () => void;
   onCancel: () => void;
-}> = ({ consult, duration, onClose, onViewProfile, onStartVideo, onCloseConsult, onNoShow, onCancel }) => {
+  onReschedule: () => void;
+}> = ({ consult, duration, onClose, onViewProfile, onStartVideo, onCloseConsult, onNoShow, onCancel, onReschedule }) => {
   const s = st(consult.status);
   const isScheduled = consult.status === 'scheduled';
   const time = fmtTime(consult.scheduled_at);
@@ -167,7 +168,7 @@ const ConsultSidebar: React.FC<{
       </div>
 
       {/* Info */}
-      <div className="p-4 space-y-3 flex-1 overflow-y-auto">
+      <div className="p-4 space-y-2.5 flex-1 overflow-y-auto">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <Clock className="w-4 h-4 text-gray-400 shrink-0" />
           <div>
@@ -181,64 +182,59 @@ const ConsultSidebar: React.FC<{
           <span>{TYPE_LABELS[consult.type] ?? consult.type}</span>
         </div>
 
-        <div className="flex items-center gap-2 text-sm">
-          <CreditCard className="w-4 h-4 text-gray-400 shrink-0" />
-          {consult.payment_status === 'paid' ? (
-            <span className="flex items-center gap-1 text-green-700 font-medium">
-              <CheckCircle className="w-3.5 h-3.5" /> Pagamento confirmado
-            </span>
-          ) : (
-            <span className="text-amber-700 font-medium">Pagamento pendente</span>
+        {/* Actions */}
+        <div className="border-t border-gray-100 pt-3 space-y-2">
+          <button
+            onClick={onViewProfile}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-medium transition"
+          >
+            <FileText className="w-4 h-4 text-gray-500" />
+            Ver ficha do paciente
+          </button>
+
+          {isScheduled && (
+            <>
+              <button
+                onClick={onStartVideo}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#7d4a3c]/5 hover:bg-[#7d4a3c]/10 text-[#7d4a3c] text-sm font-medium transition"
+              >
+                <Video className="w-4 h-4" />
+                Iniciar videoconsulta
+              </button>
+
+              <button
+                onClick={onCloseConsult}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition"
+              >
+                <LogOut className="w-4 h-4" />
+                Encerrar e preencher prontuário
+              </button>
+
+              {/* Reagendar — reduz atrito com paciente */}
+              <button
+                onClick={onReschedule}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-medium transition"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Sugerir reagendamento
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={onNoShow}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-medium transition"
+                >
+                  <X className="w-3.5 h-3.5" /> Registrar falta
+                </button>
+                <button
+                  onClick={onCancel}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium transition"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Cancelar
+                </button>
+              </div>
+            </>
           )}
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-gray-100 pt-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ações</p>
-          <div className="space-y-2">
-            <button
-              onClick={onViewProfile}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-medium transition"
-            >
-              <FileText className="w-4 h-4 text-gray-500" />
-              Ver ficha do paciente
-            </button>
-
-            {isScheduled && (
-              <>
-                <button
-                  onClick={onStartVideo}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#7d4a3c]/5 hover:bg-[#7d4a3c]/10 text-[#7d4a3c] text-sm font-medium transition"
-                >
-                  <Video className="w-4 h-4" />
-                  Iniciar videoconsulta
-                </button>
-
-                <button
-                  onClick={onCloseConsult}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Encerrar e preencher prontuário
-                </button>
-
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={onNoShow}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-medium transition"
-                  >
-                    <X className="w-3.5 h-3.5" /> Registrar falta
-                  </button>
-                  <button
-                    onClick={onCancel}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium transition"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Cancelar
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
         </div>
       </div>
     </div>
@@ -272,6 +268,11 @@ export const DoctorAgenda: React.FC = () => {
   const [showCancelModal, setShowCancelModal] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [closeGate, setCloseGate] = useState<Consultation | null>(null);
+  const [rescheduleTarget, setRescheduleTarget] = useState<Consultation | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  const [rescheduleMsg, setRescheduleMsg] = useState('');
+  const [rescheduling, setRescheduling] = useState(false);
 
   const duration = doctor?.consultation_duration || 20;
 
@@ -459,6 +460,31 @@ export const DoctorAgenda: React.FC = () => {
     } catch { toast.error('Erro ao registrar falta'); }
   };
 
+  const handleReschedule = async () => {
+    if (!rescheduleTarget || !rescheduleDate || !rescheduleTime) return;
+    setRescheduling(true);
+    try {
+      const newISO = new Date(`${rescheduleDate}T${rescheduleTime}:00`).toISOString();
+      await consultationService.rescheduleConsultation(rescheduleTarget.id, newISO, rescheduleMsg || undefined);
+      toast.success('Consulta reagendada e paciente notificado!');
+      setRescheduleTarget(null);
+      setRescheduleDate('');
+      setRescheduleTime('');
+      setRescheduleMsg('');
+      setSelectedConsult(null);
+      await loadCalendarData();
+    } catch { toast.error('Erro ao reagendar consulta'); }
+    finally { setRescheduling(false); }
+  };
+
+  const openReschedule = (consult: Consultation) => {
+    const d = new Date(consult.scheduled_at);
+    setRescheduleDate(formatDateISO(d));
+    setRescheduleTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
+    setRescheduleMsg('');
+    setRescheduleTarget(consult);
+  };
+
   // ── Save availability ────────────────────────────────────────────────────────
   const handleSaveAvailability = async () => {
     if (!doctor) return;
@@ -524,6 +550,7 @@ export const DoctorAgenda: React.FC = () => {
     onCloseConsult: () => { setCloseGate(selectedConsult); },
     onNoShow: () => handleNoShow(selectedConsult.id),
     onCancel: () => setShowCancelModal(selectedConsult.id),
+    onReschedule: () => openReschedule(selectedConsult),
   } : null;
 
   return (
@@ -889,6 +916,98 @@ export const DoctorAgenda: React.FC = () => {
             setSelectedConsult(null);
           }}
         />
+      )}
+
+      {/* ══ Modal: Reagendar Consulta ══════════════════════════════════════ */}
+      {rescheduleTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setRescheduleTarget(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                <RefreshCw className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-800">Sugerir reagendamento</h3>
+                <p className="text-xs text-gray-500">{rescheduleTarget.patient_name || 'Paciente'}</p>
+              </div>
+              <button onClick={() => setRescheduleTarget(null)} className="ml-auto p-1.5 hover:bg-gray-100 rounded-lg">
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Nova data */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nova data</label>
+                <input
+                  type="date"
+                  value={rescheduleDate}
+                  min={formatDateISO(new Date())}
+                  onChange={e => setRescheduleDate(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm text-gray-800"
+                />
+              </div>
+
+              {/* Novo horário */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Novo horário</label>
+                <input
+                  type="time"
+                  value={rescheduleTime}
+                  onChange={e => setRescheduleTime(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm text-gray-800"
+                />
+              </div>
+
+              {/* Mensagem opcional */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
+                    Mensagem para o paciente
+                    <span className="text-gray-400 font-normal">(opcional)</span>
+                  </span>
+                </label>
+                <textarea
+                  value={rescheduleMsg}
+                  onChange={e => setRescheduleMsg(e.target.value)}
+                  rows={2}
+                  placeholder="Ex: Preciso ajustar minha agenda. Nova proposta de horário."
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm text-gray-700 resize-none"
+                />
+              </div>
+
+              {/* Preview */}
+              {rescheduleDate && rescheduleTime && (
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-blue-50 rounded-xl">
+                  <Clock className="w-4 h-4 text-blue-500 shrink-0" />
+                  <p className="text-sm text-blue-700 font-medium">
+                    {new Date(`${rescheduleDate}T${rescheduleTime}`).toLocaleDateString('pt-BR', {
+                      weekday: 'long', day: 'numeric', month: 'long',
+                    })} às {rescheduleTime}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => setRescheduleTarget(null)} className="flex-1 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition">
+                Cancelar
+              </button>
+              <button
+                onClick={handleReschedule}
+                disabled={!rescheduleDate || !rescheduleTime || rescheduling}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition"
+              >
+                {rescheduling ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                {rescheduling ? 'Reagendando...' : 'Confirmar e notificar paciente'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ══ Modal: Cancelar Consulta ════════════════════════════════════════ */}
