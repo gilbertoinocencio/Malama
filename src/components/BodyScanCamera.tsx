@@ -175,6 +175,12 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   const prevLandmarks = useRef<PoseLandmark[] | null>(null);
   const rafRef        = useRef<number>(0);
   const capturedRef   = useRef(false);
+  /** Always holds the freshest statusMsg for use inside interval callbacks. */
+  const statusMsgRef  = useRef('');
+  /** Interval ID for periodic re-speak when user is stuck in same state. */
+  const repeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Prevents saying the stability greeting more than once per pose cycle. */
+  const stableGreetedRef = useRef(false);
 
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [step, setStep]             = useState<CameraStep>('loading');
@@ -191,15 +197,30 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
     window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
     utt.lang = 'pt-BR';
-    utt.rate = 0.95;
+    utt.rate = 0.92;
+    utt.pitch = 1.0;
     window.speechSynthesis.speak(utt);
   }, []);
 
-  // Speak every time the instruction changes
+  // Keep ref in sync so interval callback always reads the freshest message
+  statusMsgRef.current = statusMsg;
+
+  // Speak immediately when message changes; repeat every 9 s while stuck in same state.
+  // This ensures the user hears guidance even if they miss the first prompt.
   useEffect(() => {
-    if (step !== 'loading' && step !== 'captured' && statusMsg) {
-      speak(statusMsg);
+    if (step === 'loading' || step === 'captured' || !statusMsg) {
+      if (repeatTimerRef.current) { clearInterval(repeatTimerRef.current); repeatTimerRef.current = null; }
+      return;
     }
+
+    speak(statusMsg);
+
+    if (repeatTimerRef.current) clearInterval(repeatTimerRef.current);
+    repeatTimerRef.current = setInterval(() => speak(statusMsgRef.current), 9000);
+
+    return () => {
+      if (repeatTimerRef.current) { clearInterval(repeatTimerRef.current); repeatTimerRef.current = null; }
+    };
   }, [statusMsg]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Camera ─────────────────────────────────────────────────────────────────
@@ -270,8 +291,10 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         return;
       }
 
-      // Speak confirmation
-      speak('Perfeito');
+      // Pose-aware capture confirmation
+      speak(pose === 'front'
+        ? 'Perfeito! Agora vire o corpo para o lado direito'
+        : 'Scan concluído!');
 
       // Capture JPEG — stays 100% local, never uploaded
       const canvas = document.createElement('canvas');
@@ -316,7 +339,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         setStatusMsg(
           pose === 'front'
             ? 'Posicione-se de frente para a câmera'
-            : 'Vire 90° para o lado direito',
+            : 'Vire o corpo completamente para o lado direito',
         );
         drawGuideLines(ctx, frameW, frameH, false);
         setFrameValid(false);
@@ -346,7 +369,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         setStep('liveness');
         setLivenessPct(livenessRef.current.progress);
         livenessRef.current.addFrame(landmarks);
-        setStatusMsg('Levante o braço direito acima do ombro');
+        setStatusMsg('Levante o braço direito acima do ombro direito');
         prevLandmarks.current = landmarks;
         rafRef.current = requestAnimationFrame(runLoop);
         return;
@@ -354,20 +377,21 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
       // ── Positioning ─────────────────────────────────────────────────────
       if (!positionOk) {
+        stableGreetedRef.current = false;
         stabilityRef.current.reset();
         setStabilityPct(0);
 
         if (!dist.valid) {
           setStatusMsg(
             dist.status === 'too_close'
-              ? 'Afaste-se um pouco da câmera'
+              ? 'Afaste-se da câmera'
               : 'Aproxime-se da câmera',
           );
         } else if (!orientationOk) {
           setStatusMsg(
             pose === 'front'
-              ? 'Vire de frente para a câmera'
-              : 'Vire 90° para o lado direito',
+              ? 'Vire o rosto e o corpo de frente para a câmera'
+              : 'Vire o corpo de lado — fique de perfil para a câmera',
           );
         }
 
@@ -377,8 +401,14 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         return;
       }
 
+      // ── Stable entry: greet only once per pose cycle ─────────────────────
       setStep('stable');
-      setStatusMsg('Não se mexa');
+      if (!stableGreetedRef.current) {
+        stableGreetedRef.current = true;
+        setStatusMsg('Ótimo! Agora fique bem imóvel');
+      } else {
+        setStatusMsg('Fique imóvel');
+      }
 
       // ── Stability ────────────────────────────────────────────────────────
       const isStable = stabilityRef.current.addFrame(landmarks, prevLandmarks.current, now);
@@ -401,9 +431,11 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   useEffect(() => {
     let mounted = true;
     capturedRef.current = false;
+    stableGreetedRef.current = false;
     stabilityRef.current.reset();
     livenessRef.current.reset();
     prevLandmarks.current = null;
+    if (repeatTimerRef.current) { clearInterval(repeatTimerRef.current); repeatTimerRef.current = null; }
     setStep('loading');
 
     const provider = new MediaPipeProvider();
@@ -418,10 +450,10 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         setStep(requireLiveness ? 'liveness' : 'positioning');
         setStatusMsg(
           requireLiveness
-            ? 'Levante o braço direito acima do ombro'
+            ? 'Levante o braço direito acima do ombro direito'
             : pose === 'front'
               ? 'Posicione-se de frente para a câmera'
-              : 'Vire 90° para o lado direito',
+              : 'Agora vire o corpo para o lado direito e fique de perfil',
         );
         rafRef.current = requestAnimationFrame(runLoop);
       } catch (err) {
@@ -436,6 +468,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       stopCamera();
       provider.destroy();
       window.speechSynthesis?.cancel();
+      if (repeatTimerRef.current) { clearInterval(repeatTimerRef.current); repeatTimerRef.current = null; }
     };
   }, [pose, facingMode]); // eslint-disable-line react-hooks/exhaustive-deps
 

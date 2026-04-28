@@ -1160,6 +1160,241 @@ export const dashboardService = {
       recurringPatientsPercentage,
       averageConsultationTime
     };
+  },
+
+  async getAdvancedData(doctorId: string): Promise<import('../types/doctorPortal').AdvancedDashboardData> {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const tenDaysAgo = new Date(now);
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // 1. Buscar todos os IDs de pacientes do médico
+    const { data: allConsults } = await supabase
+      .from('consultations')
+      .select('patient_id, type')
+      .eq('doctor_id', doctorId);
+
+    const allPatientIds = [...new Set((allConsults || []).map(c => c.patient_id))];
+
+    // 2. Funil de conversão — indicados pelo link do médico
+    const { data: referredProfiles } = await supabase
+      .from('profiles')
+      .select('id, created_at')
+      .eq('referred_by_doctor_id', doctorId);
+
+    const totalReferred = referredProfiles?.length || 0;
+    const referredIds = (referredProfiles || []).map(p => p.id);
+    const referredThisMonth = (referredProfiles || []).filter(p =>
+      new Date(p.created_at) >= firstOfMonth
+    ).length;
+
+    let referredScheduled = 0;
+    if (referredIds.length > 0) {
+      const { count } = await supabase
+        .from('consultations')
+        .select('patient_id', { count: 'exact', head: true })
+        .in('patient_id', referredIds);
+      // count the unique referred patients who booked
+      const { data: bookedReferred } = await supabase
+        .from('consultations')
+        .select('patient_id')
+        .in('patient_id', referredIds);
+      referredScheduled = new Set((bookedReferred || []).map(c => c.patient_id)).size;
+    }
+    const conversionRate = totalReferred > 0 ? Math.round((referredScheduled / totalReferred) * 100) : 0;
+
+    // 3. Taxa de retenção — pacientes com consulta do tipo follow_up
+    const followUpPatients = new Set((allConsults || []).filter(c => c.type === 'follow_up').map(c => c.patient_id));
+    const retentionRate = allPatientIds.length > 0
+      ? Math.round((followUpPatients.size / allPatientIds.length) * 100)
+      : 0;
+
+    // Early return se não há pacientes
+    if (allPatientIds.length === 0) {
+      return {
+        alertPatients: [],
+        avgWeightLossKg: 0,
+        retentionRate: 0,
+        avgAdherence: 0,
+        avgMood: 0,
+        totalReferred,
+        referredScheduled,
+        conversionRate,
+        referredThisMonth,
+      };
+    }
+
+    // 4. Métricas de peso dos pacientes (últimos 30 dias)
+    const { data: weightLogs } = await supabase
+      .from('daily_logs')
+      .select('user_id, date, weight')
+      .in('user_id', allPatientIds)
+      .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+      .not('weight', 'is', null)
+      .order('date', { ascending: true });
+
+    let avgWeightLossKg = 0;
+    if (weightLogs && weightLogs.length > 0) {
+      const byPatient: Record<string, { first: number; last: number }> = {};
+      for (const log of weightLogs) {
+        if (!log.weight) continue;
+        if (!byPatient[log.user_id]) byPatient[log.user_id] = { first: log.weight, last: log.weight };
+        byPatient[log.user_id].last = log.weight;
+      }
+      const losses = Object.values(byPatient).map(p => p.first - p.last).filter(l => l > 0);
+      avgWeightLossKg = losses.length > 0 ? parseFloat((losses.reduce((a, b) => a + b, 0) / losses.length).toFixed(1)) : 0;
+    }
+
+    // 5. Engajamento — adesão média (refeições registradas nos últimos 30 dias)
+    const { data: mealLogs } = await supabase
+      .from('meals')
+      .select('user_id, created_at')
+      .in('user_id', allPatientIds)
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    let avgAdherence = 0;
+    if (mealLogs && mealLogs.length > 0) {
+      const daysByPatient: Record<string, Set<string>> = {};
+      for (const meal of mealLogs) {
+        if (!daysByPatient[meal.user_id]) daysByPatient[meal.user_id] = new Set();
+        daysByPatient[meal.user_id].add(meal.created_at.split('T')[0]);
+      }
+      const adherences = Object.values(daysByPatient).map(days => Math.min(100, Math.round((days.size / 30) * 100)));
+      avgAdherence = Math.round(adherences.reduce((a, b) => a + b, 0) / adherences.length);
+    }
+
+    // 6. Humor médio dos pacientes (últimos 7 dias)
+    const { data: checkins } = await supabase
+      .from('daily_checkins')
+      .select('user_id, checkin_date, mood, symptoms')
+      .in('user_id', allPatientIds)
+      .gte('checkin_date', sevenDaysAgo.toISOString().split('T')[0]);
+
+    let avgMood = 0;
+    if (checkins && checkins.length > 0) {
+      const moods = checkins.map(c => c.mood).filter(Boolean) as number[];
+      avgMood = moods.length > 0 ? parseFloat((moods.reduce((a, b) => a + b, 0) / moods.length).toFixed(1)) : 0;
+    }
+
+    // 7. Alertas de atenção
+    const alertPatients: import('../types/doctorPortal').AlertPatient[] = [];
+
+    // 7a. Sintomas críticos (últimos 7 dias)
+    const criticalSymptomKeywords = ['náusea severa', 'vômito', 'dor abdominal', 'tontura forte', 'desmaio', 'febre'];
+    if (checkins) {
+      const profileIds = [...new Set(checkins.map(c => c.user_id))];
+      const { data: alertProfiles } = profileIds.length > 0
+        ? await supabase.from('profiles').select('id, display_name, avatar_url').in('id', profileIds)
+        : { data: [] };
+      const profileMap: Record<string, any> = {};
+      (alertProfiles || []).forEach(p => { profileMap[p.id] = p; });
+
+      for (const checkin of checkins) {
+        const symptoms: string[] = Array.isArray(checkin.symptoms)
+          ? checkin.symptoms
+          : (typeof checkin.symptoms === 'string' ? JSON.parse(checkin.symptoms || '[]') : []);
+        const hasCritical = symptoms.some(s =>
+          criticalSymptomKeywords.some(k => s.toLowerCase().includes(k))
+        );
+        if (hasCritical && !alertPatients.find(a => a.id === checkin.user_id)) {
+          const p = profileMap[checkin.user_id];
+          alertPatients.push({
+            id: checkin.user_id,
+            name: p?.display_name || 'Paciente',
+            photo_url: p?.avatar_url || null,
+            alertType: 'symptom',
+            detail: `Sintoma crítico: ${symptoms.filter(s => criticalSymptomKeywords.some(k => s.toLowerCase().includes(k))).join(', ')}`,
+          });
+        }
+      }
+    }
+
+    // 7b. Baixa adesão (menos de 3 dias de registro nos últimos 10 dias)
+    const { data: recentMeals } = await supabase
+      .from('meals')
+      .select('user_id, created_at')
+      .in('user_id', allPatientIds)
+      .gte('created_at', tenDaysAgo.toISOString());
+
+    const daysByPatientRecent: Record<string, Set<string>> = {};
+    (recentMeals || []).forEach(m => {
+      if (!daysByPatientRecent[m.user_id]) daysByPatientRecent[m.user_id] = new Set();
+      daysByPatientRecent[m.user_id].add(m.created_at.split('T')[0]);
+    });
+
+    const lowAdherenceIds = allPatientIds.filter(id => (daysByPatientRecent[id]?.size || 0) < 3);
+    if (lowAdherenceIds.length > 0) {
+      const { data: lowProfiles } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', lowAdherenceIds);
+      (lowProfiles || []).forEach(p => {
+        if (!alertPatients.find(a => a.id === p.id)) {
+          const days = daysByPatientRecent[p.id]?.size || 0;
+          alertPatients.push({
+            id: p.id,
+            name: p.display_name || 'Paciente',
+            photo_url: p.avatar_url || null,
+            alertType: 'low_adherence',
+            detail: `Apenas ${days} dias com registro nos últimos 10 dias`,
+          });
+        }
+      });
+    }
+
+    // 7c. Estagnação de peso (peso não reduziu nas últimas 3 pesagens)
+    const { data: recentWeights } = await supabase
+      .from('daily_logs')
+      .select('user_id, date, weight')
+      .in('user_id', allPatientIds)
+      .not('weight', 'is', null)
+      .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+      .order('date', { ascending: false });
+
+    const weightsByPatient: Record<string, number[]> = {};
+    (recentWeights || []).forEach(log => {
+      if (!weightsByPatient[log.user_id]) weightsByPatient[log.user_id] = [];
+      if (weightsByPatient[log.user_id].length < 3) weightsByPatient[log.user_id].push(log.weight);
+    });
+
+    const stagnantIds = Object.entries(weightsByPatient)
+      .filter(([, weights]) => weights.length >= 3 && weights[0] >= weights[2])
+      .map(([id]) => id);
+
+    if (stagnantIds.length > 0) {
+      const { data: stagnantProfiles } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', stagnantIds);
+      (stagnantProfiles || []).forEach(p => {
+        if (!alertPatients.find(a => a.id === p.id)) {
+          const weights = weightsByPatient[p.id];
+          alertPatients.push({
+            id: p.id,
+            name: p.display_name || 'Paciente',
+            photo_url: p.avatar_url || null,
+            alertType: 'weight_stagnation',
+            detail: `Peso estagnado: ${weights[weights.length - 1]}kg → ${weights[0]}kg`,
+          });
+        }
+      });
+    }
+
+    return {
+      alertPatients,
+      avgWeightLossKg,
+      retentionRate,
+      avgAdherence,
+      avgMood,
+      totalReferred,
+      referredScheduled,
+      conversionRate,
+      referredThisMonth,
+    };
   }
 };
 

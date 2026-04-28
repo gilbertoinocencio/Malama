@@ -6,14 +6,17 @@ import React, { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { Calendar, Clock, DollarSign, User, Video, UserPlus, Users, Timer } from 'lucide-react';
 import { dashboardService, consultationService } from '../../services/doctorPortalService';
-import type { Doctor, Consultation, DashboardSummary } from '../../types/doctorPortal';
+import type { Doctor, Consultation, DashboardSummary, AdvancedDashboardData } from '../../types/doctorPortal';
 import { ConsultationStatus } from '../../types/doctorPortal';
+import { DashboardAdvancedMetrics } from './DashboardAdvancedMetrics';
 
 export const DoctorDashboard: React.FC = () => {
   const { doctor } = useOutletContext<{ doctor: Doctor }>();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [upcomingConsultations, setUpcomingConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [advancedData, setAdvancedData] = useState<AdvancedDashboardData | null>(null);
+  const [advancedLoading, setAdvancedLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
@@ -34,6 +37,16 @@ export const DoctorDashboard: React.FC = () => {
         console.error('Error loading dashboard:', error);
       } finally {
         setLoading(false);
+      }
+
+      // Load advanced metrics separately (heavier queries)
+      try {
+        const advanced = await dashboardService.getAdvancedData(doctor.id);
+        setAdvancedData(advanced);
+      } catch (error) {
+        console.error('Error loading advanced dashboard data:', error);
+      } finally {
+        setAdvancedLoading(false);
       }
     };
 
@@ -169,6 +182,19 @@ export const DoctorDashboard: React.FC = () => {
           <p className="text-gray-600 text-sm">Tempo médio de consulta</p>
         </div>
       </div>
+
+      {/* Métricas Avançadas */}
+      <DashboardAdvancedMetrics data={advancedData ?? {
+        alertPatients: [],
+        avgWeightLossKg: 0,
+        retentionRate: 0,
+        avgAdherence: 0,
+        avgMood: 0,
+        totalReferred: 0,
+        referredScheduled: 0,
+        conversionRate: 0,
+        referredThisMonth: 0,
+      }} loading={advancedLoading} />
 
       {/* Próximas consultas */}
       <div className="bg-white rounded-xl shadow">
