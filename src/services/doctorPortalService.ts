@@ -1098,10 +1098,67 @@ export const dashboardService = {
 
     const pendingReceivable = receivables?.reduce((sum, c) => sum + (c.doctor_payout || 0), 0) || 0;
 
+    // Calcular tempo médio de consulta (consultas completadas)
+    const { data: completedConsultations } = await supabase
+      .from('consultations')
+      .select('started_at, ended_at')
+      .eq('doctor_id', doctorId)
+      .eq('status', 'completed');
+      
+    let totalTime = 0;
+    let validConsultations = 0;
+
+    if (completedConsultations) {
+      completedConsultations.forEach(c => {
+        if (c.started_at && c.ended_at) {
+          const start = new Date(c.started_at).getTime();
+          const end = new Date(c.ended_at).getTime();
+          const diffMinutes = (end - start) / (1000 * 60);
+          if (diffMinutes > 0 && diffMinutes < 300) { // Sanity check (max 5 hours)
+            totalTime += diffMinutes;
+            validConsultations++;
+          }
+        }
+      });
+    }
+    
+    const averageConsultationTime = validConsultations > 0 ? Math.round(totalTime / validConsultations) : 0;
+
+    // Calcular pacientes novos vs recorrentes
+    const { data: allConsultations } = await supabase
+      .from('consultations')
+      .select('patient_id')
+      .eq('doctor_id', doctorId);
+      
+    const patientCounts: Record<string, number> = {};
+    let newPatientsCount = 0;
+    let recurringPatientsCount = 0;
+    
+    if (allConsultations) {
+       allConsultations.forEach(c => {
+         patientCounts[c.patient_id] = (patientCounts[c.patient_id] || 0) + 1;
+       });
+       
+       const patients = Object.values(patientCounts);
+       patients.forEach(count => {
+         if (count === 1) newPatientsCount++;
+         else if (count > 1) recurringPatientsCount++;
+       });
+    }
+
+    const totalPatients = newPatientsCount + recurringPatientsCount;
+    const newPatientsPercentage = totalPatients > 0 ? Math.round((newPatientsCount / totalPatients) * 100) : 0;
+    const recurringPatientsPercentage = totalPatients > 0 ? Math.round((recurringPatientsCount / totalPatients) * 100) : 0;
+
     return {
       todayConsultations: todayConsultations.length,
       weekConsultations: weekConsultations.length,
-      pendingReceivable
+      pendingReceivable,
+      newPatientsCount,
+      newPatientsPercentage,
+      recurringPatientsCount,
+      recurringPatientsPercentage,
+      averageConsultationTime
     };
   }
 };

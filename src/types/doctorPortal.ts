@@ -257,6 +257,11 @@ export interface DashboardSummary {
   todayConsultations: number;
   weekConsultations: number;
   pendingReceivable: number;
+  newPatientsCount: number;
+  newPatientsPercentage: number;
+  recurringPatientsCount: number;
+  recurringPatientsPercentage: number;
+  averageConsultationTime: number;
 }
 
 export interface PatientSummary {

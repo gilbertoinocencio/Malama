@@ -4,7 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { Calendar, Clock, DollarSign, User, Video } from 'lucide-react';
+import { Calendar, Clock, DollarSign, User, Video, UserPlus, Users, Timer } from 'lucide-react';
 import { dashboardService, consultationService } from '../../services/doctorPortalService';
 import type { Doctor, Consultation, DashboardSummary } from '../../types/doctorPortal';
 import { ConsultationStatus } from '../../types/doctorPortal';
@@ -86,7 +86,7 @@ export const DoctorDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Cards de resumo */}
+      {/* Cards de resumo principais */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl shadow p-6">
           <div className="flex items-center justify-between mb-4">
@@ -121,6 +121,52 @@ export const DoctorDashboard: React.FC = () => {
             {formatCurrency(summary?.pendingReceivable || 0)}
           </p>
           <p className="text-gray-600 text-sm">A receber</p>
+        </div>
+      </div>
+
+      {/* Cards de métricas secundárias */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center">
+              <UserPlus className="w-6 h-6 text-indigo-600" />
+            </div>
+            {summary?.newPatientsCount !== undefined && (
+              <span className="text-sm font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">
+                {summary.newPatientsPercentage}% do total
+              </span>
+            )}
+          </div>
+          <p className="text-3xl font-bold text-gray-800">{summary?.newPatientsCount || 0}</p>
+          <p className="text-gray-600 text-sm">Novos pacientes</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
+              <Users className="w-6 h-6 text-orange-600" />
+            </div>
+            {summary?.recurringPatientsCount !== undefined && (
+              <span className="text-sm font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                {summary.recurringPatientsPercentage}% do total
+              </span>
+            )}
+          </div>
+          <p className="text-3xl font-bold text-gray-800">{summary?.recurringPatientsCount || 0}</p>
+          <p className="text-gray-600 text-sm">Pacientes recorrentes</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-lg bg-teal-100 flex items-center justify-center">
+              <Timer className="w-6 h-6 text-teal-600" />
+            </div>
+          </div>
+          <p className="text-3xl font-bold text-gray-800">
+            {summary?.averageConsultationTime || 0}
+            <span className="text-lg text-gray-500 font-normal ml-1">min</span>
+          </p>
+          <p className="text-gray-600 text-sm">Tempo médio de consulta</p>
         </div>
       </div>
 
