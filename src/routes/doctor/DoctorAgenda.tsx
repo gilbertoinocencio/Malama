@@ -681,86 +681,112 @@ export const DoctorAgenda: React.FC = () => {
         </div>
       </div>
 
-      {/* ══ Disponibilidade — recolhível ════════════════════════════════════ */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <button
-          onClick={() => setAvailabilityOpen(o => !o)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition"
-        >
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gray-400" />
-            <span className="text-sm font-semibold text-gray-700">Configurar Disponibilidade</span>
-            <span className="text-xs text-gray-400">
-              ({Object.values(availabilities).flat().length} horários)
-            </span>
-          </div>
-          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${availabilityOpen ? 'rotate-180' : ''}`} />
-        </button>
+      {/* ══ Trigger: Configurar Disponibilidade ══════════════════════════════ */}
+      <button
+        onClick={() => setAvailabilityOpen(true)}
+        className="w-full flex items-center justify-between px-4 py-2.5 bg-white rounded-xl border border-gray-100 shadow-sm hover:bg-gray-50 transition"
+      >
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-gray-400" />
+          <span className="text-sm font-semibold text-gray-700">Configurar Disponibilidade</span>
+          <span className="text-xs text-gray-400">
+            ({(Object.values(availabilities).flat() as DoctorAvailability[]).length} horários cadastrados)
+          </span>
+        </div>
+        <ChevronRight className="w-4 h-4 text-gray-400" />
+      </button>
 
-        {availabilityOpen && (
-          <div className="px-4 pb-4 border-t border-gray-100">
-            <div className="flex items-center justify-between py-2">
-              <p className="text-xs text-gray-500">Arraste da paleta ou copie de outro dia.</p>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setWeekOffset(p => p - 1)} className="p-1 hover:bg-gray-100 rounded transition">
-                  <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />
+      {/* ══ Modal: Disponibilidade ══════════════════════════════════════════ */}
+      {availabilityOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setAvailabilityOpen(false)} />
+          <div className="relative mt-auto bg-white rounded-t-2xl shadow-2xl flex flex-col" style={{ maxHeight: '85vh' }}>
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-[#7d4a3c]" />
+                <h3 className="text-base font-semibold text-gray-800">Configurar Disponibilidade</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Week navigation */}
+                <button onClick={() => setWeekOffset(p => p - 1)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                  <ChevronLeft className="w-4 h-4 text-gray-500" />
                 </button>
-                <span className="text-xs font-medium text-gray-600 px-1.5">
-                  {weekOffset === 0 ? 'Esta semana' : weekOffset === 1 ? 'Próx. semana' : weekOffset < 0 ? `${Math.abs(weekOffset)} sem. atrás` : `+${weekOffset} sem.`}
+                <span className="text-xs font-semibold text-gray-600 w-28 text-center">
+                  {weekOffset === 0 ? 'Esta semana' : weekOffset === 1 ? 'Próxima semana' : weekOffset < 0 ? `${Math.abs(weekOffset)} sem. atrás` : `+${weekOffset} semanas`}
                 </span>
-                <button onClick={() => setWeekOffset(p => p + 1)} className="p-1 hover:bg-gray-100 rounded transition">
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+                <button onClick={() => setWeekOffset(p => p + 1)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                </button>
+                <div className="w-px h-5 bg-gray-200 mx-1" />
+                <button onClick={() => setAvailabilityOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
+                  <X className="w-4 h-4 text-gray-500" />
                 </button>
               </div>
             </div>
 
-            <div className="flex gap-3 items-start">
+            {/* Modal body */}
+            <div className="flex gap-4 p-5 flex-1 overflow-hidden">
               {/* Paleta */}
-              <div className="w-36 shrink-0 bg-gray-50 rounded-lg border border-gray-200 p-2.5 max-h-72 flex flex-col">
-                <div className="flex items-center justify-between mb-1.5">
+              <div className="w-40 shrink-0 bg-gray-50 rounded-xl border border-gray-200 p-3 flex flex-col">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-gray-600">Paleta</span>
-                  <span className="text-[10px] bg-[#7d4a3c]/10 text-[#7d4a3c] font-bold px-1.5 py-0.5 rounded-full">{duration}min</span>
+                  <span className="text-[10px] bg-[#7d4a3c]/10 text-[#7d4a3c] font-bold px-1.5 py-0.5 rounded-full">{duration} min</span>
                 </div>
-                <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-1">
+                <p className="text-[10px] text-gray-400 mb-2">Arraste para as datas →</p>
+                <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-1.5">
                   {generateTimeSlots().map(t => (
-                    <div key={t} draggable onDragStart={e => handleDragStart(e, t)}
-                      className="bg-white border border-gray-200 text-gray-600 font-semibold text-[11px] text-center py-1 rounded cursor-grab hover:border-[#7d4a3c] hover:text-[#7d4a3c] transition">
+                    <div
+                      key={t}
+                      draggable
+                      onDragStart={e => handleDragStart(e, t)}
+                      className="bg-white border border-gray-200 text-gray-600 font-semibold text-xs text-center py-1.5 rounded-lg cursor-grab hover:border-[#7d4a3c] hover:text-[#7d4a3c] hover:shadow-sm transition"
+                    >
                       {t}
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Kanban */}
-              <div className="flex-1 overflow-x-auto">
-                <div className="flex gap-2 pb-1" style={{ minWidth: 'max-content' }}>
+              {/* Kanban – scrollable horizontally */}
+              <div className="flex-1 overflow-x-auto overflow-y-auto">
+                <div className="flex gap-3 pb-2 h-full" style={{ minWidth: 'max-content' }}>
                   {days.map(dayInfo => (
-                    <div key={dayInfo.dateStr} onDragOver={handleDragOver} onDrop={e => handleDrop(e, dayInfo.dateStr)}
-                      className={`rounded-lg p-2 border w-32 shrink-0 relative group transition ${dayInfo.isToday ? 'border-[#7d4a3c] bg-[#7d4a3c]/5' : 'border-dashed border-gray-300 hover:border-[#7d4a3c]/50 bg-gray-50/50'}`}
+                    <div
+                      key={dayInfo.dateStr}
+                      onDragOver={handleDragOver}
+                      onDrop={e => handleDrop(e, dayInfo.dateStr)}
+                      className={`rounded-xl p-3 border w-36 shrink-0 relative group transition flex flex-col ${dayInfo.isToday ? 'border-[#7d4a3c] bg-[#7d4a3c]/5' : 'border-dashed border-gray-300 hover:border-[#7d4a3c]/50 bg-gray-50/50'}`}
                     >
-                      <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-gray-200">
-                        <span className={`text-[11px] font-bold ${dayInfo.isToday ? 'text-[#7d4a3c]' : 'text-gray-600'}`}>{dayInfo.label}</span>
-                        <div className="flex items-center gap-0.5">
+                      <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200">
+                        <div>
+                          <span className={`text-xs font-bold block ${dayInfo.isToday ? 'text-[#7d4a3c]' : 'text-gray-700'}`}>{dayInfo.label}</span>
+                          {dayInfo.isToday && <span className="text-[9px] bg-[#7d4a3c] text-white px-1 rounded-full font-bold">HOJE</span>}
+                        </div>
+                        <div className="flex items-center gap-1">
                           <span className="text-[10px] text-gray-400">{availabilities[dayInfo.dateStr]?.length || 0}</span>
-                          <button onClick={() => { setShowCopyModal(dayInfo.dateStr); setCopyTargetDays([]); }} disabled={!availabilities[dayInfo.dateStr]?.length}
-                            className="p-0.5 bg-[#7d4a3c] text-white rounded opacity-0 group-hover:opacity-100 disabled:opacity-0 transition hover:bg-[#623a2f]">
+                          <button
+                            onClick={() => { setShowCopyModal(dayInfo.dateStr); setCopyTargetDays([]); }}
+                            disabled={!availabilities[dayInfo.dateStr]?.length}
+                            className="p-0.5 bg-[#7d4a3c] text-white rounded opacity-0 group-hover:opacity-100 disabled:opacity-0 transition"
+                          >
                             <Copy className="w-2.5 h-2.5" />
                           </button>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-1 min-h-[60px]">
-                        {!availabilities[dayInfo.dateStr]?.length
-                          ? <p className="text-[10px] text-gray-400 text-center mt-3 opacity-60">Solte aqui</p>
-                          : availabilities[dayInfo.dateStr].map(avail => (
-                            <div key={avail.id} className="bg-white border border-gray-200 rounded px-1.5 py-0.5 flex items-center justify-between group/slot hover:border-[#7d4a3c] transition">
-                              <span className="text-[11px] font-bold text-gray-700">{avail.start_time.slice(0, 5)}</span>
-                              <button onClick={() => removeTimeSlot(dayInfo.dateStr, avail.id)}
-                                className="text-gray-300 hover:text-red-500 opacity-0 group-hover/slot:opacity-100 transition">
-                                <X className="w-2.5 h-2.5" />
+                      <div className="flex flex-col gap-1.5 flex-1 overflow-y-auto">
+                        {!availabilities[dayInfo.dateStr]?.length ? (
+                          <p className="text-[10px] text-gray-400 text-center mt-4 opacity-60">Solte aqui</p>
+                        ) : (
+                          availabilities[dayInfo.dateStr].map(avail => (
+                            <div key={avail.id} className="bg-white border border-gray-200 rounded-lg px-2 py-1 flex items-center justify-between group/slot hover:border-[#7d4a3c] transition">
+                              <span className="text-xs font-bold text-gray-700">{avail.start_time.slice(0, 5)}</span>
+                              <button onClick={() => removeTimeSlot(dayInfo.dateStr, avail.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover/slot:opacity-100 transition">
+                                <X className="w-3 h-3" />
                               </button>
                             </div>
                           ))
-                        }
+                        )}
                       </div>
                     </div>
                   ))}
@@ -768,14 +794,28 @@ export const DoctorAgenda: React.FC = () => {
               </div>
             </div>
 
-            <button onClick={handleSaveAvailability} disabled={saving}
-              className="mt-3 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50">
-              <Save className="w-3.5 h-3.5" />
-              {saving ? 'Salvando...' : 'Salvar disponibilidades'}
-            </button>
+            {/* Modal footer */}
+            <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between shrink-0 bg-gray-50/50">
+              <p className="text-xs text-gray-400">
+                {(Object.values(availabilities).flat() as DoctorAvailability[]).length} horários cadastrados nesta quinzena
+              </p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setAvailabilityOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                  Fechar
+                </button>
+                <button
+                  onClick={async () => { await handleSaveAvailability(); setAvailabilityOpen(false); }}
+                  disabled={saving}
+                  className="px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50 transition"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {saving ? 'Salvando...' : 'Salvar e fechar'}
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ══ Modal: Copiar Horários ══════════════════════════════════════════ */}
       {showCopyModal !== null && (
