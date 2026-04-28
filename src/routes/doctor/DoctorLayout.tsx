@@ -35,20 +35,21 @@ export const DoctorLayout: React.FC = () => {
     setUnreadCount((data ?? []).filter((n: any) => !n.is_read).length);
   }, []);
 
-  useEffect(() => {
-    const loadDoctor = async () => {
-      try {
-        const d = await doctorService.getOwnDoctorProfile();
-        setDoctor(d);
-        if (d) refreshUnread();
-      } catch (error) {
-        console.error('Error loading doctor:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadDoctor();
+  const loadDoctor = useCallback(async () => {
+    try {
+      const d = await doctorService.getOwnDoctorProfile();
+      setDoctor(d);
+      if (d) refreshUnread();
+    } catch (error) {
+      console.error('Error loading doctor:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [refreshUnread]);
+
+  useEffect(() => {
+    loadDoctor();
+  }, [loadDoctor]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -224,7 +225,7 @@ export const DoctorLayout: React.FC = () => {
             <p className="text-gray-600 capitalize">{formatDate()}</p>
           </div>
 
-          <Outlet context={{ doctor }} />
+          <Outlet context={{ doctor, refreshDoctor: loadDoctor }} />
         </div>
       </main>
 

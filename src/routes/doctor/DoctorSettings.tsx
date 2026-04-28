@@ -11,7 +11,7 @@ import { SPECIALTY_OPTIONS, CONSULTATION_TYPE_OPTIONS, BRAZILIAN_STATES } from '
 import toast from 'react-hot-toast';
 
 export const DoctorSettings: React.FC = () => {
-  const { doctor: initialDoctor } = useOutletContext<{ doctor: Doctor }>();
+  const { doctor: initialDoctor, refreshDoctor } = useOutletContext<{ doctor: Doctor; refreshDoctor: () => Promise<void> }>();
   const [doctor, setDoctor] = useState<Doctor | null>(initialDoctor);
   const [activeSection, setActiveSection] = useState<'profile' | 'consultation' | 'financial' | 'certificate'>('profile');
   const [loading, setLoading] = useState(false);
@@ -117,6 +117,7 @@ export const DoctorSettings: React.FC = () => {
       });
 
       setDoctor(updated);
+      await refreshDoctor();
       toast.success('Perfil atualizado com sucesso!');
     } catch (error) {
       toast.error('Erro ao atualizar perfil');
@@ -135,6 +136,7 @@ export const DoctorSettings: React.FC = () => {
         consultation_duration: consultationDuration
       });
 
+      await refreshDoctor();
       toast.success('Configurações de consulta atualizadas!');
     } catch (error) {
       toast.error('Erro ao atualizar configurações');
@@ -152,6 +154,7 @@ export const DoctorSettings: React.FC = () => {
         pix_key: pixKey
       });
 
+      await refreshDoctor();
       toast.success('Configurações financeiras atualizadas!');
     } catch (error) {
       toast.error('Erro ao atualizar configurações financeiras');
