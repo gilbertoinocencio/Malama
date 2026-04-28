@@ -7,7 +7,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
   Save, X, Trash2, AlertTriangle, Video, FileText, CheckCircle,
   Copy, ChevronLeft, ChevronRight, Calendar, LogOut, LayoutGrid,
-  CalendarDays, User, Clock, ChevronDown, RefreshCw, MessageSquare
+  CalendarDays, User, Clock, ChevronDown, RefreshCw, MessageSquare, List
 } from 'lucide-react';
 import { availabilityService, consultationService } from '../../services/doctorPortalService';
 import type { Doctor, DoctorAvailability, Consultation } from '../../types/doctorPortal';
@@ -258,7 +258,7 @@ export const DoctorAgenda: React.FC = () => {
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
 
   // ── Calendar ────────────────────────────────────────────────────────────────
-  const [calendarView, setCalendarView] = useState<'day' | 'week'>('day');
+  const [calendarView, setCalendarView] = useState<'day' | 'week' | 'list'>('list');
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [consultationMap, setConsultationMap] = useState<Record<string, Consultation[]>>({});
   const [calendarLoading, setCalendarLoading] = useState(false);
@@ -569,6 +569,12 @@ export const DoctorAgenda: React.FC = () => {
         <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 bg-gray-50/50">
           <div className="flex bg-white border border-gray-200 rounded-lg p-0.5 gap-0.5 shrink-0">
             <button
+              onClick={() => { setCalendarView('list'); setSelectedConsult(null); }}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition ${calendarView === 'list' ? 'bg-[#7d4a3c] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}
+            >
+              <List className="w-3 h-3" /> Lista
+            </button>
+            <button
               onClick={() => { setCalendarView('day'); setSelectedConsult(null); }}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition ${calendarView === 'day' ? 'bg-[#7d4a3c] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}
             >
@@ -600,6 +606,73 @@ export const DoctorAgenda: React.FC = () => {
 
         {/* Calendar body + sidebar */}
         <div className="flex" style={{ height: 'calc(100vh - 220px)', minHeight: 480 }}>
+
+          {/* ─── List view ────────────────────────────────────────────────── */}
+          {calendarView === 'list' && (
+            <div className="flex-1 overflow-y-auto min-w-0 p-4">
+              {calendarLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="w-5 h-5 border-2 border-[#7d4a3c] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : dayConsults.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-center">
+                  <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+                    <Calendar className="w-7 h-7 text-gray-200" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">Nenhuma consulta neste dia</p>
+                  <p className="text-xs text-gray-400 mt-1">Navegue para outro dia ou veja a semana</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {dayConsults.map(c => {
+                    const s = st(c.status);
+                    const time = fmtTime(c.scheduled_at);
+                    const endMins = new Date(c.scheduled_at).getHours() * 60 + new Date(c.scheduled_at).getMinutes() + duration;
+                    const endTime = `${String(Math.floor(endMins / 60)).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
+                    const isSelected = selectedConsult?.id === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => setSelectedConsult(prev => prev?.id === c.id ? null : c)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all
+                          ${isSelected ? 'border-[#7d4a3c] ring-2 ring-[#7d4a3c]/20 shadow-sm' : `border-gray-100 hover:border-gray-200 hover:shadow-sm`}
+                          ${s.bg}`}
+                      >
+                        {/* Color bar */}
+                        <div className={`w-1 self-stretch rounded-full ${s.bar} shrink-0`} />
+
+                        {/* Time */}
+                        <div className="shrink-0 text-center w-16">
+                          <p className={`text-sm font-bold ${s.text}`}>{time}</p>
+                          <p className="text-[10px] text-gray-400">↓ {endTime}</p>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="w-px self-stretch bg-gray-200 shrink-0" />
+
+                        {/* Patient info */}
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-semibold text-sm truncate ${s.text}`}>
+                            {c.patient_name || 'Paciente'}
+                          </p>
+                          <p className="text-xs text-gray-500">{TYPE_LABELS[c.type] ?? c.type}</p>
+                        </div>
+
+                        {/* Badges */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${s.badge}`}>{s.label}</span>
+                          {c.payment_status === 'paid'
+                            ? <CheckCircle className="w-4 h-4 text-green-500" />
+                            : <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                          }
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ─── Day view ─────────────────────────────────────────────────── */}
           {calendarView === 'day' && (
