@@ -264,6 +264,26 @@ export interface DashboardSummary {
   averageConsultationTime: number;
 }
 
+export interface AlertPatient {
+  id: string;
+  name: string;
+  photo_url: string | null;
+  alertType: 'symptom' | 'low_adherence' | 'weight_stagnation';
+  detail: string;
+}
+
+export interface AdvancedDashboardData {
+  alertPatients: AlertPatient[];
+  avgWeightLossKg: number;
+  retentionRate: number;
+  avgAdherence: number;
+  avgMood: number;
+  totalReferred: number;
+  referredScheduled: number;
+  conversionRate: number;
+  referredThisMonth: number;
+}
+
 export interface PatientSummary {
   id: string;
   name: string;

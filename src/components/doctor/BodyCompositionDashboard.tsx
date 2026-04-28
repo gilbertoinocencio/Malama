@@ -169,7 +169,7 @@ export const BodyCompositionDashboard: React.FC<Props> = ({ patientId, gender })
     height_cm:     latest.height_cm ?? 170,
     weight_kg:     latest.weight_kg ?? 70,
     bf_percentage: latest.avg_body_fat_pct ?? undefined,
-    gender,
+    gender: resolvedGender,
   });
 
   // Chart data — BF% timeline
@@ -247,7 +247,7 @@ export const BodyCompositionDashboard: React.FC<Props> = ({ patientId, gender })
               description="Body Adiposity Index"
               value={indices.bai.toFixed(1)}
               risk={
-                gender === 'female'
+                resolvedGender === 'female'
                   ? indices.bai < 21 ? 'moderate' : indices.bai < 33 ? 'low' : indices.bai < 39 ? 'moderate' : 'high'
                   : indices.bai < 8  ? 'moderate' : indices.bai < 21 ? 'low' : indices.bai < 26 ? 'moderate' : 'high'
               }

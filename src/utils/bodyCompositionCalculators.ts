@@ -96,7 +96,6 @@ export function computeClinicalIndices(params: {
     absi = Math.round((waist_m / (Math.pow(bmi, 2 / 3) * Math.pow(height_m, 0.5))) * 10000) / 10000;
   }
 
-  void gender; // used in risk thresholds below, kept for future use
   return { whr, rce, bai, ffmi, absi, bmi };
 }
 
