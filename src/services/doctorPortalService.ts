@@ -714,22 +714,23 @@ export const settingsService = {
 export const patientService = {
   // Buscar pacientes únicos que tiveram consulta com o médico
   async getDoctorPatients(doctorId: string, search?: string): Promise<PatientSummary[]> {
-    // Step 1: get all consultation records for this doctor
-    const { data: consultations, error } = await supabase
-      .from('consultations')
-      .select('patient_id, scheduled_at')
-      .eq('doctor_id', doctorId)
-      .order('scheduled_at', { ascending: false });
+    // Step 1: IDs via consultations + IDs via referral (em paralelo)
+    const [{ data: consultations }, { data: referredProfiles }] = await Promise.all([
+      supabase
+        .from('consultations')
+        .select('patient_id, scheduled_at')
+        .eq('doctor_id', doctorId)
+        .order('scheduled_at', { ascending: false }),
+      supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, age, gender, weight, height, glp1_mode, glp1_phase')
+        .eq('referred_by_doctor_id', doctorId),
+    ]);
 
-    if (error) throw error;
-    if (!consultations || consultations.length === 0) return [];
-
-    // Step 2: collect unique patient IDs and build last/next consultation map
-    const patientIds = [...new Set(consultations.map(c => c.patient_id))];
+    // Step 2: build consultation date map
     const consultationMap = new Map<string, { last: string | null; next: string | null }>();
-
     const now = new Date();
-    for (const c of consultations) {
+    for (const c of (consultations || [])) {
       const pid = c.patient_id;
       if (!consultationMap.has(pid)) consultationMap.set(pid, { last: null, next: null });
       const entry = consultationMap.get(pid)!;
@@ -741,20 +742,34 @@ export const patientService = {
       }
     }
 
-    // Step 3: fetch profiles for those patient IDs
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, display_name, avatar_url, age, gender, weight, height, glp1_mode, glp1_phase')
-      .in('id', patientIds);
+    // Step 3: merge IDs — consultation patients + referred patients
+    const consultationIds = new Set((consultations || []).map(c => c.patient_id));
+    const referredMap = new Map((referredProfiles || []).map((p: any) => [p.id, p]));
 
-    const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+    // Fetch profiles for consultation-only patients (referred ones already fetched)
+    const consultOnlyIds = [...consultationIds].filter(id => !referredMap.has(id));
+    const { data: consultProfiles } = consultOnlyIds.length > 0
+      ? await supabase
+          .from('profiles')
+          .select('id, display_name, avatar_url, age, gender, weight, height, glp1_mode, glp1_phase')
+          .in('id', consultOnlyIds)
+      : { data: [] };
 
-    let patients: PatientSummary[] = patientIds.map(pid => {
+    const profileMap = new Map([
+      ...(consultProfiles || []).map((p: any) => [p.id, p] as [string, any]),
+      ...referredMap.entries(),
+    ]);
+
+    // Union of all unique patient IDs
+    const allIds = [...new Set([...consultationIds, ...referredMap.keys()])];
+    if (allIds.length === 0) return [];
+
+    let patients: PatientSummary[] = allIds.map(pid => {
       const p = profileMap.get(pid) as any;
       const imc = p?.weight && p?.height
         ? p.weight / ((p.height / 100) ** 2)
         : null;
-      const dates = consultationMap.get(pid)!;
+      const dates = consultationMap.get(pid) ?? { last: null, next: null };
       return {
         id: pid,
         name: p?.display_name || 'Paciente',
@@ -767,6 +782,16 @@ export const patientService = {
         is_glp1_active: p?.glp1_mode || false,
         glp1_phase: p?.glp1_phase || null,
       };
+    });
+
+    // Ordenar: quem tem consulta primeiro, depois por data de última consulta
+    patients.sort((a, b) => {
+      if (a.lastConsultation && !b.lastConsultation) return -1;
+      if (!a.lastConsultation && b.lastConsultation) return 1;
+      if (a.lastConsultation && b.lastConsultation) {
+        return new Date(b.lastConsultation).getTime() - new Date(a.lastConsultation).getTime();
+      }
+      return 0;
     });
 
     if (search) {

@@ -7,10 +7,9 @@ import React, { useEffect, useState } from 'react';
 import {
   Brain, AlertTriangle, TrendingDown, TrendingUp,
   Activity, RefreshCw, ChevronDown, ChevronRight,
-  Zap, CheckCircle, Minus, Sparkles
+  Zap, CheckCircle, Minus
 } from 'lucide-react';
 import { generateDoctorBriefing } from '../../services/geminiService';
-import { supabase } from '../../services/supabase';
 import type { PatientFullProfile } from '../../types/doctorPortal';
 
 interface Props {
@@ -216,11 +215,6 @@ export const AIInsightsSidebar: React.FC<Props> = ({ patient, patientId }) => {
   const [geminiLoading, setGeminiLoading] = useState(false);
   const [geminiOpen, setGeminiOpen]     = useState(false);
 
-  // Claude full report state
-  const [claudeText, setClaudeText]     = useState<string | null>(null);
-  const [claudeLoading, setClaudeLoading] = useState(false);
-  const [claudeOpen, setClaudeOpen]     = useState(false);
-  const [claudeError, setClaudeError]   = useState<string | null>(null);
 
   useEffect(() => {
     setAlerts(deriveAlerts(patient));
@@ -240,24 +234,6 @@ export const AIInsightsSidebar: React.FC<Props> = ({ patient, patientId }) => {
     }
   };
 
-  const generateClaude = async () => {
-    setClaudeLoading(true);
-    setClaudeError(null);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-patient-ai-report', {
-        body: { patient_id: patientId },
-      });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-      setClaudeText(data?.report ?? 'Sem conteúdo retornado.');
-      setClaudeOpen(true);
-    } catch (e: any) {
-      setClaudeError(e?.message ?? 'Erro desconhecido');
-      setClaudeText(null);
-    } finally {
-      setClaudeLoading(false);
-    }
-  };
 
   const calTrend  = patient.weekly_history.map(w => w.avg_calories);
   const protTrend = patient.weekly_history.map(w => w.avg_protein);
@@ -302,9 +278,8 @@ export const AIInsightsSidebar: React.FC<Props> = ({ patient, patientId }) => {
         </div>
       )}
 
-      {/* Gemini — resumo rápido */}
       <AIBlock
-        title="Resumo Rápido (Gemini)"
+        title="Resumo Rápido"
         icon={<Brain className="w-4 h-4 text-[#7d4a3c]" />}
         accentClass="from-[#7d4a3c]/5 to-transparent"
         loading={geminiLoading}
@@ -315,30 +290,6 @@ export const AIInsightsSidebar: React.FC<Props> = ({ patient, patientId }) => {
         cta="Análise rápida dos dados nutricionais e check-ins."
       />
 
-      {/* Claude — relatório clínico completo */}
-      <AIBlock
-        title="Relatório Clínico (Claude)"
-        icon={<Sparkles className="w-4 h-4 text-purple-600" />}
-        accentClass="from-purple-50 to-transparent"
-        loading={claudeLoading}
-        content={claudeText}
-        open={claudeOpen}
-        onToggle={() => claudeText ? setClaudeOpen(o => !o) : generateClaude()}
-        onRegenerate={generateClaude}
-        cta="Relatório completo com alertas prioritários e sugestões de conduta."
-      />
-
-      {/* Erro Claude */}
-      {claudeError && (
-        <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-xl">
-          <p className="text-xs text-red-700">{claudeError}</p>
-          {claudeError.includes('ANTHROPIC_API_KEY') || claudeError.includes('API') ? (
-            <p className="text-[10px] text-red-500 mt-1">
-              Verifique se <code>ANTHROPIC_API_KEY</code> está setada nos secrets do Supabase.
-            </p>
-          ) : null}
-        </div>
-      )}
     </div>
   );
 };
