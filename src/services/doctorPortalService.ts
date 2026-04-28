@@ -416,13 +416,14 @@ export const consultationService = {
     return data as unknown as Consultation;
   },
 
-  // Reagendar consulta (médico sugere nova data)
-  async rescheduleConsultation(consultationId: string, newScheduledAt: string, message?: string): Promise<Consultation> {
+  // Médico propõe até 3 novas datas para o paciente escolher
+  async proposeReschedule(consultationId: string, proposals: string[], message?: string): Promise<Consultation> {
     const { data, error } = await supabase
       .from('consultations')
       .update({
-        scheduled_at: newScheduledAt,
-        ...(message ? { notes: `[Reagendado pelo médico] ${message}` } : {}),
+        reschedule_proposals: proposals.map(d => ({ date: d })),
+        reschedule_message: message || null,
+        reschedule_status: 'pending',
       })
       .eq('id', consultationId)
       .select('*, patient_id')
@@ -430,18 +431,18 @@ export const consultationService = {
 
     if (error) throw error;
 
-    // Notificar o paciente sobre o reagendamento
+    // Notificar o paciente com as opções
     if (data?.patient_id) {
-      const newDate = new Date(newScheduledAt).toLocaleString('pt-BR', {
-        weekday: 'long', day: 'numeric', month: 'long',
-        hour: '2-digit', minute: '2-digit',
+      const fmtDate = (iso: string) => new Date(iso).toLocaleString('pt-BR', {
+        weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
       });
+      const optionsList = proposals.map((p, i) => `Opção ${i + 1}: ${fmtDate(p)}`).join(' | ');
       await supabase.from('notifications').insert({
         user_id: data.patient_id,
-        type: 'appointment_rescheduled',
-        title: 'Consulta reagendada',
-        body: `Sua consulta foi reagendada para ${newDate}.${message ? ` Mensagem do médico: ${message}` : ''}`,
-        data: { consultation_id: consultationId },
+        type: 'appointment_reschedule_request',
+        title: 'Seu médico quer reagendar',
+        body: `${proposals.length} opções disponíveis. ${optionsList}${message ? ` — "${message}"` : ''}`,
+        data: { consultation_id: consultationId, proposals },
       }).select().maybeSingle();
     }
 

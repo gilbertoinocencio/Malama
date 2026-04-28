@@ -123,6 +123,10 @@ export interface Consultation {
   patient_photo?: string;
   patient_age?: number;
   patient_gender?: string;
+  // Reagendamento com múltiplas propostas
+  reschedule_proposals?: { date: string }[] | null;
+  reschedule_message?: string | null;
+  reschedule_status?: 'pending' | 'accepted' | 'rejected' | null;
 }
 
 export interface Prescription {

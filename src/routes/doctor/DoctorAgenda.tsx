@@ -269,8 +269,9 @@ export const DoctorAgenda: React.FC = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [closeGate, setCloseGate] = useState<Consultation | null>(null);
   const [rescheduleTarget, setRescheduleTarget] = useState<Consultation | null>(null);
-  const [rescheduleDate, setRescheduleDate] = useState('');
-  const [rescheduleTime, setRescheduleTime] = useState('');
+  const [rescheduleSlots, setRescheduleSlots] = useState<{ date: string; time: string }[]>([
+    { date: '', time: '' }, { date: '', time: '' }, { date: '', time: '' },
+  ]);
   const [rescheduleMsg, setRescheduleMsg] = useState('');
   const [rescheduling, setRescheduling] = useState(false);
 
@@ -461,28 +462,33 @@ export const DoctorAgenda: React.FC = () => {
   };
 
   const handleReschedule = async () => {
-    if (!rescheduleTarget || !rescheduleDate || !rescheduleTime) return;
+    const validSlots = rescheduleSlots.filter(s => s.date && s.time);
+    if (!rescheduleTarget || validSlots.length === 0) return;
     setRescheduling(true);
     try {
-      const newISO = new Date(`${rescheduleDate}T${rescheduleTime}:00`).toISOString();
-      await consultationService.rescheduleConsultation(rescheduleTarget.id, newISO, rescheduleMsg || undefined);
-      toast.success('Consulta reagendada e paciente notificado!');
+      const proposals = validSlots.map(s => new Date(`${s.date}T${s.time}:00`).toISOString());
+      await consultationService.proposeReschedule(rescheduleTarget.id, proposals, rescheduleMsg || undefined);
+      toast.success(`${proposals.length} opção(ões) enviada(s) ao paciente!`);
       setRescheduleTarget(null);
-      setRescheduleDate('');
-      setRescheduleTime('');
+      setRescheduleSlots([{ date: '', time: '' }, { date: '', time: '' }, { date: '', time: '' }]);
       setRescheduleMsg('');
       setSelectedConsult(null);
       await loadCalendarData();
-    } catch { toast.error('Erro ao reagendar consulta'); }
+    } catch { toast.error('Erro ao enviar proposta de reagendamento'); }
     finally { setRescheduling(false); }
   };
 
   const openReschedule = (consult: Consultation) => {
     const d = new Date(consult.scheduled_at);
-    setRescheduleDate(formatDateISO(d));
-    setRescheduleTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
+    const dateStr = formatDateISO(d);
+    const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    setRescheduleSlots([{ date: dateStr, time: timeStr }, { date: '', time: '' }, { date: '', time: '' }]);
     setRescheduleMsg('');
     setRescheduleTarget(consult);
+  };
+
+  const updateRescheduleSlot = (idx: number, field: 'date' | 'time', value: string) => {
+    setRescheduleSlots(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
   };
 
   // ── Save availability ────────────────────────────────────────────────────────
@@ -918,11 +924,11 @@ export const DoctorAgenda: React.FC = () => {
         />
       )}
 
-      {/* ══ Modal: Reagendar Consulta ══════════════════════════════════════ */}
+      {/* ══ Modal: Reagendar Consulta — 3 opções de data ══════════════════ */}
       {rescheduleTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setRescheduleTarget(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
@@ -930,66 +936,66 @@ export const DoctorAgenda: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-base font-bold text-gray-800">Sugerir reagendamento</h3>
-                <p className="text-xs text-gray-500">{rescheduleTarget.patient_name || 'Paciente'}</p>
+                <p className="text-xs text-gray-500">{rescheduleTarget.patient_name || 'Paciente'} · o paciente escolhe uma das opções</p>
               </div>
               <button onClick={() => setRescheduleTarget(null)} className="ml-auto p-1.5 hover:bg-gray-100 rounded-lg">
                 <X className="w-4 h-4 text-gray-400" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              {/* Nova data */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nova data</label>
-                <input
-                  type="date"
-                  value={rescheduleDate}
-                  min={formatDateISO(new Date())}
-                  onChange={e => setRescheduleDate(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm text-gray-800"
-                />
-              </div>
-
-              {/* Novo horário */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Novo horário</label>
-                <input
-                  type="time"
-                  value={rescheduleTime}
-                  onChange={e => setRescheduleTime(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm text-gray-800"
-                />
-              </div>
+            <div className="space-y-3">
+              {/* 3 slots de data/hora */}
+              {rescheduleSlots.map((slot, idx) => (
+                <div key={idx} className="border border-gray-200 rounded-xl p-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-600">Opção {idx + 1}{idx === 0 ? ' (obrigatória)' : ' (opcional)'}</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={slot.date}
+                      min={formatDateISO(new Date())}
+                      onChange={e => updateRescheduleSlot(idx, 'date', e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm text-gray-800"
+                    />
+                    <input
+                      type="time"
+                      value={slot.time}
+                      onChange={e => updateRescheduleSlot(idx, 'time', e.target.value)}
+                      className="w-28 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm text-gray-800"
+                    />
+                  </div>
+                  {slot.date && slot.time && (
+                    <p className="text-xs text-blue-600 font-medium pl-0.5">
+                      {new Date(`${slot.date}T${slot.time}`).toLocaleDateString('pt-BR', {
+                        weekday: 'long', day: 'numeric', month: 'long',
+                      })} às {slot.time}
+                    </p>
+                  )}
+                </div>
+              ))}
 
               {/* Mensagem opcional */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
-                    Mensagem para o paciente
-                    <span className="text-gray-400 font-normal">(opcional)</span>
-                  </span>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
+                  Mensagem para o paciente
+                  <span className="text-gray-400 font-normal">(opcional)</span>
                 </label>
                 <textarea
                   value={rescheduleMsg}
                   onChange={e => setRescheduleMsg(e.target.value)}
                   rows={2}
-                  placeholder="Ex: Preciso ajustar minha agenda. Nova proposta de horário."
+                  placeholder="Ex: Precisei ajustar minha agenda. Escolha o horário que preferir."
                   className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm text-gray-700 resize-none"
                 />
               </div>
 
-              {/* Preview */}
-              {rescheduleDate && rescheduleTime && (
-                <div className="flex items-center gap-2 px-3 py-2.5 bg-blue-50 rounded-xl">
-                  <Clock className="w-4 h-4 text-blue-500 shrink-0" />
-                  <p className="text-sm text-blue-700 font-medium">
-                    {new Date(`${rescheduleDate}T${rescheduleTime}`).toLocaleDateString('pt-BR', {
-                      weekday: 'long', day: 'numeric', month: 'long',
-                    })} às {rescheduleTime}
-                  </p>
-                </div>
-              )}
+              {/* Info */}
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 rounded-xl">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700">
+                  O paciente receberá as opções e deverá escolher uma. Se recusar todas, a consulta será cancelada automaticamente.
+                </p>
+              </div>
             </div>
 
             {/* Footer */}
@@ -999,11 +1005,11 @@ export const DoctorAgenda: React.FC = () => {
               </button>
               <button
                 onClick={handleReschedule}
-                disabled={!rescheduleDate || !rescheduleTime || rescheduling}
+                disabled={!rescheduleSlots[0].date || !rescheduleSlots[0].time || rescheduling}
                 className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 transition"
               >
                 {rescheduling ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                {rescheduling ? 'Reagendando...' : 'Confirmar e notificar paciente'}
+                {rescheduling ? 'Enviando...' : 'Enviar opções ao paciente'}
               </button>
             </div>
           </div>

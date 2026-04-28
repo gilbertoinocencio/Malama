@@ -38,6 +38,9 @@ export interface Consultation {
   rating_comment: string | null;
   consent_at: string | null;
   doctors?: { name: string; specialty: string; crm: string };
+  reschedule_proposals?: { date: string }[] | null;
+  reschedule_message?: string | null;
+  reschedule_status?: 'pending' | 'accepted' | 'rejected' | null;
 }
 
 function generateSlots(
@@ -344,6 +347,37 @@ export async function cancelConsultation(consultationId: string, patientId: stri
       consultation.scheduled_at
     );
   }
+}
+
+// Paciente aceita uma das propostas de reagendamento do médico
+export async function acceptRescheduleProposal(consultationId: string, chosenDate: string): Promise<void> {
+  const { error } = await supabase
+    .from('consultations')
+    .update({
+      scheduled_at: chosenDate,
+      reschedule_status: 'accepted',
+      reschedule_proposals: null,
+      reschedule_message: null,
+    })
+    .eq('id', consultationId);
+
+  if (error) throw error;
+}
+
+// Paciente recusa todas as propostas → consulta cancelada automaticamente
+export async function rejectAllRescheduleProposals(consultationId: string, patientId: string): Promise<void> {
+  const { error } = await supabase
+    .from('consultations')
+    .update({
+      status: 'cancelled',
+      reschedule_status: 'rejected',
+      reschedule_proposals: null,
+      reschedule_message: null,
+    })
+    .eq('id', consultationId)
+    .eq('patient_id', patientId);
+
+  if (error) throw error;
 }
 
 export async function rateConsultation(

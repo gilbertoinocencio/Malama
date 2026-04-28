@@ -4,7 +4,7 @@
 // =====================================================
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { X, Bell, Stethoscope, Clock, FileText, CheckCircle, ClipboardList } from 'lucide-react';
+import { X, Bell, Stethoscope, Clock, FileText, CheckCircle, ClipboardList, RefreshCw } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 interface PatientNotification {
@@ -18,10 +18,11 @@ interface PatientNotification {
 }
 
 const TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
-  chat_opened:         { icon: <Stethoscope className="w-4 h-4" />,   color: 'text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-900/30' },
-  chat_expiring:       { icon: <Clock className="w-4 h-4" />,         color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30' },
-  exam_reviewed:       { icon: <FileText className="w-4 h-4" />,      color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30' },
-  prescription_issued: { icon: <ClipboardList className="w-4 h-4" />, color: 'text-violet-600 bg-violet-50 dark:text-violet-400 dark:bg-violet-900/30' },
+  chat_opened:                  { icon: <Stethoscope className="w-4 h-4" />,  color: 'text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-900/30' },
+  chat_expiring:                { icon: <Clock className="w-4 h-4" />,        color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30' },
+  exam_reviewed:                { icon: <FileText className="w-4 h-4" />,     color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30' },
+  prescription_issued:          { icon: <ClipboardList className="w-4 h-4" />,color: 'text-violet-600 bg-violet-50 dark:text-violet-400 dark:bg-violet-900/30' },
+  appointment_reschedule_request: { icon: <RefreshCw className="w-4 h-4" />, color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30' },
 };
 
 function timeAgo(iso: string): string {

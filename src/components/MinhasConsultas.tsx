@@ -7,6 +7,8 @@ import {
   getPatientPrescriptions,
   cancelConsultation,
   rateConsultation,
+  acceptRescheduleProposal,
+  rejectAllRescheduleProposals,
 } from '../lib/scheduling';
 import { creditService } from '../services/billingService';
 import { AppView } from '../types';
@@ -30,6 +32,9 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
   const [ratingValue, setRatingValue] = useState(5);
   const [ratingComment, setRatingComment] = useState('');
   const [ratingSaving, setRatingSaving] = useState(false);
+  const [rescheduleModal, setRescheduleModal] = useState<Consultation | null>(null);
+  const [chosenProposal, setChosenProposal] = useState<string | null>(null);
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -70,6 +75,36 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
     );
     setRatingModal(null);
     setRatingSaving(false);
+  };
+
+  const handleAcceptReschedule = async () => {
+    if (!rescheduleModal || !chosenProposal || !user) return;
+    setRescheduleLoading(true);
+    try {
+      await acceptRescheduleProposal(rescheduleModal.id, chosenProposal);
+      setConsultations(prev => prev.map(c =>
+        c.id === rescheduleModal.id
+          ? { ...c, scheduled_at: chosenProposal, reschedule_status: 'accepted', reschedule_proposals: null }
+          : c
+      ));
+      setRescheduleModal(null);
+      setChosenProposal(null);
+    } catch (e) { console.error(e); }
+    finally { setRescheduleLoading(false); }
+  };
+
+  const handleRejectReschedule = async () => {
+    if (!rescheduleModal || !user) return;
+    if (!window.confirm('Recusar todas as opções cancela a consulta automaticamente. Confirmar?')) return;
+    setRescheduleLoading(true);
+    try {
+      await rejectAllRescheduleProposals(rescheduleModal.id, user.id);
+      setConsultations(prev => prev.map(c =>
+        c.id === rescheduleModal.id ? { ...c, status: 'cancelled', reschedule_proposals: null } : c
+      ));
+      setRescheduleModal(null);
+    } catch (e) { console.error(e); }
+    finally { setRescheduleLoading(false); }
   };
 
   const formatDate = (iso: string) =>
@@ -150,6 +185,31 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                 </div>
               </motion.div>
             )}
+
+            {/* Pending reschedule banners */}
+            {upcoming.filter(c => c.reschedule_status === 'pending').map(c => (
+              <motion.div
+                key={`rsch-${c.id}`}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">📅</span>
+                  <p className="text-sm font-bold text-amber-800">Solicitação de reagendamento</p>
+                </div>
+                <p className="text-xs text-amber-700 mb-3">
+                  Dr(a). {(c.doctors as any)?.name || 'Médico'} propôs {(c.reschedule_proposals || []).length} opções de horário.
+                  {c.reschedule_message && ` "${c.reschedule_message}"`}
+                </p>
+                <button
+                  onClick={() => { setRescheduleModal(c); setChosenProposal((c.reschedule_proposals?.[0]?.date) ?? null); }}
+                  className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition"
+                >
+                  Ver opções e escolher
+                </button>
+              </motion.div>
+            ))}
 
             {/* Upcoming */}
             {upcoming.length > 0 && (
@@ -310,6 +370,62 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
           </div>
         )}
       </div>
+
+      {/* Reschedule Modal */}
+      {rescheduleModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50">
+          <div className="bg-white w-full rounded-t-3xl p-6">
+            <h3 className="font-bold text-lg mb-1">Escolha um novo horário</h3>
+            <p className="text-sm text-gray-500 mb-1">Dr(a). {(rescheduleModal.doctors as any)?.name || 'Médico'}</p>
+            {rescheduleModal.reschedule_message && (
+              <p className="text-xs text-gray-400 italic mb-4">"{rescheduleModal.reschedule_message}"</p>
+            )}
+            <div className="space-y-2 mb-5">
+              {(rescheduleModal.reschedule_proposals || []).map((p, i) => {
+                const d = new Date(p.date);
+                const label = d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const selected = chosenProposal === p.date;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setChosenProposal(p.date)}
+                    className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 text-left transition ${
+                      selected ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                      selected ? 'border-green-500 bg-green-500' : 'border-gray-300'
+                    }`}>
+                      {selected && <div className="w-2 h-2 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800 capitalize">{label}</p>
+                      <p className="text-xs text-gray-500">às {time}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleRejectReschedule}
+                disabled={rescheduleLoading}
+                className="flex-1 py-3 border-2 border-red-200 text-red-500 rounded-2xl text-sm font-semibold hover:bg-red-50 transition disabled:opacity-50"
+              >
+                Recusar tudo
+              </button>
+              <button
+                onClick={handleAcceptReschedule}
+                disabled={!chosenProposal || rescheduleLoading}
+                className="flex-1 py-3 bg-green-500 text-white rounded-2xl text-sm font-bold hover:bg-green-600 transition disabled:opacity-50"
+              >
+                {rescheduleLoading ? 'Confirmando...' : 'Confirmar horário'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Rating Modal */}
       {ratingModal && (
