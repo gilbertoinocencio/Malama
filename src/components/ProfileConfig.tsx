@@ -268,7 +268,7 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
         <button
           onClick={handleSave}
           disabled={loading}
-          className="w-full bg-Malama-petrol dark:bg-primary text-white font-bold h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+          className="w-full bg-Malama-petrol dark:bg-primary text-white font-bold h-14 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {loading ? (
             <span className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></span>

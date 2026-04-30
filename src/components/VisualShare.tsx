@@ -111,13 +111,13 @@ export const VisualShare: React.FC<VisualShareProps> = ({ onBack }) => {
       <div className="absolute bottom-6 left-0 w-full px-6 z-50 flex justify-center gap-3">
         <button 
           onClick={onBack}
-          className="flex items-center justify-center size-12 rounded-full bg-white text-Malama-dark shadow-lg hover:bg-gray-100 transition-colors"
+          className="flex items-center justify-center size-12 rounded-full bg-white text-Malama-dark hover:bg-gray-100 transition-colors"
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <button 
           onClick={handleDownload}
-          className="flex-1 max-w-sm bg-Malama-petrol hover:bg-[#153a44] text-white font-bold text-base py-3 rounded-xl shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+          className="flex-1 max-w-sm bg-Malama-petrol hover:bg-[#153a44] text-white font-bold text-base py-3 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
         >
           <span className="material-symbols-outlined group-hover:-translate-y-0.5 transition-transform">download</span>
           Salvar Card Premium

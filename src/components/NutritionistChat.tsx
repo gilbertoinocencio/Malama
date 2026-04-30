@@ -182,7 +182,7 @@ export const NutritionistChat: React.FC<NutritionistChatProps> = ({ onComplete, 
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="size-7 bg-Malama-petrol dark:bg-primary rounded-full flex items-center justify-center shadow-md">
+              <div className="size-7 bg-Malama-petrol dark:bg-primary rounded-full flex items-center justify-center">
                 <span className="material-symbols-outlined text-white text-[16px]">psychology</span>
               </div>
             </div>
@@ -245,7 +245,7 @@ export const NutritionistChat: React.FC<NutritionistChatProps> = ({ onComplete, 
             </p>
             <button
               onClick={() => onComplete(session.id || '')}
-              className="bg-Malama-petrol dark:bg-primary text-white font-bold py-3 px-6 rounded-2xl shadow-lg hover:brightness-110 transition-all flex items-center gap-2"
+              className="bg-Malama-petrol dark:bg-primary text-white font-bold py-3 px-6 rounded-2xl hover:brightness-110 transition-all flex items-center gap-2"
             >
               <span className="material-symbols-outlined">auto_awesome</span>
               <span>Gerar Plano de 3 Meses</span>
@@ -259,7 +259,7 @@ export const NutritionistChat: React.FC<NutritionistChatProps> = ({ onComplete, 
         {showScrollTop && (
           <button
             onClick={scrollToBottom}
-            className="sticky bottom-4 left-1/2 -translate-x-1/2 size-10 rounded-full bg-Malama-petrol dark:bg-primary text-white shadow-lg hover:shadow-xl hover:brightness-110 transition-all flex items-center justify-center z-20 animate-fade-in"
+            className="sticky bottom-4 left-1/2 -translate-x-1/2 size-10 rounded-full bg-Malama-petrol dark:bg-primary text-white hover:brightness-110 transition-all flex items-center justify-center z-20 animate-fade-in"
           >
             <span className="material-symbols-outlined text-[20px]">arrow_downward</span>
           </button>
@@ -333,7 +333,7 @@ export const NutritionistChat: React.FC<NutritionistChatProps> = ({ onComplete, 
             <button
               onClick={handleSend}
               disabled={!input.trim() || sending}
-              className="flex items-center justify-center size-11 rounded-2xl bg-Malama-petrol dark:bg-primary text-white shadow-md hover:shadow-lg hover:brightness-110 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center justify-center size-11 rounded-2xl bg-Malama-petrol dark:bg-primary text-white hover:brightness-110 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {sending ? (
                 <span className="material-symbols-outlined animate-spin text-[20px]">sync</span>

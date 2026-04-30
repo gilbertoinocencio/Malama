@@ -177,7 +177,7 @@ export const RefinePlan: React.FC<RefinePlanProps> = ({ onBack, onNavigate }) =>
       <div className="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-Malama-bg via-Malama-bg to-transparent dark:from-background-dark dark:via-background-dark pt-10 pb-8 z-30">
         <button
           onClick={() => onNavigate(AppView.PLAN)}
-          className="w-full bg-Malama-petrol dark:bg-primary hover:brightness-110 active:scale-[0.98] transition-all duration-200 text-white font-bold text-lg rounded-xl py-4 shadow-lg flex items-center justify-center gap-3 border border-white/10"
+          className="w-full bg-Malama-petrol dark:bg-primary hover:brightness-110 active:scale-[0.98] transition-all duration-200 text-white font-bold text-lg rounded-xl py-4 flex items-center justify-center gap-3 border border-white/10"
         >
           <span className="material-symbols-outlined">auto_awesome</span>
           {rp.generatePlan90}

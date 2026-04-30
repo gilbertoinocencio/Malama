@@ -166,7 +166,7 @@ export const PlanRenewal: React.FC<PlanRenewalProps> = ({ onBack, onNavigate }) 
         <button
           onClick={handleGeneratePlan}
           disabled={isGenerating}
-          className="w-full bg-Malama-petrol dark:bg-primary hover:brightness-110 disabled:opacity-70 disabled:cursor-not-allowed text-white font-medium text-lg py-4 px-6 rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          className="w-full bg-Malama-petrol dark:bg-primary hover:brightness-110 disabled:opacity-70 disabled:cursor-not-allowed text-white font-medium text-lg py-4 px-6 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
         >
           {isGenerating ? (
             <>

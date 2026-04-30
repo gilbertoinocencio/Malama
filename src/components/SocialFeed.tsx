@@ -253,7 +253,7 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({ onNavigate, onFabClick, 
       {/* FAB */}
       <button
         onClick={() => setShowComposer(true)}
-        className="fixed bottom-24 right-6 size-14 bg-Malama-petrol dark:bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-40"
+        className="fixed bottom-24 right-6 size-14 bg-Malama-petrol dark:bg-primary text-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-40"
       >
         <span className="material-symbols-outlined text-[28px]">add</span>
       </button>

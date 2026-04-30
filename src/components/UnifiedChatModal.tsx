@@ -156,7 +156,7 @@ export const UnifiedChatModal: React.FC<UnifiedChatModalProps> = ({ onClose, onO
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 bg-white dark:bg-surface-dark border-b border-Malama-border dark:border-white/5">
         <div className="flex items-center gap-3">
-          <div className={`size-12 rounded-full ${isOnboarding ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-Malama-petrol to-Malama-petrol-light dark:from-primary dark:to-primary/70'} flex items-center justify-center text-white shadow-lg`}>
+          <div className={`size-12 rounded-full ${isOnboarding ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-Malama-petrol to-Malama-petrol-light dark:from-primary dark:to-primary/70'} flex items-center justify-center text-white`}>
             <span className="material-symbols-outlined text-[24px]">{modeIcon}</span>
           </div>
           <div>
@@ -306,7 +306,7 @@ export const UnifiedChatModal: React.FC<UnifiedChatModalProps> = ({ onClose, onO
           <button
             onClick={handleSend}
             disabled={!inputValue.trim() || isLoading}
-            className="size-12 rounded-full bg-Malama-petrol dark:bg-primary hover:bg-Malama-petrol/90 dark:hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white shadow-lg transition-all transform active:scale-95"
+            className="size-12 rounded-full bg-Malama-petrol dark:bg-primary hover:bg-Malama-petrol/90 dark:hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white transition-all transform active:scale-95"
           >
             <span className="material-symbols-outlined text-[24px]">send</span>
           </button>

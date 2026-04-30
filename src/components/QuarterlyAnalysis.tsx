@@ -202,7 +202,7 @@ export const QuarterlyAnalysis: React.FC<QuarterlyAnalysisProps> = ({ onBack, on
           </div>
 
           {/* Badge Card */}
-          <div className="animate-fade-in-up bg-Malama-petrol dark:bg-primary rounded-2xl p-6 shadow-xl shadow-Malama-petrol/20 dark:shadow-primary/20 mb-8 relative overflow-hidden group" style={{ animationDelay: '0.3s' }}>
+          <div className="animate-fade-in-up bg-Malama-petrol dark:bg-primary rounded-2xl p-6 mb-8 relative overflow-hidden group" style={{ animationDelay: '0.3s' }}>
             <div className="absolute -right-10 -top-10 size-40 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-1000"></div>
             <div className="relative z-10 flex items-center gap-5">
               <div className="size-14 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-inner">
@@ -247,7 +247,7 @@ export const QuarterlyAnalysis: React.FC<QuarterlyAnalysisProps> = ({ onBack, on
         <div className="w-full max-w-md pointer-events-auto animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
           <button
             onClick={() => onNavigate(AppView.PLAN_RENEWAL)}
-            className="w-full bg-Malama-petrol hover:brightness-110 dark:bg-primary dark:hover:brightness-110 text-white font-semibold text-base py-4 rounded-xl shadow-xl flex items-center justify-center gap-3 transition-all duration-300 active:scale-[0.98] group"
+            className="w-full bg-Malama-petrol hover:brightness-110 dark:bg-primary dark:hover:brightness-110 text-white font-semibold text-base py-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 active:scale-[0.98] group"
           >
             <span>{qa.newPlanCta}</span>
             <span className="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">arrow_forward</span>

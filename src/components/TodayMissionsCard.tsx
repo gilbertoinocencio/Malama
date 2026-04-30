@@ -85,7 +85,7 @@ export const TodayMissionsCard: React.FC<TodayMissionsCardProps> = ({ onNavClick
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-2xl bg-Malama-petrol dark:bg-primary flex items-center justify-center shadow-md">
+          <div className="size-10 rounded-2xl bg-Malama-petrol dark:bg-primary flex items-center justify-center">
             <span className="material-symbols-outlined text-white text-[24px]">
               task_alt
             </span>
