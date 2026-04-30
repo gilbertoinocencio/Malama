@@ -99,15 +99,12 @@ export const IntegrationService = {
     }
   },
 
-  // Retorna a atividade mais recente das últimas 24h (para FlowAdaptation)
+  // Retorna a atividade mais recente do usuário (sem limite de data)
   async getLatestActivity(userId: string): Promise<Activity | null> {
-    const since = new Date();
-    since.setHours(since.getHours() - 24);
     const { data } = await supabase
       .from('activities')
       .select('*')
       .eq('user_id', userId)
-      .gte('activity_date', since.toISOString())
       .order('activity_date', { ascending: false })
       .limit(1)
       .maybeSingle();

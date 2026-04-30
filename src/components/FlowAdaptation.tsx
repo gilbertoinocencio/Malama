@@ -86,12 +86,17 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
 
   const [activity, setActivity] = useState<Activity | null>(null);
   const [activityLoading, setActivityLoading] = useState(true);
+  const [hasIntegration, setHasIntegration] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    IntegrationService.getLatestActivity(user.id)
-      .then(setActivity)
-      .finally(() => setActivityLoading(false));
+    Promise.all([
+      IntegrationService.getLatestActivity(user.id),
+      IntegrationService.getConnectedIntegrations(user.id),
+    ]).then(([latestActivity, integrations]) => {
+      setActivity(latestActivity);
+      setHasIntegration(integrations.some(i => i.is_connected));
+    }).finally(() => setActivityLoading(false));
   }, [user?.id]);
 
   // Usa calorias do Strava se disponível; caso contrário estima por MET
@@ -127,19 +132,35 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
           </div>
 
         ) : !activity ? (
-          /* Estado vazio — sem atividade nas últimas 24h */
+          /* Estado vazio */
           <section className="flex flex-col items-center justify-center py-20 px-6 gap-4 text-center animate-fade-in-up">
             <span className="material-symbols-outlined text-5xl text-Malama-muted dark:text-slate-500">directions_run</span>
             <h2 className="text-xl font-bold">Nenhuma atividade detectada</h2>
-            <p className="text-Malama-muted dark:text-slate-400 text-sm leading-relaxed">
-              Conecte o Strava ou Google Fit para sincronizar seus treinos automaticamente.
-            </p>
-            <button
-              onClick={() => onNavigate(AppView.INTEGRATIONS)}
-              className="mt-2 px-6 py-3 rounded-xl bg-Malama-petrol dark:bg-primary text-white text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
-              Conectar integração
-            </button>
+            {hasIntegration ? (
+              <>
+                <p className="text-Malama-muted dark:text-slate-400 text-sm leading-relaxed">
+                  Sua integração está ativa. Registre um treino no Strava ou Google Fit e ele aparecerá aqui automaticamente.
+                </p>
+                <button
+                  onClick={() => onNavigate(AppView.INTEGRATIONS)}
+                  className="mt-2 px-6 py-3 rounded-xl bg-Malama-petrol dark:bg-primary text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                >
+                  Gerenciar integrações
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-Malama-muted dark:text-slate-400 text-sm leading-relaxed">
+                  Conecte o Strava ou Google Fit para sincronizar seus treinos automaticamente.
+                </p>
+                <button
+                  onClick={() => onNavigate(AppView.INTEGRATIONS)}
+                  className="mt-2 px-6 py-3 rounded-xl bg-Malama-petrol dark:bg-primary text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                >
+                  Conectar integração
+                </button>
+              </>
+            )}
           </section>
 
         ) : (
@@ -160,10 +181,15 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
                 <div className="relative h-48 w-full bg-gray-100 dark:bg-[#363330] overflow-hidden flex items-center justify-center">
                   <span className="material-symbols-outlined text-6xl text-Malama-muted/30 dark:text-white/10">map</span>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                    <ServiceBadge service={activity.service} />
-                    <span className="text-white font-medium text-sm drop-shadow-md">
-                      {activity.name}
+                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <ServiceBadge service={activity.service} />
+                      <span className="text-white font-medium text-sm drop-shadow-md">
+                        {activity.name}
+                      </span>
+                    </div>
+                    <span className="text-white/80 text-xs font-medium drop-shadow-md bg-black/30 px-2 py-0.5 rounded-full">
+                      {new Date(activity.activity_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                     </span>
                   </div>
                 </div>
