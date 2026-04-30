@@ -29,7 +29,7 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteM
 
   const getMealIcon = (type: string) => {
     switch (type) {
-      case 'ai-barcode': return 'barcode_scanner';
+
       case 'ai-photo': return 'photo_camera';
       case 'ai-voice': return 'mic';
       case 'manual': return 'edit_note';

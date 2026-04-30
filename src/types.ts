@@ -43,7 +43,7 @@ export interface Meal {
   timestamp: Date;
   calories: number;
   macros: MacroData;
-  type: 'manual' | 'ai-chat' | 'ai-photo' | 'ai-voice' | 'ai-barcode';
+  type: 'manual' | 'ai-chat' | 'ai-photo' | 'ai-voice';
   imageUri?: string; // For photo logs
   items?: MealItem[];
 }
