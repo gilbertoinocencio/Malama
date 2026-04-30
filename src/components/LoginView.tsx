@@ -128,7 +128,7 @@ export const LoginView: React.FC = () => {
                         <button
                             type="submit"
                             disabled={authLoading}
-                            className="w-full h-12 bg-Malama-petrol dark:bg-primary text-white rounded-xl font-semibold shadow-lg shadow-Malama-petrol/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full h-12 bg-Malama-petrol dark:bg-primary text-white rounded-xl font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {authLoading ? a.processing : (isSignUp ? a.signUp : a.signIn)}
                         </button>

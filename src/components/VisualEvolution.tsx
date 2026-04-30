@@ -86,7 +86,7 @@ export const VisualEvolution: React.FC<VisualEvolutionProps> = ({ onBack, onNavi
         <div className="mt-auto flex justify-center w-full animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
           <button 
             onClick={() => onNavigate(AppView.VISUAL_SHARE)}
-            className="relative w-full max-w-[320px] group overflow-hidden rounded-xl bg-primary shadow-lg shadow-primary/20 hover:shadow-xl transition-all duration-300 active:scale-95 p-4 flex items-center justify-center gap-3"
+            className="relative w-full max-w-[320px] group overflow-hidden rounded-xl bg-primary hover:shadow-xl transition-all duration-300 active:scale-95 p-4 flex items-center justify-center gap-3"
           >
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
             <span className="material-symbols-outlined text-white relative z-10" style={{ fontSize: '20px' }}>share</span>

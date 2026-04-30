@@ -344,7 +344,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#f8f7f6] via-[#f8f7f6]/95 to-transparent dark:from-[#221910] dark:via-[#221910]/95 pt-8 pointer-events-none z-30">
         <button 
            onClick={() => handleDownload(customizeCardRef)}
-           className={`pointer-events-auto w-full text-white text-lg font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${template === 'Glass' ? 'bg-[#11d421] shadow-[#11d421]/30' : 'bg-primary shadow-primary/30'}`}
+           className={`pointer-events-auto w-full text-white text-lg font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${template === 'Glass' ? 'bg-[#11d421]' : 'bg-primary'}`}
         >
           <span>Compartilhar no Story</span>
           <span className="material-symbols-outlined">ios_share</span>

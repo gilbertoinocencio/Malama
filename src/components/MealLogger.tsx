@@ -1164,7 +1164,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       return (
         <div key={msg.id} className="flex gap-3 w-full max-w-full animate-fade-in-up">
           <div className="shrink-0 flex flex-col justify-end pb-6">
-            <div className="bg-gradient-to-br from-Malama-petrol to-[#7d4a3c] dark:from-primary dark:to-[#7d4a3c] flex items-center justify-center rounded-full w-8 h-8 shrink-0 shadow-lg shadow-Malama-petrol/20 dark:shadow-primary/20">
+            <div className="bg-gradient-to-br from-Malama-petrol to-[#7d4a3c] dark:from-primary dark:to-[#7d4a3c] flex items-center justify-center rounded-full w-8 h-8 shrink-0">
               <span className="material-symbols-outlined text-white text-sm">smart_toy</span>
             </div>
           </div>
@@ -1410,7 +1410,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               </button>
               <button
                 onClick={() => handleConfirmLog(draftMeal, draftSource === 'barcode' ? 'ai-barcode' : draftSource === 'photo' ? 'ai-photo' : 'ai-chat')}
-                className="flex-[2] h-12 rounded-xl bg-Malama-petrol dark:bg-primary shadow-lg shadow-Malama-petrol/25 dark:shadow-primary/25 flex items-center justify-center gap-2 text-white font-bold text-sm hover:brightness-110 transition-all active:scale-95"
+                className="flex-[2] h-12 rounded-xl bg-Malama-petrol dark:bg-primary flex items-center justify-center gap-2 text-white font-bold text-sm hover:brightness-110 transition-all active:scale-95"
               >
                 <span className="material-symbols-outlined text-base">check</span>
                 {t.mealLogger.confirm}
@@ -1482,7 +1482,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                   }
                 }}
                 disabled={loading || isListening}
-                className="size-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-Malama-petrol dark:bg-primary text-white shadow-lg shadow-Malama-petrol/25 dark:shadow-primary/25 hover:brightness-110 transition-all disabled:opacity-50"
+                className="size-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-Malama-petrol dark:bg-primary text-white hover:brightness-110 transition-all disabled:opacity-50"
               >
                 {input ? (
                   <span className="material-symbols-outlined text-xl">send</span>
@@ -1580,7 +1580,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               <button
                 onClick={handleRecalculate}
                 disabled={editItems.length === 0 || loading}
-                className="w-full h-14 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-Malama-petrol/25 dark:shadow-primary/25 hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50"
+                className="w-full h-14 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold text-base flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50"
               >
                 {loading ? (
                   <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1621,7 +1621,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               <div className="flex flex-col gap-3">
                 <button
                   onClick={handleConfirmAndClose}
-                  className="w-full h-14 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-Malama-petrol/25 dark:shadow-primary/25"
+                  className="w-full h-14 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-base">check</span>
                   Confirmar e salvar

@@ -223,7 +223,7 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
             {(['Photo', 'Gradient', 'Minimal', 'Dark'] as TemplateStyle[]).map((style) => (
               <div key={style} onClick={() => setTemplate(style)} className="snap-center shrink-0 flex flex-col items-center gap-2 group cursor-pointer">
                 <div className={`relative w-20 h-32 rounded-xl border overflow-hidden transition-all active:scale-95 ${style === 'Minimal' ? 'bg-white' : style === 'Dark' ? 'bg-[#103e4a]' : ''
-                  } ${template === style ? 'border-2 border-Malama-petrol dark:border-primary shadow-lg shadow-Malama-petrol/20' : 'border-Malama-border dark:border-white/10 opacity-80 hover:opacity-100'}`}>
+                  } ${template === style ? 'border-2 border-Malama-petrol dark:border-primary' : 'border-Malama-border dark:border-white/10 opacity-80 hover:opacity-100'}`}>
                   {style === 'Photo' && (
                     <div className="absolute inset-0 bg-cover bg-center grayscale opacity-50" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuChM2tXonuf-O9q5XBChK6E-si0BUZmrZy06Bv40sCpK_ttBtqEm2xrSKVxdrR4na08ye1CY29Sq5K6y9B9lUVYUNvqKSR2_I1-ZTCwov4gJPFH9REtUZoORr4km3DYK38qqQLmebKLdKLmfNa1T1XGUFiFqzHzoJI9gNUuhgZhC00ncrmngemBabk7pt3qw3dBWxchcVy9KV6dI0ggrZT1FaKIVe1byFI6GGZTQDQ41D2dvtpvvZxTKCe9Prnb4z96xR6VeTKM6gA')" }}></div>
                   )}
@@ -247,7 +247,7 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-Malama-bg via-Malama-bg/95 to-transparent dark:from-background-dark dark:via-background-dark/95 pt-8 pointer-events-none z-30">
         <button
           onClick={handleShare}
-          className="pointer-events-auto w-full bg-Malama-petrol hover:brightness-110 dark:bg-primary dark:hover:brightness-110 text-white text-lg font-bold py-4 rounded-xl shadow-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+          className="pointer-events-auto w-full bg-Malama-petrol hover:brightness-110 dark:bg-primary dark:hover:brightness-110 text-white text-lg font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
         >
           <span>{hy.shareGoalCta}</span>
           <span className="material-symbols-outlined">ios_share</span>

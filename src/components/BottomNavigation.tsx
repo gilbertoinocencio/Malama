@@ -32,7 +32,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               <li key={index} className="relative -top-5">
                 <button
                   onClick={onFabClick}
-                  className="flex items-center justify-center size-14 bg-Malama-petrol dark:bg-primary text-white rounded-full shadow-lg shadow-Malama-petrol/30 dark:shadow-primary/30 active:scale-95 transition-transform hover:brightness-110"
+                  className="flex items-center justify-center size-14 bg-Malama-petrol dark:bg-primary text-white rounded-full active:scale-95 transition-transform hover:brightness-110"
                 >
                   <span className="material-symbols-outlined text-[32px]">add</span>
                 </button>

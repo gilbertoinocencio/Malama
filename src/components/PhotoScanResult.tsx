@@ -63,7 +63,7 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
                   <span className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Refeição</span>
                   <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight line-clamp-2">{data.foodName}</h1>
                 </div>
-                <div className="bg-primary p-2 rounded-full shrink-0 shadow-lg shadow-primary/30">
+                <div className="bg-primary p-2 rounded-full shrink-0">
                   <span className="material-symbols-outlined text-white">check_circle</span>
                 </div>
               </div>
@@ -144,7 +144,7 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
           </button>
           <button 
             onClick={onConfirm}
-            className="flex-[2] h-14 rounded-2xl bg-primary shadow-lg shadow-primary/20 flex items-center justify-center gap-2 text-white font-bold text-sm hover:brightness-110 transition-all active:scale-95"
+            className="flex-[2] h-14 rounded-2xl bg-primary flex items-center justify-center gap-2 text-white font-bold text-sm hover:brightness-110 transition-all active:scale-95"
           >
             <span className="material-symbols-outlined text-xl">check</span>
             Confirmar

@@ -121,7 +121,7 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
             <button
               onClick={handleGenerate}
               disabled={generating}
-              className="bg-Malama-petrol dark:bg-primary text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-Malama-petrol/30 dark:shadow-primary/30 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-60"
+              className="bg-Malama-petrol dark:bg-primary text-white font-bold py-4 px-8 rounded-2xl active:scale-95 transition-all flex items-center gap-2 disabled:opacity-60"
             >
               {generating ? (
                 <span className="animate-spin material-symbols-outlined">refresh</span>
@@ -194,7 +194,7 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
                     <div key={idx} className="timeline-item flex gap-4 pb-8">
                       <div className="flex-shrink-0 z-10">
                         {isMainPhase ? (
-                          <div className="size-12 rounded-full bg-Malama-petrol dark:bg-primary text-white flex items-center justify-center shadow-lg shadow-Malama-petrol/30 dark:shadow-primary/30">
+                          <div className="size-12 rounded-full bg-Malama-petrol dark:bg-primary text-white flex items-center justify-center">
                             <span className="material-symbols-outlined text-[20px]">bolt</span>
                           </div>
                         ) : (
@@ -259,7 +259,7 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
           {plan && activated ? (
             <button
               onClick={() => onNavigate(AppView.PLAN_SHARE)}
-              className="w-full bg-Malama-petrol dark:bg-primary hover:brightness-110 text-white font-bold h-14 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-Malama-petrol/25 dark:shadow-primary/25 transition-all transform active:scale-[0.98] group"
+              className="w-full bg-Malama-petrol dark:bg-primary hover:brightness-110 text-white font-bold h-14 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] group"
             >
               <span className="material-symbols-outlined">monitoring</span>
               <span className="text-base">{qp.viewProgress}</span>
@@ -269,7 +269,7 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
             <button
               onClick={plan ? handleActivate : handleGenerate}
               disabled={generating}
-              className="w-full bg-Malama-petrol dark:bg-primary hover:brightness-110 text-white font-bold h-14 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-Malama-petrol/25 dark:shadow-primary/25 transition-all transform active:scale-[0.98] group"
+              className="w-full bg-Malama-petrol dark:bg-primary hover:brightness-110 text-white font-bold h-14 rounded-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] group"
             >
               <span className="text-base">{plan ? qp.activatePlan : qp.startNow}</span>
               <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>

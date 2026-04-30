@@ -494,7 +494,7 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
             <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-[360px] px-6">
                 <button
                     onClick={() => onNavigate(AppView.LOG)}
-                    className="w-full flex items-center justify-between px-6 py-4 bg-Malama-petrol dark:bg-primary text-white rounded-2xl shadow-xl shadow-Malama-petrol/30 dark:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    className="w-full flex items-center justify-between px-6 py-4 bg-Malama-petrol dark:bg-primary text-white rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all"
                 >
                     <div className="flex flex-col items-start">
                         <span className="text-xs font-medium text-white/80 uppercase tracking-wider">{t.foodGuide.currentMeal}</span>
