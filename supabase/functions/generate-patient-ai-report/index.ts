@@ -38,14 +38,16 @@ async function getAuthDoctor(req: Request) {
 
 // ─── Collect patient data ────────────────────────────
 async function collectPatientData(patientId: string, doctorId: string) {
-  const [profileRes, mealsRes, checkinsRes, consultRes, noteRes] = await Promise.all([
+  const since30d = new Date(Date.now() - 30 * 86_400_000).toISOString();
+
+  const [profileRes, mealsRes, checkinsRes, consultRes, noteRes, activitiesRes] = await Promise.all([
     supabase.from('profiles').select(
       'display_name, age, gender, weight, height, goal, glp1_mode, glp1_medication, glp1_phase, target_calories, target_protein, target_carbs, target_fats'
     ).eq('id', patientId).single(),
 
     supabase.from('meals').select('created_at, calories, protein, carbs, fats')
       .eq('user_id', patientId)
-      .gte('created_at', new Date(Date.now() - 30 * 86_400_000).toISOString())
+      .gte('created_at', since30d)
       .order('created_at', { ascending: false }),
 
     supabase.from('daily_checkins').select('checkin_date, symptoms, mood, energy_level')
@@ -65,20 +67,26 @@ async function collectPatientData(patientId: string, doctorId: string) {
       .eq('is_draft', false)
       .order('finalized_at', { ascending: false })
       .limit(3),
+
+    supabase.from('activities').select('activity_type, calories_burned, duration_seconds, activity_date')
+      .eq('user_id', patientId)
+      .gte('activity_date', since30d)
+      .order('activity_date', { ascending: false }),
   ]);
 
   return {
-    profile:      profileRes.data,
-    meals:        mealsRes.data ?? [],
-    checkins:     checkinsRes.data ?? [],
+    profile:       profileRes.data,
+    meals:         mealsRes.data ?? [],
+    checkins:      checkinsRes.data ?? [],
     consultations: consultRes.data ?? [],
     clinicalNotes: noteRes.data ?? [],
+    activities:    activitiesRes.data ?? [],
   };
 }
 
 // ─── Build prompt ────────────────────────────────────
 function buildPrompt(data: Awaited<ReturnType<typeof collectPatientData>>, doctorName: string): string {
-  const { profile, meals, checkins, consultations, clinicalNotes } = data;
+  const { profile, meals, checkins, consultations, clinicalNotes, activities } = data;
 
   // Compute adherence
   const dayCount = new Set(meals.map(m => m.created_at?.split('T')[0])).size;
@@ -129,6 +137,17 @@ ${clinicalNotes.length > 0
       `- ${new Date(n.finalized_at!).toLocaleDateString('pt-BR')} | Diagnóstico: ${n.diagnosis ?? 'N/A'} | Plano: ${n.plan ?? 'N/A'} | Peso: ${n.weight_kg ?? 'N/A'} kg | IMC: ${n.bmi ?? 'N/A'}`
     ).join('\n')
   : '- Sem prontuários'}
+
+## Atividade Física (últimos 30 dias)
+Total de atividades: ${activities.length}
+Dias ativos: ${new Set(activities.map(a => a.activity_date.split('T')[0])).size}/30
+Calorias totais queimadas: ${activities.reduce((s: number, a: { calories_burned: number }) => s + (a.calories_burned ?? 0), 0)} kcal
+Duração total: ${Math.round(activities.reduce((s: number, a: { duration_seconds: number }) => s + (a.duration_seconds ?? 0), 0) / 60)} minutos
+${activities.length > 0
+  ? activities.slice(0, 5).map(a =>
+      `- ${new Date(a.activity_date).toLocaleDateString('pt-BR')}: ${a.activity_type} — ${Math.round((a.duration_seconds ?? 0) / 60)}min, ${a.calories_burned ?? 0} kcal`
+    ).join('\n')
+  : '- Nenhuma atividade registrada'}
 
 ## Estrutura do Relatório
 

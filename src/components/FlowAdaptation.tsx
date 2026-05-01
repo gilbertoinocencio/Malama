@@ -86,17 +86,31 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
 
   const [activity, setActivity] = useState<Activity | null>(null);
   const [activityLoading, setActivityLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<'syncing' | 'done'>('syncing');
   const [hasIntegration, setHasIntegration] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      IntegrationService.getLatestActivity(user.id),
-      IntegrationService.getConnectedIntegrations(user.id),
-    ]).then(([latestActivity, integrations]) => {
+
+    const load = async () => {
+      setSyncStatus('syncing');
+
+      // Sincroniza com o Strava antes de exibir — erro não bloqueia a exibição
+      try { await IntegrationService.syncActivities(); } catch { /* silencioso */ }
+
+      setSyncStatus('done');
+
+      const [latestActivity, integrations] = await Promise.all([
+        IntegrationService.getLatestActivity(user.id),
+        IntegrationService.getConnectedIntegrations(user.id),
+      ]);
+
       setActivity(latestActivity);
       setHasIntegration(integrations.some(i => i.is_connected));
-    }).finally(() => setActivityLoading(false));
+      setActivityLoading(false);
+    };
+
+    load();
   }, [user?.id]);
 
   // Usa calorias do Strava se disponível; caso contrário estima por MET
@@ -129,6 +143,9 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
           /* Skeleton de carregamento */
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-Malama-petrol dark:border-primary" />
+            <p className="text-sm text-Malama-muted dark:text-slate-400 animate-pulse">
+              {syncStatus === 'syncing' ? 'Buscando atividades...' : 'Carregando...'}
+            </p>
           </div>
 
         ) : !activity ? (
@@ -181,21 +198,32 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
                 <div className="relative h-48 w-full bg-gray-100 dark:bg-[#363330] overflow-hidden flex items-center justify-center">
                   <span className="material-symbols-outlined text-6xl text-Malama-muted/30 dark:text-white/10">map</span>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <ServiceBadge service={activity.service} />
-                      <span className="text-white font-medium text-sm drop-shadow-md">
-                        {activity.name}
-                      </span>
-                    </div>
-                    <span className="text-white/80 text-xs font-medium drop-shadow-md bg-black/30 px-2 py-0.5 rounded-full">
-                      {new Date(activity.activity_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                  <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                    <ServiceBadge service={activity.service} />
+                    <span className="text-white font-medium text-sm drop-shadow-md">
+                      {activity.name}
                     </span>
                   </div>
                 </div>
 
                 {/* Detalhes */}
                 <div className="flex w-full flex-col gap-4 p-5">
+                  <div className="flex items-center gap-1.5 text-Malama-muted dark:text-slate-400">
+                    <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>calendar_today</span>
+                    <span className="text-xs font-medium">
+                      {new Date(activity.activity_date).toLocaleDateString('pt-BR', {
+                        weekday: 'long',
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                      {' · '}
+                      {new Date(activity.activity_date).toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-Malama-muted dark:text-slate-400 text-xs font-semibold uppercase tracking-wide mb-1">{fa.workoutType}</p>

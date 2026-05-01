@@ -741,6 +741,42 @@ export const settingsService = {
 };
 
 // =====================================================
+// ATIVIDADES FÍSICAS DO PACIENTE
+// =====================================================
+
+export interface PatientActivity {
+  id: string;
+  service: string;
+  activity_type: string;
+  name: string;
+  calories_burned: number;
+  duration_seconds: number;
+  distance_meters: number | null;
+  activity_date: string;
+}
+
+export const patientActivitiesService = {
+  async getPatientActivities(patientId: string, days = 30): Promise<PatientActivity[]> {
+    const since = new Date(Date.now() - days * 86_400_000).toISOString();
+    const { data } = await supabase
+      .from('activities')
+      .select('id, service, activity_type, name, calories_burned, duration_seconds, distance_meters, activity_date')
+      .eq('user_id', patientId)
+      .gte('activity_date', since)
+      .order('activity_date', { ascending: false });
+    return (data ?? []) as PatientActivity[];
+  },
+
+  async getActivityHealthInsights(patientId: string): Promise<string> {
+    const { data, error } = await supabase.functions.invoke('activity-health-insights', {
+      body: { patient_id: patientId },
+    });
+    if (error) throw error;
+    return (data as { insights: string }).insights ?? '';
+  },
+};
+
+// =====================================================
 // PACIENTES
 // =====================================================
 

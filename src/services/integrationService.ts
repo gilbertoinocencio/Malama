@@ -99,6 +99,11 @@ export const IntegrationService = {
     }
   },
 
+  // Sincroniza atividades do Strava com o banco local (chamada automática ao abrir FlowAdaptation)
+  async syncActivities(): Promise<void> {
+    await supabase.functions.invoke('strava-sync');
+  },
+
   // Retorna a atividade mais recente do usuário (sem limite de data)
   async getLatestActivity(userId: string): Promise<Activity | null> {
     const { data } = await supabase
