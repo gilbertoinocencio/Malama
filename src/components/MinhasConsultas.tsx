@@ -11,6 +11,9 @@ import {
   rejectAllRescheduleProposals,
 } from '../lib/scheduling';
 import { creditService } from '../services/billingService';
+import { appointmentChatService } from '../services/doctorPortalService';
+import type { AppointmentChat } from '../types/doctorPortal';
+import { PatientChatModal } from './PatientChatModal';
 import { AppView } from '../types';
 
 interface MinhasConsultasProps {
@@ -35,6 +38,8 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
   const [rescheduleModal, setRescheduleModal] = useState<Consultation | null>(null);
   const [chosenProposal, setChosenProposal] = useState<string | null>(null);
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const [activeChats, setActiveChats] = useState<Map<string, AppointmentChat>>(new Map());
+  const [openChat, setOpenChat] = useState<{ consultationId: string; doctorName: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -43,11 +48,15 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
       getPatientConsultations(user.id),
       getPatientPrescriptions(user.id),
       creditService.getAvailableForUser(user.id),
+      appointmentChatService.getPatientChats(user.id),
     ])
-      .then(([c, p, credits]) => {
+      .then(([c, p, credits, chats]) => {
         setConsultations(c);
         setPrescriptions(p);
         setHasAvailableCredit((credits as any[]).length > 0);
+        const chatMap = new Map<string, AppointmentChat>();
+        (chats as AppointmentChat[]).forEach(ch => chatMap.set(ch.consultation_id, ch));
+        setActiveChats(chatMap);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -291,6 +300,29 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                       {c.rating && (
                         <p className="text-xs text-yellow-500">{'★'.repeat(c.rating)}{'☆'.repeat(5 - c.rating)}</p>
                       )}
+                      {/* Botão de chat pós-consulta */}
+                      {activeChats.has(c.id) && (() => {
+                        const ch = activeChats.get(c.id)!;
+                        const days = Math.max(0, Math.ceil((new Date(ch.expires_at).getTime() - Date.now()) / 86_400_000));
+                        return (
+                          <button
+                            onClick={() => setOpenChat({ consultationId: c.id, doctorName: (c.doctors as any)?.name || 'Médico' })}
+                            className="mt-2 w-full flex items-center justify-between px-3 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-semibold transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-base">chat</span>
+                              <span>Falar com o médico</span>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              days <= 3 ? 'bg-red-500 text-white' :
+                              days <= 7 ? 'bg-amber-400 text-gray-900' :
+                                          'bg-white/20 text-white'
+                            }`}>
+                              {days}d
+                            </span>
+                          </button>
+                        );
+                      })()}
                     </motion.div>
                   ))}
                 </div>
@@ -370,6 +402,15 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
           </div>
         )}
       </div>
+
+      {/* Chat pós-consulta */}
+      {openChat && (
+        <PatientChatModal
+          consultationId={openChat.consultationId}
+          doctorName={openChat.doctorName}
+          onClose={() => setOpenChat(null)}
+        />
+      )}
 
       {/* Reschedule Modal */}
       {rescheduleModal && (

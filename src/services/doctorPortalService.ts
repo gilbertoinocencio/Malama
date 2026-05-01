@@ -2148,6 +2148,19 @@ export const appointmentChatService = {
     return data as string;
   },
 
+  // Busca todos os chats ativos do paciente (usado no app do paciente)
+  async getPatientChats(patientUserId: string): Promise<AppointmentChat[]> {
+    const { data, error } = await supabase
+      .from('appointment_chats')
+      .select('*')
+      .eq('patient_id', patientUserId)
+      .eq('status', 'open')
+      .order('opened_at', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []) as AppointmentChat[];
+  },
+
   async getDoctorChats(doctorId: string, status?: 'open' | 'closed' | 'expired'): Promise<AppointmentChat[]> {
     let query = supabase
       .from('appointment_chats')

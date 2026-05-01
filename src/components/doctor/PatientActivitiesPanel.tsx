@@ -75,8 +75,8 @@ export const PatientActivitiesPanel: React.FC<Props> = ({ patientId }) => {
   const typeFreq     = activities.reduce<Record<string, number>>((acc, a) => {
     acc[a.activity_type] = (acc[a.activity_type] ?? 0) + 1;
     return acc;
-  }, {});
-  const topType      = Object.entries(typeFreq).sort((a, b) => b[1] - a[1])[0];
+  }, {} as Record<string, number>);
+  const topType      = (Object.entries(typeFreq) as [string, number][]).sort((a, b) => b[1] - a[1])[0];
   const weeklyChart  = buildWeeklyChart(activities);
   const weeksWithActivity = weeklyChart.filter(w => w.count > 0).length;
 
