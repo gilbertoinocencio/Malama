@@ -17,6 +17,7 @@ interface DoctorNotification {
   body: string | null;
   is_read: boolean;
   created_at: string;
+  patient_id: string | null;
   data: Record<string, unknown>;
 }
 
@@ -104,7 +105,8 @@ export const DoctorNotificationsPanel: React.FC<Props> = ({ onClose }) => {
     setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
     supabase.from('doctor_notifications').update({ is_read: true }).eq('id', n.id);
 
-    const patientId = (n.data?.patient_id ?? n.data?.patientId) as string | undefined;
+    // patient_id é coluna top-level na tabela doctor_notifications
+    const patientId = n.patient_id;
     if (!patientId) { onClose(); return; }
 
     const tab = NOTIFICATION_TAB[n.type];

@@ -133,17 +133,28 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
     const load = async (silent = false) => {
       if (!silent) setLoading(true);
       try {
-        const chats = await appointmentChatService.getDoctorChats(doctorId, 'open');
-        const found = chats.find(c => c.patient_id === patientId) ?? null;
-        setChat(found);
+        // Query direta por doctor_id + patient_id (sem filtrar por status)
+        const { data: found } = await supabase
+          .from('appointment_chats')
+          .select('*')
+          .eq('doctor_id', doctorId)
+          .eq('patient_id', patientId)
+          .order('opened_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        setChat(found ?? null);
 
         if (found) {
           const msgs = await appointmentChatService.getMessages(found.id);
           setMessages(msgs);
-          await appointmentChatService.markRead(found.id, 'doctor');
-          msgSub = appointmentChatService.subscribeToMessages(found.id, (msg) => {
-            setMessages(prev => [...prev, msg]);
-          });
+          if (found.status === 'open') {
+            await appointmentChatService.markRead(found.id, 'doctor');
+            msgSub = appointmentChatService.subscribeToMessages(found.id, (msg) => {
+              setMessages(prev => [...prev, msg]);
+              appointmentChatService.markRead(found.id, 'doctor');
+            });
+          }
         }
       } catch (e) {
         console.error(e);
