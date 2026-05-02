@@ -3,6 +3,7 @@
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   X, Bell, MessageSquare, FileText, AlertTriangle,
   Clock, Shield, CheckCircle
@@ -42,7 +43,18 @@ interface Props {
   onClose: () => void;
 }
 
+// Mapeia tipo de notificação → aba de destino no perfil do paciente
+const NOTIFICATION_TAB: Record<string, string> = {
+  chat_message:  'chat',
+  chat_opened:   'chat',
+  sla_risk:      'chat',
+  chat_expiring: 'chat',
+  exam_uploaded: 'exams',
+  ai_alert:      'briefing',
+};
+
 export const DoctorNotificationsPanel: React.FC<Props> = ({ onClose }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<DoctorNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
@@ -86,6 +98,23 @@ export const DoctorNotificationsPanel: React.FC<Props> = ({ onClose }) => {
   };
 
   const unread = notifications.filter(n => !n.is_read).length;
+
+  const handleClick = async (n: DoctorNotification) => {
+    // Marca como lida imediatamente (otimista)
+    setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
+    supabase.from('doctor_notifications').update({ is_read: true }).eq('id', n.id);
+
+    const patientId = (n.data?.patient_id ?? n.data?.patientId) as string | undefined;
+    if (!patientId) { onClose(); return; }
+
+    const tab = NOTIFICATION_TAB[n.type];
+    const path = tab
+      ? `/medico/pacientes/${patientId}?tab=${tab}`
+      : `/medico/pacientes/${patientId}`;
+
+    onClose();
+    navigate(path);
+  };
 
   return (
     <>
@@ -139,10 +168,14 @@ export const DoctorNotificationsPanel: React.FC<Props> = ({ onClose }) => {
 
           {!loading && notifications.map(n => {
             const cfg = TYPE_CONFIG[n.type] ?? { icon: <Bell className="w-4 h-4" />, color: 'text-gray-600 bg-gray-50' };
+            const isActionable = !!(n.data?.patient_id ?? n.data?.patientId);
             return (
               <div
                 key={n.id}
-                className={`flex gap-3 px-4 py-3 border-b border-gray-50 transition ${!n.is_read ? 'bg-blue-50/40' : 'hover:bg-gray-50'}`}
+                onClick={() => handleClick(n)}
+                className={`flex gap-3 px-4 py-3 border-b border-gray-50 transition ${
+                  !n.is_read ? 'bg-blue-50/40' : 'bg-white'
+                } ${isActionable ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100' : ''}`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${cfg.color}`}>
                   {cfg.icon}

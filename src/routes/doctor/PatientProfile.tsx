@@ -3,7 +3,7 @@
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useOutletContext, Link } from 'react-router-dom';
+import { useParams, useOutletContext, useSearchParams, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { User, TrendingUp, Activity, FileText, MessageSquare, Calendar, Plus, X, Save, Paperclip, Brain } from 'lucide-react';
 import { patientService, planAdjustmentService, glp1DoctorService, clinicalNoteService } from '../../services/doctorPortalService';
@@ -25,8 +25,10 @@ type TabType = 'overview' | 'history' | 'symptoms' | 'consultations' | 'exams' |
 export const PatientProfile: React.FC = () => {
   const { doctor } = useOutletContext<{ doctor: Doctor }>();
   const { patientId } = useParams<{ patientId: string }>();
+  const [searchParams] = useSearchParams();
   const [patient, setPatient] = useState<PatientFullProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const initialTab = (searchParams.get('tab') as TabType | null) ?? 'overview';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [loading, setLoading] = useState(true);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [adjustGoals, setAdjustGoals] = useState<PatientGoals>({
