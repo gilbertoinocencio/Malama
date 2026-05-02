@@ -14,8 +14,10 @@ import {
   Activity,
   Heart,
   Droplets,
-  ChevronRight
+  ChevronRight,
+  CheckCircle,
 } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
 // Animações
 const fadeInUp = {
@@ -37,6 +39,16 @@ const LandingPage: React.FC = () => {
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
 
+  const [patientForm, setPatientForm] = useState({ nome: '', email: '', objetivo: '' });
+  const [patientSubmitted, setPatientSubmitted] = useState(false);
+  const [patientLoading, setPatientLoading] = useState(false);
+  const [patientErro, setPatientErro] = useState('');
+
+  const origem = (() => {
+    const p = new URLSearchParams(window.location.search);
+    return p.get('origem') || p.get('utm_source') || null;
+  })();
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -50,6 +62,23 @@ const LandingPage: React.FC = () => {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
       setIsMenuOpen(false);
+    }
+  };
+
+  const handlePatientSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!patientForm.nome || !patientForm.email || !patientForm.objetivo) {
+      setPatientErro('Preencha todos os campos.');
+      return;
+    }
+    setPatientLoading(true);
+    setPatientErro('');
+    const { error } = await supabase.from('patient_leads').insert({ ...patientForm, origem });
+    setPatientLoading(false);
+    if (error) {
+      setPatientErro('Não foi possível salvar. Tente novamente.');
+    } else {
+      setPatientSubmitted(true);
     }
   };
 
@@ -68,15 +97,24 @@ const LandingPage: React.FC = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-10">
-              {['A Abordagem', 'Como Funciona', 'Para Médicos'].map((item, i) => (
-                <button 
-                  key={i} 
-                  onClick={() => scrollToSection(item.toLowerCase().replace(' ', '-'))} 
-                  className="text-sm font-medium tracking-wide text-Malama-muted hover:text-Malama-petrol transition-colors"
-                >
-                  {item}
-                </button>
-              ))}
+              <button
+                onClick={() => scrollToSection('a-abordagem')}
+                className="text-sm font-medium tracking-wide text-Malama-muted hover:text-Malama-petrol transition-colors"
+              >
+                A Abordagem
+              </button>
+              <button
+                onClick={() => scrollToSection('como-funciona')}
+                className="text-sm font-medium tracking-wide text-Malama-muted hover:text-Malama-petrol transition-colors"
+              >
+                Como Funciona
+              </button>
+              <Link
+                to="/medicos"
+                className="text-sm font-medium tracking-wide text-Malama-muted hover:text-Malama-petrol transition-colors"
+              >
+                Para Médicos
+              </Link>
             </nav>
 
             {/* CTA Buttons */}
@@ -115,15 +153,25 @@ const LandingPage: React.FC = () => {
               exit={{ opacity: 0, y: -20 }}
               className="absolute top-full left-0 right-0 bg-Malama-bg border-b border-Malama-border/50 shadow-2xl py-8 px-6 flex flex-col gap-6"
             >
-              {['A Abordagem', 'Como Funciona', 'Para Médicos'].map((item, i) => (
-                <button 
-                  key={i} 
-                  onClick={() => scrollToSection(item.toLowerCase().replace(' ', '-'))} 
-                  className="text-left text-xl font-serif text-Malama-main"
-                >
-                  {item}
-                </button>
-              ))}
+              <button
+                onClick={() => scrollToSection('a-abordagem')}
+                className="text-left text-xl font-serif text-Malama-main"
+              >
+                A Abordagem
+              </button>
+              <button
+                onClick={() => scrollToSection('como-funciona')}
+                className="text-left text-xl font-serif text-Malama-main"
+              >
+                Como Funciona
+              </button>
+              <Link
+                to="/medicos"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-left text-xl font-serif text-Malama-main"
+              >
+                Para Médicos
+              </Link>
               <div className="h-px bg-Malama-border my-2"></div>
               <Link to="/entrar" className="text-lg font-medium text-Malama-main">Entrar</Link>
               <Link to="/entrar?signup=true" className="inline-block bg-Malama-main text-white px-6 py-3 rounded-full text-center font-medium mt-2">
@@ -380,6 +428,115 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* ==================== LISTA DE ESPERA — PACIENTES ==================== */}
+      <section id="lista-espera-pacientes" className="py-24 px-6 md:px-12 bg-white">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="max-w-xl mx-auto text-center">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-80px' }}
+              variants={staggerContainer}
+            >
+              <motion.div variants={fadeInUp} className="mb-4 flex items-center justify-center gap-3">
+                <div className="h-px w-8 bg-Malama-petrol" />
+                <span className="text-xs font-semibold tracking-widest uppercase text-Malama-petrol">Em breve</span>
+                <div className="h-px w-8 bg-Malama-petrol" />
+              </motion.div>
+
+              <motion.h2
+                variants={fadeInUp}
+                className="font-serif text-4xl md:text-5xl font-light leading-tight mb-4 text-Malama-main"
+              >
+                Seja o primeiro a saber
+              </motion.h2>
+
+              <motion.p variants={fadeInUp} className="text-Malama-muted mb-10 leading-relaxed">
+                A Malama está chegando. Entre na lista de espera e garanta acesso prioritário quando abrirmos as vagas.
+              </motion.p>
+
+              {patientSubmitted ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center gap-4 py-10"
+                >
+                  <div className="w-14 h-14 rounded-full bg-Malama-petrol/10 flex items-center justify-center">
+                    <CheckCircle className="w-7 h-7 text-Malama-petrol" />
+                  </div>
+                  <h3 className="font-serif text-2xl font-light">Você está na lista!</h3>
+                  <p className="text-Malama-muted text-sm max-w-xs">
+                    Avisaremos quando sua vaga estiver disponível.
+                  </p>
+                </motion.div>
+              ) : (
+                <motion.form
+                  variants={fadeInUp}
+                  onSubmit={handlePatientSubmit}
+                  className="flex flex-col gap-4 text-left"
+                >
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Nome</label>
+                    <input
+                      type="text"
+                      value={patientForm.nome}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPatientForm({ ...patientForm, nome: e.target.value })}
+                      placeholder="Seu nome completo"
+                      className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-Malama-bg text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">E-mail</label>
+                    <input
+                      type="email"
+                      value={patientForm.email}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPatientForm({ ...patientForm, email: e.target.value })}
+                      placeholder="seu@email.com"
+                      className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-Malama-bg text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Objetivo principal</label>
+                    <select
+                      value={patientForm.objetivo}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPatientForm({ ...patientForm, objetivo: e.target.value })}
+                      className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-Malama-bg text-Malama-main focus:outline-none focus:border-Malama-petrol transition-colors text-sm appearance-none cursor-pointer"
+                    >
+                      <option value="">Selecione seu objetivo</option>
+                      <option value="perda_peso">Perda de peso</option>
+                      <option value="ganho_muscular">Ganho muscular</option>
+                      <option value="saude_longevidade">Saúde e longevidade</option>
+                      <option value="condicao_clinica">Condição clínica</option>
+                      <option value="acompanhamento_glp1">Acompanhamento GLP-1</option>
+                      <option value="outro">Outro</option>
+                    </select>
+                  </div>
+
+                  {patientErro && (
+                    <p className="text-sm text-red-500">{patientErro}</p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={patientLoading}
+                    className="mt-2 w-full group inline-flex items-center justify-center gap-3 bg-Malama-main text-white px-8 py-4 rounded-full font-medium text-base hover:bg-Malama-petrol transition-colors duration-300 disabled:opacity-60"
+                  >
+                    {patientLoading ? 'Enviando...' : 'Entrar na lista de espera'}
+                    {!patientLoading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+                  </button>
+
+                  <p className="text-xs text-center text-Malama-muted/60">
+                    Seus dados são usados apenas para contato. Sem spam.
+                  </p>
+                </motion.form>
+              )}
+            </motion.div>
+          </div>
         </div>
       </section>
 

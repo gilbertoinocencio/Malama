@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from '../components/ToastProvider';
 import { MalamaLogo } from '../components/MalamaLogo';
 import { LandingPage } from './LandingPage';
+import { MedicosLandingPage } from './MedicosLandingPage';
 
 // Guards
 import { DoctorRoute, AdminRoute, PublicDoctorRoute } from './guards';
@@ -242,6 +243,9 @@ export const AppRoutes: React.FC = () => {
           <Route path="/influencer/convite/:token" element={<InfluencerInvite />} />
           <Route path="/influencer/onboarding" element={<InfluencerOnboarding />} />
           <Route path="/influencer/dashboard" element={<InfluencerDashboard />} />
+
+          {/* Landing page para médicos */}
+          <Route path="/medicos" element={<MedicosLandingPage />} />
 
           {/* Rota padrão - redireciona para Landing Page */}
           <Route path="*" element={<Navigate to="/" replace />} />
