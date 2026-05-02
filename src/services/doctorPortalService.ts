@@ -787,7 +787,15 @@ export const patientService = {
     const [{ data: consultations }, { data: referredProfiles }] = await Promise.all([
       supabase
         .from('consultations')
-        .select('patient_id, scheduled_at')
+        .select(`
+          patient_id, 
+          scheduled_at,
+          patient:patient_id (
+            id,
+            email,
+            raw_user_meta_data
+          )
+        `)
         .eq('doctor_id', doctorId)
         .order('scheduled_at', { ascending: false }),
       supabase
@@ -798,6 +806,7 @@ export const patientService = {
 
     // Step 2: build consultation date map
     const consultationMap = new Map<string, { last: string | null; next: string | null }>();
+    const authInfoMap = new Map<string, { name: string; photo_url: string | null }>();
     const now = new Date();
     for (const c of (consultations || [])) {
       const pid = c.patient_id;
@@ -808,6 +817,16 @@ export const patientService = {
         if (!entry.last || dt > new Date(entry.last)) entry.last = c.scheduled_at;
       } else {
         if (!entry.next || dt < new Date(entry.next)) entry.next = c.scheduled_at;
+      }
+      
+      if (!authInfoMap.has(pid)) {
+        const pd = Array.isArray((c as any).patient) ? (c as any).patient[0] : (c as any).patient;
+        if (pd?.raw_user_meta_data) {
+          authInfoMap.set(pid, {
+            name: pd.raw_user_meta_data.name || pd.email,
+            photo_url: pd.raw_user_meta_data.photo_url || null
+          });
+        }
       }
     }
 
@@ -841,8 +860,8 @@ export const patientService = {
       const dates = consultationMap.get(pid) ?? { last: null, next: null };
       return {
         id: pid,
-        name: p?.display_name || 'Paciente',
-        photo_url: p?.avatar_url || null,
+        name: authInfoMap.get(pid)?.name || p?.display_name || 'Paciente',
+        photo_url: authInfoMap.get(pid)?.photo_url || p?.avatar_url || null,
         lastConsultation: dates.last,
         nextConsultation: dates.next,
         imc,
@@ -877,7 +896,14 @@ export const patientService = {
     // Buscar consultas do paciente com este médico
     const { data: consultations, error: consultError } = await supabase
       .from('consultations')
-      .select('*')
+      .select(`
+        *,
+        patient:patient_id (
+          id,
+          email,
+          raw_user_meta_data
+        )
+      `)
       .eq('doctor_id', doctorId)
       .eq('patient_id', patientId)
       .order('scheduled_at', { ascending: false });
@@ -1080,10 +1106,20 @@ export const patientService = {
       };
     });
 
+    let authName = null;
+    let authPhoto = null;
+    if (consultations && consultations.length > 0) {
+      const pd = Array.isArray((consultations[0] as any).patient) ? (consultations[0] as any).patient[0] : (consultations[0] as any).patient;
+      if (pd) {
+        authName = pd.raw_user_meta_data?.name || pd.email;
+        authPhoto = pd.raw_user_meta_data?.photo_url;
+      }
+    }
+
     return {
       id: patientId,
-      name: profile?.display_name || 'Paciente',
-      photo_url: profile?.avatar_url || null,
+      name: authName || profile?.display_name || 'Paciente',
+      photo_url: authPhoto || profile?.avatar_url || null,
       age: profile?.age || null,
       gender: profile?.gender || null,
       imc,

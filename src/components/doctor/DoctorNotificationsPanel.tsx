@@ -72,17 +72,24 @@ export const DoctorNotificationsPanel: React.FC<Props> = ({ onClose }) => {
     fetchNotifications();
 
     // Realtime: re-busca quando uma nova notificação chega para o médico
+    // doctor_notifications.doctor_id é o PK da tabela doctors (não auth.uid())
     let channel: ReturnType<typeof supabase.channel> | null = null;
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       const uid = data.user?.id;
       if (!uid) return;
+      const { data: doc } = await supabase
+        .from('doctors')
+        .select('id')
+        .eq('user_id', uid)
+        .maybeSingle();
+      if (!doc) return;
       channel = supabase
-        .channel(`doctor-notifs-${uid}`)
+        .channel(`doctor-notifs-${doc.id}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
           table: 'doctor_notifications',
-          filter: `doctor_id=eq.${uid}`,
+          filter: `doctor_id=eq.${doc.id}`,
         }, () => { fetchNotifications(); })
         .subscribe();
     });
