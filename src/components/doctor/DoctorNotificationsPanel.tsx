@@ -111,8 +111,8 @@ export const DoctorNotificationsPanel: React.FC<Props> = ({ onClose }) => {
 
     const tab = NOTIFICATION_TAB[n.type];
     const path = tab
-      ? `/medico/pacientes/${patientId}?tab=${tab}`
-      : `/medico/pacientes/${patientId}`;
+      ? `/medico/paciente/${patientId}?tab=${tab}`
+      : `/medico/paciente/${patientId}`;
 
     onClose();
     navigate(path);
