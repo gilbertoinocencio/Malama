@@ -279,14 +279,7 @@ export const consultationService = {
   }): Promise<Consultation[]> {
     let query = supabase
       .from('consultations')
-      .select(`
-        *,
-        patient:patient_id (
-          id,
-          email,
-          raw_user_meta_data
-        )
-      `)
+      .select('*')
       .eq('doctor_id', doctorId);
 
     if (options?.status) {
@@ -308,17 +301,24 @@ export const consultationService = {
     const { data, error } = await query;
     if (error) throw error;
 
-    // Transformar dados do paciente
-    return (data || []).map((c: any) => {
-      const patientData = Array.isArray(c.patient) ? c.patient[0] : c.patient;
-      return {
-        ...c,
-        patient_name: patientData?.raw_user_meta_data?.name || patientData?.email || 'Paciente',
-        patient_photo: patientData?.raw_user_meta_data?.photo_url || null,
-        patient_age: patientData?.raw_user_meta_data?.age || null,
-        patient_gender: patientData?.raw_user_meta_data?.gender || null
-      };
-    });
+    // Buscar nomes dos pacientes via profiles (authenticated role não acessa auth.users)
+    const patientIds = [...new Set((data || []).map((c: any) => c.patient_id))];
+    const profileMap: Record<string, any> = {};
+    if (patientIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', patientIds);
+      for (const p of (profiles || [])) profileMap[p.id] = p;
+    }
+
+    return (data || []).map((c: any) => ({
+      ...c,
+      patient_name: profileMap[c.patient_id]?.display_name || 'Paciente',
+      patient_photo: profileMap[c.patient_id]?.avatar_url || null,
+      patient_age: null,
+      patient_gender: null,
+    }));
   },
 
   // Buscar próxima consulta
@@ -784,18 +784,12 @@ export const patientService = {
   // Buscar pacientes únicos que tiveram consulta com o médico
   async getDoctorPatients(doctorId: string, search?: string): Promise<PatientSummary[]> {
     // Step 1: IDs via consultations + IDs via referral (em paralelo)
+    // Nota: não fazemos join com auth.users porque authenticated role não tem permissão
+    // de leitura na tabela auth.users — nomes vêm de profiles.display_name
     const [{ data: consultations }, { data: referredProfiles }] = await Promise.all([
       supabase
         .from('consultations')
-        .select(`
-          patient_id, 
-          scheduled_at,
-          patient:patient_id (
-            id,
-            email,
-            raw_user_meta_data
-          )
-        `)
+        .select('patient_id, scheduled_at')
         .eq('doctor_id', doctorId)
         .order('scheduled_at', { ascending: false }),
       supabase
@@ -806,7 +800,6 @@ export const patientService = {
 
     // Step 2: build consultation date map
     const consultationMap = new Map<string, { last: string | null; next: string | null }>();
-    const authInfoMap = new Map<string, { name: string; photo_url: string | null }>();
     const now = new Date();
     for (const c of (consultations || [])) {
       const pid = c.patient_id;
@@ -817,16 +810,6 @@ export const patientService = {
         if (!entry.last || dt > new Date(entry.last)) entry.last = c.scheduled_at;
       } else {
         if (!entry.next || dt < new Date(entry.next)) entry.next = c.scheduled_at;
-      }
-      
-      if (!authInfoMap.has(pid)) {
-        const pd = Array.isArray((c as any).patient) ? (c as any).patient[0] : (c as any).patient;
-        if (pd?.raw_user_meta_data) {
-          authInfoMap.set(pid, {
-            name: pd.raw_user_meta_data.name || pd.email,
-            photo_url: pd.raw_user_meta_data.photo_url || null
-          });
-        }
       }
     }
 
@@ -860,8 +843,8 @@ export const patientService = {
       const dates = consultationMap.get(pid) ?? { last: null, next: null };
       return {
         id: pid,
-        name: authInfoMap.get(pid)?.name || p?.display_name || 'Paciente',
-        photo_url: authInfoMap.get(pid)?.photo_url || p?.avatar_url || null,
+        name: p?.display_name || 'Paciente',
+        photo_url: p?.avatar_url || null,
         lastConsultation: dates.last,
         nextConsultation: dates.next,
         imc,
@@ -894,16 +877,10 @@ export const patientService = {
   // Buscar perfil completo de um paciente
   async getPatientFullProfile(patientId: string, doctorId: string): Promise<PatientFullProfile | null> {
     // Buscar consultas do paciente com este médico
+    // Nota: não há join com auth.users (authenticated role não tem acesso)
     const { data: consultations, error: consultError } = await supabase
       .from('consultations')
-      .select(`
-        *,
-        patient:patient_id (
-          id,
-          email,
-          raw_user_meta_data
-        )
-      `)
+      .select('*')
       .eq('doctor_id', doctorId)
       .eq('patient_id', patientId)
       .order('scheduled_at', { ascending: false });
@@ -1106,20 +1083,10 @@ export const patientService = {
       };
     });
 
-    let authName = null;
-    let authPhoto = null;
-    if (consultations && consultations.length > 0) {
-      const pd = Array.isArray((consultations[0] as any).patient) ? (consultations[0] as any).patient[0] : (consultations[0] as any).patient;
-      if (pd) {
-        authName = pd.raw_user_meta_data?.name || pd.email;
-        authPhoto = pd.raw_user_meta_data?.photo_url;
-      }
-    }
-
     return {
       id: patientId,
-      name: authName || profile?.display_name || 'Paciente',
-      photo_url: authPhoto || profile?.avatar_url || null,
+      name: profile?.display_name || 'Paciente',
+      photo_url: profile?.avatar_url || null,
       age: profile?.age || null,
       gender: profile?.gender || null,
       imc,
@@ -1244,33 +1211,25 @@ export const dashboardService = {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // 1. Buscar todos os IDs de pacientes do médico (com nome real via raw_user_meta_data)
+    // 1. Buscar todos os IDs de pacientes do médico
     const { data: allConsults } = await supabase
       .from('consultations')
-      .select(`
-        patient_id,
-        type,
-        patient:patient_id (
-          id,
-          email,
-          raw_user_meta_data
-        )
-      `)
+      .select('patient_id, type')
       .eq('doctor_id', doctorId);
 
-    // Mapa de patient_id → { name, photo_url } usando raw_user_meta_data (nome real)
+    const allPatientIds = [...new Set((allConsults || []).map(c => c.patient_id))];
+
+    // Mapa de patient_id → { name, photo_url } via profiles
     const patientInfoMap: Record<string, { name: string; photo_url: string | null }> = {};
-    for (const c of (allConsults || [])) {
-      const pd = Array.isArray((c as any).patient) ? (c as any).patient[0] : (c as any).patient;
-      if (pd && !patientInfoMap[c.patient_id]) {
-        patientInfoMap[c.patient_id] = {
-          name: pd.raw_user_meta_data?.name || pd.email || 'Paciente',
-          photo_url: pd.raw_user_meta_data?.photo_url || null,
-        };
+    if (allPatientIds.length > 0) {
+      const { data: ptProfiles } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', allPatientIds);
+      for (const p of (ptProfiles || [])) {
+        patientInfoMap[p.id] = { name: p.display_name || 'Paciente', photo_url: p.avatar_url || null };
       }
     }
-
-    const allPatientIds = [...new Set((allConsults || []).map(c => c.patient_id))];
 
 
     // 2. Funil de conversão — indicados pelo link do médico
