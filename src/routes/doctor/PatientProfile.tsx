@@ -29,6 +29,7 @@ export const PatientProfile: React.FC = () => {
   const [patient, setPatient] = useState<PatientFullProfile | null>(null);
   const initialTab = (searchParams.get('tab') as TabType | null) ?? 'overview';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const chatIdFromUrl = searchParams.get('chatId') ?? undefined;
   const [loading, setLoading] = useState(true);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [adjustGoals, setAdjustGoals] = useState<PatientGoals>({
@@ -539,6 +540,7 @@ export const PatientProfile: React.FC = () => {
               doctorId={doctor.id}
               patientId={patientId}
               patientName={patient.name}
+              chatId={chatIdFromUrl}
             />
           )}
 

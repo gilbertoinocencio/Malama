@@ -17,6 +17,7 @@ interface Props {
   doctorId: string;
   patientId: string;
   patientName: string;
+  chatId?: string;
 }
 
 // ─── Helpers ────────────────────────────────────────
@@ -115,7 +116,7 @@ const Bubble: React.FC<{ msg: ChatMessage; isDoctor: boolean }> = ({ msg, isDoct
 
 // ─── Main Component ──────────────────────────────────
 
-export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, patientName }) => {
+export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, patientName, chatId: chatIdProp }) => {
   const [chat, setChat]         = useState<AppointmentChat | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText]         = useState('');
@@ -133,15 +134,28 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
     const load = async (silent = false) => {
       if (!silent) setLoading(true);
       try {
-        // Query direta por doctor_id + patient_id (sem filtrar por status)
-        const { data: found } = await supabase
-          .from('appointment_chats')
-          .select('*')
-          .eq('doctor_id', doctorId)
-          .eq('patient_id', patientId)
-          .order('opened_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        let found: AppointmentChat | null = null;
+
+        if (chatIdProp) {
+          // Quando vindo de uma notificação: carrega o chat exato
+          const { data } = await supabase
+            .from('appointment_chats')
+            .select('*')
+            .eq('id', chatIdProp)
+            .maybeSingle();
+          found = (data as AppointmentChat) ?? null;
+        } else {
+          // Sem chat_id na URL: pega o mais recente por doctor_id + patient_id
+          const { data } = await supabase
+            .from('appointment_chats')
+            .select('*')
+            .eq('doctor_id', doctorId)
+            .eq('patient_id', patientId)
+            .order('opened_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          found = (data as AppointmentChat) ?? null;
+        }
 
         setChat(found ?? null);
 
@@ -180,7 +194,7 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
       msgSub?.unsubscribe();
       chatWatchSub?.unsubscribe();
     };
-  }, [doctorId, patientId]);
+  }, [doctorId, patientId, chatIdProp]);
 
   // Auto-scroll on new message
   useEffect(() => {
