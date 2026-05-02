@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
         srcDir: 'public',
         filename: 'sw.js',
         registerType: 'autoUpdate',
-        includeAssets: ['logo.jpg', 'apple-touch-icon.png'],
+        includeAssets: ['pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png', 'favicon.png', 'joao_de_barro_gravura.svg'],
         manifest: {
           name: 'Malama - Feed the Flow',
           short_name: 'Malama',
@@ -28,15 +28,15 @@ export default defineConfig(({ mode }) => {
           orientation: 'portrait',
           icons: [
             {
-              src: 'logo.jpg',
+              src: 'pwa-192x192.png',
               sizes: '192x192',
-              type: 'image/jpeg',
+              type: 'image/png',
               purpose: 'any maskable'
             },
             {
-              src: 'logo.jpg',
+              src: 'pwa-512x512.png',
               sizes: '512x512',
-              type: 'image/jpeg',
+              type: 'image/png',
               purpose: 'any maskable'
             }
           ]

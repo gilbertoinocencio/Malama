@@ -55,7 +55,7 @@ export const MalamaLogo: React.FC<MalamaLogoProps> = ({
       }}
     >
       <img
-        src="/malama-logo.png"
+        src="/malama_passaro_direita.svg"
         alt="Malama Logo"
         style={{
           width: config.width,
