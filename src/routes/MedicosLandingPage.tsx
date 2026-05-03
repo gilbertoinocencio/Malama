@@ -285,7 +285,7 @@ export const MedicosLandingPage: React.FC = () => {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
               <Link
-                to="/medico/cadastro"
+                to="/medico"
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-full border border-Malama-border text-Malama-main font-medium text-base hover:border-Malama-petrol hover:text-Malama-petrol transition-colors duration-300"
               >
                 Já tenho conta
