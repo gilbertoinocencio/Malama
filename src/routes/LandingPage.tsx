@@ -54,6 +54,23 @@ const LandingPage: React.FC = () => {
       setScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
+
+    // Pré-preencher nome e email após retorno do OAuth Google
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+        const email = session.user.email || '';
+        setPatientForm(prev => ({
+          ...prev,
+          nome: prev.nome || name,
+          email: prev.email || email,
+        }));
+        setTimeout(() => {
+          document.getElementById('lista-espera-pacientes')?.scrollIntoView({ behavior: 'smooth' });
+        }, 400);
+      }
+    });
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -478,6 +495,25 @@ const LandingPage: React.FC = () => {
                   onSubmit={handlePatientSubmit}
                   className="flex flex-col gap-4 text-left"
                 >
+                  {/* Google OAuth */}
+                  <button
+                    type="button"
+                    onClick={() => supabase.auth.signInWithOAuth({
+                      provider: 'google',
+                      options: { redirectTo: `${window.location.origin}` },
+                    })}
+                    className="w-full flex items-center justify-center gap-3 h-12 bg-white border border-Malama-border rounded-xl text-sm font-medium text-Malama-main hover:border-Malama-petrol transition-colors"
+                  >
+                    <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
+                    Continuar com Google
+                  </button>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-Malama-border" />
+                    <span className="text-xs text-Malama-muted">ou preencha manualmente</span>
+                    <div className="flex-1 h-px bg-Malama-border" />
+                  </div>
+
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Nome</label>
                     <input

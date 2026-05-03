@@ -101,8 +101,17 @@ export const MedicosLandingPage: React.FC = () => {
     crm_uf: '',
     especialidade: '',
     email: '',
-    modalidade: '',
+    horarios: [] as string[],
   });
+
+  const toggleHorario = (value: string) => {
+    setForm(prev => ({
+      ...prev,
+      horarios: prev.horarios.includes(value)
+        ? prev.horarios.filter(h => h !== value)
+        : [...prev.horarios, value],
+    }));
+  };
 
   const searchParams = new URLSearchParams(window.location.search);
   const origem = searchParams.get('origem') || searchParams.get('utm_source') || null;
@@ -110,6 +119,23 @@ export const MedicosLandingPage: React.FC = () => {
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
+
+    // Pré-preencher nome e email após retorno do OAuth Google
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+        const email = session.user.email || '';
+        setForm(prev => ({
+          ...prev,
+          nome: prev.nome || name,
+          email: prev.email || email,
+        }));
+        setTimeout(() => {
+          document.getElementById('lista-espera')?.scrollIntoView({ behavior: 'smooth' });
+        }, 400);
+      }
+    });
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -119,8 +145,8 @@ export const MedicosLandingPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nome || !form.crm || !form.crm_uf || !form.especialidade || !form.email || !form.modalidade) {
-      setErro('Preencha todos os campos.');
+    if (!form.nome || !form.crm || !form.crm_uf || !form.especialidade || !form.email || form.horarios.length === 0) {
+      setErro('Preencha todos os campos e selecione ao menos um horário.');
       return;
     }
     setLoading(true);
@@ -389,6 +415,25 @@ export const MedicosLandingPage: React.FC = () => {
                   onSubmit={handleSubmit}
                   className="flex flex-col gap-5"
                 >
+                  {/* Google OAuth */}
+                  <button
+                    type="button"
+                    onClick={() => supabase.auth.signInWithOAuth({
+                      provider: 'google',
+                      options: { redirectTo: `${window.location.origin}/medicos` },
+                    })}
+                    className="w-full flex items-center justify-center gap-3 h-12 bg-white border border-Malama-border rounded-xl text-sm font-medium text-Malama-main hover:border-Malama-petrol transition-colors"
+                  >
+                    <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
+                    Continuar com Google
+                  </button>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-Malama-border" />
+                    <span className="text-xs text-Malama-muted">ou preencha manualmente</span>
+                    <div className="flex-1 h-px bg-Malama-border" />
+                  </div>
+
                   {/* Nome */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Nome completo</label>
@@ -457,34 +502,35 @@ export const MedicosLandingPage: React.FC = () => {
                     />
                   </div>
 
-                  {/* Modalidade */}
+                  {/* Horários disponíveis */}
                   <div className="flex flex-col gap-2.5">
-                    <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Modalidade de atendimento</label>
-                    <div className="flex flex-wrap gap-3">
+                    <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">
+                      Horários disponíveis para atendimento
+                    </label>
+                    <p className="text-xs text-Malama-muted -mt-1">Selecione todos os turnos em que pretende abrir agenda</p>
+                    <div className="flex flex-wrap gap-3 mt-1">
                       {[
-                        { value: 'online', label: 'Online' },
-                        { value: 'presencial', label: 'Presencial' },
-                        { value: 'hibrido', label: 'Híbrido' },
-                      ].map(opt => (
-                        <label
-                          key={opt.value}
-                          className={`flex items-center gap-2 px-5 py-3 rounded-full border cursor-pointer text-sm font-medium transition-all ${
-                            form.modalidade === opt.value
-                              ? 'border-Malama-petrol bg-Malama-petrol text-white'
-                              : 'border-Malama-border bg-white text-Malama-main hover:border-Malama-petrol'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="modalidade"
-                            value={opt.value}
-                            checked={form.modalidade === opt.value}
-                            onChange={handleChange}
-                            className="sr-only"
-                          />
-                          {opt.label}
-                        </label>
-                      ))}
+                        { value: 'manha', label: 'Manhã', sub: '7h – 12h' },
+                        { value: 'tarde', label: 'Tarde', sub: '12h – 18h' },
+                        { value: 'noite', label: 'Noite', sub: '18h – 22h' },
+                      ].map(opt => {
+                        const selected = form.horarios.includes(opt.value);
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => toggleHorario(opt.value)}
+                            className={`flex flex-col items-center px-6 py-3 rounded-2xl border cursor-pointer text-sm font-medium transition-all ${
+                              selected
+                                ? 'border-Malama-petrol bg-Malama-petrol text-white'
+                                : 'border-Malama-border bg-white text-Malama-main hover:border-Malama-petrol'
+                            }`}
+                          >
+                            <span>{opt.label}</span>
+                            <span className={`text-xs mt-0.5 ${selected ? 'text-white/70' : 'text-Malama-muted'}`}>{opt.sub}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
