@@ -193,12 +193,6 @@ export const MedicosLandingPage: React.FC = () => {
               </button>
             </nav>
 
-            <div className="hidden md:flex items-center gap-6">
-              <Link to="/medico" className="text-sm font-medium text-Malama-main hover:text-Malama-petrol transition-colors">
-                Já sou parceiro
-              </Link>
-            </div>
-
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="md:hidden relative z-10 p-2 text-Malama-main"
@@ -223,10 +217,6 @@ export const MedicosLandingPage: React.FC = () => {
               <button onClick={scrollToForm} className="text-left text-xl font-serif text-Malama-petrol">
                 Para Médicos
               </button>
-              <div className="h-px bg-Malama-border my-2" />
-              <Link to="/medico" onClick={() => setIsMenuOpen(false)} className="text-lg font-medium text-Malama-main">
-                Já sou parceiro
-              </Link>
             </motion.div>
           )}
         </AnimatePresence>
@@ -547,8 +537,6 @@ export const MedicosLandingPage: React.FC = () => {
               <p className="text-xs text-Malama-muted">Nutrição inteligente para uma vida em fluxo</p>
             </div>
             <div className="flex items-center gap-6 text-xs text-Malama-muted">
-              <Link to="/medico" className="hover:text-Malama-petrol transition-colors">Portal do Médico</Link>
-              <Link to="/" className="hover:text-Malama-petrol transition-colors">Para Pacientes</Link>
               <a href="#" className="hover:text-Malama-petrol transition-colors">Termos</a>
               <a href="#" className="hover:text-Malama-petrol transition-colors">Privacidade</a>
             </div>

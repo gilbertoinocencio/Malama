@@ -134,21 +134,15 @@ const LandingPage: React.FC = () => {
               </Link>
             </nav>
 
-            {/* CTA Buttons */}
+            {/* CTA Button */}
             <div className="hidden md:flex items-center gap-6">
-              <Link
-                to="/entrar"
-                className="text-sm font-medium text-Malama-main hover:text-Malama-petrol transition-colors"
-              >
-                Entrar
-              </Link>
-              <Link
-                to="/entrar?signup=true"
+              <button
+                onClick={() => scrollToSection('lista-espera-pacientes')}
                 className="relative overflow-hidden group bg-Malama-main text-white px-7 py-2.5 rounded-full text-sm font-medium transition-all"
               >
-                <span className="relative z-10">Começar Jornada</span>
+                <span className="relative z-10">Entrar na Lista</span>
                 <div className="absolute inset-0 h-full w-full bg-Malama-petrol transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500 ease-out"></div>
-              </Link>
+              </button>
             </div>
 
             {/* Mobile Menu Button */}
@@ -190,10 +184,12 @@ const LandingPage: React.FC = () => {
                 Para Médicos
               </Link>
               <div className="h-px bg-Malama-border my-2"></div>
-              <Link to="/entrar" className="text-lg font-medium text-Malama-main">Entrar</Link>
-              <Link to="/entrar?signup=true" className="inline-block bg-Malama-main text-white px-6 py-3 rounded-full text-center font-medium mt-2">
-                Começar Jornada
-              </Link>
+              <button
+                onClick={() => { scrollToSection('lista-espera-pacientes'); setIsMenuOpen(false); }}
+                className="inline-block bg-Malama-main text-white px-6 py-3 rounded-full text-center font-medium mt-2"
+              >
+                Entrar na Lista
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -227,13 +223,13 @@ const LandingPage: React.FC = () => {
             </motion.p>
 
             <motion.div variants={fadeInUp} className="flex flex-wrap items-center gap-6">
-              <Link
-                to="/entrar?signup=true"
+              <button
+                onClick={() => scrollToSection('lista-espera-pacientes')}
                 className="group flex items-center gap-4 bg-Malama-petrol text-white px-8 py-4 rounded-full font-medium transition-transform hover:scale-105"
               >
-                Explorar Malama
+                Entrar na Lista
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </Link>
+              </button>
               <div className="flex items-center gap-4 text-sm font-medium text-Malama-main">
                 <div className="flex -space-x-3">
                   <div className="w-10 h-10 rounded-full border-2 border-Malama-bg overflow-hidden"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="User" /></div>
@@ -388,12 +384,12 @@ const LandingPage: React.FC = () => {
               </div>
 
               <div className="mt-16">
-                <Link
-                  to="/entrar?signup=true"
+                <button
+                  onClick={() => scrollToSection('lista-espera-pacientes')}
                   className="inline-flex items-center gap-4 border border-white/30 px-8 py-4 rounded-full font-medium transition-all hover:bg-white hover:text-Malama-petrol"
                 >
-                  Iniciar Avaliação
-                </Link>
+                  Entrar na Lista
+                </button>
               </div>
             </motion.div>
 
@@ -589,12 +585,12 @@ const LandingPage: React.FC = () => {
               </h2>
             </div>
             <div className="flex gap-4">
-               <Link
-                to="/entrar?signup=true"
+              <button
+                onClick={() => scrollToSection('lista-espera-pacientes')}
                 className="bg-white text-Malama-main px-8 py-4 rounded-full font-medium transition-transform hover:scale-105"
               >
-                Criar Conta
-              </Link>
+                Entrar na Lista
+              </button>
             </div>
           </div>
 
@@ -603,8 +599,7 @@ const LandingPage: React.FC = () => {
               <p>&copy; {new Date().getFullYear()} Malama. Todos os direitos reservados.</p>
             </div>
             <div className="flex gap-8 md:justify-center">
-              <Link to="/medico" className="hover:text-white transition-colors">Portal do Médico</Link>
-              <Link to="/admin" className="hover:text-white transition-colors">Admin</Link>
+              <Link to="/medicos" className="hover:text-white transition-colors">Para Médicos</Link>
             </div>
             <div className="flex gap-8 md:justify-end">
               <a href="#" className="hover:text-white transition-colors">Termos</a>
