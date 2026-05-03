@@ -4,11 +4,26 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, CheckCircle, XCircle, Link2, X, Copy } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Link2, X, Copy, Mail, Clock } from 'lucide-react';
 import { doctorService, settingsService } from '../../services/doctorPortalService';
 import type { Doctor, DoctorStatus } from '../../types/doctorPortal';
 import { SPECIALTY_OPTIONS } from '../../types/doctorPortal';
+import { supabase } from '../../services/supabase';
 import toast from 'react-hot-toast';
+
+interface DoctorLead {
+  id: string;
+  nome: string;
+  crm: string;
+  crm_uf: string;
+  especialidade: string;
+  email: string;
+  horarios: string[];
+  origem: string | null;
+  status: 'pendente' | 'convidado';
+  invited_at: string | null;
+  created_at: string;
+}
 
 export const AdminDoctorsManagement: React.FC = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -17,6 +32,13 @@ export const AdminDoctorsManagement: React.FC = () => {
   const [filterSpecialty, setFilterSpecialty] = useState('');
   const [search, setSearch] = useState('');
   const [settings, setSettings] = useState<Record<string, string>>({});
+
+  // Fila de espera
+  const [activeTab, setActiveTab] = useState<'medicos' | 'fila'>('medicos');
+  const [leads, setLeads] = useState<DoctorLead[]>([]);
+  const [leadsLoading, setLeadsLoading] = useState(false);
+  const [leadSearch, setLeadSearch] = useState('');
+  const [invitingLeadId, setInvitingLeadId] = useState<string | null>(null);
 
   // Modals
   const [showApproveModal, setShowApproveModal] = useState<string | null>(null);
@@ -34,6 +56,44 @@ export const AdminDoctorsManagement: React.FC = () => {
     loadDoctors();
     loadSettings();
   }, [filterStatus, filterSpecialty]);
+
+  useEffect(() => {
+    if (activeTab === 'fila') loadLeads();
+  }, [activeTab]);
+
+  const loadLeads = async () => {
+    setLeadsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('doctor_leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error) setLeads(data ?? []);
+    } finally {
+      setLeadsLoading(false);
+    }
+  };
+
+  const handleInviteLead = async (lead: DoctorLead) => {
+    setInvitingLeadId(lead.id);
+    try {
+      const { error } = await supabase.functions.invoke('invite-lead', {
+        body: {
+          email: lead.email,
+          type: 'doctor',
+          lead_id: lead.id,
+          redirect_to: `${window.location.origin}/medico/cadastro`,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Convite enviado para ${lead.email}`);
+      loadLeads();
+    } catch {
+      toast.error('Erro ao enviar convite. Tente novamente.');
+    } finally {
+      setInvitingLeadId(null);
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -149,6 +209,137 @@ export const AdminDoctorsManagement: React.FC = () => {
         </button>
       </div>
 
+      {/* Abas */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('medicos')}
+          className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'medicos' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Médicos Cadastrados
+        </button>
+        <button
+          onClick={() => setActiveTab('fila')}
+          className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'fila' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Fila de Espera
+          {leads.filter(l => l.status === 'pendente').length > 0 && (
+            <span className="ml-2 px-1.5 py-0.5 bg-[#7d4a3c] text-white text-xs rounded-full">
+              {leads.filter(l => l.status === 'pendente').length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeTab === 'fila' ? (
+        <>
+          {/* Busca leads */}
+          <div className="bg-white rounded-xl shadow p-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={leadSearch}
+                onChange={e => setLeadSearch(e.target.value)}
+                placeholder="Buscar por nome ou email..."
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300"
+              />
+            </div>
+          </div>
+
+          {/* Tabela de leads */}
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            {leadsLoading ? (
+              <div className="flex items-center justify-center h-40">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7d4a3c]" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">CRM/UF</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Especialidade</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Horários</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Origem</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Cadastro</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {leads
+                      .filter(l => !leadSearch ||
+                        l.nome.toLowerCase().includes(leadSearch.toLowerCase()) ||
+                        l.email.toLowerCase().includes(leadSearch.toLowerCase()))
+                      .map(lead => (
+                        <tr key={lead.id} className="hover:bg-gray-50 transition">
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-gray-800">{lead.nome}</p>
+                            <p className="text-xs text-gray-500">{lead.email}</p>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
+                            {lead.crm}/{lead.crm_uf}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
+                            {lead.especialidade}
+                          </td>
+                          <td className="px-4 py-3 hidden lg:table-cell">
+                            <div className="flex flex-wrap gap-1">
+                              {(lead.horarios ?? []).map(h => (
+                                <span key={h} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full capitalize">{h}</span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">
+                            {lead.origem ?? <span className="text-gray-300">—</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            {lead.status === 'convidado' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                                <CheckCircle className="w-3 h-3" /> Convidado
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
+                                <Clock className="w-3 h-3" /> Pendente
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell">
+                            {formatDate(lead.created_at)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {lead.status === 'pendente' && (
+                              <button
+                                onClick={() => handleInviteLead(lead)}
+                                disabled={invitingLeadId === lead.id}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-xs font-medium rounded-lg transition disabled:opacity-50"
+                              >
+                                <Mail className="w-3.5 h-3.5" />
+                                {invitingLeadId === lead.id ? 'Enviando...' : 'Convidar'}
+                              </button>
+                            )}
+                            {lead.status === 'convidado' && lead.invited_at && (
+                              <span className="text-xs text-gray-400">{formatDate(lead.invited_at)}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    {leads.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">
+                          Nenhum médico na fila de espera ainda.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
       {/* Filtros */}
       <div className="bg-white rounded-xl shadow p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -271,6 +462,8 @@ export const AdminDoctorsManagement: React.FC = () => {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Modal Aprovar */}
       {showApproveModal && selectedDoctor && (

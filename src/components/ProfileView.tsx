@@ -144,103 +144,6 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
   );
 };
 
-// =====================================================
-// StravaConnect — conectar / desconectar conta Strava
-// =====================================================
-const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID ?? '227202';
-const STRAVA_REDIRECT_URI = 'https://nura-seven.vercel.app/strava/callback';
-const STRAVA_OAUTH_URL =
-  `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CLIENT_ID}` +
-  `&response_type=code&redirect_uri=${encodeURIComponent(STRAVA_REDIRECT_URI)}` +
-  `&approval_prompt=auto&scope=activity:read_all`;
-
-const StravaLogo: React.FC = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" aria-hidden="true">
-    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
-  </svg>
-);
-
-const StravaConnect: React.FC<{ userId: string }> = ({ userId }) => {
-  const [connected, setConnected]   = React.useState<boolean | null>(null);
-  const [loading, setLoading]       = React.useState(true);
-  const [disconnecting, setDisconnecting] = React.useState(false);
-
-  React.useEffect(() => {
-    supabase
-      .from('strava_connections')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle()
-      .then(({ data }) => {
-        setConnected(!!data);
-        setLoading(false);
-      });
-  }, [userId]);
-
-  const handleDisconnect = async () => {
-    setDisconnecting(true);
-    // Buscar access_token para revogar no Strava
-    const { data: conn } = await supabase
-      .from('strava_connections')
-      .select('access_token')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (conn?.access_token) {
-      // Revogar no Strava (fire-and-forget — não bloqueia a UI)
-      fetch('https://www.strava.com/oauth/deauthorize', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${conn.access_token}` },
-      }).catch(() => {});
-    }
-
-    await supabase.from('strava_connections').delete().eq('user_id', userId);
-    setConnected(false);
-    setDisconnecting(false);
-  };
-
-  if (loading) return null;
-
-  return (
-    <section className="w-full px-6 mb-6">
-      <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-Malama-border dark:border-white/10 transition-colors">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#FC4C02]/10">
-              <span className="text-[#FC4C02]"><StravaLogo /></span>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-Malama-main dark:text-white leading-tight">Strava</p>
-              {connected ? (
-                <p className="text-xs text-Malama-petrol dark:text-primary font-medium">Conectado ✓</p>
-              ) : (
-                <p className="text-xs text-Malama-muted dark:text-gray-400">Não conectado</p>
-              )}
-            </div>
-          </div>
-
-          {connected ? (
-            <button
-              onClick={handleDisconnect}
-              disabled={disconnecting}
-              className="text-xs text-red-400 hover:text-red-500 font-semibold disabled:opacity-50 transition-colors px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/30 hover:bg-red-50 dark:hover:bg-red-900/10"
-            >
-              {disconnecting ? 'Desconectando…' : 'Desconectar'}
-            </button>
-          ) : (
-            <a
-              href={STRAVA_OAUTH_URL}
-              className="flex items-center gap-2 bg-[#FC4C02] hover:bg-[#e04400] text-white text-xs font-bold px-3 py-2 rounded-xl transition-colors"
-            >
-              <StravaLogo />
-              Conectar
-            </a>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-};
 
 interface ProfileViewProps {
   onNavClick: (view: AppView) => void;
@@ -588,9 +491,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
           </div>
         </section>
-
-        {/* Strava Connect */}
-        {user && <StravaConnect userId={user.id} />}
 
         {/* Heatmap Section */}
         <section className="w-full px-6 mb-8">

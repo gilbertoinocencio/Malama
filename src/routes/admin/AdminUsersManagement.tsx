@@ -9,10 +9,32 @@ import {
 } from 'recharts';
 import {
   Search, X, User, Calendar, DollarSign,
-  Stethoscope, Globe, Share2, TrendingUp, Hash
+  Stethoscope, Globe, Share2, TrendingUp, Hash, Mail, Clock, CheckCircle
 } from 'lucide-react';
 import { adminService } from '../../services/doctorPortalService';
 import type { AdminUserSummary, AdminUserDetail } from '../../services/doctorPortalService';
+import { supabase } from '../../services/supabase';
+import toast from 'react-hot-toast';
+
+interface PatientLead {
+  id: string;
+  nome: string;
+  email: string;
+  objetivo: string;
+  origem: string | null;
+  status: 'pendente' | 'convidado';
+  invited_at: string | null;
+  created_at: string;
+}
+
+const OBJETIVO_LABELS: Record<string, string> = {
+  perda_peso: 'Perda de peso',
+  ganho_muscular: 'Ganho muscular',
+  saude_longevidade: 'Saúde e longevidade',
+  condicao_clinica: 'Condição clínica',
+  acompanhamento_glp1: 'Acompanhamento GLP-1',
+  outro: 'Outro',
+};
 
 // ─── helpers ───────────────────────────────────────────
 const fmtDate = (d: string) =>
@@ -395,6 +417,13 @@ export const AdminUsersManagement: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [channelFilter, setChannelFilter] = useState<string>('all');
 
+  // Fila de espera
+  const [activeTab, setActiveTab] = useState<'usuarios' | 'fila'>('usuarios');
+  const [patientLeads, setPatientLeads] = useState<PatientLead[]>([]);
+  const [leadsLoading, setLeadsLoading] = useState(false);
+  const [leadSearch, setLeadSearch] = useState('');
+  const [invitingLeadId, setInvitingLeadId] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -412,6 +441,44 @@ export const AdminUsersManagement: React.FC = () => {
     return () => clearTimeout(t);
   }, [load]);
 
+  useEffect(() => {
+    if (activeTab === 'fila') loadPatientLeads();
+  }, [activeTab]);
+
+  const loadPatientLeads = async () => {
+    setLeadsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('patient_leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error) setPatientLeads(data ?? []);
+    } finally {
+      setLeadsLoading(false);
+    }
+  };
+
+  const handleInvitePatientLead = async (lead: PatientLead) => {
+    setInvitingLeadId(lead.id);
+    try {
+      const { error } = await supabase.functions.invoke('invite-lead', {
+        body: {
+          email: lead.email,
+          type: 'patient',
+          lead_id: lead.id,
+          redirect_to: `${window.location.origin}/entrar?signup=true`,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Convite enviado para ${lead.email}`);
+      loadPatientLeads();
+    } catch {
+      toast.error('Erro ao enviar convite. Tente novamente.');
+    } finally {
+      setInvitingLeadId(null);
+    }
+  };
+
   const filtered = channelFilter === 'all'
     ? users
     : users.filter(u => (u.acquisition_channel ?? 'organic') === channelFilter);
@@ -425,6 +492,127 @@ export const AdminUsersManagement: React.FC = () => {
   return (
     <div className="space-y-6">
 
+      {/* ── Abas ── */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('usuarios')}
+          className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'usuarios' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Usuários Cadastrados
+        </button>
+        <button
+          onClick={() => setActiveTab('fila')}
+          className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'fila' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Fila de Espera
+          {patientLeads.filter(l => l.status === 'pendente').length > 0 && (
+            <span className="ml-2 px-1.5 py-0.5 bg-[#7d4a3c] text-white text-xs rounded-full">
+              {patientLeads.filter(l => l.status === 'pendente').length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeTab === 'fila' ? (
+        <div className="space-y-4">
+          {/* Busca leads */}
+          <div className="bg-white rounded-xl shadow p-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={leadSearch}
+                onChange={e => setLeadSearch(e.target.value)}
+                placeholder="Buscar por nome ou email..."
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Tabela de leads */}
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            {leadsLoading ? (
+              <div className="flex items-center justify-center h-40">
+                <div className="w-8 h-8 rounded-full border-4 border-[#7d4a3c] border-t-transparent animate-spin" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Objetivo</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Origem</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Cadastro</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {patientLeads
+                      .filter(l => !leadSearch ||
+                        l.nome.toLowerCase().includes(leadSearch.toLowerCase()) ||
+                        l.email.toLowerCase().includes(leadSearch.toLowerCase()))
+                      .map(lead => (
+                        <tr key={lead.id} className="hover:bg-gray-50 transition">
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-gray-800">{lead.nome}</p>
+                            <p className="text-xs text-gray-500 md:hidden">{lead.email}</p>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{lead.email}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
+                            {OBJETIVO_LABELS[lead.objetivo] ?? lead.objetivo}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">
+                            {lead.origem ?? <span className="text-gray-300">—</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            {lead.status === 'convidado' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                                <CheckCircle className="w-3 h-3" /> Convidado
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
+                                <Clock className="w-3 h-3" /> Pendente
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell">
+                            {fmtDate(lead.created_at)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {lead.status === 'pendente' && (
+                              <button
+                                onClick={() => handleInvitePatientLead(lead)}
+                                disabled={invitingLeadId === lead.id}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-xs font-medium rounded-lg transition disabled:opacity-50"
+                              >
+                                <Mail className="w-3.5 h-3.5" />
+                                {invitingLeadId === lead.id ? 'Enviando...' : 'Convidar'}
+                              </button>
+                            )}
+                            {lead.status === 'convidado' && lead.invited_at && (
+                              <span className="text-xs text-gray-400">{fmtDate(lead.invited_at)}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    {patientLeads.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm">
+                          Nenhum paciente na fila de espera ainda.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
       {/* ── Cards de métricas ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -568,6 +756,8 @@ export const AdminUsersManagement: React.FC = () => {
       {/* ── Drawer de ficha ── */}
       {selectedUserId && (
         <UserDrawer userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
+      )}
+        </>
       )}
     </div>
   );
