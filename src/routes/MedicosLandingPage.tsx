@@ -20,7 +20,6 @@ import {
   PiggyBank,
   MessageCircle,
   CheckCircle,
-  ChevronRight,
 } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
@@ -276,7 +275,7 @@ export const MedicosLandingPage: React.FC = () => {
               Na Malama você define seus horários, atende 100% online e constrói uma carteira de pacientes que retorna todo mês — com histórico nutricional completo e suporte de IA antes de cada consulta.
             </motion.p>
 
-            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4">
+            <motion.div variants={fadeInUp}>
               <button
                 onClick={scrollToForm}
                 className="group inline-flex items-center gap-3 bg-Malama-main text-white px-8 py-4 rounded-full font-medium text-base hover:bg-Malama-petrol transition-colors duration-300"
@@ -284,13 +283,6 @@ export const MedicosLandingPage: React.FC = () => {
                 Quero fazer parte
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
-              <Link
-                to="/medico"
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-full border border-Malama-border text-Malama-main font-medium text-base hover:border-Malama-petrol hover:text-Malama-petrol transition-colors duration-300"
-              >
-                Já tenho conta
-                <ChevronRight className="w-4 h-4" />
-              </Link>
             </motion.div>
           </motion.div>
         </div>
@@ -399,14 +391,14 @@ export const MedicosLandingPage: React.FC = () => {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center gap-4 py-16 text-center"
+                  className="flex flex-col items-center gap-5 py-16 text-center"
                 >
                   <div className="w-16 h-16 rounded-full bg-Malama-petrol/10 flex items-center justify-center">
                     <CheckCircle className="w-8 h-8 text-Malama-petrol" />
                   </div>
-                  <h3 className="font-serif text-3xl font-light">Recebemos seu cadastro!</h3>
-                  <p className="text-Malama-muted max-w-sm">
-                    Em breve entraremos em contato com mais detalhes sobre o processo de credenciamento.
+                  <h3 className="font-serif text-3xl font-light">Obrigado pelo pré-cadastro!</h3>
+                  <p className="text-Malama-muted max-w-sm leading-relaxed">
+                    Recebemos suas informações e você será informado dos próximos passos em breve. Fique de olho no seu e-mail.
                   </p>
                 </motion.div>
               ) : (
