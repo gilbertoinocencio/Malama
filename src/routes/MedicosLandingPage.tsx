@@ -194,15 +194,8 @@ export const MedicosLandingPage: React.FC = () => {
             </nav>
 
             <div className="hidden md:flex items-center gap-6">
-              <Link to="/entrar" className="text-sm font-medium text-Malama-main hover:text-Malama-petrol transition-colors">
-                Entrar
-              </Link>
-              <Link
-                to="/entrar?signup=true"
-                className="relative overflow-hidden group bg-Malama-main text-white px-7 py-2.5 rounded-full text-sm font-medium transition-all"
-              >
-                <span className="relative z-10">Começar Jornada</span>
-                <div className="absolute inset-0 h-full w-full bg-Malama-petrol transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500 ease-out" />
+              <Link to="/medico" className="text-sm font-medium text-Malama-main hover:text-Malama-petrol transition-colors">
+                Já sou parceiro
               </Link>
             </div>
 
@@ -231,12 +224,8 @@ export const MedicosLandingPage: React.FC = () => {
                 Para Médicos
               </button>
               <div className="h-px bg-Malama-border my-2" />
-              <Link to="/entrar" onClick={() => setIsMenuOpen(false)} className="text-lg font-medium text-Malama-main">Entrar</Link>
-              <Link
-                to="/entrar?signup=true"
-                className="inline-block bg-Malama-main text-white px-6 py-3 rounded-full text-center font-medium mt-2"
-              >
-                Começar Jornada
+              <Link to="/medico" onClick={() => setIsMenuOpen(false)} className="text-lg font-medium text-Malama-main">
+                Já sou parceiro
               </Link>
             </motion.div>
           )}
