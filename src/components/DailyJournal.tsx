@@ -82,12 +82,14 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
   };
 
   const flowStatusConfig = (() => {
-    if (streak <= 7)   return { label: 'Iniciando',      color: 'text-gray-400',                        incentive: streak === 0 ? 'Registre o seu primeiro dia para começar.' : 'Continue registrando para calcular.' };
-    if (streak <= 21)  return { label: 'Em Progresso',   color: 'text-Malama-petrol dark:text-primary', incentive: `${streak} dias seguidos. Você está no caminho certo.` };
-    if (streak <= 35)  return { label: 'Ganhando Ritmo', color: 'text-amber-500',                       incentive: `${streak} dias consecutivos. Seu ritmo está se consolidando.` };
-    if (streak <= 49)  return { label: 'Consistente',    color: 'text-emerald-500',                     incentive: `${streak} dias consecutivos. Sua consistência está construindo resultados.` };
-    if (streak <= 63)  return { label: 'Em Flow',        color: 'text-blue-400',                        incentive: `${streak} dias em Flow. Você está transformando hábitos em estilo de vida.` };
-    return               { label: 'Flow Total',          color: 'text-purple-400',                      incentive: `${streak} dias! Você atingiu o nível máximo de consistência.` };
+    const d = streak.toString();
+    if (streak === 0)  return { label: jt.starting,      color: 'text-gray-400',                        incentive: jt.startFirst };
+    if (streak <= 7)   return { label: jt.starting,      color: 'text-gray-400',                        incentive: jt.keepLogging };
+    if (streak <= 21)  return { label: jt.inProgress,    color: 'text-Malama-petrol dark:text-primary', incentive: jt.inProgressIncentive.replace('{days}', d) };
+    if (streak <= 35)  return { label: jt.gainingRhythm, color: 'text-amber-500',                       incentive: jt.gainingRhythmIncentive.replace('{days}', d) };
+    if (streak <= 49)  return { label: jt.consistent,    color: 'text-emerald-500',                     incentive: jt.consistentIncentive.replace('{days}', d) };
+    if (streak <= 63)  return { label: jt.inFlow,        color: 'text-blue-400',                        incentive: jt.inFlowIncentive.replace('{days}', d) };
+    return               { label: jt.totalFlow,          color: 'text-purple-400',                      incentive: jt.totalFlowIncentive.replace('{days}', d) };
   })();
 
   const localeMap: Record<string, string> = { en: 'en-US', pt: 'pt-BR', es: 'es-ES' };

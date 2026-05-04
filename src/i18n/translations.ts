@@ -239,8 +239,19 @@ export interface Translations {
         title: string;
         myFlow: string;
         flowStatus: string;
+        starting: string;
+        startFirst: string;
         inProgress: string;
         keepLogging: string;
+        inProgressIncentive: string;
+        gainingRhythm: string;
+        gainingRhythmIncentive: string;
+        consistent: string;
+        consistentIncentive: string;
+        inFlow: string;
+        inFlowIncentive: string;
+        totalFlow: string;
+        totalFlowIncentive: string;
         energyOfDay: string;
         low: string;
         medium: string;
@@ -608,8 +619,19 @@ export const translations: Record<Language, Translations> = {
             title: 'Malama Journal',
             myFlow: 'My Flow',
             flowStatus: 'Flow Status',
+            starting: 'Starting',
+            startFirst: 'Log your first day to begin.',
             inProgress: 'In Progress',
             keepLogging: 'Keep logging to calculate.',
+            inProgressIncentive: '{days} consecutive days. You\'re on the right track.',
+            gainingRhythm: 'Gaining Rhythm',
+            gainingRhythmIncentive: '{days} consecutive days. Your rhythm is consolidating.',
+            consistent: 'Consistent',
+            consistentIncentive: '{days} consecutive days. Your consistency is building results.',
+            inFlow: 'In Flow',
+            inFlowIncentive: '{days} days in Flow. You\'re turning habits into a lifestyle.',
+            totalFlow: 'Total Flow',
+            totalFlowIncentive: '{days} days! You\'ve reached the highest level of consistency.',
             energyOfDay: 'Energy of the Day',
             low: 'Low',
             medium: 'Medium',
@@ -960,8 +982,19 @@ export const translations: Record<Language, Translations> = {
             title: 'Diário Malama',
             myFlow: 'Meu Flow',
             flowStatus: 'Flow Status',
+            starting: 'Iniciando',
+            startFirst: 'Registre o seu primeiro dia para começar.',
             inProgress: 'Em Progresso',
             keepLogging: 'Continue registrando para calcular.',
+            inProgressIncentive: '{days} dias seguidos. Você está no caminho certo.',
+            gainingRhythm: 'Ganhando Ritmo',
+            gainingRhythmIncentive: '{days} dias consecutivos. Seu ritmo está se consolidando.',
+            consistent: 'Consistente',
+            consistentIncentive: '{days} dias consecutivos. Sua consistência está construindo resultados.',
+            inFlow: 'Em Flow',
+            inFlowIncentive: '{days} dias em Flow. Você está transformando hábitos em estilo de vida.',
+            totalFlow: 'Flow Total',
+            totalFlowIncentive: '{days} dias! Você atingiu o nível máximo de consistência.',
             energyOfDay: 'Energia do Dia',
             low: 'Baixa',
             medium: 'Média',
@@ -1312,8 +1345,19 @@ export const translations: Record<Language, Translations> = {
             title: 'Diario Malama',
             myFlow: 'Mi Flow',
             flowStatus: 'Estado del Flow',
+            starting: 'Iniciando',
+            startFirst: 'Registra tu primer día para comenzar.',
             inProgress: 'En Progreso',
             keepLogging: 'Sigue registrando para calcular.',
+            inProgressIncentive: '{days} días seguidos. Estás en el camino correcto.',
+            gainingRhythm: 'Ganando Ritmo',
+            gainingRhythmIncentive: '{days} días consecutivos. Tu ritmo se está consolidando.',
+            consistent: 'Consistente',
+            consistentIncentive: '{days} días consecutivos. Tu consistencia está construyendo resultados.',
+            inFlow: 'En Flow',
+            inFlowIncentive: '{days} días en Flow. Estás convirtiendo hábitos en estilo de vida.',
+            totalFlow: 'Flow Total',
+            totalFlowIncentive: '{days} días! Has alcanzado el nivel máximo de consistencia.',
             energyOfDay: 'Energía del Día',
             low: 'Baja',
             medium: 'Media',
