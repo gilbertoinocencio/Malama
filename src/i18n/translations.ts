@@ -719,7 +719,7 @@ export const translations: Record<Language, Translations> = {
             generatePlan90: 'Generate Plan (90 Days)',
         },
         flowAdaptation: {
-            title: 'Flow Adaptation',
+            title: 'Activities',
             syncComplete: 'Sync Complete',
             activityDetected: 'Activity Detected',
             workoutType: 'Workout Type',
@@ -1070,7 +1070,7 @@ export const translations: Record<Language, Translations> = {
             generatePlan90: 'Gerar Plano (90 Dias)',
         },
         flowAdaptation: {
-            title: 'Flow Adaptation',
+            title: 'Atividades',
             syncComplete: 'Sincronização Completa',
             activityDetected: 'Atividade Detectada',
             workoutType: 'Tipo de Treino',
@@ -1421,7 +1421,7 @@ export const translations: Record<Language, Translations> = {
             generatePlan90: 'Generar Plan (90 D\u00edas)',
         },
         flowAdaptation: {
-            title: 'Flow Adaptation',
+            title: 'Actividades',
             syncComplete: 'Sincronizaci\u00f3n Completa',
             activityDetected: 'Actividad Detectada',
             workoutType: 'Tipo de Entrenamiento',
