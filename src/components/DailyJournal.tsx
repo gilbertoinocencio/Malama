@@ -82,12 +82,12 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
   };
 
   const flowStatusConfig = (() => {
-    if (streak === 0)  return { label: 'Iniciando',       color: 'text-gray-400',               incentive: 'Registre o seu primeiro dia para começar.' };
-    if (streak <= 3)   return { label: 'Em Progresso',    color: 'text-Malama-petrol dark:text-primary', incentive: 'Continue registrando para calcular.' };
-    if (streak <= 7)   return { label: 'Ganhando Ritmo',  color: 'text-amber-500',               incentive: `${streak} dias seguidos. Você está no caminho certo.` };
-    if (streak <= 14)  return { label: 'Consistente',     color: 'text-emerald-500',             incentive: `${streak} dias consecutivos. Sua consistência está construindo resultados.` };
-    if (streak <= 29)  return { label: 'Em Flow',         color: 'text-blue-400',                incentive: `${streak} dias em Flow. Você está transformando hábitos em estilo de vida.` };
-    return               { label: 'Flow Total',           color: 'text-purple-400',              incentive: `${streak} dias! Você atingiu o nível máximo de consistência.` };
+    if (streak <= 7)   return { label: 'Iniciando',      color: 'text-gray-400',                        incentive: streak === 0 ? 'Registre o seu primeiro dia para começar.' : 'Continue registrando para calcular.' };
+    if (streak <= 21)  return { label: 'Em Progresso',   color: 'text-Malama-petrol dark:text-primary', incentive: `${streak} dias seguidos. Você está no caminho certo.` };
+    if (streak <= 35)  return { label: 'Ganhando Ritmo', color: 'text-amber-500',                       incentive: `${streak} dias consecutivos. Seu ritmo está se consolidando.` };
+    if (streak <= 49)  return { label: 'Consistente',    color: 'text-emerald-500',                     incentive: `${streak} dias consecutivos. Sua consistência está construindo resultados.` };
+    if (streak <= 63)  return { label: 'Em Flow',        color: 'text-blue-400',                        incentive: `${streak} dias em Flow. Você está transformando hábitos em estilo de vida.` };
+    return               { label: 'Flow Total',          color: 'text-purple-400',                      incentive: `${streak} dias! Você atingiu o nível máximo de consistência.` };
   })();
 
   const localeMap: Record<string, string> = { en: 'en-US', pt: 'pt-BR', es: 'es-ES' };
