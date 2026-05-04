@@ -244,8 +244,9 @@ export const AppRoutes: React.FC = () => {
           <Route path="/influencer/onboarding" element={<InfluencerOnboarding />} />
           <Route path="/influencer/dashboard" element={<InfluencerDashboard />} />
 
-          {/* Landing page para médicos */}
-          <Route path="/medicos" element={<MedicosLandingPage />} />
+          {/* Landing pages de captação */}
+          <Route path="/listamedicos" element={<MedicosLandingPage />} />
+          <Route path="/listausuarios" element={<LandingPage />} />
 
           {/* Rota padrão - redireciona para Landing Page */}
           <Route path="*" element={<Navigate to="/" replace />} />

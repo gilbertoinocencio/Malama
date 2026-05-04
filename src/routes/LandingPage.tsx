@@ -127,7 +127,7 @@ const LandingPage: React.FC = () => {
                 Como Funciona
               </button>
               <Link
-                to="/medicos"
+                to="/listamedicos"
                 className="text-sm font-medium tracking-wide text-Malama-muted hover:text-Malama-petrol transition-colors"
               >
                 Para Médicos
@@ -177,7 +177,7 @@ const LandingPage: React.FC = () => {
                 Como Funciona
               </button>
               <Link
-                to="/medicos"
+                to="/listamedicos"
                 onClick={() => setIsMenuOpen(false)}
                 className="text-left text-xl font-serif text-Malama-main"
               >
@@ -599,7 +599,7 @@ const LandingPage: React.FC = () => {
               <p>&copy; {new Date().getFullYear()} Malama. Todos os direitos reservados.</p>
             </div>
             <div className="flex gap-8 md:justify-center">
-              <Link to="/medicos" className="hover:text-white transition-colors">Para Médicos</Link>
+              <Link to="/listamedicos" className="hover:text-white transition-colors">Para Médicos</Link>
             </div>
             <div className="flex gap-8 md:justify-end">
               <a href="#" className="hover:text-white transition-colors">Termos</a>
