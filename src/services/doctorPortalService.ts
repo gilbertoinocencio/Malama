@@ -1689,27 +1689,12 @@ export type AdminUserDetail = AdminUserSummary & {
 export const adminService = {
   // Buscar todos os usuários com dados de LTV
   async getAllUsers(search?: string): Promise<AdminUserSummary[]> {
-    const { data: profiles, error } = await supabase
-      .from('profiles')
-      .select(`
-        id,
-        display_name,
-        avatar_url,
-        created_at,
-        acquisition_channel,
-        referred_by_doctor_id,
-        age,
-        gender,
-        goal
-      `)
-      .order('created_at', { ascending: false });
+    const { data: profiles, error } = await supabase.rpc('admin_get_all_users');
 
     if (error) throw error;
     if (!profiles?.length) return [];
 
-    // Buscar emails via auth (admin API — requer service_role ou RPC)
-    // Buscar nomes dos médicos indicadores
-    const doctorIds = [...new Set(profiles.map(p => p.referred_by_doctor_id).filter(Boolean))];
+    const doctorIds = [...new Set(profiles.map((p: any) => p.referred_by_doctor_id).filter(Boolean))];
     let doctorMap: Record<string, string> = {};
     if (doctorIds.length) {
       const { data: doctors } = await supabase
@@ -1719,15 +1704,14 @@ export const adminService = {
       doctors?.forEach(d => { doctorMap[d.id] = d.name; });
     }
 
-    // Buscar contagens e somas de consultas por paciente
-    const patientIds = profiles.map(p => p.id);
+    const patientIds = profiles.map((p: any) => p.id);
     const { data: consultations } = await supabase
       .from('consultations')
       .select('patient_id, price, status')
       .in('patient_id', patientIds);
 
     const consultMap: Record<string, { count: number; ltv: number }> = {};
-    consultations?.forEach(c => {
+    consultations?.forEach((c: any) => {
       if (!consultMap[c.patient_id]) consultMap[c.patient_id] = { count: 0, ltv: 0 };
       consultMap[c.patient_id].count++;
       if (c.status === 'completed' && c.price) {
@@ -1735,11 +1719,11 @@ export const adminService = {
       }
     });
 
-    const result: AdminUserSummary[] = profiles.map(p => ({
+    const result: AdminUserSummary[] = profiles.map((p: any) => ({
       id: p.id,
       display_name: p.display_name,
       avatar_url: p.avatar_url,
-      email: null, // preenchido separadamente se necessário
+      email: p.email ?? null,
       created_at: p.created_at,
       acquisition_channel: p.acquisition_channel,
       referred_by_doctor_id: p.referred_by_doctor_id,
@@ -1755,6 +1739,7 @@ export const adminService = {
       const q = search.toLowerCase();
       return result.filter(u =>
         u.display_name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
         u.referred_by_doctor_name?.toLowerCase().includes(q)
       );
     }
