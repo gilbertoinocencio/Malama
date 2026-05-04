@@ -116,6 +116,24 @@ export const IntegrationService = {
     return (data as Activity) ?? null;
   },
 
+  // Retorna as atividades de um mês específico
+  async getActivitiesByMonth(userId: string, year: number, month: number): Promise<Activity[]> {
+    // start of month local time to UTC for db if needed, but the db stores UTC and activity_date is likely just a datetime or timestamp
+    // since we want to cover the month, let's use simple string prefix if it's YYYY-MM
+    // or we can use bounds
+    const start = new Date(year, month, 1).toISOString();
+    const end = new Date(year, month + 1, 0, 23, 59, 59, 999).toISOString();
+    
+    const { data } = await supabase
+      .from('activities')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('activity_date', start)
+      .lte('activity_date', end)
+      .order('activity_date', { ascending: false });
+    return (data as Activity[]) ?? [];
+  },
+
   // Soma as calorias queimadas em atividades de um dia específico (YYYY-MM-DD)
   async getActivityCaloriesToday(userId: string, date: string): Promise<number> {
     const start = `${date}T00:00:00`;

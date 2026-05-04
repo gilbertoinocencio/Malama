@@ -79,39 +79,70 @@ function ServiceBadge({ service }: { service: Activity['service'] }) {
   );
 }
 
+function getLocalDateString(d: Date) {
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
 export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNavigate }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const fa = t.flowAdaptation;
   const { user } = useAuth();
 
   const [activity, setActivity] = useState<Activity | null>(null);
   const [activityLoading, setActivityLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'done'>('syncing');
-  const [hasIntegration, setHasIntegration] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [monthActivities, setMonthActivities] = useState<Activity[]>([]);
+
+  const fetchMonthActivities = async (date: Date) => {
+    if (!user) return;
+    const acts = await IntegrationService.getActivitiesByMonth(user.id, date.getFullYear(), date.getMonth());
+    setMonthActivities(acts);
+    
+    const selectedDateStr = getLocalDateString(selectedDate);
+    const actForDay = acts.find(a => a.activity_date.startsWith(selectedDateStr));
+    setActivity(actForDay || null);
+  };
 
   useEffect(() => {
     if (!user) return;
 
     const load = async () => {
       setSyncStatus('syncing');
-
-      // Sincroniza com o Strava antes de exibir — erro não bloqueia a exibição
       try { await IntegrationService.syncActivities(); } catch { /* silencioso */ }
-
       setSyncStatus('done');
 
-      const [latestActivity, integrations] = await Promise.all([
-        IntegrationService.getLatestActivity(user.id),
-        IntegrationService.getConnectedIntegrations(user.id),
-      ]);
-
-      setActivity(latestActivity);
-      setHasIntegration(integrations.some(i => i.is_connected));
+      await fetchMonthActivities(currentMonth);
       setActivityLoading(false);
     };
 
     load();
-  }, [user?.id]);
+  }, [user?.id, currentMonth.getFullYear(), currentMonth.getMonth()]);
+
+  const handleDateClick = (day: number) => {
+    const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    setSelectedDate(newDate);
+    const dateStr = getLocalDateString(newDate);
+    const actForDay = monthActivities.find(a => a.activity_date.startsWith(dateStr));
+    setActivity(actForDay || null);
+  };
+
+  const handlePrevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+  };
+
+  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+  const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const blanksArray = Array.from({ length: firstDayOfMonth }, (_, i) => i);
+  const monthName = currentMonth.toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', { month: 'long', year: 'numeric' });
 
   // Usa calorias do Strava se disponível; caso contrário estima por MET
   const effectiveCalories = activity
@@ -129,15 +160,57 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
           <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>arrow_back</span>
         </div>
         <h2 className="text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">{fa.title}</h2>
-        <div
-          onClick={() => onNavigate(AppView.INTEGRATIONS)}
-          className="flex size-12 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors"
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>settings</span>
-        </div>
+        <div className="w-12 h-12" />
       </header>
 
       <main className="flex-1 flex flex-col gap-6 p-4">
+
+        {/* Calendar Section */}
+        <section className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-Malama-border dark:border-white/10 animate-fade-in-up">
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={handlePrevMonth} className="p-2 hover:bg-Malama-bg dark:hover:bg-white/5 rounded-full transition-colors flex items-center justify-center">
+              <span className="material-symbols-outlined">chevron_left</span>
+            </button>
+            <h3 className="font-bold text-lg capitalize">{monthName}</h3>
+            <button onClick={handleNextMonth} className="p-2 hover:bg-Malama-bg dark:hover:bg-white/5 rounded-full transition-colors flex items-center justify-center">
+              <span className="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-7 gap-1 text-center mb-2">
+            {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+              <span key={i} className="text-xs font-bold text-Malama-muted dark:text-slate-400">{d}</span>
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {blanksArray.map(b => <div key={`blank-${b}`} className="h-8" />)}
+            {daysArray.map(day => {
+              const dateObj = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+              const dateStr = getLocalDateString(dateObj);
+              const hasActivity = monthActivities.some(a => a.activity_date.startsWith(dateStr));
+              const isSelected = selectedDate.getDate() === day && selectedDate.getMonth() === currentMonth.getMonth() && selectedDate.getFullYear() === currentMonth.getFullYear();
+              
+              return (
+                <button
+                  key={day}
+                  onClick={() => handleDateClick(day)}
+                  className={`h-8 w-8 mx-auto rounded-full flex flex-col items-center justify-center text-sm font-medium transition-colors relative
+                    ${isSelected ? 'bg-Malama-petrol dark:bg-primary text-white shadow-md' : 'hover:bg-Malama-bg dark:hover:bg-white/10'}
+                  `}
+                >
+                  <span className="leading-none">{day}</span>
+                  {hasActivity && !isSelected && (
+                    <div className="absolute bottom-1 w-1 h-1 rounded-full bg-Malama-petrol dark:bg-primary" />
+                  )}
+                  {hasActivity && isSelected && (
+                    <div className="absolute bottom-1 w-1 h-1 rounded-full bg-white" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
         {activityLoading ? (
           /* Skeleton de carregamento */
@@ -150,36 +223,13 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
 
         ) : !activity ? (
           /* Estado vazio */
-          <section className="flex flex-col items-center justify-center py-20 px-6 gap-4 text-center animate-fade-in-up">
-            <span className="material-symbols-outlined text-5xl text-Malama-muted dark:text-slate-500">directions_run</span>
-            <h2 className="text-xl font-bold">Nenhuma atividade detectada</h2>
-            {hasIntegration ? (
-              <>
-                <p className="text-Malama-muted dark:text-slate-400 text-sm leading-relaxed">
-                  Sua integração está ativa. Registre um treino no Strava ou Google Fit e ele aparecerá aqui automaticamente.
-                </p>
-                <button
-                  onClick={() => onNavigate(AppView.INTEGRATIONS)}
-                  className="mt-2 px-6 py-3 rounded-xl bg-Malama-petrol dark:bg-primary text-white text-sm font-semibold hover:opacity-90 transition-opacity"
-                >
-                  Gerenciar integrações
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-Malama-muted dark:text-slate-400 text-sm leading-relaxed">
-                  Conecte o Strava ou Google Fit para sincronizar seus treinos automaticamente.
-                </p>
-                <button
-                  onClick={() => onNavigate(AppView.INTEGRATIONS)}
-                  className="mt-2 px-6 py-3 rounded-xl bg-Malama-petrol dark:bg-primary text-white text-sm font-semibold hover:opacity-90 transition-opacity"
-                >
-                  Conectar integração
-                </button>
-              </>
-            )}
+          <section className="flex flex-col items-center justify-center py-12 px-6 gap-2 text-center animate-fade-in-up bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-Malama-border dark:border-white/10">
+            <span className="material-symbols-outlined text-4xl text-Malama-muted dark:text-slate-500 mb-2">directions_run</span>
+            <h2 className="text-lg font-bold text-Malama-main dark:text-white">Nenhuma atividade detectada</h2>
+            <p className="text-Malama-muted dark:text-slate-400 text-sm leading-relaxed">
+              Você não possui atividades registradas para este dia.
+            </p>
           </section>
-
         ) : (
           <>
             {/* Sync Status */}
