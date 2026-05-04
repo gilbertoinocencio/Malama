@@ -18,7 +18,7 @@ export const CalorieRing: React.FC<CalorieRingProps> = ({ consumed, target }) =>
   // Dark: Neon / Dark Gray
   const isDark = document.documentElement.classList.contains('dark');
   
-  const activeColor = isDark ? '#D4FF00' : '#2C5F6D';
+  const activeColor = '#C0392B';
   const inactiveColor = isDark ? '#333333' : '#E5E0D8';
 
   return (
