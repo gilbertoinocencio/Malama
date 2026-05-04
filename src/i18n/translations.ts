@@ -218,6 +218,23 @@ export interface Translations {
         loadMore: string;
         loading: string;
         beFirstToShare: string;
+        // SocialShare screen
+        shareTitle: string;
+        done: string;
+        preview: string;
+        saveImage: string;
+        stories: string;
+        customize: string;
+        chooseStyle: string;
+        storyStyle: string;
+        templates: string;
+        shareStory: string;
+        linkCopied: string;
+        calories: string;
+        protein: string;
+        fat: string;
+        carbs: string;
+        dailyFlow: string;
     };
 
     // Hydration
@@ -602,6 +619,22 @@ export const translations: Record<Language, Translations> = {
             loadMore: 'Load more',
             loading: 'Loading...',
             beFirstToShare: 'Be the first to share your flow!',
+            shareTitle: 'Share Your Progress',
+            done: 'Done',
+            preview: 'Preview',
+            saveImage: 'Save Image',
+            stories: 'Stories',
+            customize: 'Customize Template',
+            chooseStyle: 'Choose Your Style',
+            storyStyle: 'Story Style',
+            templates: 'Templates',
+            shareStory: 'Share to Story',
+            linkCopied: 'Link copied to clipboard!',
+            calories: 'Calories',
+            protein: 'Protein',
+            fat: 'Fat',
+            carbs: 'Carbs',
+            dailyFlow: 'Daily Flow',
         },
         hydration: {
             title: 'Social Hydration',
@@ -965,6 +998,22 @@ export const translations: Record<Language, Translations> = {
             loadMore: 'Carregar mais',
             loading: 'Carregando...',
             beFirstToShare: 'Seja o primeiro a compartilhar seu flow!',
+            shareTitle: 'Compartilhe seu Progresso',
+            done: 'Concluído',
+            preview: 'Pré-visualização',
+            saveImage: 'Salvar Imagem',
+            stories: 'Stories',
+            customize: 'Personalizar Template',
+            chooseStyle: 'Escolha seu Estilo',
+            storyStyle: 'Estilo do Story',
+            templates: 'Templates',
+            shareStory: 'Compartilhar no Story',
+            linkCopied: 'Link copiado!',
+            calories: 'Calorias',
+            protein: 'Proteína',
+            fat: 'Gorduras',
+            carbs: 'Carboidratos',
+            dailyFlow: 'Flow do Dia',
         },
         hydration: {
             title: 'Hidratação Social',
@@ -1328,6 +1377,22 @@ export const translations: Record<Language, Translations> = {
             loadMore: 'Cargar más',
             loading: 'Cargando...',
             beFirstToShare: '¡Sé el primero en compartir tu flow!',
+            shareTitle: 'Comparte tu Progreso',
+            done: 'Listo',
+            preview: 'Vista Previa',
+            saveImage: 'Guardar Imagen',
+            stories: 'Stories',
+            customize: 'Personalizar Plantilla',
+            chooseStyle: 'Elige tu Estilo',
+            storyStyle: 'Estilo del Story',
+            templates: 'Plantillas',
+            shareStory: 'Compartir en Story',
+            linkCopied: '¡Enlace copiado!',
+            calories: 'Calorías',
+            protein: 'Proteína',
+            fat: 'Grasas',
+            carbs: 'Carbohidratos',
+            dailyFlow: 'Flow del Día',
         },
         hydration: {
             title: 'Hidratación Social',

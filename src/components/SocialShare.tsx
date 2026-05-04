@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { DailyStats } from '../types';
 import html2canvas from 'html2canvas';
+import { useLanguage } from '../i18n';
 
 interface SocialShareProps {
   stats: DailyStats;
@@ -12,10 +13,15 @@ type TemplateStyle = 'Gallery' | 'Glass' | 'Photo' | 'Gradient' | 'Data';
 type ViewOption = 'Data' | 'Hide';
 
 export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
+  const { t, language } = useLanguage();
+  const ts = t.social;
   const [view, setView] = useState<ShareView>('LANDING');
   const [template, setTemplate] = useState<TemplateStyle>('Gallery');
   const [viewOption, setViewOption] = useState<ViewOption>('Data');
-  
+
+  const localeMap: Record<string, string> = { en: 'en-US', pt: 'pt-BR', es: 'es-ES' };
+  const locale = localeMap[language] || 'en-US';
+
   // Refs for different capture elements
   const previewCardRef = useRef<HTMLDivElement>(null);
   const customizeCardRef = useRef<HTMLDivElement>(null);
@@ -37,8 +43,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
   };
 
   const handleCopyLink = () => {
-    // Placeholder for copy link functionality
-    alert("Link copied to clipboard!");
+    alert(ts.linkCopied);
   };
 
   // --- RENDERERS ---
@@ -49,7 +54,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
         {/* Top: Date */}
         <div className="flex justify-center w-full opacity-60">
           <p className="text-[#1a1a1a] text-[10px] sm:text-xs font-semibold tracking-[0.25em] uppercase">
-             {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
+             {new Date().toLocaleDateString(locale, { month: 'short', day: 'numeric' })} • {new Date().toLocaleDateString(locale, { weekday: 'long' })}
           </p>
         </div>
         
@@ -61,24 +66,24 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
               {(stats.consumedCalories ?? 0).toLocaleString()}
             </h1>
             <div className="h-1 w-12 bg-primary mt-4 mb-2"></div>
-            <p className="text-primary text-xs sm:text-sm font-bold tracking-[0.3em] uppercase">Calories</p>
+            <p className="text-primary text-xs sm:text-sm font-bold tracking-[0.3em] uppercase">{ts.calories}</p>
           </div>
           
           {/* Secondary Metrics */}
           <div className="flex items-center gap-4 text-[#1a1a1a]/70">
             <div className="flex flex-col items-center">
               <span className="text-sm font-bold">{Math.round(stats.macros.protein)}g</span>
-              <span className="text-[8px] uppercase tracking-widest opacity-60">Protein</span>
+              <span className="text-[8px] uppercase tracking-widest opacity-60">{ts.protein}</span>
             </div>
             <div className="h-4 w-px bg-gray-300"></div>
             <div className="flex flex-col items-center">
               <span className="text-sm font-bold">{Math.round(stats.macros.fats)}g</span>
-              <span className="text-[8px] uppercase tracking-widest opacity-60">Fat</span>
+              <span className="text-[8px] uppercase tracking-widest opacity-60">{ts.fat}</span>
             </div>
             <div className="h-4 w-px bg-gray-300"></div>
             <div className="flex flex-col items-center">
               <span className="text-sm font-bold">{Math.round(stats.macros.carbs)}g</span>
-              <span className="text-[8px] uppercase tracking-widest opacity-60">Carbs</span>
+              <span className="text-[8px] uppercase tracking-widest opacity-60">{ts.carbs}</span>
             </div>
           </div>
           
@@ -130,7 +135,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
               {/* Header */}
               <div className="text-center">
                 <h1 className="text-[#102212] tracking-widest text-xs font-bold uppercase mb-1 opacity-60">Malama Daily</h1>
-                <h2 className="text-[#102212] tracking-tight text-3xl font-bold leading-tight">Flow do Dia</h2>
+                <h2 className="text-[#102212] tracking-tight text-3xl font-bold leading-tight">{ts.dailyFlow}</h2>
               </div>
               
               {/* Ring */}
@@ -152,9 +157,9 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
               {/* Macro Bars */}
               <div className="w-full flex flex-col gap-3">
                  {[
-                   { l: 'Proteína', v: Math.round(stats.macros.protein), t: stats.targetMacros.protein, c: '#11d421', p: pPct },
-                   { l: 'Carbs', v: Math.round(stats.macros.carbs), t: stats.targetMacros.carbs, c: '#fbbf24', p: cPct },
-                   { l: 'Gorduras', v: Math.round(stats.macros.fats), t: stats.targetMacros.fats, c: '#a78bfa', p: fPct }
+                   { l: ts.protein, v: Math.round(stats.macros.protein), t: stats.targetMacros.protein, c: '#11d421', p: pPct },
+                   { l: ts.carbs, v: Math.round(stats.macros.carbs), t: stats.targetMacros.carbs, c: '#fbbf24', p: cPct },
+                   { l: ts.fat, v: Math.round(stats.macros.fats), t: stats.targetMacros.fats, c: '#a78bfa', p: fPct }
                  ].map((m) => (
                    <div key={m.l} className="flex flex-col gap-1">
                       <div className="flex justify-between items-end px-1">
@@ -228,16 +233,16 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
           <div onClick={onClose} className="flex size-12 shrink-0 items-center justify-start cursor-pointer hover:opacity-70 transition-opacity">
             <span className="material-symbols-outlined text-2xl">arrow_back</span>
           </div>
-          <h2 className="text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Share Your Progress</h2>
+          <h2 className="text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">{ts.shareTitle}</h2>
           <div className="flex w-12 items-center justify-end">
-            <button onClick={onClose} className="text-primary text-base font-bold leading-normal tracking-[0.015em] shrink-0 hover:text-primary/80 transition-colors">Done</button>
+            <button onClick={onClose} className="text-primary text-base font-bold leading-normal tracking-[0.015em] shrink-0 hover:text-primary/80 transition-colors">{ts.done}</button>
           </div>
         </header>
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col items-center w-full max-w-md mx-auto px-4 pb-8">
           <div className="w-full pt-6 pb-4">
-            <h3 className="tracking-tight text-2xl font-bold leading-tight text-center">Preview</h3>
+            <h3 className="tracking-tight text-2xl font-bold leading-tight text-center">{ts.preview}</h3>
           </div>
 
           <div ref={previewCardRef} className="w-full">
@@ -253,19 +258,19 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
                 <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-Malama-dark shadow-sm border border-gray-100 dark:border-white/10 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
                   <span className="material-symbols-outlined text-gray-700 dark:text-gray-200 group-hover/btn:text-primary transition-colors">download</span>
                 </div>
-                <span className="text-xs font-medium leading-normal">Save Image</span>
+                <span className="text-xs font-medium leading-normal">{ts.saveImage}</span>
               </button>
               <button onClick={() => handleDownload(previewCardRef)} className="flex flex-col items-center gap-3 group/btn focus:outline-none">
                 <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-Malama-dark shadow-sm border border-gray-100 dark:border-white/10 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
                   <span className="material-symbols-outlined text-gray-700 dark:text-gray-200 group-hover/btn:text-primary transition-colors">auto_awesome_motion</span>
                 </div>
-                <span className="text-xs font-medium leading-normal">Stories</span>
+                <span className="text-xs font-medium leading-normal">{ts.stories}</span>
               </button>
               <button onClick={handleCopyLink} className="flex flex-col items-center gap-3 group/btn focus:outline-none">
                 <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-Malama-dark shadow-sm border border-gray-100 dark:border-white/10 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
                   <span className="material-symbols-outlined text-gray-700 dark:text-gray-200 group-hover/btn:text-primary transition-colors">content_copy</span>
                 </div>
-                <span className="text-xs font-medium leading-normal">Copy Link</span>
+                <span className="text-xs font-medium leading-normal">{ts.copyLink}</span>
               </button>
             </div>
           </div>
@@ -282,7 +287,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
               className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 px-6 bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30 active:bg-primary/30 text-primary transition-all duration-200"
             >
               <span className="material-symbols-outlined mr-2 text-[20px]">tune</span>
-              <span className="text-sm font-bold leading-normal tracking-[0.015em] truncate">Customize Template</span>
+              <span className="text-sm font-bold leading-normal tracking-[0.015em] truncate">{ts.customize}</span>
             </button>
           </div>
         </main>
@@ -297,12 +302,12 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
         <button onClick={() => setView('LANDING')} className="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">Escolha seu Estilo</h1>
+        <h1 className="text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">{ts.chooseStyle}</h1>
       </header>
 
       <main className="flex-1 flex flex-col w-full max-w-md mx-auto px-4 pb-32 overflow-y-auto hide-scrollbar">
          <div className="py-4 text-center">
-            <h2 className="tracking-tight text-2xl font-bold leading-tight">Estilo do Story</h2>
+            <h2 className="tracking-tight text-2xl font-bold leading-tight">{ts.storyStyle}</h2>
          </div>
 
          <div ref={customizeCardRef} className="w-full">
@@ -311,7 +316,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
 
          <div className="flex flex-col gap-3 mt-6">
             <div className="flex justify-between items-end px-1">
-               <span className="text-sm font-semibold">Templates</span>
+               <span className="text-sm font-semibold">{ts.templates}</span>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-4 pt-1 px-1 snap-x no-scrollbar">
                {/* Gallery Option */}
@@ -346,7 +351,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
            onClick={() => handleDownload(customizeCardRef)}
            className={`pointer-events-auto w-full text-white text-lg font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${template === 'Glass' ? 'bg-[#11d421]' : 'bg-primary'}`}
         >
-          <span>Compartilhar no Story</span>
+          <span>{ts.shareStory}</span>
           <span className="material-symbols-outlined">ios_share</span>
         </button>
       </div>
