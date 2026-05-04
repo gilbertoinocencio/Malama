@@ -96,6 +96,7 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [monthActivities, setMonthActivities] = useState<Activity[]>([]);
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
 
   const fetchMonthActivities = async (date: Date) => {
     if (!user) return;
@@ -144,6 +145,20 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
   const blanksArray = Array.from({ length: firstDayOfMonth }, (_, i) => i);
   const monthName = currentMonth.toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', { month: 'long', year: 'numeric' });
 
+  const totalCells = [...blanksArray.map(() => null), ...daysArray];
+  const weeks = [];
+  for (let i = 0; i < totalCells.length; i += 7) {
+    weeks.push(totalCells.slice(i, i + 7));
+  }
+  
+  const targetDay = (selectedDate.getMonth() === currentMonth.getMonth() && selectedDate.getFullYear() === currentMonth.getFullYear()) 
+    ? selectedDate.getDate() 
+    : 1;
+
+  const currentWeekIndex = weeks.findIndex(week => week.includes(targetDay));
+  const safeWeekIndex = currentWeekIndex !== -1 ? currentWeekIndex : 0;
+  const visibleWeeks = isCalendarExpanded ? weeks : [weeks[safeWeekIndex]];
+
   // Usa calorias do Strava se disponível; caso contrário estima por MET
   const effectiveCalories = activity
     ? (activity.calories_burned > 0 ? activity.calories_burned : estimateCaloriesFromActivity(activity))
@@ -183,32 +198,48 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
             ))}
           </div>
           
-          <div className="grid grid-cols-7 gap-1 text-center">
-            {blanksArray.map(b => <div key={`blank-${b}`} className="h-8" />)}
-            {daysArray.map(day => {
-              const dateObj = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-              const dateStr = getLocalDateString(dateObj);
-              const hasActivity = monthActivities.some(a => a.activity_date.startsWith(dateStr));
-              const isSelected = selectedDate.getDate() === day && selectedDate.getMonth() === currentMonth.getMonth() && selectedDate.getFullYear() === currentMonth.getFullYear();
-              
-              return (
-                <button
-                  key={day}
-                  onClick={() => handleDateClick(day)}
-                  className={`h-8 w-8 mx-auto rounded-full flex flex-col items-center justify-center text-sm font-medium transition-colors relative
-                    ${isSelected ? 'bg-Malama-petrol dark:bg-primary text-white shadow-md' : 'hover:bg-Malama-bg dark:hover:bg-white/10'}
-                  `}
-                >
-                  <span className="leading-none">{day}</span>
-                  {hasActivity && !isSelected && (
-                    <div className="absolute bottom-1 w-1 h-1 rounded-full bg-Malama-petrol dark:bg-primary" />
-                  )}
-                  {hasActivity && isSelected && (
-                    <div className="absolute bottom-1 w-1 h-1 rounded-full bg-white" />
-                  )}
-                </button>
-              );
-            })}
+          <div className="grid grid-cols-7 gap-1 text-center transition-all duration-300">
+            {visibleWeeks.map((week, weekIdx) => (
+              <React.Fragment key={weekIdx}>
+                {week.map((day, dayIdx) => {
+                  if (day === null) return <div key={`blank-${weekIdx}-${dayIdx}`} className="h-8" />;
+                  
+                  const dateObj = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+                  const dateStr = getLocalDateString(dateObj);
+                  const hasActivity = monthActivities.some(a => a.activity_date.startsWith(dateStr));
+                  const isSelected = selectedDate.getDate() === day && selectedDate.getMonth() === currentMonth.getMonth() && selectedDate.getFullYear() === currentMonth.getFullYear();
+                  
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => handleDateClick(day)}
+                      className={`h-8 w-8 mx-auto rounded-full flex flex-col items-center justify-center text-sm font-medium transition-colors relative
+                        ${isSelected ? 'bg-Malama-petrol dark:bg-primary text-white shadow-md' : 'hover:bg-Malama-bg dark:hover:bg-white/10'}
+                      `}
+                    >
+                      <span className="leading-none">{day}</span>
+                      {hasActivity && !isSelected && (
+                        <div className="absolute bottom-1 w-1 h-1 rounded-full bg-Malama-petrol dark:bg-primary" />
+                      )}
+                      {hasActivity && isSelected && (
+                        <div className="absolute bottom-1 w-1 h-1 rounded-full bg-white" />
+                      )}
+                    </button>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
+
+          <div className="flex justify-center mt-2">
+            <button
+              onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
+              className="flex items-center justify-center p-1 rounded-full text-Malama-muted dark:text-slate-400 hover:bg-Malama-bg dark:hover:bg-white/5 transition-colors"
+            >
+              <span className="material-symbols-outlined text-xl">
+                {isCalendarExpanded ? 'expand_less' : 'expand_more'}
+              </span>
+            </button>
           </div>
         </section>
 
