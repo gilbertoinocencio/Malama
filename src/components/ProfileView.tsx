@@ -570,16 +570,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {/* Quick Actions / Integration */}
         <section className="w-full px-6 mb-8 flex flex-col gap-3">
           <div
-            onClick={() => onNavClick(AppView.DAILY_JOURNAL)}
+            onClick={() => onNavClick(AppView.PLAN)}
             className="w-full bg-gradient-to-r from-Malama-petrol/10 to-transparent dark:from-primary/20 dark:to-transparent rounded-2xl p-4 flex items-center justify-between border border-Malama-petrol/20 dark:border-primary/20 cursor-pointer hover:bg-Malama-petrol/10 transition-colors group"
           >
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-Malama-petrol dark:text-primary shadow-sm border border-Malama-border dark:border-transparent">
-                <span className="material-symbols-outlined filled" style={{ fontVariationSettings: "'FILL' 1" }}>book</span>
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>bar_chart</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-Malama-main dark:text-white">Diário Pessoal</span>
-                <span className="text-xs text-Malama-muted dark:text-gray-400">Suas anotações, evoluções e reflexões</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white">Meus Dados</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">Métricas, evolução e histórico</span>
               </div>
             </div>
             <span className="material-symbols-outlined text-Malama-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>

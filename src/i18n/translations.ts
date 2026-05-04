@@ -17,6 +17,7 @@ export interface Translations {
         log: string;
         data: string;
         profile: string;
+        diary: string;
     };
 
     // Dashboard
@@ -408,6 +409,7 @@ export const translations: Record<Language, Translations> = {
             log: 'Log',
             data: 'Data',
             profile: 'Profile',
+            diary: 'Diary',
         },
         dashboard: {
             welcomeBack: 'Welcome back',
@@ -759,6 +761,7 @@ export const translations: Record<Language, Translations> = {
             log: 'Registrar',
             data: 'Dados',
             profile: 'Perfil',
+            diary: 'Diário',
         },
         dashboard: {
             welcomeBack: 'Bem-vindo de volta',
@@ -1110,6 +1113,7 @@ export const translations: Record<Language, Translations> = {
             log: 'Registrar',
             data: 'Datos',
             profile: 'Perfil',
+            diary: 'Diario',
         },
         dashboard: {
             welcomeBack: 'Bienvenido de nuevo',
