@@ -554,7 +554,7 @@ const App: React.FC = () => {
         {/* Telemedicine — Real Scheduling Flow */}
         {view === AppView.AGENDAR_CONSULTA && (
           <AgendarConsulta
-            onBack={() => setView(AppView.GLP1_DASHBOARD)}
+            onBack={() => setView(AppView.PROFILE)}
             onBooked={(_c: Consultation) => setView(AppView.MINHAS_CONSULTAS)}
             onNavigate={setView}
           />

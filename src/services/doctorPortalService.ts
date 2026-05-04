@@ -1689,12 +1689,25 @@ export type AdminUserDetail = AdminUserSummary & {
 export const adminService = {
   // Buscar todos os usuários com dados de LTV
   async getAllUsers(search?: string): Promise<AdminUserSummary[]> {
-    const { data: profiles, error } = await supabase.rpc('admin_get_all_users');
+    const { data: profiles, error } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        display_name,
+        avatar_url,
+        created_at,
+        acquisition_channel,
+        referred_by_doctor_id,
+        age,
+        gender,
+        goal
+      `)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     if (!profiles?.length) return [];
 
-    const doctorIds = [...new Set(profiles.map((p: any) => p.referred_by_doctor_id).filter(Boolean))];
+    const doctorIds = [...new Set(profiles.map(p => p.referred_by_doctor_id).filter(Boolean))];
     let doctorMap: Record<string, string> = {};
     if (doctorIds.length) {
       const { data: doctors } = await supabase
@@ -1704,14 +1717,14 @@ export const adminService = {
       doctors?.forEach(d => { doctorMap[d.id] = d.name; });
     }
 
-    const patientIds = profiles.map((p: any) => p.id);
+    const patientIds = profiles.map(p => p.id);
     const { data: consultations } = await supabase
       .from('consultations')
       .select('patient_id, price, status')
       .in('patient_id', patientIds);
 
     const consultMap: Record<string, { count: number; ltv: number }> = {};
-    consultations?.forEach((c: any) => {
+    consultations?.forEach(c => {
       if (!consultMap[c.patient_id]) consultMap[c.patient_id] = { count: 0, ltv: 0 };
       consultMap[c.patient_id].count++;
       if (c.status === 'completed' && c.price) {
@@ -1719,11 +1732,18 @@ export const adminService = {
       }
     });
 
-    const result: AdminUserSummary[] = profiles.map((p: any) => ({
+    // Buscar emails via RPC (acessa auth.users com SECURITY DEFINER)
+    const { data: emailRows } = await supabase.rpc('admin_get_all_users');
+    const emailMap: Record<string, string> = {};
+    if (emailRows) {
+      (emailRows as any[]).forEach(r => { if (r.email) emailMap[r.id] = r.email; });
+    }
+
+    const result: AdminUserSummary[] = profiles.map(p => ({
       id: p.id,
       display_name: p.display_name,
       avatar_url: p.avatar_url,
-      email: p.email ?? null,
+      email: emailMap[p.id] ?? null,
       created_at: p.created_at,
       acquisition_channel: p.acquisition_channel,
       referred_by_doctor_id: p.referred_by_doctor_id,
