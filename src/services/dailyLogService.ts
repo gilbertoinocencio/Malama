@@ -35,33 +35,16 @@ export const DailyLogService = {
 
     // Upsert log (Create or Update)
     async saveDailyLog(logData: Partial<DailyLogData> & { user_id: string; date: string }, shareToFeed: boolean = false) {
-        // Check if exists
-        const dateObj = new Date(logData.date);
-        const existing = await this.getDailyLog(logData.user_id, dateObj);
         let savedLog: DailyLogData | null = null;
 
-        if (existing) {
-            // Update
-            const { data, error } = await supabase
-                .from('daily_logs')
-                .update(logData)
-                .eq('id', existing.id)
-                .select()
-                .single();
+        const { data, error } = await supabase
+            .from('daily_logs')
+            .upsert(logData, { onConflict: 'user_id,date' })
+            .select()
+            .single();
 
-            if (error) throw error;
-            savedLog = data;
-        } else {
-            // Insert
-            const { data, error } = await supabase
-                .from('daily_logs')
-                .insert(logData)
-                .select()
-                .single();
-
-            if (error) throw error;
-            savedLog = data;
-        }
+        if (error) throw error;
+        savedLog = data;
 
         // Handle Share to Feed
         if (shareToFeed && savedLog && (savedLog.photo_url || savedLog.notes)) {
