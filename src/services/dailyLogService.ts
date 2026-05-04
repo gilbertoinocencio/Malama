@@ -84,6 +84,31 @@ export const DailyLogService = {
         return savedLog;
     },
 
+    async getStreak(userId: string): Promise<number> {
+        const { data } = await supabase
+            .from('daily_logs')
+            .select('date')
+            .eq('user_id', userId)
+            .order('date', { ascending: false })
+            .limit(60);
+
+        if (!data || data.length === 0) return 0;
+
+        const logged = new Set(data.map(d => d.date));
+        let streak = 0;
+        const today = new Date();
+        for (let i = 0; i < 60; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            if (logged.has(getLocalDateString(d))) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+        return streak;
+    },
+
     async uploadJournalPhoto(userId: string, file: File): Promise<string> {
         const fileName = `${userId}/${Date.now()}_journal.jpg`;
         const { data, error } = await supabase.storage

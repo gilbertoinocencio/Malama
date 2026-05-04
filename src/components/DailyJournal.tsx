@@ -20,6 +20,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [shareToFeed, setShareToFeed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [streak, setStreak] = useState<number>(0);
 
   const jt = t.journal;
 
@@ -29,12 +30,16 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
 
   const loadLog = async () => {
     if (!user) return;
-    const log = await DailyLogService.getDailyLog(user.id);
+    const [log, s] = await Promise.all([
+      DailyLogService.getDailyLog(user.id),
+      DailyLogService.getStreak(user.id),
+    ]);
     if (log) {
       setEnergy(log.energy_level as EnergyLevel || null);
       setNotes(log.notes || '');
       setImagePreview(log.photo_url || null);
     }
+    setStreak(s);
   };
 
   const handleSave = async () => {
@@ -75,6 +80,15 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
       }
     }
   };
+
+  const flowStatusConfig = (() => {
+    if (streak === 0)  return { label: 'Iniciando',       color: 'text-gray-400',               incentive: 'Registre o seu primeiro dia para começar.' };
+    if (streak <= 3)   return { label: 'Em Progresso',    color: 'text-Malama-petrol dark:text-primary', incentive: 'Continue registrando para calcular.' };
+    if (streak <= 7)   return { label: 'Ganhando Ritmo',  color: 'text-amber-500',               incentive: `${streak} dias seguidos. Você está no caminho certo.` };
+    if (streak <= 14)  return { label: 'Consistente',     color: 'text-emerald-500',             incentive: `${streak} dias consecutivos. Sua consistência está construindo resultados.` };
+    if (streak <= 29)  return { label: 'Em Flow',         color: 'text-blue-400',                incentive: `${streak} dias em Flow. Você está transformando hábitos em estilo de vida.` };
+    return               { label: 'Flow Total',           color: 'text-purple-400',              incentive: `${streak} dias! Você atingiu o nível máximo de consistência.` };
+  })();
 
   const localeMap: Record<string, string> = { en: 'en-US', pt: 'pt-BR', es: 'es-ES' };
   const todayDate = new Date().toLocaleDateString(localeMap[language] || 'en-US', { weekday: 'long', day: 'numeric', month: 'short' });
@@ -121,10 +135,15 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
           <div className="flex justify-between items-end mb-4">
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-bold text-Malama-muted dark:text-gray-500 uppercase tracking-widest">{jt.flowStatus}</span>
-              <span className="text-xl font-medium text-Malama-petrol dark:text-primary">{jt.inProgress}</span>
+              <span className={`text-xl font-medium ${flowStatusConfig.color}`}>{flowStatusConfig.label}</span>
             </div>
+            {streak > 0 && (
+              <span className="text-2xl font-light text-Malama-muted dark:text-gray-500">
+                {streak}<span className="text-xs ml-0.5">🔥</span>
+              </span>
+            )}
           </div>
-          <p className="mt-3 text-xs text-Malama-muted dark:text-gray-400 text-right font-medium">{jt.keepLogging}</p>
+          <p className="mt-3 text-xs text-Malama-muted dark:text-gray-400 text-right font-medium">{flowStatusConfig.incentive}</p>
         </div>
 
         {/* Energy Selector */}
