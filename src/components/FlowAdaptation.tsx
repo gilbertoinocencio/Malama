@@ -90,7 +90,7 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
   const fa = t.flowAdaptation;
   const { user } = useAuth();
 
-  const [activity, setActivity] = useState<Activity | null>(null);
+  const [dayActivities, setDayActivities] = useState<Activity[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'done'>('syncing');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -102,10 +102,8 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
     if (!user) return;
     const acts = await IntegrationService.getActivitiesByMonth(user.id, date.getFullYear(), date.getMonth());
     setMonthActivities(acts);
-    
     const selectedDateStr = getLocalDateString(selectedDate);
-    const actForDay = acts.find(a => a.activity_date.startsWith(selectedDateStr));
-    setActivity(actForDay || null);
+    setDayActivities(acts.filter((a: Activity) => a.activity_date.startsWith(selectedDateStr)));
   };
 
   useEffect(() => {
@@ -127,8 +125,7 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
     const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     setSelectedDate(newDate);
     const dateStr = getLocalDateString(newDate);
-    const actForDay = monthActivities.find(a => a.activity_date.startsWith(dateStr));
-    setActivity(actForDay || null);
+    setDayActivities(monthActivities.filter((a: Activity) => a.activity_date.startsWith(dateStr)));
   };
 
   const handlePrevMonth = () => {
@@ -159,12 +156,11 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
   const safeWeekIndex = currentWeekIndex !== -1 ? currentWeekIndex : 0;
   const visibleWeeks = isCalendarExpanded ? weeks : [weeks[safeWeekIndex]];
 
-  // Usa calorias do Strava se disponível; caso contrário estima por MET
-  const effectiveCalories = activity
-    ? (activity.calories_burned > 0 ? activity.calories_burned : estimateCaloriesFromActivity(activity))
-    : 0;
-  const isEstimated = activity !== null && activity.calories_burned === 0 && effectiveCalories > 0;
-  const macros = activity ? estimateMacros(effectiveCalories) : null;
+  // Soma as calorias de todas as atividades do dia; estima por MET quando Strava não fornece
+  const effectiveCalories = dayActivities.reduce((sum: number, a: Activity) => {
+    return sum + (a.calories_burned > 0 ? a.calories_burned : estimateCaloriesFromActivity(a));
+  }, 0);
+  const macros = dayActivities.length > 0 ? estimateMacros(effectiveCalories) : null;
 
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col mx-auto max-w-md bg-Malama-bg dark:bg-background-dark shadow-xl text-Malama-main dark:text-white font-display animate-fade-in">
@@ -252,7 +248,7 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
             </p>
           </div>
 
-        ) : !activity ? (
+        ) : dayActivities.length === 0 ? (
           /* Estado vazio */
           <section className="flex flex-col items-center justify-center py-12 px-6 gap-2 text-center animate-fade-in-up bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-Malama-border dark:border-white/10">
             <span className="material-symbols-outlined text-4xl text-Malama-muted dark:text-slate-500 mb-2">directions_run</span>
@@ -269,73 +265,82 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
                 <span className="material-symbols-outlined filled" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>sync</span>
                 <span className="text-xs font-bold uppercase tracking-wider">{fa.syncComplete}</span>
               </div>
-              <h1 className="text-3xl font-bold tracking-tight leading-tight">{fa.activityDetected}</h1>
+              <h1 className="text-3xl font-bold tracking-tight leading-tight">
+                {dayActivities.length > 1
+                  ? `${dayActivities.length} atividades detectadas`
+                  : fa.activityDetected}
+              </h1>
             </section>
 
-            {/* Activity Card */}
-            <section className="@container animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              <div className="group flex flex-col items-stretch justify-start rounded-2xl shadow-sm border border-Malama-border dark:border-white/10 bg-white dark:bg-surface-dark overflow-hidden transition-transform hover:scale-[1.01] duration-300">
-                {/* Map / header placeholder */}
-                <div className="relative h-48 w-full bg-gray-100 dark:bg-[#363330] overflow-hidden flex items-center justify-center">
-                  <span className="material-symbols-outlined text-6xl text-Malama-muted/30 dark:text-white/10">map</span>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                    <ServiceBadge service={activity.service} />
-                    <span className="text-white font-medium text-sm drop-shadow-md">
-                      {activity.name}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Detalhes */}
-                <div className="flex w-full flex-col gap-4 p-5">
-                  <div className="flex items-center gap-1.5 text-Malama-muted dark:text-slate-400">
-                    <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>calendar_today</span>
-                    <span className="text-xs font-medium">
-                      {new Date(activity.activity_date).toLocaleDateString('pt-BR', {
-                        weekday: 'long',
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                      {' · '}
-                      {new Date(activity.activity_date).toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-Malama-muted dark:text-slate-400 text-xs font-semibold uppercase tracking-wide mb-1">{fa.workoutType}</p>
-                      <p className="text-xl font-bold leading-tight">{activity.activity_type}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-Malama-muted dark:text-slate-400 text-xs font-semibold uppercase tracking-wide mb-1">{fa.duration}</p>
-                      <p className="text-xl font-bold leading-tight">{formatDuration(activity.duration_seconds)}</p>
-                    </div>
-                  </div>
-                  <div className="h-px w-full bg-Malama-border dark:bg-[#363330]" />
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-Malama-petrol dark:text-primary" style={{ fontSize: '20px' }}>local_fire_department</span>
-                      <span className="font-bold text-base">{effectiveCalories} kcal</span>
-                      <span className="text-Malama-muted text-sm">{fa.burned}</span>
-                      {isEstimated && (
-                        <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-full">
-                          estimado
-                        </span>
+            {/* Activity Cards — uma por atividade do dia */}
+            {dayActivities.map((act: Activity, idx: number) => {
+              const actKcal = act.calories_burned > 0 ? act.calories_burned : estimateCaloriesFromActivity(act);
+              const actEstimated = act.calories_burned === 0;
+              return (
+                <section key={act.id ?? idx} className="@container animate-fade-in-up" style={{ animationDelay: `${0.1 + idx * 0.05}s` }}>
+                  <div className="group flex flex-col items-stretch justify-start rounded-2xl shadow-sm border border-Malama-border dark:border-white/10 bg-white dark:bg-surface-dark overflow-hidden transition-transform hover:scale-[1.01] duration-300">
+                    {/* Header */}
+                    <div className="relative h-36 w-full bg-gray-100 dark:bg-[#363330] overflow-hidden flex items-center justify-center">
+                      <span className="material-symbols-outlined text-6xl text-Malama-muted/30 dark:text-white/10">map</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                        <ServiceBadge service={act.service} />
+                        <span className="text-white font-medium text-sm drop-shadow-md">{act.name}</span>
+                      </div>
+                      {dayActivities.length > 1 && (
+                        <div className="absolute top-3 right-3 bg-black/40 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          {idx + 1}/{dayActivities.length}
+                        </div>
                       )}
                     </div>
-                    {activity.distance_meters && activity.distance_meters > 0 && (
-                      <span className="text-sm text-Malama-muted dark:text-slate-400 font-medium">
-                        {(activity.distance_meters / 1000).toFixed(1)} km
-                      </span>
-                    )}
+
+                    {/* Detalhes */}
+                    <div className="flex w-full flex-col gap-4 p-5">
+                      <div className="flex items-center gap-1.5 text-Malama-muted dark:text-slate-400">
+                        <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>calendar_today</span>
+                        <span className="text-xs font-medium">
+                          {new Date(act.activity_date).toLocaleDateString('pt-BR', {
+                            weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+                          })}
+                          {' · '}
+                          {new Date(act.activity_date).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit', minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-Malama-muted dark:text-slate-400 text-xs font-semibold uppercase tracking-wide mb-1">{fa.workoutType}</p>
+                          <p className="text-xl font-bold leading-tight">{act.activity_type}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-Malama-muted dark:text-slate-400 text-xs font-semibold uppercase tracking-wide mb-1">{fa.duration}</p>
+                          <p className="text-xl font-bold leading-tight">{formatDuration(act.duration_seconds)}</p>
+                        </div>
+                      </div>
+                      <div className="h-px w-full bg-Malama-border dark:bg-[#363330]" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-Malama-petrol dark:text-primary" style={{ fontSize: '20px' }}>local_fire_department</span>
+                          <span className="font-bold text-base">{actKcal} kcal</span>
+                          <span className="text-Malama-muted text-sm">{fa.burned}</span>
+                          {actEstimated && (
+                            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-full">
+                              estimado
+                            </span>
+                          )}
+                        </div>
+                        {act.distance_meters && act.distance_meters > 0 && (
+                          <span className="text-sm text-Malama-muted dark:text-slate-400 font-medium">
+                            {(act.distance_meters / 1000).toFixed(1)} km
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </section>
+                </section>
+              );
+            })}
 
             {/* Flow Ring */}
             <section className="flex flex-col items-center justify-center py-6 relative animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
