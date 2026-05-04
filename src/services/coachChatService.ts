@@ -113,11 +113,25 @@ export const CoachChatService = {
       .order('date', { ascending: false })
       .limit(3);
 
+    // Get recent diary notes (last 7 days with content)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const { data: diaryNotes } = await supabase
+      .from('daily_logs')
+      .select('date, notes, energy_level')
+      .eq('user_id', userId)
+      .gte('date', sevenDaysAgo.toISOString().split('T')[0])
+      .not('notes', 'is', null)
+      .neq('notes', '')
+      .order('date', { ascending: false })
+      .limit(5);
+
     return {
       profile: profile || {},
       onboarding: onboarding?.data || {},
       recentMeals: recentMeals || [],
       recentCheckins: recentCheckins || [],
+      diaryNotes: diaryNotes || [],
     };
   },
 
@@ -134,6 +148,7 @@ export const CoachChatService = {
     const onboarding = context.onboarding;
     const recentMeals = context.recentMeals || [];
     const recentCheckins = context.recentCheckins || [];
+    const diaryNotes = context.diaryNotes || [];
 
     // Build context summary
     const restrictions = onboarding.restrictions || [];
@@ -156,6 +171,15 @@ export const CoachChatService = {
       checkinSummary = `Último check-in: Energia ${lastCheckin.energy_level}/10, Fome ${lastCheckin.hunger_level}/10, Humor ${lastCheckin.mood_level}/10`;
     }
 
+    // Diary notes summary
+    let diarySummary = '';
+    if (diaryNotes.length > 0) {
+      const fmt = (d: string) => new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      diarySummary = '\n- 📔 Diário recente:\n' + diaryNotes
+        .map((n: any) => `  ${fmt(n.date)}${n.energy_level ? ` [${n.energy_level}]` : ''}: "${n.notes}"`)
+        .join('\n');
+    }
+
     const systemPrompt = `
 Você é uma nutricionista clínica experiente e empática, especializada em composição corporal, saúde metabólica e alimentação baseada em evidências científicas.
 
@@ -165,7 +189,7 @@ Você é uma nutricionista clínica experiente e empática, especializada em com
 - 🚫 Restrições: ${restrictions.length > 0 ? restrictions.join(', ') : 'Nenhuma'}
 - ❤️ Preferências: ${preferences.length > 0 ? preferences.join(', ') : 'Variado'}
 - 🍽️ ${mealsSummary}
-- 📈 ${checkinSummary}
+- 📈 ${checkinSummary}${diarySummary}
 
 **SEU PAPEL:**
 1. Responda de forma empática, encorajadora e personalizada

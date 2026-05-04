@@ -77,6 +77,38 @@ export async function generateConsultationBriefing(patientId: string): Promise<s
     .map(([name, { count, avgCal }]) => `${name} (${count}x, ~${avgCal}kcal)`);
 
   // 4. Integrações de fitness (Strava / Google Fit)
+  // Diário pessoal: notas + energia (últimos 30 dias)
+  const since30 = new Date();
+  since30.setDate(since30.getDate() - 30);
+  const { data: diaryLogs } = await supabase
+    .from('daily_logs')
+    .select('date, notes, energy_level')
+    .eq('user_id', patientId)
+    .gte('date', since30.toISOString().split('T')[0])
+    .order('date', { ascending: false })
+    .limit(30);
+
+  const diaryEntries = (diaryLogs || []) as { date: string; notes: string | null; energy_level: string | null }[];
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+  // Média de energia (Baixa=1, Média=2, Boa=3, Flow=4)
+  const energyMap: Record<string, number> = { Baixa: 1, Média: 2, Boa: 3, Flow: 4 };
+  const energyValues = diaryEntries.map(e => energyMap[e.energy_level ?? ''] ?? null).filter((v): v is number => v !== null);
+  const avgEnergy = energyValues.length > 0
+    ? energyValues.reduce((a, b) => a + b, 0) / energyValues.length
+    : null;
+  const avgEnergyLabel = avgEnergy === null ? 'Sem dados'
+    : avgEnergy < 1.5 ? `Baixa (média ${avgEnergy.toFixed(1)})`
+    : avgEnergy < 2.5 ? `Média (média ${avgEnergy.toFixed(1)})`
+    : avgEnergy < 3.5 ? `Boa (média ${avgEnergy.toFixed(1)})`
+    : `Flow (média ${avgEnergy.toFixed(1)})`;
+
+  // Notas com conteúdo
+  const diaryWithNotes = diaryEntries.filter(e => e.notes && e.notes.trim() !== '');
+  const diarySummary = diaryWithNotes.length > 0
+    ? diaryWithNotes.slice(0, 10).map(e => `• ${fmtDate(e.date)}${e.energy_level ? ` [${e.energy_level}]` : ''}: "${e.notes}"`).join('\n')
+    : null;
+
   const [{ data: integrations }, { data: activityLogs }, { data: hydrationLogs }] = await Promise.all([
     // Quais serviços estão conectados
     supabase
@@ -186,6 +218,12 @@ Hidratação (28 dias):
 
 Sintomas frequentes GLP-1: ${topSymptoms.length > 0 ? topSymptoms.join(', ') : 'Nenhum relatado'}
 Principal preocupação: ${concernMap[patient.glp1_main_concern] || 'N/A'}
+
+Diário pessoal — Energia média (30 dias): ${avgEnergyLabel} (${energyValues.length} registros)
+Distribuição: Baixa: ${energyValues.filter(v => v === 1).length}x | Média: ${energyValues.filter(v => v === 2).length}x | Boa: ${energyValues.filter(v => v === 3).length}x | Flow: ${energyValues.filter(v => v === 4).length}x
+
+Notas do diário (últimos 30 dias):
+${diarySummary ?? 'Nenhuma nota registrada no período.'}
   `.trim();
 
   // 6. Gerar briefing via Gemini (mesmo padrão do chat do paciente)
@@ -201,6 +239,7 @@ Inclua obrigatoriamente:
 - Progresso de peso e adesão ao plano
 - Padrão alimentar: comente os pratos mais consumidos e destaque refeições pesadas repetidas com nome e frequência (ex: "consumiu tiramisu 3x na semana")
 - Atividade física e hidratação: se há dados de treinos, comente o gasto calórico vs ingestão; alerte se o paciente treina mas não compensa na hidratação ou proteína; se não há integração ativa, mencione brevemente
+- Diário pessoal: se houver notas relevantes, cite textualmente as mais significativas usando o nome do paciente (ex: "em seu diário, João relatou desconforto intestinal após comer feijão em 02/05"); ignore notas triviais
 - Pontos de atenção clínicos
 - Sugestões objetivas para a consulta
 

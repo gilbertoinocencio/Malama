@@ -6,7 +6,8 @@ ALTER TABLE daily_logs
   ADD COLUMN IF NOT EXISTS weight      numeric;
 
 -- Garante que o médico pode ler daily_logs dos seus pacientes
-CREATE POLICY IF NOT EXISTS "Doctors can view patient daily logs"
+DROP POLICY IF EXISTS "Doctors can view patient daily logs" ON daily_logs;
+CREATE POLICY "Doctors can view patient daily logs"
   ON daily_logs FOR SELECT
   TO authenticated
   USING (
