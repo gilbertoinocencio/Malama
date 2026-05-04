@@ -883,11 +883,13 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
             <div className="flex flex-col items-center justify-center px-6 py-4">
               <div className="relative size-64 rounded-full overflow-hidden">
                 <svg className="circular-chart transform -rotate-90 w-full h-full" viewBox="0 0 36 36">
-                  <path className="circle-bg dark:stroke-[#18282e] stroke-gray-200 light-circle-bg" d="M18 2.0845
+                  <path fill="none" strokeWidth="3" className="dark:stroke-[#18282e] stroke-gray-200" d="M18 2.0845
                     a 15.9155 15.9155 0 0 1 0 31.831
                     a 15.9155 15.9155 0 0 1 0 -31.831" />
                   <path
-                    className="circle"
+                    fill="none"
+                    strokeWidth="3"
+                    strokeLinecap="round"
                     stroke={getCalorieColor()}
                     strokeDasharray={`${Math.min(caloriePercent, 100)}, 100`}
                     d="M18 2.0845
@@ -897,7 +899,8 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   />
                   {isOverTarget && (
                     <path
-                      className="circle"
+                      fill="none"
+                      strokeWidth="3"
                       stroke={getCalorieColor()}
                       strokeDasharray={`${Math.max(caloriePercent - 100, 0)}, 100`}
                       d="M18 2.0845
