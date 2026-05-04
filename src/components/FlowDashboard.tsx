@@ -323,9 +323,9 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
   // Dynamic color based on progress
   const getCalorieColor = () => {
-    if (isWayOverTarget) return '#ef4444'; // Red when >150%
+    if (isWayOverTarget) return '#991b1b'; // Dark red when >150%
     if (isOverTarget) return '#f59e0b'; // Orange when >100%
-    return '#722F37'; // Bordeaux when <100%
+    return '#FF3B30'; // Vermelho caliente when <100%
   };
 
   const getLevelLabel = (level: string) => {
