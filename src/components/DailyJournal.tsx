@@ -10,7 +10,7 @@ interface DailyJournalProps {
   onNavigate: (view: AppView) => void;
 }
 
-type EnergyLevel = 'low' | 'medium' | 'good' | 'flow';
+type EnergyLevel = 'Baixa' | 'Média' | 'Boa' | 'Flow';
 
 export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }) => {
   const { user } = useAuth();
@@ -94,10 +94,10 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
   const todayDate = new Date().toLocaleDateString(localeMap[language] || 'en-US', { weekday: 'long', day: 'numeric', month: 'short' });
 
   const energyOptions = [
-    { key: 'low' as EnergyLevel, label: jt.low, icon: 'battery_low' },
-    { key: 'medium' as EnergyLevel, label: jt.medium, icon: 'sentiment_neutral' },
-    { key: 'good' as EnergyLevel, label: jt.good, icon: 'sentiment_satisfied' },
-    { key: 'flow' as EnergyLevel, label: jt.flow, icon: 'bolt', special: true },
+    { key: 'Baixa' as EnergyLevel, label: jt.low, icon: 'battery_low' },
+    { key: 'Média' as EnergyLevel, label: jt.medium, icon: 'sentiment_neutral' },
+    { key: 'Boa' as EnergyLevel, label: jt.good, icon: 'sentiment_satisfied' },
+    { key: 'Flow' as EnergyLevel, label: jt.flow, icon: 'bolt', special: true },
   ];
 
   return (
