@@ -161,6 +161,8 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         eatingWindowEnd = data.eatingWindowEnd;
       }
 
+      // Upsert crítico — campos originais + onboarding_completed.
+      // Se falhar, o onboarding não avança.
       const { error: upsertError } = await supabase.from('profiles').upsert({
         id: user.id,
         date_of_birth: data.dataNascimento,
@@ -173,16 +175,23 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         eating_window_end: eatingWindowEnd,
         dietary_restrictions: data.dietaryRestrictions || [],
         dietary_restrictions_detail: data.restrictionsDetail || null,
-        diet_type: data.dietType || null,
-        additional_goals: data.additionalGoals || [],
-        eating_location: data.eatingLocation || null,
-        habit_changes: data.habitChanges || [],
-        drinks_enough_water: data.drinksEnoughWater || null,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       });
 
       if (upsertError) throw upsertError;
+
+      // Update secundário — campos de estilo de vida (não-fatal).
+      // Falha silenciosa caso as colunas ainda não existam no ambiente.
+      try {
+        await supabase.from('profiles').update({
+          diet_type: data.dietType || null,
+          additional_goals: data.additionalGoals || [],
+          eating_location: data.eatingLocation || null,
+          habit_changes: data.habitChanges || [],
+          drinks_enough_water: data.drinksEnoughWater || null,
+        }).eq('id', user.id);
+      } catch { /* não-fatal */ }
 
       // Limpa sessão antiga do agente nutricional e plano ativo para que
       // um novo plano seja gerado com os dados atualizados do onboarding
