@@ -303,8 +303,11 @@ export interface PatientFullProfile {
   photo_url: string | null;
   age: number | null;
   gender: string | null;
+  height: number | null;
   imc: number | null;
   imc_classification: string | null;
+  activity_level: string | null;
+  health_goal: string | null;
   is_glp1_active: boolean;
   glp1_phase: string | null;
   glp1_medication: string | null;

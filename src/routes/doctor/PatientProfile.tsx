@@ -262,6 +262,67 @@ export const PatientProfile: React.FC = () => {
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
+
+              {/* Perfil Biométrico */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Perfil Biométrico</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    {
+                      label: 'Idade',
+                      value: patient.age ? `${patient.age} anos` : null,
+                      icon: '🎂'
+                    },
+                    {
+                      label: 'Sexo',
+                      value: patient.gender
+                        ? ({ male: 'Masculino', female: 'Feminino', other: 'Outro' }[patient.gender] ?? patient.gender)
+                        : null,
+                      icon: '👤'
+                    },
+                    {
+                      label: 'Altura',
+                      value: patient.height ? `${patient.height} cm` : null,
+                      icon: '📏'
+                    },
+                    {
+                      label: 'Peso Atual',
+                      value: patient.current_weight ? `${patient.current_weight} kg` : null,
+                      icon: '⚖️'
+                    },
+                    {
+                      label: 'IMC',
+                      value: patient.imc ? `${patient.imc.toFixed(1)} — ${patient.imc_classification || ''}` : null,
+                      icon: '📊'
+                    },
+                    {
+                      label: 'Nível de Atividade',
+                      value: patient.activity_level
+                        ? ({
+                            sedentary: 'Sedentário',
+                            lightly_active: 'Levemente ativo',
+                            moderately_active: 'Moderadamente ativo',
+                            very_active: 'Muito ativo',
+                            extra_active: 'Extremamente ativo',
+                          }[patient.activity_level] ?? patient.activity_level)
+                        : null,
+                      icon: '🏃'
+                    },
+                    {
+                      label: 'Objetivo de Saúde',
+                      value: patient.health_goal ?? null,
+                      icon: '🎯'
+                    },
+                  ].map((item, idx) => (
+                    <div key={idx} className={`bg-gray-50 rounded-lg p-4 flex flex-col gap-1 ${!item.value ? 'opacity-40' : ''}`}>
+                      <span className="text-lg">{item.icon}</span>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{item.label}</p>
+                      <p className="text-sm font-semibold text-gray-800">{item.value ?? '—'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Gráfico de peso */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Evololução de Peso</h3>

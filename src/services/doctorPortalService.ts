@@ -898,7 +898,7 @@ export const patientService = {
     // Real data fetching: Profiles
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('display_name, avatar_url, age, gender, weight, height, goal, target_calories, target_protein, target_carbs, target_fats, target_fiber, glp1_mode, glp1_phase, glp1_medication')
+      .select('display_name, avatar_url, age, gender, weight, height, goal, activity_level, target_calories, target_protein, target_carbs, target_fats, target_fiber, glp1_mode, glp1_phase, glp1_medication')
       .eq('id', patientId)
       .single();
 
@@ -1096,6 +1096,9 @@ export const patientService = {
       photo_url: profile?.avatar_url || null,
       age: profile?.age || null,
       gender: profile?.gender || null,
+      height: profile?.height || null,
+      activity_level: profile?.activity_level || null,
+      health_goal: profile?.goal || null,
       imc,
       imc_classification,
       is_glp1_active: profile?.glp1_mode || false,
