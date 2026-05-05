@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { AppView } from '../types';
 import { BottomNavigation } from './BottomNavigation';
 
@@ -15,6 +15,14 @@ export const Layout: React.FC<LayoutProps> = ({
   onChangeView,
   onFabClick
 }) => {
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+  }, [activeView]);
+
   // Define which views should show the bottom navigation
   const showBottomNav = [
     AppView.HOME,
@@ -39,7 +47,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden max-w-md mx-auto relative bg-background-light dark:bg-background-dark shadow-2xl transition-colors duration-300">
-      <main className="flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar relative">
+      <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar relative">
         {children}
       </main>
 
