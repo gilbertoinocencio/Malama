@@ -103,7 +103,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
     nivelAtividade: 'moderado',
     additionalGoals: [],
     dietaryRestrictions: [],
-    habitsToChange: []
+    habitChanges: []
   });
 
   const steps = Object.values(OnboardingStep);
@@ -161,7 +161,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         eatingWindowEnd = data.eatingWindowEnd;
       }
 
-      // Upsert crítico — campos originais + onboarding_completed.
+      // Upsert crítico — apenas campos garantidamente existentes no schema.
       // Se falhar, o onboarding não avança.
       const { error: upsertError } = await supabase.from('profiles').upsert({
         id: user.id,
@@ -173,25 +173,28 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         meals_per_day: data.mealsPerDay || 3,
         eating_window_start: eatingWindowStart,
         eating_window_end: eatingWindowEnd,
-        dietary_restrictions: data.dietaryRestrictions || [],
-        dietary_restrictions_detail: data.restrictionsDetail || null,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       });
 
       if (upsertError) throw upsertError;
 
-      // Update secundário — campos de estilo de vida (não-fatal).
-      // Falha silenciosa caso as colunas ainda não existam no ambiente.
-      try {
-        await supabase.from('profiles').update({
-          diet_type: data.dietType || null,
-          additional_goals: data.additionalGoals || [],
-          eating_location: data.eatingLocation || null,
-          habit_changes: data.habitChanges || [],
-          drinks_enough_water: data.drinksEnoughWater || null,
-        }).eq('id', user.id);
-      } catch { /* não-fatal */ }
+      // Updates secundários — campos opcionais, falha silenciosa se coluna não existir.
+      const secondaryFields: Record<string, any> = {
+        dietary_restrictions: data.dietaryRestrictions || [],
+        dietary_restrictions_detail: data.restrictionsDetail || null,
+        diet_type: data.dietType || null,
+        additional_goals: data.additionalGoals || [],
+        eating_location: data.eatingLocation || null,
+        habit_changes: data.habitChanges || [],
+        drinks_enough_water: data.drinksEnoughWater || null,
+      };
+      // Tenta salvar cada campo individualmente para que um erro não bloqueie os demais
+      await Promise.allSettled(
+        Object.entries(secondaryFields).map(([col, val]) =>
+          supabase.from('profiles').update({ [col]: val }).eq('id', user.id)
+        )
+      );
 
       // Limpa sessão antiga do agente nutricional e plano ativo para que
       // um novo plano seja gerado com os dados atualizados do onboarding

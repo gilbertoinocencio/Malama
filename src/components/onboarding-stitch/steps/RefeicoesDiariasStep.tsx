@@ -1,74 +1,109 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
-const RefeicoesDiariasStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
-  const meals = data.mealsPerDay || 3;
+const MEAL_LABELS: Record<number, { title: string; description: string }> = {
+  1: { title: 'Jejum Estruturado', description: 'Uma janela única de alimentação densa e nutritiva.' },
+  2: { title: 'Ritmo Leve', description: 'Foco em densidade nutricional em poucas janelas.' },
+  3: { title: 'Padrão Nutritivo', description: 'Café da manhã, almoço e jantar equilibrados.' },
+  4: { title: 'Metabolismo Ativo', description: 'Quatro refeições para manter o metabolismo acelerado.' },
+  5: { title: 'Alta Frequência', description: 'Pequenas porções ao longo do dia para energia constante.' },
+  6: { title: 'Frequência Máxima', description: 'Seis refeições distribuídas para atletas e alta demanda.' },
+};
 
-  const handleDecrement = () => updateData({ mealsPerDay: Math.max(1, meals - 1) });
-  const handleIncrement = () => updateData({ mealsPerDay: Math.min(6, meals + 1) });
+const RefeicoesDiariasStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
+  const [meals, setMeals] = useState(data.mealsPerDay || 3);
+
+  const handleDecrement = () => setMeals(prev => Math.max(1, prev - 1));
+  const handleIncrement = () => setMeals(prev => Math.min(6, prev + 1));
+
+  const handleContinue = () => {
+    updateData({ mealsPerDay: meals });
+    onNext();
+  };
+
+  const label = MEAL_LABELS[meals];
 
   return (
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
-      onNext={onNext}
-      progress={(currentStep / totalSteps) * 100}
+      onNext={handleContinue}
       onBack={onBack}
     >
-      <header className="text-center mb-16 space-y-4">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-primary font-headline tracking-tight leading-tight">
-          Quantas refeições faz por dia?
+      <div className="text-center mb-10">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1
+          className="text-4xl text-stone-800 leading-tight mb-2"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Refeições por dia
         </h1>
-        <p className="text-on-surface-variant text-lg md:text-xl font-medium max-w-md mx-auto leading-relaxed">
+        <p className="text-stone-400 text-base font-light max-w-xs mx-auto">
           Ajustamos a densidade calórica de cada prato para o seu ritmo.
         </p>
-      </header>
+      </div>
 
-      <div className="w-full flex flex-col items-center space-y-12">
-        <div className="relative flex items-center justify-center space-x-12">
-          <div className="hidden sm:block opacity-20 transform -scale-x-100">
-            <span className="material-symbols-outlined text-primary text-6xl">restaurant</span>
-          </div>
-          <div className="flex items-center space-x-8">
-            <button 
-              onClick={handleDecrement}
-              className="w-16 h-16 rounded-full bg-surface-container-lowest shadow-md text-primary flex items-center justify-center hover:bg-surface-container-high transition-all duration-300 active:scale-90 border border-outline-variant/10"
-            >
-              <span className="material-symbols-outlined text-3xl font-bold">remove</span>
-            </button>
-            <div className="flex flex-col items-center">
-              <span className="text-8xl md:text-9xl font-extrabold text-primary font-headline tabular-nums tracking-tighter">
-                {meals}
-              </span>
-              <div className="w-24 h-1 bg-surface-container-highest rounded-full mt-2 overflow-hidden">
-                <div className="h-full bg-primary" style={{ width: `${(meals / 6) * 100}%` }}></div>
-              </div>
-            </div>
-            <button 
-              onClick={handleIncrement}
-              className="w-16 h-16 rounded-full bg-surface-container-lowest shadow-md text-primary flex items-center justify-center hover:bg-surface-container-high transition-all duration-300 active:scale-90 border border-outline-variant/10"
-            >
-              <span className="material-symbols-outlined text-3xl font-bold">add</span>
-            </button>
-          </div>
-          <div className="hidden sm:block opacity-20">
-            <span className="material-symbols-outlined text-primary text-6xl">restaurant</span>
-          </div>
+      {/* Counter */}
+      <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-8 flex items-center justify-between mb-4">
+        <button
+          onClick={handleDecrement}
+          disabled={meals <= 1}
+          className="w-12 h-12 rounded-full flex items-center justify-center bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <span className="material-symbols-outlined">remove</span>
+        </button>
+
+        <div className="flex flex-col items-center">
+          <span
+            className="text-7xl text-stone-800 tabular-nums leading-none"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
+            {meals}
+          </span>
+          <span className="text-stone-400 text-sm font-light mt-2 tracking-wide">
+            {meals === 1 ? 'refeição' : 'refeições'}
+          </span>
         </div>
 
-        <div className="w-full bg-surface-container-low rounded-lg p-8 flex items-center gap-6 border border-white/40 backdrop-blur-sm">
-          <div className="w-14 h-14 rounded-full bg-primary-fixed-dim/30 flex items-center justify-center flex-shrink-0">
-            <span className="material-symbols-outlined text-primary text-2xl">set_meal</span>
-          </div>
-          <div>
-            <h3 className="text-primary font-bold font-lexend text-lg">
-              {meals <= 2 ? 'Ritmo Leve' : meals <= 4 ? 'Padrão Nutritivo' : 'Frequência Alta'}
-            </h3>
-            <p className="text-on-surface-variant text-sm font-medium">
-              {meals <= 2 ? 'Foco em densidade nutricional em poucas janelas.' : meals <= 4 ? 'Café da manhã, almoço e jantar equilibrados.' : 'Pequenas porções distribuídas ao longo do dia.'}
-            </p>
-          </div>
+        <button
+          onClick={handleIncrement}
+          disabled={meals >= 6}
+          className="w-12 h-12 rounded-full flex items-center justify-center bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <span className="material-symbols-outlined">add</span>
+        </button>
+      </div>
+
+      {/* Progress dots */}
+      <div className="flex justify-center gap-2 mb-8">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div
+            key={i}
+            className="rounded-full transition-all duration-300"
+            style={{
+              width: i < meals ? 20 : 8,
+              height: 8,
+              background: i < meals ? '#7d4a3c' : '#e7e5e4',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Info card */}
+      <div className="bg-white border border-stone-100 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
+        <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-stone-50">
+          <span className="material-symbols-outlined text-stone-400 text-lg">set_meal</span>
+        </div>
+        <div>
+          <p className="text-stone-700 text-sm font-medium mb-0.5" style={{ fontFamily: "'Playfair Display', serif" }}>
+            {label.title}
+          </p>
+          <p className="text-stone-400 text-sm font-light leading-snug">
+            {label.description}
+          </p>
         </div>
       </div>
     </StepContainer>

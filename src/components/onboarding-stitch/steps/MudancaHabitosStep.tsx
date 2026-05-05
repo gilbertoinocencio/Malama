@@ -2,6 +2,8 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
+const PETROL = '#7d4a3c';
+
 const HABITOS = [
   { id: 'comer_noite', label: 'Comer à noite', icon: 'dark_mode' },
   { id: 'beliscar', label: 'Beliscar o dia todo', icon: 'restaurant' },
@@ -10,13 +12,13 @@ const HABITOS = [
 ];
 
 const MudancaHabitosStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
-  const selected = data.habitsToChange || [];
+  const selected = data.habitChanges || [];
 
   const toggleHabit = (id: string) => {
-    const next = selected.includes(id) 
-      ? selected.filter(h => h !== id)
+    const next = selected.includes(id)
+      ? selected.filter((h: string) => h !== id)
       : [...selected, id];
-    updateData({ habitsToChange: next });
+    updateData({ habitChanges: next });
   };
 
   return (
@@ -24,45 +26,63 @@ const MudancaHabitosStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
       currentStep={currentStep}
       totalSteps={totalSteps}
       onNext={onNext}
-      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
     >
-      <section className="mb-12">
-        <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tight text-primary leading-tight mb-4">
+      <div className="text-center mb-10">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1
+          className="text-4xl text-stone-800 leading-tight mb-2"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
           Quais hábitos quer mudar?
         </h1>
-        <p className="text-on-surface-variant text-lg leading-relaxed font-light">
-          Selecione todos os comportamentos que você deseja transformar nesta jornada.
+        <p className="text-stone-400 text-base font-light max-w-sm mx-auto leading-relaxed">
+          Selecione os comportamentos que você deseja transformar nesta jornada.
         </p>
-      </section>
+      </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="w-full space-y-3">
         {HABITOS.map((habit) => {
           const isSelected = selected.includes(habit.id);
           return (
             <button
               key={habit.id}
               onClick={() => toggleHabit(habit.id)}
-              className={`group w-full p-8 rounded-lg flex items-center justify-between transition-all duration-300 ease-in-out border-2 ${
-                isSelected 
-                  ? 'bg-primary-fixed-dim border-secondary/20 shadow-xl' 
-                  : 'bg-surface-container-low border-transparent hover:bg-surface-container-high'
+              className={`w-full flex items-center justify-between p-5 rounded-2xl transition-all duration-300 border shadow-sm ${
+                isSelected
+                  ? 'bg-stone-50/50 border-stone-300'
+                  : 'bg-white border-stone-100 hover:bg-stone-50/30'
               }`}
             >
-              <div className="flex items-center gap-6">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500 ${isSelected ? 'bg-surface-container-lowest' : 'bg-surface-container-highest'}`}>
-                  <span className="material-symbols-outlined text-3xl">
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
+                  isSelected ? 'bg-stone-100' : 'bg-stone-50'
+                }`}>
+                  <span className={`material-symbols-outlined text-xl ${isSelected ? 'text-stone-700' : 'text-stone-400'}`}>
                     {habit.icon}
                   </span>
                 </div>
-                <span className={`text-xl font-medium font-headline ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
+                <span
+                  className={`text-base transition-colors ${isSelected ? 'text-stone-800' : 'text-stone-600 font-light'}`}
+                  style={isSelected ? { fontFamily: "'Playfair Display', serif" } : {}}
+                >
                   {habit.label}
                 </span>
               </div>
-              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${
-                isSelected ? 'bg-secondary border-secondary' : 'border-outline-variant opacity-40'
-              }`}>
-                {isSelected && <span className="material-symbols-outlined text-white text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>}
+              <div
+                className="flex items-center justify-center w-6 h-6 rounded-full transition-all duration-300 flex-shrink-0"
+                style={{
+                  background: isSelected ? PETROL : 'white',
+                  border: `1.5px solid ${isSelected ? PETROL : '#e7e5e4'}`,
+                }}
+              >
+                {isSelected && (
+                  <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    check
+                  </span>
+                )}
               </div>
             </button>
           );

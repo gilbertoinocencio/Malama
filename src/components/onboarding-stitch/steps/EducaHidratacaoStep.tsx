@@ -3,102 +3,95 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 import { motion } from 'framer-motion';
 
-const EducaHidratacaoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
+const PETROL = '#7d4a3c';
+
+const EducaHidratacaoStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, totalSteps }) => {
   return (
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
       onNext={onNext}
-      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Entendi"
     >
-      <section className="mb-12 space-y-4">
-        <span className="text-secondary font-headline font-semibold tracking-widest text-sm uppercase px-1">Fase 04 — Metabolismo</span>
-        <h1 className="text-4xl md:text-5xl font-extrabold text-primary leading-tight tracking-tight">
+      <div className="text-center mb-8">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1
+          className="text-4xl text-stone-800 leading-tight mb-2"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
           Água como Combustível
         </h1>
-        <p className="text-on-surface-variant text-lg leading-relaxed max-w-lg">
-          Seu metabolismo não é apenas genética; é química. A hidratação correta é o catalisador que transforma nutrientes em energia vital.
+        <p className="text-stone-400 text-base font-light max-w-sm mx-auto leading-relaxed">
+          Seu metabolismo não é apenas genética; é química. A hidratação correta transforma nutrientes em energia vital.
         </p>
-      </section>
+      </div>
 
-      {/* Asymmetric Bento-style Infographic Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-        {/* Main Efficiency Graph Card */}
-        <div className="md:col-span-8 bg-surface-container-lowest rounded-xl p-8 shadow-sm relative overflow-hidden group">
-          <div className="flex justify-between items-end mb-8">
-            <div>
-              <h3 className="text-primary font-headline font-bold text-xl">Eficiência Metabólica</h3>
-              <p className="text-sm text-on-surface-variant">Taxa de queima calórica basal</p>
-            </div>
-            <div className="text-right">
-              <span className="text-3xl font-bold text-secondary font-headline">+24%</span>
-              <div className="flex items-center gap-1 text-secondary">
-                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
-                <span className="text-xs font-bold uppercase tracking-tighter">Otimizado</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Minimalist Chart */}
-          <div className="relative h-48 w-full flex items-end gap-2 px-2">
-            <div className="absolute inset-0 flex flex-col justify-between py-1 opacity-10 pointer-events-none border-y border-primary/20">
-              <div className="w-full h-px bg-primary/20"></div>
-              <div className="w-full h-px bg-primary/20"></div>
-            </div>
-            
-            {[30, 42, 55, 72, 95].map((height, i) => (
-              <motion.div 
-                key={i}
-                initial={{ height: 0 }}
-                animate={{ height: `${height}%` }}
-                transition={{ duration: 0.8, delay: i * 0.1 }}
-                className={`flex-1 rounded-t-lg transition-all duration-500 ${
-                  i === 4 ? 'bg-primary relative' : 'bg-surface-container-high hover:bg-primary-fixed-dim'
-                }`}
-              >
-                {i === 4 && (
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-secondary text-white text-[10px] px-2 py-1 rounded font-bold">PICO</div>
-                )}
-              </motion.div>
-            ))}
-          </div>
-          <div className="mt-6 flex justify-between text-[10px] font-bold text-outline uppercase tracking-widest border-t border-surface-container-highest pt-4">
-            <span>Desidratado</span>
-            <span>Hidratado</span>
-          </div>
-        </div>
-
-        {/* Side Metric Card 01 */}
-        <div className="md:col-span-4 bg-surface-container-low rounded-xl p-6 flex flex-col justify-between aspect-square group transition-all duration-300 hover:bg-white hover:shadow-xl">
-          <div className="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center mb-4">
-            <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
-          </div>
+      {/* Main chart card */}
+      <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6 mb-4">
+        <div className="flex justify-between items-end mb-6">
           <div>
-            <span className="text-xs font-bold text-outline uppercase tracking-widest block mb-1">Volume Ideal</span>
-            <h4 className="text-2xl font-bold text-primary font-headline">500ml</h4>
-            <p className="text-xs text-on-surface-variant mt-2">Ingestão matinal aumenta o metabolismo em 30% nos primeiros 60 min.</p>
+            <p className="text-stone-700 text-base mb-0.5" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Eficiência Metabólica
+            </p>
+            <p className="text-stone-400 text-xs font-light">Taxa de queima calórica basal</p>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>+24%</p>
+            <p className="text-xs text-stone-400 font-light uppercase tracking-widest">otimizado</p>
           </div>
         </div>
 
-        {/* Wide Insight Card */}
-        <div className="md:col-span-12 flex flex-col md:flex-row gap-8 items-center bg-primary text-on-primary p-8 rounded-xl shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 opacity-10 translate-x-1/4 -translate-y-1/4">
-            <span className="material-symbols-outlined text-[20rem]" style={{ fontVariationSettings: "'wght' 100" }}>waves</span>
-          </div>
-          <div className="flex-shrink-0 w-24 h-24 rounded-full border-2 border-primary-fixed-dim/30 flex items-center justify-center p-2">
-            <div className="w-full h-full rounded-full bg-secondary flex items-center justify-center shadow-lg">
-              <span className="material-symbols-outlined text-white text-4xl">bolt</span>
-            </div>
-          </div>
-          <div className="relative z-10">
-            <h3 className="text-2xl font-headline font-bold mb-2">Combustão Celular</h3>
-            <p className="text-on-primary-container text-opacity-90 max-w-xl leading-relaxed">
-              A água é essencial para a <span className="text-secondary-fixed-dim font-bold">lipólise</span> — o processo metabólico de queima de gordura. Sem ela, seu corpo reduz a velocidade de processamento para conservar energia.
-            </p>
-          </div>
+        <div className="flex items-end gap-2 h-28">
+          {[30, 42, 55, 72, 95].map((h, i) => (
+            <motion.div
+              key={i}
+              initial={{ height: 0 }}
+              animate={{ height: `${h}%` }}
+              transition={{ duration: 0.6, delay: i * 0.1, ease: 'easeOut' }}
+              className="flex-1 rounded-t-lg"
+              style={{ background: i === 4 ? PETROL : i >= 2 ? `${PETROL}50` : '#e7e5e4' }}
+            />
+          ))}
         </div>
+        <div className="flex justify-between text-[10px] uppercase tracking-widest text-stone-400 font-light mt-3 border-t border-stone-100 pt-3">
+          <span>Desidratado</span>
+          <span>Hidratado</span>
+        </div>
+      </div>
+
+      {/* Two stat cards */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
+          <div className="w-9 h-9 rounded-full bg-stone-50 flex items-center justify-center mb-3">
+            <span className="material-symbols-outlined text-stone-400 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+              water_drop
+            </span>
+          </div>
+          <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-1">Volume ideal</p>
+          <p className="text-2xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>500ml</p>
+          <p className="text-xs text-stone-400 font-light mt-1 leading-snug">Ingestão matinal recomendada</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
+          <div className="w-9 h-9 rounded-full bg-stone-50 flex items-center justify-center mb-3">
+            <span className="material-symbols-outlined text-stone-400 text-lg">bolt</span>
+          </div>
+          <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-1">Resultado</p>
+          <p className="text-2xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>+30%</p>
+          <p className="text-xs text-stone-400 font-light mt-1 leading-snug">nos primeiros 60 min</p>
+        </div>
+      </div>
+
+      {/* Info note */}
+      <div className="bg-white border border-stone-100 p-5 rounded-2xl flex items-start gap-4 shadow-sm">
+        <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-stone-50">
+          <span className="material-symbols-outlined text-stone-400 text-lg">science</span>
+        </div>
+        <p className="text-sm font-light text-stone-500 leading-relaxed">
+          A água é essencial para a <span className="text-stone-700 font-medium">lipólise</span> — o processo de queima de gordura. Sem ela, seu corpo desacelera para conservar energia.
+        </p>
       </div>
     </StepContainer>
   );

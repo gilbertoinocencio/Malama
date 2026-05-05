@@ -308,6 +308,8 @@ export interface PatientFullProfile {
   imc_classification: string | null;
   activity_level: string | null;
   meals_per_day: number | null;
+  eating_window_start: string | null;
+  eating_window_end: string | null;
   diet_type: string | null;
   dietary_restrictions: string[];
   dietary_restrictions_detail: string | null;

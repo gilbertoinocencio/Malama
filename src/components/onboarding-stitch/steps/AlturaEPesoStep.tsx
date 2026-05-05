@@ -4,10 +4,14 @@ import { StepProps } from '../types';
 
 const PETROL = '#7d4a3c';
 
+const PESO_MIN = 30;
+const PESO_MAX = 250;
+const PESO_RANGE = PESO_MAX - PESO_MIN; // 220
+
 const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const [altura, setAltura] = useState<number>(data.altura || 175);
-  const [peso, setPeso] = useState<number>(data.peso || 74.5);
-  
+  const [peso, setPeso] = useState<number>(Math.min(data.peso || 70, PESO_MAX));
+
   const alturaBarRef = useRef<HTMLDivElement>(null);
   const pesoBarRef = useRef<HTMLDivElement>(null);
   const isDraggingAltura = useRef(false);
@@ -22,8 +26,9 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
     setAltura(prev => Math.max(100, Math.min(250, prev + delta)));
   };
 
+  // Botões: precisão de 0.5 kg | Slider: snaps em kg inteiros (menos sensível)
   const adjustPeso = (delta: number) => {
-    setPeso(prev => Math.max(30, Math.min(300, Number((prev + delta).toFixed(1)))));
+    setPeso(prev => Math.max(PESO_MIN, Math.min(PESO_MAX, Number((prev + delta).toFixed(1)))));
   };
 
   const calculateAlturaFromPosition = useCallback((clientX: number) => {
@@ -40,8 +45,9 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
     const rect = pesoBarRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
     const percentage = x / rect.width;
-    const newPeso = 30 + percentage * 270;
-    setPeso(Math.max(30, Math.min(300, Number(newPeso.toFixed(1)))));
+    // Snap to whole kg during drag — fine tuning is done with +/- buttons
+    const newPeso = Math.round(PESO_MIN + percentage * PESO_RANGE);
+    setPeso(Math.max(PESO_MIN, Math.min(PESO_MAX, newPeso)));
   }, []);
 
   // Handlers for sliders
@@ -125,16 +131,16 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
             <div className="flex justify-between items-end mb-6">
               <h2 className="text-lg text-stone-600 font-light" style={{ fontFamily: "'Playfair Display', serif" }}>Peso Atual</h2>
               <div className="flex items-baseline">
-                <span className="text-4xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{peso}</span>
+                <span className="text-4xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{peso.toFixed(1)}</span>
                 <span className="ml-1 text-stone-400 font-light text-sm">kg</span>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <button onClick={() => adjustPeso(-0.5)} className="w-10 h-10 rounded-full flex items-center justify-center bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors">
+              <button onClick={() => adjustPeso(-0.1)} className="w-10 h-10 rounded-full flex items-center justify-center bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors">
                 <span className="material-symbols-outlined text-sm">remove</span>
               </button>
-              
+
               <div
                 ref={pesoBarRef}
                 className="flex-1 h-3 bg-stone-100 rounded-full relative cursor-pointer"
@@ -148,15 +154,15 @@ const AlturaEPesoStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack
               >
                 <div
                   className="absolute left-0 top-0 h-full rounded-full pointer-events-none"
-                  style={{ width: `${((peso - 30) / 270) * 100}%`, background: PETROL }}
+                  style={{ width: `${((peso - PESO_MIN) / PESO_RANGE) * 100}%`, background: PETROL }}
                 />
-                <div 
+                <div
                   className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-sm border pointer-events-none"
-                  style={{ left: `calc(${((peso - 30) / 270) * 100}% - 8px)`, borderColor: PETROL }}
+                  style={{ left: `calc(${((peso - PESO_MIN) / PESO_RANGE) * 100}% - 8px)`, borderColor: PETROL }}
                 />
               </div>
 
-              <button onClick={() => adjustPeso(0.5)} className="w-10 h-10 rounded-full flex items-center justify-center bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors">
+              <button onClick={() => adjustPeso(0.1)} className="w-10 h-10 rounded-full flex items-center justify-center bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors">
                 <span className="material-symbols-outlined text-sm">add</span>
               </button>
             </div>

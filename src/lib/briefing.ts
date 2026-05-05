@@ -236,6 +236,7 @@ GLP-1: ${patient.glp1_medication || 'Não usa'} — Fase: ${phaseMap[patient.glp
 Perfil alimentar e estilo de vida (coletado no onboarding):
 - Tipo de dieta: ${patient.diet_type || 'Não informado'}
 - Refeições por dia: ${patient.meals_per_day || 'Não informado'}
+- Janela alimentar: ${patient.eating_window_start && patient.eating_window_end ? `${patient.eating_window_start} – ${patient.eating_window_end}` : 'Não informado'}
 - Onde costuma comer: ${eatingLocationLabels[patient.eating_location] ?? patient.eating_location ?? 'Não informado'}
 - Consome água suficiente: ${{ sim: 'Sim', nao: 'Não', incerto: 'Incerto' }[patient.drinks_enough_water as string] ?? 'Não informado'}
 - Restrições / alergias alimentares: ${dietaryRestrictionsList.length > 0 ? dietaryRestrictionsList.join(', ') : 'Nenhuma'}${patient.dietary_restrictions_detail ? ` (detalhe: ${patient.dietary_restrictions_detail})` : ''}

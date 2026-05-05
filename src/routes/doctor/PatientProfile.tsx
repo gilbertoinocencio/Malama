@@ -343,6 +343,16 @@ export const PatientProfile: React.FC = () => {
                     </p>
                   </div>
 
+                  {/* Janela alimentar */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-1">
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">⏰ Janela alimentar</p>
+                    <p className="text-sm font-semibold text-gray-800">
+                      {patient.eating_window_start && patient.eating_window_end
+                        ? `${patient.eating_window_start} – ${patient.eating_window_end}`
+                        : '—'}
+                    </p>
+                  </div>
+
                   {/* Tipo de dieta */}
                   <div className="bg-gray-50 rounded-lg p-4 space-y-1">
                     <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">🥗 Tipo de dieta</p>

@@ -898,7 +898,7 @@ export const patientService = {
     // Real data fetching: Profiles
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('display_name, avatar_url, date_of_birth, gender, weight, height, activity_level, meals_per_day, diet_type, dietary_restrictions, dietary_restrictions_detail, additional_goals, eating_location, habit_changes, drinks_enough_water, target_calories, target_protein, target_carbs, target_fats, target_fiber, glp1_mode, glp1_phase, glp1_medication')
+      .select('display_name, avatar_url, date_of_birth, gender, weight, height, activity_level, meals_per_day, eating_window_start, eating_window_end, diet_type, dietary_restrictions, dietary_restrictions_detail, additional_goals, eating_location, habit_changes, drinks_enough_water, target_calories, target_protein, target_carbs, target_fats, target_fiber, glp1_mode, glp1_phase, glp1_medication')
       .eq('id', patientId)
       .single();
 
@@ -1107,6 +1107,8 @@ export const patientService = {
       height: profile?.height || null,
       activity_level: profile?.activity_level || null,
       meals_per_day: profile?.meals_per_day || null,
+      eating_window_start: profile?.eating_window_start || null,
+      eating_window_end: profile?.eating_window_end || null,
       diet_type: profile?.diet_type || null,
       dietary_restrictions: profile?.dietary_restrictions || [],
       dietary_restrictions_detail: profile?.dietary_restrictions_detail || null,
