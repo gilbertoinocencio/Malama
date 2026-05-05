@@ -177,7 +177,7 @@ export const MedicosLandingPage: React.FC = () => {
         <div className="max-w-[1400px] mx-auto px-6 md:px-12">
           <div className="flex items-center justify-between">
             <Link to="/" className="relative z-10 flex items-center gap-2">
-              <img src="/malama-logo-transparent.png" alt="Malama Logo" className="h-[145px] w-auto object-contain -my-12" />
+              <img src="/malama-logo-transparent.png" alt="Malama Logo" className="h-[160px] w-auto max-w-none object-contain -my-14" />
             </Link>
 
             {/* Desktop Navigation */}
