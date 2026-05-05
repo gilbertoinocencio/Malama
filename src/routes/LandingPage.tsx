@@ -109,7 +109,7 @@ const LandingPage: React.FC = () => {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="relative z-10 flex items-center gap-2">
-              <img src="/malama-logo-transparent.png" alt="Malama Logo" className="h-[160px] w-auto max-w-none object-contain -my-14" />
+              <img src="/malama-logo-transparent.png" alt="Malama Logo" className="h-[190px] w-auto max-w-none object-contain -my-[70px]" />
             </div>
 
             {/* Desktop Navigation */}
