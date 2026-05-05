@@ -81,7 +81,9 @@ const App: React.FC = () => {
       path.startsWith('/convite') ||
       path.startsWith('/i/') ||
       path.startsWith('/listamedicos') ||
-      path.startsWith('/listausuarios')
+      path.startsWith('/listausuarios') ||
+      path.startsWith('/listausu%C3%A1rios') ||
+      path.startsWith('/listausuários')
     ) return true;
 
     // For root path, show landing only if no active session
@@ -105,7 +107,9 @@ const App: React.FC = () => {
       path.startsWith('/convite') ||
       path.startsWith('/i/') ||
       path.startsWith('/listamedicos') ||
-      path.startsWith('/listausuarios');
+      path.startsWith('/listausuarios') ||
+      path.startsWith('/listausu%C3%A1rios') ||
+      path.startsWith('/listausuários');
 
     const checkPath = () => {
       const path = window.location.pathname;
@@ -157,7 +161,9 @@ const App: React.FC = () => {
         path.startsWith('/convite') ||
         path.startsWith('/i/') ||
         path.startsWith('/listamedicos') ||
-        path.startsWith('/listausuarios');
+        path.startsWith('/listausuarios') ||
+        path.startsWith('/listausu%C3%A1rios') ||
+        path.startsWith('/listausuários');
       if (!isPortalPath) {
         setIsPortalRoute(false);
       }

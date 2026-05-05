@@ -247,6 +247,8 @@ export const AppRoutes: React.FC = () => {
           {/* Landing pages de captação */}
           <Route path="/listamedicos" element={<MedicosLandingPage />} />
           <Route path="/listausuarios" element={<LandingPage />} />
+          <Route path="/listausu%C3%A1rios" element={<LandingPage />} />
+          <Route path="/listausuários" element={<LandingPage />} />
 
           {/* Rota padrão - redireciona para Landing Page */}
           <Route path="*" element={<Navigate to="/" replace />} />
