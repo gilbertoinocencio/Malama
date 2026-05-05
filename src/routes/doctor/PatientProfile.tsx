@@ -206,6 +206,14 @@ export const PatientProfile: React.FC = () => {
               {patient.age && `${patient.age} anos`}
               {patient.gender && ` • ${patient.gender}`}
             </p>
+            <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" />
+              {patient.past_consultations.length === 0
+                ? 'Nenhuma consulta registrada'
+                : patient.past_consultations.length === 1
+                  ? '1 consulta realizada'
+                  : `${patient.past_consultations.length} consultas realizadas`}
+            </p>
 
             {patient.imc && (
               <div className="mt-2 flex items-center gap-2">
