@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Resolve token de indicação do localStorage e salva no profile (roda 1x por cadastro)
     // DEVE vir antes do useEffect que o utiliza!
-    const applyReferralData = useCallback(async (userId: string) => {
+    const applyReferralData = useCallback(async (userId: string, isNewUser = false) => {
         const doctorToken     = localStorage.getItem('Malama_referral_token');
         const influencerToken = localStorage.getItem('Malama_influencer_token');
         const channel         = localStorage.getItem('Malama_acquisition_channel');
@@ -109,6 +109,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: userId,
             acquisition_channel: channel ?? 'organic',
         };
+
+        if (isNewUser) {
+            updates.onboarding_completed = false;
+        }
 
         if (influencerToken) {
             const inf = await influencerService.getByToken(influencerToken);
@@ -237,7 +241,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         // Salvar canal de aquisição e indicação logo após o cadastro
-        if (data.user) await applyReferralData(data.user.id);
+        // isNewUser=true garante que onboarding_completed=false seja gravado no perfil
+        if (data.user) await applyReferralData(data.user.id, true);
     }, [applyReferralData]);
 
     const signOut = useCallback(async () => {
