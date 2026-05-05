@@ -4,10 +4,13 @@ import { StepProps } from '../types';
 
 const PETROL = '#7d4a3c';
 
+const RATE_BY_SPEED = [0.25, 0.5, 0.75, 1.0, 1.25]; // kg por semana
+
 const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, onNext, onBack, currentStep, totalSteps }) => {
   const pesoObjetivo = data.pesoObjetivo || 70;
   const peso = data.peso || 75;
-  const semanas = Math.max(1, Math.round(Math.abs(peso - pesoObjetivo) * 2));
+  const rate = RATE_BY_SPEED[(data.goalSpeed ?? 3) - 1] ?? 0.75;
+  const semanas = Math.max(4, Math.ceil(Math.abs(peso - pesoObjetivo) / rate));
 
   return (
     <StepContainer

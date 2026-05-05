@@ -5,10 +5,14 @@ import { motion } from 'framer-motion';
 
 const PETROL = '#7d4a3c';
 
+const RATE_BY_SPEED = [0.25, 0.5, 0.75, 1.0, 1.25]; // kg por semana
+
 const ProjecaoSucessoStep: React.FC<StepProps> = ({ data, onNext, onBack, currentStep, totalSteps }) => {
   const target = data.pesoObjetivo || data.targetWeight || 70;
   const current = data.peso || 78.5;
   const diff = Math.abs(current - target).toFixed(1);
+  const rate = RATE_BY_SPEED[(data.goalSpeed ?? 3) - 1] ?? 0.75;
+  const semanas = Math.max(4, Math.ceil(Math.abs(current - target) / rate));
 
   return (
     <StepContainer
@@ -41,7 +45,7 @@ const ProjecaoSucessoStep: React.FC<StepProps> = ({ data, onNext, onBack, curren
           </div>
           <div className="text-right">
             <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-1">Prazo</p>
-            <p className="text-lg text-stone-700" style={{ fontFamily: "'Playfair Display', serif" }}>12 semanas</p>
+            <p className="text-lg text-stone-700" style={{ fontFamily: "'Playfair Display', serif" }}>{semanas} semanas</p>
           </div>
         </div>
 
@@ -89,9 +93,9 @@ const ProjecaoSucessoStep: React.FC<StepProps> = ({ data, onNext, onBack, curren
 
         <div className="flex justify-between text-[10px] text-stone-400 font-light uppercase tracking-widest mt-3 border-t border-stone-100 pt-3">
           <span>Hoje</span>
-          <span>Semana 4</span>
-          <span>Semana 8</span>
-          <span>Semana 12</span>
+          <span>Sem. {Math.round(semanas * 0.33)}</span>
+          <span>Sem. {Math.round(semanas * 0.66)}</span>
+          <span>Sem. {semanas}</span>
         </div>
       </div>
 
@@ -115,7 +119,7 @@ const ProjecaoSucessoStep: React.FC<StepProps> = ({ data, onNext, onBack, curren
           <span className="material-symbols-outlined text-stone-400 text-lg">auto_awesome</span>
         </div>
         <div>
-          <p className="text-stone-700 text-sm mb-0.5" style={{ fontFamily: "'Playfair Display', serif" }}>Seu "Novo Eu" em 90 dias</p>
+          <p className="text-stone-700 text-sm mb-0.5" style={{ fontFamily: "'Playfair Display', serif" }}>Seu "Novo Eu" em {semanas} semanas</p>
           <p className="text-stone-400 text-sm font-light leading-snug">
             72% dos usuários Malama alcançam a meta mantendo a consistência sugerida.
           </p>
