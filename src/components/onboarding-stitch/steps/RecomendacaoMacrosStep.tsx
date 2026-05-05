@@ -2,6 +2,10 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
+const PETROL   = '#7d4a3c';
+const PETROL_M = '#a07060';
+const PETROL_L = '#c4a090';
+
 const ACTIVITY_MULTIPLIER: Record<string, number> = {
   sedentario: 1.2,
   leve: 1.375,
@@ -9,32 +13,45 @@ const ACTIVITY_MULTIPLIER: Record<string, number> = {
   muito_ativo: 1.725,
 };
 
-const RecomendacaoMacrosStep: React.FC<StepProps> = ({ data, onNext, onBack, currentStep, totalSteps }) => {
-  const altura  = data.altura  || 175;
-  const peso    = data.peso    || 75;
-  const idade   = data.idade   || 30;
-  const genero  = data.genero  || 'masculino';
-  const nivel   = data.nivelAtividade || 'moderado';
-  const goal    = data.primary_goal || 'perder_peso';
+const getAge = (dob?: string) => {
+  if (!dob) return 30;
+  const birth = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+};
 
-  // Harris-Benedict (Revisada) — mesma fórmula usada no profileService
+const RecomendacaoMacrosStep: React.FC<StepProps> = ({ data, onNext, onBack, currentStep, totalSteps }) => {
+  const altura = data.altura  || 175;
+  const peso   = data.peso    || 75;
+  const idade  = getAge(data.dataNascimento);
+  const genero = data.genero  || 'masculino';
+  const nivel  = data.nivelAtividade || 'moderado';
+  const goal   = data.primary_goal   || 'perder_peso';
+
   const bmr = genero === 'feminino'
     ? 447.593 + (9.247 * peso) + (3.098 * altura) - (4.330 * idade)
-    : 88.362 + (13.397 * peso) + (4.799 * altura) - (5.677 * idade);
+    : 88.362  + (13.397 * peso) + (4.799 * altura) - (5.677 * idade);
 
   const multiplier = ACTIVITY_MULTIPLIER[nivel] ?? 1.55;
   let tdee = Math.round(bmr * multiplier);
+  if (goal === 'perder_peso') tdee -= 300;
+  if (goal === 'ganhar_peso') tdee += 200;
 
-  // Ajuste por objetivo — alinhado com profileService
-  if (goal === 'perder_peso')  tdee -= 300;  // Déficit calórico
-  if (goal === 'ganhar_peso')  tdee += 200;  // Superávit calórico
-
-  // Macros: 30% protein, 40% carbs, 30% fat
   const protein = Math.round((tdee * 0.30) / 4);
   const carbs   = Math.round((tdee * 0.40) / 4);
   const fat     = Math.round((tdee * 0.30) / 9);
 
-  const calories = tdee.toLocaleString('pt-BR');
+  const goalLabel = goal === 'perder_peso' ? 'déficit' : goal === 'ganhar_peso' ? 'superávit' : 'equilibrado';
+
+  const MICROS = [
+    { icon: 'opacity',  label: 'Fibras', value: '32g'   },
+    { icon: 'waves',    label: 'Sódio',  value: '<2.3g' },
+    { icon: 'wb_sunny', label: 'Vit D',  value: '20mcg' },
+    { icon: 'eco',      label: 'Zinco',  value: '11mg'  },
+  ];
 
   return (
     <StepContainer
@@ -44,105 +61,108 @@ const RecomendacaoMacrosStep: React.FC<StepProps> = ({ data, onNext, onBack, cur
       onBack={onBack}
       nextLabel="Confirmar Recomendações"
     >
-      {/* Header */}
-      <div className="mb-10 w-full">
-        <span className="text-secondary font-headline font-semibold text-sm tracking-widest uppercase mb-2 block">
+      <div className="text-center mb-8">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
           Passo {currentStep} de {totalSteps}
         </span>
-        <h2 className="text-primary font-headline font-bold text-4xl leading-tight tracking-tight mb-4">
-          Suas Recomendações Nutricionais
-        </h2>
-        <p className="text-on-surface-variant font-body text-lg leading-relaxed">
-          Com base no seu metabolismo basal e nível de atividade, desenhamos o equilíbrio perfeito para o seu fluxo.
+        <h1
+          className="text-4xl text-stone-800 leading-tight mb-2"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Recomendações Nutricionais
+        </h1>
+        <p className="text-stone-400 text-base font-light max-w-xs mx-auto">
+          Baseado no seu metabolismo basal e nível de atividade.
         </p>
       </div>
 
-      {/* Bento Grid */}
-      <div className="grid grid-cols-2 gap-4 w-full mb-8">
-
-        {/* Daily Calories — full width */}
-        <div className="col-span-2 bg-surface-container-lowest rounded-lg p-8 shadow-[0_16px_32px_0_rgba(26,28,26,0.04)]">
-          <div className="flex justify-between items-end">
-            <div>
-              <p className="text-on-surface-variant font-label uppercase tracking-widest text-xs mb-1">Meta Diária</p>
-              <h3 className="font-headline font-bold text-5xl text-primary">
-                {calories} <span className="text-2xl font-normal opacity-60">kcal</span>
-              </h3>
-            </div>
-            <span className="inline-flex items-center px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm font-medium">
-              <span className="material-symbols-outlined text-sm mr-1">trending_up</span>
-              {goal === 'perder_peso' ? 'Déficit' : goal === 'ganhar_peso' ? 'Superávit' : 'Equilibrado'}
-            </span>
-          </div>
-          {/* Macro split bar */}
-          <div className="mt-6 flex h-3 w-full rounded-full overflow-hidden bg-surface-container-high">
-            <div className="h-full bg-primary transition-all duration-1000" style={{ width: '30%' }}></div>
-            <div className="h-full bg-secondary transition-all duration-1000" style={{ width: '40%' }}></div>
-            <div className="h-full bg-primary transition-all duration-1000" style={{ width: '30%' }}></div>
-          </div>
-          <div className="mt-3 flex justify-between text-[10px] font-headline font-bold tracking-widest text-on-surface-variant uppercase">
-            <span>Proteína (30%)</span>
-            <span>Carbo (40%)</span>
-            <span>Gordura (30%)</span>
-          </div>
-        </div>
-
-        {/* Protein */}
-        <div className="col-span-1 bg-surface-container-low rounded-lg p-6 hover:bg-primary-fixed-dim transition-colors duration-500 group flex flex-col">
-          <div className="bg-primary/5 p-3 rounded-full w-fit mb-4 group-hover:bg-white/20 transition-colors">
-            <span className="material-symbols-outlined text-primary">fitness_center</span>
-          </div>
-          <h4 className="font-headline font-bold text-xl text-primary mb-1">Proteína</h4>
-          <p className="font-headline font-black text-4xl text-primary mt-auto">
-            {protein}<span className="text-base font-medium opacity-60">g</span>
-          </p>
-          <p className="text-on-surface-variant text-xs mt-2">Regeneração muscular e saciedade.</p>
-        </div>
-
-        {/* Carbs */}
-        <div className="col-span-1 bg-surface-container-low rounded-lg p-6 hover:bg-secondary-container transition-colors duration-500 group flex flex-col">
-          <div className="bg-secondary/5 p-3 rounded-full w-fit mb-4 group-hover:bg-white/20 transition-colors">
-            <span className="material-symbols-outlined text-secondary">bolt</span>
-          </div>
-          <h4 className="font-headline font-bold text-xl text-secondary mb-1">Carbo</h4>
-          <p className="font-headline font-black text-4xl text-secondary mt-auto">
-            {carbs}<span className="text-base font-medium opacity-60">g</span>
-          </p>
-          <p className="text-on-surface-variant text-xs mt-2">Principal fonte de energia.</p>
-        </div>
-
-        {/* Fat — full width */}
-        <div className="col-span-2 bg-surface-container-low rounded-lg p-6 hover:bg-primary-fixed transition-colors duration-500 group flex items-center justify-between">
+      {/* Calories card */}
+      <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6 mb-4">
+        <div className="flex justify-between items-end mb-5">
           <div>
-            <div className="bg-primary/5 p-3 rounded-full w-fit mb-4 group-hover:bg-white/20 transition-colors">
-              <span className="material-symbols-outlined text-primary">water_drop</span>
+            <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-1">Meta diária</p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-5xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>
+                {tdee.toLocaleString('pt-BR')}
+              </span>
+              <span className="text-lg text-stone-400 font-light">kcal</span>
             </div>
-            <h4 className="font-headline font-bold text-xl text-primary mb-1">Gordura</h4>
-            <p className="text-on-surface-variant text-sm">Suporte hormonal e vitaminas lipossolúveis.</p>
           </div>
-          <div className="text-right">
-            <p className="font-headline font-black text-5xl text-primary">
-              {fat}<span className="text-xl font-medium opacity-60">g</span>
-            </p>
-            <p className="text-primary/60 font-headline font-bold uppercase tracking-tighter mt-1 text-xs">30% do Plano</p>
+          <span
+            className="text-xs font-light px-3 py-1 rounded-full border"
+            style={{ borderColor: PETROL, color: PETROL }}
+          >
+            {goalLabel}
+          </span>
+        </div>
+
+        {/* Macro split bar */}
+        <div className="flex h-2.5 w-full rounded-full overflow-hidden mb-2">
+          <div style={{ width: '30%', background: PETROL }} />
+          <div style={{ width: '40%', background: PETROL_M }} />
+          <div style={{ width: '30%', background: PETROL_L }} />
+        </div>
+        <div className="flex justify-between text-[10px] text-stone-400 font-light uppercase tracking-widest">
+          <span>Proteína 30%</span>
+          <span>Carbo 40%</span>
+          <span>Gordura 30%</span>
+        </div>
+      </div>
+
+      {/* Macro cards */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 flex flex-col">
+          <div className="w-9 h-9 rounded-full bg-stone-50 flex items-center justify-center mb-3">
+            <span className="material-symbols-outlined text-stone-400 text-lg">fitness_center</span>
+          </div>
+          <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-1">Proteína</p>
+          <div className="flex items-baseline gap-0.5 mb-1">
+            <span className="text-4xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{protein}</span>
+            <span className="text-stone-400 font-light">g</span>
+          </div>
+          <p className="text-stone-400 text-xs font-light">Regeneração muscular e saciedade</p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 flex flex-col">
+          <div className="w-9 h-9 rounded-full bg-stone-50 flex items-center justify-center mb-3">
+            <span className="material-symbols-outlined text-stone-400 text-lg">bolt</span>
+          </div>
+          <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-1">Carboidratos</p>
+          <div className="flex items-baseline gap-0.5 mb-1">
+            <span className="text-4xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{carbs}</span>
+            <span className="text-stone-400 font-light">g</span>
+          </div>
+          <p className="text-stone-400 text-xs font-light">Principal fonte de energia</p>
+        </div>
+
+        <div className="col-span-2 bg-white rounded-2xl border border-stone-100 shadow-sm p-5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-9 h-9 rounded-full bg-stone-50 flex items-center justify-center">
+              <span className="material-symbols-outlined text-stone-400 text-lg">water_drop</span>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-0.5">Gorduras</p>
+              <p className="text-stone-400 text-xs font-light">Suporte hormonal e vitaminas</p>
+            </div>
+          </div>
+          <div className="flex items-baseline gap-0.5">
+            <span className="text-4xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{fat}</span>
+            <span className="text-stone-400 font-light">g</span>
           </div>
         </div>
       </div>
 
       {/* Micronutrients */}
-      <div className="w-full space-y-4">
-        <h5 className="text-primary font-headline font-bold text-lg">Destaques Micronutrientes</h5>
-        <div className="grid grid-cols-4 gap-3">
-          {[
-            { icon: 'opacity',  label: 'Fibras',  value: '32g'    },
-            { icon: 'waves',    label: 'Sódio',   value: '<2.3g'  },
-            { icon: 'wb_sunny', label: 'Vit D',   value: '20mcg'  },
-            { icon: 'eco',      label: 'Zinco',   value: '11mg'   },
-          ].map(({ icon, label, value }) => (
-            <div key={label} className="p-4 rounded-lg bg-surface-container border border-outline-variant/10 text-center flex flex-col items-center gap-1">
-              <span className="material-symbols-outlined text-primary">{icon}</span>
-              <p className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant">{label}</p>
-              <p className="font-headline font-bold text-base text-primary">{value}</p>
+      <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
+        <p className="text-stone-500 text-sm mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+          Destaques Micronutrientes
+        </p>
+        <div className="grid grid-cols-4 gap-2">
+          {MICROS.map(({ icon, label, value }) => (
+            <div key={label} className="bg-stone-50 rounded-xl p-3 flex flex-col items-center gap-1 text-center">
+              <span className="material-symbols-outlined text-stone-400 text-base">{icon}</span>
+              <p className="text-[9px] uppercase tracking-widest text-stone-400 font-light">{label}</p>
+              <p className="text-stone-700 text-xs" style={{ fontFamily: "'Playfair Display', serif" }}>{value}</p>
             </div>
           ))}
         </div>

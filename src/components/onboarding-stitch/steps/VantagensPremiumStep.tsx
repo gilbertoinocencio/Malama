@@ -2,43 +2,34 @@ import React from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
+const PETROL = '#7d4a3c';
+
 const FEATURES = [
   {
     icon: 'psychology',
     title: 'Coach de IA Personalizado',
     desc: 'Orientação 24/7 ajustada ao seu ritmo e biotipo.',
-    bg: 'bg-surface-container-lowest',
-    iconBg: 'bg-primary-container',
-    iconColor: 'text-on-primary-container',
-    full: false,
+    featured: false,
   },
   {
     icon: 'photo_camera',
     title: 'Scan de Fotos para Macros',
     desc: 'Aponte a câmera, capture os nutrientes. Simples assim.',
-    bg: 'bg-primary',
-    iconBg: 'bg-primary-fixed-dim',
-    iconColor: 'text-on-primary-fixed',
-    textColor: 'text-on-primary',
-    full: false,
+    featured: true,
   },
   {
     icon: 'restaurant_menu',
     title: 'Planos Alimentares Ilimitados',
     desc: 'Variedade gastronômica sem restrições de acesso.',
-    bg: 'bg-surface-container-low',
-    iconBg: 'bg-secondary-container',
-    iconColor: 'text-on-secondary-container',
-    full: true,
+    featured: false,
+    wide: true,
   },
   {
     icon: 'sync_saved_locally',
     title: 'Integrações Premium',
-    desc: 'Sincronia perfeita com Apple Health, Google Fit e dispositivos wearable.',
-    bg: 'bg-surface-container-highest',
-    iconBg: 'bg-white shadow-sm',
-    iconColor: 'text-primary',
-    full: true,
+    desc: 'Sincronia com Apple Health, Google Fit e dispositivos wearable.',
+    featured: false,
+    wide: true,
   },
 ];
 
@@ -52,53 +43,68 @@ const VantagensPremiumStep: React.FC<StepProps> = ({ onNext, onBack, currentStep
       nextLabel="Ver planos disponíveis"
       secondaryLabel="Agora não"
     >
-      {/* Decorative leaves */}
-
-      <div className="w-full max-w-2xl">
-        {/* Header */}
-        <header className="mb-12">
-          <p className="font-headline font-semibold text-primary mb-2 tracking-widest uppercase text-xs">
-            Passo {currentStep} de {totalSteps}
-          </p>
-          <h2 className="font-headline font-bold text-4xl text-on-surface leading-tight tracking-tight">
-            Eleve sua jornada <br />ao nível <span className="text-primary">Premium.</span>
-          </h2>
-          <p className="font-body text-on-surface-variant mt-4 text-lg">
-            Desbloqueie ferramentas exclusivas desenhadas para acelerar seus resultados com serenidade.
-          </p>
-        </header>
-
-        {/* Features Bento Grid */}
-        <div className="grid grid-cols-2 gap-6">
-          {FEATURES.map((f) => (
-            <div
-              key={f.title}
-              className={`${f.bg} p-8 rounded-lg flex flex-col justify-between min-h-[200px] transition-all duration-300 hover:scale-[1.02] ${f.full ? 'col-span-2 flex-row items-center gap-6' : 'col-span-1'}`}
-            >
-              <div className={`h-12 w-12 ${f.iconBg} rounded-full flex items-center justify-center flex-shrink-0 ${f.full ? '' : 'mb-6'}`}>
-                <span
-                  className={`material-symbols-outlined ${f.iconColor}`}
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  {f.icon}
-                </span>
-              </div>
-              <div>
-                <h3 className={`font-headline font-bold text-xl mb-2 ${f.textColor ?? 'text-primary'}`}>
-                  {f.title}
-                </h3>
-                <p className={`font-body text-sm ${f.textColor ? 'opacity-80' : 'text-on-surface-variant'}`}>
-                  {f.desc}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-6 text-center font-body text-sm text-on-surface-variant opacity-60">
-          Cancele quando quiser. Sem taxas ocultas.
+      <div className="text-center mb-8">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1
+          className="text-4xl text-stone-800 leading-tight mb-2"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Eleve sua jornada ao{' '}
+          <span style={{ color: PETROL, fontStyle: 'italic' }}>Premium.</span>
+        </h1>
+        <p className="text-stone-400 text-base font-light max-w-xs mx-auto">
+          Ferramentas exclusivas desenhadas para acelerar seus resultados com serenidade.
         </p>
       </div>
+
+      {/* Feature grid */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        {FEATURES.map((f) => (
+          <div
+            key={f.title}
+            className={`rounded-2xl border shadow-sm p-6 flex flex-col ${f.wide ? 'col-span-2 flex-row items-center gap-5' : 'col-span-1'}`}
+            style={{
+              background: f.featured ? PETROL : 'white',
+              borderColor: f.featured ? PETROL : '#f5f5f4',
+            }}
+          >
+            <div
+              className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${f.wide ? '' : 'mb-4'}`}
+              style={{ background: f.featured ? 'rgba(255,255,255,0.15)' : '#f5f5f4' }}
+            >
+              <span
+                className="material-symbols-outlined text-lg"
+                style={{ color: f.featured ? 'white' : '#a8a29e' }}
+              >
+                {f.icon}
+              </span>
+            </div>
+            <div>
+              <p
+                className="text-base mb-1"
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  color: f.featured ? 'white' : '#292524',
+                }}
+              >
+                {f.title}
+              </p>
+              <p
+                className="text-sm font-light leading-snug"
+                style={{ color: f.featured ? 'rgba(255,255,255,0.7)' : '#a8a29e' }}
+              >
+                {f.desc}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-center text-stone-400 text-xs font-light">
+        Cancele quando quiser. Sem taxas ocultas.
+      </p>
     </StepContainer>
   );
 };

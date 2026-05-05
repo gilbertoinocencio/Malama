@@ -2,40 +2,43 @@ import React from 'react';
 import { StepContainer } from '../StepContainer';
 import { StepProps } from '../types';
 
+const PETROL = '#7d4a3c';
+
+// BMI scale spans 15–40 (range = 25)
+const BMI_MIN = 15;
+const BMI_RANGE = 25;
+
+interface Category {
+  key: string;
+  label: string;
+  insight: string;
+  segmentColor: string;
+  pct: number; // percentage of the gauge bar
+}
+
+const CATEGORIES: Category[] = [
+  { key: 'underweight', label: 'Abaixo do peso', segmentColor: '#d6ccc9', pct: 14, insight: 'Vamos trabalhar juntos para atingir um peso saudável com um plano de nutrição personalizado.' },
+  { key: 'normal',      label: 'Peso saudável',  segmentColor: PETROL,    pct: 26, insight: 'Seu IMC está dentro da faixa recomendada pela OMS. Um ótimo ponto de partida.' },
+  { key: 'overweight',  label: 'Sobrepeso',      segmentColor: '#a8978f', pct: 20, insight: 'Com ajustes na alimentação e na rotina, você pode atingir o peso ideal de forma gradual.' },
+  { key: 'obese',       label: 'Obesidade',      segmentColor: '#7a6560', pct: 40, insight: 'Nosso plano personalizado vai te guiar para alcançar um peso mais saudável de forma sustentável.' },
+];
+
+const getCategory = (bmi: number) => {
+  if (bmi < 18.5) return CATEGORIES[0];
+  if (bmi < 25)   return CATEGORIES[1];
+  if (bmi < 30)   return CATEGORIES[2];
+  return CATEGORIES[3];
+};
+
 const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
-  // Calculate BMI
   const altura = data.altura || 175;
   const peso = data.peso || 75;
-  const alturaMetros = altura / 100;
-  const bmi = peso / (alturaMetros * alturaMetros);
+  const bmi = peso / Math.pow(altura / 100, 2);
   const bmiFormatted = bmi.toFixed(1);
+  const cat = getCategory(bmi);
 
-  // Determine BMI category
-  let category = 'PESO NORMAL';
-  let categoryColor = 'secondary';
-  let statusLabel = 'Saudável';
-  let insightTitle = 'Ótimo começo!';
-  let insightText = 'Seu IMC está dentro da faixa recomendada pela OMS. Isso indica um equilíbrio positivo entre sua altura e peso atual.';
-
-  if (bmi < 18.5) {
-    category = 'ABAIXO DO PESO';
-    categoryColor = 'primary';
-    statusLabel = 'Abaixo do peso';
-    insightTitle = 'Atenção!';
-    insightText = 'Seu IMC está abaixo do ideal. Vamos trabalhar juntos para atingir um peso saudável com nosso plano personalizado.';
-  } else if (bmi >= 25 && bmi < 30) {
-    category = 'SOBREPESO';
-    categoryColor = 'primary';
-    statusLabel = 'Sobrepeso';
-    insightTitle = 'Você está no caminho!';
-    insightText = 'Com ajustes na alimentação e rotina, você pode atingir o peso ideal. Nosso plano vai te guiar.';
-  } else if (bmi >= 30) {
-    category = 'OBESIDADE';
-    categoryColor = 'error';
-    statusLabel = 'Obesidade';
-    insightTitle = 'Vamos trabalhar juntos!';
-    insightText = 'Nosso plano personalizado vai te ajudar a alcançar um peso mais saudável de forma gradual e sustentável.';
-  }
+  // Clamp dot position between 1% and 99%
+  const dotPct = Math.min(Math.max(((bmi - BMI_MIN) / BMI_RANGE) * 100, 1), 99);
 
   const handleContinue = () => {
     updateData({ bmi });
@@ -50,75 +53,91 @@ const ResumoIMCStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
       onNext={handleContinue}
       secondaryLabel="Revisar medidas anteriores"
     >
-      <main className="pt-24 pb-32 px-6 max-w-lg mx-auto min-h-screen flex flex-col">
-        {/* Header Section */}
-        <section className="mb-10">
-          <p className="text-on-surface-variant font-medium mb-2 opacity-60">
-            Passo {currentStep} de {totalSteps}
-          </p>
-          <h2 className="font-headline text-4xl font-bold text-primary tracking-tight leading-tight">
-            Seu Perfil Biométrico
-          </h2>
-        </section>
+      <div className="text-center mb-8">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1
+          className="text-4xl text-stone-800 leading-tight mb-2"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Seu Perfil Biométrico
+        </h1>
+        <p className="text-stone-400 text-base font-light">
+          Calculado com base nas suas medidas informadas.
+        </p>
+      </div>
 
-        {/* BMI Display */}
-        <section className="relative mb-8">
-          <div className="bg-surface-container-lowest rounded-lg p-10 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_16px_32px_0_rgba(26,28,26,0.04)]">
-            <span className="text-on-surface-variant font-medium text-sm tracking-widest uppercase mb-2">Seu IMC Atual</span>
-            <div className="flex items-baseline gap-1">
-              <span className="font-headline text-7xl font-extrabold text-primary">{bmiFormatted}</span>
-              <span className="font-headline text-xl font-medium text-on-surface-variant">kg/m²</span>
-            </div>
-            <div className={`mt-6 px-6 py-2 bg-${categoryColor}/10 rounded-full border border-${categoryColor}/10`}>
-              <span className={`text-${categoryColor} font-bold font-headline`}>{category}</span>
-            </div>
-          </div>
-        </section>
+      {/* BMI Display card */}
+      <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-8 flex flex-col items-center mb-4">
+        <span className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-3">Seu IMC atual</span>
+        <div className="flex items-baseline gap-1 mb-4">
+          <span className="text-7xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>
+            {bmiFormatted}
+          </span>
+          <span className="text-lg text-stone-400 font-light">kg/m²</span>
+        </div>
+        <div
+          className="px-5 py-1.5 rounded-full border text-sm font-light tracking-wide"
+          style={{ borderColor: cat.segmentColor, color: cat.segmentColor }}
+        >
+          {cat.label}
+        </div>
+      </div>
 
-        {/* Gauge Scale */}
-        <section className="mb-8">
-          <div className="relative pt-8 px-2">
-            <div className="absolute top-0 left-0 w-full flex justify-between text-[10px] font-bold text-on-surface-variant/40 tracking-wider">
-              <span>18.5</span><span>24.9</span><span>29.9</span><span>34.9</span>
-            </div>
-            <div className="h-3 w-full bg-surface-container-highest rounded-full flex overflow-hidden">
-              <div className="h-full bg-primary-fixed-dim w-[20%]"></div>
-              <div className="h-full bg-secondary w-[30%] border-x-4 border-surface-container-lowest"></div>
-              <div className="h-full bg-primary-container w-[25%] border-r-4 border-surface-container-lowest"></div>
-              <div className="h-full bg-error-container w-[25%]"></div>
-            </div>
-            <div className="absolute -bottom-4 flex flex-col items-center" style={{ left: `${Math.min(Math.max(((bmi - 15) / 25) * 100, 2), 98)}%`, transform: 'translateX(-50%)' }}>
-              <div className="w-3 h-3 bg-primary rounded-full ring-4 ring-surface-container-lowest"></div>
-            </div>
+      {/* Gauge */}
+      <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6 mb-4">
+        <div className="relative">
+          {/* Labels */}
+          <div className="flex justify-between text-[10px] text-stone-400 font-light mb-2 px-0.5">
+            <span>15</span>
+            <span>18.5</span>
+            <span>25</span>
+            <span>30</span>
+            <span>40</span>
           </div>
-        </section>
 
-        {/* Two Info Cards */}
-        <section className="mb-8 mt-6">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-lg bg-surface-container-low flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase">Intervalo Ideal</span>
-              <span className="font-headline font-bold text-on-surface">18.5 — 24.9</span>
-            </div>
-            <div className="p-4 rounded-lg bg-surface-container-low flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase">Status Global</span>
-              <span className={`font-headline font-bold text-${categoryColor}`}>{statusLabel}</span>
-            </div>
+          {/* Bar */}
+          <div className="relative h-3 w-full rounded-full overflow-hidden flex mb-4">
+            {CATEGORIES.map((c) => (
+              <div key={c.key} style={{ width: `${c.pct}%`, background: c.segmentColor }} />
+            ))}
           </div>
-        </section>
 
-        {/* Insight Card */}
-        <section className="mb-8 bg-primary-fixed text-primary rounded-lg p-6 flex gap-4 items-start">
-          <div className="bg-primary-container/10 p-2 rounded-lg flex-shrink-0">
-            <span className="material-symbols-outlined text-primary-container">colors_spark</span>
+          {/* Dot indicator */}
+          <div
+            className="absolute"
+            style={{ left: `${dotPct}%`, top: '18px', transform: 'translateX(-50%)' }}
+          >
+            <div
+              className="w-4 h-4 rounded-full border-2 border-white shadow-md"
+              style={{ background: PETROL }}
+            />
           </div>
-          <div>
-            <p className="font-headline font-bold text-lg mb-1">{insightTitle}</p>
-            <p className="text-sm leading-relaxed text-on-primary-fixed-variant">{insightText}</p>
-          </div>
-        </section>
-      </main>
+        </div>
 
+        {/* Info row */}
+        <div className="flex gap-3 mt-2">
+          <div className="flex-1 bg-stone-50 rounded-xl p-3 text-center">
+            <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-1">Intervalo ideal</p>
+            <p className="text-stone-700 text-sm" style={{ fontFamily: "'Playfair Display', serif" }}>18.5 — 24.9</p>
+          </div>
+          <div className="flex-1 bg-stone-50 rounded-xl p-3 text-center">
+            <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-1">Status</p>
+            <p className="text-stone-700 text-sm" style={{ fontFamily: "'Playfair Display', serif" }}>{cat.label}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Insight card */}
+      <div className="bg-white border border-stone-100 p-5 rounded-2xl flex items-start gap-4 shadow-sm">
+        <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-stone-50">
+          <span className="material-symbols-outlined text-stone-400 text-lg">info</span>
+        </div>
+        <p className="text-sm font-light text-stone-500 leading-relaxed">
+          {cat.insight}
+        </p>
+      </div>
     </StepContainer>
   );
 };

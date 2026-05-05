@@ -2,131 +2,101 @@ import React from 'react';
 import { StepContainer } from '../StepContainer';
 import { StepProps } from '../types';
 
-const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
-  // Calculate target weight based on data
+const PETROL = '#7d4a3c';
+
+const ConfirmacaoMetasStep: React.FC<StepProps> = ({ data, onNext, onBack, currentStep, totalSteps }) => {
   const pesoObjetivo = data.pesoObjetivo || 70;
   const peso = data.peso || 75;
-  const semanas = Math.max(1, Math.round(Math.abs(peso - pesoObjetivo) * 2)); // Estimate, mínimo 1 semana
-
-  const handleConfirm = () => {
-    onNext();
-  };
+  const semanas = Math.max(1, Math.round(Math.abs(peso - pesoObjetivo) * 2));
 
   return (
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}
-      onNext={handleConfirm}
+      onNext={onNext}
       nextLabel="Confirmar Metas"
-      showHeader={false}
-      secondaryLabel="Ajustar Intensidade"
+      secondaryLabel="Ajustar intensidade"
     >
-      <main className="flex-grow flex flex-col px-6 pb-32 max-w-lg mx-auto w-full relative">
+      <div className="text-center mb-8">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1
+          className="text-4xl text-stone-800 leading-tight mb-2"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Suas Metas
+        </h1>
+        <p className="text-stone-400 text-base font-light max-w-xs mx-auto">
+          Com base no seu biotipo e rotina, este é o caminho ideal.
+        </p>
+      </div>
 
-        {/* Editorial Header */}
-        <header className="mb-10 mt-4 text-center">
-          <span className="text-primary font-medium tracking-widest text-xs uppercase mb-2 block">
-            Cálculo de IA Finalizado
+      {/* Target weight */}
+      <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-8 flex flex-col items-center mb-4">
+        <span className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-3">Peso alvo</span>
+        <div className="flex items-baseline gap-1 mb-1">
+          <span className="text-7xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>
+            {pesoObjetivo}
           </span>
-          <h1 className="text-primary text-4xl font-bold tracking-tight leading-tight">Suas Metas do Flow</h1>
-          <p className="text-on-surface-variant mt-4 text-lg leading-relaxed">
-            Com base no seu biotipo e rotina, este é o caminho ideal para sua transformação.
-          </p>
-        </header>
+          <span className="text-2xl text-stone-400 font-light">kg</span>
+        </div>
+        <div className="w-16 h-px bg-stone-200 mt-3" />
+      </div>
 
-        {/* Bento Grid Goal Confirmation */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Target Weight Card */}
-          <div className="col-span-2 bg-surface-container-lowest p-8 rounded-lg shadow-[0_16px_32px_0_rgba(26,28,26,0.04)] flex flex-col items-center justify-center relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <span className="material-symbols-outlined text-7xl" data-icon="monitor_weight">
-                monitor_weight
-              </span>
-            </div>
-            <p className="text-on-surface-variant font-medium uppercase tracking-widest text-xs mb-2">Peso Alvo</p>
-            <div className="flex items-baseline gap-1">
-              <span className="text-primary text-7xl font-bold tracking-tighter">{pesoObjetivo}</span>
-              <span className="text-primary-container text-2xl font-semibold uppercase">kg</span>
-            </div>
-            <div className="mt-4 h-[2px] w-24 bg-surface-container-highest"></div>
-          </div>
-
-          {/* Estimated Time Card */}
-          <div className="col-span-1 bg-primary text-on-primary p-6 rounded-lg flex flex-col justify-between h-48">
-            <span className="material-symbols-outlined text-primary-fixed-dim text-3xl" data-icon="calendar_today">
-              calendar_today
-            </span>
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-primary-fixed-dim/70 font-bold mb-1">
-                Prazo Estimado
-              </p>
-              <h3 className="text-3xl font-bold">{semanas}</h3>
-              <p className="text-sm font-medium opacity-80">Semanas</p>
-            </div>
-          </div>
-
-          {/* Science Confirmation Card */}
-          <div className="col-span-1 bg-primary text-on-primary p-6 rounded-lg flex flex-col justify-between h-48">
-            <span className="material-symbols-outlined text-primary-fixed-dim text-3xl" data-icon="auto_awesome">
-              auto_awesome
-            </span>
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-primary-fixed-dim/70 font-bold mb-1">
-                Taxa de Sucesso
-              </p>
-              <h3 className="text-3xl font-bold">94%</h3>
-              <p className="text-sm font-medium opacity-80">IA Confidence</p>
-            </div>
-          </div>
-
-          {/* Simple Elegant Graph Overlay */}
-          <div className="col-span-2 bg-surface-container-low p-6 rounded-lg flex flex-col gap-6">
-            <div className="flex justify-between items-center">
-              <h4 className="text-primary font-bold text-sm tracking-tight uppercase">Curva de Progressão</h4>
-              <span className="text-secondary font-bold text-xs flex items-center gap-1">
-                <span className="material-symbols-outlined text-sm" data-icon="trending_down">
-                  trending_down
-                </span>
-                Ritmo Sustentável
-              </span>
-            </div>
-
-            {/* Visualizing the Flow */}
-            <div className="relative h-32 w-full flex items-end justify-between px-2">
-              <div className="absolute inset-0 flex items-center justify-center opacity-5">
-                <span className="material-symbols-outlined text-[8rem]" data-icon="waves">
-                  waves
-                </span>
-              </div>
-              {/* Simplified Bar Graph */}
-              {[20, 25, 30, 40, 50, 60, 70, 80, 90, 100].map((height, index) => (
-                <div
-                  key={index}
-                  className="w-[8%] bg-primary rounded-t-full"
-                  style={{
-                    height: `${100 - height}%`,
-                    opacity: 0.2 + (index * 0.08),
-                  }}
-                ></div>
-              ))}
-            </div>
-            <div className="flex justify-between text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">
-              <span>Início</span>
-              <span>Semana {Math.floor(semanas / 2)}</span>
-              <span>Objetivo</span>
-            </div>
-          </div>
-
-          {/* Commitment Affirmation */}
-          <div className="col-span-2 mt-2 px-2">
-            <p className="text-on-surface-variant text-sm text-center italic font-body">
-              "O Flow não é sobre pressa, é sobre ritmo sustentável e precisão biológica."
-            </p>
+      {/* Two stat cards */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 flex flex-col justify-between">
+          <span className="material-symbols-outlined text-stone-400 text-lg mb-4">calendar_today</span>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-1">Prazo estimado</p>
+            <p className="text-3xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{semanas}</p>
+            <p className="text-stone-400 text-sm font-light">semanas</p>
           </div>
         </div>
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 flex flex-col justify-between">
+          <span className="material-symbols-outlined text-stone-400 text-lg mb-4">auto_awesome</span>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light mb-1">Taxa de sucesso</p>
+            <p className="text-3xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>94%</p>
+            <p className="text-stone-400 text-sm font-light">IA confidence</p>
+          </div>
+        </div>
+      </div>
 
-      </main>
+      {/* Progress curve */}
+      <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6 mb-4">
+        <div className="flex justify-between items-center mb-4">
+          <p className="text-stone-700 text-sm" style={{ fontFamily: "'Playfair Display', serif" }}>Curva de Progressão</p>
+          <span className="flex items-center gap-1 text-stone-400 text-xs font-light">
+            <span className="material-symbols-outlined text-sm">trending_down</span>
+            Ritmo sustentável
+          </span>
+        </div>
+        <div className="flex items-end gap-1.5 h-20">
+          {[80, 75, 70, 60, 50, 40, 30, 20, 10, 0].map((h, i) => (
+            <div
+              key={i}
+              className="flex-1 rounded-t-sm"
+              style={{
+                height: `${Math.max(h, 4)}%`,
+                background: i === 9 ? PETROL : `${PETROL}${Math.round(30 + i * 7).toString(16)}`,
+              }}
+            />
+          ))}
+        </div>
+        <div className="flex justify-between text-[10px] text-stone-400 font-light uppercase tracking-widest mt-2 border-t border-stone-100 pt-2">
+          <span>Início</span>
+          <span>Semana {Math.floor(semanas / 2)}</span>
+          <span>Objetivo</span>
+        </div>
+      </div>
+
+      {/* Quote */}
+      <p className="text-stone-400 text-sm text-center font-light italic px-4">
+        "O Flow não é sobre pressa, é sobre ritmo sustentável e precisão biológica."
+      </p>
     </StepContainer>
   );
 };

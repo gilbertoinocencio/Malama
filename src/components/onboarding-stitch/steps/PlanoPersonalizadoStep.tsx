@@ -3,124 +3,142 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 import { motion } from 'framer-motion';
 
+const PETROL = '#7d4a3c';
+
+const PHASES = [
+  {
+    label: 'Fase 1',
+    title: 'Adaptação',
+    duration: 'Dias 1–30',
+    description: 'Identificar gatilhos e estabelecer micro-metas sem pressão.',
+    items: ['Mapeamento de rotina', 'Introdução ao Flow'],
+    icon: 'energy_savings_leaf',
+    featured: false,
+  },
+  {
+    label: 'Fase 2',
+    title: 'Flow',
+    duration: 'Dias 31–60',
+    description: 'Intensificamos as práticas. Você começará a sentir a clareza mental e a consistência.',
+    items: ['Práticas avançadas', 'Otimização de sono'],
+    icon: 'auto_awesome',
+    featured: true,
+  },
+  {
+    label: 'Fase 3',
+    title: 'Consolidação',
+    duration: 'Dias 61–90',
+    description: 'Reta final. Transformação de hábitos em identidade.',
+    items: ['Sustentabilidade a longo prazo', 'Certificação Malama'],
+    icon: 'verified',
+    featured: false,
+  },
+];
+
 const PlanoPersonalizadoStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, totalSteps }) => {
   return (
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
       onNext={onNext}
-      progress={(currentStep / totalSteps) * 100}
       onBack={onBack}
       nextLabel="Começar Agora"
     >
-      <header className="mb-12 space-y-4">
-        <h1 className="text-4xl md:text-5xl font-headline font-extrabold tracking-tight text-primary leading-tight">
-          Seu caminho para <br/>o equilíbrio está pronto.
+      <div className="text-center mb-8">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1
+          className="text-4xl text-stone-800 leading-tight mb-2"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Seu plano está pronto.
         </h1>
-        <p className="text-on-surface-variant text-lg max-w-xl font-light leading-relaxed">
-          Desenhamos um plano de 90 dias baseado no seu perfil. Uma jornada gradual para transformar sua rotina em um ritual de bem-estar.
+        <p className="text-stone-400 text-base font-light max-w-xs mx-auto">
+          Uma jornada de 90 dias para transformar sua rotina em ritual de bem-estar.
         </p>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 relative w-full">
-
-        {/* Phase 1 Card */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-surface-container-lowest p-8 rounded-xl shadow-sm flex flex-col h-full border-b-4 border-primary-fixed hover:-translate-y-1 transition-transform"
-        >
-          <div className="flex justify-between items-start mb-8">
-            <span className="text-primary font-headline font-bold text-xs tracking-widest uppercase">Fase 1</span>
-            <span className="material-symbols-outlined text-primary text-4xl">energy_savings_leaf</span>
-          </div>
-          <h3 className="text-2xl font-headline font-bold text-primary mb-4">Adaptação</h3>
-          <p className="text-on-surface-variant text-sm leading-relaxed mb-8">
-            Os primeiros 30 dias focam em identificar gatilhos e estabelecer micrometras sem pressão.
-          </p>
-          <div className="mt-auto space-y-3">
-            <div className="flex items-center gap-3 text-xs text-on-surface font-medium">
-              <span className="material-symbols-outlined text-secondary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-              Mapeamento de rotina
-            </div>
-            <div className="flex items-center gap-3 text-xs text-on-surface font-medium">
-              <span className="material-symbols-outlined text-secondary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-              Introdução ao Flow
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Phase 2 Card (Featured) */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1.05 }}
-          transition={{ delay: 0.4 }}
-          className="bg-primary text-on-primary p-8 rounded-xl shadow-2xl flex flex-col h-full z-10 relative overflow-hidden"
-        >
-          <div className="flex justify-between items-start mb-8 relative z-20">
-            <span className="text-primary-fixed font-headline font-bold text-xs tracking-widest uppercase">Fase 2</span>
-            <span className="material-symbols-outlined text-primary-fixed text-4xl">auto_awesome</span>
-          </div>
-          <h3 className="text-2xl font-headline font-bold text-white mb-4 relative z-20">Flow</h3>
-          <p className="text-primary-fixed-dim text-sm leading-relaxed mb-8 relative z-20">
-            Do dia 31 ao 60, intensificamos as práticas. Você começará a sentir a clareza mental e a consistência.
-          </p>
-          <div className="mt-auto space-y-3 relative z-20">
-            <div className="flex items-center gap-3 text-xs font-medium">
-              <span className="material-symbols-outlined text-secondary-fixed text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-              Práticas avançadas
-            </div>
-            <div className="flex items-center gap-3 text-xs font-medium">
-              <span className="material-symbols-outlined text-secondary-fixed text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-              Otimização de sono
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Phase 3 Card */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-surface-container-lowest p-8 rounded-xl shadow-sm flex flex-col h-full border-b-4 border-primary-fixed hover:-translate-y-1 transition-transform"
-        >
-          <div className="flex justify-between items-start mb-8">
-            <span className="text-primary font-headline font-bold text-xs tracking-widest uppercase">Fase 3</span>
-            <span className="material-symbols-outlined text-primary text-4xl">verified</span>
-          </div>
-          <h3 className="text-2xl font-headline font-bold text-primary mb-4">Consolidação</h3>
-          <p className="text-on-surface-variant text-sm leading-relaxed mb-8">
-            Reta final. Transformação de hábitos em identidade. O bem-estar torna-se seu estado natural.
-          </p>
-          <div className="mt-auto space-y-3">
-            <div className="flex items-center gap-3 text-xs text-on-surface font-medium">
-              <span className="material-symbols-outlined text-secondary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-              Sustentabilidade a longo prazo
-            </div>
-            <div className="flex items-center gap-3 text-xs text-on-surface font-medium">
-              <span className="material-symbols-outlined text-secondary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-              Certificação Malama
-            </div>
-          </div>
-        </motion.div>
       </div>
 
-      {/* Summary Quote Section */}
-      <div className="flex flex-col md:flex-row items-center gap-8 bg-surface-container-low p-10 rounded-xl mb-12 w-full">
-        <div className="w-24 h-24 rounded-full bg-surface-container-highest shrink-0 flex items-center justify-center overflow-hidden border-2 border-primary/10">
-          <img 
-            className="w-full h-full object-cover" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlggZWaEqir0ImDHkfTiumB-KNT5cp--gG7qpuyD0ep2c3ftP8nMd9ZzF1WmR_FE3WnM1VV_aBpu5gCSvTmS63A5x9idCJSwuEhQINItETR-vhsZwvdlUPXoKd2uz2B9RC3Y1BMiVMbn6YFc98WOuK9zV8DB-rR6sZ6avjHdRa2V9RfOaS4I3becLc04NogNlTbahiVoXbVymAr-i-mnHJ5FKuJpQljtspVTcblGVn2Nvsmmlc1UbYUl-aRvx3dz5h6U61vIjjKSA" 
-            alt="Expert"
-          />
-        </div>
-        <div className="space-y-2 text-center md:text-left">
-          <p className="text-xl font-body italic text-primary leading-snug">
-            "O sucesso não vem da intensidade, mas da consistência. Este plano foi feito para você nunca mais precisar recomeçar."
-          </p>
-          <p className="text-sm font-headline font-bold text-primary">Dra. Helena Souza, Head de Neurociência Malama</p>
-        </div>
+      {/* Phase cards */}
+      <div className="space-y-3 mb-4">
+        {PHASES.map((phase, i) => (
+          <motion.div
+            key={phase.label}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.15, duration: 0.4 }}
+            className="rounded-2xl border shadow-sm overflow-hidden"
+            style={{
+              background: phase.featured ? PETROL : 'white',
+              borderColor: phase.featured ? PETROL : '#f5f5f4',
+            }}
+          >
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <span
+                    className="text-[10px] uppercase tracking-widest font-light block mb-0.5"
+                    style={{ color: phase.featured ? 'rgba(255,255,255,0.6)' : '#a8a29e' }}
+                  >
+                    {phase.label} · {phase.duration}
+                  </span>
+                  <h3
+                    className="text-xl"
+                    style={{
+                      fontFamily: "'Playfair Display', serif",
+                      color: phase.featured ? 'white' : '#292524',
+                    }}
+                  >
+                    {phase.title}
+                  </h3>
+                </div>
+                <span
+                  className="material-symbols-outlined text-2xl"
+                  style={{ color: phase.featured ? 'rgba(255,255,255,0.7)' : '#a8a29e' }}
+                >
+                  {phase.icon}
+                </span>
+              </div>
+              <p
+                className="text-sm font-light leading-relaxed mb-4"
+                style={{ color: phase.featured ? 'rgba(255,255,255,0.75)' : '#78716c' }}
+              >
+                {phase.description}
+              </p>
+              <div className="space-y-1.5">
+                {phase.items.map(item => (
+                  <div key={item} className="flex items-center gap-2">
+                    <span
+                      className="material-symbols-outlined text-sm"
+                      style={{
+                        color: phase.featured ? 'rgba(255,255,255,0.8)' : PETROL,
+                        fontVariationSettings: "'FILL' 1",
+                      }}
+                    >
+                      check_circle
+                    </span>
+                    <span
+                      className="text-sm font-light"
+                      style={{ color: phase.featured ? 'rgba(255,255,255,0.85)' : '#57534e' }}
+                    >
+                      {item}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Quote */}
+      <div className="bg-white border border-stone-100 rounded-2xl p-6 shadow-sm">
+        <p className="text-stone-500 text-sm font-light italic leading-relaxed mb-3">
+          "O sucesso não vem da intensidade, mas da consistência. Este plano foi feito para você nunca mais precisar recomeçar."
+        </p>
+        <p className="text-stone-400 text-xs uppercase tracking-widest font-light">
+          Dra. Helena Souza · Head de Neurociência Malama
+        </p>
       </div>
     </StepContainer>
   );

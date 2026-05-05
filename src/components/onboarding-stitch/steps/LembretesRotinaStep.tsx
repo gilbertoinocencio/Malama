@@ -2,76 +2,87 @@ import React, { useState } from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
+const PETROL = '#7d4a3c';
+
 const fmt = (n: number) => String(n).padStart(2, '0');
 
-const TimeControl: React.FC<{
+interface TimeCardProps {
   label: string;
   caption: string;
+  icon: string;
   hour: number;
   minute: number;
-  isActive?: boolean;
   onHourChange: (delta: number) => void;
   onMinuteChange: (delta: number) => void;
-}> = ({ label, caption, hour, minute, isActive, onHourChange, onMinuteChange }) => (
-  <div className={`p-8 rounded-lg border-2 transition-all duration-300 ${isActive ? 'bg-surface-container-lowest border-primary-fixed-dim shadow-md' : 'bg-surface-container-low border-transparent'}`}>
-    <div className="flex justify-between items-start mb-6">
-      <p className="font-headline text-primary-container font-semibold uppercase text-xs tracking-widest">{label}</p>
-      {isActive && (
-        <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-      )}
+}
+
+const TimeCard: React.FC<TimeCardProps> = ({ label, caption, icon, hour, minute, onHourChange, onMinuteChange }) => (
+  <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6">
+    <div className="flex items-center gap-3 mb-5">
+      <div className="w-9 h-9 rounded-full bg-stone-50 flex items-center justify-center">
+        <span className="material-symbols-outlined text-stone-400 text-lg">{icon}</span>
+      </div>
+      <div>
+        <p className="text-[10px] uppercase tracking-widest text-stone-400 font-light">{label}</p>
+        <p className="text-stone-500 text-xs font-light">{caption}</p>
+      </div>
     </div>
 
-    <div className="flex items-end gap-2">
+    <div className="flex items-center justify-center gap-3">
       {/* Hour */}
       <div className="flex flex-col items-center gap-2">
         <button
           onClick={() => onHourChange(1)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-surface-container-high transition-all active:scale-90"
+          className="w-9 h-9 rounded-full flex items-center justify-center bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors"
         >
-          <span className="material-symbols-outlined text-lg">expand_less</span>
+          <span className="material-symbols-outlined text-sm">expand_less</span>
         </button>
-        <span className="font-headline text-6xl text-primary tracking-tighter w-[2.5ch] text-center">{fmt(hour)}</span>
+        <span className="text-4xl text-stone-800 w-12 text-center tabular-nums" style={{ fontFamily: "'Playfair Display', serif" }}>
+          {fmt(hour)}
+        </span>
         <button
           onClick={() => onHourChange(-1)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-surface-container-high transition-all active:scale-90"
+          className="w-9 h-9 rounded-full flex items-center justify-center bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors"
         >
-          <span className="material-symbols-outlined text-lg">expand_more</span>
+          <span className="material-symbols-outlined text-sm">expand_more</span>
         </button>
       </div>
 
-      <span className="font-headline text-4xl text-outline-variant mb-2">:</span>
+      <span className="text-3xl text-stone-300 font-light mb-1">:</span>
 
       {/* Minute */}
       <div className="flex flex-col items-center gap-2">
         <button
           onClick={() => onMinuteChange(15)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-surface-container-high transition-all active:scale-90"
+          className="w-9 h-9 rounded-full flex items-center justify-center bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors"
         >
-          <span className="material-symbols-outlined text-lg">expand_less</span>
+          <span className="material-symbols-outlined text-sm">expand_less</span>
         </button>
-        <span className="font-headline text-6xl text-primary tracking-tighter w-[2.5ch] text-center">{fmt(minute)}</span>
+        <span className="text-4xl text-stone-800 w-12 text-center tabular-nums" style={{ fontFamily: "'Playfair Display', serif" }}>
+          {fmt(minute)}
+        </span>
         <button
           onClick={() => onMinuteChange(-15)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-primary hover:bg-surface-container-high transition-all active:scale-90"
+          className="w-9 h-9 rounded-full flex items-center justify-center bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors"
         >
-          <span className="material-symbols-outlined text-lg">expand_more</span>
+          <span className="material-symbols-outlined text-sm">expand_more</span>
         </button>
       </div>
     </div>
-
-    <div className={`mt-6 h-0.5 w-full transition-all duration-500 ${isActive ? 'bg-primary' : 'bg-surface-container-highest'}`}></div>
-    <p className="mt-3 text-on-surface-variant text-sm font-light">{caption}</p>
   </div>
 );
 
 const LembretesRotinaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
-  const schedule = data.reminderSchedule || '08:30 - 20:00';
+  const schedule = data.reminderSchedule || data.eatingWindowStart
+    ? `${data.eatingWindowStart || '08:00'} - ${data.eatingWindowEnd || '20:00'}`
+    : '08:00 - 20:00';
+
   const [rawStart, rawEnd] = schedule.split(' - ');
 
-  const [startHour, setStartHour] = useState(parseInt(rawStart.split(':')[0]));
-  const [startMin, setStartMin]   = useState(parseInt(rawStart.split(':')[1]));
-  const [endHour, setEndHour]     = useState(parseInt(rawEnd.split(':')[0]));
-  const [endMin, setEndMin]       = useState(parseInt(rawEnd.split(':')[1]));
+  const [startHour, setStartHour] = useState(parseInt(rawStart?.split(':')[0] || '8'));
+  const [startMin, setStartMin]   = useState(parseInt(rawStart?.split(':')[1] || '0'));
+  const [endHour, setEndHour]     = useState(parseInt(rawEnd?.split(':')[0] || '20'));
+  const [endMin, setEndMin]       = useState(parseInt(rawEnd?.split(':')[1] || '0'));
 
   const changeHour = (setter: React.Dispatch<React.SetStateAction<number>>) => (delta: number) => {
     setter((prev: number) => (prev + delta + 24) % 24);
@@ -81,11 +92,17 @@ const LembretesRotinaStep: React.FC<StepProps> = ({ data, updateData, onNext, on
     setter((prev: number) => (prev + delta + 60) % 60);
   };
 
-  const windowHours = ((endHour * 60 + endMin) - (startHour * 60 + startMin) + 1440) % 1440 / 60;
+  const windowMins = ((endHour * 60 + endMin) - (startHour * 60 + startMin) + 1440) % 1440;
+  const windowH = Math.floor(windowMins / 60);
+  const windowM = windowMins % 60;
 
   const handleSave = () => {
+    const start = `${fmt(startHour)}:${fmt(startMin)}`;
+    const end = `${fmt(endHour)}:${fmt(endMin)}`;
     updateData({
-      reminderSchedule: `${fmt(startHour)}:${fmt(startMin)} - ${fmt(endHour)}:${fmt(endMin)}`,
+      reminderSchedule: `${start} - ${end}`,
+      eatingWindowStart: start,
+      eatingWindowEnd: end,
     });
     onNext();
   };
@@ -98,50 +115,61 @@ const LembretesRotinaStep: React.FC<StepProps> = ({ data, updateData, onNext, on
       onBack={onBack}
       nextLabel="Salvar e Continuar"
     >
+      <div className="text-center mb-8">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1
+          className="text-4xl text-stone-800 leading-tight mb-2"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Lembretes de Rotina
+        </h1>
+        <p className="text-stone-400 text-base font-light max-w-xs mx-auto">
+          Quando quer ser lembrado das suas refeições?
+        </p>
+      </div>
 
+      <div className="space-y-3 mb-4">
+        <TimeCard
+          label="Início da janela"
+          caption="Primeiro alerta do dia"
+          icon="wb_sunny"
+          hour={startHour}
+          minute={startMin}
+          onHourChange={changeHour(setStartHour)}
+          onMinuteChange={changeMinute(setStartMin)}
+        />
+        <TimeCard
+          label="Fim da janela"
+          caption="Último alerta do dia"
+          icon="dark_mode"
+          hour={endHour}
+          minute={endMin}
+          onHourChange={changeHour(setEndHour)}
+          onMinuteChange={changeMinute(setEndMin)}
+        />
+      </div>
 
-      <div className="w-full max-w-xl space-y-10 relative z-10">
-        <div className="space-y-4">
-          <h2 className="font-headline text-on-surface-variant text-sm font-medium tracking-[0.2em] uppercase">Mantenha o seu Flow</h2>
-          <h1 className="font-headline text-4xl md:text-5xl text-primary font-bold tracking-tight leading-tight">
-            Quando quer ser lembrado das suas refeições?
-          </h1>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <TimeControl
-            label="Início da Janela"
-            caption="Primeiro alerta do dia"
-            hour={startHour}
-            minute={startMin}
-            onHourChange={changeHour(setStartHour)}
-            onMinuteChange={changeMinute(setStartMin)}
-          />
-          <TimeControl
-            label="Fim da Janela"
-            caption="Último alerta do dia"
-            hour={endHour}
-            minute={endMin}
-            isActive
-            onHourChange={changeHour(setEndHour)}
-            onMinuteChange={changeMinute(setEndMin)}
-          />
-        </div>
-
-        {/* Window duration */}
-        <div className="flex items-center justify-center gap-3 py-2">
-          <span className="material-symbols-outlined text-secondary">schedule</span>
-          <span className="font-headline font-semibold text-primary">
-            Janela de <span className="text-secondary">{windowHours.toFixed(1).replace('.0', '')}h</span>
+      {/* Duration badge */}
+      <div className="flex items-center justify-center gap-2 mb-4">
+        <span className="material-symbols-outlined text-stone-400 text-lg">schedule</span>
+        <span className="text-stone-500 text-sm font-light">
+          Janela de{' '}
+          <span className="font-medium" style={{ color: PETROL }}>
+            {windowH}h{windowM > 0 ? `${windowM}m` : ''}
           </span>
-        </div>
+        </span>
+      </div>
 
-        <div className="flex items-start gap-4 p-6 bg-surface-container/50 rounded-xl border border-surface-container-highest">
-          <span className="material-symbols-outlined text-primary mt-1">info</span>
-          <p className="text-on-surface-variant text-sm leading-relaxed">
-            Sugerimos uma janela de 12 horas para manter o equilíbrio metabólico e a clareza mental durante o dia.
-          </p>
+      {/* Info note */}
+      <div className="bg-white border border-stone-100 p-5 rounded-2xl flex items-start gap-4 shadow-sm">
+        <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-stone-50">
+          <span className="material-symbols-outlined text-stone-400 text-lg">info</span>
         </div>
+        <p className="text-sm font-light text-stone-500 leading-relaxed">
+          Sugerimos uma janela de 12 horas para manter o equilíbrio metabólico e a clareza mental durante o dia.
+        </p>
       </div>
     </StepContainer>
   );
