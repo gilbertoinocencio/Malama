@@ -43,7 +43,13 @@ import HomeFeedStep from './steps/HomeFeedStep';
 
 export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const { user, refreshProfile } = useAuth();
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const STORAGE_KEY = 'malama_onboarding_state';
+
+  const savedState = (() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch { return null; }
+  })();
+
+  const [currentStepIndex, setCurrentStepIndex] = useState<number>(savedState?.stepIndex ?? 0);
   const [isFinishing, setIsFinishing] = useState(false);
   const [isInfluencer, setIsInfluencer] = useState(() => {
     // Verifica localStorage como fallback imediato (antes da query ao banco)
@@ -92,8 +98,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
     });
   }, [user?.id]);
 
-  const [data, setData] = useState<StitchOnboardingData>({
-    // Initialize with safe defaults to prevent null errors
+  const DEFAULT_DATA: StitchOnboardingData = {
     primary_goal: 'perder_peso',
     dataNascimento: '1998-01-01',
     genero: 'masculino',
@@ -103,8 +108,12 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
     nivelAtividade: 'moderado',
     additionalGoals: [],
     dietaryRestrictions: [],
-    habitChanges: []
-  });
+    habitChanges: [],
+  };
+
+  const [data, setData] = useState<StitchOnboardingData>(
+    savedState?.data ? { ...DEFAULT_DATA, ...savedState.data } : DEFAULT_DATA
+  );
 
   const steps = Object.values(OnboardingStep);
   const currentStep = steps[currentStepIndex];
@@ -112,6 +121,12 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
   const updateData = (newData: Partial<StitchOnboardingData>) => {
     setData(prev => ({ ...prev, ...newData }));
   };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ stepIndex: currentStepIndex, data }));
+    } catch {}
+  }, [currentStepIndex, data]);
 
   const handleNext = async () => {
     const nextStep = steps[currentStepIndex + 1];
@@ -225,6 +240,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
 
       // Chega aqui apenas se o upsert foi bem-sucedido
       localStorage.removeItem('Malama_is_influencer_signup');
+      localStorage.removeItem(STORAGE_KEY);
       onComplete();
 
     } catch (err) {

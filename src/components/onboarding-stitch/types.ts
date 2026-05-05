@@ -1,6 +1,9 @@
 import { Profile } from '../../types';
 
 export interface StitchOnboardingData extends Partial<Profile> {
+  // Objetivo principal (perder_peso, ganhar_peso, manter_peso, saude_geral)
+  primary_goal?: string;
+
   // Dados biométricos
   dataNascimento?: string;
   genero?: 'masculino' | 'feminino';
