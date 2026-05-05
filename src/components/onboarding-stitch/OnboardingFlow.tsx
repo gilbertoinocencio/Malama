@@ -161,7 +161,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         eatingWindowEnd = data.eatingWindowEnd;
       }
 
-      await supabase.from('profiles').upsert({
+      const { error: upsertError } = await supabase.from('profiles').upsert({
         id: user.id,
         date_of_birth: data.dataNascimento,
         gender: data.genero,
@@ -182,6 +182,15 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         updated_at: new Date().toISOString(),
       });
 
+      if (upsertError) throw upsertError;
+
+      // Limpa sessão antiga do agente nutricional e plano ativo para que
+      // um novo plano seja gerado com os dados atualizados do onboarding
+      await Promise.all([
+        supabase.from('nutritionist_onboarding').delete().eq('user_id', user.id),
+        supabase.from('quarterly_plans').update({ status: 'archived' }).eq('user_id', user.id).eq('status', 'active'),
+      ]).catch(() => {});
+
       // Seed initial weight_logs entry so MetricsChart has a starting point
       if (data.peso) {
         await WeightLogService.logWeight(
@@ -194,52 +203,23 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
       await new Promise(resolve => setTimeout(resolve, 1000));
       await refreshProfile();
 
-      // Verifica se o profile foi atualizado corretamente
-      // Se não, tenta mais uma vez
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (currentUser) {
-        const { data: profileCheck } = await supabase
-          .from('profiles')
-          .select('onboarding_completed')
-          .eq('id', currentUser.id)
-          .maybeSingle();
-
-        if (!profileCheck?.onboarding_completed) {
-          // Última tentativa
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          await refreshProfile();
-        }
-      }
-
       // Solicitar permissões de forma NÃO bloqueante
-      // O app continua funcionando mesmo se o usuário negar
-
-      // Delay pequeno para não sobrecarregar o navegador com múltiplos popups
       setTimeout(async () => {
-        try {
-          console.log('📍 Solicitando localização (opcional)...');
-          await LocationAutoPermission.requestAutoPermission(user.id, supabase);
-        } catch (err) {
-          console.log('📍 Localização não solicitada ou negada - app continua normalmente');
-        }
+        try { await LocationAutoPermission.requestAutoPermission(user.id, supabase); } catch {}
       }, 1000);
-
       setTimeout(async () => {
-        try {
-          console.log('🔔 Solicitando notificações (opcional)...');
-          await NotificationService.requestPermission();
-        } catch (err) {
-          console.log('🔔 Notificações não solicitadas ou negadas - app continua normalmente');
-        }
+        try { await NotificationService.requestPermission(); } catch {}
       }, 2000);
+
+      // Chega aqui apenas se o upsert foi bem-sucedido
+      localStorage.removeItem('Malama_is_influencer_signup');
+      onComplete();
+
     } catch (err) {
       console.error('Error finishing onboarding:', err);
-    } finally {
-      // Limpa flag de influencer do localStorage
       localStorage.removeItem('Malama_is_influencer_signup');
-
-      // Sempre completa o onboarding, independente das permissões
-      onComplete();
+      // Deixa o usuário tentar novamente ao invés de avançar com dados não salvos
+      setIsFinishing(false);
     }
   };
 
