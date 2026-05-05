@@ -522,12 +522,46 @@ Responda APENAS com o JSON, sem texto adicional.
     const restrictionsDetail = profile.dietary_restrictions_detail ? ` (Detalhe: ${profile.dietary_restrictions_detail})` : '';
     const restrictions = `${restrictionsList}${restrictionsDetail}`;
     const dietType = profile.diet_type || 'Variada';
+
+    // Calculate age from date_of_birth
+    const patientAge = (() => {
+      if (!profile.date_of_birth) return profile.age || null;
+      const birth = new Date(profile.date_of_birth);
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+      return age;
+    })();
+
+    // Map coded values to human-readable labels
+    const additionalGoalLabels: Record<string, string> = {
+      relacao_comida: 'Melhorar relação com comida',
+      bem_estar: 'Bem-estar geral',
+      gerir_stress: 'Gerir estresse',
+      melhorar_sono: 'Melhorar o sono',
+      aumentar_energia: 'Aumentar energia',
+    };
+    const habitChangeLabels: Record<string, string> = {
+      comer_noite: 'Parar de comer à noite',
+      beliscar: 'Parar de beliscar entre refeições',
+      doces: 'Reduzir consumo de doces',
+      sedentarismo: 'Combater o sedentarismo',
+    };
+    const eatingLocationLabels: Record<string, string> = {
+      casa: 'em casa',
+      trabalho: 'no trabalho',
+      restaurante: 'em restaurantes',
+    };
+
     const additionalGoals = Array.isArray(profile.additional_goals) && profile.additional_goals.length > 0
-      ? profile.additional_goals.join(', ')
+      ? profile.additional_goals.map((g: string) => additionalGoalLabels[g] ?? g).join(', ')
       : 'Nenhum';
     const habitChanges = Array.isArray(profile.habit_changes) && profile.habit_changes.length > 0
-      ? profile.habit_changes.join(', ')
+      ? profile.habit_changes.map((h: string) => habitChangeLabels[h] ?? h).join(', ')
       : 'Nenhum';
+    const eatingLocation = eatingLocationLabels[profile.eating_location] ?? profile.eating_location ?? 'Não informado';
+    const drinksWater = { sim: 'Sim', nao: 'Não', incerto: 'Incerto' }[profile.drinks_enough_water as string] ?? profile.drinks_enough_water ?? 'N/A';
 
     const targetCalories = profile.target_calories || 2000;
     const targetProtein = profile.target_protein || 150;
@@ -659,7 +693,7 @@ Você conhece este usuário de cor: sabe o peso, o objetivo, o que gosta de come
 
 ## PERFIL COMPLETO DO PACIENTE
 - **Gênero:** ${gender}
-- **Idade:** ${profile.age || '?'} anos
+- **Idade:** ${patientAge ?? '?'} anos
 - **Peso atual:** ${profile.weight ? profile.weight + 'kg' : 'Não informado'}
 - **Altura:** ${profile.height ? profile.height + 'cm' : 'Não informada'}
 - **IMC:** ${profile.bmi ? Number(profile.bmi).toFixed(1) : 'N/A'}
@@ -679,9 +713,9 @@ Você conhece este usuário de cor: sabe o peso, o objetivo, o que gosta de come
 - **Hábitos que quer mudar:** ${habitChanges}
 - **Refeições por dia:** ${profile.meals_per_day || 3}
 - **Janela alimentar:** ${profile.eating_window_start || '08:00'} - ${profile.eating_window_end || '20:00'}
-- **Onde costuma comer:** ${profile.eating_location || 'Não informado'}
+- **Onde costuma comer:** ${eatingLocation}
 - **Conhece jejum intermitente:** ${profile.knows_intermittent_fasting === true ? 'Sim' : profile.knows_intermittent_fasting === false ? 'Não' : 'N/A'}
-- **Bebe água suficiente:** ${profile.drinks_enough_water || 'N/A'}
+- **Bebe água suficiente:** ${drinksWater}
 
 ## METAS NUTRICIONAIS DIÁRIAS
 - Calorias: ${targetCalories}kcal
