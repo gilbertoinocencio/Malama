@@ -160,26 +160,55 @@ export const NutritionistAgentService = {
     const initialData: OnboardingData = {};
     if (profile) {
       if (profile.display_name) initialData.fullName = profile.display_name;
-      if (profile.age) initialData.age = profile.age;
+
+      // Calculate age from date_of_birth
+      if (profile.date_of_birth) {
+        const birth = new Date(profile.date_of_birth);
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+        initialData.age = age;
+      }
+
       if (profile.gender) {
         initialData.biologicalSex = profile.gender === 'male' ? 'M' : 'F';
       }
       if (profile.height) initialData.height = Number(profile.height);
       if (profile.weight) initialData.weight = Number(profile.weight);
       if (profile.body_fat) initialData.bodyFatPercentage = Number(profile.body_fat);
-      
+
       if (profile.activity_level) {
-        initialData.intensity = 
+        initialData.intensity =
           profile.activity_level === 'sedentary' ? 'leve' :
-          profile.activity_level === 'moderate' ? 'moderada' : 
+          profile.activity_level === 'moderate' ? 'moderada' :
           'alta';
       }
 
-      if (profile.goal) {
-        initialData.mainGoal = 
-          profile.goal === 'performance' ? 'performance' :
-          profile.goal === 'health' ? 'saude' :
-          undefined; // 'aesthetic' could be emagrecimento or ganho_massa
+      // Pre-populate lifestyle data from onboarding
+      if (profile.dietary_restrictions?.length > 0) {
+        initialData.foodRestrictions = profile.dietary_restrictions;
+      }
+      if (profile.dietary_restrictions_detail) {
+        initialData.foodRestrictionsDetail = profile.dietary_restrictions_detail;
+      }
+      if (profile.diet_type) {
+        initialData.dietType = profile.diet_type;
+      }
+      if (profile.meals_per_day) {
+        initialData.mealsPerDay = profile.meals_per_day;
+      }
+      if (profile.eating_location) {
+        initialData.eatingLocation = profile.eating_location;
+      }
+      if (profile.additional_goals?.length > 0) {
+        initialData.additionalGoals = profile.additional_goals;
+      }
+      if (profile.habit_changes?.length > 0) {
+        initialData.habitChanges = profile.habit_changes;
+      }
+      if (profile.drinks_enough_water) {
+        initialData.drinksEnoughWater = profile.drinks_enough_water;
       }
     }
 

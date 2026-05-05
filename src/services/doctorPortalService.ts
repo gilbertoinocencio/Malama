@@ -898,7 +898,7 @@ export const patientService = {
     // Real data fetching: Profiles
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('display_name, avatar_url, date_of_birth, gender, weight, height, activity_level, target_calories, target_protein, target_carbs, target_fats, target_fiber, glp1_mode, glp1_phase, glp1_medication')
+      .select('display_name, avatar_url, date_of_birth, gender, weight, height, activity_level, meals_per_day, diet_type, dietary_restrictions, dietary_restrictions_detail, additional_goals, eating_location, habit_changes, drinks_enough_water, target_calories, target_protein, target_carbs, target_fats, target_fiber, glp1_mode, glp1_phase, glp1_medication')
       .eq('id', patientId)
       .single();
 
@@ -1106,6 +1106,14 @@ export const patientService = {
       gender: profile?.gender || null,
       height: profile?.height || null,
       activity_level: profile?.activity_level || null,
+      meals_per_day: profile?.meals_per_day || null,
+      diet_type: profile?.diet_type || null,
+      dietary_restrictions: profile?.dietary_restrictions || [],
+      dietary_restrictions_detail: profile?.dietary_restrictions_detail || null,
+      additional_goals: profile?.additional_goals || [],
+      eating_location: profile?.eating_location || null,
+      habit_changes: profile?.habit_changes || [],
+      drinks_enough_water: profile?.drinks_enough_water || null,
       health_goal: null,
       imc,
       imc_classification,

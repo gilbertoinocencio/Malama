@@ -173,6 +173,11 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         eating_window_end: eatingWindowEnd,
         dietary_restrictions: data.dietaryRestrictions || [],
         dietary_restrictions_detail: data.restrictionsDetail || null,
+        diet_type: data.dietType || null,
+        additional_goals: data.additionalGoals || [],
+        eating_location: data.eatingLocation || null,
+        habit_changes: data.habitChanges || [],
+        drinks_enough_water: data.drinksEnoughWater || null,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       });

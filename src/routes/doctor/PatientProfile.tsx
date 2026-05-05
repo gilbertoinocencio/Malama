@@ -323,6 +323,111 @@ export const PatientProfile: React.FC = () => {
                 </div>
               </div>
 
+              {/* Hábitos e Alimentação */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Hábitos e Alimentação</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                  {/* Refeições e local */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-1">
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">🍽️ Refeições por dia</p>
+                    <p className="text-sm font-semibold text-gray-800">{patient.meals_per_day ? `${patient.meals_per_day} refeições` : '—'}</p>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-1">
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">📍 Onde costuma comer</p>
+                    <p className="text-sm font-semibold text-gray-800">
+                      {patient.eating_location
+                        ? ({ casa: 'Em casa', trabalho: 'No trabalho', restaurante: 'Em restaurantes' }[patient.eating_location] ?? patient.eating_location)
+                        : '—'}
+                    </p>
+                  </div>
+
+                  {/* Tipo de dieta */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-1">
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">🥗 Tipo de dieta</p>
+                    <p className="text-sm font-semibold text-gray-800">{patient.diet_type || '—'}</p>
+                  </div>
+
+                  {/* Hidratação */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-1">
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">💧 Bebe água suficiente?</p>
+                    <p className="text-sm font-semibold text-gray-800">
+                      {patient.drinks_enough_water
+                        ? ({ sim: 'Sim', nao: 'Não', incerto: 'Incerto' }[patient.drinks_enough_water] ?? patient.drinks_enough_water)
+                        : '—'}
+                    </p>
+                  </div>
+
+                  {/* Restrições alimentares */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2 md:col-span-2">
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">🚫 Restrições / Alergias</p>
+                    {patient.dietary_restrictions && patient.dietary_restrictions.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {patient.dietary_restrictions.map((r, i) => (
+                          <span key={i} className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">{r}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">Nenhuma restrição informada</p>
+                    )}
+                    {patient.dietary_restrictions_detail && (
+                      <p className="text-xs text-gray-500 italic mt-1">{patient.dietary_restrictions_detail}</p>
+                    )}
+                  </div>
+
+                  {/* Objetivos adicionais */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2 md:col-span-2">
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">🎯 Objetivos adicionais</p>
+                    {patient.additional_goals && patient.additional_goals.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {patient.additional_goals.map((g, i) => {
+                          const labels: Record<string, string> = {
+                            relacao_comida: 'Melhorar relação com comida',
+                            bem_estar: 'Bem-estar geral',
+                            gerir_stress: 'Gerir estresse',
+                            melhorar_sono: 'Melhorar o sono',
+                            aumentar_energia: 'Aumentar energia',
+                          };
+                          return (
+                            <span key={i} className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
+                              {labels[g] ?? g}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">Nenhum objetivo adicional informado</p>
+                    )}
+                  </div>
+
+                  {/* Hábitos a mudar */}
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2 md:col-span-2">
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">🔄 Hábitos que deseja mudar</p>
+                    {patient.habit_changes && patient.habit_changes.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {patient.habit_changes.map((h, i) => {
+                          const labels: Record<string, string> = {
+                            comer_noite: 'Comer à noite',
+                            beliscar: 'Beliscar entre refeições',
+                            doces: 'Consumo de doces',
+                            sedentarismo: 'Sedentarismo',
+                          };
+                          return (
+                            <span key={i} className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full font-medium">
+                              {labels[h] ?? h}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">Nenhum hábito informado</p>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+
               {/* Gráfico de peso */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Evololução de Peso</h3>

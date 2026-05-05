@@ -307,6 +307,14 @@ export interface PatientFullProfile {
   imc: number | null;
   imc_classification: string | null;
   activity_level: string | null;
+  meals_per_day: number | null;
+  diet_type: string | null;
+  dietary_restrictions: string[];
+  dietary_restrictions_detail: string | null;
+  additional_goals: string[];
+  eating_location: string | null;
+  habit_changes: string[];
+  drinks_enough_water: string | null;
   health_goal: string | null;
   is_glp1_active: boolean;
   glp1_phase: string | null;

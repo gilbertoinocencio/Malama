@@ -14,6 +14,17 @@ export async function generateConsultationBriefing(patientId: string): Promise<s
 
   if (!patient) throw new Error('Paciente não encontrado');
 
+  // Calculate age from date_of_birth
+  const patientAge = (() => {
+    if (!patient.date_of_birth) return null;
+    const birth = new Date(patient.date_of_birth);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  })();
+
   // 2. Weight history (last 90 days)
   const since90 = new Date();
   since90.setDate(since90.getDate() - 90);
@@ -193,10 +204,43 @@ export async function generateConsultationBriefing(patientId: string): Promise<s
     maintain: 'Manutenção (> 3 meses)',
   };
 
+  // Lifestyle label helpers
+  const additionalGoalLabels: Record<string, string> = {
+    relacao_comida: 'Melhorar relação com comida',
+    bem_estar: 'Bem-estar geral',
+    gerir_stress: 'Gerir estresse',
+    melhorar_sono: 'Melhorar o sono',
+    aumentar_energia: 'Aumentar energia',
+  };
+  const habitChangeLabels: Record<string, string> = {
+    comer_noite: 'Comer à noite',
+    beliscar: 'Beliscar entre refeições',
+    doces: 'Consumo excessivo de doces',
+    sedentarismo: 'Sedentarismo',
+  };
+  const eatingLocationLabels: Record<string, string> = {
+    casa: 'Em casa',
+    trabalho: 'No trabalho',
+    restaurante: 'Em restaurantes',
+  };
+
+  const additionalGoalsList = (patient.additional_goals || []).map((g: string) => additionalGoalLabels[g] ?? g);
+  const habitChangesList = (patient.habit_changes || []).map((h: string) => habitChangeLabels[h] ?? h);
+  const dietaryRestrictionsList = (patient.dietary_restrictions || []) as string[];
+
   const context = `
-Paciente: ${patient.display_name || 'Paciente'}, ${patient.age || '—'} anos, ${patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Feminino' : '—'}
+Paciente: ${patient.display_name || 'Paciente'}, ${patientAge ?? '—'} anos, ${patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Feminino' : '—'}
 IMC: ${bmi} | Peso: ${patient.weight || '—'}kg | Altura: ${patient.height || '—'}cm
 GLP-1: ${patient.glp1_medication || 'Não usa'} — Fase: ${phaseMap[patient.glp1_phase] || 'N/A'}
+
+Perfil alimentar e estilo de vida (coletado no onboarding):
+- Tipo de dieta: ${patient.diet_type || 'Não informado'}
+- Refeições por dia: ${patient.meals_per_day || 'Não informado'}
+- Onde costuma comer: ${eatingLocationLabels[patient.eating_location] ?? patient.eating_location ?? 'Não informado'}
+- Consome água suficiente: ${{ sim: 'Sim', nao: 'Não', incerto: 'Incerto' }[patient.drinks_enough_water as string] ?? 'Não informado'}
+- Restrições / alergias alimentares: ${dietaryRestrictionsList.length > 0 ? dietaryRestrictionsList.join(', ') : 'Nenhuma'}${patient.dietary_restrictions_detail ? ` (detalhe: ${patient.dietary_restrictions_detail})` : ''}
+- Objetivos adicionais: ${additionalGoalsList.length > 0 ? additionalGoalsList.join(', ') : 'Nenhum'}
+- Hábitos que deseja mudar: ${habitChangesList.length > 0 ? habitChangesList.join(', ') : 'Nenhum informado'}
 
 Evolução de peso (90 dias): ${weightStart}kg → ${weightCurrent}kg (${parseFloat(weightDiff) > 0 ? '+' : ''}${weightDiff}kg)
 
@@ -233,15 +277,16 @@ ${diarySummary ?? 'Nenhuma nota registrada no período.'}
       `Você é um assistente médico especializado em nutrição e emagrecimento.
 Gere um briefing pré-consulta objetivo e clinicamente relevante para o médico.
 Use português brasileiro. Seja direto e prático.
-Formato: seções com emojis, máximo 400 palavras.
+Formato: seções com emojis, máximo 500 palavras.
 
 Inclua obrigatoriamente:
+- Perfil alimentar e estilo de vida: mencione o tipo de dieta, restrições ou alergias (críticas para o plano), hábitos que deseja mudar e objetivos adicionais informados no onboarding — esses dados refletem a realidade do paciente e devem guiar as recomendações
 - Progresso de peso e adesão ao plano
-- Padrão alimentar: comente os pratos mais consumidos e destaque refeições pesadas repetidas com nome e frequência (ex: "consumiu tiramisu 3x na semana")
-- Atividade física e hidratação: se há dados de treinos, comente o gasto calórico vs ingestão; alerte se o paciente treina mas não compensa na hidratação ou proteína; se não há integração ativa, mencione brevemente
+- Padrão alimentar: comente os pratos mais consumidos e destaque refeições pesadas repetidas com nome e frequência (ex: "consumiu tiramisu 3x na semana"); cruce com o tipo de dieta declarado pelo paciente (ex: dieta vegetariana mas consumindo carne frequentemente)
+- Atividade física e hidratação: se há dados de treinos, comente o gasto calórico vs ingestão; alerte se o paciente treina mas não compensa na hidratação ou proteína; se não há integração ativa, mencione brevemente; cruce com a resposta de hidratação do onboarding
 - Diário pessoal: se houver notas relevantes, cite textualmente as mais significativas usando o nome do paciente (ex: "em seu diário, João relatou desconforto intestinal após comer feijão em 02/05"); ignore notas triviais
 - Pontos de atenção clínicos
-- Sugestões objetivas para a consulta
+- Sugestões objetivas para a consulta, levando em conta os hábitos que o paciente quer mudar e seus objetivos adicionais
 
 Dados do paciente:
 ${context}`
@@ -269,7 +314,7 @@ function buildFallbackBriefing(
 
   return `📋 **BRIEFING PRÉ-CONSULTA**
 
-👤 **Paciente:** ${patient.display_name || 'Paciente'}, ${patient.age || '—'} anos
+👤 **Paciente:** ${patient.display_name || 'Paciente'}, ${patientAge ?? '—'} anos
 ⚖️ **IMC:** ${patient.weight && patient.height ? (patient.weight / Math.pow(patient.height / 100, 2)).toFixed(1) : '—'} | ${patient.weight || '—'}kg
 
 📉 **Progresso:** ${progressLine}
