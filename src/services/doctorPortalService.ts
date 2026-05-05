@@ -906,6 +906,13 @@ export const patientService = {
       console.error("Erro ao buscar profile do paciente (RLS?):", profileError);
     }
 
+    // Resolve display name — fallback via SECURITY DEFINER function (acessa auth.users)
+    let resolvedName = profile?.display_name || '';
+    if (!resolvedName) {
+      const { data: nameData } = await supabase.rpc('get_patient_name_for_doctor', { p_patient_id: patientId });
+      resolvedName = nameData || 'Paciente';
+    }
+
     // Check for active AI Nutritional Plan overriding profiles
     const { data: activePlan, error: planError } = await supabase
       .from('quarterly_plans')
@@ -1085,7 +1092,7 @@ export const patientService = {
 
     return {
       id: patientId,
-      name: profile?.display_name || 'Paciente',
+      name: resolvedName,
       photo_url: profile?.avatar_url || null,
       age: profile?.age || null,
       gender: profile?.gender || null,

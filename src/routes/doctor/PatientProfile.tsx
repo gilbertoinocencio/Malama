@@ -220,12 +220,6 @@ export const PatientProfile: React.FC = () => {
             )}
           </div>
 
-          <Link
-            to="/medico/agenda"
-            className="px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg text-sm font-medium transition"
-          >
-            Agendar consulta
-          </Link>
         </div>
       </div>
 
