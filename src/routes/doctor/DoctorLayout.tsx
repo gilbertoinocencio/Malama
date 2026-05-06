@@ -195,7 +195,7 @@ export const DoctorLayout: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64">
+      <main className="flex-1 min-w-0 lg:ml-64">
         {/* Header Mobile */}
         <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-20">
           <button onClick={() => setSidebarOpen(true)}>

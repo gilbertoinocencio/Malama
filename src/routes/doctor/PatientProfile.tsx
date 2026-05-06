@@ -232,7 +232,7 @@ export const PatientProfile: React.FC = () => {
       </div>
 
       {/* Abas */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
+      <div className="bg-white rounded-xl shadow">
         <div className="border-b border-gray-200 overflow-x-auto">
           <div className="flex min-w-max">
             {tabs.map(tab => (
@@ -257,7 +257,7 @@ export const PatientProfile: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className={activeTab === 'chat' ? '' : 'p-6'}>
           {/* Aba 1: Visão Geral */}
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -719,14 +719,12 @@ export const PatientProfile: React.FC = () => {
 
           {/* Aba 6: Chat */}
           {activeTab === 'chat' && patientId && (
-            <div className="-mx-6 -mb-6">
-              <AppointmentChatPanel
-                doctorId={doctor.id}
-                patientId={patientId}
-                patientName={patient.name}
-                chatId={chatIdFromUrl}
-              />
-            </div>
+            <AppointmentChatPanel
+              doctorId={doctor.id}
+              patientId={patientId}
+              patientName={patient.name}
+              chatId={chatIdFromUrl}
+            />
           )}
 
           {/* Aba Plano IA */}

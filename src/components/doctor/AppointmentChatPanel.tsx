@@ -296,7 +296,7 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
   const grouped = groupByDate(messages);
 
   return (
-    <div className="flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 320px)', minHeight: '460px' }}>
+    <div className="flex flex-col w-full rounded-b-xl overflow-hidden" style={{ height: 'calc(100vh - 340px)', minHeight: '460px' }}>
       {/* SLA Bar */}
       <SLABar chat={chat} />
 
