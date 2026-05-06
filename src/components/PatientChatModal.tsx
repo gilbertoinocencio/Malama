@@ -86,6 +86,24 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Polling fallback — guarantees delivery when realtime events aren't firing
+  const chatId     = chat?.id;
+  const chatIsOpen = chat?.status === 'open';
+  useEffect(() => {
+    if (!chatId || !chatIsOpen) return;
+    const poll = setInterval(async () => {
+      try {
+        const msgs = await appointmentChatService.getMessages(chatId);
+        setMessages(prev => {
+          const known = new Set(prev.map(m => m.id));
+          const fresh = msgs.filter(m => !known.has(m.id));
+          return fresh.length > 0 ? [...prev, ...fresh] : prev;
+        });
+      } catch { /* silent */ }
+    }, 5_000);
+    return () => clearInterval(poll);
+  }, [chatId, chatIsOpen]);
+
   const handleSend = async () => {
     if (!chat || !text.trim()) return;
     setSending(true);
