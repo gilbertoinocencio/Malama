@@ -168,12 +168,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setUser(newSession?.user ?? null);
 
                 if (newSession?.user) {
-                    // Se há token de indicação no localStorage e é um SIGNED_IN (ex: Google OAuth),
-                    // aplica o rastreamento antes de buscar o profile
+                    const u = newSession.user;
+                    // Novo usuário = criado há menos de 30s (cobre Google OAuth e outros provedores)
+                    const isNewOAuthUser = event === 'SIGNED_IN'
+                        && u.created_at
+                        && (Date.now() - new Date(u.created_at).getTime()) < 30_000;
+
                     if (event === 'SIGNED_IN' && localStorage.getItem('Malama_referral_token')) {
-                        applyReferralData(newSession.user.id).then(() => fetchProfile(newSession.user.id));
+                        // Usuário com token de indicação: aplica referral e busca profile
+                        applyReferralData(u.id, !!isNewOAuthUser)
+                            .then(() => fetchProfile(u.id));
+                    } else if (isNewOAuthUser) {
+                        // Novo usuário OAuth sem token: garante onboarding_completed=false antes de buscar
+                        applyReferralData(u.id, true).then(() => fetchProfile(u.id));
                     } else {
-                        fetchProfile(newSession.user.id);
+                        fetchProfile(u.id);
                     }
                 } else {
                     setProfile(null);
@@ -240,10 +249,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signUpWithEmail = useCallback(async (email: string, password: string) => {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        // Salvar canal de aquisição e indicação logo após o cadastro
-        // isNewUser=true garante que onboarding_completed=false seja gravado no perfil
-        if (data.user) await applyReferralData(data.user.id, true);
-    }, [applyReferralData]);
+        if (data.user) {
+            // applyReferralData grava onboarding_completed=false no perfil.
+            // fetchProfile logo após garante que o estado React reflita o valor
+            // correto, sobrescrevendo qualquer fetch prematuro disparado pelo
+            // evento SIGNED_IN (que pode correr antes do upsert terminar).
+            await applyReferralData(data.user.id, true);
+            await fetchProfile(data.user.id);
+        }
+    }, [applyReferralData, fetchProfile]);
 
     const signOut = useCallback(async () => {
         const { error } = await supabase.auth.signOut();

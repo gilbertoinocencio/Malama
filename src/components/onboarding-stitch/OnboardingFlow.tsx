@@ -176,18 +176,55 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         eatingWindowEnd = data.eatingWindowEnd;
       }
 
+      // Calcular macros usando a mesma fórmula da RecomendacaoMacrosStep
+      const ACTIVITY_MULT: Record<string, number> = {
+        sedentario: 1.2, leve: 1.375, moderado: 1.55, muito_ativo: 1.725,
+      };
+      const calcAge = (dob?: string) => {
+        if (!dob) return 30;
+        const b = new Date(dob), t = new Date();
+        let a = t.getFullYear() - b.getFullYear();
+        if (t.getMonth() - b.getMonth() < 0 || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--;
+        return a;
+      };
+      const age    = calcAge(data.dataNascimento);
+      const altura = data.altura || 170;
+      const peso   = data.peso   || 70;
+      const bmr    = data.genero === 'feminino'
+        ? 447.593 + (9.247 * peso) + (3.098 * altura) - (4.330 * age)
+        : 88.362  + (13.397 * peso) + (4.799 * altura) - (5.677 * age);
+      const mult   = ACTIVITY_MULT[data.nivelAtividade ?? 'moderado'] ?? 1.55;
+      let tdee     = Math.round(bmr * mult);
+      if (data.primary_goal === 'perder_peso') tdee -= 300;
+      if (data.primary_goal === 'ganhar_peso') tdee += 200;
+      const targetProtein = Math.round((tdee * 0.30) / 4);
+      const targetCarbs   = Math.round((tdee * 0.40) / 4);
+      const targetFats    = Math.round((tdee * 0.30) / 9);
+
       // Upsert crítico — apenas campos garantidamente existentes no schema.
       // Se falhar, o onboarding não avança.
+      const goalMap: Record<string, 'aesthetic' | 'health' | 'performance'> = {
+        perder_peso:  'aesthetic',
+        ganhar_peso:  'performance',
+        manter_peso:  'health',
+        saude_geral:  'health',
+      };
+
       const { error: upsertError } = await supabase.from('profiles').upsert({
         id: user.id,
         date_of_birth: data.dataNascimento,
         gender: data.genero,
         height: data.altura,
         weight: data.peso,
+        goal: goalMap[data.primary_goal ?? 'perder_peso'] ?? 'health',
         activity_level: activityMap[data.nivelAtividade ?? ''] ?? 'moderate',
         meals_per_day: data.mealsPerDay || 3,
         eating_window_start: eatingWindowStart,
         eating_window_end: eatingWindowEnd,
+        target_calories: tdee,
+        target_protein:  targetProtein,
+        target_carbs:    targetCarbs,
+        target_fats:     targetFats,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       });

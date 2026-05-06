@@ -59,7 +59,7 @@ export const UnifiedChatService = {
   async getOrCreateSession(userId: string): Promise<ChatSession> {
     // Try to get existing onboarding session
     let { data: onboardingSession } = await supabase
-      .from('chat_sessions')
+      .from('ai_chat_sessions')
       .select('*')
       .eq('user_id', userId)
       .eq('session_type', 'onboarding')
@@ -68,7 +68,7 @@ export const UnifiedChatService = {
     // Helper: get or create a chat session and return it
     const getOrCreateChatSession = async (): Promise<ChatSession> => {
       let { data: chatSession } = await supabase
-        .from('chat_sessions')
+        .from('ai_chat_sessions')
         .select('*')
         .eq('user_id', userId)
         .eq('session_type', 'chat')
@@ -76,7 +76,7 @@ export const UnifiedChatService = {
 
       if (!chatSession) {
         const { data: newChatSession } = await supabase
-          .from('chat_sessions')
+          .from('ai_chat_sessions')
           .insert({ user_id: userId, session_type: 'chat' })
           .select()
           .single();
@@ -102,7 +102,7 @@ export const UnifiedChatService = {
       // Mark onboarding session as completed if it exists, then return chat session
       if (onboardingSession) {
         await supabase
-          .from('chat_sessions')
+          .from('ai_chat_sessions')
           .update({ onboarding_completed: true })
           .eq('id', onboardingSession.id);
       }
@@ -112,7 +112,7 @@ export const UnifiedChatService = {
     // If no onboarding session, create one
     if (!onboardingSession) {
       const { data: newOnboarding } = await supabase
-        .from('chat_sessions')
+        .from('ai_chat_sessions')
         .insert({
           user_id: userId,
           session_type: 'onboarding',
@@ -132,7 +132,7 @@ export const UnifiedChatService = {
    */
   async getChatHistory(userId: string, limit: number = 100): Promise<ChatMessage[]> {
     const { data, error } = await supabase
-      .from('chat_messages')
+      .from('ai_chat_messages')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: true })
@@ -156,7 +156,7 @@ export const UnifiedChatService = {
       // always returns user message before agent message, even when inserted in the same batch.
       const userTs  = new Date().toISOString();
       const agentTs = new Date(Date.now() + 1).toISOString();
-      await supabase.from('chat_messages').insert([
+      await supabase.from('ai_chat_messages').insert([
         { user_id: userId, role: 'user',  content: userContent,  stage: null, created_at: userTs  },
         { user_id: userId, role: 'agent', content: agentContent, stage: null, created_at: agentTs },
       ]);
@@ -168,7 +168,7 @@ export const UnifiedChatService = {
   /**
    * Send message and get AI response (auto-detects mode)
    */
-  async sendMessage(userId: string, userMessage: string, options?: { interceptMeals?: boolean }): Promise<ChatMessage> {
+  async sendMessage(userId: string, userMessage: string, options?: { interceptMeals?: boolean; userDisplayContent?: string }): Promise<ChatMessage> {
     try {
       // Get current session
       const session = await this.getOrCreateSession(userId);
@@ -177,11 +177,15 @@ export const UnifiedChatService = {
 
       console.log('📍 Current session:', session.session_type, session.current_stage);
 
+      // userDisplayContent lets callers inject context into the AI prompt without polluting the
+      // saved message — what the user actually typed is what gets stored in the DB.
+      const savedUserContent = options?.userDisplayContent ?? userMessage;
+
       // Save user message (fire-and-forget — don't block on DB errors)
-      Promise.resolve(supabase.from('chat_messages').insert({
+      Promise.resolve(supabase.from('ai_chat_messages').insert({
         user_id: userId,
         role: 'user',
-        content: userMessage,
+        content: savedUserContent,
         stage: session.current_stage,
         onboarding_data: session.onboarding_data || {},
       })).catch(() => {});
@@ -317,7 +321,7 @@ export const UnifiedChatService = {
       }
 
       // Save AI message (fire-and-forget — don't block on DB errors)
-      Promise.resolve(supabase.from('chat_messages').insert({
+      Promise.resolve(supabase.from('ai_chat_messages').insert({
         user_id: userId,
         role: 'agent',
         content: aiResponse.content,
@@ -329,7 +333,7 @@ export const UnifiedChatService = {
 
       // Update session if needed (fire-and-forget)
       if (aiResponse.nextStage && session.id) {
-        Promise.resolve(supabase.from('chat_sessions').update({
+        Promise.resolve(supabase.from('ai_chat_sessions').update({
           current_stage: aiResponse.nextStage,
           onboarding_data: aiResponse.updatedData,
           onboarding_completed: aiResponse.nextStage === 'COMPLETED',
@@ -1088,7 +1092,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
 
     // Get recent chat messages for conversation continuity (last 10)
     const { data: recentChatMessages } = await supabase
-      .from('chat_messages')
+      .from('ai_chat_messages')
       .select('role, content')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
@@ -1186,7 +1190,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
     if (sessionType) {
       // Clear messages from specific session
       const { data: session } = await supabase
-        .from('chat_sessions')
+        .from('ai_chat_sessions')
         .select('id')
         .eq('user_id', userId)
         .eq('session_type', sessionType)
@@ -1194,14 +1198,14 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
 
       if (session) {
         await supabase
-          .from('chat_messages')
+          .from('ai_chat_messages')
           .delete()
           .eq('user_id', userId);
       }
     } else {
       // Clear all messages
       await supabase
-        .from('chat_messages')
+        .from('ai_chat_messages')
         .delete()
         .eq('user_id', userId);
     }
@@ -1212,7 +1216,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
    */
   async isOnboardingCompleted(userId: string): Promise<boolean> {
     const { data } = await supabase
-      .from('chat_sessions')
+      .from('ai_chat_sessions')
       .select('onboarding_completed')
       .eq('user_id', userId)
       .eq('session_type', 'onboarding')
@@ -1226,7 +1230,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
    */
   async getOnboardingData(userId: string): Promise<any> {
     const { data } = await supabase
-      .from('chat_sessions')
+      .from('ai_chat_sessions')
       .select('onboarding_data')
       .eq('user_id', userId)
       .eq('session_type', 'onboarding')

@@ -294,7 +294,10 @@ const App: React.FC = () => {
         fats: prev.macros.fats + meal.macros.fats,
       }
     }));
-    setView(AppView.HOME);
+    // Photo scans stay in the chat so the user can read the nutritionist feedback
+    if (meal.type !== 'ai-photo') {
+      setView(AppView.HOME);
+    }
   };
 
   const handleDeleteMeal = async (mealId: string) => {

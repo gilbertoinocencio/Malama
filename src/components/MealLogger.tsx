@@ -64,6 +64,7 @@ interface Message {
   id: string;
   type: MessageType;
   content: any; // Text string or AIResponse object
+  imageUri?: string; // Optional thumbnail for ai-photo scan cards
 }
 
 // Simple markdown renderer for chat messages (bold, italic, line breaks, numbered/bullet lists)
@@ -175,8 +176,8 @@ const resizeImage = (base64Str: string, maxDim = 1200): Promise<string> => {
 
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Export as JPEG with 0.8 quality to balance file size and detail
-      resolve(canvas.toDataURL('image/jpeg', 0.8));
+      // 0.72 quality: ~30% smaller than 0.8 with no visible loss for food recognition
+      resolve(canvas.toDataURL('image/jpeg', 0.72));
     };
     img.onerror = (e) => {
       console.error("Image load error for resizing:", e);
@@ -192,28 +193,31 @@ const historyToMessages = (history: any[]): Message[] => {
     if (msg.role === 'user' || msg.role === 'system') {
       result.push({ id: msg.id, type: 'user', content: msg.content });
     } else {
-      // agent â€” check for embedded meal card
+      // agent — check for embedded meal card
       const mealMatch = msg.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/);
       if (mealMatch) {
         try {
+          const imageUriMatch = msg.content.match(/<image_uri>([\s\S]*?)<\/image_uri>/);
+          const savedImageUri = imageUriMatch ? imageUriMatch[1] : undefined;
           const cleanText = msg.content
             .replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '')
             .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
             .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
+            .replace(/<image_uri>[\s\S]*?<\/image_uri>/g, '')
             .trim();
           const parsedMeal: AIResponse = JSON.parse(mealMatch[1]);
+          result.push({ id: msg.id + '-card', type: 'ai-card', content: parsedMeal, imageUri: savedImageUri });
           if (cleanText) result.push({ id: msg.id + '-text', type: 'ai-text', content: cleanText });
-          result.push({ id: msg.id + '-card', type: 'ai-card', content: parsedMeal });
         } catch {
           const cleanContent = msg.content
             .replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '')
             .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
             .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
+            .replace(/<image_uri>[\s\S]*?<\/image_uri>/g, '')
             .trim();
           result.push({ id: msg.id, type: 'ai-text', content: cleanContent || msg.content });
         }
       } else {
-        // Check for water/dose JSON and remove from display
         const cleanContent = msg.content
           .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
           .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
@@ -279,7 +283,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   // Confirm-before-close dialog
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
-  // Photo Mode State â€” initialized from localStorage so they survive app switches
+  // Photo Mode State â€" initialized from localStorage so they survive app switches
   const [scanResult, setScanResult] = useState<AIResponse | null>(() => {
     if (!user) return null;
     try {
@@ -329,7 +333,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       // Filter only 'chat' session messages (exclude onboarding)
       const chatOnly = history.filter((m: any) => !m.stage || m.stage === null);
       const converted = historyToMessages(chatOnly);
-      // Build date map: messageId â†’ ISO date string
+      // Build date map: messageId â†' ISO date string
       const dates: Record<string, string> = {};
       history.forEach((m: any) => {
         dates[m.id] = m.created_at;
@@ -451,53 +455,53 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const isQuestion = (text: string): boolean => {
     const lower = text.toLowerCase().trim();
 
-    // Corrections and clarifications â€” always route to chat agent, never to food analysis
+    // Corrections and clarifications - always route to chat agent, never to food analysis
     const correctionIndicators = [
-      'eu disse', 'nÃ£o disse', 'disse que', 'falei que', 'nÃ£o falei',
-      'na verdade', 'na realidade', 'quero corrigir', 'estÃ¡ errado', 'esta errado',
-      'nÃ£o Ã© isso', 'nao e isso', 'vocÃª errou', 'voce errou', 'errou',
-      'tÃ¡ errado', 'ta errado', 'nÃ£o Ã© esse', 'nao e esse',
+      'eu disse', 'não disse', 'disse que', 'falei que', 'não falei',
+      'na verdade', 'na realidade', 'quero corrigir', 'está errado', 'esta errado',
+      'não é isso', 'nao e isso', 'você errou', 'voce errou', 'errou',
+      'tá errado', 'ta errado', 'não é esse', 'nao e esse',
       'foi diferente', 'foi outro', 'foi outra',
       'corrija', 'corrige',
     ];
     if (correctionIndicators.some(i => lower.includes(i))) return true;
 
-    // Emotional state, cravings, satiety, humor â€” always route to chat agent
+    // Emotional state, cravings, satiety, humor - always route to chat agent
     const emotionAndCravingIndicators = [
-      'sem fome', 'nÃ£o estou com fome', 'nao estou com fome', 'nÃ£o tÃ´ com fome', 'nao to com fome',
-      'tÃ´ cheio', 'to cheio', 'estou cheio', 'estou satisfeito', 'tÃ´ satisfeito',
+      'sem fome', 'não estou com fome', 'nao estou com fome', 'não tô com fome', 'nao to com fome',
+      'tô cheio', 'to cheio', 'estou cheio', 'estou satisfeito', 'tô satisfeito',
       'vontade de comer', 'vontade de tomar', 'vontade de beber',
-      'com vontade', 'tÃ´ com vontade', 'to com vontade', 'estou com vontade',
+      'com vontade', 'tô com vontade', 'to com vontade', 'estou com vontade',
       'pensei em comer', 'pensando em comer', 'quero comer', 'queria comer',
       'quero tomar', 'queria tomar', 'quero beber', 'bateu uma vontade',
-      'tÃ´ cansado', 'to cansado', 'estou cansado', 'sem energia', 'sem animo', 'sem Ã¢nimo',
-      'tÃ´ bem', 'to bem', 'estou bem', 'tÃ´ mal', 'to mal', 'estou mal',
-      'tÃ´ ansioso', 'to ansioso', 'estou ansioso', 'tÃ´ estressado', 'estou estressado',
-      'tÃ´ feliz', 'to feliz', 'tÃ´ triste', 'to triste', 'estou triste',
-      'mal dormi', 'dormi mal', 'nÃ£o dormi', 'acordei cedo',
-      'comi demais', 'exagerei', 'vacilei', 'escoreguei', 'saÃ­ do plano', 'sai do plano',
-      'minha dieta', 'foi pro espaÃ§o', 'foi pro espaco', 'largar tudo',
-      'haha', 'kkkk', 'rsrs', 'kkk', 'lol', 'brincando', 'sÃ³ brincando', 'so brincando',
+      'tô cansado', 'to cansado', 'estou cansado', 'sem energia', 'sem animo', 'sem ânimo',
+      'tô bem', 'to bem', 'estou bem', 'tô mal', 'to mal', 'estou mal',
+      'tô ansioso', 'to ansioso', 'estou ansioso', 'tô estressado', 'estou estressado',
+      'tô feliz', 'to feliz', 'tô triste', 'to triste', 'estou triste',
+      'mal dormi', 'dormi mal', 'não dormi', 'acordei cedo',
+      'comi demais', 'exagerei', 'vacilei', 'escoreguei', 'saí do plano', 'sai do plano',
+      'minha dieta', 'foi pro espaço', 'foi pro espaco', 'largar tudo',
+      'haha', 'kkkk', 'rsrs', 'kkk', 'lol', 'brincando', 'só brincando', 'so brincando',
     ];
     if (emotionAndCravingIndicators.some(i => lower.includes(i))) return true;
 
     const questionIndicators = [
       '?', 'como ', 'por que', 'porque', 'qual ', 'quais ', 'quando ', 'quanto ',
-      'o que ', 'o quÃª', 'dica', 'sugestÃ£o', 'sugestao', 'explica', 'explique',
-      'me fala', 'me diga', 'Ã© importante', 'e importante', 'preciso de',
-      'posso comer', 'devo comer', 'melhor para', 'Ã© bom', 'e bom', 'faz bem',
-      'faz mal', 'benefÃ­cio', 'beneficio', 'vitamina', 'proteÃ­na', 'proteina',
+      'o que ', 'o quê', 'dica', 'sugestão', 'sugestao', 'explica', 'explique',
+      'me fala', 'me diga', 'é importante', 'e importante', 'preciso de',
+      'posso comer', 'devo comer', 'melhor para', 'é bom', 'e bom', 'faz bem',
+      'faz mal', 'benefício', 'beneficio', 'vitamina', 'proteína', 'proteina',
       'emagrecer', 'engordar', 'ajuda', 'ajude', 'recomenda', 'pode me',
-      'substituir', 'substitua', 'trocar', 'troque', 'trocar por', 'diferenÃ§a', 'diferenca',
-      'saudÃ¡vel', 'saudavel', 'caloria', 'dieta', 'jejum', 'metabolismo',
-      'treino', 'prÃ©-treino', 'pÃ³s-treino', 'pre treino', 'pos treino',
-      'hidrataÃ§Ã£o', 'hidratacao', 'Ã¡gua', 'agua', 'dormir', 'sono',
-      'oi', 'olÃ¡', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'obrigado', 'obrigada', 'valeu',
+      'substituir', 'substitua', 'trocar', 'troque', 'trocar por', 'diferença', 'diferenca',
+      'saudável', 'saudavel', 'caloria', 'dieta', 'jejum', 'metabolismo',
+      'treino', 'pré-treino', 'pós-treino', 'pre treino', 'pos treino',
+      'hidratação', 'hidratacao', 'água', 'agua', 'dormir', 'sono',
+      'oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite', 'obrigado', 'obrigada', 'valeu',
       'sugira', 'sugerir', 'me sugira', 'sugere', 'me sugere', 'me sugira',
-      'outra opÃ§Ã£o', 'outra opcao', 'outra alternativa', 'outro ingrediente',
-      'recomend', 'poderia sugerir', 'lanche saudavel', 'lanche rapido', 'lanche rÃ¡pido',
-      'me indica', 'opÃ§Ã£o diferente', 'opcao diferente', 'quero a opÃ§Ã£o', 'quero a opcao',
-      'quero opÃ§Ã£o', 'prefiro', 'escolho', 'vou de', 'pode ser'
+      'outra opção', 'outra opcao', 'outra alternativa', 'outro ingrediente',
+      'recomend', 'poderia sugerir', 'lanche saudavel', 'lanche rapido', 'lanche rápido',
+      'me indica', 'opção diferente', 'opcao diferente', 'quero a opção', 'quero a opcao',
+      'quero opção', 'prefiro', 'escolho', 'vou de', 'pode ser'
     ];
     return questionIndicators.some(indicator => lower.includes(indicator));
   };
@@ -517,15 +521,19 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       if (isQuestion(userText) && user) {
         // Route to Smart Agent (UnifiedChatService)
         // Inject current meal context so the agent knows which meal is being discussed
-        // Water intake messages (e.g. "bebi 1500ml de Ã¡gua") must NOT carry the previous
-        // meal context â€” otherwise the AI responds about the meal instead of the hydration.
-        const isWaterIntakeMessage = /\b(bebi|tomei|ingeri|bebei)\b.{0,40}\b(Ã¡gua|agua|water|\d+\s*ml|\d+\s*litro)/i.test(userText)
-          || /\b\d+\s*(ml|litros?|copos?)\b.{0,30}\b(Ã¡gua|agua|water)\b/i.test(userText);
+        // Water intake messages (e.g. "bebi 1500ml de água") must NOT carry the previous
+        // meal context - otherwise the AI responds about the meal instead of the hydration.
+        const isWaterIntakeMessage = /\b(bebi|tomei|ingeri|bebei)\b.{0,40}\b(água|agua|water|\d+\s*ml|\d+\s*litro)/i.test(userText)
+          || /\b\d+\s*(ml|litros?|copos?)\b.{0,30}\b(água|agua|water)\b/i.test(userText);
 
         const mealContext = (!isWaterIntakeMessage && draftMeal)
-          ? `[Contexto da refeiÃ§Ã£o atual: ${draftMeal.foodName} â€” ${(draftMeal.items || []).map(i => `${i.name} ${i.weightGrams}g (${i.calories}kcal)`).join(', ')}]\n\n`
+          ? `[Contexto da refeição atual: ${draftMeal.foodName} - ${(draftMeal.items || []).map(i => `${i.name} ${i.weightGrams}g (${i.calories}kcal)`).join(', ')}]\n\n`
           : '';
-        const agentResponse = await UnifiedChatService.sendMessage(user.id, mealContext + userText, { interceptMeals: false });
+        const agentResponse = await UnifiedChatService.sendMessage(
+          user.id,
+          mealContext + userText,
+          { interceptMeals: false, userDisplayContent: userText }
+        );
 
         // Always extract meal_json if it exists (AI decided it's a meal)
         const mealJsonMatch = agentResponse.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/);
@@ -633,7 +641,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       // Optimize image before sending to AI
       try {
         // Enforce max dimension of 1200px (well below the 2000px limit)
-        base64 = await resizeImage(base64, 1200);
+        base64 = await resizeImage(base64, 800);
         setScannedImageUri(base64);
 
         const result = await analyzeImageLog(base64, language);
@@ -678,13 +686,44 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       console.log('MealLogger: Calling MealService.logMeal...');
       await MealService.logMeal(newMeal, user.id);
       console.log('MealLogger: Logged! Calling onLog...');
-      onLog(newMeal); // Optimistic update / update parent state
+      onLog(newMeal);
 
-      setSuccess(true);
       if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+
+      if (type === 'ai-photo') {
+        // Add scan card + nutritionist feedback to chat and return to chat view
+        const feedback = data.message || `${data.foodName} registrado com sucesso!`;
+        const cardId = Date.now().toString();
+        const textId = (Date.now() + 1).toString();
+        const capturedImageUri = scannedImageUri ?? undefined;
+        setMessages(prev => [
+          ...prev,
+          { id: cardId, type: 'ai-card', content: data, imageUri: capturedImageUri },
+          { id: textId, type: 'ai-text', content: feedback },
+        ]);
+        if (user) {
+          // Persist a small thumbnail (200px) so the photo survives chat reloads
+          let imageTag = '';
+          if (capturedImageUri) {
+            try {
+              const thumb = await resizeImage(capturedImageUri, 200);
+              imageTag = `\n<image_uri>${thumb}</image_uri>`;
+            } catch { /* non-blocking */ }
+          }
+          const agentContent = `${feedback}\n<meal_json>${JSON.stringify(data)}</meal_json>${imageTag}`;
+          UnifiedChatService.saveDirectMessages(user.id, `[Foto: ${data.foodName}]`, agentContent).catch(() => {});
+        }
+        setLoading(false);
+        setSuccess(true);
+        setTimeout(() => {
+          setSuccess(false);
+          setScanResult(null);
+          setScannedImageUri(null);
+        }, 900);
+      } else {
+        setSuccess(true);
+        setTimeout(() => { onClose(); }, 1500);
+      }
     } catch (error) {
       console.error('Failed to log meal:', error);
       alert(t.mealLogger.errorLogging);
@@ -782,12 +821,13 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     }
   };
 
-  // If we have a scan result, show the new PhotoScanResult component
-  if (scanResult && scannedImageUri) {
+  // Show scan screen as soon as image is selected — analysis runs in background
+  if (scannedImageUri) {
     return (
       <MalamaAiScan
         data={scanResult}
         imageUri={scannedImageUri}
+        isLoading={!scanResult}
         onConfirm={(finalData) => handleConfirmLog(finalData, 'ai-photo')}
         onBack={() => {
           setScanResult(null);
@@ -799,13 +839,21 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   const renderMessage = (msg: Message) => {
     if (msg.type === 'user') {
+      const photoMatch = typeof msg.content === 'string' && msg.content.match(/^\[Foto: (.+)\]$/);
       return (
         <div key={msg.id} className="flex items-end gap-3 justify-end w-full animate-fade-in-up">
           <div className="flex flex-col gap-1 items-end max-w-[85%]">
-            <div className="bg-Malama-petrol dark:bg-primary text-white text-base font-normal leading-relaxed rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm">
-              {msg.content}
-            </div>
-            <span className="text-Malama-muted dark:text-slate-400 text-[11px] font-medium pr-1">VocÃª</span>
+            {photoMatch ? (
+              <div className="bg-Malama-petrol dark:bg-primary text-white text-sm font-medium rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px] shrink-0">photo_camera</span>
+                <span>{photoMatch[1]}</span>
+              </div>
+            ) : (
+              <div className="bg-Malama-petrol dark:bg-primary text-white text-base font-normal leading-relaxed rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm">
+                {msg.content}
+              </div>
+            )}
+            <span className="text-Malama-muted dark:text-slate-400 text-[11px] font-medium pr-1">Você</span>
           </div>
           <div
             className="bg-center bg-no-repeat bg-cover rounded-full w-8 h-8 shrink-0 border border-Malama-border dark:border-white/10"
@@ -837,105 +885,82 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
     if (msg.type === 'ai-card') {
       const data = msg.content as AIResponse;
-      const totalMacros = data.macros.p + data.macros.c + data.macros.f;
-      // Guard against division by zero (products with all-zero macros from OpenFoodFacts).
-      // NaN in conic-gradient crashes the render on iOS Safari â†’ ErrorBoundary "Something went wrong".
+      const totalMacros = (data.macros.p || 0) + (data.macros.c || 0) + (data.macros.f || 0);
       const safeDivisor = totalMacros > 0 ? totalMacros : 1;
       const pPct = (data.macros.p / safeDivisor) * 100;
       const cPct = (data.macros.c / safeDivisor) * 100;
-      const gradientStyle = {
-        background: `conic-gradient(var(--tw-colors-accent-protein) 0% ${pPct}%, var(--tw-colors-accent-carbs) ${pPct}% ${pPct + cPct}%, var(--tw-colors-accent-fat) ${pPct + cPct}% 100%)`
-      };
+      const fPct = (data.macros.f / safeDivisor) * 100;
 
       return (
         <div key={msg.id} className="flex gap-3 w-full max-w-full animate-fade-in-up pl-11">
-          <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 shadow-lg border border-Malama-border dark:border-white/5 w-full overflow-hidden relative group">
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-Malama-petrol/10 dark:bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="flex justify-between items-start mb-6 relative z-10">
-              <div>
-                <h3 className="text-Malama-main dark:text-white text-xl font-bold">{t.mealLogger.summary}</h3>
-                <p className="text-Malama-muted dark:text-slate-500 text-base capitalize">{data.foodName}</p>
-              </div>
-              <div className="text-right">
-                <span className="block text-3xl font-bold text-Malama-petrol dark:text-primary tracking-tight">{data.calories}</span>
-                <span className="text-sm text-Malama-muted dark:text-slate-400 uppercase tracking-wider font-semibold">{t.mealLogger.kcalTotal}</span>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center gap-6 mb-6">
-              <div className="relative shrink-0 size-24 rounded-full flex items-center justify-center" style={gradientStyle}>
-                <div className="absolute inset-0 rounded-full bg-white dark:bg-surface-dark m-[10px] flex items-center justify-center">
-                  <span className="material-symbols-outlined text-Malama-muted dark:text-slate-400">restaurant</span>
+          <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm border border-Malama-border dark:border-white/5 w-full">
+
+            {/* Header: photo strip or gradient banner */}
+            {msg.imageUri ? (
+              <div className="relative w-full h-24">
+                <img src={msg.imageUri} alt={data.foodName} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/10" />
+                <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between gap-2">
+                  <h3 className="text-white text-sm font-bold leading-tight line-clamp-1 flex-1">{data.foodName}</h3>
+                  <span className="text-white text-sm font-bold shrink-0 tabular-nums">{data.calories} kcal</span>
                 </div>
               </div>
-              <div className="flex-1 grid grid-cols-3 sm:grid-cols-1 gap-2 w-full">
-                {[
-                  { label: t.macros.prot, value: data.macros.p, color: 'bg-accent-protein' },
-                  { label: t.macros.carb, value: data.macros.c, color: 'bg-accent-carbs' },
-                  { label: t.macros.fat, value: data.macros.f, color: 'bg-accent-fat' },
-                ].map(({ label, value, color }) => (
-                  <div key={label} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-Malama-bg dark:bg-white/5 p-2 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${color}`} />
-                      <span className="text-sm text-Malama-muted dark:text-slate-400 font-medium">{label}</span>
-                    </div>
-                    <span className="text-base font-bold text-Malama-main dark:text-white">{value}g</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 mt-2">
-              {data.items?.map((item, idx) => (
-                <div key={idx} className="p-3 rounded-xl bg-Malama-bg dark:bg-surface-dark border border-transparent hover:border-Malama-petrol/20 dark:hover:border-primary/20 transition-all">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="bg-Malama-border dark:bg-white/10 rounded-lg size-9 shrink-0 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-Malama-muted dark:text-slate-500 text-sm">lunch_dining</span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-Malama-main dark:text-white text-base font-semibold truncate">{item.name}</p>
-                        <p className="text-Malama-muted dark:text-slate-500 text-sm">
-                          {item.quantity ?? ''}{item.weightGrams ? ` Â· ${item.weightGrams}g` : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-Malama-petrol dark:text-primary text-base font-bold shrink-0">{item.calories} kcal</span>
-                  </div>
-                  {(item.protein != null || item.carbs != null || item.fats != null) && (
-                    <div className="flex gap-2 pl-12">
-                      {item.protein != null && (
-                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-xs font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-accent-protein inline-block" />
-                          <span className="text-Malama-muted dark:text-slate-400">P</span>
-                          <span className="text-Malama-main dark:text-white">{item.protein}g</span>
-                        </span>
-                      )}
-                      {item.carbs != null && (
-                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-xs font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-accent-carbs inline-block" />
-                          <span className="text-Malama-muted dark:text-slate-400">C</span>
-                          <span className="text-Malama-main dark:text-white">{item.carbs}g</span>
-                        </span>
-                      )}
-                      {item.fats != null && (
-                        <span className="flex items-center gap-1 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full text-xs font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-accent-fat inline-block" />
-                          <span className="text-Malama-muted dark:text-slate-400">G</span>
-                          <span className="text-Malama-main dark:text-white">{item.fats}g</span>
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            {data.message && (
-              <div className="mt-4 pt-4 border-t border-Malama-border dark:border-white/10">
-                <div className="flex items-start gap-2 text-Malama-petrol dark:text-Malama-offwhite">
-                  <span className="material-symbols-outlined text-xl mt-0.5">auto_awesome</span>
-                  <p className="text-base font-medium italic">{data.message}</p>
+            ) : (
+              <div className="bg-gradient-to-r from-Malama-petrol to-[#b85c47] px-4 py-3 flex items-center justify-between gap-3">
+                <h3 className="text-white text-sm font-bold leading-snug flex-1 min-w-0 line-clamp-2">{data.foodName}</h3>
+                <div className="text-right shrink-0">
+                  <p className="text-white text-xl font-black leading-none tabular-nums">{data.calories}</p>
+                  <p className="text-white/70 text-[10px] uppercase tracking-wider font-semibold">kcal</p>
                 </div>
               </div>
             )}
+
+            <div className="px-3 pt-2.5 pb-3">
+              {/* Macro progress bar */}
+              <div className="mb-3">
+                <div className="flex rounded-full overflow-hidden h-1.5 gap-px mb-2">
+                  <div className="bg-[#60b4f5] transition-all" style={{ width: `${pPct}%` }} />
+                  <div className="bg-[#f9c74f] transition-all" style={{ width: `${cPct}%` }} />
+                  <div className="bg-[#f4845f] transition-all" style={{ width: `${fPct}%` }} />
+                </div>
+                <div className="flex justify-around">
+                  {[
+                    { label: t.macros.prot, value: data.macros.p, color: 'text-[#4fa8e8]' },
+                    { label: t.macros.carb, value: data.macros.c, color: 'text-[#d4a017]' },
+                    { label: t.macros.fat,  value: data.macros.f, color: 'text-[#e06b48]' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="flex flex-col items-center gap-0.5">
+                      <span className={`text-sm font-black tabular-nums ${color}`}>{value}g</span>
+                      <span className="text-[10px] text-Malama-muted dark:text-slate-500 font-medium">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Items list */}
+              {data.items && data.items.length > 0 && (
+                <div className="flex flex-col gap-1.5 border-t border-Malama-border dark:border-white/5 pt-2.5">
+                  {data.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="bg-Malama-bg dark:bg-white/5 rounded-lg size-7 shrink-0 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-Malama-muted dark:text-slate-500 text-xs">lunch_dining</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-Malama-main dark:text-white text-xs font-semibold truncate">{item.name}</p>
+                          {(item.quantity || item.weightGrams) && (
+                            <p className="text-Malama-muted dark:text-slate-500 text-[10px]">
+                              {item.quantity ?? ''}{item.weightGrams ? ' · ' + item.weightGrams + 'g' : ''}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-Malama-petrol dark:text-primary text-xs font-bold shrink-0 tabular-nums">{item.calories} kcal</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       );
@@ -1144,7 +1169,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           <div className="h-1"></div>
         </div>
       </div>
-      {/* Edit Panel â€” full-screen slide-in sheet */}
+      {/* Edit Panel â€" full-screen slide-in sheet */}
       {editMode && (
         <div className="absolute inset-0 z-30 bg-Malama-bg dark:bg-background-dark flex flex-col animate-fade-in">
           {/* Header */}
@@ -1156,7 +1181,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
             <div>
-              <h2 className="font-bold text-Malama-main dark:text-white text-base">Editar refeiÃ§Ã£o</h2>
+              <h2 className="font-bold text-Malama-main dark:text-white text-base">Editar refeição</h2>
               <p className="text-xs text-Malama-muted dark:text-slate-500">Ajuste ingredientes e quantidades</p>
             </div>
           </header>
@@ -1247,7 +1272,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.4)] animate-bounce mb-6">
             <span className="material-symbols-outlined text-white text-4xl">check</span>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight mb-2">RefeiÃ§Ã£o Salva!</h2>
+          <h2 className="text-2xl font-bold tracking-tight mb-2">Refeição Salva!</h2>
           <p className="text-Malama-muted dark:text-slate-400 font-medium">Sincronizado com sucesso</p>
         </div>
       )}
@@ -1260,10 +1285,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-4 bg-Malama-border dark:bg-white/20" />
             <div className="px-6 pb-10">
               <h3 className="text-Malama-main dark:text-white text-lg font-bold text-center mb-1">
-                AnÃ¡lise em andamento
+                Análise em andamento
               </h3>
               <p className="text-Malama-muted dark:text-slate-400 text-sm text-center mb-6">
-                VocÃª tem uma refeiÃ§Ã£o nÃ£o registrada. O que deseja fazer?
+                Você tem uma refeição não registrada. O que deseja fazer?
               </p>
               <div className="flex flex-col gap-3">
                 <button

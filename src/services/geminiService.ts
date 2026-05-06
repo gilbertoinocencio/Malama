@@ -50,6 +50,7 @@ const cleanJsonString = (str: string) => {
 };
 
 const MODEL_NAME = "gemini-2.5-flash";
+const IMAGE_MODEL_NAME = MODEL_NAME;
 
 const LANG_NAMES: Record<string, string> = {
   pt: 'Portuguese (Brazilian)',
@@ -272,68 +273,74 @@ export const analyzeImageLog = async (base64Image: string, language: string = 'p
   if (!apiKey) throw new Error("API Key missing");
 
   try {
-    // Determine mime type from base64 string header or default to png
     const mimeType = base64Image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/png';
-    const data = base64Image.split(',')[1]; // Remove header
+    const data = base64Image.split(',')[1];
 
-    const model = getGenAI().getGenerativeModel({ model: MODEL_NAME });
+    const model = getGenAI().getGenerativeModel({
+      model: IMAGE_MODEL_NAME,
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            foodName: { type: SchemaType.STRING },
+            calories: { type: SchemaType.NUMBER },
+            macros: {
+              type: SchemaType.OBJECT,
+              properties: {
+                p: { type: SchemaType.NUMBER },
+                c: { type: SchemaType.NUMBER },
+                f: { type: SchemaType.NUMBER },
+              },
+              required: ["p", "c", "f"]
+            },
+            items: {
+              type: SchemaType.ARRAY,
+              items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                  name: { type: SchemaType.STRING },
+                  quantity: { type: SchemaType.STRING },
+                  weightGrams: { type: SchemaType.NUMBER },
+                  calories: { type: SchemaType.NUMBER },
+                  protein: { type: SchemaType.NUMBER },
+                  carbs: { type: SchemaType.NUMBER },
+                  fats: { type: SchemaType.NUMBER },
+                  micros: {
+                    type: SchemaType.OBJECT,
+                    properties: { ...MICRO_SCHEMA_PROPERTIES },
+                    required: Object.keys(MICRO_SCHEMA_PROPERTIES) as string[],
+                  },
+                },
+                required: ["name", "weightGrams", "calories", "protein", "carbs", "fats", "micros"]
+              }
+            },
+            message: { type: SchemaType.STRING }
+          },
+          required: ["foodName", "calories", "macros", "items", "message"]
+        }
+      }
+    });
 
     const langName = LANG_NAMES[language] || LANG_NAMES.pt;
     const prompt = `You are Malama, a clinical-grade nutrition analysis engine. Identify ALL food items visible in this image.
 
-## NUTRITIONAL DATABASE PRIORITY
-Use values from these databases in order of priority:
-1. **TACO (Tabela Brasileira de Composição de Alimentos)** — preferred for Brazilian foods
-2. **USDA FoodData Central (SR Legacy / Foundation Foods)** — for international foods
-3. **IBGE POF** — for typical Brazilian portion sizes
+Use TACO (Brazilian foods), USDA FoodData Central, or IBGE POF as nutritional references, in that order.
 
-## RULES
-- Estimate the weight of each visible item based on visual portion size (use common plate/bowl sizes as reference).
-- Calculate macros per item using **per-100g values** from the databases above, scaled to the estimated weight.
-- For composite items, break them into individual ingredients when possible.
-- Include a "quantity" field (e.g. "1 filé médio", "2 conchas", "1 bowl pequeno").
-- Round all numeric values to the nearest integer.
-- The total calories and macros must equal the sum of all items.
-
-Return a STRICT JSON string with this structure:
-{
-  "foodName": string (overall meal name in ${langName}),
-  "calories": number (total kcal),
-  "macros": { "p": number, "c": number, "f": number },
-  "items": [{
-    "name": string (in ${langName}),
-    "quantity": string (e.g. "1 unidade média"),
-    "weightGrams": number,
-    "calories": number,
-    "protein": number,
-    "carbs": number,
-    "fats": number,
-    "micros": { "fiber": number, "sugar": number, "saturated_fat": number, "cholesterol": number,
-      "sodium": number, "potassium": number, "calcium": number, "iron": number, "magnesium": number,
-      "zinc": number, "vitamin_a": number, "vitamin_c": number, "vitamin_d": number,
-      "vitamin_e": number, "vitamin_b12": number, "vitamin_b6": number, "folate": number } (optional object — omit fields not found in TACO/USDA)
-  }],
-  "message": string (short motivational phrase in ${langName})
-}
+Rules:
+- Estimate each item's weight from visual portion size (use common plate/bowl sizes as reference).
+- Scale per-100g macro values to the estimated weight.
+- Break composite dishes into individual ingredients when possible.
+- Include a "quantity" field (e.g. "1 filé médio", "2 conchas").
+- Round all numbers to the nearest integer. Total calories/macros must equal the sum of items.
+- "message": short, honest nutritionist feedback about this meal in ${langName}.
 ${MICRO_PROMPT_INSTRUCTIONS}
-ALL text responses MUST be in ${langName}.`;
+ALL text MUST be in ${langName}.`;
 
-    const result = await model.generateContent([
-      prompt,
-      { inlineData: { mimeType, data } }
-    ]);
-
-    const response = await result.response;
-    let text = response.text() || "{}";
-
-    // Clean up if it enters markdown mode
-    text = cleanJsonString(text);
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) text = jsonMatch[0];
-
-    return JSON.parse(text) as AIResponse;
+    const result = await model.generateContent([prompt, { inlineData: { mimeType, data } }]);
+    return JSON.parse(result.response.text()) as AIResponse;
   } catch (error) {
-    console.error("Gemini Image Error:", error);
+    console.error("Image Analysis Error:", error);
     throw error;
   }
 };

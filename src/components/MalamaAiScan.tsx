@@ -1,15 +1,20 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIResponse, MealItem } from '../types';
 import { lookupSingleItem } from '../services/geminiService';
 import { useLanguage } from '../i18n';
 
 interface MalamaAiScanProps {
-    data: AIResponse;
+    data: AIResponse | null;
     imageUri: string;
     onConfirm: (finalData: AIResponse) => void;
     onBack: () => void;
+    isLoading?: boolean;
 }
+
+const Shimmer = ({ className }: { className: string }) => (
+    <div className={`animate-pulse bg-stone-200 rounded-lg ${className}`} />
+);
 
 const MALAMA_RED = '#7d4a3c';
 const BG_CREAM = '#FDFBF9';
@@ -26,18 +31,28 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
     data,
     imageUri,
     onConfirm,
-    onBack
+    onBack,
+    isLoading = false,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [items, setItems] = useState<MealItem[]>(() => data.items.map(i => ({ ...i })));
-    const [foodName, setFoodName] = useState(data.foodName);
+    const [items, setItems] = useState<MealItem[]>(() => data?.items.map((i: MealItem) => ({ ...i })) ?? []);
+    const [foodName, setFoodName] = useState(data?.foodName ?? '');
     const [confirming, setConfirming] = useState(false);
     const [lookingUp, setLookingUp] = useState<number | null>(null);
     const lookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const { language } = useLanguage();
 
     const { calories, macros } = recalcTotals(items);
-    const originalItems = useRef<MealItem[]>(data.items.map(i => ({ ...i })));
+    const originalItems = useRef<MealItem[]>(data?.items.map((i: MealItem) => ({ ...i })) ?? []);
+
+    // Sync state when data arrives after loading
+    useEffect(() => {
+        if (data && !isLoading) {
+            setItems(data.items.map((i: MealItem) => ({ ...i })));
+            setFoodName(data.foodName);
+            originalItems.current = data.items.map((i: MealItem) => ({ ...i }));
+        }
+    }, [data, isLoading]);
 
     const updateItem = useCallback((index: number, field: keyof MealItem, value: any) => {
         setItems(prev => {
@@ -130,23 +145,23 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
     return (
         <div className="flex flex-col h-full font-body overflow-hidden" style={{ background: BG_CREAM }}>
             {/* Header */}
-            <header className="flex items-center px-6 py-4 justify-between shrink-0 z-30" style={{ background: BG_CREAM, borderBottom: '1px solid #f5f5f4' }}>
-                <div className="w-10"></div>
-                <h2 
-                    className="text-stone-800 text-lg tracking-[0.2em] uppercase"
+            <header className="flex items-center px-4 py-3 justify-between shrink-0 z-30" style={{ background: BG_CREAM, borderBottom: '1px solid #f5f5f4' }}>
+                <div className="w-9"></div>
+                <h2
+                    className="text-base tracking-[0.2em] uppercase"
                     style={{ fontFamily: "'Playfair Display', serif", color: MALAMA_RED }}
                 >
                     Malama Scan
                 </h2>
                 <button
                     onClick={onBack}
-                    className="flex size-10 items-center justify-center rounded-full bg-stone-50 text-stone-400 hover:bg-stone-100 transition-all active:scale-95"
+                    className="flex size-9 items-center justify-center rounded-full bg-stone-50 text-stone-400 hover:bg-stone-100 transition-all active:scale-95"
                 >
-                    <span className="material-symbols-outlined text-3xl">close</span>
+                    <span className="material-symbols-outlined text-xl">close</span>
                 </button>
             </header>
 
-            <div className="flex-1 overflow-y-auto px-6 pb-32 pt-6">
+            <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4">
                 <AnimatePresence mode="wait">
                     {!isEditing ? (
                         <motion.div
@@ -157,104 +172,78 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
                             className="flex flex-col w-full max-w-md mx-auto"
                         >
                             {/* Image Card */}
-                            <div className="relative w-full aspect-[4/5] rounded-[24px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.06)] bg-stone-100 border border-stone-200">
+                            <div className="relative w-full aspect-[4/3] rounded-[20px] overflow-hidden shadow-[0_4px_20px_rgb(0,0,0,0.08)] bg-stone-100 border border-stone-200">
                                 <img
                                     src={imageUri}
                                     alt="Meal Scan"
                                     className="w-full h-full object-cover"
                                 />
-                                <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/50 via-black/20 to-transparent"></div>
+                                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-                                {/* Overlapping Info Card */}
-                                <div className="absolute bottom-4 left-4 right-4">
-                                    <div className="bg-white/95 backdrop-blur-xl p-5 rounded-2xl shadow-sm flex items-center justify-between border border-stone-100">
-                                        <div className="flex-1 min-w-0 pr-4">
-                                            <span className="block text-sm font-light text-stone-400 mb-1 uppercase tracking-widest">REFEIÇÃO IDENTIFICADA</span>
-                                            <h1 
-                                                className="text-4xl text-stone-800 leading-tight truncate"
-                                                style={{ fontFamily: "'Playfair Display', serif" }}
-                                            >
-                                                {foodName}
-                                            </h1>
-                                        </div>
-                                        <div 
-                                            className="size-14 rounded-full flex items-center justify-center shadow-sm shrink-0"
-                                            style={{ background: MALAMA_RED }}
-                                        >
-                                            <span className="material-symbols-outlined text-white text-3xl">done_all</span>
-                                        </div>
+                                {/* Loading overlay on image */}
+                                {isLoading && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[2px]">
+                                        <div className="w-10 h-10 border-[3px] border-white/30 border-t-white rounded-full animate-spin mb-2" />
+                                        <p className="text-white text-xs font-light tracking-widest uppercase animate-pulse">Identificando...</p>
                                     </div>
+                                )}
+
+                                {/* Compact overlay strip at bottom of image */}
+                                <div className="absolute bottom-0 inset-x-0 px-4 pb-3 pt-6">
+                                    {isLoading ? (
+                                        <Shimmer className="h-6 w-36" />
+                                    ) : (
+                                        <h1
+                                            className="text-2xl text-white leading-tight drop-shadow-md"
+                                            style={{ fontFamily: "'Playfair Display', serif" }}
+                                        >
+                                            {foodName}
+                                        </h1>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Nutrition Stats */}
-                            <div className="mt-10 bg-white p-6 rounded-2xl border border-stone-100 shadow-sm">
-                                <div className="flex items-end justify-between border-b border-stone-100 pb-6 mb-6">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-light text-stone-400 uppercase tracking-widest mb-1">Total Calórico</span>
-                                        <div className="flex items-baseline gap-1">
-                                            <span 
-                                                className="text-7xl text-stone-800"
-                                                style={{ fontFamily: "'Playfair Display', serif" }}
-                                            >
-                                                {calories}
-                                            </span>
-                                            <span className="text-lg font-light text-stone-400 tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>kcal</span>
-                                        </div>
+                            {/* Compact stats bar */}
+                            <div className="mt-3 bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+                                <div className="flex items-stretch divide-x divide-stone-100">
+                                    {/* Calories */}
+                                    <div className="flex-[1.4] flex flex-col justify-center px-4 py-3">
+                                        <span className="text-[10px] font-light text-stone-400 uppercase tracking-widest mb-0.5">Calorias</span>
+                                        {isLoading ? (
+                                            <Shimmer className="h-7 w-20 mt-1" />
+                                        ) : (
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-3xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{calories}</span>
+                                                <span className="text-xs text-stone-400 font-light">kcal</span>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="relative size-20">
-                                        <svg className="size-full -rotate-90" viewBox="0 0 36 36">
-                                            <circle cx="18" cy="18" r="16" fill="none" className="stroke-stone-100" strokeWidth="2" />
-                                            <circle 
-                                                cx="18" cy="18" r="16" fill="none" 
-                                                stroke={MALAMA_RED}
-                                                strokeWidth="3.5" 
-                                                strokeDasharray="100 100" 
-                                                strokeDashoffset="25"
-                                                strokeLinecap="round" 
-                                            />
-                                        </svg>
-                                    </div>
-                                </div>
 
-                                {/* Macros Grid */}
-                                <div className="grid grid-cols-3 gap-6">
-                                    <div className="flex flex-col gap-2">
-                                        <span className="text-sm font-light text-stone-400 uppercase tracking-widest">Proteína</span>
-                                        <span className="text-3xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{macros.p}g</span>
-                                        <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
-                                            <motion.div 
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${getPercent(macros.p)}%` }}
-                                                className="h-full rounded-full"
-                                                style={{ background: MALAMA_RED }} 
-                                            />
+                                    {/* Macros */}
+                                    {([
+                                        { label: 'Prot', val: macros.p, color: MALAMA_RED },
+                                        { label: 'Carb', val: macros.c, color: '#78716c' },
+                                        { label: 'Gord', val: macros.f, color: '#a8a29e' },
+                                    ] as const).map(({ label, val, color }) => (
+                                        <div key={label} className="flex-1 flex flex-col justify-center items-center px-2 py-3">
+                                            <span className="text-[10px] font-light text-stone-400 uppercase tracking-widest mb-0.5">{label}</span>
+                                            {isLoading ? (
+                                                <Shimmer className="h-6 w-10 mt-1" />
+                                            ) : (
+                                                <>
+                                                    <span className="text-xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{val}</span>
+                                                    <div className="w-full mt-1.5 h-1 bg-stone-100 rounded-full overflow-hidden">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${getPercent(val)}%` }}
+                                                            className="h-full rounded-full"
+                                                            style={{ background: color }}
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <span className="text-sm font-light text-stone-400 uppercase tracking-widest">Carbo</span>
-                                        <span className="text-3xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{macros.c}g</span>
-                                        <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
-                                            <motion.div 
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${getPercent(macros.c)}%` }}
-                                                className="h-full rounded-full"
-                                                style={{ background: '#78716c' }} // stone-500
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <span className="text-sm font-light text-stone-400 uppercase tracking-widest">Gordura</span>
-                                        <span className="text-3xl text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{macros.f}g</span>
-                                        <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
-                                            <motion.div 
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${getPercent(macros.f)}%` }}
-                                                className="h-full rounded-full"
-                                                style={{ background: '#d6d3d1' }} // stone-300
-                                            />
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
                         </motion.div>
@@ -362,35 +351,39 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
             </div>
 
             {/* Bottom Controls */}
-            <div className="fixed bottom-0 left-0 w-full bg-gradient-to-t from-[#FDFBF9] via-[#FDFBF9]/90 to-transparent px-6 pb-10 pt-8 z-40">
-                <div className="flex gap-4 max-w-md mx-auto">
+            <div className="fixed bottom-0 left-0 w-full bg-gradient-to-t from-[#FDFBF9] via-[#FDFBF9]/95 to-transparent px-4 pb-8 pt-6 z-40">
+                <div className="flex gap-3 max-w-md mx-auto">
                     {!isEditing ? (
                         <>
                             <button
                                 onClick={() => setIsEditing(true)}
-                                className="flex-1 py-4 rounded-2xl bg-white border border-stone-200 text-stone-600 text-lg font-light hover:bg-stone-50 transition-all active:scale-[0.98] shadow-sm"
+                                disabled={isLoading}
+                                className="flex-1 py-3.5 rounded-2xl bg-white border border-stone-200 text-stone-600 text-base font-light hover:bg-stone-50 transition-all active:scale-[0.98] shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 Editar
                             </button>
                             <button
                                 onClick={handleConfirm}
-                                disabled={confirming}
-                                className="flex-[2] py-4 rounded-2xl text-white text-lg font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
+                                disabled={confirming || isLoading}
+                                className="flex-[2] py-3.5 rounded-2xl text-white text-base font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
                                 style={{ background: MALAMA_RED }}
                             >
-                                {confirming ? (
+                                {isLoading ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                                        Analisando...
+                                    </>
+                                ) : confirming ? (
                                     <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
-                                    <>
-                                        Registrar
-                                    </>
+                                    <>Registrar</>
                                 )}
                             </button>
                         </>
                     ) : (
                         <button
                             onClick={() => setIsEditing(false)}
-                            className="w-full py-4 rounded-2xl text-white text-lg font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98]"
+                            className="w-full py-3.5 rounded-2xl text-white text-base font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98]"
                             style={{ background: MALAMA_RED }}
                         >
                             Salvar Alterações

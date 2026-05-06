@@ -103,8 +103,9 @@ export const StatsService = {
 
         // Apenas manter_peso e ganhar_peso aumentam a meta calórica com a atividade.
         // perder_peso mantém a meta original — as calorias queimadas viram déficit extra.
-        const primaryGoal = profile?.primary_goal ?? 'perder_peso';
-        const applyActivityToTarget = primaryGoal !== 'perder_peso' && activityCalories > 0;
+        // profile.goal: 'aesthetic'=perder, 'performance'=ganhar, 'health'=manter
+        const profileGoal = profile?.goal ?? 'aesthetic';
+        const applyActivityToTarget = profileGoal !== 'aesthetic' && activityCalories > 0;
 
         const extraCarbs   = applyActivityToTarget ? Math.round(activityCalories * 0.55 / 4) : 0;
         const extraProtein = applyActivityToTarget ? Math.round(activityCalories * 0.20 / 4) : 0;
