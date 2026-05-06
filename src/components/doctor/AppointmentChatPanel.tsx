@@ -265,7 +265,7 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
   // ── No active chat ───────────────────────────────
   if (!chat) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="flex flex-col items-center justify-center py-16 text-center px-6 pb-10">
         <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
           <MessageSquare className="w-8 h-8 text-gray-300" />
         </div>
@@ -282,7 +282,7 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
   // ── Closed / expired chat ────────────────────────
   if (chat.status !== 'open') {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="flex flex-col items-center justify-center py-16 text-center px-6 pb-10">
         <Lock className="w-10 h-10 text-gray-300 mb-3" />
         <p className="font-semibold text-gray-700 mb-1">Canal encerrado</p>
         <p className="text-sm text-gray-400">
@@ -296,7 +296,7 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
   const grouped = groupByDate(messages);
 
   return (
-    <div className="flex flex-col h-[600px] rounded-xl border border-gray-200 overflow-hidden">
+    <div className="flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 320px)', minHeight: '460px' }}>
       {/* SLA Bar */}
       <SLABar chat={chat} />
 

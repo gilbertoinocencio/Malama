@@ -232,7 +232,7 @@ export const PatientProfile: React.FC = () => {
       </div>
 
       {/* Abas */}
-      <div className="bg-white rounded-xl shadow">
+      <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="border-b border-gray-200 overflow-x-auto">
           <div className="flex min-w-max">
             {tabs.map(tab => (
@@ -719,12 +719,14 @@ export const PatientProfile: React.FC = () => {
 
           {/* Aba 6: Chat */}
           {activeTab === 'chat' && patientId && (
-            <AppointmentChatPanel
-              doctorId={doctor.id}
-              patientId={patientId}
-              patientName={patient.name}
-              chatId={chatIdFromUrl}
-            />
+            <div className="-mx-6 -mb-6">
+              <AppointmentChatPanel
+                doctorId={doctor.id}
+                patientId={patientId}
+                patientName={patient.name}
+                chatId={chatIdFromUrl}
+              />
+            </div>
           )}
 
           {/* Aba Plano IA */}
