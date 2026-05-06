@@ -31,6 +31,7 @@ interface FlowDashboardProps {
   activeView: AppView;
   isDarkMode: boolean;
   onToggleTheme: () => void;
+  onOpenChat?: (params: { consultationId: string; doctorName: string }) => void;
 }
 
 type PeriodTab = 'day' | 'week' | 'month';
@@ -45,7 +46,8 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   onEditMeal,
   activeView,
   isDarkMode,
-  onToggleTheme
+  onToggleTheme,
+  onOpenChat,
 }) => {
   const { t } = useLanguage();
   const { user, profile } = useAuth();
@@ -694,7 +696,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
             <span className="absolute top-2 right-2 size-2 bg-Malama-petrol dark:bg-primary rounded-full" />
           </button>
           {user?.id && (
-            <PatientNotificationBell userId={user.id} isDarkMode={isDarkMode} />
+            <PatientNotificationBell userId={user.id} isDarkMode={isDarkMode} onOpenChat={onOpenChat} />
           )}
           <button
             onClick={() => onNavClick(AppView.PROFILE)}

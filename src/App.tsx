@@ -15,6 +15,7 @@ import { lazyRetry } from './utils/lazyRetry';
 import { AppRoutes } from './routes';
 import { LandingPage } from './routes/LandingPage';
 import { useIdleLogout } from './hooks/useIdleLogout';
+import { PatientChatModal } from './components/PatientChatModal';
 
 // Lazy Load Non-Critical Views — lazyRetry auto-reloads on stale chunk errors
 const CommunityFeed = React.lazy(() => lazyRetry(() => import('./components/community/feed/CommunityFeed').then(m => ({ default: m.CommunityFeed })), 'CommunityFeed'));
@@ -97,6 +98,7 @@ const App: React.FC = () => {
     return false;
   });
   const [videoConsultation, setVideoConsultation] = useState<Consultation | null>(null);
+  const [openChat, setOpenChat] = useState<{ consultationId: string; doctorName: string } | null>(null);
 
   // Check if current path is a portal route (/medico/* or /admin/*) or landing page
   useEffect(() => {
@@ -391,6 +393,7 @@ const App: React.FC = () => {
   }
 
   return (
+  <>
     <Layout
       activeView={view}
       onChangeView={setView}
@@ -409,6 +412,7 @@ const App: React.FC = () => {
             activeView={view}
             isDarkMode={darkMode}
             onToggleTheme={toggleTheme}
+            onOpenChat={setOpenChat}
           />
         )}
 
@@ -583,6 +587,7 @@ const App: React.FC = () => {
               setView(AppView.CONSULTA_VIDEO);
             }}
             onNavigate={setView}
+            onOpenChat={setOpenChat}
           />
         )}
 
@@ -609,6 +614,16 @@ const App: React.FC = () => {
       </Suspense>
 
     </Layout>
+
+    {/* Chat pós-consulta — renderizado fora do Layout para persistir ao trocar de view */}
+    {openChat && (
+      <PatientChatModal
+        consultationId={openChat.consultationId}
+        doctorName={openChat.doctorName}
+        onClose={() => setOpenChat(null)}
+      />
+    )}
+  </>
   );
 };
 

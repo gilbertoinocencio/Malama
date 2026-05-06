@@ -13,18 +13,18 @@ import {
 import { creditService } from '../services/billingService';
 import { appointmentChatService } from '../services/doctorPortalService';
 import type { AppointmentChat } from '../types/doctorPortal';
-import { PatientChatModal } from './PatientChatModal';
 import { AppView } from '../types';
 
 interface MinhasConsultasProps {
   onBack: () => void;
   onEnterConsulta: (consultation: Consultation) => void;
   onNavigate: (view: AppView) => void;
+  onOpenChat?: (params: { consultationId: string; doctorName: string }) => void;
 }
 
 type ActiveTab = 'consultations' | 'prescriptions';
 
-export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnterConsulta, onNavigate }) => {
+export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnterConsulta, onNavigate, onOpenChat }) => {
   const { user } = useAuth();
   const [tab, setTab] = useState<ActiveTab>('consultations');
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -39,7 +39,6 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
   const [chosenProposal, setChosenProposal] = useState<string | null>(null);
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
   const [activeChats, setActiveChats] = useState<Map<string, AppointmentChat>>(new Map());
-  const [openChat, setOpenChat] = useState<{ consultationId: string; doctorName: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -306,7 +305,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                         const days = Math.max(0, Math.ceil((new Date(ch.expires_at).getTime() - Date.now()) / 86_400_000));
                         return (
                           <button
-                            onClick={() => setOpenChat({ consultationId: c.id, doctorName: (c.doctors as any)?.name || 'Médico' })}
+                            onClick={() => onOpenChat?.({ consultationId: c.id, doctorName: (c.doctors as any)?.name || 'Médico' })}
                             className="mt-2 w-full flex items-center justify-between px-3 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-semibold transition-colors"
                           >
                             <div className="flex items-center gap-2">
@@ -403,14 +402,6 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
         )}
       </div>
 
-      {/* Chat pós-consulta */}
-      {openChat && (
-        <PatientChatModal
-          consultationId={openChat.consultationId}
-          doctorName={openChat.doctorName}
-          onClose={() => setOpenChat(null)}
-        />
-      )}
 
       {/* Reschedule Modal */}
       {rescheduleModal && (

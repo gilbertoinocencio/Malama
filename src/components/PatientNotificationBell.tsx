@@ -10,16 +10,16 @@ import { PatientNotificationCenter } from './PatientNotificationCenter';
 interface Props {
   userId: string;
   isDarkMode: boolean;
+  onOpenChat?: (params: { consultationId: string; doctorName: string }) => void;
 }
 
-export const PatientNotificationBell: React.FC<Props> = ({ userId, isDarkMode }) => {
+export const PatientNotificationBell: React.FC<Props> = ({ userId, isDarkMode, onOpenChat }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
 
-    // Busca contagem inicial
     supabase
       .from('patient_notifications')
       .select('id', { count: 'exact', head: true })
@@ -27,7 +27,6 @@ export const PatientNotificationBell: React.FC<Props> = ({ userId, isDarkMode })
       .eq('is_read', false)
       .then(({ count }) => setUnreadCount(count ?? 0));
 
-    // Realtime: incrementa badge quando chega nova notificação
     const channel = supabase
       .channel(`patient-notifs-${userId}`)
       .on('postgres_changes', {
@@ -60,6 +59,10 @@ export const PatientNotificationBell: React.FC<Props> = ({ userId, isDarkMode })
         <PatientNotificationCenter
           onClose={() => setOpen(false)}
           onUnreadChange={setUnreadCount}
+          onOpenChat={(params) => {
+            setOpen(false);
+            onOpenChat?.(params);
+          }}
         />
       )}
     </>
