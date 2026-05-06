@@ -66,11 +66,11 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
           setChat(data as AppointmentChat);
           const msgs = await appointmentChatService.getMessages(data.id);
           setMessages(msgs);
-          await appointmentChatService.markRead(data.id, 'patient');
+          appointmentChatService.markRead(data.id, 'patient').catch(console.error);
 
           sub = appointmentChatService.subscribeToMessages(data.id, (msg) => {
-            setMessages(prev => [...prev, msg]);
-            appointmentChatService.markRead(data.id, 'patient');
+            setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
+            appointmentChatService.markRead(data.id, 'patient').catch(console.error);
           });
         }
       } finally {
@@ -79,7 +79,7 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
     };
 
     load();
-    return () => { sub?.unsubscribe(); };
+    return () => { if (sub) supabase.removeChannel(sub); };
   }, [consultationId]);
 
   useEffect(() => {
@@ -103,9 +103,9 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
     if (!file || !chat) return;
     const ext  = file.name.split('.').pop();
     const path = `chats/${chat.id}/${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from('patient-exams').upload(path, file);
+    const { error: upErr } = await supabase.storage.from('chat-files').upload(path, file);
     if (upErr) return;
-    const { data: urlData } = supabase.storage.from('patient-exams').getPublicUrl(path);
+    const { data: urlData } = supabase.storage.from('chat-files').getPublicUrl(path);
     const msg = await appointmentChatService.sendMessage(chat.id, null, {
       url: urlData.publicUrl, name: file.name,
       type: file.type, sizeKb: Math.round(file.size / 1024),

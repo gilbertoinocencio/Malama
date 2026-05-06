@@ -94,7 +94,7 @@ export const DoctorNotificationsPanel: React.FC<Props> = ({ onClose }) => {
         .subscribe();
     });
 
-    return () => { channel?.unsubscribe(); };
+    return () => { if (channel) supabase.removeChannel(channel); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

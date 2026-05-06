@@ -163,10 +163,10 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
           const msgs = await appointmentChatService.getMessages(found.id);
           setMessages(msgs);
           if (found.status === 'open') {
-            await appointmentChatService.markRead(found.id, 'doctor');
+            appointmentChatService.markRead(found.id, 'doctor').catch(console.error);
             msgSub = appointmentChatService.subscribeToMessages(found.id, (msg) => {
-              setMessages(prev => [...prev, msg]);
-              appointmentChatService.markRead(found.id, 'doctor');
+              setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
+              appointmentChatService.markRead(found.id, 'doctor').catch(console.error);
             });
           }
         }
@@ -191,8 +191,8 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
       .subscribe();
 
     return () => {
-      msgSub?.unsubscribe();
-      chatWatchSub?.unsubscribe();
+      if (msgSub) supabase.removeChannel(msgSub);
+      if (chatWatchSub) supabase.removeChannel(chatWatchSub);
     };
   }, [doctorId, patientId, chatIdProp]);
 

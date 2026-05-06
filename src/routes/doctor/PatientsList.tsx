@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { MessageCircle, Search, Share2, Copy, Check, User } from 'lucide-react';
 import { patientService, doctorService, appointmentChatService } from '../../services/doctorPortalService';
+import { supabase } from '../../services/supabase';
 import type { Doctor, PatientSummary } from '../../types/doctorPortal';
 
 interface ChatStatus {
@@ -64,7 +65,7 @@ export const PatientsList: React.FC = () => {
       loadChatStatus();
     });
     return () => {
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
   }, [doctor]);
 
