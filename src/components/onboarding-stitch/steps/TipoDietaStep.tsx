@@ -21,6 +21,7 @@ const TipoDietaStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, 
       totalSteps={totalSteps}
       onNext={onNext}
       onBack={onBack}
+      nextDisabled={!data.dietType}
     >
       <div className="text-center mb-10">
         <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">

@@ -19,6 +19,7 @@ const ExperienciaCaloriasStep: React.FC<StepProps> = ({ data, updateData, onNext
       totalSteps={totalSteps}
       onNext={onNext}
       onBack={onBack}
+      nextDisabled={!data.calorieExperience}
     >
       <section className="text-center mb-12 space-y-4">
         <span className="text-stone-400 text-xs tracking-widest uppercase font-light">

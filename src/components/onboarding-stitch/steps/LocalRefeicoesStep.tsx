@@ -17,6 +17,7 @@ const LocalRefeicoesStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
       totalSteps={totalSteps}
       onNext={onNext}
       onBack={onBack}
+      nextDisabled={!data.eatingLocation}
     >
       <div className="text-center mb-10">
         <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">

@@ -8,15 +8,23 @@ const OBJETIVOS = [
   { id: 'gerir_stress', label: 'Gerir stress', icon: 'psychology' },
   { id: 'melhorar_sono', label: 'Melhorar sono', icon: 'bedtime' },
   { id: 'aumentar_energia', label: 'Aumentar energia', icon: 'bolt' },
+  { id: 'nenhum', label: 'Nenhum dos acima', icon: 'check_circle' },
 ];
+
+const NENHUM = 'nenhum';
 
 const ObjetivosAdicionaisStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const selectedGoals = data.additionalGoals || [];
 
   const toggleGoal = (goalId: string) => {
-    const newGoals = selectedGoals.includes(goalId)
-      ? selectedGoals.filter(id => id !== goalId)
-      : [...selectedGoals, goalId];
+    if (goalId === NENHUM) {
+      updateData({ additionalGoals: [NENHUM] });
+      return;
+    }
+    const withoutNenhum = selectedGoals.filter((id: string) => id !== NENHUM);
+    const newGoals = withoutNenhum.includes(goalId)
+      ? withoutNenhum.filter(id => id !== goalId)
+      : [...withoutNenhum, goalId];
     updateData({ additionalGoals: newGoals });
   };
 
@@ -26,6 +34,7 @@ const ObjetivosAdicionaisStep: React.FC<StepProps> = ({ data, updateData, onNext
       totalSteps={totalSteps}
       onNext={onNext}
       onBack={onBack}
+      nextDisabled={selectedGoals.length === 0}
     >
       <div className="text-center mb-10">
         <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">

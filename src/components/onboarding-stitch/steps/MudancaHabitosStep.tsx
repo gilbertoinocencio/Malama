@@ -9,15 +9,23 @@ const HABITOS = [
   { id: 'beliscar', label: 'Beliscar o dia todo', icon: 'restaurant' },
   { id: 'doces', label: 'Doces em excesso', icon: 'icecream' },
   { id: 'sedentarismo', label: 'Sedentarismo', icon: 'directions_walk' },
+  { id: 'nenhum', label: 'Nenhum destes', icon: 'check_circle' },
 ];
+
+const NENHUM = 'nenhum';
 
 const MudancaHabitosStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
   const selected = data.habitChanges || [];
 
   const toggleHabit = (id: string) => {
-    const next = selected.includes(id)
-      ? selected.filter((h: string) => h !== id)
-      : [...selected, id];
+    if (id === NENHUM) {
+      updateData({ habitChanges: [NENHUM] });
+      return;
+    }
+    const withoutNenhum = selected.filter((h: string) => h !== NENHUM);
+    const next = withoutNenhum.includes(id)
+      ? withoutNenhum.filter((h: string) => h !== id)
+      : [...withoutNenhum, id];
     updateData({ habitChanges: next });
   };
 
@@ -27,6 +35,7 @@ const MudancaHabitosStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
       totalSteps={totalSteps}
       onNext={onNext}
       onBack={onBack}
+      nextDisabled={selected.length === 0}
     >
       <div className="text-center mb-10">
         <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">

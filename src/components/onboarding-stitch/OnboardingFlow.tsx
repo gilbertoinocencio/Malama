@@ -109,6 +109,11 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
     additionalGoals: [],
     dietaryRestrictions: [],
     habitChanges: [],
+    dietType: 'Equilibrada',
+    eatingLocation: 'casa',
+    calorieExperience: 'intermediate',
+    goalSpeed: 3,
+    mealsPerDay: 3,
   };
 
   const [data, setData] = useState<StitchOnboardingData>(

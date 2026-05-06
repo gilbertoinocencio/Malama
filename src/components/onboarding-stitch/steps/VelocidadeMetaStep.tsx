@@ -27,6 +27,7 @@ const VelocidadeMetaStep: React.FC<StepProps> = ({ data, updateData, onNext, onB
       onNext={onNext}
       onBack={onBack}
       nextLabel="Confirmar ritmo"
+      nextDisabled={!data.goalSpeed}
     >
       <div className="text-center mb-8">
         <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
