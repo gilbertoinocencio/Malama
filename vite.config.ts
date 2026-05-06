@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
           description: 'Align your nutrition with your natural rhythm using AI.',
           theme_color: '#7d4a3c',
           background_color: '#FDFBF9',
+          start_url: '/acesso',
           display: 'standalone',
           orientation: 'portrait',
           icons: [

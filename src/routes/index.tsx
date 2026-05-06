@@ -6,6 +6,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from '../components/ToastProvider';
 import { MalamaLogo } from '../components/MalamaLogo';
+import { LoginView } from '../components/LoginView';
 import { LandingPage } from './LandingPage';
 import { MedicosLandingPage } from './MedicosLandingPage';
 
@@ -249,6 +250,9 @@ export const AppRoutes: React.FC = () => {
           <Route path="/listausuarios" element={<LandingPage />} />
           <Route path="/listausu%C3%A1rios" element={<LandingPage />} />
           <Route path="/listausuários" element={<LandingPage />} />
+
+          {/* Rota de acesso direto ao login — usada como PWA no celular */}
+          <Route path="/acesso" element={<LoginView />} />
 
           {/* Rota padrão - redireciona para Landing Page */}
           <Route path="*" element={<Navigate to="/" replace />} />

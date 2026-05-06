@@ -3,57 +3,94 @@ import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 import { motion } from 'framer-motion';
 
+const PETROL = '#7d4a3c';
+
+const PILLARS = [
+  { icon: 'energy_savings_leaf', label: 'Natural' },
+  { icon: 'psychology',          label: 'Consciente' },
+  { icon: 'monitor_heart',       label: 'Vital' },
+  { icon: 'verified',            label: 'Ritual' },
+];
+
 const MalamaFlowStep: React.FC<StepProps> = ({ onNext, currentStep, totalSteps }) => {
   return (
     <StepContainer
       currentStep={currentStep}
       totalSteps={totalSteps}
       onNext={onNext}
-      progress={(currentStep / totalSteps) * 100}
-      onBack={() => {}} // Transition screen
+      onBack={() => {}}
       nextLabel="Entrar no Flow"
     >
-      <div className="flex flex-col items-center justify-center text-center space-y-12 py-10">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="relative"
+      {/* Icon */}
+      <motion.div
+        initial={{ scale: 0.7, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className="flex justify-center mb-8"
+      >
+        <div
+          className="w-24 h-24 rounded-full flex items-center justify-center"
+          style={{ background: `${PETROL}12` }}
         >
-          <div className="absolute inset-0 bg-secondary/10 blur-[100px] rounded-full scale-150"></div>
-          <span className="material-symbols-outlined text-secondary text-[10rem] relative z-10" style={{ fontVariationSettings: "'FILL' 1" }}>
+          <span
+            className="material-symbols-outlined text-5xl"
+            style={{ color: PETROL, fontVariationSettings: "'FILL' 1" }}
+          >
             auto_awesome
           </span>
-        </motion.div>
-
-        <div className="space-y-6 max-w-2xl relative z-10">
-          <h1 className="text-5xl md:text-7xl font-headline font-extrabold text-primary tracking-tighter">
-            Seja bem-vindo ao seu <span className="text-secondary italic">Flow</span>.
-          </h1>
-          <p className="text-xl text-on-surface-variant font-light leading-relaxed">
-            Sua jornada para uma vida mais leve e consciente começa agora. 
-            O Malama está pronto para guiar cada passo da sua transformação.
-          </p>
         </div>
+      </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-3xl pt-8">
-          {[
-            { icon: 'energy_savings_leaf', label: 'Natural' },
-            { icon: 'psychology', label: 'Consciente' },
-            { icon: 'monitor_heart', label: 'Vital' },
-            { icon: 'verified', label: 'Ritual' },
-          ].map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: i * 0.1 + 0.5 }}
-              className="bg-surface-container-low p-6 rounded-2xl flex flex-col items-center gap-3 border border-surface-container-highest"
+      {/* Heading */}
+      <div className="text-center mb-8">
+        <span className="text-stone-400 text-xs tracking-widest uppercase font-light block mb-2">
+          Passo {currentStep} de {totalSteps}
+        </span>
+        <h1
+          className="text-4xl text-stone-800 leading-tight mb-3"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          Seja bem-vindo ao seu{' '}
+          <span style={{ color: PETROL, fontStyle: 'italic' }}>Flow.</span>
+        </h1>
+        <p className="text-stone-400 text-base font-light max-w-xs mx-auto leading-relaxed">
+          Sua jornada para uma vida mais leve e consciente começa agora.
+        </p>
+      </div>
+
+      {/* Pillar cards */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        {PILLARS.map((item, i) => (
+          <motion.div
+            key={item.label}
+            initial={{ y: 16, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: i * 0.1 + 0.3, duration: 0.4 }}
+            className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 flex flex-col items-center gap-3"
+          >
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ background: `${PETROL}10` }}
             >
-              <span className="material-symbols-outlined text-primary text-3xl">{item.icon}</span>
-              <span className="text-xs font-bold tracking-widest uppercase text-outline">{item.label}</span>
-            </motion.div>
-          ))}
-        </div>
+              <span className="material-symbols-outlined text-lg" style={{ color: PETROL }}>
+                {item.icon}
+              </span>
+            </div>
+            <span className="text-[10px] uppercase tracking-widest text-stone-400 font-light">
+              {item.label}
+            </span>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Quote */}
+      <div className="bg-white border border-stone-100 rounded-2xl p-6 shadow-sm">
+        <p className="text-stone-500 text-sm font-light italic leading-relaxed mb-3">
+          "Não se trata de perfeição — se trata de presença. O Flow é o caminho."
+        </p>
+        <p className="text-stone-400 text-xs uppercase tracking-widest font-light">
+          Equipe Malama
+        </p>
       </div>
     </StepContainer>
   );
