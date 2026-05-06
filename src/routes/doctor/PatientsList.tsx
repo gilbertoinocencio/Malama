@@ -58,14 +58,16 @@ export const PatientsList: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [doctor, search]);
 
-  // Real-time: refresh chat status when a patient sends a new message
+  // Real-time + polling fallback: refresh chat status when a patient sends a new message
   useEffect(() => {
     if (!doctor) return;
     channelRef.current = appointmentChatService.subscribeToPatientMessages(doctor.id, () => {
       loadChatStatus();
     });
+    const poll = setInterval(() => loadChatStatus(), 5_000);
     return () => {
       if (channelRef.current) supabase.removeChannel(channelRef.current);
+      clearInterval(poll);
     };
   }, [doctor]);
 
