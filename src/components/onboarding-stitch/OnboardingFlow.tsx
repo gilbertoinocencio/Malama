@@ -226,6 +226,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         meals_per_day: data.mealsPerDay || 3,
         eating_window_start: eatingWindowStart,
         eating_window_end: eatingWindowEnd,
+        eating_location: data.eatingLocation || 'casa',
         target_calories: tdee,
         target_protein:  targetProtein,
         target_carbs:    targetCarbs,
@@ -242,7 +243,6 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         dietary_restrictions_detail: data.restrictionsDetail || null,
         diet_type: data.dietType || null,
         additional_goals: data.additionalGoals || [],
-        eating_location: data.eatingLocation || null,
         habit_changes: data.habitChanges || [],
         drinks_enough_water: data.drinksEnoughWater || null,
       };
