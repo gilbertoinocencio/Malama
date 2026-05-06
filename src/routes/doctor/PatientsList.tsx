@@ -2,28 +2,49 @@
 // Malama — Lista de Pacientes do Médico
 // =====================================================
 
-import React, { useEffect, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
-import { Search, User, Share2, Copy, Check } from 'lucide-react';
-import { patientService, doctorService } from '../../services/doctorPortalService';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { MessageCircle, Search, Share2, Copy, Check, User } from 'lucide-react';
+import { patientService, doctorService, appointmentChatService } from '../../services/doctorPortalService';
 import type { Doctor, PatientSummary } from '../../types/doctorPortal';
+
+interface ChatStatus {
+  chatId: string;
+  unreadCount: number;
+}
 
 export const PatientsList: React.FC = () => {
   const { doctor } = useOutletContext<{ doctor: Doctor }>();
+  const navigate = useNavigate();
   const [patients, setPatients] = useState<PatientSummary[]>([]);
+  const [chatStatus, setChatStatus] = useState<Map<string, ChatStatus>>(new Map());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [referralLink, setReferralLink] = useState<string | null>(null);
   const [loadingReferral, setLoadingReferral] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showReferral, setShowReferral] = useState(false);
+  const channelRef = useRef<ReturnType<typeof appointmentChatService.subscribeToPatientMessages> | null>(null);
+
+  const loadChatStatus = async () => {
+    if (!doctor) return;
+    try {
+      const status = await appointmentChatService.getPatientChatStatus(doctor.id);
+      setChatStatus(status);
+    } catch (err) {
+      console.error('Error loading chat status:', err);
+    }
+  };
 
   useEffect(() => {
     if (!doctor) return;
 
     const loadPatients = async () => {
       try {
-        const data = await patientService.getDoctorPatients(doctor.id, search || undefined);
+        const [data] = await Promise.all([
+          patientService.getDoctorPatients(doctor.id, search || undefined),
+          loadChatStatus(),
+        ]);
         setPatients(data);
       } catch (error) {
         console.error('Error loading patients:', error);
@@ -36,11 +57,37 @@ export const PatientsList: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [doctor, search]);
 
+  // Real-time: refresh chat status when a patient sends a new message
+  useEffect(() => {
+    if (!doctor) return;
+    channelRef.current = appointmentChatService.subscribeToPatientMessages(doctor.id, () => {
+      loadChatStatus();
+    });
+    return () => {
+      channelRef.current?.unsubscribe();
+    };
+  }, [doctor]);
+
+  const sortedPatients = [...patients].sort((a, b) => {
+    const aChat = chatStatus.get(a.id);
+    const bChat = chatStatus.get(b.id);
+    const aUnread = aChat?.unreadCount ?? 0;
+    const bUnread = bChat?.unreadCount ?? 0;
+
+    // 1. Unread messages first (desc)
+    if (bUnread !== aUnread) return bUnread - aUnread;
+    // 2. Open chat (active window) before inactive
+    const aActive = aChat ? 1 : 0;
+    const bActive = bChat ? 1 : 0;
+    if (bActive !== aActive) return bActive - aActive;
+    // 3. Most recent consultation last resort
+    const aDate = a.lastConsultation ? new Date(a.lastConsultation).getTime() : 0;
+    const bDate = b.lastConsultation ? new Date(b.lastConsultation).getTime() : 0;
+    return bDate - aDate;
+  });
+
   const handleGetReferralLink = async () => {
-    if (referralLink) {
-      setShowReferral(true);
-      return;
-    }
+    if (referralLink) { setShowReferral(true); return; }
     setLoadingReferral(true);
     try {
       const token = await doctorService.getOrCreatePatientReferralToken(doctor.id);
@@ -64,9 +111,7 @@ export const PatientsList: React.FC = () => {
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+      day: '2-digit', month: '2-digit', year: 'numeric',
     });
   };
 
@@ -148,49 +193,75 @@ export const PatientsList: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paciente</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Última consulta</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Próxima consulta</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">IMC</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Chat</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {patients.map(patient => (
-                  <tr key={patient.id} className="hover:bg-gray-50 transition">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[#7d4a3c] flex items-center justify-center text-white font-semibold flex-shrink-0">
-                          {patient.photo_url ? (
-                            <img src={patient.photo_url} alt={patient.name} className="w-full h-full object-cover rounded-full" />
-                          ) : (
-                            patient.name.charAt(0)
-                          )}
+                {sortedPatients.map(patient => {
+                  const chat = chatStatus.get(patient.id);
+                  const isActive = !!chat;
+                  const unread = chat?.unreadCount ?? 0;
+
+                  return (
+                    <tr key={patient.id} className="hover:bg-gray-50 transition">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-[#7d4a3c] flex items-center justify-center text-white font-semibold flex-shrink-0 overflow-hidden">
+                            {patient.photo_url ? (
+                              <img src={patient.photo_url} alt={patient.name} className="w-full h-full object-cover" />
+                            ) : (
+                              patient.name.charAt(0)
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800">{patient.name}</p>
+                            {patient.is_glp1_active && (
+                              <span className="text-xs text-purple-600">💉 GLP-1</span>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-800">{patient.name}</p>
-                          {patient.is_glp1_active && (
-                            <span className="text-xs text-purple-600">💉 GLP-1</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
+                        {formatDate(patient.lastConsultation)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
+                        {formatDate(patient.nextConsultation)}
+                      </td>
+
+                      {/* Chat button column */}
+                      <td className="px-4 py-3 text-center hidden lg:table-cell">
+                        <button
+                          onClick={() => isActive && navigate(`/medico/paciente/${patient.id}?tab=chat&chatId=${chat!.chatId}`)}
+                          disabled={!isActive}
+                          title={isActive ? 'Abrir chat' : 'Canal fechado — fora do prazo de 20 dias'}
+                          className={[
+                            'relative inline-flex items-center justify-center w-9 h-9 rounded-full transition',
+                            isActive
+                              ? 'bg-[#7d4a3c]/10 hover:bg-[#7d4a3c]/20 text-[#7d4a3c] cursor-pointer'
+                              : 'bg-gray-100 text-gray-300 cursor-not-allowed',
+                          ].join(' ')}
+                        >
+                          <MessageCircle className="w-5 h-5" />
+                          {unread > 0 && (
+                            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                              {unread > 99 ? '99+' : unread}
+                            </span>
                           )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
-                      {formatDate(patient.lastConsultation)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
-                      {formatDate(patient.nextConsultation)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
-                      {patient.imc?.toFixed(1) || '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        to={`/medico/paciente/${patient.id}`}
-                        className="px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm rounded-lg transition"
-                      >
-                        Ver perfil
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                        </button>
+                      </td>
+
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          to={`/medico/paciente/${patient.id}`}
+                          className="px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm rounded-lg transition"
+                        >
+                          Ver perfil
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

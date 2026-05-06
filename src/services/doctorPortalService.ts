@@ -2298,6 +2298,58 @@ export const appointmentChatService = {
       )
       .subscribe();
   },
+
+  // Returns a map keyed by patient_id with the most recent open chat and its unread count.
+  // Used by the patients list to show chat buttons and unread badges.
+  async getPatientChatStatus(doctorId: string): Promise<Map<string, { chatId: string; unreadCount: number }>> {
+    const { data: chats, error: chatsError } = await supabase
+      .from('appointment_chats')
+      .select('id, patient_id')
+      .eq('doctor_id', doctorId)
+      .eq('status', 'open')
+      .order('opened_at', { ascending: false });
+
+    if (chatsError) throw chatsError;
+    if (!chats || chats.length === 0) return new Map();
+
+    const chatIds = chats.map((c: any) => c.id);
+
+    const { data: msgs, error: msgsError } = await supabase
+      .from('chat_messages')
+      .select('chat_id')
+      .in('chat_id', chatIds)
+      .eq('sender_role', 'patient')
+      .eq('is_read', false);
+
+    if (msgsError) throw msgsError;
+
+    const unreadMap = new Map<string, number>();
+    for (const msg of (msgs || [])) {
+      unreadMap.set(msg.chat_id, (unreadMap.get(msg.chat_id) || 0) + 1);
+    }
+
+    const result = new Map<string, { chatId: string; unreadCount: number }>();
+    for (const chat of chats) {
+      if (!result.has(chat.patient_id)) {
+        result.set(chat.patient_id, {
+          chatId: chat.id,
+          unreadCount: unreadMap.get(chat.id) || 0,
+        });
+      }
+    }
+    return result;
+  },
+
+  subscribeToPatientMessages(doctorId: string, onUpdate: () => void) {
+    return supabase
+      .channel(`doctor-inbox:${doctorId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `sender_role=eq.patient` },
+        onUpdate
+      )
+      .subscribe();
+  },
 };
 
 // =====================================================
