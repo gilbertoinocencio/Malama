@@ -485,6 +485,19 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     ];
     if (emotionAndCravingIndicators.some(i => lower.includes(i))) return true;
 
+    // Conversational affirmations and short responses - always route to chat agent, never to food analysis
+    const conversationalAffirmations = [
+      'de acordo', 'entendido', 'entendi', 'combinado', 'beleza', 'ótimo', 'otimo',
+      'ótima', 'otima', 'perfeito', 'perfeita', 'show', 'tá bom', 'ta bom',
+      'tudo bem', 'tudo certo', 'concordo', 'exato', 'exatamente', 'claro',
+      'com certeza', 'pode ser', 'certo', 'sim', 'não', 'nao', 'ok', 'okay',
+      'legal', 'boa', 'bom', 'fechado', 'combinei', 'pode', 'vai',
+    ];
+    // Only match affirmations if the entire message is short (≤ 5 words) to avoid
+    // accidentally routing food messages that happen to contain these words
+    const wordCount = lower.split(/\s+/).filter(Boolean).length;
+    if (wordCount <= 5 && conversationalAffirmations.some(a => lower === a || lower.startsWith(a + ' ') || lower.endsWith(' ' + a))) return true;
+
     const questionIndicators = [
       '?', 'como ', 'por que', 'porque', 'qual ', 'quais ', 'quando ', 'quanto ',
       'o que ', 'o quê', 'dica', 'sugestão', 'sugestao', 'explica', 'explique',
