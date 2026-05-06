@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StepProps } from '../types';
 import { StepContainer } from '../StepContainer';
 
@@ -9,6 +9,12 @@ const LOCAIS = [
 ];
 
 const LocalRefeicoesStep: React.FC<StepProps> = ({ data, updateData, onNext, onBack, currentStep, totalSteps }) => {
+  useEffect(() => {
+    if (!data.eatingLocation) {
+      updateData({ eatingLocation: 'casa' });
+    }
+  }, []);
+
   const selected = data.eatingLocation ?? 'casa';
 
   return (
