@@ -276,7 +276,10 @@ export const PatientProfile: React.FC = () => {
                     {
                       label: 'Sexo',
                       value: patient.gender
-                        ? ({ male: 'Masculino', female: 'Feminino', other: 'Outro' }[patient.gender] ?? patient.gender)
+                        ? ({
+                            male: 'Masculino', female: 'Feminino', other: 'Outro',
+                            masculino: 'Masculino', feminino: 'Feminino', outro: 'Outro',
+                          }[patient.gender] ?? patient.gender)
                         : null,
                       icon: '👤'
                     },
@@ -301,7 +304,9 @@ export const PatientProfile: React.FC = () => {
                         ? ({
                             sedentary: 'Sedentário',
                             lightly_active: 'Levemente ativo',
+                            moderate: 'Moderado',
                             moderately_active: 'Moderadamente ativo',
+                            intense: 'Muito ativo',
                             very_active: 'Muito ativo',
                             extra_active: 'Extremamente ativo',
                           }[patient.activity_level] ?? patient.activity_level)
