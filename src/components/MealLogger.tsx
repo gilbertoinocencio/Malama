@@ -399,10 +399,13 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   }, [user, draftMeal, scanResult, scannedImageUri]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, loading]);
+    const timer = setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [messages, loading, scannedImageUri]);
 
   // Initialize Speech Recognition
   useEffect(() => {
