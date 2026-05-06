@@ -56,10 +56,24 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
     const load = async () => {
       setLoading(true);
       try {
+        // Step 1: find the doctor_id for this consultation's chat (any status)
+        const { data: ref } = await supabase
+          .from('appointment_chats')
+          .select('doctor_id')
+          .eq('consultation_id', consultationId)
+          .maybeSingle();
+
+        if (!ref) { setChat(null); return; }
+
+        // Step 2: use the NEWEST open chat with that doctor
+        // (RLS automatically filters to patient_id = auth.uid())
         const { data } = await supabase
           .from('appointment_chats')
           .select('*')
-          .eq('consultation_id', consultationId)
+          .eq('doctor_id', ref.doctor_id)
+          .eq('status', 'open')
+          .order('opened_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
 
         if (data) {
