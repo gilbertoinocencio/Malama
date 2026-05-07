@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Meal, MealItem } from '../types';
+import { Meal, MealItem, MicroNutrients } from '../types';
 
 interface DailyMealsListProps {
   meals: Meal[];
@@ -56,13 +56,14 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteM
       const newC = editingMeal.items?.reduce((acc, it) => acc + (Number(it.carbs) || 0), 0) || 0;
       const newF = editingMeal.items?.reduce((acc, it) => acc + (Number(it.fats) || 0), 0) || 0;
 
+      const hasItems = (editingMeal.items?.length ?? 0) > 0;
       const finalMeal: Meal = {
         ...editingMeal,
-        calories: newCalories > 0 ? newCalories : editingMeal.calories,
+        calories: hasItems ? newCalories : editingMeal.calories,
         macros: {
-          protein: newP > 0 ? newP : editingMeal.macros.protein,
-          carbs: newC > 0 ? newC : editingMeal.macros.carbs,
-          fats: newF > 0 ? newF : editingMeal.macros.fats,
+          protein: hasItems ? newP : editingMeal.macros.protein,
+          carbs:   hasItems ? newC : editingMeal.macros.carbs,
+          fats:    hasItems ? newF : editingMeal.macros.fats,
         }
       };
 
@@ -74,14 +75,40 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteM
   const handleItemChange = (idx: number, field: keyof MealItem, value: string) => {
     if (!editingMeal) return;
     const itemsCpy = [...(editingMeal.items || [])];
-    
-    // Tratamento para numbers
-    if (field === 'weightGrams' || field === 'calories' || field === 'protein' || field === 'carbs' || field === 'fats') {
-        const num = parseFloat(value);
-        itemsCpy[idx] = { ...itemsCpy[idx], [field]: isNaN(num) ? undefined : num };
+    const item = itemsCpy[idx];
+
+    if (field === 'weightGrams') {
+      const newWeight = parseFloat(value);
+      if (!isNaN(newWeight) && newWeight > 0 && (item.weightGrams ?? 0) > 0) {
+        const ratio = newWeight / item.weightGrams!;
+        const scaleMicros = (micros?: MicroNutrients): MicroNutrients | undefined => {
+          if (!micros) return undefined;
+          const scaled: MicroNutrients = {};
+          for (const key in micros) {
+            const v = (micros as Record<string, number>)[key];
+            (scaled as Record<string, number>)[key] = Math.round(v * ratio * 10) / 10;
+          }
+          return scaled;
+        };
+        itemsCpy[idx] = {
+          ...item,
+          weightGrams: newWeight,
+          calories: Math.round(item.calories * ratio),
+          protein:  item.protein  != null ? Math.round(item.protein  * ratio * 10) / 10 : undefined,
+          carbs:    item.carbs    != null ? Math.round(item.carbs    * ratio * 10) / 10 : undefined,
+          fats:     item.fats     != null ? Math.round(item.fats     * ratio * 10) / 10 : undefined,
+          micros:   scaleMicros(item.micros),
+        };
+      } else {
+        itemsCpy[idx] = { ...item, weightGrams: isNaN(newWeight) ? undefined : newWeight };
+      }
+    } else if (field === 'calories' || field === 'protein' || field === 'carbs' || field === 'fats') {
+      const num = parseFloat(value);
+      itemsCpy[idx] = { ...item, [field]: isNaN(num) ? undefined : num };
     } else {
-        itemsCpy[idx] = { ...itemsCpy[idx], [field]: value };
+      itemsCpy[idx] = { ...item, [field]: value };
     }
+
     setEditingMeal({ ...editingMeal, items: itemsCpy });
   };
 

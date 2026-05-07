@@ -33,7 +33,7 @@ BEGIN
   INSERT INTO public.daily_logs (user_id, date, water_intake, water_goal)
   VALUES (p_user_id, p_date, p_ml, COALESCE(v_water_goal, 3000))
   ON CONFLICT (user_id, date) DO UPDATE
-    SET water_intake = public.daily_logs.water_intake + EXCLUDED.water_intake,
+    SET water_intake = public.daily_logs.water_intake + p_ml,
         updated_at   = NOW()
   RETURNING water_intake INTO v_new_total;
 

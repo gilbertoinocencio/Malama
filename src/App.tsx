@@ -346,6 +346,7 @@ const App: React.FC = () => {
 
     try {
       await MealService.updateMeal(updatedMeal.id, user.id, updatedMeal);
+      await loadStats();
     } catch (e) {
       console.error(e);
       loadStats();
