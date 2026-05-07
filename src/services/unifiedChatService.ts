@@ -199,78 +199,63 @@ export const UnifiedChatService = {
         
         // --- WATER INGESTION INTERCEPTOR ---
         const waterMatches = [...aiResponse.content.matchAll(/<water_json>([\s\S]*?)<\/water_json>/g)];
-        if (waterMatches.length > 0) {
+
+        // Fallback: if AI confirmed but forgot the JSON block, extract ml from the user message
+        let fallbackMl = 0;
+        if (waterMatches.length === 0) {
+          const lower = userMessage.toLowerCase();
+          const hasWaterKeyword = /\b(água|agua|water|hidrat|beb[eiu]|tom[oua])\b/.test(lower);
+          if (hasWaterKeyword) {
+            const mlMatch   = lower.match(/(\d+(?:[.,]\d+)?)\s*ml/);
+            const litroMatch = lower.match(/(\d+(?:[.,]\d+)?)\s*(?:litro|litros)\b/);
+            const lMatch    = lower.match(/(\d+(?:[.,]\d+)?)\s*l\b/);
+            if (mlMatch)    fallbackMl = parseFloat(mlMatch[1].replace(',', '.'));
+            else if (litroMatch) fallbackMl = parseFloat(litroMatch[1].replace(',', '.')) * 1000;
+            else if (lMatch)     fallbackMl = parseFloat(lMatch[1].replace(',', '.')) * 1000;
+            if (fallbackMl <= 0 || fallbackMl > 5000) fallbackMl = 0;
+          }
+        }
+
+        const mlValues: number[] = [];
+        for (const match of waterMatches) {
           try {
-            // Parse each block and deduplicate: if the AI generated the same ml value
-            // more than once (common hallucination: once inline, once at the end),
-            // count it only once. Different values are legitimate multiple intakes and
-            // should be summed normally.
-            const mlValues: number[] = [];
-            for (const match of waterMatches) {
-              const parsed = JSON.parse(match[1]);
-              const ml = Number(parsed.ml);
-              if (!isNaN(ml) && ml > 0) mlValues.push(ml);
-            }
-            const uniqueMlValues = [...new Set(mlValues)];
-            const totalMl = uniqueMlValues.reduce((sum, ml) => sum + ml, 0);
+            const parsed = JSON.parse(match[1]);
+            const ml = Number(parsed.ml);
+            if (!isNaN(ml) && ml > 0) mlValues.push(ml);
+          } catch { /* ignore malformed block */ }
+        }
+        // Deduplicate (AI sometimes repeats the same block)
+        const uniqueMlValues = [...new Set(mlValues)];
+        const totalMl = uniqueMlValues.reduce((sum, ml) => sum + ml, 0) + fallbackMl;
 
-            if (totalMl > 0) {
-              // 1. Update daily_logs.water_intake (source of truth for dashboard)
-              const today = getLocalDateString();
-              const { data: existingLog, error: selectError } = await supabase
-                .from('daily_logs')
-                .select('id, water_intake, water_goal')
-                .eq('user_id', userId)
-                .eq('date', today)
-                .maybeSingle();
-
-              if (selectError) {
-                console.error('Water log: failed to read daily_log:', selectError);
-              }
-
-              const newWaterIntake = (existingLog?.water_intake || 0) + totalMl;
-
-              if (existingLog) {
-                const { error: updateError } = await supabase
-                  .from('daily_logs')
-                  .update({ water_intake: newWaterIntake })
-                  .eq('id', existingLog.id);
-                if (updateError) console.error('Water log: failed to update daily_log:', updateError);
-              } else {
-                // Fetch profile to calculate personalised water goal
-                const { data: profileData } = await supabase
-                  .from('profiles')
-                  .select('weight, activity_level')
-                  .eq('id', userId)
-                  .maybeSingle();
-                const weight = profileData?.weight || 70;
-                const activityBonus = profileData?.activity_level === 'intense' ? 600 : profileData?.activity_level === 'moderate' ? 300 : 0;
-                const waterGoal = Math.max(3000, Math.round(weight * 35)) + activityBonus;
-
-                const { error: insertError } = await supabase
-                  .from('daily_logs')
-                  .insert({ user_id: userId, date: today, water_intake: totalMl, water_goal: waterGoal });
-                if (insertError) console.error('Water log: failed to insert daily_log:', insertError);
-              }
-
-              // 2. Also update hydration mission progress (gamification)
+        if (totalMl > 0) {
+          try {
+            const today = getLocalDateString();
+            // Atomic upsert via RPC — avoids race condition of select+insert/update
+            const { data: newTotal, error: rpcError } = await supabase.rpc('log_water_intake', {
+              p_user_id: userId,
+              p_date:    today,
+              p_ml:      Math.round(totalMl),
+            });
+            if (rpcError) {
+              console.error('Water log: rpc failed:', rpcError);
+            } else {
+              const newWaterIntake = (newTotal as number) ?? totalMl;
+              // Update hydration mission progress (gamification)
               const { CoachService } = await import('./coachService');
               const todayMissions = await CoachService.getTodayMissions(userId);
               const hydrationMission = todayMissions.find(m => m.mission_type === 'hydration');
               if (hydrationMission && hydrationMission.id) {
-                await CoachService.updateMissionProgress(
-                  userId,
-                  hydrationMission.id,
-                  newWaterIntake
-                );
+                await CoachService.updateMissionProgress(userId, hydrationMission.id, newWaterIntake);
               }
             }
-            // Strip the JSON block from the text message to the user
-            aiResponse.content = aiResponse.content.replace(/<water_json>[\s\S]*?<\/water_json>/g, '').trim();
           } catch (e) {
-            console.error('Failed to parse or log water JSON:', e);
+            console.error('Water log: unexpected error:', e);
           }
         }
+
+        // Strip JSON blocks from the message shown to user
+        aiResponse.content = aiResponse.content.replace(/<water_json>[\s\S]*?<\/water_json>/g, '').trim();
 
         // --- DOSE INGESTION INTERCEPTOR ---
         const doseMatch = aiResponse.content.match(/<dose_json>([\s\S]*?)<\/dose_json>/);
