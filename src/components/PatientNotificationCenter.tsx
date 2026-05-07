@@ -4,7 +4,7 @@
 // =====================================================
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { X, Bell, Stethoscope, Clock, FileText, CheckCircle, ClipboardList, RefreshCw, MessageSquare } from 'lucide-react';
+import { X, Bell, Stethoscope, Clock, FileText, ClipboardList, RefreshCw, MessageSquare } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 interface PatientNotification {
@@ -47,16 +47,16 @@ interface Props {
 export const PatientNotificationCenter: React.FC<Props> = ({ onClose, onUnreadChange, onOpenChat }) => {
   const [notifications, setNotifications] = useState<PatientNotification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [marking, setMarking] = useState(false);
 
   const fetchNotifications = useCallback(() => {
     supabase.rpc('get_patient_notifications', { p_limit: 40 })
       .then(
         ({ data }) => {
           const list = (data ?? []) as PatientNotification[];
-          setNotifications(list);
+          setNotifications(list.map(n => ({ ...n, is_read: true })));
           setLoading(false);
-          onUnreadChange?.(list.filter(n => !n.is_read).length);
+          onUnreadChange?.(0);
+          supabase.rpc('mark_patient_notifications_read').catch(console.error);
         },
         (e) => { console.error(e); setLoading(false); },
       );
@@ -66,14 +66,6 @@ export const PatientNotificationCenter: React.FC<Props> = ({ onClose, onUnreadCh
     fetchNotifications();
   }, [fetchNotifications]);
 
-  const markAllRead = async () => {
-    setMarking(true);
-    await supabase.rpc('mark_patient_notifications_read');
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    onUnreadChange?.(0);
-    setMarking(false);
-  };
-
   const handleNotificationClick = (n: PatientNotification) => {
     if (!CHAT_TYPES.has(n.type)) return;
     const consultationId = n.data?.consultation_id as string | undefined;
@@ -81,8 +73,6 @@ export const PatientNotificationCenter: React.FC<Props> = ({ onClose, onUnreadCh
     const doctorName = (n.data?.doctor_name as string | undefined) ?? 'Médico';
     onOpenChat?.({ consultationId, doctorName });
   };
-
-  const unread = notifications.filter(n => !n.is_read).length;
 
   return (
     <>
@@ -96,27 +86,10 @@ export const PatientNotificationCenter: React.FC<Props> = ({ onClose, onUnreadCh
           <div className="flex items-center gap-2">
             <Bell className="w-4 h-4 text-Malama-petrol dark:text-primary" />
             <span className="font-semibold text-gray-800 dark:text-white text-sm">Notificações</span>
-            {unread > 0 && (
-              <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-full">
-                {unread} nova{unread > 1 ? 's' : ''}
-              </span>
-            )}
           </div>
-          <div className="flex items-center gap-2">
-            {unread > 0 && (
-              <button
-                onClick={markAllRead}
-                disabled={marking}
-                className="flex items-center gap-1 text-xs text-Malama-petrol dark:text-primary hover:underline disabled:opacity-50"
-              >
-                <CheckCircle className="w-3.5 h-3.5" />
-                Marcar lidas
-              </button>
-            )}
-            <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-              <X className="w-4 h-4 text-gray-500" />
-            </button>
-          </div>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
         </div>
 
         {/* List */}
