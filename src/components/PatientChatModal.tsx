@@ -220,15 +220,30 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
                       )}
                       {msg.content && <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
                       {msg.file_url && (
-                        <a
-                          href={msg.file_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={`flex items-center gap-1.5 mt-1 text-xs underline ${isMe ? 'text-white/80' : 'text-gray-500'}`}
-                        >
-                          <span className="material-symbols-outlined text-sm">attach_file</span>
-                          {msg.file_name ?? 'Arquivo'}
-                        </a>
+                        msg.file_type?.startsWith('image/') ? (
+                          <div className="mt-1.5">
+                            <img
+                              src={msg.file_url}
+                              alt={msg.file_name ?? 'imagem'}
+                              className="max-w-full rounded-lg max-h-48 object-cover cursor-pointer"
+                              onClick={() => window.open(msg.file_url!, '_blank')}
+                            />
+                            <a
+                              href={`${msg.file_url}?download=${encodeURIComponent(msg.file_name ?? 'imagem')}`}
+                              className={`flex items-center gap-1 mt-1 text-xs underline ${isMe ? 'text-white/70' : 'text-gray-500'}`}
+                            >
+                              <span className="material-symbols-outlined text-sm">download</span> Baixar
+                            </a>
+                          </div>
+                        ) : (
+                          <a
+                            href={`${msg.file_url}?download=${encodeURIComponent(msg.file_name ?? 'arquivo')}`}
+                            className={`flex items-center gap-1.5 mt-1 text-xs underline ${isMe ? 'text-white/80' : 'text-gray-500'}`}
+                          >
+                            <span className="material-symbols-outlined text-sm">attach_file</span>
+                            {msg.file_name ?? 'Arquivo'}
+                          </a>
+                        )
                       )}
                       <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-white/50' : 'text-gray-300'}`}>
                         {formatTime(msg.created_at)}

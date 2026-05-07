@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Send, Paperclip, Clock, X, FileText, Image,
+  Send, Paperclip, Clock, X, FileText, Image, Download,
   AlertTriangle, CheckCircle, MessageSquare, Lock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -96,15 +96,30 @@ const Bubble: React.FC<{ msg: ChatMessage; isDoctor: boolean }> = ({ msg, isDoct
     }`}>
       {msg.content && <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
       {msg.file_url && (
-        <a
-          href={msg.file_url}
-          target="_blank"
-          rel="noreferrer"
-          className={`flex items-center gap-2 mt-1 text-xs underline ${isDoctor ? 'text-white/80' : 'text-[#7d4a3c]'}`}
-        >
-          {msg.file_type?.startsWith('image/') ? <Image className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
-          {msg.file_name ?? 'Arquivo'}
-        </a>
+        msg.file_type?.startsWith('image/') ? (
+          <div className="mt-1.5">
+            <img
+              src={msg.file_url}
+              alt={msg.file_name ?? 'imagem'}
+              className="max-w-full rounded-lg max-h-48 object-cover cursor-pointer"
+              onClick={() => window.open(msg.file_url!, '_blank')}
+            />
+            <a
+              href={`${msg.file_url}?download=${encodeURIComponent(msg.file_name ?? 'imagem')}`}
+              className={`flex items-center gap-1 mt-1 text-xs underline ${isDoctor ? 'text-white/70' : 'text-[#7d4a3c]'}`}
+            >
+              <Download className="w-3 h-3" /> Baixar
+            </a>
+          </div>
+        ) : (
+          <a
+            href={`${msg.file_url}?download=${encodeURIComponent(msg.file_name ?? 'arquivo')}`}
+            className={`flex items-center gap-2 mt-1 text-xs underline ${isDoctor ? 'text-white/80' : 'text-[#7d4a3c]'}`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            {msg.file_name ?? 'Arquivo'}
+          </a>
+        )
       )}
       <p className={`text-[10px] mt-1 text-right ${isDoctor ? 'text-white/60' : 'text-gray-400'}`}>
         {formatTime(msg.created_at)}
