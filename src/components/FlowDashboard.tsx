@@ -6,7 +6,6 @@ import { useLanguage } from '../i18n';
 import { GamificationService, GamificationStats } from '../services/gamificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { Confetti } from './Confetti';
 import { TodayMissionsCard } from './TodayMissionsCard';
 import { DailyCheckinModal } from './DailyCheckinModal';
 import { DailyMealsList } from './DailyMealsList';
@@ -306,14 +305,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
   // Flow score calculated from consumed vs target (demo)
   const flowScore = stats.flowScore ?? 0;
-  const [showConfetti, setShowConfetti] = useState(false);
-
-  useEffect(() => {
-    if (flowScore >= 80) {
-      setShowConfetti(true);
-    }
-  }, [flowScore]);
-
   // SVG gauge calculations
   const circumference = 2 * Math.PI * 42;
 
@@ -662,8 +653,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-Malama-bg dark:bg-background-dark font-display text-Malama-main dark:text-white animate-fade-in transition-colors duration-300">
-      <Confetti active={showConfetti} />
-
       {/* Header */}
       <header className="flex items-center px-6 py-5 justify-between z-20">
         <div className="flex items-center gap-3">
