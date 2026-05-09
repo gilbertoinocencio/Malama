@@ -548,25 +548,31 @@ export async function getReactions(postId: string, userId: string): Promise<Reac
 export async function getThreadedComments(postId: string): Promise<ThreadedComment[]> {
   const { data: comments } = await supabase
     .from('comments')
-    .select(`id, post_id, user_id, content, parent_id, mentions, created_at,
-             profiles(display_name, avatar_url)`)
+    .select('id, post_id, user_id, content, created_at')
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
 
-  if (!comments) return [];
+  if (!comments || comments.length === 0) return [];
+
+  const profileIds = [...new Set(comments.map(c => c.user_id))];
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, display_name, avatar_url')
+    .in('id', profileIds);
+  const profileMap = new Map((profiles ?? []).map(p => [p.id, p]));
 
   const map = new Map<string, ThreadedComment>();
   const roots: ThreadedComment[] = [];
 
   for (const c of comments) {
-    const profile = c.profiles as unknown as { display_name: string; avatar_url: string | null } | null;
+    const profile = profileMap.get(c.user_id);
     const tc: ThreadedComment = {
       id: c.id,
       post_id: c.post_id,
       user_id: c.user_id,
       content: c.content,
-      parent_id: c.parent_id ?? null,
-      mentions: c.mentions ?? [],
+      parent_id: (c as any).parent_id ?? null,
+      mentions: (c as any).mentions ?? [],
       created_at: c.created_at,
       author: {
         display_name: profile?.display_name ?? 'Usuário',
@@ -594,12 +600,10 @@ export async function addComment(
   content: string,
   parentId?: string | null
 ): Promise<ThreadedComment | null> {
-  const mentions = await resolveUserMentions(content);
-
   const { data: inserted, error } = await supabase
     .from('comments')
-    .insert({ post_id: postId, user_id: userId, content, parent_id: parentId ?? null, mentions })
-    .select('id, post_id, user_id, content, parent_id, mentions, created_at')
+    .insert({ post_id: postId, user_id: userId, content })
+    .select('id, post_id, user_id, content, created_at')
     .single();
 
   if (error || !inserted) return null;
@@ -629,8 +633,8 @@ export async function addComment(
     post_id: inserted.post_id,
     user_id: inserted.user_id,
     content: inserted.content,
-    parent_id: inserted.parent_id ?? null,
-    mentions: inserted.mentions ?? [],
+    parent_id: (inserted as any).parent_id ?? null,
+    mentions: (inserted as any).mentions ?? [],
     created_at: inserted.created_at,
     author: {
       display_name: profile?.display_name ?? 'Usuário',
