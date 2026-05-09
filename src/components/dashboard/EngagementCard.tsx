@@ -33,7 +33,11 @@ const circadianConfig: Record<CircadianState, {
   },
 }
 
-export function EngagementCard() {
+interface EngagementCardProps {
+  onHowItWorks: () => void
+}
+
+export function EngagementCard({ onHowItWorks }: EngagementCardProps) {
   const {
     missionText,
     reserveCredits,
@@ -51,10 +55,18 @@ export function EngagementCard() {
   return (
     <div className="bg-black rounded-2xl p-5 mb-4 relative overflow-hidden">
 
-      {/* Missão */}
-      <p className="text-[9px] font-medium tracking-[2.5px] uppercase text-[#f2c4bc] mb-2">
-        Missão de hoje
-      </p>
+      {/* Header com botão discreto */}
+      <div className="flex items-start justify-between mb-2">
+        <p className="text-[9px] font-medium tracking-[2.5px] uppercase text-[#f2c4bc]">
+          Missão de hoje
+        </p>
+        <button
+          onClick={onHowItWorks}
+          className="text-[9px] font-medium tracking-[1px] uppercase text-white/25 hover:text-white/45 transition-colors"
+        >
+          como funciona?
+        </button>
+      </div>
       <p className="font-serif text-[19px] italic text-[#faf8f5] leading-snug mb-5 pr-2">
         "{missionText}"
       </p>
