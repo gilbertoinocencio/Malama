@@ -8,6 +8,10 @@ const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
 const MODEL_NAME = "gemini-2.5-flash";
 
+// Deduplication guard: userId → timestamp of last water log
+// Prevents double-registration if sendMessage is called twice within 10 s
+const recentWaterLogTs = new Map<string, number>();
+
 // Onboarding Stages (mesma estrutura do nutritionistAgentService)
 export type OnboardingStage =
   | 'WELCOME'
@@ -229,9 +233,15 @@ export const UnifiedChatService = {
         const totalMl = uniqueMlValues.reduce((sum, ml) => sum + ml, 0) + fallbackMl;
 
         if (totalMl > 0) {
-          try {
+          const now = Date.now();
+          const lastLog = recentWaterLogTs.get(userId) ?? 0;
+          const isDuplicate = now - lastLog < 10_000;
+
+          if (isDuplicate) {
+            console.warn('Water log: duplicate within 10s, skipping');
+          } else try {
+            recentWaterLogTs.set(userId, now);
             const today = getLocalDateString();
-            // Atomic upsert via RPC — avoids race condition of select+insert/update
             const { data: newTotal, error: rpcError } = await supabase.rpc('log_water_intake', {
               p_user_id: userId,
               p_date:    today,

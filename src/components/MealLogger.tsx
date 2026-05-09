@@ -383,7 +383,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           if (savedDraft) {
             const { meal, source, ts, scanResult: sr, imageUri } = JSON.parse(savedDraft);
             if (Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) {
-              if (!draftMeal && meal) { setDraftMeal(meal); setDraftSource(source || 'chat'); }
+              // Don't restore draftMeal while a scan is active — it would show stale
+              // confirmation buttons after the scan is confirmed, causing double-registration
+              if (!draftMeal && !scannedImageUri && meal) { setDraftMeal(meal); setDraftSource(source || 'chat'); }
               if (!scanResult && sr) setScanResult(sr);
               if (!scannedImageUri && imageUri) setScannedImageUri(imageUri);
             }
@@ -675,13 +677,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   };
 
 
-  const handleConfirmLog = async (data: AIResponse, type: 'ai-chat' | 'ai-photo' | 'ai-voice') => {
-    console.log('MealLogger: Confirming log...', type);
-    if (!user) {
-      console.error('MealLogger: No user!');
-      return;
-    }
+  const isLoggingRef = useRef(false);
 
+  const handleConfirmLog = async (data: AIResponse, type: 'ai-chat' | 'ai-photo' | 'ai-voice') => {
+    if (!user || isLoggingRef.current) return;
+    isLoggingRef.current = true;
+
+    // Always clear any pending draft before logging to prevent double-registration
+    setDraftMeal(null);
     setLoading(true);
     try {
       const newMeal: Meal = {
@@ -735,6 +738,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           setSuccess(false);
           setScanResult(null);
           setScannedImageUri(null);
+          setDraftMeal(null);
+          if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
         }, 900);
       } else {
         setSuccess(true);
@@ -744,6 +749,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       console.error('Failed to log meal:', error);
       alert(t.mealLogger.errorLogging);
       setLoading(false);
+    } finally {
+      isLoggingRef.current = false;
     }
   };
 
