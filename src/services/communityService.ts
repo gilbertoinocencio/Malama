@@ -606,7 +606,11 @@ export async function addComment(
     .select('id, post_id, user_id, content, created_at')
     .single();
 
-  if (error || !inserted) return null;
+  if (error || !inserted) {
+    console.error('COMMENT INSERT ERROR:', JSON.stringify(error, null, 2));
+    console.error('Payload:', { post_id: postId, user_id: userId, content });
+    return null;
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
