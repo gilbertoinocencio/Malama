@@ -198,7 +198,7 @@ async function getFeaturedBadgeForUser(userId: string): Promise<BadgeSummary | n
     .select('is_featured, badges(code, label, emoji, color_hex)')
     .eq('user_id', userId)
     .eq('is_featured', true)
-    .single();
+    .maybeSingle();
   if (!data) return null;
   const b = data.badges as unknown as { code: string; label: string; emoji: string; color_hex: string } | null;
   if (!b) return null;
@@ -1332,7 +1332,7 @@ export async function queueNotification(
 
   // Verificar preferências
   const { data: prefs } = await supabase
-    .from('notification_preferences').select('*').eq('user_id', recipientId).single();
+    .from('notification_preferences').select('*').eq('user_id', recipientId).maybeSingle();
 
   const prefKey = `on_${type}` as keyof NotificationPreferences;
   if (prefs && prefs[prefKey] === false) return;
@@ -1353,8 +1353,7 @@ export async function getNotifications(
 ): Promise<{ notifications: CommunityNotification[]; unreadCount: number; nextCursor: string | null }> {
   let q = supabase
     .from('community_notifications')
-    .select(`id, type, actor_id, post_id, comment_id, data, is_read, created_at,
-             profiles!community_notifications_actor_id_fkey(display_name, avatar_url)`)
+    .select('id, type, actor_id, post_id, comment_id, data, is_read, created_at')
     .eq('recipient_id', userId)
     .order('created_at', { ascending: false })
     .limit(20);
@@ -1362,11 +1361,20 @@ export async function getNotifications(
   if (cursor) q = q.lt('created_at', cursor);
   const { data } = await q;
 
-  const { count: unreadCount } = await supabase
-    .from('community_notifications')
-    .select('id', { count: 'exact', head: true })
-    .eq('recipient_id', userId)
-    .eq('is_read', false);
+  const [{ count: unreadCount }, actorProfiles] = await Promise.all([
+    supabase
+      .from('community_notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('recipient_id', userId)
+      .eq('is_read', false),
+    (async () => {
+      const actorIds = [...new Set((data ?? []).map(n => n.actor_id).filter(Boolean))];
+      if (actorIds.length === 0) return new Map<string, { display_name: string; avatar_url: string | null }>();
+      const { data: profiles } = await supabase
+        .from('profiles').select('id, display_name, avatar_url').in('id', actorIds);
+      return new Map((profiles ?? []).map(p => [p.id, p]));
+    })(),
+  ]);
 
   const notifications: CommunityNotification[] = (data ?? []).map(n => ({
     id: n.id,
@@ -1377,7 +1385,7 @@ export async function getNotifications(
     data: n.data ?? {},
     is_read: n.is_read,
     created_at: n.created_at,
-    actor: n.profiles as unknown as { display_name: string; avatar_url: string | null } | undefined,
+    actor: n.actor_id ? actorProfiles.get(n.actor_id) : undefined,
   }));
 
   const nextCursor = notifications.length === 20 ? notifications[notifications.length - 1].created_at : null;
@@ -1399,7 +1407,7 @@ export async function getNotificationPreferences(userId: string): Promise<Notifi
     on_badge_earned: true, milestone_opt_out: false,
   };
   const { data } = await supabase
-    .from('notification_preferences').select('*').eq('user_id', userId).single();
+    .from('notification_preferences').select('*').eq('user_id', userId).maybeSingle();
   return data ? { ...defaults, ...data } : defaults;
 }
 
