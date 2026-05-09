@@ -6,7 +6,7 @@ import { useLanguage } from '../i18n';
 import { GamificationService, GamificationStats } from '../services/gamificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { TodayMissionsCard } from './TodayMissionsCard';
+import { EngagementCard } from './dashboard/EngagementCard';
 import { DailyCheckinModal } from './DailyCheckinModal';
 import { DailyMealsList } from './DailyMealsList';
 import { getLocalDateString } from '../utils/dateUtils';
@@ -38,7 +38,6 @@ type PeriodTab = 'day' | 'week' | 'month';
 export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   stats,
   meals,
-  onFabClick,
   onShareClick,
   onNavClick,
   onDeleteMeal,
@@ -853,9 +852,9 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               </div>
             )}
 
-            {/* Today's Missions Card */}
+            {/* Engagement Card */}
             <div className="px-6">
-              <TodayMissionsCard onNavClick={onNavClick} onFabClick={onFabClick} />
+              <EngagementCard />
             </div>
 
             {/* Goal Adjustment Badge */}
