@@ -9,9 +9,9 @@ interface Props {
 
 const STEPS = [
   {
-    title: 'Sua missão do dia',
+    title: 'Ritmo',
     body: 'Não é uma lista de tarefas. É uma frase gerada pelo seu histórico real — o app identifica padrões e te dá um contexto específico para hoje.',
-    hint: 'A missão muda conforme seu comportamento ao longo dos dias.',
+    hint: 'O ritmo muda conforme seu comportamento ao longo dos dias.',
     icon: '◎',
   },
   {

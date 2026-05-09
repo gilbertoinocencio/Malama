@@ -39,7 +39,7 @@ interface EngagementCardProps {
 
 export function EngagementCard({ onHowItWorks }: EngagementCardProps) {
   const {
-    missionText,
+    rhythmText,
     reserveCredits,
     maxCredits,
     multiplierActive,
@@ -57,18 +57,18 @@ export function EngagementCard({ onHowItWorks }: EngagementCardProps) {
 
       {/* Header com botão discreto */}
       <div className="flex items-start justify-between mb-2">
-        <p className="text-[9px] font-medium tracking-[2.5px] uppercase text-[#f2c4bc]">
-          Missão de hoje
+        <p className="text-[11px] font-medium tracking-[2.5px] uppercase text-[#f2c4bc]">
+          Ritmo
         </p>
         <button
           onClick={onHowItWorks}
-          className="text-[9px] font-medium tracking-[1px] uppercase text-white/25 hover:text-white/45 transition-colors"
+          className="text-[11px] font-medium tracking-[1px] uppercase text-white/25 hover:text-white/45 transition-colors"
         >
           como funciona?
         </button>
       </div>
-      <p className="font-serif text-[19px] italic text-[#faf8f5] leading-snug mb-5 pr-2">
-        "{missionText}"
+      <p className="font-serif text-[22px] italic text-[#faf8f5] leading-snug mb-5 pr-2">
+        "{rhythmText}"
       </p>
 
       {/* Reserva + Multiplicador */}
@@ -76,35 +76,35 @@ export function EngagementCard({ onHowItWorks }: EngagementCardProps) {
 
         {/* Reserva Metabólica */}
         <div className="flex-1 bg-white/[0.06] rounded-xl p-3 border border-white/[0.07]">
-          <p className="text-[8px] font-medium tracking-widest uppercase text-white/35 mb-2">
+          <p className="text-[10px] font-medium tracking-widest uppercase text-white/35 mb-2">
             Reserva metabólica
           </p>
           <div className="flex gap-[5px]">
             {Array.from({ length: maxCredits }).map((_, i) => (
               <div
                 key={i}
-                className={`w-2 h-2 rounded-full ${
+                className={`w-2.5 h-2.5 rounded-full ${
                   i < reserveCredits ? 'bg-[#f2c4bc]' : 'bg-white/10'
                 }`}
               />
             ))}
           </div>
-          <p className="text-[10px] font-light text-white/35 mt-1.5">
+          <p className="text-[12px] font-light text-white/35 mt-1.5">
             {reserveCredits} de {maxCredits} créditos
           </p>
         </div>
 
         {/* Multiplicador */}
         <div className="bg-[#f2c4bc]/12 rounded-xl p-3 border border-[#f2c4bc]/18 min-w-[100px] flex flex-col justify-between">
-          <p className="text-[8px] font-medium tracking-widest uppercase text-white/35 mb-2">
+          <p className="text-[10px] font-medium tracking-widest uppercase text-white/35 mb-2">
             Multiplicador
           </p>
-          <p className="font-serif text-[26px] font-light leading-none mb-1" style={{ color: multColor }}>
+          <p className="font-serif text-[30px] font-light leading-none mb-1" style={{ color: multColor }}>
             {multiplierValue}
           </p>
           <div className="flex items-center gap-1">
             <div className="w-[5px] h-[5px] rounded-full" style={{ background: multColor }} />
-            <span className="text-[9px] font-medium tracking-wide uppercase" style={{ color: multColor }}>
+            <span className="text-[11px] font-medium tracking-wide uppercase" style={{ color: multColor }}>
               {multiplierActive ? 'ativo' : 'inativo'}
             </span>
           </div>
@@ -115,10 +115,10 @@ export function EngagementCard({ onHowItWorks }: EngagementCardProps) {
       {/* Janela Alimentar */}
       <div className={`rounded-xl p-3 ${circ.pill}`}>
         <div className="flex justify-between items-center">
-          <p className="text-[8px] font-medium tracking-widest uppercase text-white/35">
+          <p className="text-[10px] font-medium tracking-widest uppercase text-white/35">
             Janela alimentar
           </p>
-          <span className={`text-[9px] font-medium tracking-[1.5px] uppercase px-2 py-1 rounded ${circ.badge}`}>
+          <span className={`text-[11px] font-medium tracking-[1.5px] uppercase px-2 py-1 rounded ${circ.badge}`}>
             {circ.badgeText}
           </span>
         </div>
@@ -132,7 +132,7 @@ export function EngagementCard({ onHowItWorks }: EngagementCardProps) {
             }
           />
         </div>
-        <p className="text-[10px] font-light text-white/35 mt-1.5">
+        <p className="text-[12px] font-light text-white/35 mt-1.5">
           {circadianMessage}
         </p>
       </div>

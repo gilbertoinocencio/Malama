@@ -5,7 +5,7 @@ import { useDailyLogs } from './useDailyLogs'
 export type CircadianState = 'pending' | 'active' | 'closing' | 'out'
 
 export interface EngagementData {
-  missionText: string
+  rhythmText: string
   reserveCredits: number
   maxCredits: number
   multiplierActive: boolean
@@ -83,7 +83,7 @@ export function useEngagementSystem(): EngagementData {
     }
 
     // --- Missão Dinâmica ---
-    let missionText = 'Registre sua primeira refeição do dia.'
+    let rhythmText = 'Registre sua primeira refeição do dia.'
 
     if (recent.length >= 3) {
       const lastDay = recent[0]
@@ -91,20 +91,20 @@ export function useEngagementSystem(): EngagementData {
       const proteinStreak = last4.filter(l => l.protein_pct >= 80).length
 
       if (lastDay && lastDay.protein_pct < 40 && lastDay.carb_pct < 40) {
-        missionText = 'Ontem foi ruim. Hoje você tem a chance de não deixar virar padrão.'
+        rhythmText = 'Ontem foi ruim. Hoje você tem a chance de não deixar virar padrão.'
       } else if (proteinStreak === 4) {
-        missionText = 'Proteína batida 4 dias seguidos. Fecha a semana.'
+        rhythmText = 'Proteína batida 4 dias seguidos. Fecha a semana.'
       } else if (proteinStreak === 3) {
-        missionText = 'Três dias com proteína em dia. Mantém amanhã.'
+        rhythmText = 'Três dias com proteína em dia. Mantém amanhã.'
       } else if (reserveCredits <= 1) {
-        missionText = 'Sua reserva está baixa. Dois dias assim e a sequência quebra.'
+        rhythmText = 'Sua reserva está baixa. Dois dias assim e a sequência quebra.'
       } else {
-        missionText = 'Dia novo. O histórico da semana ainda pode ser salvo.'
+        rhythmText = 'Dia novo. O histórico da semana ainda pode ser salvo.'
       }
     }
 
     return {
-      missionText,
+      rhythmText,
       reserveCredits,
       maxCredits: 5,
       multiplierActive,
