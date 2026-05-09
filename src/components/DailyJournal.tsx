@@ -12,7 +12,7 @@ interface DailyJournalProps {
 
 type EnergyLevel = 'Baixa' | 'Média' | 'Boa' | 'Flow';
 
-export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }) => {
+export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack }) => {
   const { user } = useAuth();
   const { t, language } = useLanguage();
   const [energy, setEnergy] = useState<EnergyLevel | null>(null);
@@ -20,6 +20,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [shareToFeed, setShareToFeed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [streak, setStreak] = useState<number>(0);
   const [pastLogs, setPastLogs] = useState<import('../services/dailyLogService').DailyLogData[]>([]);
 
@@ -58,7 +59,9 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
         photo_url: imagePreview || undefined
       }, shareToFeed);
 
-      onNavigate(AppView.SHARE);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      await loadLog();
     } catch (e) {
       console.error(e);
       alert(jt.saveError);
@@ -304,10 +307,12 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
           >
             {saving ? (
               <span className="animate-spin material-symbols-outlined">sync</span>
+            ) : saved ? (
+              <span className="material-symbols-outlined text-xl">check_circle</span>
             ) : (
-              <span className="material-symbols-outlined text-xl">ios_share</span>
+              <span className="material-symbols-outlined text-xl">save</span>
             )}
-            <span>{saving ? jt.saving : jt.saveJournal}</span>
+            <span>{saving ? jt.saving : saved ? jt.save : jt.saveJournal}</span>
           </button>
         </div>
       </div>
