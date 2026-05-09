@@ -92,6 +92,24 @@ export const DailyLogService = {
         return streak;
     },
 
+    async getRecentLogs(userId: string, limit: number = 14): Promise<DailyLogData[]> {
+        const { data, error } = await supabase
+            .from('daily_logs')
+            .select('*')
+            .eq('user_id', userId)
+            .not('notes', 'is', null)
+            .neq('notes', '')
+            .order('date', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error('Error fetching recent logs:', error);
+            return [];
+        }
+
+        return data || [];
+    },
+
     async uploadJournalPhoto(userId: string, file: File): Promise<string> {
         const fileName = `${userId}/${Date.now()}_journal.jpg`;
         const { data, error } = await supabase.storage

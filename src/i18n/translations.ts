@@ -284,6 +284,8 @@ export interface Translations {
         save: string;
         saveError: string;
         saveJournal: string;
+        pastNotes: string;
+        noPastNotes: string;
     };
 
     // Profile Config
@@ -680,6 +682,8 @@ export const translations: Record<Language, Translations> = {
             save: 'Save',
             saveError: 'Error saving journal',
             saveJournal: 'Save Journal',
+            pastNotes: 'Previous Notes',
+            noPastNotes: 'No previous notes yet.',
         },
         profileConfig: {
             title: 'Biometric Profile',
@@ -1059,6 +1063,8 @@ export const translations: Record<Language, Translations> = {
             save: 'Salvar',
             saveError: 'Erro ao salvar diário',
             saveJournal: 'Salvar Diário',
+            pastNotes: 'Notas Anteriores',
+            noPastNotes: 'Nenhuma nota anterior ainda.',
         },
         profileConfig: {
             title: 'Perfil Biométrico',
@@ -1438,6 +1444,8 @@ export const translations: Record<Language, Translations> = {
             save: 'Guardar',
             saveError: 'Error al guardar diario',
             saveJournal: 'Guardar Diario',
+            pastNotes: 'Notas Anteriores',
+            noPastNotes: 'Aún no hay notas anteriores.',
         },
         profileConfig: {
             title: 'Perfil Biométrico',

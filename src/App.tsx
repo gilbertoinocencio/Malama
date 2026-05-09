@@ -62,6 +62,7 @@ const App: React.FC = () => {
   useIdleLogout(!!user);
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [communityProfileUserId, setCommunityProfileUserId] = useState<string | null>(null);
+  const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -398,7 +399,7 @@ const App: React.FC = () => {
     <Layout
       activeView={view}
       onChangeView={setView}
-      onFabClick={() => setView(AppView.LOG)}
+      onFabClick={() => view === AppView.FEED ? setCommunityComposerOpen(true) : setView(AppView.LOG)}
     >
       <Suspense fallback={<LoadingSpinner />}>
         {view === AppView.HOME && (
@@ -424,6 +425,8 @@ const App: React.FC = () => {
               setView(v);
             }}
             onBack={() => setView(AppView.HOME)}
+            openComposer={communityComposerOpen}
+            onComposerClose={() => setCommunityComposerOpen(false)}
           />
         )}
 

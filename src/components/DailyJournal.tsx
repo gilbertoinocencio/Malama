@@ -21,6 +21,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
   const [shareToFeed, setShareToFeed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [streak, setStreak] = useState<number>(0);
+  const [pastLogs, setPastLogs] = useState<import('../services/dailyLogService').DailyLogData[]>([]);
 
   const jt = t.journal;
 
@@ -30,9 +31,10 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
 
   const loadLog = async () => {
     if (!user) return;
-    const [log, s] = await Promise.all([
+    const [log, s, recent] = await Promise.all([
       DailyLogService.getDailyLog(user.id),
       DailyLogService.getStreak(user.id),
+      DailyLogService.getRecentLogs(user.id),
     ]);
     if (log) {
       setEnergy(log.energy_level as EnergyLevel || null);
@@ -40,6 +42,8 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
       setImagePreview(log.photo_url || null);
     }
     setStreak(s);
+    const today = new Date().toISOString().split('T')[0];
+    setPastLogs(recent.filter(l => l.date !== today));
   };
 
   const handleSave = async () => {
@@ -243,6 +247,49 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack, onNavigate }
           <label onClick={() => setShareToFeed(!shareToFeed)} className="text-Malama-main dark:text-white text-sm cursor-pointer select-none">
             {jt.shareToCommunity}
           </label>
+        </div>
+
+        {/* Past Notes */}
+        <div className="mb-36 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+          <h3 className="text-Malama-main dark:text-white text-lg font-medium mb-5 px-1 flex items-center gap-2">
+            {jt.pastNotes}
+            <span className="h-px flex-1 bg-gray-200 dark:bg-Malama-dark ml-2"></span>
+          </h3>
+          {pastLogs.length === 0 ? (
+            <p className="text-Malama-muted dark:text-gray-500 text-sm px-1">{jt.noPastNotes}</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {pastLogs.map((log) => {
+                const d = new Date(log.date + 'T12:00:00');
+                const dateLabel = d.toLocaleDateString(localeMap[language] || 'en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+                const energyColors: Record<string, string> = {
+                  'Baixa': 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
+                  'Média': 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400',
+                  'Boa': 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400',
+                  'Flow': 'bg-Malama-petrol/10 dark:bg-primary/10 text-Malama-petrol dark:text-primary',
+                };
+                const energyClass = log.energy_level ? (energyColors[log.energy_level] || '') : '';
+                return (
+                  <div key={log.id} className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-Malama-border dark:border-white/10 flex gap-3">
+                    {log.photo_url && (
+                      <div className="shrink-0 size-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
+                        <img src={log.photo_url} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-xs text-Malama-muted dark:text-gray-500 capitalize">{dateLabel}</span>
+                        {log.energy_level && (
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${energyClass}`}>{log.energy_level}</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-Malama-main dark:text-white leading-relaxed line-clamp-3">{log.notes}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </main>

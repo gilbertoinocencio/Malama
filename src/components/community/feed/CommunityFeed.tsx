@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Plus } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import {
   getFeed, getCurrentSpotlight, getDailyQuestion, checkMilestones, checkAndGrantAutoBadges,
@@ -22,9 +21,11 @@ import toast from 'react-hot-toast';
 interface CommunityFeedProps {
   onNavigate: (view: AppView, userId?: string) => void;
   onBack: () => void;
+  openComposer?: boolean;
+  onComposerClose?: () => void;
 }
 
-export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate }) => {
+export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate, openComposer, onComposerClose }) => {
   const { user, profile } = useAuth();
   const [mode, setMode] = useState<'all' | 'following'>('all');
   const [posts, setPosts] = useState<EnrichedPost[]>([]);
@@ -39,6 +40,10 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate }) => {
   const [composerOpen, setComposerOpen] = useState(false);
   const [reportPostId, setReportPostId] = useState<string | null>(null);
   const lastFetchTime = useRef<string>(new Date().toISOString());
+
+  useEffect(() => {
+    if (openComposer) setComposerOpen(true);
+  }, [openComposer]);
   const loaderRef = useRef<HTMLDivElement>(null);
 
   const loadFeed = useCallback(async (reset = false) => {
@@ -181,19 +186,10 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* FAB de novo post */}
-      <button
-        onClick={() => setComposerOpen(true)}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-Malama-petrol rounded-full shadow-lg
-          shadow-[#2ECC71]/40 flex items-center justify-center z-30 active:scale-95 transition-transform"
-      >
-        <Plus size={24} className="text-white" />
-      </button>
-
       {composerOpen && (
         <PostComposerV2
           userId={user.id}
-          onClose={() => setComposerOpen(false)}
+          onClose={() => { setComposerOpen(false); onComposerClose?.(); }}
           onPublished={handlePostCreated}
         />
       )}
