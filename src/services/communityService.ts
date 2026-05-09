@@ -449,6 +449,7 @@ export async function createCommunityPost(
     .insert({
       user_id: userId,
       type: data.type ?? 'text',
+      content: {},
       caption: data.caption,
       tags,
       media_urls: imageUrls,
