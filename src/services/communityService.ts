@@ -596,38 +596,42 @@ export async function addComment(
 ): Promise<ThreadedComment | null> {
   const mentions = await resolveUserMentions(content);
 
-  const { data: comment, error } = await supabase
+  const { data: inserted, error } = await supabase
     .from('comments')
     .insert({ post_id: postId, user_id: userId, content, parent_id: parentId ?? null, mentions })
-    .select(`id, post_id, user_id, content, parent_id, mentions, created_at,
-             profiles(display_name, avatar_url)`)
+    .select('id, post_id, user_id, content, parent_id, mentions, created_at')
     .single();
 
-  if (error || !comment) return null;
+  if (error || !inserted) return null;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name, avatar_url')
+    .eq('id', userId)
+    .single();
 
   // Notificação ao autor do post ou do comentário pai
   if (parentId) {
     const { data: parent } = await supabase
       .from('comments').select('user_id').eq('id', parentId).single();
     if (parent && parent.user_id !== userId) {
-      await queueNotification(parent.user_id, 'reply', userId, { post_id: postId, comment_id: comment.id });
+      await queueNotification(parent.user_id, 'reply', userId, { post_id: postId, comment_id: inserted.id });
     }
   } else {
     const { data: post } = await supabase.from('posts').select('user_id').eq('id', postId).single();
     if (post && post.user_id !== userId) {
-      await queueNotification(post.user_id, 'comment', userId, { post_id: postId, comment_id: comment.id });
+      await queueNotification(post.user_id, 'comment', userId, { post_id: postId, comment_id: inserted.id });
     }
   }
 
-  const profile = comment.profiles as unknown as { display_name: string; avatar_url: string | null } | null;
   return {
-    id: comment.id,
-    post_id: comment.post_id,
-    user_id: comment.user_id,
-    content: comment.content,
-    parent_id: comment.parent_id ?? null,
-    mentions: comment.mentions ?? [],
-    created_at: comment.created_at,
+    id: inserted.id,
+    post_id: inserted.post_id,
+    user_id: inserted.user_id,
+    content: inserted.content,
+    parent_id: inserted.parent_id ?? null,
+    mentions: inserted.mentions ?? [],
+    created_at: inserted.created_at,
     author: {
       display_name: profile?.display_name ?? 'Usuário',
       avatar_url: profile?.avatar_url ?? null,
