@@ -594,6 +594,33 @@ export async function getThreadedComments(postId: string): Promise<ThreadedComme
   return roots;
 }
 
+export interface PostPreview {
+  id: string;
+  caption: string | null;
+  image_url: string | null;
+  media_urls: string[] | null;
+  author_name: string;
+  author_avatar: string | null;
+}
+
+export async function getPostPreview(postId: string): Promise<PostPreview | null> {
+  const { data } = await supabase
+    .from('posts')
+    .select('id, caption, image_url, media_urls, profiles(display_name, avatar_url)')
+    .eq('id', postId)
+    .maybeSingle();
+  if (!data) return null;
+  const profile = data.profiles as unknown as { display_name: string; avatar_url: string | null } | null;
+  return {
+    id: data.id,
+    caption: data.caption ?? null,
+    image_url: data.image_url ?? null,
+    media_urls: data.media_urls ?? null,
+    author_name: profile?.display_name ?? 'Usuário',
+    author_avatar: profile?.avatar_url ?? null,
+  };
+}
+
 export async function addComment(
   postId: string,
   userId: string,

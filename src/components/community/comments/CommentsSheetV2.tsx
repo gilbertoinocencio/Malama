@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send } from 'lucide-react';
-import { getThreadedComments, addComment, type ThreadedComment } from '../../../services/communityService';
+import { getThreadedComments, addComment, getPostPreview, type ThreadedComment, type PostPreview } from '../../../services/communityService';
 import { CommentItem } from './CommentItem';
 import { MentionInput } from './MentionInput';
 
@@ -13,6 +13,7 @@ interface CommentsSheetV2Props {
 
 export const CommentsSheetV2: React.FC<CommentsSheetV2Props> = ({ postId, currentUserId, onClose }) => {
   const [comments, setComments] = useState<ThreadedComment[]>([]);
+  const [post, setPost] = useState<PostPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [inputValue, setInputValue] = useState('');
   const [replyingTo, setReplyingTo] = useState<ThreadedComment | null>(null);
@@ -20,7 +21,14 @@ export const CommentsSheetV2: React.FC<CommentsSheetV2Props> = ({ postId, curren
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    getThreadedComments(postId).then(c => { setComments(c); setLoading(false); });
+    Promise.all([
+      getThreadedComments(postId),
+      getPostPreview(postId),
+    ]).then(([c, p]) => {
+      setComments(c);
+      setPost(p);
+      setLoading(false);
+    });
   }, [postId]);
 
   const handleSubmit = async () => {
@@ -46,6 +54,8 @@ export const CommentsSheetV2: React.FC<CommentsSheetV2Props> = ({ postId, curren
     setSubmitting(false);
   };
 
+  const thumbnail = post?.media_urls?.[0] ?? post?.image_url ?? null;
+
   return (
     <AnimatePresence>
       <motion.div
@@ -70,6 +80,32 @@ export const CommentsSheetV2: React.FC<CommentsSheetV2Props> = ({ postId, curren
               <X size={18} className="text-gray-500" />
             </button>
           </div>
+
+          {/* Post Preview */}
+          {post && (
+            <div className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-white/10 shrink-0 bg-gray-50 dark:bg-white/5">
+              {/* Author avatar */}
+              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0 overflow-hidden flex items-center justify-center">
+                {post.author_avatar
+                  ? <img src={post.author_avatar} alt="" className="w-full h-full object-cover" />
+                  : <span className="text-xs font-bold text-gray-500">{post.author_name[0]?.toUpperCase()}</span>
+                }
+              </div>
+              {/* Caption */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{post.author_name}</p>
+                {post.caption && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">{post.caption}</p>
+                )}
+              </div>
+              {/* Thumbnail */}
+              {thumbnail && (
+                <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
+                  <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Lista */}
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
