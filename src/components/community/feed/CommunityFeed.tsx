@@ -23,9 +23,11 @@ interface CommunityFeedProps {
   onBack: () => void;
   openComposer?: boolean;
   onComposerClose?: () => void;
+  initialCommentsPostId?: string | null;
+  onInitialCommentsClose?: () => void;
 }
 
-export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate, openComposer, onComposerClose }) => {
+export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate, openComposer, onComposerClose, initialCommentsPostId, onInitialCommentsClose }) => {
   const { user, profile } = useAuth();
   const [mode, setMode] = useState<'all' | 'following'>('all');
   const [posts, setPosts] = useState<EnrichedPost[]>([]);
@@ -44,6 +46,10 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate, openCo
   useEffect(() => {
     if (openComposer) setComposerOpen(true);
   }, [openComposer]);
+
+  useEffect(() => {
+    if (initialCommentsPostId) setCommentsPostId(initialCommentsPostId);
+  }, [initialCommentsPostId]);
   const loaderRef = useRef<HTMLDivElement>(null);
 
   const loadFeed = useCallback(async (reset = false) => {
@@ -198,7 +204,7 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({ onNavigate, openCo
         <CommentsSheetV2
           postId={commentsPostId}
           currentUserId={user.id}
-          onClose={() => setCommentsPostId(null)}
+          onClose={() => { setCommentsPostId(null); onInitialCommentsClose?.(); }}
         />
       )}
 

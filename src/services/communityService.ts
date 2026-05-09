@@ -692,9 +692,12 @@ export async function checkAndGrantAutoBadges(userId: string): Promise<Array<{ c
 
   const { data: allBadges } = await supabase.from('badges').select('*').eq('is_manual', false);
   const { data: existingBadges } = await supabase
-    .from('user_badges').select('badge_id, badges(code)').eq('user_id', userId);
+    .from('user_badges').select('badge_id').eq('user_id', userId);
 
-  const existingCodes = new Set((existingBadges ?? []).map(ub => (ub.badges as unknown as { code: string })?.code));
+  const existingBadgeIds = new Set((existingBadges ?? []).map(ub => ub.badge_id));
+  const existingCodes = new Set(
+    (allBadges ?? []).filter(b => existingBadgeIds.has(b.id)).map(b => b.code)
+  );
   const newlyGranted: Array<{ code: string; label: string; emoji: string }> = [];
 
   if (!profile || !allBadges) return newlyGranted;
@@ -705,9 +708,10 @@ export async function checkAndGrantAutoBadges(userId: string): Promise<Array<{ c
   if (!existingCodes.has('iniciante') && daysSinceJoin >= 30) {
     const badge = allBadges.find(b => b.code === 'iniciante');
     if (badge) {
-      await supabase.from('user_badges').insert({ user_id: userId, badge_id: badge.id });
-      newlyGranted.push({ code: badge.code, label: badge.label, emoji: badge.emoji });
-      await queueNotification(userId, 'badge_earned', null, { data: { badge_code: 'iniciante' } });
+      const { error } = await supabase.from('user_badges').insert({ user_id: userId, badge_id: badge.id });
+      if (!error) {
+        newlyGranted.push({ code: badge.code, label: badge.label, emoji: badge.emoji });
+      }
     }
   }
 
@@ -715,9 +719,10 @@ export async function checkAndGrantAutoBadges(userId: string): Promise<Array<{ c
   if (!existingCodes.has('consistente') && daysSinceJoin >= 90) {
     const badge = allBadges.find(b => b.code === 'consistente');
     if (badge) {
-      await supabase.from('user_badges').insert({ user_id: userId, badge_id: badge.id });
-      newlyGranted.push({ code: badge.code, label: badge.label, emoji: badge.emoji });
-      await queueNotification(userId, 'badge_earned', null, { data: { badge_code: 'consistente' } });
+      const { error } = await supabase.from('user_badges').insert({ user_id: userId, badge_id: badge.id });
+      if (!error) {
+        newlyGranted.push({ code: badge.code, label: badge.label, emoji: badge.emoji });
+      }
     }
   }
 
@@ -734,9 +739,10 @@ export async function checkAndGrantAutoBadges(userId: string): Promise<Array<{ c
     if (postData && postData.length >= 12) { // 3/semana x 4 semanas = 12
       const badge = allBadges.find(b => b.code === 'em_chama');
       if (badge) {
-        await supabase.from('user_badges').insert({ user_id: userId, badge_id: badge.id });
-        newlyGranted.push({ code: badge.code, label: badge.label, emoji: badge.emoji });
-        await queueNotification(userId, 'badge_earned', null, { data: { badge_code: 'em_chama' } });
+        const { error } = await supabase.from('user_badges').insert({ user_id: userId, badge_id: badge.id });
+        if (!error) {
+          newlyGranted.push({ code: badge.code, label: badge.label, emoji: badge.emoji });
+        }
       }
     }
   }
@@ -764,9 +770,10 @@ export async function checkAndGrantAutoBadges(userId: string): Promise<Array<{ c
       if (maxKg && maxKg >= 10) {
         const badge = allBadges.find(b => b.code === 'transformacao');
         if (badge) {
-          await supabase.from('user_badges').insert({ user_id: userId, badge_id: badge.id });
-          newlyGranted.push({ code: badge.code, label: badge.label, emoji: badge.emoji });
-          await queueNotification(userId, 'badge_earned', null, { data: { badge_code: 'transformacao' } });
+          const { error } = await supabase.from('user_badges').insert({ user_id: userId, badge_id: badge.id });
+          if (!error) {
+            newlyGranted.push({ code: badge.code, label: badge.label, emoji: badge.emoji });
+          }
         }
       }
     }
@@ -942,7 +949,7 @@ export async function runWeeklySpotlight(): Promise<void> {
 
   // Verificar se já existe spotlight para esta semana
   const { data: existing } = await supabase
-    .from('weekly_spotlight').select('id').eq('week_start', weekStartStr).single();
+    .from('weekly_spotlight').select('id').eq('week_start', weekStartStr).maybeSingle();
   if (existing) return;
 
   // Buscar posts da semana com mais reações
@@ -983,7 +990,7 @@ export async function getCurrentSpotlight(): Promise<EnrichedPost | null> {
     .gte('pinned_until', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!data) return null;
   const posts = await enrichPosts([data.post_id], '');
@@ -1355,6 +1362,7 @@ export async function getNotifications(
     .from('community_notifications')
     .select('id, type, actor_id, post_id, comment_id, data, is_read, created_at')
     .eq('recipient_id', userId)
+    .in('type', ['comment', 'reply', 'reaction', 'new_follower', 'spotlight', 'doctor_broadcast', 'milestone'])
     .order('created_at', { ascending: false })
     .limit(20);
 
@@ -1483,7 +1491,7 @@ export async function getDailyQuestion(viewerUserId: string): Promise<EnrichedPo
     .eq('is_pinned', true)
     .eq('is_system_post', true)
     .gte('created_at', todayStart.toISOString())
-    .single();
+    .maybeSingle();
 
   if (existing) {
     const posts = await enrichPosts([existing.id], viewerUserId);

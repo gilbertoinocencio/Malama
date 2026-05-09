@@ -14,9 +14,10 @@ import { NotificationPreferencesSheet } from './NotificationPreferencesSheet';
 interface NotificationCenterProps {
   onBack: () => void;
   onNavigate?: (view: AppView) => void;
+  onOpenPost?: (postId: string) => void;
 }
 
-export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onBack }) => {
+export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onBack, onOpenPost }) => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<CommunityNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +110,16 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onBack }
         ) : (
           <>
             {notifications.map(n => (
-              <NotificationItem key={n.id} notification={n} />
+              <NotificationItem
+                key={n.id}
+                notification={n}
+                onClick={() => {
+                  if (n.post_id && onOpenPost) {
+                    markNotificationsRead(user.id, [n.id]);
+                    onOpenPost(n.post_id);
+                  }
+                }}
+              />
             ))}
             <div ref={loaderRef} className="h-8 flex items-center justify-center">
               {loadingMore && <div className="w-5 h-5 border-2 border-[#2ECC71] border-t-transparent rounded-full animate-spin" />}

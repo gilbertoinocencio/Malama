@@ -63,6 +63,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [communityProfileUserId, setCommunityProfileUserId] = useState<string | null>(null);
   const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
+  const [notifPostId, setNotifPostId] = useState<string | null>(null);
   const [stats, setStats] = useState<DailyStats>(INITIAL_STATS);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -427,6 +428,8 @@ const App: React.FC = () => {
             onBack={() => setView(AppView.HOME)}
             openComposer={communityComposerOpen}
             onComposerClose={() => setCommunityComposerOpen(false)}
+            initialCommentsPostId={notifPostId}
+            onInitialCommentsClose={() => setNotifPostId(null)}
           />
         )}
 
@@ -452,6 +455,7 @@ const App: React.FC = () => {
           <NotificationCenter
             onBack={() => setView(AppView.FEED)}
             onNavigate={setView}
+            onOpenPost={(postId) => { setNotifPostId(postId); setView(AppView.FEED); }}
           />
         )}
 
