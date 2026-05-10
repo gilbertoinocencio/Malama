@@ -18,7 +18,6 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack }) => {
   const [energy, setEnergy] = useState<EnergyLevel | null>(null);
   const [notes, setNotes] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [shareToFeed, setShareToFeed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [streak, setStreak] = useState<number>(0);
@@ -57,7 +56,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack }) => {
         energy_level: energy || undefined,
         notes,
         photo_url: imagePreview || undefined
-      }, shareToFeed);
+      }, false);
 
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -121,12 +120,7 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack }) => {
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-sm font-semibold tracking-widest uppercase text-center flex-1 text-Malama-main dark:text-white opacity-90">{jt.title}</h1>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center justify-end text-sm font-medium text-Malama-petrol dark:text-primary hover:opacity-80 transition-colors">
-          {saving ? jt.saving : jt.save}
-        </button>
+        <div className="size-10" />
       </header>
 
       <main className="flex-1 flex flex-col px-6 pb-32 pt-4">
@@ -239,18 +233,6 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Share Checkbox */}
-        <div className="mb-6 animate-fade-in-up flex items-center gap-3 px-1" style={{ animationDelay: '0.45s' }}>
-          <div
-            onClick={() => setShareToFeed(!shareToFeed)}
-            className={`size-6 rounded-md border flex items-center justify-center cursor-pointer transition-colors ${shareToFeed ? 'bg-Malama-petrol dark:bg-primary border-Malama-petrol dark:border-primary' : 'border-Malama-border dark:border-white/10'}`}
-          >
-            {shareToFeed && <span className="material-symbols-outlined text-white text-sm">check</span>}
-          </div>
-          <label onClick={() => setShareToFeed(!shareToFeed)} className="text-Malama-main dark:text-white text-sm cursor-pointer select-none">
-            {jt.shareToCommunity}
-          </label>
-        </div>
 
         {/* Past Notes */}
         <div className="mb-36 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
