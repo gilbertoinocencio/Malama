@@ -1510,17 +1510,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   let ringPct: number;
                   let ringDaysLabel: string;
                   let ringLabel: string;
-                  if (showDay) {
-                    // Show week ring for context (which week is selected)
-                    const wk = selectedWeekIndex !== null ? monthWeeksData[selectedWeekIndex] : null;
-                    ringPct = wk ? Math.round((wk.daysMetGoal / 7) * 100) : 0;
-                    ringDaysLabel = wk ? `${wk.daysMetGoal}/7` : '–';
-                    ringLabel = 'Meta\nsemanal';
-                  } else if (showWeek && selWeek) {
-                    ringPct = Math.round((selWeek.daysMetGoal / 7) * 100);
-                    ringDaysLabel = `${selWeek.daysMetGoal}/7`;
-                    ringLabel = 'Meta\nsemanal';
-                  } else {
+                  {
                     const mp = Math.round((monthSummary?.monthProgress ?? 0) * 100);
                     ringPct = mp;
                     ringDaysLabel = `${monthSummary?.totalDaysMetGoal ?? 0}d`;
@@ -1615,7 +1605,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                               </svg>
                               <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-0.5">
                                 <span className="material-symbols-outlined text-[18px]" style={{ color: ringColor }}>
-                                  {showDay || showWeek ? 'local_fire_department' : 'calendar_month'}
+                                  calendar_month
                                 </span>
                                 <span className="text-[11px] font-bold text-Malama-main dark:text-white leading-none">
                                   {ringDaysLabel}
