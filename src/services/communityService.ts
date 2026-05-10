@@ -284,22 +284,23 @@ export async function getFeed(
 async function enrichPosts(postIds: string[], viewerId: string): Promise<EnrichedPost[]> {
   const { data: posts } = await supabase
     .from('posts')
-    .select(`
-      id, user_id, type, caption, image_url, media_urls, video_url, video_status,
-      content, tags, is_system_post, is_pinned, is_hidden, report_count, created_at,
-      profiles(display_name, avatar_url)
-    `)
+    .select('id, user_id, type, caption, image_url, media_urls, video_url, video_status, content, tags, is_system_post, is_pinned, is_hidden, report_count, created_at')
     .in('id', postIds)
     .eq('is_hidden', false);
 
   if (!posts || posts.length === 0) return [];
 
-  const [reactionsData, commentsCount, userReactions, featuredBadges] = await Promise.all([
+  const authorIds = [...new Set(posts.map(p => p.user_id))];
+
+  const [reactionsData, commentsCount, userReactions, featuredBadges, profilesData] = await Promise.all([
     supabase.from('reactions').select('post_id, reaction_type').in('post_id', postIds),
     supabase.from('comments').select('post_id').in('post_id', postIds),
     supabase.from('reactions').select('post_id, reaction_type').in('post_id', postIds).eq('user_id', viewerId),
     Promise.all(posts.map(p => getFeaturedBadgeForUser(p.user_id))),
+    supabase.from('profiles').select('id, display_name, avatar_url').in('id', authorIds),
   ]);
+
+  const profileMap = new Map((profilesData.data ?? []).map(p => [p.id, p]));
 
   const reactionMap = new Map<string, ReactionSummary>();
   for (const r of reactionsData.data ?? []) {
@@ -321,7 +322,7 @@ async function enrichPosts(postIds: string[], viewerId: string): Promise<Enriche
   }
 
   return posts.map((p, i) => {
-    const profile = p.profiles as unknown as { display_name: string; avatar_url: string | null } | null;
+    const profile = profileMap.get(p.user_id) ?? null;
     return {
       id: p.id,
       user_id: p.user_id,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MoreVertical, Trash2, EyeOff, Loader2, Play } from 'lucide-react';
 import { formatDistanceToNow } from '../../../utils/dateUtils';
@@ -6,6 +6,7 @@ import { BadgeChip } from '../badges/BadgeChip';
 import { ReactionBar } from '../reactions/ReactionBar';
 import {
   upsertReaction, removeReaction, deletePost, hideSystemPost,
+  followUser, unfollowUser, isFollowing,
   type EnrichedPost, type ReactionType,
 } from '../../../services/communityService';
 import { AppView } from '../../../types';
@@ -34,8 +35,29 @@ export const PostCard: React.FC<PostCardProps> = ({
   const [reactions, setReactions] = useState(post.reactions);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mediaIndex, setMediaIndex] = useState(0);
+  const [following, setFollowing] = useState<boolean | null>(null);
+  const [followLoading, setFollowLoading] = useState(false);
 
   const isOwn = post.user_id === currentUserId;
+
+  useEffect(() => {
+    if (!isOwn) {
+      isFollowing(currentUserId, post.user_id).then(setFollowing);
+    }
+  }, [currentUserId, post.user_id, isOwn]);
+
+  const handleFollow = async () => {
+    if (followLoading) return;
+    setFollowLoading(true);
+    if (following) {
+      await unfollowUser(currentUserId, post.user_id);
+      setFollowing(false);
+    } else {
+      await followUser(currentUserId, post.user_id);
+      setFollowing(true);
+    }
+    setFollowLoading(false);
+  };
   const canDelete = isOwn && !post.is_system_post &&
     (Date.now() - new Date(post.created_at).getTime()) < 24 * 3600_000;
   const canHide = isOwn && post.is_system_post;
@@ -138,6 +160,22 @@ export const PostCard: React.FC<PostCardProps> = ({
             </div>
           </button>
 
+          <div className="flex items-center gap-1">
+            {/* Botão Seguir */}
+            {!isOwn && following !== null && (
+              <button
+                onClick={handleFollow}
+                disabled={followLoading}
+                className={`text-xs font-semibold px-3 py-1 rounded-full border transition-colors
+                  ${following
+                    ? 'border-gray-300 dark:border-white/20 text-gray-500 dark:text-gray-400 hover:border-red-300 hover:text-red-400'
+                    : 'border-Malama-petrol dark:border-primary text-Malama-petrol dark:text-primary hover:bg-Malama-petrol hover:text-white dark:hover:bg-primary'
+                  }`}
+              >
+                {following ? 'Seguindo' : 'Seguir'}
+              </button>
+            )}
+
           {/* Menu */}
           <div className="relative">
             <button
@@ -172,6 +210,7 @@ export const PostCard: React.FC<PostCardProps> = ({
                 </div>
               </>
             )}
+          </div>
           </div>
         </div>
 
