@@ -7,8 +7,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '../../services/supabase';
 import { doctorService, storageService } from '../../services/doctorPortalService';
-import type { DoctorRegistrationFormData, DoctorSpecialty, ConsultationType } from '../../types/doctorPortal';
-import { BRAZILIAN_STATES, SPECIALTY_OPTIONS, CONSULTATION_TYPE_OPTIONS, ConsultationType as CT } from '../../types/doctorPortal';
+import type { DoctorRegistrationFormData, DoctorSpecialty, ConsultationType, ConsultationObjective } from '../../types/doctorPortal';
+import { BRAZILIAN_STATES, SPECIALTY_OPTIONS, CONSULTATION_TYPE_OPTIONS, OBJECTIVE_OPTIONS, ConsultationType as CT } from '../../types/doctorPortal';
 import { MalamaLogo } from '../../components/MalamaLogo';
 
 const MIN_CONSULTATION_PRICE = 80;
@@ -46,7 +46,8 @@ export const DoctorRegistration: React.FC = () => {
     consultationPrice: MIN_CONSULTATION_PRICE,
     consultationDuration: 30,
     pixKey: '',
-    consultationTypes: [CT.INITIAL, CT.FOLLOW_UP]
+    consultationTypes: [CT.INITIAL, CT.FOLLOW_UP],
+    objectives: [],
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof DoctorRegistrationFormData, string>>>({});
@@ -238,6 +239,7 @@ export const DoctorRegistration: React.FC = () => {
         address_neighborhood: formData.addressNeighborhood || null,
         address_city: formData.addressCity || null,
         address_state: formData.addressState || null,
+        objectives: formData.objectives.length > 0 ? formData.objectives : null,
         invite_token: inviteData?.doctorId ? undefined : doctorService.generateInviteToken()
       });
 
@@ -508,6 +510,33 @@ export const DoctorRegistration: React.FC = () => {
           placeholder="Conte um pouco sobre sua experiência..."
         />
         <p className="text-xs text-gray-500 mt-1">{formData.bio.length}/300 caracteres</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Objetivos atendidos</label>
+        <p className="text-xs text-gray-500 mb-2">Selecione os objetivos de pacientes que você atende</p>
+        <div className="space-y-2">
+          {OBJECTIVE_OPTIONS.map(obj => {
+            const checked = formData.objectives.includes(obj.value as ConsultationObjective);
+            return (
+              <label key={obj.value} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => {
+                    const next = checked
+                      ? formData.objectives.filter(o => o !== obj.value)
+                      : [...formData.objectives, obj.value as ConsultationObjective];
+                    updateField('objectives', next);
+                  }}
+                  className="w-4 h-4 accent-[#7d4a3c]"
+                />
+                <span className="text-lg">{obj.icon}</span>
+                <span className="text-sm font-medium text-gray-800">{obj.label}</span>
+              </label>
+            );
+          })}
+        </div>
       </div>
 
       <div>

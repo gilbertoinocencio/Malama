@@ -29,6 +29,12 @@ export enum ConsultationType {
   PRESCRIPTION_RENEWAL = 'prescription_renewal'
 }
 
+export enum ConsultationObjective {
+  EMAGRECIMENTO = 'emagrecimento',
+  PERFORMANCE_ESPORTIVA = 'performance_esportiva',
+  SAUDE_BEM_ESTAR = 'saude_bem_estar',
+}
+
 export enum PaymentStatus {
   PENDING = 'pending',
   PAID = 'paid',
@@ -67,6 +73,7 @@ export interface Doctor {
   crm_state: string;
   specialty: DoctorSpecialty | string;
   specialty_custom?: string | null;
+  objectives?: ConsultationObjective[] | string[];
   bio: string | null;
   photo_url: string | null;
   status: DoctorStatus;
@@ -241,6 +248,7 @@ export interface DoctorRegistrationFormData {
   consultationDuration: number;
   pixKey: string;
   consultationTypes: ConsultationType[];
+  objectives: ConsultationObjective[];
 }
 
 export interface AdminDoctorApprovalData {
@@ -432,6 +440,12 @@ export const CONSULTATION_TYPE_OPTIONS = [
   { value: ConsultationType.INITIAL, label: 'Consulta inicial' },
   { value: ConsultationType.FOLLOW_UP, label: 'Retorno / Correção de rota' },
   { value: ConsultationType.PRESCRIPTION_RENEWAL, label: 'Renovação de receita' }
+];
+
+export const OBJECTIVE_OPTIONS = [
+  { value: ConsultationObjective.EMAGRECIMENTO,       label: 'Emagrecimento',         icon: '⚖️' },
+  { value: ConsultationObjective.PERFORMANCE_ESPORTIVA, label: 'Performance esportiva', icon: '🏋️' },
+  { value: ConsultationObjective.SAUDE_BEM_ESTAR,     label: 'Saúde e bem-estar',     icon: '🌿' },
 ];
 
 export const SPECIALTY_OPTIONS = [

@@ -10,6 +10,7 @@ export interface Doctor {
   name: string;
   crm: string;
   specialty: string;
+  objectives?: string[];
   bio: string;
   avatar_url: string | null;
   photo_url?: string | null;
@@ -76,14 +77,20 @@ function generateSlots(
   return slots;
 }
 
-export async function getAvailableDoctors(): Promise<Doctor[]> {
-  console.log('🔍 [scheduling.ts] Buscando médicos disponíveis...');
+export async function getAvailableDoctors(objective?: string): Promise<Doctor[]> {
+  console.log('🔍 [scheduling.ts] Buscando médicos disponíveis...', objective ? `objetivo: ${objective}` : '');
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('doctors')
     .select('*')
     .eq('status', 'approved')
     .order('rating', { ascending: false });
+
+  if (objective) {
+    query = query.contains('objectives', [objective]);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('❌ [scheduling.ts] Erro ao buscar médicos:', error);

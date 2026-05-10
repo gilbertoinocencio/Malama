@@ -6,8 +6,8 @@ import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Save, Upload, AlertTriangle } from 'lucide-react';
 import { doctorService, storageService, payoutService } from '../../services/doctorPortalService';
-import type { Doctor, Payout } from '../../types/doctorPortal';
-import { SPECIALTY_OPTIONS, CONSULTATION_TYPE_OPTIONS, BRAZILIAN_STATES } from '../../types/doctorPortal';
+import type { Doctor, Payout, ConsultationObjective } from '../../types/doctorPortal';
+import { SPECIALTY_OPTIONS, CONSULTATION_TYPE_OPTIONS, OBJECTIVE_OPTIONS, BRAZILIAN_STATES } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
 
 export const DoctorSettings: React.FC = () => {
@@ -38,6 +38,7 @@ export const DoctorSettings: React.FC = () => {
   const [consultationPrice, setConsultationPrice] = useState(80);
   const [consultationDuration, setConsultationDuration] = useState(30);
   const [consultationTypes, setConsultationTypes] = useState<string[]>([]);
+  const [objectives, setObjectives] = useState<ConsultationObjective[]>([]);
 
   // Financial fields
   const [pixKey, setPixKey] = useState('');
@@ -57,6 +58,7 @@ export const DoctorSettings: React.FC = () => {
     setConsultationDuration(doctor.consultation_duration || 30);
     setPixKey(doctor.pix_key || '');
     setConsultationTypes(['initial', 'follow_up']);
+    setObjectives((doctor.objectives as ConsultationObjective[]) || []);
     setAddressZip(doctor.address_zip || '');
     setAddressStreet(doctor.address_street || '');
     setAddressNumber(doctor.address_number || '');
@@ -107,6 +109,7 @@ export const DoctorSettings: React.FC = () => {
         specialty,
         phone: phone || null,
         photo_url: photoUrl,
+        objectives: objectives.length > 0 ? objectives : null,
         address_zip: addressZip || null,
         address_street: addressStreet || null,
         address_number: addressNumber || null,
@@ -242,6 +245,32 @@ export const DoctorSettings: React.FC = () => {
                 placeholder="Ex: Nutrólogo para gestantes, Endocrinologista..."
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Objetivos atendidos</label>
+              <p className="text-xs text-gray-500 mb-2">Define quais pacientes encontram você no agendamento</p>
+              <div className="space-y-2">
+                {OBJECTIVE_OPTIONS.map(obj => {
+                  const checked = objectives.includes(obj.value as ConsultationObjective);
+                  return (
+                    <label key={obj.value} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          setObjectives(prev =>
+                            checked ? prev.filter(o => o !== obj.value) : [...prev, obj.value as ConsultationObjective]
+                          );
+                        }}
+                        className="w-4 h-4 accent-[#7d4a3c]"
+                      />
+                      <span className="text-lg">{obj.icon}</span>
+                      <span className="text-sm font-medium text-gray-800">{obj.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             <div>

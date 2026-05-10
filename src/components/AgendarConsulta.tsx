@@ -17,13 +17,13 @@ interface AgendarConsultaProps {
   onNavigate: (view: AppView) => void;
 }
 
-type Step = 'type' | 'doctors' | 'schedule' | 'summary' | 'confirmed';
+type Step = 'objective' | 'doctors' | 'schedule' | 'summary' | 'confirmed';
 
-const TYPE_LABELS: Record<string, { label: string; emoji: string; desc: string }> = {
-  initial: { label: 'Consulta inicial', emoji: '🩺', desc: 'Primeira avaliação com especialista' },
-  followup: { label: 'Acompanhamento', emoji: '📊', desc: 'Revisão de progresso e ajustes' },
-  prescription_renewal: { label: 'Renovação de receita', emoji: '📋', desc: 'Renovar prescrição GLP-1' },
-};
+const OBJECTIVE_OPTIONS = [
+  { value: 'emagrecimento',        label: 'Emagrecimento',         icon: '⚖️', desc: 'Perda de peso e composição corporal' },
+  { value: 'performance_esportiva', label: 'Performance esportiva', icon: '🏋️', desc: 'Nutrição e saúde para atletas' },
+  { value: 'saude_bem_estar',      label: 'Saúde e bem-estar',     icon: '🌿', desc: 'Qualidade de vida e prevenção' },
+];
 
 const generateNextDates = (count = 30): Date[] => {
   const dates: Date[] = [];
@@ -38,8 +38,8 @@ const generateNextDates = (count = 30): Date[] => {
 
 export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBooked, onNavigate }) => {
   const { user, profile } = useAuth();
-  const [step, setStep] = useState<Step>('type');
-  const [consultationType, setConsultationType] = useState<'initial' | 'followup' | 'prescription_renewal'>('initial');
+  const [step, setStep] = useState<Step>('objective');
+  const [selectedObjective, setSelectedObjective] = useState<string>('');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -58,7 +58,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
     if (step === 'doctors' && doctors.length === 0) {
       console.log('📋 [AgendarConsulta] Step doctors ativado, buscando médicos...');
       setLoadingDoctors(true);
-      getAvailableDoctors()
+      getAvailableDoctors(selectedObjective || undefined)
         .then((result) => {
           console.log('📋 [AgendarConsulta] Médicos recebidos:', result.length);
           console.table(result);
@@ -110,7 +110,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
         doctorId: selectedDoctor.id,
         date: dateStr,
         time: selectedSlot,
-        consultationType,
+        consultationType: 'initial',
         consentGiven,
       });
       setBookedConsultation(consultation);
@@ -132,11 +132,11 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
   const formatDateLong = (d: Date) =>
     d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  const progressPct = { type: 20, doctors: 40, schedule: 60, summary: 80, confirmed: 100 }[step];
+  const progressPct = { objective: 20, doctors: 40, schedule: 60, summary: 80, confirmed: 100 }[step];
 
   const goBack = () => {
     const map: Record<Step, Step | null> = {
-      type: null, doctors: 'type', schedule: 'doctors', summary: 'schedule', confirmed: null,
+      objective: null, doctors: 'objective', schedule: 'doctors', summary: 'schedule', confirmed: null,
     };
     const prev = map[step];
     if (prev) setStep(prev);
@@ -169,22 +169,22 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
 
       <div className="px-4 pb-10">
         <AnimatePresence mode="wait">
-          {/* STEP 1: Type */}
-          {step === 'type' && (
-            <StepWrap key="type">
-              <h2 className="text-xl font-bold mb-2">Tipo de consulta</h2>
-              <p className="text-sm text-gray-500 mb-6">Como podemos te ajudar?</p>
+          {/* STEP 1: Objective */}
+          {step === 'objective' && (
+            <StepWrap key="objective">
+              <h2 className="text-xl font-bold mb-2">Qual é o seu objetivo?</h2>
+              <p className="text-sm text-gray-500 mb-6">Vamos encontrar o especialista certo para você.</p>
               <div className="space-y-3">
-                {(Object.entries(TYPE_LABELS) as [string, typeof TYPE_LABELS[string]][]).map(([id, info]) => (
+                {OBJECTIVE_OPTIONS.map((obj) => (
                   <button
-                    key={id}
-                    onClick={() => { setConsultationType(id as any); setStep('doctors'); }}
+                    key={obj.value}
+                    onClick={() => { setSelectedObjective(obj.value); setDoctors([]); setStep('doctors'); }}
                     className="w-full text-left px-5 py-4 rounded-2xl bg-white border-2 border-gray-200 hover:border-green-400 transition-all flex items-center gap-3 shadow-sm"
                   >
-                    <span className="text-2xl">{info.emoji}</span>
+                    <span className="text-2xl">{obj.icon}</span>
                     <div className="flex-1">
-                      <p className="text-sm font-bold text-gray-800">{info.label}</p>
-                      <p className="text-xs text-gray-500">{info.desc}</p>
+                      <p className="text-sm font-bold text-gray-800">{obj.label}</p>
+                      <p className="text-xs text-gray-500">{obj.desc}</p>
                     </div>
                     <span className="material-symbols-outlined text-gray-400">chevron_right</span>
                   </button>
@@ -197,7 +197,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
           {step === 'doctors' && (
             <StepWrap key="doctors">
               <h2 className="text-xl font-bold mb-1">Escolha o médico</h2>
-              <p className="text-sm text-gray-500 mb-5">{TYPE_LABELS[consultationType].label}</p>
+              <p className="text-sm text-gray-500 mb-5">{OBJECTIVE_OPTIONS.find(o => o.value === selectedObjective)?.label}</p>
               {loadingDoctors ? (
                 <div className="flex justify-center py-12">
                   <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
@@ -335,8 +335,8 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                 </div>
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Tipo</span>
-                    <span className="font-semibold">{TYPE_LABELS[consultationType].label}</span>
+                    <span className="text-gray-500">Objetivo</span>
+                    <span className="font-semibold">{OBJECTIVE_OPTIONS.find(o => o.value === selectedObjective)?.label}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Data</span>
