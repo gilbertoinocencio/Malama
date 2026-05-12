@@ -89,12 +89,13 @@ const App: React.FC = () => {
       path.startsWith('/listausuários')
     ) return true;
 
-    // For root path, show landing only if no active session
+    // For root path, show landing if no session OR if user came from waitlist Google OAuth
     if (path === '/' || path === '') {
       const hasSession = _supabaseStorageKey
         ? !!localStorage.getItem(_supabaseStorageKey)
         : false;
-      return !hasSession;
+      const isWaitlistMode = !!localStorage.getItem('Malama_waitlist_mode');
+      return !hasSession || isWaitlistMode;
     }
 
     return false;
@@ -128,7 +129,8 @@ const App: React.FC = () => {
         const hasSession = _supabaseStorageKey
           ? !!localStorage.getItem(_supabaseStorageKey)
           : false;
-        setIsPortalRoute(!hasSession);
+        const isWaitlistMode = !!localStorage.getItem('Malama_waitlist_mode');
+        setIsPortalRoute(!hasSession || isWaitlistMode);
         return;
       }
 
