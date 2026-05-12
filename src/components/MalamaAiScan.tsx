@@ -39,7 +39,9 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
     const [foodName, setFoodName] = useState(data?.foodName ?? '');
     const [confirming, setConfirming] = useState(false);
     const [lookingUp, setLookingUp] = useState<number | null>(null);
+    const [lookupError, setLookupError] = useState<number | null>(null);
     const lookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingLookupRef = useRef<{ index: number; name: string; weight: number } | null>(null);
     const { language } = useLanguage();
 
     const { calories, macros } = recalcTotals(items);
@@ -54,6 +56,8 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
         }
     }, [data, isLoading]);
 
+    const weightLookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const updateItem = useCallback((index: number, field: keyof MealItem, value: any) => {
         setItems(prev => {
             const newItems = [...prev];
@@ -61,7 +65,7 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
 
             if (field === 'weightGrams' && typeof value === 'number') {
                 const orig = originalItems.current[index];
-                if (orig && orig.weightGrams) {
+                if (orig && orig.weightGrams && orig.calories > 0) {
                     const ratio = value / orig.weightGrams;
                     newItems[index].calories = Math.round((orig.calories || 0) * ratio);
                     newItems[index].protein = Math.round((orig.protein || 0) * ratio);
@@ -74,13 +78,26 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
     }, []);
 
     const lookupItemNutrition = useCallback(async (index: number, name: string, weightGrams: number) => {
+        pendingLookupRef.current = null;
         setLookingUp(index);
+        setLookupError(null);
         try {
             const result = await lookupSingleItem(name, weightGrams, language);
             if (result.calories > 0) {
                 setItems(prev => {
                     const newItems = [...prev];
+                    // Respect whatever weight the user currently has in the field
+                    const currentWeight = newItems[index].weightGrams || weightGrams;
+                    const scale = currentWeight / weightGrams;
                     newItems[index] = {
+                        ...newItems[index],
+                        calories: Math.round(result.calories * scale),
+                        protein: Math.round(result.protein * scale),
+                        carbs: Math.round(result.carbs * scale),
+                        fats: Math.round(result.fats * scale),
+                    };
+                    // Store per-lookup-weight reference so future weight changes can scale correctly
+                    originalItems.current[index] = {
                         ...newItems[index],
                         weightGrams,
                         calories: Math.round(result.calories),
@@ -88,12 +105,14 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
                         carbs: Math.round(result.carbs),
                         fats: Math.round(result.fats),
                     };
-                    originalItems.current[index] = { ...newItems[index] };
                     return newItems;
                 });
+            } else {
+                setLookupError(index);
             }
         } catch (e) {
             console.error('Nutrition lookup failed:', e);
+            setLookupError(index);
         } finally {
             setLookingUp(null);
         }
@@ -105,15 +124,41 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
             newItems[index] = { ...newItems[index], name: newName };
             return newItems;
         });
+        setLookupError(null);
         if (lookupTimerRef.current) clearTimeout(lookupTimerRef.current);
-        lookupTimerRef.current = setTimeout(() => {
-            const trimmed = newName.trim();
-            if (trimmed && trimmed !== 'Novo Item') {
-                const currentWeight = items[index]?.weightGrams || 100;
-                lookupItemNutrition(index, trimmed, currentWeight);
-            }
-        }, 1200);
+        const trimmed = newName.trim();
+        if (trimmed) {
+            const weight = items[index]?.weightGrams || 100;
+            pendingLookupRef.current = { index, name: trimmed, weight };
+            lookupTimerRef.current = setTimeout(() => {
+                pendingLookupRef.current = null;
+                lookupItemNutrition(index, trimmed, weight);
+            }, 1200);
+        } else {
+            pendingLookupRef.current = null;
+        }
     }, [items, lookupItemNutrition]);
+
+    // Flush pending timer immediately when user leaves the name field
+    const handleNameBlur = useCallback(() => {
+        if (lookupTimerRef.current) clearTimeout(lookupTimerRef.current);
+        if (pendingLookupRef.current) {
+            const { index, name, weight } = pendingLookupRef.current;
+            lookupItemNutrition(index, name, weight);
+        }
+    }, [lookupItemNutrition]);
+
+    // Weight field change: scale if item already has calories, otherwise trigger lookup
+    const handleWeightChange = useCallback((index: number, newWeight: number) => {
+        updateItem(index, 'weightGrams', newWeight);
+        const item = items[index];
+        if (item?.name?.trim() && (!item.calories || item.calories === 0)) {
+            if (weightLookupTimerRef.current) clearTimeout(weightLookupTimerRef.current);
+            weightLookupTimerRef.current = setTimeout(() => {
+                lookupItemNutrition(index, item.name.trim(), newWeight);
+            }, 600);
+        }
+    }, [items, updateItem, lookupItemNutrition]);
 
     const addItem = () => {
         const newItem: MealItem = { name: '', weightGrams: 100, calories: 0, protein: 0, carbs: 0, fats: 0 };
@@ -246,6 +291,33 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Items breakdown */}
+                            {!isLoading && items.length > 0 && (
+                                <div className="mt-3 bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+                                    {items.map((item: MealItem, idx: number) => (
+                                        <div
+                                            key={idx}
+                                            className="flex items-center justify-between px-4 py-3 border-b border-stone-50 last:border-0"
+                                        >
+                                            <div className="flex flex-col gap-0.5 min-w-0 pr-3">
+                                                <span className="text-sm text-stone-800 truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                                    {item.name}
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    {item.weightGrams != null && (
+                                                        <span className="text-[11px] text-stone-400 font-light">{item.weightGrams}g</span>
+                                                    )}
+                                                    <span className="text-[11px] font-light" style={{ color: MALAMA_RED }}>{item.protein ?? 0}p</span>
+                                                    <span className="text-[11px] text-stone-500 font-light">{item.carbs ?? 0}c</span>
+                                                    <span className="text-[11px] text-stone-400 font-light">{item.fats ?? 0}g</span>
+                                                </div>
+                                            </div>
+                                            <span className="text-sm text-stone-600 shrink-0 font-light">{item.calories} kcal</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </motion.div>
                     ) : (
                         <motion.div
@@ -269,16 +341,26 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
 
                             {items.map((item, idx) => (
                                 <div key={idx} className="bg-white p-5 rounded-2xl shadow-sm border border-stone-100 flex flex-col gap-5">
-                                    <div className="flex items-center justify-between border-b border-stone-50 pb-4">
+                                    <div className={`flex items-center justify-between border-b pb-4 ${lookupError === idx ? 'border-red-200' : 'border-stone-50'}`}>
                                         <input
                                             value={item.name}
                                             onChange={(e) => handleNameChange(idx, e.target.value)}
+                                            onBlur={handleNameBlur}
                                             className="bg-transparent border-none p-0 text-stone-800 text-2xl focus:ring-0 w-full"
                                             style={{ fontFamily: "'Playfair Display', serif" }}
                                             placeholder="Ingrediente..."
                                         />
                                         {lookingUp === idx && (
                                             <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin shrink-0 mr-2" style={{ borderColor: MALAMA_RED, borderTopColor: 'transparent' }} />
+                                        )}
+                                        {lookupError === idx && lookingUp !== idx && (
+                                            <button
+                                                onClick={() => lookupItemNutrition(idx, item.name, item.weightGrams || 100)}
+                                                className="shrink-0 mr-2 text-red-400 hover:text-red-600 transition-colors"
+                                                title="Não foi possível buscar. Toque para tentar novamente."
+                                            >
+                                                <span className="material-symbols-outlined text-xl">refresh</span>
+                                            </button>
                                         )}
                                         <button
                                             onClick={() => removeItem(idx)}
@@ -296,7 +378,7 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
                                                 <input
                                                     type="number"
                                                     value={item.weightGrams || 0}
-                                                    onChange={(e) => updateItem(idx, 'weightGrams', parseInt(e.target.value) || 0)}
+                                                    onChange={(e) => handleWeightChange(idx, parseInt(e.target.value) || 0)}
                                                     className="w-full bg-stone-50 border border-stone-100 rounded-lg px-2 py-2.5 text-base text-stone-800 focus:ring-1"
                                                     style={{ outlineColor: MALAMA_RED }}
                                                 />
@@ -382,11 +464,17 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
                         </>
                     ) : (
                         <button
-                            onClick={() => setIsEditing(false)}
-                            className="w-full py-3.5 rounded-2xl text-white text-base font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98]"
+                            onClick={() => { if (lookingUp === null) setIsEditing(false); }}
+                            disabled={lookingUp !== null}
+                            className="w-full py-3.5 rounded-2xl text-white text-base font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait"
                             style={{ background: MALAMA_RED }}
                         >
-                            Salvar Alterações
+                            {lookingUp !== null ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                                    Buscando nutrição...
+                                </>
+                            ) : 'Salvar Alterações'}
                         </button>
                     )}
                 </div>

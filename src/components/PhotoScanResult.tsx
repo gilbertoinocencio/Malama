@@ -1,5 +1,5 @@
 import React from 'react';
-import { AIResponse } from '../types';
+import { AIResponse, MealItem } from '../types';
 
 interface PhotoScanResultProps {
   data: AIResponse;
@@ -103,8 +103,8 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Protein</span>
               <span className="text-lg font-bold text-slate-900 dark:text-white">{data.macros.p}g</span>
               <div className="h-1.5 w-full bg-gray-100 dark:bg-Malama-dark rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary rounded-full" 
+                <div
+                  className="h-full bg-primary rounded-full"
                   style={{ width: `${getPercent(data.macros.p)}%` }}
                 ></div>
               </div>
@@ -113,8 +113,8 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Carbs</span>
               <span className="text-lg font-bold text-slate-900 dark:text-white">{data.macros.c}g</span>
               <div className="h-1.5 w-full bg-gray-100 dark:bg-Malama-dark rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-orange-400 rounded-full" 
+                <div
+                  className="h-full bg-orange-400 rounded-full"
                   style={{ width: `${getPercent(data.macros.c)}%` }}
                 ></div>
               </div>
@@ -123,14 +123,39 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Fat</span>
               <span className="text-lg font-bold text-slate-900 dark:text-white">{data.macros.f}g</span>
               <div className="h-1.5 w-full bg-gray-100 dark:bg-Malama-dark rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-purple-400 rounded-full" 
+                <div
+                  className="h-full bg-purple-400 rounded-full"
                   style={{ width: `${getPercent(data.macros.f)}%` }}
                 ></div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Items breakdown */}
+        {data.items && data.items.length > 0 && (
+          <div className="w-full mt-6 px-2 shrink-0">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Composição</span>
+            <div className="mt-3 flex flex-col gap-3">
+              {data.items.map((item: MealItem, i: number) => (
+                <div key={i} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-white/5 last:border-0">
+                  <div className="flex flex-col gap-0.5 min-w-0 pr-3">
+                    <span className="text-sm font-semibold text-slate-800 dark:text-white truncate">{item.name}</span>
+                    {(item.quantity || item.weightGrams) && (
+                      <span className="text-xs text-slate-400">{item.quantity || `${item.weightGrams}g`}</span>
+                    )}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {item.protein != null && <span className="text-xs text-primary font-medium">{item.protein}g prot</span>}
+                      {item.carbs   != null && <span className="text-xs text-orange-400 font-medium">{item.carbs}g carb</span>}
+                      {item.fats    != null && <span className="text-xs text-purple-400 font-medium">{item.fats}g gord</span>}
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200 shrink-0">{item.calories} kcal</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Bottom Fixed Action Area */}
