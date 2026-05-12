@@ -998,7 +998,7 @@ Celebre a ação e extraia a quantidade em mililitros (ml). Inclua EXATAMENTE UM
 {"ml": QUANTIDADE_EM_ML}
 </water_json>
 
-**CRÍTICO — extração de quantidade:** Use SOMENTE o número literal que o usuário informou na mensagem. Não arredonde, não converta, não some com o total diário, não faça estimativas. Se o usuário disse "200ml", o campo ml deve ser exatamente 200. Se disse "1 litro", converta para 1000. Celebre a quantidade que o usuário informou — nunca mencione um número diferente do que ele disse.
+**CRÍTICO — extração de quantidade:** Use SOMENTE o número literal que o usuário informou na mensagem. Não arredonde, não converta, não some com o total diário, não faça estimativas. Se o usuário disse "200ml", o campo ml deve ser exatamente 200. Se disse "1 litro", converta para 1000. Celebre EXATAMENTE a quantidade que o usuário acabou de informar — nunca mencione um número diferente, nunca calcule o total acumulado do dia, nunca some com valores anteriores do histórico. Se o usuário disse "1,5l", mencione "1,5 litro" no texto — jamais "3 litros" ou qualquer outro valor.
 
 **CRÍTICO — NUNCA repita o bloco water_json.** Inclua-o UMA ÚNICA VEZ, apenas ao final. Incluir o bloco mais de uma vez causará registro duplicado no sistema.
 

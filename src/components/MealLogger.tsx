@@ -460,6 +460,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const isQuestion = (text: string): boolean => {
     const lower = text.toLowerCase().trim();
 
+    // Meal/drink reports in past tense - route to chat agent for personalized feedback
+    const mealReportVerbs = [
+      'comi', 'almocei', 'jantei', 'lancei', 'lancei', 'tomei', 'bebi', 'ingeri',
+      'café da manhã', 'cafe da manha', 'tomei café', 'tomei cafe', 'fiz uma refeição',
+      'fiz uma refeicao', 'belisquei', 'petisquei', 'me alimentei', 'acabei de comer',
+    ];
+    if (mealReportVerbs.some(v => lower.includes(v))) return true;
+
     // Corrections and clarifications - always route to chat agent, never to food analysis
     const correctionIndicators = [
       'eu disse', 'não disse', 'disse que', 'falei que', 'não falei',
