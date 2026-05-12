@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Meal, MealItem, MicroNutrients } from '../types';
+import { lookupSingleItem } from '../services/geminiService';
 
 interface DailyMealsListProps {
   meals: Meal[];
@@ -10,6 +11,9 @@ interface DailyMealsListProps {
 export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteMeal, onEditMeal }) => {
   const [expandedMeals, setExpandedMeals] = useState<Record<string, boolean>>({});
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
+  const [lookingUp, setLookingUp] = useState<number | null>(null);
+  const nameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingLookupRef = useRef<{ idx: number; name: string } | null>(null);
 
   if (!meals || meals.length === 0) return null;
 
@@ -72,10 +76,50 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteM
     }
   };
 
+  const lookupForItem = async (idx: number, name: string, weightGrams?: number) => {
+    if (!name.trim()) return;
+    setLookingUp(idx);
+    pendingLookupRef.current = null;
+    try {
+      const grams = weightGrams && weightGrams > 0 ? weightGrams : 100;
+      const result = await lookupSingleItem(name.trim(), grams);
+      setEditingMeal(prev => {
+        if (!prev) return prev;
+        const items = [...(prev.items || [])];
+        items[idx] = {
+          ...items[idx],
+          calories: result.calories,
+          protein: result.protein,
+          carbs: result.carbs,
+          fats: result.fats,
+          weightGrams: grams,
+        };
+        return { ...prev, items };
+      });
+    } catch {
+      // silent fail — user can fill in manually
+    } finally {
+      setLookingUp(null);
+    }
+  };
+
   const handleItemChange = (idx: number, field: keyof MealItem, value: string) => {
     if (!editingMeal) return;
     const itemsCpy = [...(editingMeal.items || [])];
     const item = itemsCpy[idx];
+
+    if (field === 'name') {
+      itemsCpy[idx] = { ...item, name: value };
+      setEditingMeal({ ...editingMeal, items: itemsCpy });
+      if (nameTimerRef.current) clearTimeout(nameTimerRef.current);
+      pendingLookupRef.current = { idx, name: value };
+      nameTimerRef.current = setTimeout(() => {
+        if (pendingLookupRef.current?.idx === idx && pendingLookupRef.current.name === value) {
+          lookupForItem(idx, value, item.weightGrams);
+        }
+      }, 800);
+      return;
+    }
 
     if (field === 'weightGrams') {
       const newWeight = parseFloat(value);
@@ -110,6 +154,15 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteM
     }
 
     setEditingMeal({ ...editingMeal, items: itemsCpy });
+  };
+
+  const handleNameBlur = (idx: number) => {
+    if (pendingLookupRef.current?.idx === idx) {
+      if (nameTimerRef.current) clearTimeout(nameTimerRef.current);
+      const { name } = pendingLookupRef.current;
+      const weight = editingMeal?.items?.[idx]?.weightGrams;
+      lookupForItem(idx, name, weight);
+    }
   };
 
   return (
@@ -212,13 +265,19 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteM
                 <h4 className="text-xs font-bold text-Malama-muted dark:text-slate-400 uppercase tracking-wider">Itens</h4>
                 {editingMeal.items?.map((item, idx) => (
                   <div key={idx} className="p-3 bg-Malama-bg dark:bg-surface-dark rounded-xl border border-Malama-border dark:border-white/5 flex flex-col gap-2 relative">
-                    <input 
-                      type="text" 
-                      placeholder="Nome"
-                      value={item.name} 
-                      onChange={e => handleItemChange(idx, 'name', e.target.value)}
-                      className="bg-white dark:bg-surface-dark w-full border border-Malama-border dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-Malama-main dark:text-white outline-none"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Nome do ingrediente"
+                        value={item.name}
+                        onChange={e => handleItemChange(idx, 'name', e.target.value)}
+                        onBlur={() => handleNameBlur(idx)}
+                        className="bg-white dark:bg-surface-dark w-full border border-Malama-border dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-Malama-main dark:text-white outline-none pr-7"
+                      />
+                      {lookingUp === idx && (
+                        <span className="material-symbols-outlined text-primary text-sm absolute right-2 top-1/2 -translate-y-1/2 animate-spin">progress_activity</span>
+                      )}
+                    </div>
                     <div className="flex gap-2">
                       <div className="flex-1 flex flex-col gap-1">
                         <span className="text-[9px] text-Malama-muted uppercase font-bold">Peso/Qtd (g)</span>
@@ -279,11 +338,12 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteM
             </div>
             
             <div className="p-4 bg-Malama-bg dark:bg-white/5 border-t border-Malama-border dark:border-white/5">
-              <button 
+              <button
                 onClick={handleSaveEdit}
-                className="w-full bg-Malama-petrol dark:bg-primary text-white font-bold h-12 rounded-xl active:scale-[0.98] transition-all"
+                disabled={lookingUp !== null}
+                className="w-full bg-Malama-petrol dark:bg-primary text-white font-bold h-12 rounded-xl active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Salvar Alterações
+                {lookingUp !== null ? 'Buscando nutrição...' : 'Salvar Alterações'}
               </button>
             </div>
           </div>
