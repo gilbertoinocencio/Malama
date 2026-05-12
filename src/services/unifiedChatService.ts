@@ -998,7 +998,7 @@ Celebre a ação e extraia a quantidade em mililitros (ml). Inclua EXATAMENTE UM
 {"ml": QUANTIDADE_EM_ML}
 </water_json>
 
-**CRÍTICO — extração de quantidade:** Use SOMENTE o número literal que o usuário informou na mensagem. Não arredonde, não converta, não some com o total diário, não faça estimativas. Se o usuário disse "200ml", o campo ml deve ser exatamente 200. Se disse "1 litro", converta para 1000. Celebre EXATAMENTE a quantidade que o usuário acabou de informar — nunca mencione um número diferente, nunca calcule o total acumulado do dia, nunca some com valores anteriores do histórico. Se o usuário disse "1,5l", mencione "1,5 litro" no texto — jamais "3 litros" ou qualquer outro valor.
+**CRÍTICO — extração de quantidade:** Use SOMENTE o número literal que o usuário informou na mensagem atual. Se disse "200ml", o campo ml deve ser 200. Se disse "1 litro", o campo ml deve ser 1000. No texto da resposta, mencione exatamente a mesma quantidade — nunca some, dobre, ou some com totais do dia.
 
 **CRÍTICO — NUNCA repita o bloco water_json.** Inclua-o UMA ÚNICA VEZ, apenas ao final. Incluir o bloco mais de uma vez causará registro duplicado no sistema.
 
@@ -1033,15 +1033,34 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
     try {
-      // Build conversation history from DB
-      const chatHistory = context.recentChatMessages || [];
+      // Build conversation history from DB.
+      // context.recentChatMessages comes from the DB in DESCENDING order (newest first),
+      // so we reverse it to chronological order (oldest first), which is what Gemini expects.
+      const rawHistory = (context.recentChatMessages || []).slice().reverse();
+
+      // Drop the most-recent user message if it matches the message we're about to send.
+      // sendMessage() saves the user message to the DB fire-and-forget BEFORE this runs,
+      // so it can race into the history fetch — if we don't strip it, Gemini sees the same
+      // message twice (once in history, once via chat.sendMessage) and treats it as two events
+      // (e.g. "you drank 500ml twice").
+      const normalize = (s: string) => (s || '').trim().toLowerCase();
+      const lastIdx = rawHistory.length - 1;
+      if (lastIdx >= 0 && rawHistory[lastIdx].role === 'user' && normalize(rawHistory[lastIdx].content) === normalize(userMessage)) {
+        rawHistory.splice(lastIdx, 1);
+      }
+
+      // Gemini requires history to start with a 'user' turn. Our greeting opener already
+      // satisfies that, so any leading 'agent' messages from the DB tail are fine to drop.
+      while (rawHistory.length > 0 && rawHistory[0].role !== 'user') {
+        rawHistory.shift();
+      }
+
       const history: any[] = [
         { role: 'user', parts: [{ text: systemPrompt }] },
         { role: 'model', parts: [{ text: `Olá! Sou a Malama, sua nutricionista pessoal 💚 Estou aqui para te ajudar no seu objetivo de ${primaryGoal.toLowerCase()}. Como posso te ajudar?` }] },
       ];
 
-      // Add recent conversation messages for continuity
-      for (const msg of chatHistory) {
+      for (const msg of rawHistory) {
         history.push({
           role: msg.role === 'user' ? 'user' : 'model',
           parts: [{ text: msg.content }],
