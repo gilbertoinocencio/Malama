@@ -977,6 +977,15 @@ Responda com uma frase motivacional curta e inclua o bloco <meal_json> ao final:
 
 **Critério obrigatório para emitir <meal_json>:** a mensagem deve conter um verbo no passado indicando ingestão já ocorrida — "comi", "tomei", "bebi", "almocei", "jantei", "lancei", "ingeri" — referindo-se a um alimento ou bebida específico que o usuário JÁ consumiu.
 
+**CRÍTICO — campo "foodName":** nomeie a refeição pelo HORÁRIO em que ela foi relatada (horário atual: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}), NUNCA pelos ingredientes. Use:
+- 05:00–10:00 → "Café da Manhã"
+- 10:01–11:59 → "Lanche da Manhã"
+- 12:00–14:59 → "Almoço"
+- 15:00–17:59 → "Lanche da Tarde"
+- 18:00–21:59 → "Jantar"
+- 22:00–04:59 → "Ceia"
+Se o usuário já nomeou a refeição (ex: "almocei", "jantei"), use esse nome. Nunca chame de "Café da Manhã" uma refeição reportada às 20h só porque contém ovos ou pão.
+
 Formato do bloco (idêntico ao das sugestões, com micros por item):
 <meal_json>
 {
