@@ -1030,7 +1030,13 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
 - **Fim de semana e feriados:** antecipe desafios sociais e alimentares antes que aconteçam, quando o contexto permitir`;
 
 
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    // thinkingBudget:0 — disable extended thinking for chat responses.
+    // gemini-2.5-flash enables thinking by default, which adds latency and causes the model
+    // to emit explicit [thinking]...[/thinking] blocks that leak to the user.
+    const model = genAI.getGenerativeModel({
+      model: MODEL_NAME,
+      generationConfig: { thinkingConfig: { thinkingBudget: 0 } } as any,
+    });
 
     try {
       // Build conversation history from DB.
@@ -1071,7 +1077,27 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
 
       const result = await chat.sendMessage(userMessage);
       const response = await result.response;
-      const text = response.text();
+      const rawText = response.text();
+
+      // Rescue any data JSON blocks that the model may have placed inside thinking,
+      // then strip the thinking section so users never see the chain-of-thought.
+      const rescueBlock = (tag: string) => {
+        const re = new RegExp(`<${tag}>[\\s\\S]*?<\\/${tag}>`);
+        return re.exec(rawText)?.[0] ?? '';
+      };
+      const savedMeal  = rescueBlock('meal_json');
+      const savedWater = rescueBlock('water_json');
+      const savedDose  = rescueBlock('dose_json');
+
+      let text = rawText
+        .replace(/\[thinking\][\s\S]*?\[\/thinking\]/gi, '')
+        .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+        .trim();
+
+      // Re-append rescued blocks if they were only inside the thinking section
+      if (savedMeal  && !text.includes('<meal_json>'))  text += `\n${savedMeal}`;
+      if (savedWater && !text.includes('<water_json>')) text += `\n${savedWater}`;
+      if (savedDose  && !text.includes('<dose_json>'))  text += `\n${savedDose}`;
 
       return {
         content: text,
