@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Malama</string>
+    <string name="title_activity_main">Malama</string>
+    <string name="package_name">com.malama.app</string>
+    <string name="custom_url_scheme">com.malama.app</string>
+</resources>
