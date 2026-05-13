@@ -274,14 +274,9 @@ export async function enrichBarcodeWithAI(result: OFFBarcodeResult, language: st
   const n = result.per100g;
 
   try {
-    // Dynamic import to avoid circular dependency
-    const { GoogleGenerativeAI, SchemaType } = await import('@google/generative-ai');
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-
-    if (!apiKey) return result;
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const { SchemaType } = await import('@google/generative-ai');
+    const { GeminiProxy } = await import('../lib/geminiProxy');
+    const model = new GeminiProxy().getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt = `Você é um nutricionista especialista em análise nutricional com acesso às bases TACO (Brasil) e USDA (EUA).
 

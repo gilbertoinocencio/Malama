@@ -1,4 +1,5 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { SchemaType } from "@google/generative-ai";
+import { GeminiProxy } from '../lib/geminiProxy';
 import { AIResponse, MicroNutrients, Profile } from '../types';
 import { searchOpenFoodFacts, formatOFFBlock } from './openFoodFactsService';
 
@@ -32,17 +33,7 @@ Para cada item, inclua também os seguintes campos quando disponíveis nas bases
 - vitamin_b12 (Vitamina B12, mcg), vitamin_b6 (Vitamina B6, mg), folate (Folato, mcg)
 Use os valores por 100g da base de dados e escale proporcionalmente ao weightGrams do item. Omita campos que não constam na base para aquele alimento.`;
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-// Initialize lazily to prevent crash if API key is missing during module load
-let genAI: GoogleGenerativeAI | null = null;
-
-const getGenAI = () => {
-  if (!genAI) {
-    // Valid key or fallback to prevent crash (requests will fail/be mocked)
-    genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
-  }
-  return genAI;
-};
+const getGenAI = () => new GeminiProxy();
 
 // Helper to clean JSON string if Markdown code blocks are present
 const cleanJsonString = (str: string) => {
@@ -59,13 +50,6 @@ const LANG_NAMES: Record<string, string> = {
 };
 
 export const analyzeTextLog = async (text: string, language: string = 'pt', profile?: Profile | null): Promise<AIResponse> => {
-  console.log("Gemini Service: Checking API Key...");
-  if (!apiKey) {
-    console.error("Gemini Service: API Key is MISSING or empty.");
-    throw new Error("API Key configuration missing (Client-Side). Check VITE_GEMINI_API_KEY.");
-  }
-  console.log("Gemini Service: API Key present (Starts with " + apiKey.substring(0, 4) + ")");
-
   try {
     const model = getGenAI().getGenerativeModel({
       model: MODEL_NAME,
@@ -208,7 +192,6 @@ export const lookupSingleItem = async (
   weightGrams: number,
   language: string = 'pt'
 ): Promise<SingleItemNutrition> => {
-  if (!apiKey) throw new Error("API Key missing");
 
   const model = getGenAI().getGenerativeModel({
     model: MODEL_NAME,
@@ -270,7 +253,6 @@ ${MICRO_PROMPT_INSTRUCTIONS}`;
 };
 
 export const analyzeImageLog = async (base64Image: string, language: string = 'pt'): Promise<AIResponse> => {
-  if (!apiKey) throw new Error("API Key missing");
 
   try {
     const mimeType = base64Image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/png';
@@ -346,7 +328,6 @@ ALL text MUST be in ${langName}.`;
 };
 
 export const generatePlanContent = async (profile: any, onboardingData?: any, language: string = 'pt'): Promise<any> => {
-  if (!apiKey) throw new Error("API Key missing");
 
   try {
     const model = getGenAI().getGenerativeModel({
@@ -500,7 +481,6 @@ export const generatePlanContent = async (profile: any, onboardingData?: any, la
 };
 
 export const generateDoctorBriefing = async (patient: any): Promise<string> => {
-  if (!apiKey) throw new Error("API Key missing");
 
   try {
     const model = getGenAI().getGenerativeModel({ model: MODEL_NAME });

@@ -1,9 +1,8 @@
 import { supabase } from './supabase';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GeminiProxy } from '../lib/geminiProxy';
 import { getLocalDateString } from '../utils/dateUtils';
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
+const genAI = new GeminiProxy();
 const MODEL_NAME = "gemini-2.5-flash";
 
 export interface DailyMission {

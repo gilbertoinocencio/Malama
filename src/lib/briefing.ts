@@ -1,7 +1,7 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GeminiProxy } from './geminiProxy';
 import { supabase } from '../services/supabase';
 
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
+const genAI = new GeminiProxy();
 const MODEL_NAME = 'gemini-2.5-flash';
 
 export async function generateConsultationBriefing(patientId: string): Promise<string> {

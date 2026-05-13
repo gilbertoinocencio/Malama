@@ -1,17 +1,9 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GeminiProxy } from '../lib/geminiProxy';
 import { supabase } from './supabase';
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-let genAI: GoogleGenerativeAI | null = null;
+const getGenAI = () => new GeminiProxy();
 
-const getGenAI = () => {
-  if (!genAI) {
-    genAI = new GoogleGenerativeAI(apiKey || 'mock_key');
-  }
-  return genAI;
-};
-
-const MODEL_NAME = "gemini-2.5-flash"; // Vision model
+const MODEL_NAME = "gemini-2.5-flash";
 
 // ============================================
 // TypeScript Interfaces
@@ -87,10 +79,6 @@ export const analyzeBodyImage = async (
   poseType: 'front' | 'side' | 'back' = 'front',
   language: string = 'pt'
 ): Promise<BodyAnalysisResult> => {
-  if (!apiKey) {
-    throw new Error("API Key missing - check VITE_GEMINI_API_KEY");
-  }
-
   console.log(`🔍 Analyzing ${poseType} body image...`, { heightCm, weightKg, age, gender });
 
   // Extract MIME type and base64 data
