@@ -1077,10 +1077,19 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
 
       const result = await chat.sendMessage(userMessage);
       const response = await result.response;
-      const rawText = response.text();
 
-      // Rescue any data JSON blocks that the model may have placed inside thinking,
-      // then strip the thinking section so users never see the chain-of-thought.
+      // Gemini 2.5 Flash uses extended thinking. The SDK's response.text() concatenates ALL
+      // candidate parts including thought parts (thought:true), so users would see the internal
+      // chain-of-thought. Filter to only non-thought parts for the actual response text.
+      const allParts: any[] = response.candidates?.[0]?.content?.parts ?? [];
+      const responseParts = allParts.filter(p => !p.thought && typeof p.text === 'string');
+      const responseText = responseParts.length > 0
+        ? responseParts.map(p => p.text as string).join('')
+        : response.text(); // fallback for older SDK versions
+
+      // Full raw text (including thought parts) — used only to rescue data blocks
+      // that the model may have accidentally placed inside thinking.
+      const rawText = response.text();
       const rescueBlock = (tag: string) => {
         const re = new RegExp(`<${tag}>[\\s\\S]*?<\\/${tag}>`);
         return re.exec(rawText)?.[0] ?? '';
@@ -1089,12 +1098,13 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
       const savedWater = rescueBlock('water_json');
       const savedDose  = rescueBlock('dose_json');
 
-      let text = rawText
+      // Also strip any explicit [thinking] tags the model may write as text
+      let text = responseText
         .replace(/\[thinking\][\s\S]*?\[\/thinking\]/gi, '')
         .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
         .trim();
 
-      // Re-append rescued blocks if they were only inside the thinking section
+      // Re-append rescued blocks if they ended up only inside thinking
       if (savedMeal  && !text.includes('<meal_json>'))  text += `\n${savedMeal}`;
       if (savedWater && !text.includes('<water_json>')) text += `\n${savedWater}`;
       if (savedDose  && !text.includes('<dose_json>'))  text += `\n${savedDose}`;
