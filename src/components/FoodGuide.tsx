@@ -3,7 +3,6 @@ import { AppView } from '../types';
 import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { FoodService, FoodItem as ServiceFoodItem } from '../services/foodService';
-import { MealService } from '../services/mealService';
 import { MealSuggestionsCarousel } from './MealSuggestionsCarousel';
 import { supabase } from '../services/supabase';
 
@@ -63,11 +62,9 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
     const [activeCategory, setActiveCategory] = useState<MacroCategory>('proteins');
     const [foods, setFoods] = useState<UiFoodItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [mealCount, setMealCount] = useState(0);
     const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
     const [userRestrictions, setUserRestrictions] = useState<string[]>([]);
     const [userRegion, setUserRegion] = useState<string>('');
-    const [dailyMealTarget, setDailyMealTarget] = useState(4);
 
     // Carregar perfil completo do usuário (restrições + região + localização + refeições por dia)
     useEffect(() => {
@@ -85,12 +82,6 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                     if (profile.dietary_restrictions) {
                         setUserRestrictions(profile.dietary_restrictions);
                         console.log(`🥗 Restrições do usuário: ${profile.dietary_restrictions.join(', ')}`);
-                    }
-
-                    // Carregar meta de refeições por dia
-                    if (profile.meals_per_day) {
-                        setDailyMealTarget(profile.meals_per_day);
-                        console.log(`🍽️ Meta de refeições do usuário: ${profile.meals_per_day}/dia`);
                     }
 
                     // Carregar localização (prioriza estado se existir)
@@ -161,19 +152,6 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
     }, [loadFoods]);
 
     // Load today's meal count
-    useEffect(() => {
-        const loadMealCount = async () => {
-            if (!user) return;
-            try {
-                const meals = await MealService.getMeals(user.id);
-                setMealCount(meals.length);
-            } catch (e) {
-                console.error('Error loading meal count:', e);
-            }
-        };
-        loadMealCount();
-    }, [user]);
-
     // Swap handler - agora respeita restrições E região do usuário
     const handleSwap = async (idx: number) => {
         const item = foods[idx];
@@ -257,7 +235,6 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                 {/* Meal Suggestions Carousel */}
                 <div className="mb-6">
                     <MealSuggestionsCarousel onMealLogged={(meal) => {
-                        setMealCount(prev => prev + 1);
                         onMealLogged?.(meal);
                     }} />
                 </div>
@@ -490,38 +467,6 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
 
             </main>
 
-            {/* Bottom CTA - Dynamic Meal Progress */}
-            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-[360px] px-6">
-                <button
-                    onClick={() => onNavigate(AppView.LOG)}
-                    className="w-full flex items-center justify-between px-6 py-4 bg-Malama-petrol dark:bg-primary text-white rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                    <div className="flex flex-col items-start">
-                        <span className="text-xs font-medium text-white/80 uppercase tracking-wider">{t.foodGuide.currentMeal}</span>
-                        <span className="text-lg font-bold">{mealCount}/{dailyMealTarget} {t.foodGuide.completed}</span>
-                    </div>
-                    {/* Progress Ring */}
-                    <div className="relative size-10 flex items-center justify-center">
-                        <svg className="size-10 -rotate-90" viewBox="0 0 36 36">
-                            <path
-                                d="M18 2.0845a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                fill="none"
-                                stroke="rgba(255,255,255,0.2)"
-                                strokeWidth="3"
-                            />
-                            <path
-                                d="M18 2.0845a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                fill="none"
-                                stroke="white"
-                                strokeWidth="3"
-                                strokeDasharray={`${(mealCount / dailyMealTarget) * 100}, 100`}
-                                strokeLinecap="round"
-                            />
-                        </svg>
-                        <span className="absolute material-symbols-outlined text-[16px]">arrow_forward</span>
-                    </div>
-                </button>
-            </div>
         </div>
     );
 };

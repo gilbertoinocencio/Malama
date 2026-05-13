@@ -7,8 +7,6 @@ import { GamificationService, GamificationStats } from '../services/gamification
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { EngagementCard } from './dashboard/EngagementCard';
-import { EngagementOnboardingSheet } from './dashboard/EngagementOnboardingSheet';
-import { hasSeenEngagementOnboarding, markEngagementOnboardingSeen } from '../lib/onboardingFlags';
 import { DailyCheckinModal } from './DailyCheckinModal';
 import { DailyMealsList } from './DailyMealsList';
 import { getLocalDateString } from '../utils/dateUtils';
@@ -86,7 +84,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const [goalAdjustment, setGoalAdjustment] = useState<any>(null);
   const [goalsToast, setGoalsToast] = useState<{ calorie_goal?: number; protein_goal?: number; doctor_name?: string } | null>(null);
   const [hasAvailableCredit, setHasAvailableCredit] = useState(false);
-  const [showEngagementOnboarding, setShowEngagementOnboarding] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -94,14 +91,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     }
   }, [user]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!hasSeenEngagementOnboarding()) {
-        setShowEngagementOnboarding(true);
-      }
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
 
   const loadGameStats = async () => {
     if (!user) return;
@@ -866,7 +855,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
             {/* Engagement Card */}
             <div className="px-6">
-              <EngagementCard onHowItWorks={() => setShowEngagementOnboarding(true)} />
+              <EngagementCard />
             </div>
 
             {/* Goal Adjustment Badge */}
@@ -1909,13 +1898,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
 
 
 
-      <EngagementOnboardingSheet
-        open={showEngagementOnboarding}
-        onClose={() => {
-          markEngagementOnboardingSeen();
-          setShowEngagementOnboarding(false);
-        }}
-      />
     </div >
   );
 };
