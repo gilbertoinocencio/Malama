@@ -511,7 +511,7 @@ Responda APENAS com o JSON, sem texto adicional.
       'male': 'Masculino', 'female': 'Feminino', 'non_binary': 'Não-binário'
     };
 
-    const primaryGoal = goalMap[profile.primary_goal] || profile.primary_goal || profile.goal || 'Não definido';
+    const primaryGoal = goalMap[profile.primary_goal] || profile.primary_goal || goalMap[profile.goal] || profile.goal || 'Não definido';
     const gender = genderMap[profile.gender] || profile.gender || 'Não informado';
     const activityLevel = activityMap[profile.activity_level] || profile.activity_level || 'Não informado';
     const restrictionsList = Array.isArray(profile.dietary_restrictions) && profile.dietary_restrictions.length > 0
@@ -766,6 +766,7 @@ ${planBlock}${checkinBlock}${mealsBlock}${weightBlock}${snapshotBlock}${rejected
 5. **Emojis com propósito** — 1-2 por mensagem, onde caem bem. Não no começo de cada frase.
 6. **Baseie em evidências, fale como gente** — Fundamente a resposta em ciência, mas comunique como conversa.
 7. **Cite contexto real** — Se o usuário tem objetivo de perder peso, mencione: "pra você chegar nos seus ${profile.target_weight_kg || '?'}kg..." Se treina moderado, leve isso em conta.
+7a. **Objetivo principal é a âncora** — Quando for mencionar os objetivos do usuário, SEMPRE parta do **objetivo principal** (${primaryGoal}). Os objetivos secundários são complementares e devem aparecer DEPOIS, como "além disso, você também quer...". Nunca apresente um objetivo secundário como se fosse o objetivo principal da pessoa.
 8. **Responda em português do Brasil** coloquial, natural, sem rebuscamento.
 9. **Termine com algo acionável** — Uma dica prática, uma pergunta de follow-up, ou uma sugestão concreta.
 10. **Gamificação como motivação real** — ${profile.current_streak || 0} dias de streak é conquista. Mencione quando for momento de encorajar.

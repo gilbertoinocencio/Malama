@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidade — Malama</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green-deep: #1a3a2e;
+      --green-mid: #2d6a4f;
+      --green-light: #52b788;
+      --cream: #f8f4ed;
+      --cream-dark: #ede8df;
+      --text: #1a2e1f;
+      --text-muted: #5a7060;
+      --accent: #74c69d;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--cream);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      line-height: 1.8;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--green-deep);
+      padding: 48px 24px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 60% 0%, rgba(82,183,136,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .logo {
+      font-family: 'Lora', serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    header h1 {
+      font-family: 'Lora', serif;
+      font-size: clamp(24px, 5vw, 38px);
+      font-weight: 400;
+      color: var(--cream);
+      line-height: 1.25;
+    }
+
+    header p.subtitle {
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    main {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 56px 24px 80px;
+    }
+
+    .toc {
+      background: var(--cream-dark);
+      border-left: 3px solid var(--green-light);
+      border-radius: 4px;
+      padding: 24px 28px;
+      margin-bottom: 52px;
+    }
+
+    .toc p {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .toc ol { padding-left: 18px; }
+
+    .toc ol li {
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .toc ol li a {
+      color: var(--green-mid);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .toc ol li a:hover { color: var(--green-light); }
+
+    section {
+      margin-bottom: 52px;
+      scroll-margin-top: 24px;
+    }
+
+    section h2 {
+      font-family: 'Lora', serif;
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--green-deep);
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--cream-dark);
+    }
+
+    section h3 {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--green-mid);
+      margin: 24px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    p, li {
+      font-size: 15px;
+      color: #2e402f;
+    }
+
+    ul, ol { padding-left: 20px; margin: 12px 0; }
+    li { margin-bottom: 6px; }
+
+    .highlight-box {
+      background: linear-gradient(135deg, rgba(82,183,136,0.1) 0%, rgba(45,106,79,0.07) 100%);
+      border: 1px solid rgba(82,183,136,0.3);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 20px 0;
+      font-size: 14px;
+      color: var(--green-deep);
+    }
+
+    a {
+      color: var(--green-mid);
+      text-decoration: underline;
+      text-decoration-color: rgba(45,106,79,0.3);
+    }
+
+    a:hover { color: var(--green-light); }
+
+    footer {
+      background: var(--green-deep);
+      color: rgba(248,244,237,0.55);
+      text-align: center;
+      padding: 32px 24px;
+      font-size: 13px;
+    }
+
+    footer strong { color: var(--accent); }
+
+    .divider {
+      width: 40px;
+      height: 2px;
+      background: var(--green-light);
+      margin: 0 0 20px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">Malama</span>
+  <h1>Política de Privacidade</h1>
+  <p class="subtitle">Última atualização: maio de 2026</p>
+</header>
+
+<main>
+
+  <div class="toc">
+    <p>Neste documento</p>
+    <ol>
+      <li><a href="#intro">Introdução</a></li>
+      <li><a href="#dados">Dados que coletamos</a></li>
+      <li><a href="#uso">Como usamos seus dados</a></li>
+      <li><a href="#compartilhamento">Compartilhamento de informações</a></li>
+      <li><a href="#saude">Dados de saúde e sensíveis</a></li>
+      <li><a href="#retencao">Retenção de dados</a></li>
+      <li><a href="#direitos">Seus direitos (LGPD)</a></li>
+      <li><a href="#seguranca">Segurança</a></li>
+      <li><a href="#menores">Menores de idade</a></li>
+      <li><a href="#contato">Contato</a></li>
+    </ol>
+  </div>
+
+  <section id="intro">
+    <div class="divider"></div>
+    <h2>1. Introdução</h2>
+    <p>A <strong>Malama Saúde</strong> ("Malama", "nós", "nosso") é uma plataforma brasileira de saúde digital focada em nutrição personalizada e acompanhamento de bem-estar. Esta Política de Privacidade descreve como coletamos, usamos, armazenamos e protegemos suas informações pessoais quando você utiliza o aplicativo Malama, disponível em <strong>br.com.soumalama</strong>.</p>
+    <p style="margin-top:14px;">Ao criar uma conta ou usar nossos serviços, você concorda com as práticas descritas neste documento. Recomendamos a leitura completa antes de usar o aplicativo.</p>
+    <div class="highlight-box">
+      Nossa missão é cuidar de você — e isso inclui tratar suas informações com o mesmo respeito, responsabilidade e transparência que esperamos dos nossos parceiros de saúde.
+    </div>
+  </section>
+
+  <section id="dados">
+    <div class="divider"></div>
+    <h2>2. Dados que coletamos</h2>
+
+    <h3>2.1 Dados fornecidos por você</h3>
+    <ul>
+      <li>Nome, e-mail e senha (cadastro)</li>
+      <li>Data de nascimento, sexo biológico e altura/peso</li>
+      <li>Objetivos de saúde e preferências alimentares</li>
+      <li>Registros alimentares e de ingestão hídrica</li>
+      <li>Fotos de refeições (quando enviadas voluntariamente)</li>
+      <li>Informações de pagamento (processadas por gateway seguro — não armazenamos dados de cartão)</li>
+    </ul>
+
+    <h3>2.2 Dados coletados automaticamente</h3>
+    <ul>
+      <li>Dados de uso do aplicativo (telas visitadas, funcionalidades usadas)</li>
+      <li>Informações do dispositivo (modelo, sistema operacional, identificadores)</li>
+      <li>Endereço IP e dados de geolocalização aproximada</li>
+      <li>Logs de acesso e erros</li>
+    </ul>
+
+    <h3>2.3 Dados de integrações opcionais</h3>
+    <ul>
+      <li><strong>Strava:</strong> dados de atividades físicas e exercícios, mediante autorização OAuth explícita</li>
+      <li>Outras integrações futuras sempre solicitarão autorização prévia e separada</li>
+    </ul>
+  </section>
+
+  <section id="uso">
+    <div class="divider"></div>
+    <h2>3. Como usamos seus dados</h2>
+    <p>Utilizamos suas informações para:</p>
+    <ul>
+      <li>Personalizar planos alimentares e recomendações nutricionais com IA</li>
+      <li>Calcular métricas metabólicas e de composição corporal</li>
+      <li>Oferecer funcionalidades de acompanhamento de progresso, streaks e gamificação</li>
+      <li>Facilitar consultas de telemedicina com nutricionistas e médicos parceiros</li>
+      <li>Processar pagamentos de assinaturas e serviços</li>
+      <li>Enviar notificações relevantes ao seu plano (com opção de desativar)</li>
+      <li>Melhorar nossos algoritmos e funcionalidades (dados anonimizados)</li>
+      <li>Cumprir obrigações legais e regulatórias</li>
+    </ul>
+    <p style="margin-top:14px;">Não utilizamos seus dados para fins publicitários de terceiros nem os vendemos a anunciantes.</p>
+  </section>
+
+  <section id="compartilhamento">
+    <div class="divider"></div>
+    <h2>4. Compartilhamento de informações</h2>
+    <p>Seus dados pessoais <strong>não são vendidos</strong>. Compartilhamos informações apenas nas seguintes situações:</p>
+    <ul>
+      <li><strong>Profissionais de saúde parceiros:</strong> apenas os dados necessários para a consulta, mediante seu consentimento explícito</li>
+      <li><strong>Prestadores de serviço:</strong> infraestrutura de nuvem (Supabase), processamento de pagamentos (Asaas), e comunicações — todos sujeitos a acordos de confidencialidade</li>
+      <li><strong>Obrigações legais:</strong> quando exigido por lei, ordem judicial ou autoridade competente</li>
+      <li><strong>Proteção de direitos:</strong> em casos de investigação de fraude ou violação dos nossos Termos de Uso</li>
+    </ul>
+  </section>
+
+  <section id="saude">
+    <div class="divider"></div>
+    <h2>5. Dados de saúde e sensíveis</h2>
+    <div class="highlight-box">
+      Dados de saúde são considerados sensíveis pela Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018) e recebem proteção reforçada em nossos sistemas.
+    </div>
+    <p>Informações como peso, composição corporal, histórico alimentar, uso de medicamentos (incluindo GLP-1) e registros de consultas são tratadas com nível máximo de confidencialidade. Esses dados são:</p>
+    <ul>
+      <li>Armazenados com criptografia em repouso e em trânsito</li>
+      <li>Acessados apenas por profissionais de saúde vinculados ao seu acompanhamento</li>
+      <li>Nunca compartilhados com terceiros sem seu consentimento expresso</li>
+      <li>Utilizados apenas para prestação dos serviços contratados</li>
+    </ul>
+  </section>
+
+  <section id="retencao">
+    <div class="divider"></div>
+    <h2>6. Retenção de dados</h2>
+    <p>Mantemos seus dados enquanto sua conta estiver ativa. Após o encerramento da conta:</p>
+    <ul>
+      <li>Dados pessoais identificáveis são excluídos em até <strong>90 dias</strong></li>
+      <li>Dados de saúde relacionados a atendimentos médicos podem ser retidos por até <strong>20 anos</strong>, conforme exigido pelo Conselho Federal de Medicina (CFM)</li>
+      <li>Dados anonimizados para pesquisa e melhoria do produto podem ser mantidos indefinidamente</li>
+      <li>Logs de segurança e faturamento seguem os prazos legais aplicáveis</li>
+    </ul>
+  </section>
+
+  <section id="direitos">
+    <div class="divider"></div>
+    <h2>7. Seus direitos (LGPD)</h2>
+    <p>Conforme a Lei Geral de Proteção de Dados, você tem direito a:</p>
+    <ul>
+      <li><strong>Acesso:</strong> solicitar cópia dos seus dados pessoais</li>
+      <li><strong>Correção:</strong> atualizar dados incompletos ou incorretos</li>
+      <li><strong>Exclusão:</strong> solicitar a remoção dos seus dados (sujeito a retenções legais)</li>
+      <li><strong>Portabilidade:</strong> receber seus dados em formato estruturado</li>
+      <li><strong>Oposição:</strong> contestar o uso dos seus dados para finalidades específicas</li>
+      <li><strong>Revogação do consentimento:</strong> a qualquer momento, para tratamentos baseados em consentimento</li>
+      <li><strong>Informação:</strong> saber com quem seus dados são compartilhados</li>
+    </ul>
+    <p style="margin-top:14px;">Para exercer qualquer desses direitos, entre em contato pelo e-mail abaixo ou pelas configurações do aplicativo.</p>
+  </section>
+
+  <section id="seguranca">
+    <div class="divider"></div>
+    <h2>8. Segurança</h2>
+    <p>Adotamos medidas técnicas e organizacionais para proteger seus dados, incluindo:</p>
+    <ul>
+      <li>Criptografia TLS em todas as comunicações</li>
+      <li>Armazenamento seguro com Row Level Security (RLS) no banco de dados</li>
+      <li>Autenticação com tokens seguros e sessões controladas</li>
+      <li>Acesso restrito por função (RBAC) — cada usuário acessa apenas seus próprios dados</li>
+      <li>Monitoramento contínuo de acessos e anomalias</li>
+    </ul>
+    <p style="margin-top:14px;">Em caso de incidente de segurança que afete seus dados, notificaremos você e a Autoridade Nacional de Proteção de Dados (ANPD) nos prazos legais.</p>
+  </section>
+
+  <section id="menores">
+    <div class="divider"></div>
+    <h2>9. Menores de idade</h2>
+    <p>O Malama é destinado a pessoas com <strong>18 anos ou mais</strong>. Não coletamos intencionalmente dados de menores de idade. Caso identifiquemos que uma conta foi criada por menor sem consentimento dos responsáveis, excluiremos os dados assim que possível.</p>
+  </section>
+
+  <section id="contato">
+    <div class="divider"></div>
+    <h2>10. Contato e Encarregado de Dados (DPO)</h2>
+    <p>Para dúvidas, solicitações ou exercício dos seus direitos, entre em contato:</p>
+    <ul>
+      <li><strong>E-mail:</strong> <a href="mailto:privacidade@soumalama.com.br">privacidade@soumalama.com.br</a></li>
+      <li><strong>App:</strong> Configurações → Privacidade → Falar com o DPO</li>
+    </ul>
+    <p style="margin-top:14px;">Esta política pode ser atualizada periodicamente. Notificaremos mudanças significativas via e-mail ou notificação no aplicativo.</p>
+  </section>
+
+</main>
+
+<footer>
+  <p>© 2026 <strong>Malama Saúde</strong> · br.com.soumalama · Todos os direitos reservados</p>
+  <p style="margin-top:8px;">Esta política está em conformidade com a LGPD (Lei nº 13.709/2018)</p>
+</footer>
+
+</body>
+</html>
