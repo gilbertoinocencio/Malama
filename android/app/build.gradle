@@ -7,10 +7,10 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.malama.app"
+    namespace = "br.com.soumalama"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.malama.app"
+        applicationId "br.com.soumalama"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
