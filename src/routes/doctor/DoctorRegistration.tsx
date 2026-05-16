@@ -264,7 +264,7 @@ export const DoctorRegistration: React.FC = () => {
           type="text"
           value={formData.name}
           onChange={e => updateField('name', e.target.value)}
-          className={`w-full px-4 py-3 rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
           placeholder="Seu nome completo"
         />
         {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
@@ -276,7 +276,7 @@ export const DoctorRegistration: React.FC = () => {
           type="email"
           value={formData.email}
           onChange={e => updateField('email', e.target.value)}
-          className={`w-full px-4 py-3 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
           placeholder="seu@email.com"
           disabled={!!inviteData}
         />
@@ -290,7 +290,7 @@ export const DoctorRegistration: React.FC = () => {
             type="text"
             value={formData.cpf}
             onChange={e => updateField('cpf', formatCPF(e.target.value))}
-            className={`w-full px-4 py-3 rounded-lg border ${errors.cpf ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.cpf ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
             placeholder="000.000.000-00"
           />
           {errors.cpf && <p className="text-red-500 text-sm mt-1">{errors.cpf}</p>}
@@ -302,7 +302,7 @@ export const DoctorRegistration: React.FC = () => {
             type="text"
             value={formData.phone}
             onChange={e => updateField('phone', formatPhone(e.target.value))}
-            className={`w-full px-4 py-3 rounded-lg border ${errors.phone ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.phone ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
             placeholder="(00) 00000-0000"
           />
           {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
@@ -315,7 +315,7 @@ export const DoctorRegistration: React.FC = () => {
           type="password"
           value={formData.password}
           onChange={e => updateField('password', e.target.value)}
-          className={`w-full px-4 py-3 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
           placeholder="Mínimo 8 caracteres"
         />
         {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
@@ -327,7 +327,7 @@ export const DoctorRegistration: React.FC = () => {
           type="password"
           value={formData.confirmPassword}
           onChange={e => updateField('confirmPassword', e.target.value)}
-          className={`w-full px-4 py-3 rounded-lg border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
           placeholder="Repita a senha"
         />
         {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
@@ -342,7 +342,7 @@ export const DoctorRegistration: React.FC = () => {
             type="text"
             value={formData.addressZip}
             onChange={e => updateField('addressZip', e.target.value.replace(/\D/g, '').replace(/^(\d{5})(\d)/, '$1-$2').slice(0, 9))}
-            className={`w-full px-4 py-3 rounded-lg border ${errors.addressZip ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.addressZip ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
             placeholder="00000-000"
           />
           {errors.addressZip && <p className="text-red-500 text-sm mt-1">{errors.addressZip}</p>}
@@ -354,7 +354,7 @@ export const DoctorRegistration: React.FC = () => {
             type="text"
             value={formData.addressStreet}
             onChange={e => updateField('addressStreet', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${errors.addressStreet ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.addressStreet ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
             placeholder="Rua, Av., Alameda..."
           />
           {errors.addressStreet && <p className="text-red-500 text-sm mt-1">{errors.addressStreet}</p>}
@@ -368,7 +368,7 @@ export const DoctorRegistration: React.FC = () => {
             type="text"
             value={formData.addressNumber}
             onChange={e => updateField('addressNumber', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${errors.addressNumber ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.addressNumber ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
             placeholder="123"
           />
           {errors.addressNumber && <p className="text-red-500 text-sm mt-1">{errors.addressNumber}</p>}
@@ -392,7 +392,7 @@ export const DoctorRegistration: React.FC = () => {
           type="text"
           value={formData.addressNeighborhood}
           onChange={e => updateField('addressNeighborhood', e.target.value)}
-          className={`w-full px-4 py-3 rounded-lg border ${errors.addressNeighborhood ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.addressNeighborhood ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
           placeholder="Bairro"
         />
         {errors.addressNeighborhood && <p className="text-red-500 text-sm mt-1">{errors.addressNeighborhood}</p>}
@@ -405,7 +405,7 @@ export const DoctorRegistration: React.FC = () => {
             type="text"
             value={formData.addressCity}
             onChange={e => updateField('addressCity', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${errors.addressCity ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.addressCity ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
             placeholder="Cidade"
           />
           {errors.addressCity && <p className="text-red-500 text-sm mt-1">{errors.addressCity}</p>}
@@ -416,7 +416,7 @@ export const DoctorRegistration: React.FC = () => {
           <select
             value={formData.addressState}
             onChange={e => updateField('addressState', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${errors.addressState ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.addressState ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
           >
             <option value="">UF</option>
             {BRAZILIAN_STATES.map(uf => (
@@ -440,7 +440,7 @@ export const DoctorRegistration: React.FC = () => {
             type="text"
             value={formData.crm}
             onChange={e => { updateField('crm', e.target.value); setCrmValidated(null); setCrmError(null); }}
-            className={`w-full px-4 py-3 rounded-lg border ${errors.crm ? 'border-red-500' : crmValidated ? 'border-green-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.crm ? 'border-red-500' : crmValidated ? 'border-green-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
             placeholder="000000"
           />
         </div>
@@ -450,7 +450,7 @@ export const DoctorRegistration: React.FC = () => {
           <select
             value={formData.crmState}
             onChange={e => { updateField('crmState', e.target.value); setCrmValidated(null); setCrmError(null); }}
-            className={`w-full px-4 py-3 rounded-lg border ${errors.crmState ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.crmState ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
           >
             <option value="">UF</option>
             {BRAZILIAN_STATES.map(uf => (
@@ -495,7 +495,7 @@ export const DoctorRegistration: React.FC = () => {
           value={formData.specialty}
           onChange={e => updateField('specialty', e.target.value)}
           placeholder="Ex: Endocrinologista, Nutrólogo para gestantes..."
-          className={`w-full px-4 py-3 rounded-lg border ${errors.specialty ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.specialty ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
         />
         {errors.specialty && <p className="text-red-500 text-sm mt-1">{errors.specialty}</p>}
       </div>
@@ -624,7 +624,7 @@ export const DoctorRegistration: React.FC = () => {
           value={formData.consultationPrice}
           onChange={e => updateField('consultationPrice', parseFloat(e.target.value) || 0)}
           min={MIN_CONSULTATION_PRICE}
-          className={`w-full px-4 py-3 rounded-lg border ${errors.consultationPrice ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent`}
+          className={`w-full px-4 py-3 rounded-lg border ${errors.consultationPrice ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
         />
         {errors.consultationPrice && <p className="text-red-500 text-sm mt-1">{errors.consultationPrice}</p>}
       </div>

@@ -974,21 +974,25 @@ export const patientService = {
       .gte('created_at', fiftySixDaysAgo.toISOString())
       .order('created_at', { ascending: false });
 
-    // Weight history (last 90 days from daily_logs)
+    // Weight history (last 90 days from weight_logs)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
     const { data: weightLogs } = await supabase
-      .from('daily_logs')
-      .select('date, weight')
+      .from('weight_logs')
+      .select('logged_at, weight_kg')
       .eq('user_id', patientId)
-      .not('weight', 'is', null)
-      .gte('date', ninetyDaysAgo.toISOString().split('T')[0])
-      .order('date', { ascending: true });
+      .gte('logged_at', ninetyDaysAgo.toISOString())
+      .order('logged_at', { ascending: true });
 
-    const weight_history = (weightLogs || [])
-      .filter((w: any) => w.weight)
-      .map((w: any) => ({ date: w.date, weight: w.weight, target_weight: null }));
+    let weight_history = (weightLogs || [])
+      .filter((w: any) => w.weight_kg)
+      .map((w: any) => ({ date: w.logged_at.split('T')[0], weight: w.weight_kg, target_weight: null }));
+
+    // Fallback: use current profile weight as a single data point
+    if (weight_history.length === 0 && profile?.weight) {
+      weight_history = [{ date: new Date().toISOString().split('T')[0], weight: profile.weight, target_weight: null }];
+    }
 
     // Group meals by date dynamically (same structure as flow_stats)
     const mapByDate = new Map<string, any>();
@@ -1121,6 +1125,10 @@ export const patientService = {
           aesthetic: 'Perda de peso',
           performance: 'Ganho de massa',
           health: 'Saúde geral',
+          perder_peso: 'Perda de peso',
+          ganhar_peso: 'Ganho de massa',
+          manter_peso: 'Manter peso',
+          saude_geral: 'Saúde geral',
         };
         return profile?.goal ? (goalLabels[profile.goal] ?? profile.goal) : null;
       })(),

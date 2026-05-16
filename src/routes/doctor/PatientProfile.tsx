@@ -445,7 +445,7 @@ export const PatientProfile: React.FC = () => {
 
               {/* Gráfico de peso */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Evololução de Peso</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Evolução de Peso</h3>
                 <div className="h-64">
                   {patient.weight_history.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
