@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StepContainer } from '../StepContainer';
 import { StepProps } from '../types';
 
@@ -10,6 +10,13 @@ const ObjetivosPrincipaisStep: React.FC<StepProps> = ({ data, updateData, onNext
   const [objetivoPrincipal, setObjetivoPrincipal] = useState<ObjetivoPrincipal>(
     data.primary_goal as ObjetivoPrincipal || 'perder_peso'
   );
+
+  // Garante que o valor inicial (mesmo sem clique) seja persistido em data
+  useEffect(() => {
+    if (!data.primary_goal) {
+      updateData({ primary_goal: objetivoPrincipal });
+    }
+  }, []);
 
   const handleSelect = (objetivo: ObjetivoPrincipal) => {
     setObjetivoPrincipal(objetivo);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { StitchOnboardingData, OnboardingStep } from './types';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -101,7 +102,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
   const DEFAULT_DATA: StitchOnboardingData = {
     primary_goal: 'perder_peso',
     dataNascimento: '1998-01-01',
-    genero: 'masculino',
+    // genero: sem default — usuário deve escolher explicitamente (afeta cálculo de macros)
     altura: 170,
     peso: 70,
     pesoObjetivo: 65,
@@ -111,7 +112,7 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
     habitChanges: [],
     dietType: 'Equilibrada',
     eatingLocation: 'casa',
-    calorieExperience: 'intermediate',
+    // calorieExperience: sem default — step já bloqueia via nextDisabled
     goalSpeed: 3,
     mealsPerDay: 3,
   };
@@ -160,6 +161,24 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
 
   const finishOnboarding = async () => {
     if (!user) return;
+
+    // Garante que campos críticos foram preenchidos antes de salvar
+    if (!data.genero) {
+      toast.error('Por favor, selecione seu gênero biológico para continuar.');
+      setCurrentStepIndex(steps.indexOf(OnboardingStep.GENERO));
+      return;
+    }
+    if (!data.dataNascimento) {
+      toast.error('Por favor, informe sua data de nascimento.');
+      setCurrentStepIndex(steps.indexOf(OnboardingStep.IDADE));
+      return;
+    }
+    if (!data.altura || !data.peso) {
+      toast.error('Por favor, informe sua altura e peso.');
+      setCurrentStepIndex(steps.indexOf(OnboardingStep.ALTURA_PESO));
+      return;
+    }
+
     setIsFinishing(true);
     try {
       const activityMap: Record<string, string> = {
