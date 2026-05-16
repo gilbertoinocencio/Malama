@@ -491,7 +491,7 @@ export const DoctorSettings: React.FC = () => {
                         <th className="px-3 py-2 text-left font-medium text-gray-500">Pago em</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 text-sm text-gray-800">
                       {payouts.map(payout => (
                         <tr key={payout.id}>
                           <td className="px-3 py-2">

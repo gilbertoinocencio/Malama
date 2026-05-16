@@ -521,11 +521,11 @@ export const PatientProfile: React.FC = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Média calórica:</span>
-                        <span className="font-medium">{patient.adherence.average_calories} / {patient.adherence.calorie_goal} kcal</span>
+                        <span className="font-medium text-gray-800">{patient.adherence.average_calories} / {patient.adherence.calorie_goal} kcal</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Média proteica:</span>
-                        <span className="font-medium">{patient.adherence.average_protein} / {patient.adherence.protein_goal} g</span>
+                        <span className="font-medium text-gray-800">{patient.adherence.average_protein} / {patient.adherence.protein_goal} g</span>
                       </div>
                     </div>
                   </div>
@@ -559,16 +559,16 @@ export const PatientProfile: React.FC = () => {
                           <th className="px-4 py-3 text-left font-medium text-gray-500">Peso</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-gray-100 text-gray-800">
                         {patient.weekly_history.map((week, idx) => (
                           <tr key={idx}>
                             <td className="px-4 py-3">{week.week_start}</td>
-                            <td className="px-4 py-3">{week.avg_calories}</td>
-                            <td className="px-4 py-3">{week.avg_protein}</td>
-                            <td className="px-4 py-3">{week.avg_carbs}</td>
-                            <td className="px-4 py-3">{week.avg_fat}</td>
-                            <td className="px-4 py-3">{week.adherence_percent}%</td>
-                            <td className="px-4 py-3">{week.avg_weight}</td>
+                            <td className="px-4 py-3">{week.avg_calories > 0 ? `${week.avg_calories} kcal` : '—'}</td>
+                            <td className="px-4 py-3">{week.avg_protein > 0 ? `${week.avg_protein}g` : '—'}</td>
+                            <td className="px-4 py-3">{week.avg_carbs > 0 ? `${week.avg_carbs}g` : '—'}</td>
+                            <td className="px-4 py-3">{week.avg_fat > 0 ? `${week.avg_fat}g` : '—'}</td>
+                            <td className="px-4 py-3">{week.adherence_percent > 0 ? `${week.adherence_percent}%` : '—'}</td>
+                            <td className="px-4 py-3">{week.avg_weight || '—'}</td>
                           </tr>
                         ))}
                       </tbody>
