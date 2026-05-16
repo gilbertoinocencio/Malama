@@ -4,8 +4,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useOutletContext, useSearchParams, Link } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { User, TrendingUp, Activity, FileText, MessageSquare, Calendar, Plus, X, Save, Paperclip, Brain } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, ReferenceLine, Legend } from 'recharts';
+import { User, TrendingUp, TrendingDown, Minus, Activity, FileText, MessageSquare, Calendar, Plus, X, Save, Paperclip, Brain } from 'lucide-react';
 import { patientService, planAdjustmentService, glp1DoctorService, clinicalNoteService } from '../../services/doctorPortalService';
 import type { GLP1MealSlot, GLP1DoctorPrescriptionInput } from '../../services/doctorPortalService';
 import { GLP1_MEDICATION_LIST, GLP1_PROTOCOLS } from '../../constants/glp1Protocols';
@@ -540,60 +540,239 @@ export const PatientProfile: React.FC = () => {
           )}
 
           {/* Aba 2: Histórico Nutricional */}
-          {activeTab === 'history' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-800">Histórico Nutricional (últimas 8 semanas)</h3>
+          {activeTab === 'history' && (() => {
+            const goals = patient.current_goals;
+            const weeks = patient.weekly_history;
+            const activeWeeks = weeks.filter(w => w.avg_calories > 0);
+            const last4 = activeWeeks.slice(0, 4);
 
-              {patient.weekly_history.length > 0 ? (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-medium text-gray-500">Semana</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-500">Cal média</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-500">Prot média</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-500">Carbs</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-500">Gordura</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-500">Adesão</th>
-                          <th className="px-4 py-3 text-left font-medium text-gray-500">Peso</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 text-gray-800">
-                        {patient.weekly_history.map((week, idx) => (
-                          <tr key={idx}>
-                            <td className="px-4 py-3">{week.week_start}</td>
-                            <td className="px-4 py-3">{week.avg_calories > 0 ? `${week.avg_calories} kcal` : '—'}</td>
-                            <td className="px-4 py-3">{week.avg_protein > 0 ? `${week.avg_protein}g` : '—'}</td>
-                            <td className="px-4 py-3">{week.avg_carbs > 0 ? `${week.avg_carbs}g` : '—'}</td>
-                            <td className="px-4 py-3">{week.avg_fat > 0 ? `${week.avg_fat}g` : '—'}</td>
-                            <td className="px-4 py-3">{week.adherence_percent > 0 ? `${week.adherence_percent}%` : '—'}</td>
-                            <td className="px-4 py-3">{week.avg_weight || '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+            const avg4Cal  = last4.length ? Math.round(last4.reduce((s,w) => s + w.avg_calories, 0) / last4.length) : 0;
+            const avg4Prot = last4.length ? Math.round(last4.reduce((s,w) => s + w.avg_protein, 0) / last4.length) : 0;
+            const avg4Adh  = last4.length ? Math.round(last4.reduce((s,w) => s + w.adherence_percent, 0) / last4.length) : 0;
+            const calPct   = goals.calories ? Math.round((avg4Cal  / goals.calories)  * 100) : 0;
+            const protPct  = goals.protein  ? Math.round((avg4Prot / goals.protein)   * 100) : 0;
 
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={patient.weekly_history}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="week_start" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} />
-                        <Tooltip />
-                        <Bar dataKey="avg_calories" fill="#7d4a3c" name="Calorias" />
-                      </BarChart>
-                    </ResponsiveContainer>
+            // Tendência: compara as 2 semanas mais recentes vs as 2 anteriores
+            const trendCal = last4.length >= 4
+              ? Math.round(((last4[0].avg_calories + last4[1].avg_calories) / 2) - ((last4[2].avg_calories + last4[3].avg_calories) / 2))
+              : 0;
+
+            const goalColor = (pct: number) =>
+              pct >= 85 ? 'bg-green-500' : pct >= 55 ? 'bg-amber-400' : 'bg-red-400';
+            const goalText = (pct: number) =>
+              pct >= 85 ? 'text-green-700' : pct >= 55 ? 'text-amber-600' : 'text-red-600';
+            const goalBg = (pct: number) =>
+              pct >= 85 ? 'bg-green-50 border-green-200' : pct >= 55 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
+            const adherBadge = (pct: number) =>
+              pct >= 80 ? 'bg-green-100 text-green-700' : pct >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700';
+
+            // Gráfico — ordem cronológica (mais antigo → mais recente)
+            const chartData = [...weeks].reverse().map(w => ({
+              semana: w.week_start,
+              calorias: w.avg_calories || null,
+              proteina: w.avg_protein || null,
+              adesao: w.adherence_percent || null,
+            }));
+
+            return (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-800">Histórico Nutricional — últimas 8 semanas</h3>
+
+                {weeks.length > 0 ? (
+                  <>
+                    {/* ── Cards de resumo ── */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {/* Cal média */}
+                      <div className={`rounded-xl border p-4 ${goalBg(calPct)}`}>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Cal média (4 sem)</p>
+                        <p className="text-2xl font-bold text-gray-800">{avg4Cal}<span className="text-sm font-normal text-gray-500 ml-1">kcal</span></p>
+                        <p className={`text-xs font-semibold mt-1 ${goalText(calPct)}`}>{calPct}% da meta ({goals.calories} kcal)</p>
+                        <div className="mt-2 h-1.5 bg-white/60 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${goalColor(calPct)}`} style={{ width: `${Math.min(calPct, 100)}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Prot média */}
+                      <div className={`rounded-xl border p-4 ${goalBg(protPct)}`}>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Prot média (4 sem)</p>
+                        <p className="text-2xl font-bold text-gray-800">{avg4Prot}<span className="text-sm font-normal text-gray-500 ml-1">g</span></p>
+                        <p className={`text-xs font-semibold mt-1 ${goalText(protPct)}`}>{protPct}% da meta ({goals.protein}g)</p>
+                        <div className="mt-2 h-1.5 bg-white/60 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${goalColor(protPct)}`} style={{ width: `${Math.min(protPct, 100)}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Adesão média */}
+                      <div className="rounded-xl border border-gray-200 bg-white p-4">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Adesão média (4 sem)</p>
+                        <p className="text-2xl font-bold text-gray-800">{avg4Adh}<span className="text-sm font-normal text-gray-500 ml-1">%</span></p>
+                        <span className={`mt-1 inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${adherBadge(avg4Adh)}`}>
+                          {avg4Adh >= 80 ? 'Boa adesão' : avg4Adh >= 50 ? 'Adesão moderada' : 'Baixa adesão'}
+                        </span>
+                        <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${goalColor(avg4Adh)}`} style={{ width: `${Math.min(avg4Adh, 100)}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Tendência calórica */}
+                      <div className="rounded-xl border border-gray-200 bg-white p-4">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Tendência calórica</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {trendCal > 50 ? (
+                            <TrendingUp className="w-6 h-6 text-green-500" />
+                          ) : trendCal < -50 ? (
+                            <TrendingDown className="w-6 h-6 text-red-500" />
+                          ) : (
+                            <Minus className="w-6 h-6 text-amber-500" />
+                          )}
+                          <span className="text-xl font-bold text-gray-800">
+                            {trendCal > 0 ? '+' : ''}{trendCal}
+                            <span className="text-sm font-normal text-gray-500 ml-1">kcal/sem</span>
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {trendCal > 50 ? 'Ingestão aumentando' : trendCal < -50 ? 'Ingestão diminuindo' : 'Ingestão estável'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* ── Gráfico multi-linha ── */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                      <p className="text-sm font-semibold text-gray-700 mb-4">Evolução semanal vs metas</p>
+                      <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                            <XAxis dataKey="semana" tick={{ fontSize: 11, fill: '#6b7280' }} />
+                            <YAxis yAxisId="cal" tick={{ fontSize: 11, fill: '#6b7280' }} width={45} />
+                            <YAxis yAxisId="prot" orientation="right" tick={{ fontSize: 11, fill: '#6b7280' }} width={35} />
+                            <Tooltip
+                              contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                              formatter={(value: any, name: string) =>
+                                name === 'Calorias' ? [`${value} kcal`, name] : [`${value}g`, name]
+                              }
+                            />
+                            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                            {/* Linhas de meta */}
+                            <ReferenceLine yAxisId="cal" y={goals.calories} stroke="#7d4a3c" strokeDasharray="4 3" strokeWidth={1.5}
+                              label={{ value: 'Meta Cal', position: 'insideTopLeft', fontSize: 10, fill: '#7d4a3c' }} />
+                            <ReferenceLine yAxisId="prot" y={goals.protein} stroke="#3b82f6" strokeDasharray="4 3" strokeWidth={1.5}
+                              label={{ value: 'Meta Prot', position: 'insideTopRight', fontSize: 10, fill: '#3b82f6' }} />
+                            {/* Linhas de dados */}
+                            <Line yAxisId="cal" type="monotone" dataKey="calorias" name="Calorias"
+                              stroke="#7d4a3c" strokeWidth={2.5} dot={{ r: 4, fill: '#7d4a3c' }}
+                              connectNulls={false} activeDot={{ r: 6 }} />
+                            <Line yAxisId="prot" type="monotone" dataKey="proteina" name="Proteína"
+                              stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }}
+                              connectNulls={false} strokeDasharray="5 3" />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* ── Tabela semana a semana ── */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-200">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Semana</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Calorias</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Proteína</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Carbs</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Gordura</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Adesão</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Peso</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {weeks.map((week, idx) => {
+                              const hasData = week.avg_calories > 0;
+                              const cPct = goals.calories ? Math.round((week.avg_calories / goals.calories) * 100) : 0;
+                              const pPct = goals.protein  ? Math.round((week.avg_protein  / goals.protein)  * 100) : 0;
+                              const adh  = week.adherence_percent;
+
+                              return (
+                                <tr key={idx} className={`hover:bg-gray-50 transition-colors ${!hasData ? 'opacity-40' : ''}`}>
+                                  {/* Semana */}
+                                  <td className="px-4 py-3 font-semibold text-gray-800 whitespace-nowrap">{week.week_start}</td>
+
+                                  {/* Calorias com barra */}
+                                  <td className="px-4 py-3 min-w-[130px]">
+                                    {hasData ? (
+                                      <div>
+                                        <div className="flex items-baseline gap-1">
+                                          <span className="font-semibold text-gray-800">{week.avg_calories}</span>
+                                          <span className="text-xs text-gray-400">/ {goals.calories} kcal</span>
+                                        </div>
+                                        <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden w-28">
+                                          <div className={`h-full rounded-full ${goalColor(cPct)}`}
+                                            style={{ width: `${Math.min(cPct, 100)}%` }} />
+                                        </div>
+                                        <span className={`text-xs font-medium ${goalText(cPct)}`}>{cPct}%</span>
+                                      </div>
+                                    ) : <span className="text-gray-400">—</span>}
+                                  </td>
+
+                                  {/* Proteína com barra */}
+                                  <td className="px-4 py-3 min-w-[120px]">
+                                    {hasData ? (
+                                      <div>
+                                        <div className="flex items-baseline gap-1">
+                                          <span className="font-semibold text-gray-800">{week.avg_protein}g</span>
+                                          <span className="text-xs text-gray-400">/ {goals.protein}g</span>
+                                        </div>
+                                        <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden w-24">
+                                          <div className={`h-full rounded-full ${goalColor(pPct)}`}
+                                            style={{ width: `${Math.min(pPct, 100)}%` }} />
+                                        </div>
+                                        <span className={`text-xs font-medium ${goalText(pPct)}`}>{pPct}%</span>
+                                      </div>
+                                    ) : <span className="text-gray-400">—</span>}
+                                  </td>
+
+                                  {/* Carbs */}
+                                  <td className="px-4 py-3 text-gray-700">
+                                    {hasData ? <span>{week.avg_carbs}g <span className="text-xs text-gray-400">/ {goals.carbs}g</span></span> : '—'}
+                                  </td>
+
+                                  {/* Gordura */}
+                                  <td className="px-4 py-3 text-gray-700">
+                                    {hasData ? <span>{week.avg_fat}g <span className="text-xs text-gray-400">/ {goals.fat}g</span></span> : '—'}
+                                  </td>
+
+                                  {/* Adesão */}
+                                  <td className="px-4 py-3">
+                                    {hasData ? (
+                                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${adherBadge(adh)}`}>
+                                        {adh}%
+                                      </span>
+                                    ) : <span className="text-gray-400">—</span>}
+                                  </td>
+
+                                  {/* Peso */}
+                                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{week.avg_weight || '—'}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 flex items-center gap-4 text-xs text-gray-500">
+                        <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-full bg-green-500 inline-block" /> ≥ 85% da meta</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-full bg-amber-400 inline-block" /> 55–84%</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-full bg-red-400 inline-block" /> &lt; 55%</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-40 flex items-center justify-center bg-gray-50 rounded-lg">
+                    <p className="text-gray-500">Dados de histórico não disponíveis</p>
                   </div>
-                </>
-              ) : (
-                <div className="h-40 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <p className="text-gray-500">Dados de histórico não disponíveis</p>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            );
+          })()}
 
           {/* Aba 3: Sintomas e Check-ins */}
           {activeTab === 'symptoms' && (
