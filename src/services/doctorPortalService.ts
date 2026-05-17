@@ -29,6 +29,7 @@ import type {
   PatientExam,
   CanCloseResult,
   PatientFullHistory,
+  DiaryEntry,
 } from '../types/doctorPortal';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -1068,31 +1069,29 @@ export const patientService = {
       }
     }
 
-    // Fetch recent daily checkins
-    const { data: checkins } = await supabase
-      .from('daily_checkins')
-      .select('checkin_date, symptoms, mood, energy_level')
+    // Fetch diary entries from daily_logs (patient diary: notes, energy, mood)
+    const { data: diaryRows } = await supabase
+      .from('daily_logs')
+      .select('date, energy_level, mood, notes, photo_url')
       .eq('user_id', patientId)
-      .order('checkin_date', { ascending: false })
-      .limit(30);
+      .order('date', { ascending: false })
+      .limit(60);
 
-    const moodScale: Record<number, string> = { 1: 'Péssimo', 2: 'Ruim', 3: 'Neutro', 4: 'Bom', 5: 'Excelente' };
-    const energyScale: Record<number, string> = { 1: 'Exgotado', 2: 'Baixa', 3: 'Média', 4: 'Boa', 5: 'Alta' };
+    const formattedCheckins: import('../types/doctorPortal').SymptomCheckin[] = [];
 
-    const formattedCheckins = (checkins || []).map(c => {
-      const s = c.symptoms || [];
-      const symptomList = Array.isArray(s) ? s : (typeof s === 'string' ? JSON.parse(s) : Object.keys(s));
-
-      const [year, month, day] = (c.checkin_date || '').split('-');
-      const formattedDate = day && month ? `${day}/${month}/${year}` : c.checkin_date;
-
-      return {
-        date: formattedDate,
-        symptoms: symptomList,
-        mood: c.mood ? moodScale[c.mood] || String(c.mood) : undefined,
-        energy: c.energy_level ? energyScale[c.energy_level] || String(c.energy_level) : undefined
-      };
-    });
+    const diary_entries: DiaryEntry[] = (diaryRows || [])
+      .filter(r => r.notes || r.energy_level || r.mood)
+      .map(r => {
+        const [year, month, day] = (r.date || '').split('-');
+        const formattedDate = day && month ? `${day}/${month}/${year}` : r.date;
+        return {
+          date: formattedDate,
+          energy_level: r.energy_level || null,
+          mood: r.mood || null,
+          notes: r.notes || null,
+          photo_url: r.photo_url || null,
+        };
+      });
 
     return {
       id: patientId,
@@ -1156,6 +1155,7 @@ export const patientService = {
       },
       weekly_history: weekly_history,
       symptom_checkins: formattedCheckins,
+      diary_entries: diary_entries,
       past_consultations: consultations || [],
       doctor_adjustments: adjustments || []
     };

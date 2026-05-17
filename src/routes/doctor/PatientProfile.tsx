@@ -774,59 +774,74 @@ export const PatientProfile: React.FC = () => {
             );
           })()}
 
-          {/* Aba 3: Sintomas e Check-ins */}
-          {activeTab === 'symptoms' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">Timeline de Check-ins</h3>
+          {/* Aba 3: Diário do Paciente */}
+          {activeTab === 'symptoms' && (() => {
+            const entries = patient.diary_entries ?? [];
+            const energyColor: Record<string, string> = {
+              'Flow':  'bg-purple-100 text-purple-700',
+              'Boa':   'bg-green-100 text-green-700',
+              'Média': 'bg-amber-100 text-amber-700',
+              'Baixa': 'bg-red-100 text-red-700',
+            };
 
-              {patient.symptom_checkins.length > 0 ? (
-                <div className="space-y-4">
-                  {patient.symptom_checkins.map((checkin, idx) => (
-                    <div key={idx} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className="w-3 h-3 rounded-full bg-[#7d4a3c]" />
-                        {idx < patient.symptom_checkins.length - 1 && (
-                          <div className="w-0.5 flex-1 bg-gray-200 my-1" />
-                        )}
-                      </div>
-                      <div className="flex-1 pb-4">
-                        <p className="text-sm text-gray-500 mb-2">{checkin.date}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {checkin.symptoms.map((symptom, sIdx) => {
-                            const colorMap: Record<string, string> = {
-                              'náusea': 'bg-orange-100 text-orange-700',
-                              'fadiga': 'bg-yellow-100 text-yellow-700',
-                              'bem': 'bg-green-100 text-green-700',
-                              'dor_de_cabeca': 'bg-red-100 text-red-700',
-                              'tontura': 'bg-blue-100 text-blue-700'
-                            };
-                            return (
-                              <span
-                                key={sIdx}
-                                className={`px-3 py-1 rounded-full text-xs font-medium ${colorMap[symptom] || 'bg-gray-100 text-gray-700'}`}
-                              >
-                                {symptom.replace(/_/g, ' ')}
-                              </span>
-                            );
-                          })}
+            return (
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-800">Diário do Paciente</h3>
+                  <span className="text-xs text-gray-400">{entries.length} {entries.length === 1 ? 'entrada' : 'entradas'}</span>
+                </div>
+
+                {entries.length > 0 ? (
+                  <div className="space-y-3">
+                    {entries.map((entry, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3"
+                      >
+                        {/* Header: date + energy badge */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">{entry.date}</span>
+                          {entry.energy_level && (
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${energyColor[entry.energy_level] ?? 'bg-gray-100 text-gray-600'}`}>
+                              Energia: {entry.energy_level}
+                            </span>
+                          )}
                         </div>
-                        {checkin.mood && (
-                          <p className="text-xs text-gray-600 mt-2">Humor: {checkin.mood}</p>
+
+                        {/* Mood row */}
+                        {entry.mood && (
+                          <p className="text-xs text-gray-500">
+                            <span className="font-medium text-gray-600">Humor:</span> {entry.mood}
+                          </p>
                         )}
-                        {checkin.energy && (
-                          <p className="text-xs text-gray-600">Energia: {checkin.energy}</p>
+
+                        {/* Notes */}
+                        {entry.notes && (
+                          <p className="text-sm text-gray-700 leading-relaxed border-l-2 border-[#7d4a3c]/30 pl-3 italic">
+                            "{entry.notes}"
+                          </p>
+                        )}
+
+                        {/* Photo thumbnail */}
+                        {entry.photo_url && (
+                          <img
+                            src={entry.photo_url}
+                            alt="Foto do diário"
+                            className="w-24 h-24 object-cover rounded-xl border border-gray-100"
+                          />
                         )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="h-40 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <p className="text-gray-500">Nenhum check-in registrado</p>
-                </div>
-              )}
-            </div>
-          )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="h-40 flex flex-col items-center justify-center bg-gray-50 rounded-2xl gap-2">
+                    <span className="text-2xl">📓</span>
+                    <p className="text-gray-500 text-sm">Nenhuma entrada no diário</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Aba 4: Prontuários */}
           {activeTab === 'consultations' && (

@@ -335,6 +335,7 @@ export interface PatientFullProfile {
   adherence: PatientAdherence;
   weekly_history: WeeklyNutritionHistory[];
   symptom_checkins: SymptomCheckin[];
+  diary_entries: DiaryEntry[];
   past_consultations: Consultation[];
   doctor_adjustments: DoctorPlanAdjustment[];
 }
@@ -381,6 +382,14 @@ export interface SymptomCheckin {
   symptoms: string[]; // 'náusea', 'fadiga', 'bem', etc.
   mood: string | null;
   energy: string | null;
+}
+
+export interface DiaryEntry {
+  date: string;        // formatted dd/mm/yyyy
+  energy_level: string | null; // 'Baixa' | 'Média' | 'Boa' | 'Flow'
+  mood: string | null;
+  notes: string | null;
+  photo_url: string | null;
 }
 
 // =====================================================
