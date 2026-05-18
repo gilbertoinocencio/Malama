@@ -82,7 +82,7 @@ async function processEvent(payload: Record<string, unknown>) {
 
     const accessToken = refreshRes.data.access_token;
 
-    // Buscar detalhes da atividade na API do Strava
+    // Buscar detalhes completos da atividade na API do Strava (endpoint detail inclui calories)
     const activityRes = await fetch(
       `https://www.strava.com/api/v3/activities/${objectId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -99,12 +99,28 @@ async function processEvent(payload: Record<string, unknown>) {
     const calories: number = activity.calories
       ?? (activity.kilojoules ? Math.round(activity.kilojoules * 0.239) : 0);
 
-    // Derivar a data local da atividade (YYYY-MM-DD)
-    const activityDate = (activity.start_date_local as string ?? activity.start_date as string)
-      .substring(0, 10);
+    // Usar data local da atividade (start_date_local é a hora do fuso do atleta)
+    const activityDateRaw: string = activity.start_date_local ?? activity.start_date;
+    const activityDate = activityDateRaw.substring(0, 10);
 
-    // Upsert em flow_stats: somar calories_burned e acrescentar ao array de IDs
-    // Buscar registro existente para o dia
+    // ── Upsert em activities (para calendário e listas) ──────────────
+    // IMPORTANTE: usar start_date_local para que o filtro de data no app funcione corretamente
+    await supabase
+      .from('activities')
+      .upsert({
+        user_id:          userId,
+        service:          'strava',
+        external_id:      String(objectId),
+        activity_type:    activity.type ?? 'Unknown',
+        name:             activity.name ?? 'Atividade Strava',
+        calories_burned:  calories,
+        duration_seconds: activity.moving_time ?? 0,
+        distance_meters:  (activity.distance as number) ?? null,
+        activity_date:    activityDateRaw,
+        raw_data:         activity,
+      }, { onConflict: 'service,external_id' });
+
+    // ── Upsert em flow_stats: somar calories_burned e acrescentar ao array de IDs ──
     const { data: existing } = await supabase
       .from('flow_stats')
       .select('calories_burned, strava_activity_ids')
