@@ -18,6 +18,23 @@ const ACTIVITY_LABELS: Record<string, string> = {
   Rowing: 'Remo', Soccer: 'Futebol', Tennis: 'Tênis',
 };
 
+const MET_BY_TYPE: Record<string, number> = {
+  Walk: 3.5, Hike: 5.5, Run: 9.0, VirtualRun: 8.0,
+  Ride: 6.0, VirtualRide: 5.5, MountainBikeRide: 8.5,
+  Swim: 6.0, WeightTraining: 4.5, Workout: 4.5,
+  Yoga: 2.5, Crossfit: 7.0, Rowing: 7.0, Soccer: 7.0, Tennis: 6.0,
+};
+
+function estimateCaloriesMET(type: string, durationSeconds: number): number {
+  const met = MET_BY_TYPE[type] ?? 4.0;
+  return Math.round(met * 70 * (durationSeconds / 3600));
+}
+
+function getEffectiveCalories(a: PatientActivity): { kcal: number; estimated: boolean } {
+  if (a.calories_burned > 0) return { kcal: a.calories_burned, estimated: false };
+  return { kcal: estimateCaloriesMET(a.activity_type, a.duration_seconds ?? 0), estimated: true };
+}
+
 function fmt(label: string) { return ACTIVITY_LABELS[label] ?? label; }
 function fmtDuration(seconds: number) {
   const h = Math.floor(seconds / 3600);
@@ -35,7 +52,11 @@ function buildWeeklyChart(activities: PatientActivity[]) {
       const d = new Date(a.activity_date);
       return d >= start && d < end;
     });
-    weeks.push({ week: label, kcal: slice.reduce((s, a) => s + (a.calories_burned ?? 0), 0), count: slice.length });
+    weeks.push({
+      week: label,
+      kcal: slice.reduce((s, a) => s + getEffectiveCalories(a).kcal, 0),
+      count: slice.length,
+    });
   }
   return weeks;
 }
@@ -68,8 +89,8 @@ export const PatientActivitiesPanel: React.FC<Props> = ({ patientId }) => {
     }
   };
 
-  // Estatísticas derivadas
-  const totalKcal    = activities.reduce((s, a) => s + (a.calories_burned ?? 0), 0);
+  // Estatísticas derivadas (usa estimativa MET quando calories_burned = 0)
+  const totalKcal    = activities.reduce((s, a) => s + getEffectiveCalories(a).kcal, 0);
   const totalMin     = Math.round(activities.reduce((s, a) => s + (a.duration_seconds ?? 0), 0) / 60);
   const totalKm      = activities.reduce((s, a) => s + ((a.distance_meters ?? 0) / 1000), 0);
   const typeFreq     = activities.reduce<Record<string, number>>((acc, a) => {
@@ -171,28 +192,38 @@ export const PatientActivitiesPanel: React.FC<Props> = ({ patientId }) => {
               </div>
             ) : (
               <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
-                {activities.slice(0, 15).map(a => (
-                  <div key={a.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#7d4a3c]/10 flex items-center justify-center flex-shrink-0">
-                        <Activity className="w-4 h-4 text-[#7d4a3c]" />
+                {activities.slice(0, 15).map(a => {
+                  const { kcal, estimated } = getEffectiveCalories(a);
+                  return (
+                    <div key={a.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#7d4a3c]/10 flex items-center justify-center flex-shrink-0">
+                          <Activity className="w-4 h-4 text-[#7d4a3c]" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{a.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {fmt(a.activity_type)} · {new Date(a.activity_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">{a.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {fmt(a.activity_type)} · {new Date(a.activity_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                        </p>
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
+                        <span className="hidden sm:block text-gray-400">{fmtDuration(a.duration_seconds)}</span>
+                        {a.distance_meters && a.distance_meters > 0 && (
+                          <span className="hidden md:block text-gray-400">{(a.distance_meters / 1000).toFixed(1)} km</span>
+                        )}
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-orange-600">{kcal} kcal</span>
+                          {estimated && (
+                            <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                              est.
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span className="hidden sm:block text-gray-400">{fmtDuration(a.duration_seconds)}</span>
-                      {a.distance_meters && a.distance_meters > 0 && (
-                        <span className="hidden md:block text-gray-400">{(a.distance_meters / 1000).toFixed(1)} km</span>
-                      )}
-                      <span className="font-semibold text-orange-600">{a.calories_burned} kcal</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {activities.length > 15 && (
                   <div className="px-4 py-2 text-center text-xs text-gray-400 bg-gray-50">
                     +{activities.length - 15} atividades não exibidas
