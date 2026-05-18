@@ -375,9 +375,6 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
                     )}
                   </div>
                 </div>
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2">
-                  <div className="w-4 h-4 bg-Malama-petrol dark:bg-primary rounded-full shadow-[0_0_12px_rgba(17,164,212,0.8)] border-2 border-white dark:border-background-dark" />
-                </div>
               </div>
               <div className="mt-8 text-center px-4 max-w-xs">
                 {isWeightLoss ? (
