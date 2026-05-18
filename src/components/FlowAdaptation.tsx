@@ -88,7 +88,7 @@ function getLocalDateString(d: Date) {
 export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNavigate }) => {
   const { t, language } = useLanguage();
   const fa = t.flowAdaptation;
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [dayActivities, setDayActivities] = useState<Activity[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
@@ -160,7 +160,15 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
   const effectiveCalories = dayActivities.reduce((sum: number, a: Activity) => {
     return sum + (a.calories_burned > 0 ? a.calories_burned : estimateCaloriesFromActivity(a));
   }, 0);
-  const macros = dayActivities.length > 0 ? estimateMacros(effectiveCalories) : null;
+
+  // 'aesthetic' = perder peso → atividade gera déficit, NÃO adiciona à meta calórica
+  // 'health'    = manter peso → adiciona calorias/macros queimados
+  // 'performance' = ganhar peso → adiciona calorias/macros queimados
+  const profileGoal = (profile?.goal ?? 'aesthetic') as 'aesthetic' | 'health' | 'performance';
+  const isWeightLoss = profileGoal === 'aesthetic';
+
+  // Macros só são exibidos como "acréscimo" quando o objetivo NÃO é emagrecer
+  const macros = (!isWeightLoss && dayActivities.length > 0) ? estimateMacros(effectiveCalories) : null;
 
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col mx-auto max-w-md bg-Malama-bg dark:bg-background-dark shadow-xl text-Malama-main dark:text-white font-display animate-fade-in">
@@ -342,17 +350,29 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
               );
             })}
 
-            {/* Flow Ring */}
+            {/* Flow Ring — comportamento depende do objetivo do usuário */}
             <section className="flex flex-col items-center justify-center py-6 relative animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-Malama-petrol/10 dark:bg-primary/5 rounded-full blur-3xl pointer-events-none" />
               <div className="relative w-64 h-64 flex items-center justify-center">
                 <div className="w-full h-full rounded-full ring-gradient p-[12px] shadow-xl relative z-10">
                   <div className="w-full h-full bg-Malama-bg dark:bg-background-dark rounded-full flex flex-col items-center justify-center relative">
-                    <div className="flex flex-col items-center gap-1 animate-pulse">
-                      <span className="material-symbols-outlined text-Malama-petrol dark:text-primary mb-1" style={{ fontSize: '32px' }}>add_circle</span>
-                      <h2 className="text-4xl font-bold tracking-tighter">+{effectiveCalories}</h2>
-                      <p className="text-Malama-muted dark:text-gray-400 font-medium text-sm uppercase tracking-widest">{fa.kcalAdded}</p>
-                    </div>
+                    {isWeightLoss ? (
+                      /* Perder peso: mostra calorias queimadas como déficit positivo */
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="material-symbols-outlined text-orange-500 dark:text-orange-400 mb-1" style={{ fontSize: '32px', fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+                        <h2 className="text-4xl font-bold tracking-tighter">{effectiveCalories}</h2>
+                        <p className="text-Malama-muted dark:text-gray-400 font-medium text-sm uppercase tracking-widest">
+                          {language === 'pt' ? 'KCAL QUEIMADOS' : 'KCAL BURNED'}
+                        </p>
+                      </div>
+                    ) : (
+                      /* Manter / ganhar peso: mostra como acréscimo à meta */
+                      <div className="flex flex-col items-center gap-1 animate-pulse">
+                        <span className="material-symbols-outlined text-Malama-petrol dark:text-primary mb-1" style={{ fontSize: '32px' }}>add_circle</span>
+                        <h2 className="text-4xl font-bold tracking-tighter">+{effectiveCalories}</h2>
+                        <p className="text-Malama-muted dark:text-gray-400 font-medium text-sm uppercase tracking-widest">{fa.kcalAdded}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2">
@@ -360,17 +380,28 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
                 </div>
               </div>
               <div className="mt-8 text-center px-4 max-w-xs">
-                <p className="text-Malama-main/80 dark:text-gray-300 text-lg leading-relaxed">
-                  {fa.addedMessage.split(/<bold>(.*?)<\/bold>/).map((part, i) =>
-                    i % 2 === 1
-                      ? <span key={i} className="font-bold text-Malama-petrol dark:text-primary">{part.replace('{kcal}', String(effectiveCalories))}</span>
-                      : <span key={i}>{part}</span>
-                  )}
-                </p>
+                {isWeightLoss ? (
+                  /* Mensagem motivacional para quem quer emagrecer */
+                  <p className="text-Malama-main/80 dark:text-gray-300 text-lg leading-relaxed">
+                    {language === 'pt'
+                      ? <>Você queimou <span className="font-bold text-orange-500 dark:text-orange-400">{effectiveCalories} kcal</span> — esse déficit está te aproximando do seu objetivo!</>
+                      : <>You burned <span className="font-bold text-orange-500 dark:text-orange-400">{effectiveCalories} kcal</span> — this deficit is bringing you closer to your goal!</>
+                    }
+                  </p>
+                ) : (
+                  /* Mensagem padrão para manter / ganhar peso */
+                  <p className="text-Malama-main/80 dark:text-gray-300 text-lg leading-relaxed">
+                    {fa.addedMessage.split(/<bold>(.*?)<\/bold>/).map((part, i) =>
+                      i % 2 === 1
+                        ? <span key={i} className="font-bold text-Malama-petrol dark:text-primary">{part.replace('{kcal}', String(effectiveCalories))}</span>
+                        : <span key={i}>{part}</span>
+                    )}
+                  </p>
+                )}
               </div>
             </section>
 
-            {/* Macro Breakdown */}
+            {/* Macro Breakdown — só exibe para objetivos de manutenção ou ganho de peso */}
             {macros && (
               <section className="grid grid-cols-3 gap-3 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
                 {[
