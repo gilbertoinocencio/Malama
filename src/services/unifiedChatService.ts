@@ -134,11 +134,13 @@ export const UnifiedChatService = {
    * Get chat history
    */
   async getChatHistory(userId: string, limit: number = 100): Promise<ChatMessage[]> {
+    // Fetch the most recent `limit` messages in descending order,
+    // then reverse so the caller always receives them oldest→newest.
     const { data, error } = await supabase
       .from('ai_chat_messages')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) {
@@ -146,7 +148,7 @@ export const UnifiedChatService = {
       return [];
     }
 
-    return data as ChatMessage[];
+    return (data as ChatMessage[]).reverse();
   },
 
   /**

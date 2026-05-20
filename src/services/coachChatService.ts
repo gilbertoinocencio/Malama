@@ -19,11 +19,13 @@ export const CoachChatService = {
    * Get chat history for a user
    */
   async getChatHistory(userId: string, limit: number = 50): Promise<CoachChatMessage[]> {
+    // Fetch the most recent `limit` messages in descending order,
+    // then reverse so the caller always receives them oldest→newest.
     const { data, error } = await supabase
       .from('coach_chat_messages')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) {
@@ -31,7 +33,7 @@ export const CoachChatService = {
       return [];
     }
 
-    return data as CoachChatMessage[];
+    return (data as CoachChatMessage[]).reverse();
   },
 
   /**

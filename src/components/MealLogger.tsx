@@ -1,6 +1,6 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse, MealItem } from '../types';
-import { analyzeTextLog, analyzeImageLog } from '../services/geminiService';
+import { analyzeTextLog, analyzeImageLog, generateMealFeedback } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
 
 import { MalamaAiScan } from './MalamaAiScan';
@@ -718,8 +718,13 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
 
       if (type === 'ai-photo') {
-        // Add scan card + nutritionist feedback to chat and return to chat view
-        const feedback = data.message || `${data.foodName} registrado com sucesso!`;
+        // Add scan card + nutritionist feedback to chat and return to chat view.
+        // Always regenerate feedback from the confirmed (possibly edited) items so the
+        // message never references ingredients the user removed during editing.
+        const freshFeedback = data.items?.length
+          ? await generateMealFeedback(data.items, data.foodName)
+          : '';
+        const feedback = freshFeedback || data.message || `${data.foodName} registrado com sucesso!`;
         const cardId = Date.now().toString();
         const textId = (Date.now() + 1).toString();
         const capturedImageUri = scannedImageUri ?? undefined;

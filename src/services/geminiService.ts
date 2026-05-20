@@ -327,6 +327,35 @@ ALL text MUST be in ${langName}.`;
   }
 };
 
+export const generateMealFeedback = async (items: MealItem[], foodName: string, language: string = 'pt'): Promise<string> => {
+  try {
+    const model = getGenAI().getGenerativeModel({
+      model: MODEL_NAME,
+      generationConfig: {
+        responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 0 } as any,
+      },
+    });
+    const langName = LANG_NAMES[language] || LANG_NAMES.pt;
+    const itemsList = items
+      .map(i => `- ${i.name}: ${i.weightGrams ?? '?'}g (${i.calories}kcal, ${i.protein ?? 0}p/${i.carbs ?? 0}c/${i.fats ?? 0}f)`)
+      .join('\n');
+    const prompt = `You are Malama, a clinical nutritionist. Based only on these confirmed meal items, write a short honest nutritionist feedback in ${langName}. Max 2-3 sentences. Be specific to the actual ingredients listed.
+
+Meal: ${foodName}
+Items:
+${itemsList}
+
+Return JSON: {"message": "feedback here"}`;
+    const result = await model.generateContent(prompt);
+    const parsed = JSON.parse(cleanJsonString(result.response.text()));
+    return parsed.message || '';
+  } catch (error) {
+    console.error("Meal feedback generation error:", error);
+    return '';
+  }
+};
+
 export const generatePlanContent = async (profile: any, onboardingData?: any, language: string = 'pt'): Promise<any> => {
 
   try {
