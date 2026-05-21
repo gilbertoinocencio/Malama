@@ -299,7 +299,7 @@ const LandingPage: React.FC = () => {
                 icon: Heart,
                 title: 'Acompanhamento Premium',
                 desc: 'Conecte-se com nossa rede curada de endocrinologistas e nutricionistas, tudo em um ambiente digital impecável.',
-                img: 'https://images.unsplash.com/photo-1605280263929-1c42952ee4e4?auto=format&fit=crop&q=80&w=800'
+                img: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=800'
               },
               {
                 icon: Droplets,
