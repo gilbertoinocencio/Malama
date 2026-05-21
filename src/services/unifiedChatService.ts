@@ -205,12 +205,16 @@ export const UnifiedChatService = {
         // --- WATER INGESTION INTERCEPTOR ---
         const waterMatches = [...aiResponse.content.matchAll(/<water_json>([\s\S]*?)<\/water_json>/g)];
 
-        // Fallback: if AI confirmed but forgot the JSON block, extract ml from the user message
+        // Fallback: if AI confirmed but forgot the JSON block, extract ml from the user message.
+        // Only fires for plain water — never for sodas, juices, coffee, tea, alcohol, etc.
         let fallbackMl = 0;
         if (waterMatches.length === 0) {
           const lower = userMessage.toLowerCase();
-          const hasWaterKeyword = /\b(água|agua|water|hidrat|beb[eiu]|tom[oua])\b/.test(lower);
-          if (hasWaterKeyword) {
+          // Only explicit water words trigger the fallback — generic drinking verbs ("bebi", "tomei")
+          // are intentionally excluded because they match any beverage (coca, suco, café, etc.)
+          const hasWaterKeyword = /\b(água|agua|water|hidrat)\b/.test(lower);
+          const hasNonWaterBeverage = /\b(coca|pepsi|guaraná|guarana|refrigerante|suco|café|cafe|chá|cha|cerveja|vinho|leite|energético|energetico|whey|isotônico|isotonico|gatorade|powerade|kombucha|smoothie|vitamina|shake|achocolatado|alcohol|álcool|alcool)\b/.test(lower);
+          if (hasWaterKeyword && !hasNonWaterBeverage) {
             const mlMatch   = lower.match(/(\d+(?:[.,]\d+)?)\s*ml/);
             const litroMatch = lower.match(/(\d+(?:[.,]\d+)?)\s*(?:litro|litros)\b/);
             const lMatch    = lower.match(/(\d+(?:[.,]\d+)?)\s*l\b/);
@@ -1002,20 +1006,31 @@ Formato do bloco (idêntico ao das sugestões, com micros por item):
 }
 </meal_json>
 
-**Quando o usuário relatar que ingeriu água (ex: "bebi 500ml", "tomei 1 litro"):**
+**Quando o usuário relatar que ingeriu ÁGUA PURA (ex: "bebi 500ml de água", "tomei 1 litro de água", "tomei um copo d'água"):**
 Celebre a ação e extraia a quantidade em mililitros (ml). Inclua EXATAMENTE UM bloco ao final da sua resposta, após todo o texto, sem repetir:
 
 <water_json>
 {"ml": QUANTIDADE_EM_ML}
 </water_json>
 
-**CRÍTICO — extração de quantidade:** Use SOMENTE o número literal que o usuário informou na mensagem atual. Se disse "200ml", o campo ml deve ser 200. Se disse "1 litro", o campo ml deve ser 1000. No texto da resposta, mencione exatamente a mesma quantidade — nunca some, dobre, ou some com totais do dia.
+**CRÍTICO — <water_json> é EXCLUSIVO para água pura. NUNCA emita <water_json> para:**
+- Refrigerantes (Coca-Cola, Coca Zero, Pepsi, Guaraná, Sprite, Fanta, etc.)
+- Sucos, vitaminas, smoothies, shakes
+- Café, chá, chá gelado, mate, tereré
+- Leite, achocolatado, bebidas vegetais
+- Cerveja, vinho, destilados, drinks alcoólicos
+- Isotônicos (Gatorade, Powerade), energéticos, whey, kombucha
+- Qualquer bebida que não seja H₂O pura
+
+Para qualquer uma dessas bebidas, use **obrigatoriamente** <meal_json> com as calorias reais da bebida.
+
+**CRÍTICO — extração de quantidade:** Use SOMENTE o número literal que o usuário informou na mensagem atual. Se disse "200ml", o campo ml deve ser 200. Se disse "1 litro", o campo ml deve ser 1000. No texto da resposta, mencione exatamente a mesma quantidade — nunca some, dobre, ou some com totais do dia. NUNCA mencione o total acumulado do dia como se fosse a quantidade ingerida agora.
 
 **CRÍTICO — NUNCA repita o bloco water_json.** Inclua-o UMA ÚNICA VEZ, apenas ao final. Incluir o bloco mais de uma vez causará registro duplicado no sistema.
 
 **ATENÇÃO — distinção importante:**
-- Se o usuário informou SOMENTE água (sem alimentos sólidos ou outras bebidas calóricas), use APENAS <water_json>
-- Se o usuário informou alimentos ou bebidas calóricas (mesmo que também tenha mencionado água), use <meal_json> para os alimentos E <water_json> separado para a água
+- Se o usuário informou SOMENTE água pura, use APENAS <water_json>
+- Se o usuário informou alimentos ou bebidas calóricas (mesmo que também tenha mencionado água), use <meal_json> para os alimentos/bebidas calóricas E <water_json> separado apenas para a água pura
 
 ## CHECK-IN CONVERSACIONAL IMPLÍCITO
 
