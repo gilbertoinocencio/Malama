@@ -230,7 +230,7 @@ export async function getFeed(
         .from('posts')
         .select('id')
         .in('user_id', followingIds)
-        .eq('is_hidden', false)
+        .neq('is_hidden', true)
         .order('created_at', { ascending: false })
         .limit(limit * 2);
       if (cursor) q = q.lt('created_at', cursor);
@@ -238,7 +238,7 @@ export async function getFeed(
       postIds = (data ?? []).map(p => p.id);
     } else {
       // Mixed algorithm: fetch recent + popular then sort by score
-      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       let q = supabase
         .from('posts')
         .select(`
@@ -246,7 +246,7 @@ export async function getFeed(
           reactions(reaction_type),
           comments(id)
         `)
-        .eq('is_hidden', false)
+        .neq('is_hidden', true)
         .gte('created_at', cutoff)
         .order('created_at', { ascending: false })
         .limit(60);
@@ -286,7 +286,7 @@ async function enrichPosts(postIds: string[], viewerId: string): Promise<Enriche
     .from('posts')
     .select('id, user_id, type, caption, image_url, media_urls, video_url, video_status, content, tags, is_system_post, is_pinned, is_hidden, report_count, created_at')
     .in('id', postIds)
-    .eq('is_hidden', false);
+    .neq('is_hidden', true);
 
   if (!posts || posts.length === 0) return [];
 
@@ -363,12 +363,12 @@ export async function getNewPostCount(
       if (ids.length === 0) return 0;
       const { count } = await supabase
         .from('posts').select('id', { count: 'exact', head: true })
-        .in('user_id', ids).eq('is_hidden', false).gt('created_at', since);
+        .in('user_id', ids).neq('is_hidden', true).gt('created_at', since);
       return count ?? 0;
     }
     const { count } = await supabase
       .from('posts').select('id', { count: 'exact', head: true })
-      .eq('is_hidden', false).gt('created_at', since);
+      .neq('is_hidden', true).gt('created_at', since);
     return count ?? 0;
   } catch {
     return 0;
@@ -984,7 +984,7 @@ export async function runWeeklySpotlight(): Promise<void> {
   const { data: posts } = await supabase
     .from('posts')
     .select('id, user_id, reactions(id)')
-    .eq('is_hidden', false)
+    .neq('is_hidden', true)
     .eq('is_system_post', false)
     .gte('created_at', oneWeekAgo);
 
@@ -1203,7 +1203,7 @@ export async function searchPosts(
   let q = supabase
     .from('posts')
     .select('id')
-    .eq('is_hidden', false)
+    .neq('is_hidden', true)
     .textSearch('caption', query, { config: 'portuguese' })
     .order('created_at', { ascending: false })
     .limit(15);
@@ -1225,7 +1225,7 @@ export async function searchByTag(
   let q = supabase
     .from('posts')
     .select('id, created_at')
-    .eq('is_hidden', false)
+    .neq('is_hidden', true)
     .contains('tags', [tag.toLowerCase()])
     .order('created_at', { ascending: false })
     .limit(15);
