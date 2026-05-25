@@ -99,9 +99,17 @@ export const IntegrationService = {
     }
   },
 
-  // Sincroniza atividades do Strava com o banco local (chamada automática ao abrir FlowAdaptation)
+  // Sincroniza atividades do Google Fit com o banco local
+  async syncGoogleFit(): Promise<void> {
+    await supabase.functions.invoke('google-fit-sync');
+  },
+
+  // Sincroniza atividades de todas as integrações ativas em paralelo
   async syncActivities(): Promise<void> {
-    await supabase.functions.invoke('strava-sync');
+    await Promise.allSettled([
+      supabase.functions.invoke('strava-sync'),
+      supabase.functions.invoke('google-fit-sync'),
+    ]);
   },
 
   // Retorna a atividade mais recente do usuário (sem limite de data)

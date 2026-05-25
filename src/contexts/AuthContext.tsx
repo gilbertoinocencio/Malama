@@ -196,6 +196,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     }, [fetchProfile, applyReferralData]);
 
+    // Sincronizar integrações de fitness em background ao logar
+    useEffect(() => {
+        if (!user) return;
+        const sync = async () => {
+            try {
+                const { IntegrationService } = await import('../services/integrationService');
+                await IntegrationService.syncActivities();
+            } catch {
+                // falha silenciosa — sync é best-effort
+            }
+        };
+        sync();
+    }, [user?.id]);
+
     // Detectar se o usuário logado é um influencer
     useEffect(() => {
         if (!user) { setInfluencerRecord(null); setInfluencerLoading(false); return; }
