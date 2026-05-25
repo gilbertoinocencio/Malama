@@ -252,6 +252,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const draftPersistedRef = useRef(false); // true once initial history load is done
   const isSendingRef = useRef(false); // Prevents double-submit race condition
+  // Refs used inside the visibilitychange handler so the effect doesn't need reactive
+  // state deps (which caused the listener to re-register on every state change, triggering
+  // re-renders and keyboard dismissal on iOS/Capacitor when the keyboard opened).
+  const draftMealRef = useRef<AIResponse | null>(null);
+  const scanResultRef = useRef<AIResponse | null>(null);
+  const scannedImageUriRef = useRef<string | null>(null);
 
   const { t, speechLang, language } = useLanguage();
   const { user, profile } = useAuth();
@@ -326,6 +332,13 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     return 'chat';
   });
 
+  // Sync mutable state into refs so the visibilitychange handler can always read the
+  // latest values without being listed as effect dependencies (which caused the listener
+  // to re-register on every render, triggering iOS keyboard dismissal).
+  useEffect(() => { draftMealRef.current = draftMeal; }, [draftMeal]);
+  useEffect(() => { scanResultRef.current = scanResult; }, [scanResult]);
+  useEffect(() => { scannedImageUriRef.current = scannedImageUri; }, [scannedImageUri]);
+
   // Restore persistent chat history on mount (without re-setting draftMeal)
   useEffect(() => {
     if (!user) { setLoadingHistory(false); return; }
@@ -373,32 +386,35 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     // Clearing is done explicitly in confirm/cancel/discard to avoid race with unmount
   }, [draftMeal, scanResult, scannedImageUri, draftSource, user]);
 
-  // Restore draftMeal/scanResult/imageUri from localStorage when tab becomes visible again
+  // Restore draftMeal/scanResult/imageUri from localStorage when tab becomes visible again.
+  // Uses refs (not state) as dependencies so the listener is only registered once per user
+  // session — prevents iOS/Capacitor from re-registering the listener on every state change,
+  // which was causing re-renders and keyboard dismissal when the user tapped the chat input.
   useEffect(() => {
+    if (!user) return;
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user) {
-        try {
-          const draftKey = `Malama_draft_meal_${user.id}`;
-          const savedDraft = localStorage.getItem(draftKey);
-          if (savedDraft) {
-            const { meal, source, ts, scanResult: sr, imageUri } = JSON.parse(savedDraft);
-            if (Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) {
-              // Don't restore draftMeal while a scan is active — it would show stale
-              // confirmation buttons after the scan is confirmed, causing double-registration
-              if (!draftMeal && !scannedImageUri && meal) { setDraftMeal(meal); setDraftSource(source || 'chat'); }
-              if (!scanResult && sr) setScanResult(sr);
-              if (!scannedImageUri && imageUri) setScannedImageUri(imageUri);
-            }
-          }
-        } catch {
-          if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const draftKey = `Malama_draft_meal_${user.id}`;
+        const savedDraft = localStorage.getItem(draftKey);
+        if (!savedDraft) return;
+        const { meal, source, ts, scanResult: sr, imageUri } = JSON.parse(savedDraft);
+        if (Date.now() - (ts || 0) >= 24 * 60 * 60 * 1000) return;
+        // Read current values from refs, not from stale closure state
+        if (!draftMealRef.current && !scannedImageUriRef.current && meal) {
+          setDraftMeal(meal);
+          setDraftSource(source || 'chat');
         }
+        if (!scanResultRef.current && sr) setScanResult(sr);
+        if (!scannedImageUriRef.current && imageUri) setScannedImageUri(imageUri);
+      } catch {
+        localStorage.removeItem(`Malama_draft_meal_${user.id}`);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user, draftMeal, scanResult, scannedImageUri]);
+  }, [user]); // ← only [user], not state — refs give us fresh values without re-registering
 
   useEffect(() => {
     const timer = setTimeout(() => {

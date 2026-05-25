@@ -100,8 +100,18 @@ export const analyzeTextLog = async (text: string, language: string = 'pt', prof
     const langName = LANG_NAMES[language] || LANG_NAMES.pt;
 
     // Primary source: OpenFoodFacts (free, real data). Falls back to TACO/USDA via Gemini training.
+    // Only use the OFf result if the product name is relevant to what was typed — a full-sentence
+    // query like "Comi pão francês com tres ovos" can match a completely unrelated product
+    // (e.g. Coca-Cola Zero), which would then poison the Gemini prompt as "primary reference".
     const offResult = await searchOpenFoodFacts(text);
-    const offBlock = offResult ? formatOFFBlock(offResult) : '';
+    const isOffRelevant = (result: typeof offResult): boolean => {
+      if (!result) return false;
+      const inputWords = text.toLowerCase().replace(/[^a-záéíóúâêôãõç\s]/g, ' ').split(/\s+/).filter(w => w.length > 3);
+      const resultName = result.name.toLowerCase();
+      // Accept only if at least one significant word from the input appears in the product name
+      return inputWords.some(word => resultName.includes(word));
+    };
+    const offBlock = isOffRelevant(offResult) ? formatOFFBlock(offResult!) : '';
 
     // Build user context from profile
     const userContext = profile ? `

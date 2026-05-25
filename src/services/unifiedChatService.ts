@@ -1092,10 +1092,24 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
         { role: 'model', parts: [{ text: `Olá! Sou a Malama, sua nutricionista pessoal 💚 Estou aqui para te ajudar no seu objetivo de ${primaryGoal.toLowerCase()}. Como posso te ajudar?` }] },
       ];
 
+      // Strip JSON blocks from history messages before passing to Gemini.
+      // The model doesn't need to see raw <meal_json>/<water_json>/<dose_json> blocks —
+      // they're system-level interceptors. Leaving them in causes the model to reproduce
+      // stale meal data (e.g. a previous Coca Zero entry appearing as the response to a
+      // completely different food message).
+      const stripHistoryBlocks = (text: string) =>
+        text.replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '')
+            .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
+            .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
+            .replace(/<image_uri>[\s\S]*?<\/image_uri>/g, '')
+            .trim();
+
       for (const msg of rawHistory) {
+        const cleanContent = stripHistoryBlocks(msg.content);
+        if (!cleanContent) continue; // skip messages that were only a JSON block
         history.push({
           role: msg.role === 'user' ? 'user' : 'model',
-          parts: [{ text: msg.content }],
+          parts: [{ text: cleanContent }],
         });
       }
 
