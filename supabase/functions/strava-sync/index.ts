@@ -29,9 +29,9 @@ const MET_BY_TYPE: Record<string, number> = {
   Tennis:           6.0,
 };
 
-function estimateCalories(type: string, durationSeconds: number): number {
+function estimateCalories(type: string, durationSeconds: number, weightKg = 70): number {
   const met = MET_BY_TYPE[type] ?? 4.0;
-  return Math.round(met * 70 * (durationSeconds / 3600));
+  return Math.round(met * weightKg * (durationSeconds / 3600));
 }
 
 serve(async (req) => {
@@ -52,6 +52,14 @@ serve(async (req) => {
 
     const userId = user.id;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Buscar peso do usuário para MET mais preciso
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('weight')
+      .eq('id', userId)
+      .maybeSingle();
+    const userWeightKg: number = (profileData?.weight as number) || 70;
 
     // Obter token Strava válido (renova automaticamente se expirado)
     const refreshRes = await fetch(`${SUPABASE_URL}/functions/v1/strava-refresh-token`, {
@@ -99,29 +107,61 @@ serve(async (req) => {
       });
     }
 
+    // Buscar detalhes das atividades dos últimos 14 dias para obter calories reais.
+    // O endpoint de lista não inclui o campo `calories` (apenas DetailedActivity tem),
+    // então para atividades recentes fazemos chamadas paralelas ao endpoint de detalhe.
+    const cutoffMs = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    const recentActivities = stravaActivities.filter((a: Record<string, unknown>) => {
+      const dateStr = (a.start_date_local as string) ?? (a.start_date as string);
+      return dateStr ? new Date(dateStr).getTime() > cutoffMs : false;
+    });
+
+    const detailedCalories: Record<string, number> = {};
+
+    if (recentActivities.length > 0) {
+      const detailResults = await Promise.allSettled(
+        recentActivities.map((a: Record<string, unknown>) =>
+          fetch(`https://www.strava.com/api/v3/activities/${a.id}`, {
+            headers: { Authorization: `Bearer ${access_token}` },
+          }).then(r => r.ok ? r.json() : null)
+        )
+      );
+
+      detailResults.forEach((result, i) => {
+        if (result.status === 'fulfilled' && result.value) {
+          const detail = result.value as Record<string, unknown>;
+          const cal = detail.calories as number;
+          if (cal > 0) {
+            detailedCalories[String(recentActivities[i].id)] = cal;
+          }
+        }
+      });
+    }
+
     const rows = stravaActivities.map((a: Record<string, unknown>) => {
       const type     = (a.type as string) ?? 'Workout';
       const duration = (a.moving_time as number) ?? 0;
+      const id       = String(a.id);
 
-      // BUG FIX: o endpoint de lista do Strava não inclui `calories` (apenas DetailedActivity),
-      // apenas `kilojoules`. Usar kilojoules * 0.239 ou estimativa MET como fallback.
-      const stravaCalories = (a.calories as number) ?? 0;
-      const kjCalories     = (a.kilojoules as number) > 0
+      // Prioridade: (1) calories reais do DetailedActivity, (2) kilojoules * 0.239,
+      // (3) estimativa MET com o peso real do usuário.
+      const detailCal  = detailedCalories[id] ?? 0;
+      const kjCalories = (a.kilojoules as number) > 0
         ? Math.round((a.kilojoules as number) * 0.239)
         : 0;
       const calories =
-        stravaCalories > 0 ? stravaCalories :
-        kjCalories     > 0 ? kjCalories     :
-        estimateCalories(type, duration);
+        detailCal  > 0 ? detailCal :
+        kjCalories > 0 ? kjCalories :
+        estimateCalories(type, duration, userWeightKg);
 
-      // BUG FIX: usar start_date_local (fuso do atleta) para que o filtro de data local no app
-      // funcione corretamente. Atividades feitas à noite não devem aparecer no dia seguinte.
+      // Usar start_date_local (fuso do atleta) para que o filtro de data local no app
+      // funcione corretamente.
       const activityDate = (a.start_date_local as string) ?? (a.start_date as string);
 
       return {
         user_id:          userId,
         service:          'strava',
-        external_id:      String(a.id),
+        external_id:      id,
         activity_type:    type,
         name:             (a.name as string) ?? 'Atividade Strava',
         calories_burned:  calories,
@@ -144,9 +184,8 @@ serve(async (req) => {
       });
     }
 
-    // BUG FIX: atualizar flow_stats para cada dia afetado pela sincronização.
-    // Agrupa as atividades recém-sincronizadas por data e recalcula o total a partir
-    // da tabela activities (idempotente — evita double-counting com o webhook).
+    // Atualizar flow_stats para cada dia afetado pela sincronização.
+    // Agrupa por data e recalcula o total a partir da tabela activities (idempotente).
     const affectedDates = [...new Set(rows.map(r => (r.activity_date as string).substring(0, 10)))];
 
     for (const date of affectedDates) {
