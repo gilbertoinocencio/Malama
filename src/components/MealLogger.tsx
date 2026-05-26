@@ -771,8 +771,25 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
         }, 900);
       } else {
+        // ai-chat / ai-voice: generate and show personalized feedback, then stay in chat
+        const freshFeedback = data.items?.length
+          ? await generateMealFeedback(data.items, data.foodName)
+          : '';
+        const feedback = freshFeedback || data.message || `${data.foodName} registrado com sucesso!`;
+        setMessages(prev => [
+          ...prev,
+          { id: Date.now().toString(), type: 'ai-text', content: feedback },
+        ]);
+        if (user) {
+          UnifiedChatService.saveAgentMessage(user.id, feedback).catch(() => {});
+        }
+        setLoading(false);
         setSuccess(true);
-        setTimeout(() => { onClose(); }, 1500);
+        setTimeout(() => {
+          setSuccess(false);
+          setDraftMeal(null);
+          if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
+        }, 900);
       }
     } catch (error) {
       console.error('Failed to log meal:', error);

@@ -171,6 +171,20 @@ export const UnifiedChatService = {
   },
 
   /**
+   * Save a single agent message (no user counterpart). Used to persist
+   * feedback generated after meal confirmation.
+   */
+  async saveAgentMessage(userId: string, agentContent: string): Promise<void> {
+    try {
+      await supabase.from('ai_chat_messages').insert([
+        { user_id: userId, role: 'agent', content: agentContent, stage: null, created_at: new Date().toISOString() },
+      ]);
+    } catch (e) {
+      console.error('Failed to save agent message:', e);
+    }
+  },
+
+  /**
    * Send message and get AI response (auto-detects mode)
    */
   async sendMessage(userId: string, userMessage: string, options?: { interceptMeals?: boolean; userDisplayContent?: string }): Promise<ChatMessage> {
