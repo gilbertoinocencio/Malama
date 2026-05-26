@@ -1,6 +1,6 @@
 import { SchemaType } from "@google/generative-ai";
 import { GeminiProxy } from '../lib/geminiProxy';
-import { AIResponse, MicroNutrients, Profile } from '../types';
+import { AIResponse, MealItem, MicroNutrients, Profile } from '../types';
 import { searchOpenFoodFacts, formatOFFBlock } from './openFoodFactsService';
 
 // Shared micronutrient schema properties (optional — not in required[])
@@ -337,7 +337,29 @@ ALL text MUST be in ${langName}.`;
   }
 };
 
-export const generateMealFeedback = async (items: MealItem[], foodName: string, language: string = 'pt'): Promise<string> => {
+export interface MealFeedbackContext {
+  profile?: Profile | null;
+  consumedToday?: { calories: number; protein: number; carbs: number; fats: number };
+  targetToday?: { calories: number; protein: number; carbs: number; fats: number };
+  activitiesToday?: { name: string; calories_burned: number; duration_seconds?: number; activity_type?: string }[];
+  mealTime?: Date;
+}
+
+const getMealSlot = (hour: number): string => {
+  if (hour >= 5  && hour < 10) return 'café da manhã';
+  if (hour >= 10 && hour < 12) return 'lanche da manhã';
+  if (hour >= 12 && hour < 15) return 'almoço';
+  if (hour >= 15 && hour < 18) return 'lanche da tarde';
+  if (hour >= 18 && hour < 22) return 'jantar';
+  return 'lanche noturno';
+};
+
+export const generateMealFeedback = async (
+  items: MealItem[],
+  foodName: string,
+  language: string = 'pt',
+  ctx?: MealFeedbackContext
+): Promise<string> => {
   try {
     const model = getGenAI().getGenerativeModel({
       model: MODEL_NAME,
@@ -350,13 +372,83 @@ export const generateMealFeedback = async (items: MealItem[], foodName: string, 
     const itemsList = items
       .map(i => `- ${i.name}: ${i.weightGrams ?? '?'}g (${i.calories}kcal, ${i.protein ?? 0}p/${i.carbs ?? 0}c/${i.fats ?? 0}f)`)
       .join('\n');
-    const prompt = `You are Malama, a clinical nutritionist. Based only on these confirmed meal items, write a short honest nutritionist feedback in ${langName}. Max 2-3 sentences. Be specific to the actual ingredients listed.
 
-Meal: ${foodName}
-Items:
+    const mealCalories = items.reduce((s, i) => s + (i.calories ?? 0), 0);
+    const mealProtein  = items.reduce((s, i) => s + (i.protein  ?? 0), 0);
+
+    // ── Timing block ─────────────────────────────────────────────────────────
+    const now = ctx?.mealTime ?? new Date();
+    const hour = now.getHours();
+    const mealSlot = getMealSlot(hour);
+    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    // ── Daily balance block ───────────────────────────────────────────────────
+    let dailyBalanceBlock = '';
+    if (ctx?.consumedToday && ctx?.targetToday) {
+      const c = ctx.consumedToday;
+      const t = ctx.targetToday;
+      const calPct  = t.calories > 0 ? Math.round((c.calories / t.calories) * 100) : 0;
+      const protRem = Math.max(0, Math.round(t.protein - c.protein));
+      const calRem  = Math.max(0, Math.round(t.calories - c.calories));
+      dailyBalanceBlock = `
+## BALANÇO DO DIA (já inclui esta refeição)
+- Calorias consumidas: ${Math.round(c.calories)}kcal de ${Math.round(t.calories)}kcal (${calPct}%)
+- Proteína: ${Math.round(c.protein)}g de ${Math.round(t.protein)}g (faltam ${protRem}g)
+- Carboidratos: ${Math.round(c.carbs)}g de ${Math.round(t.carbs)}g
+- Gorduras: ${Math.round(c.fats)}g de ${Math.round(t.fats)}g
+- Calorias restantes no dia: ${calRem}kcal`;
+    }
+
+    // ── User profile block ────────────────────────────────────────────────────
+    let profileBlock = '';
+    if (ctx?.profile) {
+      const p = ctx.profile;
+      const goalLabel = p.goal === 'aesthetic' ? 'emagrecimento' : p.goal === 'performance' ? 'ganho de massa/performance' : 'saúde';
+      const restrictions = Array.isArray(p.dietary_restrictions) && p.dietary_restrictions.length > 0
+        ? p.dietary_restrictions.join(', ')
+        : 'nenhuma';
+      profileBlock = `
+## PERFIL DO USUÁRIO
+- Objetivo: ${goalLabel}
+- Nível de atividade: ${p.activity_level === 'sedentary' ? 'sedentário' : p.activity_level === 'moderate' ? 'moderado' : 'intenso'}
+- Restrições alimentares: ${restrictions}
+- Peso: ${p.weight ? p.weight + 'kg' : 'não informado'}`;
+    }
+
+    // ── Activities block ──────────────────────────────────────────────────────
+    let activityBlock = '';
+    if (ctx?.activitiesToday && ctx.activitiesToday.length > 0) {
+      const acts = ctx.activitiesToday.map(a => {
+        const dur = a.duration_seconds ? `${Math.round(a.duration_seconds / 60)} min` : '';
+        return `- ${a.name || a.activity_type}: ${a.calories_burned}kcal queimadas${dur ? ' em ' + dur : ''}`;
+      }).join('\n');
+      activityBlock = `\n## ATIVIDADES FÍSICAS HOJE\n${acts}`;
+    }
+
+    const prompt = `Você é Malama, nutricionista clínica. Gere um feedback personalizado e conciso para esta refeição em ${langName}.
+
+## REFEIÇÃO REGISTRADA
+- Nome: ${foodName}
+- Horário: ${timeStr} (${mealSlot})
+- Calorias desta refeição: ${Math.round(mealCalories)}kcal | Proteína: ${Math.round(mealProtein)}g
+- Itens:
 ${itemsList}
+${profileBlock}
+${dailyBalanceBlock}
+${activityBlock}
+
+## INSTRUÇÕES DE FEEDBACK
+Escreva 2-3 frases diretas e personalizadas que:
+1. Contextualizem esta refeição dentro do dia e horário (${mealSlot} às ${timeStr})
+2. Relacionem o balanço calórico/proteico com o objetivo do usuário
+3. Se houver atividade física hoje, mencione se a refeição é adequada para recuperação ou energia
+4. Dê UMA dica prática e específica (ex: o que acrescentar/reduzir na próxima refeição para atingir a meta)
+- Tom: direto, encorajador, sem julgamento
+- Idioma: ${langName}
+- Não use saudações genéricas nem repita o nome da refeição
 
 Return JSON: {"message": "feedback here"}`;
+
     const result = await model.generateContent(prompt);
     const parsed = JSON.parse(cleanJsonString(result.response.text()));
     return parsed.message || '';

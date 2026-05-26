@@ -1,12 +1,14 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse, MealItem } from '../types';
-import { analyzeTextLog, analyzeImageLog, generateMealFeedback } from '../services/geminiService';
+import { analyzeTextLog, analyzeImageLog, generateMealFeedback, MealFeedbackContext } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
 
 import { MalamaAiScan } from './MalamaAiScan';
 import { USER_AVATAR } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { MealService } from '../services/mealService';
+import { StatsService } from '../services/statsService';
+import { IntegrationService } from '../services/integrationService';
 import { useLanguage } from '../i18n';
 
 
@@ -238,6 +240,26 @@ const getDateLabel = (isoDate: string): string => {
   if (d.toDateString() === today.toDateString()) return 'Hoje';
   if (d.toDateString() === yesterday.toDateString()) return 'Ontem';
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+};
+
+const buildFeedbackContext = async (userId: string, profile: import('../types').Profile | null): Promise<MealFeedbackContext> => {
+  const [stats, latestActivity] = await Promise.allSettled([
+    StatsService.getDailyStats(userId, new Date()),
+    IntegrationService.getLatestActivity(userId),
+  ]);
+  const s = stats.status === 'fulfilled' ? stats.value : null;
+  const act = latestActivity.status === 'fulfilled' ? latestActivity.value : null;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isToday = act ? act.activity_date?.slice(0, 10) === todayStr : false;
+
+  return {
+    profile,
+    consumedToday: s ? { calories: s.consumedCalories, protein: s.macros.protein, carbs: s.macros.carbs, fats: s.macros.fats } : undefined,
+    targetToday:   s ? { calories: s.targetCalories,   protein: s.targetMacros.protein, carbs: s.targetMacros.carbs, fats: s.targetMacros.fats } : undefined,
+    activitiesToday: isToday && act ? [act] : [],
+    mealTime: new Date(),
+  };
 };
 
 export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
@@ -733,12 +755,15 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
       if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
 
+      // Build rich context once, shared by photo and chat/voice paths
+      const feedbackCtx = user ? await buildFeedbackContext(user.id, profile ?? null).catch(() => ({})) : {};
+
       if (type === 'ai-photo') {
         // Add scan card + nutritionist feedback to chat and return to chat view.
         // Always regenerate feedback from the confirmed (possibly edited) items so the
         // message never references ingredients the user removed during editing.
         const freshFeedback = data.items?.length
-          ? await generateMealFeedback(data.items, data.foodName)
+          ? await generateMealFeedback(data.items, data.foodName, language, feedbackCtx)
           : '';
         const feedback = freshFeedback || data.message || `${data.foodName} registrado com sucesso!`;
         const cardId = Date.now().toString();
@@ -773,7 +798,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       } else {
         // ai-chat / ai-voice: generate and show personalized feedback, then stay in chat
         const freshFeedback = data.items?.length
-          ? await generateMealFeedback(data.items, data.foodName)
+          ? await generateMealFeedback(data.items, data.foodName, language, feedbackCtx)
           : '';
         const feedback = freshFeedback || data.message || `${data.foodName} registrado com sucesso!`;
         setMessages(prev => [
