@@ -1043,7 +1043,7 @@ Para qualquer uma dessas bebidas, use **obrigatoriamente** <meal_json> com as ca
 **CRÍTICO — NUNCA repita o bloco water_json.** Inclua-o UMA ÚNICA VEZ, apenas ao final. Incluir o bloco mais de uma vez causará registro duplicado no sistema.
 
 **ATENÇÃO — distinção importante:**
-- Se o usuário informou SOMENTE água pura, use APENAS <water_json>
+- Se o usuário informou SOMENTE água pura, use APENAS <water_json>. **NUNCA inclua <meal_json> nesta situação**, mesmo que haja refeições anteriores no histórico da conversa. Não comente sobre refeições passadas; foque exclusivamente na hidratação.
 - Se o usuário informou alimentos ou bebidas calóricas (mesmo que também tenha mencionado água), use <meal_json> para os alimentos/bebidas calóricas E <water_json> separado apenas para a água pura
 
 ## CHECK-IN CONVERSACIONAL IMPLÍCITO

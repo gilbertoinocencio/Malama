@@ -605,7 +605,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         // Also check for water JSON (hydration logging)
         const waterJsonMatch = agentResponse.content.match(/<water_json>([\s\S]*?)<\/water_json>/);
 
-        if (mealJsonMatch) {
+        if (mealJsonMatch && !isWaterIntakeMessage) {
           try {
             const cleanText = agentResponse.content
               .replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '')
