@@ -142,6 +142,60 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
 };
 
 // =====================================================
+// RhRoute — Protege rotas do portal do RH (empresas B2B)
+// =====================================================
+
+interface RhRouteProps {
+  children: React.ReactNode;
+}
+
+export const RhRoute: React.FC<RhRouteProps> = ({ children }) => {
+  const location = useLocation();
+  const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
+
+        const { data: { user } } = await supabase.auth.getUser();
+        setAuthorized(user?.user_metadata?.role === 'rh');
+      } catch (error) {
+        console.error('Error checking RH auth:', error);
+        setAuthorized(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7d4a3c] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authorized) {
+    return <Navigate to="/rh" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// =====================================================
 // PublicDoctorRoute — Para rotas públicas do médico (login, cadastro)
 // Redireciona para dashboard se já estiver logado como médico aprovado
 // =====================================================

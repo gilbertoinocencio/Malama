@@ -4,7 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Calendar, DollarSign, Clock, CheckCircle, XCircle, CreditCard, TrendingUp } from 'lucide-react';
+import { Users, Calendar, DollarSign, Clock, CheckCircle, XCircle, CreditCard, TrendingUp, Building2 } from 'lucide-react';
 import { adminService, doctorService } from '../../services/doctorPortalService';
 import { adminBillingService } from '../../services/billingService';
 import type { AdminDashboardSummary } from '../../types/doctorPortal';
@@ -229,6 +229,15 @@ export const AdminDashboard: React.FC = () => {
           <Users className="w-8 h-8 text-[#7d4a3c] mb-2" />
           <h4 className="font-semibold text-gray-800">Médicos</h4>
           <p className="text-sm text-gray-600">Aprovar e gerenciar</p>
+        </Link>
+
+        <Link
+          to="/admin/empresas"
+          className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition"
+        >
+          <Building2 className="w-8 h-8 text-[#7d4a3c] mb-2" />
+          <h4 className="font-semibold text-gray-800">Empresas</h4>
+          <p className="text-sm text-gray-600">B2B, assentos e MRR</p>
         </Link>
 
         <Link

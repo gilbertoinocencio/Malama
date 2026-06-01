@@ -9,9 +9,15 @@ import { MalamaLogo } from '../components/MalamaLogo';
 import { LoginView } from '../components/LoginView';
 import { LandingPage } from './LandingPage';
 import { MedicosLandingPage } from './MedicosLandingPage';
+import { EmpresasLandingPage } from './EmpresasLandingPage';
 
 // Guards
-import { DoctorRoute, AdminRoute, PublicDoctorRoute } from './guards';
+import { DoctorRoute, AdminRoute, PublicDoctorRoute, RhRoute } from './guards';
+
+// RH Portal (empresas B2B)
+import { RhLogin } from './rh/RhLogin';
+import { RhLayout } from './rh/RhLayout';
+import { RhDashboard } from './rh/RhDashboard';
 
 // Doctor Pages
 import { DoctorLogin } from './doctor/DoctorLogin';
@@ -50,6 +56,7 @@ import { AdminSettings } from './admin/AdminSettings';
 import { AdminCommunityModeration } from './admin/AdminCommunityModeration';
 import { AdminSubscriptions } from './admin/AdminSubscriptions';
 import { AdminCreditsLog } from './admin/AdminCreditsLog';
+import { AdminEmpresas } from './admin/AdminEmpresas';
 
 // Admin Layout
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -64,6 +71,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <a href="/admin/medicos" className="text-sm hover:text-[#2ECC71] transition">Médicos</a>
             <a href="/admin/usuarios" className="text-sm hover:text-[#2ECC71] transition">Usuários</a>
             <a href="/admin/influencers" className="text-sm hover:text-[#2ECC71] transition">Influenciadores</a>
+            <a href="/admin/empresas" className="text-sm hover:text-[#2ECC71] transition">Empresas</a>
             <a href="/admin/financeiro" className="text-sm hover:text-[#2ECC71] transition">Financeiro</a>
             <a href="/admin/assinantes" className="text-sm hover:text-[#2ECC71] transition">Assinantes</a>
             <a href="/admin/creditos" className="text-sm hover:text-[#2ECC71] transition">Créditos</a>
@@ -178,6 +186,17 @@ export const AppRoutes: React.FC = () => {
           />
 
           <Route
+            path="/admin/empresas"
+            element={
+              <AdminGuard>
+                <AdminLayout>
+                  <AdminEmpresas />
+                </AdminLayout>
+              </AdminGuard>
+            }
+          />
+
+          <Route
             path="/admin/financeiro"
             element={
               <AdminGuard>
@@ -244,6 +263,24 @@ export const AppRoutes: React.FC = () => {
           <Route path="/influencer/convite/:token" element={<InfluencerInvite />} />
           <Route path="/influencer/onboarding" element={<InfluencerOnboarding />} />
           <Route path="/influencer/dashboard" element={<InfluencerDashboard />} />
+
+          {/* ==================== EMPRESAS (B2B) ==================== */}
+
+          {/* Landing pública */}
+          <Route path="/empresas" element={<EmpresasLandingPage />} />
+
+          {/* Portal do RH */}
+          <Route path="/rh" element={<RhLogin />} />
+          <Route
+            path="/rh"
+            element={
+              <RhRoute>
+                <RhLayout />
+              </RhRoute>
+            }
+          >
+            <Route path="dashboard" element={<RhDashboard />} />
+          </Route>
 
           {/* Landing pages de captação */}
           <Route path="/listamedicos" element={<MedicosLandingPage />} />

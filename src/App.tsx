@@ -81,6 +81,8 @@ const App: React.FC = () => {
       path.startsWith('/medico') ||
       path.startsWith('/admin') ||
       path.startsWith('/influencer') ||
+      path.startsWith('/empresas') ||
+      path.startsWith('/rh') ||
       path.startsWith('/convite') ||
       path.startsWith('/i/') ||
       path.startsWith('/listamedicos') ||
@@ -109,6 +111,8 @@ const App: React.FC = () => {
       path.startsWith('/medico') ||
       path.startsWith('/admin') ||
       path.startsWith('/influencer') ||
+      path.startsWith('/empresas') ||
+      path.startsWith('/rh') ||
       path.startsWith('/convite') ||
       path.startsWith('/i/') ||
       path.startsWith('/listamedicos') ||
@@ -164,6 +168,8 @@ const App: React.FC = () => {
         path.startsWith('/medico') ||
         path.startsWith('/admin') ||
         path.startsWith('/influencer') ||
+        path.startsWith('/empresas') ||
+        path.startsWith('/rh') ||
         path.startsWith('/convite') ||
         path.startsWith('/i/') ||
         path.startsWith('/listamedicos') ||

@@ -1,0 +1,88 @@
+// =====================================================
+// Malama — Login do Portal do RH (empresas B2B)
+// Credenciais criadas pelo super admin na criação da empresa.
+// =====================================================
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { supabase } from '../../services/supabase';
+import { MalamaLogo } from '../../components/MalamaLogo';
+
+export const RhLogin: React.FC = () => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) throw authError;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.user_metadata?.role !== 'rh') {
+        setError('Acesso não autorizado. Use as credenciais de RH fornecidas pela Malama.');
+        await supabase.auth.signOut();
+        return;
+      }
+
+      navigate('/rh/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Erro ao fazer login');
+      toast.error('Erro ao fazer login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#FDFBF9] flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <MalamaLogo size="xl" />
+          <p className="text-gray-600 mt-3 text-sm tracking-wide uppercase">Portal do RH</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-1">Entrar</h2>
+          <p className="text-sm text-gray-500 mb-6">Gerencie o acesso dos seus colaboradores ao benefício Malama.</p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+              <input
+                type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+              <input
+                type="password" value={password} onChange={e => setPassword(e.target.value)} required
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900"
+              />
+            </div>
+
+            <button
+              type="submit" disabled={loading}
+              className="w-full py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium transition disabled:opacity-50"
+            >
+              {loading ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
