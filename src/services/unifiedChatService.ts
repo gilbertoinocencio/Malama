@@ -219,37 +219,44 @@ export const UnifiedChatService = {
         // --- WATER INGESTION INTERCEPTOR ---
         const waterMatches = [...aiResponse.content.matchAll(/<water_json>([\s\S]*?)<\/water_json>/g)];
 
-        // Fallback: if AI confirmed but forgot the JSON block, extract ml from the user message.
-        // Only fires for plain water — never for sodas, juices, coffee, tea, alcohol, etc.
-        let fallbackMl = 0;
-        if (waterMatches.length === 0) {
+        // Parse ml directly from the user's current message — sole source of truth for quantity.
+        // If the user stated a quantity, it is used unconditionally; the AI's <water_json> value
+        // is only a fallback for messages that contain no explicit number (e.g. "bebi um copo").
+        const userStatedMl = (() => {
           const lower = userMessage.toLowerCase();
-          // Only explicit water words trigger the fallback — generic drinking verbs ("bebi", "tomei")
-          // are intentionally excluded because they match any beverage (coca, suco, café, etc.)
-          const hasWaterKeyword = /\b(água|agua|water|hidrat)\b/.test(lower);
-          const hasNonWaterBeverage = /\b(coca|pepsi|guaraná|guarana|refrigerante|suco|café|cafe|chá|cha|cerveja|vinho|leite|energético|energetico|whey|isotônico|isotonico|gatorade|powerade|kombucha|smoothie|vitamina|shake|achocolatado|alcohol|álcool|alcool)\b/.test(lower);
-          if (hasWaterKeyword && !hasNonWaterBeverage) {
-            const mlMatch   = lower.match(/(\d+(?:[.,]\d+)?)\s*ml/);
-            const litroMatch = lower.match(/(\d+(?:[.,]\d+)?)\s*(?:litro|litros)\b/);
-            const lMatch    = lower.match(/(\d+(?:[.,]\d+)?)\s*l\b/);
-            if (mlMatch)    fallbackMl = parseFloat(mlMatch[1].replace(',', '.'));
-            else if (litroMatch) fallbackMl = parseFloat(litroMatch[1].replace(',', '.')) * 1000;
-            else if (lMatch)     fallbackMl = parseFloat(lMatch[1].replace(',', '.')) * 1000;
-            if (fallbackMl <= 0 || fallbackMl > 5000) fallbackMl = 0;
-          }
-        }
+          const mlMatch    = lower.match(/(\d+(?:[.,]\d+)?)\s*ml/);
+          const litroMatch = lower.match(/(\d+(?:[.,]\d+)?)\s*(?:litro|litros)\b/);
+          const lMatch     = lower.match(/(\d+(?:[.,]\d+)?)\s*l\b/);
+          if (mlMatch)    return parseFloat(mlMatch[1].replace(',', '.'));
+          if (litroMatch) return parseFloat(litroMatch[1].replace(',', '.')) * 1000;
+          if (lMatch)     return parseFloat(lMatch[1].replace(',', '.')) * 1000;
+          return 0;
+        })();
 
-        const mlValues: number[] = [];
-        for (const match of waterMatches) {
-          try {
-            const parsed = JSON.parse(match[1]);
-            const ml = Number(parsed.ml);
-            if (!isNaN(ml) && ml > 0) mlValues.push(ml);
-          } catch { /* ignore malformed block */ }
+        // Determine the ml to log:
+        // 1. User stated a quantity → use it directly (AI value ignored).
+        // 2. No quantity in message → use the AI's <water_json> value (e.g. "bebi um copo").
+        // 3. No water signal at all → 0, nothing logged.
+        let totalMl = 0;
+        if (waterMatches.length > 0) {
+          if (userStatedMl > 0) {
+            // User was explicit — trust the message, not the AI.
+            totalMl = userStatedMl;
+          } else {
+            // No quantity stated; use whatever the AI extracted (single block expected).
+            try {
+              const parsed = JSON.parse(waterMatches[0][1]);
+              const ml = Number(parsed.ml);
+              if (!isNaN(ml) && ml > 0 && ml <= 5000) totalMl = ml;
+            } catch { /* ignore malformed block */ }
+          }
+        } else if (userStatedMl > 0 && userStatedMl <= 5000) {
+          // AI forgot the JSON block but user clearly stated water + quantity — use it as fallback.
+          const lower = userMessage.toLowerCase();
+          const hasWaterKeyword    = /\b(água|agua|water|hidrat)\b/.test(lower);
+          const hasNonWaterBeverage = /\b(coca|pepsi|guaraná|guarana|refrigerante|suco|café|cafe|chá|cha|cerveja|vinho|leite|energético|energetico|whey|isotônico|isotonico|gatorade|powerade|kombucha|smoothie|vitamina|shake|achocolatado|alcohol|álcool|alcool)\b/.test(lower);
+          if (hasWaterKeyword && !hasNonWaterBeverage) totalMl = userStatedMl;
         }
-        // Deduplicate (AI sometimes repeats the same block)
-        const uniqueMlValues = [...new Set(mlValues)];
-        const totalMl = uniqueMlValues.reduce((sum, ml) => sum + ml, 0) + fallbackMl;
 
         if (totalMl > 0) {
           const now = Date.now();
@@ -988,6 +995,7 @@ Responda com uma frase motivacional curta e inclua o bloco <meal_json> ao final:
 2. Inclua OBRIGATORIAMENTE o bloco <meal_json> ao final com os dados nutricionais do que foi relatado (use TACO para alimentos brasileiros e USDA para internacionais)
 3. Se o usuário mencionou quantidades específicas (ex: "150g", "2 unidades", "500ml"), use-as. Se não mencionou, estime porções típicas
 4. Não pergunte confirmação — simplesmente registre e mostre o resumo para aprovação
+5. **CRÍTICO — o array "items" deve conter EXCLUSIVAMENTE os alimentos e bebidas mencionados na mensagem ATUAL.** NUNCA inclua itens de refeições anteriores presentes no histórico da conversa. O histórico serve apenas como contexto informativo — jamais como fonte de itens para o <meal_json> atual. Se a mensagem diz "comi arroz", registre APENAS arroz. Se diz "comi arroz com feijão", registre APENAS arroz e feijão. Nenhum item além dos explicitamente citados na mensagem atual.
 
 **NUNCA emita <meal_json> nas seguintes situações (lista exaustiva de exceções):**
 - O usuário expressou fome, saciedade ou ausência de apetite sem relatar ingestão real (ex: "estou sem fome", "tô cheio", "não comi nada", "não tenho fome")
@@ -1038,7 +1046,9 @@ Celebre a ação e extraia a quantidade em mililitros (ml). Inclua EXATAMENTE UM
 
 Para qualquer uma dessas bebidas, use **obrigatoriamente** <meal_json> com as calorias reais da bebida.
 
-**CRÍTICO — extração de quantidade:** Use SOMENTE o número literal que o usuário informou na mensagem atual. Se disse "200ml", o campo ml deve ser 200. Se disse "1 litro", o campo ml deve ser 1000. No texto da resposta, mencione exatamente a mesma quantidade — nunca some, dobre, ou some com totais do dia. NUNCA mencione o total acumulado do dia como se fosse a quantidade ingerida agora.
+**CRÍTICO — extração de quantidade:** Use SOMENTE o número literal que o usuário informou na mensagem ATUAL. Se disse "200ml", o campo ml deve ser 200. Se disse "1 litro", o campo ml deve ser 1000. No texto da resposta, mencione exatamente a mesma quantidade — nunca some, dobre, ou some com totais do dia. NUNCA mencione o total acumulado do dia como se fosse a quantidade ingerida agora.
+
+**CRÍTICO — NUNCA emita <water_json> com quantidades de mensagens anteriores.** Cada <water_json> deve refletir APENAS o que o usuário informou na mensagem ATUAL. Referências a lançamentos passados no histórico da conversa são somente contexto — nunca gere um novo <water_json> para elas.
 
 **CRÍTICO — NUNCA repita o bloco water_json.** Inclua-o UMA ÚNICA VEZ, apenas ao final. Incluir o bloco mais de uma vez causará registro duplicado no sistema.
 

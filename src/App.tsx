@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { Layout } from './components/Layout';
 import { FlowDashboard } from './components/FlowDashboard'; // Critical: Keep eager
 import { LoginView } from './components/LoginView'; // Critical: Keep eager
@@ -72,6 +73,10 @@ const App: React.FC = () => {
   const [onboardingDone, setOnboardingDone] = useState(false);
 
   const [isPortalRoute, setIsPortalRoute] = useState(() => {
+    // No app nativo (Android/iOS via Capacitor), nunca mostrar landing page —
+    // vai direto para o fluxo de autenticação nativo.
+    if (Capacitor.isNativePlatform()) return false;
+
     const path = window.location.pathname;
 
     // /entrar is not a real route — never a portal
@@ -121,6 +126,12 @@ const App: React.FC = () => {
       path.startsWith('/listausuários');
 
     const checkPath = () => {
+      // No app nativo, nunca redirecionar para landing page
+      if (Capacitor.isNativePlatform()) {
+        setIsPortalRoute(false);
+        return;
+      }
+
       const path = window.location.pathname;
 
       if (isPortalPath(path)) {
