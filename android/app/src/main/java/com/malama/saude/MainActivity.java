@@ -1,4 +1,4 @@
-package br.com.soumalama;
+package com.malama.saude;
 
 import com.getcapacitor.BridgeActivity;
 

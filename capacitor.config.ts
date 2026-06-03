@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'br.com.soumalama',
+  appId: 'com.malama.saude',
   appName: 'Malama',
   webDir: 'dist',
 

@@ -93,7 +93,9 @@ const App: React.FC = () => {
       path.startsWith('/listamedicos') ||
       path.startsWith('/listausuarios') ||
       path.startsWith('/listausu%C3%A1rios') ||
-      path.startsWith('/listausuários')
+      path.startsWith('/listausuários') ||
+      path.startsWith('/privacidade') ||
+      path.startsWith('/privacy-policy')
     ) return true;
 
     // For root path, show landing if no session OR if user came from waitlist Google OAuth
@@ -123,7 +125,9 @@ const App: React.FC = () => {
       path.startsWith('/listamedicos') ||
       path.startsWith('/listausuarios') ||
       path.startsWith('/listausu%C3%A1rios') ||
-      path.startsWith('/listausuários');
+      path.startsWith('/listausuários') ||
+      path.startsWith('/privacidade') ||
+      path.startsWith('/privacy-policy');
 
     const checkPath = () => {
       // No app nativo, nunca redirecionar para landing page
@@ -186,7 +190,9 @@ const App: React.FC = () => {
         path.startsWith('/listamedicos') ||
         path.startsWith('/listausuarios') ||
         path.startsWith('/listausu%C3%A1rios') ||
-        path.startsWith('/listausuários');
+        path.startsWith('/listausuários') ||
+        path.startsWith('/privacidade') ||
+        path.startsWith('/privacy-policy');
       if (!isPortalPath) {
         setIsPortalRoute(false);
       }

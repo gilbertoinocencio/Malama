@@ -36,6 +36,7 @@ import { DoctorFinancial } from './doctor/DoctorFinancial';
 // Referral
 import { PatientReferral } from './PatientReferral';
 import { InfluencerReferral } from './InfluencerReferral';
+import { PrivacyPolicy } from './PrivacyPolicy';
 
 // Influencer Portal
 import { InfluencerLogin } from './influencer/InfluencerLogin';
@@ -290,6 +291,10 @@ export const AppRoutes: React.FC = () => {
 
           {/* Rota de acesso direto ao login — usada como PWA no celular */}
           <Route path="/acesso" element={<LoginView />} />
+
+          {/* Política de privacidade — pública, sem autenticação */}
+          <Route path="/privacidade" element={<PrivacyPolicy />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
           {/* Rota padrão - redireciona para Landing Page */}
           <Route path="*" element={<Navigate to="/" replace />} />
