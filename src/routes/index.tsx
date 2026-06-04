@@ -37,6 +37,7 @@ import { DoctorFinancial } from './doctor/DoctorFinancial';
 import { PatientReferral } from './PatientReferral';
 import { InfluencerReferral } from './InfluencerReferral';
 import { PrivacyPolicy } from './PrivacyPolicy';
+import { DeleteAccount } from './DeleteAccount';
 
 // Influencer Portal
 import { InfluencerLogin } from './influencer/InfluencerLogin';
@@ -295,6 +296,10 @@ export const AppRoutes: React.FC = () => {
           {/* Política de privacidade — pública, sem autenticação */}
           <Route path="/privacidade" element={<PrivacyPolicy />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
+          {/* Exclusão de conta — exigido pelo Google Play */}
+          <Route path="/deletar-conta" element={<DeleteAccount />} />
+          <Route path="/delete-account" element={<DeleteAccount />} />
 
           {/* Rota padrão - redireciona para Landing Page */}
           <Route path="*" element={<Navigate to="/" replace />} />

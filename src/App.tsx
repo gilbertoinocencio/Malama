@@ -95,7 +95,9 @@ const App: React.FC = () => {
       path.startsWith('/listausu%C3%A1rios') ||
       path.startsWith('/listausuários') ||
       path.startsWith('/privacidade') ||
-      path.startsWith('/privacy-policy')
+      path.startsWith('/privacy-policy') ||
+      path.startsWith('/deletar-conta') ||
+      path.startsWith('/delete-account')
     ) return true;
 
     // For root path, show landing if no session OR if user came from waitlist Google OAuth
@@ -127,7 +129,9 @@ const App: React.FC = () => {
       path.startsWith('/listausu%C3%A1rios') ||
       path.startsWith('/listausuários') ||
       path.startsWith('/privacidade') ||
-      path.startsWith('/privacy-policy');
+      path.startsWith('/privacy-policy') ||
+      path.startsWith('/deletar-conta') ||
+      path.startsWith('/delete-account');
 
     const checkPath = () => {
       // No app nativo, nunca redirecionar para landing page
