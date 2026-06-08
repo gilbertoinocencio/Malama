@@ -10,7 +10,7 @@ import {
   Target, Eye, Heart, AlertTriangle, TrendingUp, DollarSign,
   Stethoscope, Syringe, Salad, BarChart2, Building2, UserPlus,
   Smartphone, ShieldCheck, Zap, Layers, Leaf, CheckCircle,
-  ShoppingBag, Star, Award, ArrowRight, Circle,
+  ShoppingBag, Star, Award, Circle,
 } from 'lucide-react';
 
 const fadeInUp = {
@@ -746,15 +746,10 @@ export const PitchDeck: React.FC = () => {
 
             <motion.div variants={fadeInUp}
               className="rounded-2xl border border-Malama-petrol/30 bg-Malama-petrol/10 p-10 text-center">
-              <p className="font-serif text-3xl md:text-4xl text-white font-light leading-snug mb-6">
+              <p className="font-serif text-3xl md:text-4xl text-white font-light leading-snug">
                 Cuide de quem faz<br />
                 <span className="text-Malama-petrol italic">sua empresa crescer.</span>
               </p>
-              <Link to="/empresas"
-                className="inline-flex items-center gap-2 bg-Malama-petrol text-white px-8 py-4 rounded-xl text-sm font-semibold hover:bg-Malama-petrol/90 transition-colors">
-                Conhecer a plataforma
-                <ArrowRight className="w-4 h-4" />
-              </Link>
             </motion.div>
           </motion.div>
         </div>
