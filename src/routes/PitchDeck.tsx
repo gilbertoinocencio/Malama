@@ -75,11 +75,7 @@ export const PitchDeck: React.FC = () => {
           <Link to="/" className="flex items-center gap-2">
             <img src="/malama-logo-transparent.png" alt="Malama" className="h-[190px] w-auto max-w-none object-contain -my-[70px]" />
           </Link>
-          <div className="flex items-center gap-3">
-            <span className="hidden md:block text-xs font-semibold tracking-widest uppercase text-Malama-muted/60">Confidencial</span>
-            <div className="h-4 w-px bg-Malama-border hidden md:block" />
-            <span className="text-xs font-semibold tracking-widest uppercase text-Malama-petrol">Pitch Deck · 2026</span>
-          </div>
+          <div />
         </div>
       </header>
 
