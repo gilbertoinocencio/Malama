@@ -97,7 +97,8 @@ const App: React.FC = () => {
       path.startsWith('/privacidade') ||
       path.startsWith('/privacy-policy') ||
       path.startsWith('/deletar-conta') ||
-      path.startsWith('/delete-account')
+      path.startsWith('/delete-account') ||
+      path.startsWith('/pitchdeck')
     ) return true;
 
     // For root path, show landing if no session OR if user came from waitlist Google OAuth
@@ -131,7 +132,8 @@ const App: React.FC = () => {
       path.startsWith('/privacidade') ||
       path.startsWith('/privacy-policy') ||
       path.startsWith('/deletar-conta') ||
-      path.startsWith('/delete-account');
+      path.startsWith('/delete-account') ||
+      path.startsWith('/pitchdeck');
 
     const checkPath = () => {
       // No app nativo, nunca redirecionar para landing page
@@ -196,7 +198,8 @@ const App: React.FC = () => {
         path.startsWith('/listausu%C3%A1rios') ||
         path.startsWith('/listausuários') ||
         path.startsWith('/privacidade') ||
-        path.startsWith('/privacy-policy');
+        path.startsWith('/privacy-policy') ||
+        path.startsWith('/pitchdeck');
       if (!isPortalPath) {
         setIsPortalRoute(false);
       }

@@ -10,6 +10,7 @@ import { LoginView } from '../components/LoginView';
 import { LandingPage } from './LandingPage';
 import { MedicosLandingPage } from './MedicosLandingPage';
 import { EmpresasLandingPage } from './EmpresasLandingPage';
+import { PitchDeck } from './PitchDeck';
 
 // Guards
 import { DoctorRoute, AdminRoute, PublicDoctorRoute, RhRoute } from './guards';
@@ -270,6 +271,9 @@ export const AppRoutes: React.FC = () => {
 
           {/* Landing pública */}
           <Route path="/empresas" element={<EmpresasLandingPage />} />
+
+          {/* Pitch Deck */}
+          <Route path="/pitchdeck" element={<PitchDeck />} />
 
           {/* Portal do RH */}
           <Route path="/rh" element={<RhLogin />} />
