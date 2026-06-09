@@ -109,9 +109,9 @@ export const PitchDeck: React.FC = () => {
 
           <motion.div variants={fadeInUp} className="grid grid-cols-3 gap-6 max-w-2xl mx-auto">
             {[
-              { stat: 'B2B', label: 'Modelo de negócio corporativo' },
+              { stat: 'B2B2C', label: 'Modelo de negócio corporativo' },
               { stat: '2026', label: 'Mandato NR-1 em vigor' },
-              { stat: 'R$50bi', label: 'Mercado GLP-1 até 2030' },
+              { stat: 'R$150bi', label: 'Mercado de benefícios corporativos' },
             ].map(({ stat, label }) => (
               <div key={stat} className="rounded-2xl border border-Malama-border/50 bg-white/60 px-4 py-5 shadow-sm">
                 <div className="font-serif text-2xl md:text-3xl text-Malama-petrol mb-1">{stat}</div>
