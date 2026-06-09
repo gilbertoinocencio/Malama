@@ -567,22 +567,22 @@ export const PitchDeck: React.FC = () => {
             </motion.div>
 
             <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-5xl font-light leading-tight mb-4 max-w-2xl">
-              Mercado de R$50bi<br />
+              Mercado de R$150bi<br />
               <span className="text-Malama-petrol italic">em formação.</span>
             </motion.h2>
             <motion.p variants={fadeInUp} className="text-Malama-muted mb-16 max-w-xl">
-              O mercado de saúde metabólica corporativa ainda não tem um líder consolidado.
-              A janela de liderança está aberta.
+              O mercado de benefícios corporativos no Brasil é um dos maiores do setor no mundo.
+              Ainda sem um líder consolidado em saúde metabólica — a janela está aberta.
             </motion.p>
 
             <div className="grid md:grid-cols-3 gap-6 mb-10">
               {[
                 {
                   sigla: 'TAM',
-                  valor: 'R$50bi',
+                  valor: 'R$150bi',
                   titulo: 'Mercado Total',
-                  corpo: 'Mercado de saúde metabólica e GLP-1 no Brasil projetado para 2030, incluindo usuários individuais e corporativos.',
-                  fonte: 'Itaú BBA',
+                  corpo: 'Mercado de benefícios corporativos no Brasil — um dos maiores do setor no mundo, ainda sem um líder consolidado em saúde metabólica.',
+                  fonte: '',
                   destaque: false,
                 },
                 {
