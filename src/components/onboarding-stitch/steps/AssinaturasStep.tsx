@@ -151,7 +151,13 @@ const AssinaturasStep: React.FC<StepProps> = ({ onNext, onBack, currentStep, tot
         ))}
       </div>
 
-      <p className="text-center text-[10px] text-stone-400 font-light uppercase tracking-widest">
+      <div className="mt-4 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+        <p className="text-[11px] text-amber-800 leading-relaxed text-center">
+          ⚕️ O Malama tem caráter informativo e educativo e não substitui a consulta, o diagnóstico ou o tratamento de um profissional de saúde. Consulte sempre um médico ou nutricionista para orientações médicas.
+        </p>
+      </div>
+
+      <p className="text-center text-[10px] text-stone-400 font-light uppercase tracking-widest mt-4">
         Ao continuar, você concorda com nossos Termos de Uso e Política de Privacidade.
       </p>
     </StepContainer>

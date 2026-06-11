@@ -739,6 +739,7 @@ export const translations: Record<Language, Translations> = {
             continueGoogle: 'Continue with Google',
             terms: 'By continuing, you agree to our Terms of Service and Privacy Policy.',
             aiNote: 'Malama uses AI to optimize your nutrition.',
+            medicalDisclaimer: 'Malama is for informational and educational purposes and does not replace consultation, diagnosis, or treatment by a qualified healthcare professional. Always consult a doctor or nutritionist before making decisions about your health, medications, or treatment.',
         },
         planRenewal: {
             header: 'Plan Renewal',
@@ -1120,6 +1121,7 @@ export const translations: Record<Language, Translations> = {
             continueGoogle: 'Continuar com Google',
             terms: 'Ao continuar, você concorda com nossos Termos de Serviço e Política de Privacidade.',
             aiNote: 'Malama usa IA para otimizar sua nutrição.',
+            medicalDisclaimer: 'O Malama tem caráter informativo e educativo e não substitui a consulta, o diagnóstico ou o tratamento de um profissional de saúde qualificado. Sempre consulte um médico ou nutricionista antes de tomar decisões sobre sua saúde, medicamentos ou tratamento.',
         },
         planRenewal: {
             header: 'Renovação de Plano',
@@ -1501,6 +1503,7 @@ export const translations: Record<Language, Translations> = {
             continueGoogle: 'Continuar con Google',
             terms: 'Al continuar, aceptas nuestros T\u00e9rminos de Servicio y Pol\u00edtica de Privacidad.',
             aiNote: 'Malama usa IA para optimizar tu nutrici\u00f3n.',
+            medicalDisclaimer: 'Malama tiene car\u00e1cter informativo y educativo y no sustituye la consulta, el diagn\u00f3stico ni el tratamiento de un profesional de la salud calificado. Consulta siempre a un m\u00e9dico o nutricionista antes de tomar decisiones sobre tu salud, medicamentos o tratamiento.',
         },
         planRenewal: {
             header: 'Renovaci\u00f3n de Plan',

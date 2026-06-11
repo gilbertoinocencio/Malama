@@ -172,10 +172,35 @@ export const LoginView: React.FC = () => {
                 </div>
 
                 <p className="text-xs text-center text-Malama-muted dark:text-slate-500 max-w-xs leading-relaxed">
-                    {a.terms}
+                    {(() => {
+                        // URL absoluta hospedada — funciona tanto na web quanto no app nativo
+                        // (Capacitor), onde a rota interna /privacidade não existe.
+                        const privacyUrl = 'https://www.soumalama.com.br/privacidade';
+                        const privacyText =
+                            language === 'pt' ? 'Política de Privacidade'
+                            : language === 'es' ? 'Política de Privacidad'
+                            : 'Privacy Policy';
+                        const idx = a.terms.indexOf(privacyText);
+                        if (idx === -1) return a.terms;
+                        return (
+                            <>
+                                {a.terms.slice(0, idx)}
+                                <a href={privacyUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-Malama-main transition-colors">
+                                    {privacyText}
+                                </a>
+                                {a.terms.slice(idx + privacyText.length)}
+                            </>
+                        );
+                    })()}
                     <br /><br />
                     {a.aiNote}
                 </p>
+
+                <div className="mt-4 max-w-xs rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 px-3 py-2.5">
+                    <p className="text-[11px] text-amber-800 dark:text-amber-300/90 leading-relaxed text-center">
+                        ⚕️ {a.medicalDisclaimer}
+                    </p>
+                </div>
             </div>
             </div>
         </div>

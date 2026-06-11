@@ -436,6 +436,14 @@ export const GLP1Dashboard: React.FC<GLP1DashboardProps> = ({ onBack, onNavigate
 
       <main className="px-4 pt-4 space-y-4">
 
+        {/* Aviso médico — conteúdo informativo, não substitui acompanhamento profissional */}
+        <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 rounded-xl border border-amber-200">
+          <span className="material-symbols-outlined text-amber-600 text-base mt-0.5">info</span>
+          <p className="text-[11px] text-amber-800 leading-relaxed">
+            As informações e sugestões deste módulo têm caráter educativo e <strong>não substituem o acompanhamento médico</strong>. O uso de medicamentos GLP-1 deve ser sempre prescrito e monitorado por um profissional de saúde. Consulte seu médico antes de iniciar, ajustar ou interromper qualquer dose ou tratamento.
+          </p>
+        </div>
+
         {/* ─── OVERVIEW TAB ─────────────────────────────────────────────── */}
         {activeTab === 'overview' && (
           <>

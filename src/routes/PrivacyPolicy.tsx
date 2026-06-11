@@ -12,7 +12,7 @@ export const PrivacyPolicy: React.FC = () => {
 
       <main className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold mb-2 text-[#7d4a3c]">Política de Privacidade</h1>
-        <p className="text-sm text-gray-500 mb-10">Última atualização: 03 de junho de 2026</p>
+        <p className="text-sm text-gray-500 mb-10">Última atualização: 11 de junho de 2026</p>
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3">1. Quem somos</h2>
@@ -71,8 +71,23 @@ export const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3">7. Retenção de dados</h2>
-          <p className="text-gray-700">Mantemos seus dados pelo tempo necessário para a prestação dos serviços ou conforme exigido por lei. Após o encerramento da conta, os dados são excluídos em até 90 dias, salvo obrigação legal de retenção.</p>
+          <h2 className="text-xl font-semibold mb-3">7. Retenção e exclusão de dados</h2>
+
+          <p className="text-gray-700"><strong>Por quanto tempo guardamos seus dados:</strong> mantemos seus dados pessoais apenas enquanto sua conta estiver ativa, para podermos prestar os serviços do app. Em detalhe:</p>
+          <ul className="list-disc list-inside space-y-2 text-gray-700 mt-2">
+            <li><strong>Dados de cadastro e de saúde</strong> (nome, e-mail, peso, altura, objetivos, restrições, uso de medicamentos): mantidos enquanto a conta estiver ativa.</li>
+            <li><strong>Registros de refeições, fotos de alimentos e métricas:</strong> mantidos enquanto a conta estiver ativa, para exibir seu histórico e evolução.</li>
+            <li><strong>Histórico de consultas:</strong> mantido pelo prazo exigido pela legislação de saúde aplicável.</li>
+            <li><strong>Logs de acesso:</strong> mantidos por até 6 meses, conforme o Marco Civil da Internet (Lei nº 12.965/2014).</li>
+          </ul>
+
+          <p className="mt-4 text-gray-700"><strong>Como excluir seus dados:</strong> você pode solicitar a exclusão da sua conta e de todos os seus dados pessoais a qualquer momento, de duas formas:</p>
+          <ul className="list-disc list-inside space-y-2 text-gray-700 mt-2">
+            <li>Acessando a página de exclusão de conta em <a href="https://www.soumalama.com.br/deletar-conta" className="text-[#7d4a3c] underline">soumalama.com.br/deletar-conta</a> e preenchendo o formulário.</li>
+            <li>Enviando um e-mail para <a href="mailto:privacidade@soumalama.com.br" className="text-[#7d4a3c] underline">privacidade@soumalama.com.br</a> com o assunto "Exclusão de conta".</li>
+          </ul>
+
+          <p className="mt-4 text-gray-700">Após a solicitação, todos os seus dados pessoais são <strong>excluídos permanentemente de nossos servidores em até 90 dias</strong>. Alguns dados podem ser retidos por prazo superior apenas quando houver obrigação legal (por exemplo, registros fiscais ou os logs de acesso citados acima). Concluída a exclusão, os dados não poderão ser recuperados.</p>
         </section>
 
         <section className="mb-8">
