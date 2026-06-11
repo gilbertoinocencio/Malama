@@ -572,7 +572,7 @@ export const PitchDeck: React.FC = () => {
             </motion.h2>
             <motion.p variants={fadeInUp} className="text-Malama-muted mb-16 max-w-xl">
               O mercado de benefícios corporativos no Brasil é um dos maiores do setor no mundo.
-              Ainda sem um líder consolidado em saúde metabólica — a janela está aberta.
+              Somos pioneiros em saúde metabólica — a janela está aberta.
             </motion.p>
 
             <div className="grid md:grid-cols-3 gap-6 mb-10">
