@@ -10,6 +10,7 @@ import {
   Consultation,
 } from '../lib/scheduling';
 import { AppView } from '../types';
+import { useLanguage } from '../i18n';
 
 interface AgendarConsultaProps {
   onBack: () => void;
@@ -18,12 +19,6 @@ interface AgendarConsultaProps {
 }
 
 type Step = 'objective' | 'doctors' | 'schedule' | 'summary' | 'confirmed';
-
-const OBJECTIVE_OPTIONS = [
-  { value: 'emagrecimento',        label: 'Emagrecimento',         icon: '⚖️', desc: 'Perda de peso e composição corporal' },
-  { value: 'performance_esportiva', label: 'Performance esportiva', icon: '🏋️', desc: 'Nutrição e saúde para atletas' },
-  { value: 'saude_bem_estar',      label: 'Saúde e bem-estar',     icon: '🌿', desc: 'Qualidade de vida e prevenção' },
-];
 
 const generateNextDates = (count = 30): Date[] => {
   const dates: Date[] = [];
@@ -38,6 +33,7 @@ const generateNextDates = (count = 30): Date[] => {
 
 export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBooked, onNavigate }) => {
   const { user, profile } = useAuth();
+  const { t, language } = useLanguage();
   const [step, setStep] = useState<Step>('objective');
   const [selectedObjective, setSelectedObjective] = useState<string>('');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -53,6 +49,12 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
   const [bookError, setBookError] = useState('');
 
   const availableDates = generateNextDates(30);
+
+  const OBJECTIVE_OPTIONS = [
+    { value: 'emagrecimento', label: t.agendarConsulta.objectiveWeightLoss, icon: '⚖️', desc: t.agendarConsulta.objectiveWeightLossDesc },
+    { value: 'performance_esportiva', label: t.agendarConsulta.objectiveSportsPerformance, icon: '🏋️', desc: t.agendarConsulta.objectiveSportsDesc },
+    { value: 'saude_bem_estar', label: t.agendarConsulta.objectiveHealthWellbeing, icon: '🌿', desc: t.agendarConsulta.objectiveHealthDesc },
+  ];
 
   useEffect(() => {
     if (step === 'doctors' && doctors.length === 0) {
@@ -75,7 +77,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
     if (selectedDoctor && selectedDate) {
       console.log('🕒 [AgendarConsulta] Buscando horários para:', {
         doctor: selectedDoctor.name,
-        date: selectedDate.toLocaleDateString('pt-BR')
+        date: selectedDate.toLocaleDateString(t.agendarConsulta.locale)
       });
       setLoadingSlots(true);
       setSlots([]);
@@ -117,20 +119,20 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
       setStep('confirmed');
       onBooked(consultation);
     } catch (err: any) {
-      setBookError(err.message || 'Erro ao agendar. Tente novamente.');
+      setBookError(err.message || t.agendarConsulta.schedulingError);
     } finally {
       setBooking(false);
     }
   };
 
   const formatDateShort = (d: Date) => {
-    const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const weekdays = t.agendarConsulta.weekdays;
+    const months = t.agendarConsulta.months;
     return { weekday: weekdays[d.getDay()], day: d.getDate(), month: months[d.getMonth()] };
   };
 
   const formatDateLong = (d: Date) =>
-    d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    d.toLocaleDateString(t.agendarConsulta.locale, { weekday: 'long', day: 'numeric', month: 'long' });
 
   const progressPct = { objective: 20, doctors: 40, schedule: 60, summary: 80, confirmed: 100 }[step];
 
@@ -153,7 +155,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 className="text-lg font-bold flex-1">Agendar consulta</h1>
+        <h1 className="text-lg font-bold flex-1">{t.agendarConsulta.title}</h1>
       </header>
 
       {/* Progress */}
@@ -172,8 +174,8 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
           {/* STEP 1: Objective */}
           {step === 'objective' && (
             <StepWrap key="objective">
-              <h2 className="text-xl font-bold mb-2">Qual é o seu objetivo?</h2>
-              <p className="text-sm text-gray-500 mb-6">Vamos encontrar o especialista certo para você.</p>
+              <h2 className="text-xl font-bold mb-2">{t.agendarConsulta.whatIsYourObjective}</h2>
+              <p className="text-sm text-gray-500 mb-6">{t.agendarConsulta.findRightSpecialist}</p>
               <div className="space-y-3">
                 {OBJECTIVE_OPTIONS.map((obj) => (
                   <button
@@ -196,7 +198,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
           {/* STEP 2: Doctors */}
           {step === 'doctors' && (
             <StepWrap key="doctors">
-              <h2 className="text-xl font-bold mb-1">Escolha o médico</h2>
+              <h2 className="text-xl font-bold mb-1">{t.agendarConsulta.chooseDoctor}</h2>
               <p className="text-sm text-gray-500 mb-5">{OBJECTIVE_OPTIONS.find(o => o.value === selectedObjective)?.label}</p>
               {loadingDoctors ? (
                 <div className="flex justify-center py-12">
@@ -224,7 +226,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                           <div className="flex items-center gap-1 mt-1">
                             <span className="text-yellow-500 text-xs">★</span>
                             <span className="text-xs text-gray-700 font-semibold">{doc.rating.toFixed(1)}</span>
-                            <span className="text-xs text-gray-400">· {doc.total_consultations} consultas</span>
+                            <span className="text-xs text-gray-400">· {doc.total_consultations} {t.agendarConsulta.consultationsCount}</span>
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
@@ -239,7 +241,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                   ))}
                   {doctors.length === 0 && (
                     <div className="text-center py-12 text-gray-400">
-                      <p className="text-sm">Nenhum médico disponível no momento</p>
+                      <p className="text-sm">{t.agendarConsulta.noDoctorsAvailable}</p>
                     </div>
                   )}
                 </div>
@@ -250,11 +252,11 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
           {/* STEP 3: Schedule */}
           {step === 'schedule' && selectedDoctor && (
             <StepWrap key="schedule">
-              <h2 className="text-xl font-bold mb-1">Data e horário</h2>
+              <h2 className="text-xl font-bold mb-1">{t.agendarConsulta.dateAndTime}</h2>
               <p className="text-sm text-gray-500 mb-5">{selectedDoctor.name}</p>
 
               {/* Date picker */}
-              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-2">Data</p>
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-2">{t.agendarConsulta.date}</p>
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 hide-scrollbar mb-5">
                 {availableDates.map((date) => {
                   const f = formatDateShort(date);
@@ -277,7 +279,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
               {/* Time slots */}
               {selectedDate && (
                 <>
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-2">Horários disponíveis</p>
+                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-2">{t.agendarConsulta.availableTimeSlots}</p>
                   {loadingSlots ? (
                     <div className="flex justify-center py-6">
                       <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
@@ -298,7 +300,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                       ))}
                       {slots.filter((s) => s.available).length === 0 && (
                         <p className="col-span-3 text-sm text-gray-400 text-center py-4">
-                          Nenhum horário disponível neste dia
+                          {t.agendarConsulta.noTimeSlotsAvailable}
                         </p>
                       )}
                     </div>
@@ -311,7 +313,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                   onClick={() => setStep('summary')}
                   className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors"
                 >
-                  Continuar
+                  {t.agendarConsulta.continue}
                 </button>
               )}
             </StepWrap>
@@ -320,7 +322,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
           {/* STEP 4: Summary */}
           {step === 'summary' && selectedDoctor && selectedDate && (
             <StepWrap key="summary">
-              <h2 className="text-xl font-bold mb-5">Resumo da consulta</h2>
+              <h2 className="text-xl font-bold mb-5">{t.agendarConsulta.consultationSummary}</h2>
 
               {/* Doctor card */}
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
@@ -335,19 +337,19 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                 </div>
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Objetivo</span>
+                    <span className="text-gray-500">{t.agendarConsulta.objective}</span>
                     <span className="font-semibold">{OBJECTIVE_OPTIONS.find(o => o.value === selectedObjective)?.label}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Data</span>
+                    <span className="text-gray-500">{t.agendarConsulta.date}</span>
                     <span className="font-semibold capitalize">{formatDateLong(selectedDate)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Horário</span>
+                    <span className="text-gray-500">{t.agendarConsulta.time}</span>
                     <span className="font-semibold">{selectedSlot}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Duração</span>
+                    <span className="text-gray-500">{t.agendarConsulta.duration}</span>
                     <span className="font-semibold">{selectedDoctor.consultation_duration} min</span>
                   </div>
                 </div>
@@ -355,12 +357,12 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
 
               {/* Data sharing */}
               <div className="bg-gray-50 rounded-2xl p-4 mb-4">
-                <p className="text-xs font-semibold text-gray-600 mb-2">📤 Dados compartilhados com o médico:</p>
+                <p className="text-xs font-semibold text-gray-600 mb-2">{t.agendarConsulta.sharedDataWith}</p>
                 <div className="space-y-1 text-xs text-gray-500">
-                  <p>📊 Histórico nutricional dos últimos 90 dias</p>
-                  <p>⚖️ Peso atual: {profile?.weight || '—'}kg · IMC estimado</p>
-                  <p>🎯 Metas e objetivos do plano</p>
-                  {profile?.glp1_mode && <p>💊 Status GLP-1 e check-ins de sintomas</p>}
+                  <p>{t.agendarConsulta.last90DaysNutritional}</p>
+                  <p>{t.agendarConsulta.currentWeightBMI.replace('{weight}', profile?.weight?.toString() || '—')}</p>
+                  <p>{t.agendarConsulta.goalsAndObjectives}</p>
+                  {profile?.glp1_mode && <p>{t.agendarConsulta.glp1StatusAndCheckins}</p>}
                 </div>
               </div>
 
@@ -375,13 +377,13 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                   {consentGiven && <span className="text-white text-xs">✓</span>}
                 </div>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  Autorizo o compartilhamento dos meus dados de saúde com o médico para esta consulta (LGPD Art. 11)
+                  {t.agendarConsulta.consentText}
                 </p>
               </div>
 
               {/* Price */}
               <div className="bg-white rounded-2xl p-4 mb-5 flex items-center justify-between border border-gray-100">
-                <span className="text-sm text-gray-600">Total</span>
+                <span className="text-sm text-gray-600">{t.agendarConsulta.total}</span>
                 <span className="text-xl font-bold">R$ {selectedDoctor.price}</span>
               </div>
 
@@ -394,10 +396,10 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                 disabled={booking || !consentGiven}
                 className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
               >
-                {booking ? 'Agendando...' : `Confirmar consulta — R$ ${selectedDoctor.price}`}
+                {booking ? t.agendarConsulta.booking : t.agendarConsulta.confirmConsultation.replace('{price}', selectedDoctor.price.toString())}
               </button>
               {!consentGiven && (
-                <p className="text-xs text-center text-gray-400 mt-2">Aceite o compartilhamento de dados para continuar</p>
+                <p className="text-xs text-center text-gray-400 mt-2">{t.agendarConsulta.acceptDataSharingToContinue}</p>
               )}
             </StepWrap>
           )}
@@ -407,23 +409,23 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
             <StepWrap key="confirmed">
               <div className="flex flex-col items-center text-center pt-8">
                 <span className="text-6xl mb-4">✅</span>
-                <h2 className="text-2xl font-bold mb-2">Consulta agendada!</h2>
+                <h2 className="text-2xl font-bold mb-2">{t.agendarConsulta.consultationBooked}</h2>
                 <p className="text-gray-600 text-sm mb-1">{selectedDoctor.name}</p>
                 <p className="text-gray-500 text-sm mb-1 capitalize">{formatDateLong(selectedDate)} às {selectedSlot}</p>
-                <p className="text-xs text-gray-400 mb-8">Você receberá um lembrete 24h antes</p>
+                <p className="text-xs text-gray-400 mb-8">{t.agendarConsulta.reminderBefore24h}</p>
 
                 <div className="w-full space-y-3">
                   <button
                     onClick={() => onNavigate(AppView.PROFILE)}
                     className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors"
                   >
-                    Ver minhas consultas
+                    {t.agendarConsulta.viewMyConsultations}
                   </button>
                   <button
                     onClick={onBack}
                     className="w-full py-2 text-sm text-gray-500 hover:text-gray-700"
                   >
-                    Voltar ao início
+                    {t.agendarConsulta.backToHome}
                   </button>
                 </div>
               </div>

@@ -152,6 +152,47 @@ export interface Translations {
         recentAchievements: string;
         defineProfile: string;
         signOut: string;
+        noDataYet: string;
+        logMealsProgress: string;
+        myData: string;
+        myDataSubtitle: string;
+        teleconsultation: string;
+        teleconsultationSubtitle: string;
+        myConsultations: string;
+        myConsultationsSubtitle: string;
+        helpCenter: string;
+        helpCenterSubtitle: string;
+        bodyAndMetrics: string;
+        bodyScanAI: string;
+        bodyScanSubtitle: string;
+        evolutionCharts: string;
+        evolutionChartsSubtitle: string;
+        glp1Program: string;
+        glp1Active: string;
+        glp1SeeDetailsIn: string;
+        avatarInvalidImage: string;
+        avatarMaxSize: string;
+        avatarUpdateError: string;
+        avatarProcessingError: string;
+        influencer: {
+            referrals: string;
+            pending: string;
+            totalEarned: string;
+            referralLink: string;
+            shareLink: string;
+            copied: string;
+            copy: string;
+            changePassword: string;
+            cancel: string;
+            change: string;
+            newPasswordPlaceholder: string;
+            confirmPasswordPlaceholder: string;
+            saving: string;
+            savePassword: string;
+            minCharsError: string;
+            passwordMismatchError: string;
+            passwordChangedSuccess: string;
+        };
     };
 
     // Quarterly Plan
@@ -406,6 +447,7 @@ export interface Translations {
         continueGoogle: string;
         terms: string;
         aiNote: string;
+        medicalDisclaimer: string;
     };
 
     // Macros
@@ -424,6 +466,67 @@ export interface Translations {
         loading: string;
         error: string;
         success: string;
+    };
+
+    // Agendar Consulta
+    agendarConsulta: {
+        title: string;
+        whatIsYourObjective: string;
+        findRightSpecialist: string;
+        objectiveWeightLoss: string;
+        objectiveWeightLossDesc: string;
+        objectiveSportsPerformance: string;
+        objectiveSportsDesc: string;
+        objectiveHealthWellbeing: string;
+        objectiveHealthDesc: string;
+        chooseDoctor: string;
+        consultationsCount: string;
+        noDoctorsAvailable: string;
+        dateAndTime: string;
+        date: string;
+        availableTimeSlots: string;
+        noTimeSlotsAvailable: string;
+        continue: string;
+        consultationSummary: string;
+        objective: string;
+        time: string;
+        duration: string;
+        sharedDataWith: string;
+        last90DaysNutritional: string;
+        currentWeightBMI: string;
+        goalsAndObjectives: string;
+        glp1StatusAndCheckins: string;
+        consentText: string;
+        total: string;
+        booking: string;
+        confirmConsultation: string;
+        acceptDataSharingToContinue: string;
+        consultationBooked: string;
+        reminderBefore24h: string;
+        viewMyConsultations: string;
+        backToHome: string;
+        schedulingError: string;
+        locale: string;
+        weekdays: string[];
+        months: string[];
+    };
+
+    // FAQ
+    faq: {
+        title: string;
+        subtitle: string;
+        all: string;
+        categories: {
+            nutricao: string;
+            glp1: string;
+            financeiro: string;
+            tecnico: string;
+            conta: string;
+            sugestao: string;
+        };
+        notFound: string;
+        teamReady: string;
+        contactSupport: string;
     };
 }
 
@@ -562,6 +665,47 @@ export const translations: Record<Language, Translations> = {
             recentAchievements: 'Recent Achievements',
             defineProfile: 'Set up your profile',
             signOut: 'Sign Out',
+            noDataYet: 'No data yet',
+            logMealsProgress: 'Log your meals to see your progress here.',
+            myData: 'My Data',
+            myDataSubtitle: 'Metrics, evolution and history',
+            teleconsultation: 'Medical Teleconsultation',
+            teleconsultationSubtitle: 'Schedule consultation with specialist',
+            myConsultations: 'My Consultations',
+            myConsultationsSubtitle: 'History, prescriptions and reviews',
+            helpCenter: 'Help Center',
+            helpCenterSubtitle: 'FAQ, tutorials and live support',
+            bodyAndMetrics: 'Body & Metrics',
+            bodyScanAI: 'Body Scan AI',
+            bodyScanSubtitle: 'Photos + body composition analysis',
+            evolutionCharts: 'Evolution Charts',
+            evolutionChartsSubtitle: 'Weight, fat, muscle and measurements',
+            glp1Program: 'GLP-1 Program',
+            glp1Active: 'Active',
+            glp1SeeDetailsIn: '— See all details in the',
+            avatarInvalidImage: 'Please select a valid image.',
+            avatarMaxSize: 'Image must be at most 2MB.',
+            avatarUpdateError: 'Error updating profile.',
+            avatarProcessingError: 'Error processing image.',
+            influencer: {
+                referrals: 'Referrals',
+                pending: 'Pending',
+                totalEarned: 'Total Earned',
+                referralLink: 'Your referral link',
+                shareLink: 'Share this link. For each new registered user, you earn',
+                copied: 'Copied!',
+                copy: 'Copy',
+                changePassword: 'Change password',
+                cancel: 'Cancel',
+                change: 'Change',
+                newPasswordPlaceholder: 'New password (minimum 8 characters)',
+                confirmPasswordPlaceholder: 'Confirm new password',
+                saving: 'Saving...',
+                savePassword: 'Save new password',
+                minCharsError: 'Minimum 8 characters.',
+                passwordMismatchError: "Passwords don't match.",
+                passwordChangedSuccess: 'Password changed successfully!',
+            },
         },
         quarterlyPlan: {
             feedTheFlow: 'Feed the Flow',
@@ -808,6 +952,63 @@ export const translations: Record<Language, Translations> = {
             error: 'Error',
             success: 'Success',
         },
+        agendarConsulta: {
+            title: 'Schedule consultation',
+            whatIsYourObjective: 'What is your objective?',
+            findRightSpecialist: "Let's find the right specialist for you.",
+            objectiveWeightLoss: 'Weight Loss',
+            objectiveWeightLossDesc: 'Weight loss and body composition',
+            objectiveSportsPerformance: 'Sports Performance',
+            objectiveSportsDesc: 'Nutrition and health for athletes',
+            objectiveHealthWellbeing: 'Health and Wellbeing',
+            objectiveHealthDesc: 'Quality of life and prevention',
+            chooseDoctor: 'Choose the doctor',
+            consultationsCount: 'consultations',
+            noDoctorsAvailable: 'No doctors available at the moment',
+            dateAndTime: 'Date and time',
+            date: 'Date',
+            availableTimeSlots: 'Available time slots',
+            noTimeSlotsAvailable: 'No time slots available on this day',
+            continue: 'Continue',
+            consultationSummary: 'Consultation summary',
+            objective: 'Objective',
+            time: 'Time',
+            duration: 'Duration',
+            sharedDataWith: '📤 Data shared with the doctor:',
+            last90DaysNutritional: '📊 Nutritional history from the last 90 days',
+            currentWeightBMI: '⚖️ Current weight: {weight}kg · Estimated BMI',
+            goalsAndObjectives: '🎯 Plan goals and objectives',
+            glp1StatusAndCheckins: '💊 GLP-1 status and symptom check-ins',
+            consentText: 'I authorize sharing my health data with the doctor for this consultation (LGPD Art. 11)',
+            total: 'Total',
+            booking: 'Booking...',
+            confirmConsultation: 'Confirm consultation — R$ {price}',
+            acceptDataSharingToContinue: 'Accept data sharing to continue',
+            consultationBooked: 'Consultation booked!',
+            reminderBefore24h: 'You will receive a reminder 24h before',
+            viewMyConsultations: 'View my consultations',
+            backToHome: 'Back to home',
+            schedulingError: 'Scheduling error. Please try again.',
+            locale: 'en-US',
+            weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        },
+        faq: {
+            title: 'Frequently Asked Questions',
+            subtitle: 'Find quick answers before contacting support',
+            all: 'All',
+            categories: {
+                nutricao: '🥗 Nutrition',
+                glp1: '💊 GLP-1',
+                financeiro: '💳 Financial',
+                tecnico: '⚙️ Technical',
+                conta: '👤 Account',
+                sugestao: '💡 Referral Program',
+            },
+            notFound: "Couldn't find what you were looking for?",
+            teamReady: 'Our team is ready to help!',
+            contactSupport: 'Contact support',
+        },
     },
 
     pt: {
@@ -944,6 +1145,47 @@ export const translations: Record<Language, Translations> = {
             recentAchievements: 'Conquistas Recentes',
             defineProfile: 'Defina seu perfil',
             signOut: 'Sair da Conta',
+            noDataYet: 'Nenhum dado ainda',
+            logMealsProgress: 'Registre suas refeições para ver seu progresso aqui.',
+            myData: 'Meus Dados',
+            myDataSubtitle: 'Métricas, evolução e histórico',
+            teleconsultation: 'Teleconsulta médica',
+            teleconsultationSubtitle: 'Agendar consulta com especialista',
+            myConsultations: 'Minhas consultas',
+            myConsultationsSubtitle: 'Histórico, receitas e avaliações',
+            helpCenter: 'Central de Ajuda',
+            helpCenterSubtitle: 'FAQ, tutoriais e suporte ao vivo',
+            bodyAndMetrics: 'Corpo & Métricas',
+            bodyScanAI: 'Body Scan AI',
+            bodyScanSubtitle: 'Fotos + análise de composição corporal',
+            evolutionCharts: 'Gráficos de Evolução',
+            evolutionChartsSubtitle: 'Peso, gordura, músculo e medidas',
+            glp1Program: 'Programa GLP-1',
+            glp1Active: 'Ativo',
+            glp1SeeDetailsIn: '— Veja todos os detalhes na aba',
+            avatarInvalidImage: 'Por favor, selecione uma imagem válida.',
+            avatarMaxSize: 'A imagem deve ter no máximo 2MB.',
+            avatarUpdateError: 'Erro ao atualizar perfil.',
+            avatarProcessingError: 'Erro ao processar imagem.',
+            influencer: {
+                referrals: 'Indicações',
+                pending: 'Pendente',
+                totalEarned: 'Total ganho',
+                referralLink: 'Seu link de indicação',
+                shareLink: 'Compartilhe este link. A cada novo usuário cadastrado, você ganha',
+                copied: 'Copiado!',
+                copy: 'Copiar',
+                changePassword: 'Alterar senha',
+                cancel: 'Cancelar',
+                change: 'Alterar',
+                newPasswordPlaceholder: 'Nova senha (mínimo 8 caracteres)',
+                confirmPasswordPlaceholder: 'Confirmar nova senha',
+                saving: 'Salvando...',
+                savePassword: 'Salvar nova senha',
+                minCharsError: 'Mínimo 8 caracteres.',
+                passwordMismatchError: 'As senhas não coincidem.',
+                passwordChangedSuccess: 'Senha alterada com sucesso!',
+            },
         },
         quarterlyPlan: {
             feedTheFlow: 'Feed the Flow',
@@ -1190,6 +1432,63 @@ export const translations: Record<Language, Translations> = {
             error: 'Erro',
             success: 'Sucesso',
         },
+        agendarConsulta: {
+            title: 'Agendar consulta',
+            whatIsYourObjective: 'Qual é o seu objetivo?',
+            findRightSpecialist: 'Vamos encontrar o especialista certo para você.',
+            objectiveWeightLoss: 'Emagrecimento',
+            objectiveWeightLossDesc: 'Perda de peso e composição corporal',
+            objectiveSportsPerformance: 'Performance esportiva',
+            objectiveSportsDesc: 'Nutrição e saúde para atletas',
+            objectiveHealthWellbeing: 'Saúde e bem-estar',
+            objectiveHealthDesc: 'Qualidade de vida e prevenção',
+            chooseDoctor: 'Escolha o médico',
+            consultationsCount: 'consultas',
+            noDoctorsAvailable: 'Nenhum médico disponível no momento',
+            dateAndTime: 'Data e horário',
+            date: 'Data',
+            availableTimeSlots: 'Horários disponíveis',
+            noTimeSlotsAvailable: 'Nenhum horário disponível neste dia',
+            continue: 'Continuar',
+            consultationSummary: 'Resumo da consulta',
+            objective: 'Objetivo',
+            time: 'Horário',
+            duration: 'Duração',
+            sharedDataWith: '📤 Dados compartilhados com o médico:',
+            last90DaysNutritional: '📊 Histórico nutricional dos últimos 90 dias',
+            currentWeightBMI: '⚖️ Peso atual: {weight}kg · IMC estimado',
+            goalsAndObjectives: '🎯 Metas e objetivos do plano',
+            glp1StatusAndCheckins: '💊 Status GLP-1 e check-ins de sintomas',
+            consentText: 'Autorizo o compartilhamento dos meus dados de saúde com o médico para esta consulta (LGPD Art. 11)',
+            total: 'Total',
+            booking: 'Agendando...',
+            confirmConsultation: 'Confirmar consulta — R$ {price}',
+            acceptDataSharingToContinue: 'Aceite o compartilhamento de dados para continuar',
+            consultationBooked: 'Consulta agendada!',
+            reminderBefore24h: 'Você receberá um lembrete 24h antes',
+            viewMyConsultations: 'Ver minhas consultas',
+            backToHome: 'Voltar ao início',
+            schedulingError: 'Erro ao agendar. Tente novamente.',
+            locale: 'pt-BR',
+            weekdays: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+            months: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+        },
+        faq: {
+            title: 'Perguntas Frequentes',
+            subtitle: 'Encontre respostas rápidas antes de entrar em contato com o suporte',
+            all: 'Todas',
+            categories: {
+                nutricao: '🥗 Nutrição',
+                glp1: '💊 GLP-1',
+                financeiro: '💳 Financeiro',
+                tecnico: '⚙️ Técnico',
+                conta: '👤 Conta',
+                sugestao: '💡 Programa de Indicação',
+            },
+            notFound: 'Não encontrou o que procurava?',
+            teamReady: 'Nossa equipe está pronta para ajudar!',
+            contactSupport: 'Entrar em contato com o suporte',
+        },
     },
 
     es: {
@@ -1326,6 +1625,47 @@ export const translations: Record<Language, Translations> = {
             recentAchievements: 'Logros Recientes',
             defineProfile: 'Configura tu perfil',
             signOut: 'Cerrar Sesión',
+            noDataYet: 'Sin datos aún',
+            logMealsProgress: 'Registra tus comidas para ver tu progreso aquí.',
+            myData: 'Mis Datos',
+            myDataSubtitle: 'Métricas, evolución e historial',
+            teleconsultation: 'Teleconsulta médica',
+            teleconsultationSubtitle: 'Programar consulta con especialista',
+            myConsultations: 'Mis Consultas',
+            myConsultationsSubtitle: 'Historial, recetas y evaluaciones',
+            helpCenter: 'Centro de Ayuda',
+            helpCenterSubtitle: 'FAQ, tutoriales y soporte en vivo',
+            bodyAndMetrics: 'Cuerpo y Métricas',
+            bodyScanAI: 'Body Scan AI',
+            bodyScanSubtitle: 'Fotos + análisis de composición corporal',
+            evolutionCharts: 'Gráficos de Evolución',
+            evolutionChartsSubtitle: 'Peso, grasa, músculo y medidas',
+            glp1Program: 'Programa GLP-1',
+            glp1Active: 'Activo',
+            glp1SeeDetailsIn: '— Ve todos los detalles en la pestaña',
+            avatarInvalidImage: 'Por favor, selecciona una imagen válida.',
+            avatarMaxSize: 'La imagen debe tener como máximo 2MB.',
+            avatarUpdateError: 'Error al actualizar el perfil.',
+            avatarProcessingError: 'Error al procesar la imagen.',
+            influencer: {
+                referrals: 'Referencias',
+                pending: 'Pendiente',
+                totalEarned: 'Total Ganado',
+                referralLink: 'Tu enlace de referencia',
+                shareLink: 'Comparte este enlace. Por cada nuevo usuario registrado, ganas',
+                copied: '¡Copiado!',
+                copy: 'Copiar',
+                changePassword: 'Cambiar contraseña',
+                cancel: 'Cancelar',
+                change: 'Cambiar',
+                newPasswordPlaceholder: 'Nueva contraseña (mínimo 8 caracteres)',
+                confirmPasswordPlaceholder: 'Confirmar nueva contraseña',
+                saving: 'Guardando...',
+                savePassword: 'Guardar nueva contraseña',
+                minCharsError: 'Mínimo 8 caracteres.',
+                passwordMismatchError: 'Las contraseñas no coinciden.',
+                passwordChangedSuccess: '¡Contraseña cambiada con éxito!',
+            },
         },
         quarterlyPlan: {
             feedTheFlow: 'Feed the Flow',
@@ -1571,6 +1911,63 @@ export const translations: Record<Language, Translations> = {
             loading: 'Cargando...',
             error: 'Error',
             success: 'Éxito',
+        },
+        agendarConsulta: {
+            title: 'Programar consulta',
+            whatIsYourObjective: '¿Cuál es tu objetivo?',
+            findRightSpecialist: 'Vamos a encontrar al especialista adecuado para ti.',
+            objectiveWeightLoss: 'Pérdida de peso',
+            objectiveWeightLossDesc: 'Pérdida de peso y composición corporal',
+            objectiveSportsPerformance: 'Rendimiento deportivo',
+            objectiveSportsDesc: 'Nutrición y salud para atletas',
+            objectiveHealthWellbeing: 'Salud y bienestar',
+            objectiveHealthDesc: 'Calidad de vida y prevención',
+            chooseDoctor: 'Elige el médico',
+            consultationsCount: 'consultas',
+            noDoctorsAvailable: 'No hay médicos disponibles en este momento',
+            dateAndTime: 'Fecha y horario',
+            date: 'Fecha',
+            availableTimeSlots: 'Horarios disponibles',
+            noTimeSlotsAvailable: 'No hay horarios disponibles en este día',
+            continue: 'Continuar',
+            consultationSummary: 'Resumen de la consulta',
+            objective: 'Objetivo',
+            time: 'Horario',
+            duration: 'Duración',
+            sharedDataWith: '📤 Datos compartidos con el médico:',
+            last90DaysNutritional: '📊 Historial nutricional de los últimos 90 días',
+            currentWeightBMI: '⚖️ Peso actual: {weight}kg · IMC estimado',
+            goalsAndObjectives: '🎯 Metas y objetivos del plan',
+            glp1StatusAndCheckins: '💊 Estado GLP-1 y check-ins de síntomas',
+            consentText: 'Autorizo el intercambio de mis datos de salud con el médico para esta consulta (LGPD Art. 11)',
+            total: 'Total',
+            booking: 'Agendando...',
+            confirmConsultation: 'Confirmar consulta — R$ {price}',
+            acceptDataSharingToContinue: 'Acepta el intercambio de datos para continuar',
+            consultationBooked: '¡Consulta agendada!',
+            reminderBefore24h: 'Recibirás un recordatorio 24h antes',
+            viewMyConsultations: 'Ver mis consultas',
+            backToHome: 'Volver al inicio',
+            schedulingError: 'Error al agendar. Inténtalo de nuevo.',
+            locale: 'es-ES',
+            weekdays: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+            months: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+        },
+        faq: {
+            title: 'Preguntas Frecuentes',
+            subtitle: 'Encuentra respuestas rápidas antes de contactar el soporte',
+            all: 'Todas',
+            categories: {
+                nutricao: '🥗 Nutrición',
+                glp1: '💊 GLP-1',
+                financeiro: '💳 Financiero',
+                tecnico: '⚙️ Técnico',
+                conta: '👤 Cuenta',
+                sugestao: '💡 Programa de Referidos',
+            },
+            notFound: '¿No encontraste lo que buscabas?',
+            teamReady: '¡Nuestro equipo está listo para ayudarte!',
+            contactSupport: 'Contactar soporte',
         },
     },
 };

@@ -21,6 +21,7 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
   influencerRecord,
   influencerLink,
 }) => {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [showChangePass, setShowChangePass] = useState(false);
   const [newPass, setNewPass] = useState('');
@@ -41,15 +42,15 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPassMsg(null);
-    if (newPass.length < 8) { setPassMsg({ type: 'error', text: 'Mínimo 8 caracteres.' }); return; }
-    if (newPass !== confirmPass) { setPassMsg({ type: 'error', text: 'As senhas não coincidem.' }); return; }
+    if (newPass.length < 8) { setPassMsg({ type: 'error', text: t.profile.influencer.minCharsError }); return; }
+    if (newPass !== confirmPass) { setPassMsg({ type: 'error', text: t.profile.influencer.passwordMismatchError }); return; }
     setSavingPass(true);
     const { error } = await supabase.auth.updateUser({ password: newPass });
     setSavingPass(false);
     if (error) {
       setPassMsg({ type: 'error', text: error.message });
     } else {
-      setPassMsg({ type: 'success', text: 'Senha alterada com sucesso!' });
+      setPassMsg({ type: 'success', text: t.profile.influencer.passwordChangedSuccess });
       setNewPass(''); setConfirmPass(''); setShowChangePass(false);
     }
   };
@@ -59,9 +60,9 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
       {/* Métricas */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: <TrendingUp className="w-5 h-5 text-[#2ECC71]" />, label: 'Indicações', value: String(influencerRecord.total_referrals ?? 0) },
-          { icon: <Clock className="w-5 h-5 text-[#2ECC71]" />, label: 'Pendente', value: fmtCurrency(influencerRecord.pending_amount ?? 0) },
-          { icon: <DollarSign className="w-5 h-5 text-[#2ECC71]" />, label: 'Total ganho', value: fmtCurrency(influencerRecord.total_earned ?? 0) },
+          { icon: <TrendingUp className="w-5 h-5 text-[#2ECC71]" />, label: t.profile.influencer.referrals, value: String(influencerRecord.total_referrals ?? 0) },
+          { icon: <Clock className="w-5 h-5 text-[#2ECC71]" />, label: t.profile.influencer.pending, value: fmtCurrency(influencerRecord.pending_amount ?? 0) },
+          { icon: <DollarSign className="w-5 h-5 text-[#2ECC71]" />, label: t.profile.influencer.totalEarned, value: fmtCurrency(influencerRecord.total_earned ?? 0) },
         ].map(({ icon, label, value }) => (
           <div key={label} className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/10 rounded-xl p-4 text-center">
             <div className="flex justify-center mb-2">{icon}</div>
@@ -73,9 +74,9 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
 
       {/* Link de indicação */}
       <div className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/10 rounded-2xl p-5">
-        <p className="text-sm font-bold text-Malama-main dark:text-white mb-1">Seu link de indicação</p>
+        <p className="text-sm font-bold text-Malama-main dark:text-white mb-1">{t.profile.influencer.referralLink}</p>
         <p className="text-xs text-Malama-muted dark:text-gray-400 mb-3">
-          Compartilhe este link. A cada novo usuário cadastrado, você ganha{' '}
+          {t.profile.influencer.shareLink}{' '}
           <span className="text-[#2ECC71] font-semibold">{fmtCurrency(influencerRecord.commission_per_referral ?? 0)}</span>.
         </p>
         <div className="flex gap-2">
@@ -87,7 +88,7 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
             className="flex items-center gap-1.5 px-3 py-2 border border-Malama-border dark:border-white/10 rounded-lg text-xs text-Malama-muted dark:text-gray-300 hover:bg-Malama-bg dark:hover:bg-white/5 transition whitespace-nowrap"
           >
             {copied ? <Check className="w-4 h-4 text-[#2ECC71]" /> : <Copy className="w-4 h-4" />}
-            {copied ? 'Copiado!' : 'Copiar'}
+            {copied ? t.profile.influencer.copied : t.profile.influencer.copy}
           </button>
         </div>
       </div>
@@ -95,12 +96,12 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
       {/* Alterar senha */}
       <div className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/10 rounded-2xl p-5">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-bold text-Malama-main dark:text-white">Alterar senha</p>
+          <p className="text-sm font-bold text-Malama-main dark:text-white">{t.profile.influencer.changePassword}</p>
           <button
             onClick={() => setShowChangePass(v => !v)}
             className="text-[#2ECC71] text-sm hover:underline"
           >
-            {showChangePass ? 'Cancelar' : 'Alterar'}
+            {showChangePass ? t.profile.influencer.cancel : t.profile.influencer.change}
           </button>
         </div>
 
@@ -111,7 +112,7 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
                 type={showPass ? 'text' : 'password'}
                 value={newPass}
                 onChange={e => setNewPass(e.target.value)}
-                placeholder="Nova senha (mínimo 8 caracteres)"
+                placeholder={t.profile.influencer.newPasswordPlaceholder}
                 className="w-full pr-10 px-3 py-2.5 bg-Malama-bg dark:bg-white/5 border border-Malama-border dark:border-white/10 rounded-lg text-Malama-main dark:text-white text-sm placeholder-gray-400 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent outline-none"
               />
               <button type="button" onClick={() => setShowPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-Malama-muted dark:text-gray-400">
@@ -122,7 +123,7 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
               type={showPass ? 'text' : 'password'}
               value={confirmPass}
               onChange={e => setConfirmPass(e.target.value)}
-              placeholder="Confirmar nova senha"
+              placeholder={t.profile.influencer.confirmPasswordPlaceholder}
               className="w-full px-3 py-2.5 bg-Malama-bg dark:bg-white/5 border border-Malama-border dark:border-white/10 rounded-lg text-Malama-main dark:text-white text-sm placeholder-gray-400 focus:ring-2 focus:ring-[#2ECC71] focus:border-transparent outline-none"
             />
             {passMsg && (
@@ -135,7 +136,7 @@ const InfluencerCard: React.FC<{ influencerRecord: InfluencerRecord; influencerL
               type="submit" disabled={savingPass}
               className="w-full py-2.5 bg-[#2ECC71] hover:bg-[#27ae60] text-white font-semibold rounded-xl transition disabled:opacity-50"
             >
-              {savingPass ? 'Salvando...' : 'Salvar nova senha'}
+              {savingPass ? t.profile.influencer.saving : t.profile.influencer.savePassword}
             </button>
           </form>
         )}
@@ -193,13 +194,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert(language === 'pt' ? 'Por favor, selecione uma imagem válida.' : 'Please select a valid image.');
+      alert(t.profile.avatarInvalidImage);
       return;
     }
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      alert(language === 'pt' ? 'A imagem deve ter no máximo 2MB.' : 'Image must be at most 2MB.');
+      alert(t.profile.avatarMaxSize);
       return;
     }
 
@@ -222,7 +223,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
         if (updateError) {
           console.error('[ProfileView] Profile update error:', updateError);
-          alert(language === 'pt' ? 'Erro ao atualizar perfil.' : 'Error updating profile.');
+          alert(t.profile.avatarUpdateError);
         } else {
           console.log('[ProfileView] Profile updated with new avatar');
           // Update local profile state immediately
@@ -232,13 +233,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       };
       reader.onerror = () => {
         console.error('[ProfileView] Failed to read file');
-        alert(language === 'pt' ? 'Erro ao processar imagem.' : 'Error processing image.');
+        alert(t.profile.avatarProcessingError);
         setUploadingAvatar(false);
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('[ProfileView] Avatar upload error:', error);
-      alert(language === 'pt' ? 'Erro ao processar imagem.' : 'Error processing image.');
+      alert(t.profile.avatarProcessingError);
       setUploadingAvatar(false);
     }
   };
@@ -506,11 +507,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             ) : heatmapData.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <span className="material-symbols-outlined text-Malama-muted dark:text-gray-500 mb-2" style={{ fontSize: '48px' }}>calendar_month</span>
-                <p className="text-sm font-medium text-Malama-main dark:text-white mb-1">{t.profile.noDataYet || 'Nenhum dado ainda'}</p>
+                <p className="text-sm font-medium text-Malama-main dark:text-white mb-1">{t.profile.noDataYet}</p>
                 <p className="text-xs text-Malama-muted dark:text-gray-400 max-w-[200px]">
-                  {language === 'pt'
-                    ? 'Registre suas refeições para ver seu progresso aqui.'
-                    : 'Log your meals to see your progress here.'}
+                  {t.profile.logMealsProgress}
                 </p>
               </div>
             ) : (
@@ -578,8 +577,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>bar_chart</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-Malama-main dark:text-white">Meus Dados</span>
-                <span className="text-xs text-Malama-muted dark:text-gray-400">Métricas, evolução e histórico</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white">{t.profile.myData}</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">{t.profile.myDataSubtitle}</span>
               </div>
             </div>
             <span className="material-symbols-outlined text-Malama-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>
@@ -611,8 +610,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <span className="material-symbols-outlined">videocam</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-Malama-main dark:text-white">Teleconsulta médica</span>
-                <span className="text-xs text-Malama-muted dark:text-gray-400">Agendar consulta com especialista</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white">{t.profile.teleconsultation}</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">{t.profile.teleconsultationSubtitle}</span>
               </div>
             </div>
             <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
@@ -628,8 +627,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <span className="material-symbols-outlined">event_note</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-Malama-main dark:text-white">Minhas consultas</span>
-                <span className="text-xs text-Malama-muted dark:text-gray-400">Histórico, receitas e avaliações</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white">{t.profile.myConsultations}</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">{t.profile.myConsultationsSubtitle}</span>
               </div>
             </div>
             <span className="material-symbols-outlined text-Malama-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>
@@ -646,11 +645,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-Malama-main dark:text-white font-bold text-sm">Programa GLP-1</h3>
-                    <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold rounded-full">Ativo</span>
+                    <h3 className="text-Malama-main dark:text-white font-bold text-sm">{t.profile.glp1Program}</h3>
+                    <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold rounded-full">{t.profile.glp1Active}</span>
                   </div>
                   <p className="text-Malama-muted dark:text-gray-400 text-xs leading-relaxed">
-                    {profile.glp1_medication || 'GLP-1'} — Veja todos os detalhes na aba <span className="font-semibold text-green-600 dark:text-green-400">Início</span>
+                    {profile.glp1_medication || 'GLP-1'} {t.profile.glp1SeeDetailsIn} <span className="font-semibold text-green-600 dark:text-green-400">{t.nav.home}</span>
                   </p>
                 </div>
               </div>
@@ -669,8 +668,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <HelpCircle className="w-7 h-7 text-blue-500 dark:text-blue-400" />
               </div>
               <div className="flex-1">
-                <h3 className="text-Malama-main dark:text-white font-bold text-sm mb-1">Central de Ajuda</h3>
-                <p className="text-Malama-muted dark:text-gray-400 text-xs leading-relaxed">FAQ, tutoriais e suporte ao vivo</p>
+                <h3 className="text-Malama-main dark:text-white font-bold text-sm mb-1">{t.profile.helpCenter}</h3>
+                <p className="text-Malama-muted dark:text-gray-400 text-xs leading-relaxed">{t.profile.helpCenterSubtitle}</p>
               </div>
               <span className="material-symbols-outlined text-blue-500 dark:text-blue-400 group-hover:translate-x-1 transition-transform">chevron_right</span>
             </div>
@@ -679,7 +678,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
         {/* Corpo & Métricas */}
         <section className="w-full px-6 mb-8">
-          <h3 className="text-Malama-main dark:text-white text-base font-bold mb-3">Corpo & Métricas</h3>
+          <h3 className="text-Malama-main dark:text-white text-base font-bold mb-3">{t.profile.bodyAndMetrics}</h3>
           <div className="bg-white dark:bg-surface-dark rounded-2xl border border-Malama-border dark:border-white/10 overflow-hidden shadow-sm">
 
             {/* Body Scan row */}
@@ -691,8 +690,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <span className="material-symbols-outlined text-[22px]" style={{ color: '#8b5cf6' }}>photo_camera</span>
               </div>
               <div className="flex-1">
-                <span className="text-sm font-bold text-Malama-main dark:text-white block">Body Scan AI</span>
-                <span className="text-xs text-Malama-muted dark:text-gray-400">Fotos + análise de composição corporal</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white block">{t.profile.bodyScanAI}</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">{t.profile.bodyScanSubtitle}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -715,8 +714,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 <span className="material-symbols-outlined text-[22px]" style={{ color: '#10b981' }}>insights</span>
               </div>
               <div className="flex-1">
-                <span className="text-sm font-bold text-Malama-main dark:text-white block">Gráficos de Evolução</span>
-                <span className="text-xs text-Malama-muted dark:text-gray-400">Peso, gordura, músculo e medidas</span>
+                <span className="text-sm font-bold text-Malama-main dark:text-white block">{t.profile.evolutionCharts}</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">{t.profile.evolutionChartsSubtitle}</span>
               </div>
               <span className="material-symbols-outlined text-Malama-muted dark:text-gray-500 group-hover:translate-x-0.5 transition-transform">chevron_right</span>
             </div>
@@ -800,7 +799,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <div className="sticky top-0 bg-Malama-bg dark:bg-background-dark pt-3 pb-2 px-6 border-b border-Malama-border dark:border-white/10">
               <div className="w-10 h-1 bg-Malama-border dark:bg-slate-600 rounded-full mx-auto mb-3" />
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-Malama-main dark:text-white">Central de Ajuda</h3>
+                <h3 className="text-lg font-bold text-Malama-main dark:text-white">{t.profile.helpCenter}</h3>
                 <button
                   onClick={() => setShowSupportModal(false)}
                   className="p-2 rounded-lg hover:bg-Malama-main/5 dark:hover:bg-white/10 transition-colors"
