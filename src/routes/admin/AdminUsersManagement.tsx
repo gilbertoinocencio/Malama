@@ -514,6 +514,8 @@ export const AdminUsersManagement: React.FC = () => {
   const totalLtv      = filtered.reduce((sum, u) => sum + u.ltv, 0);
   const totalConsults = filtered.reduce((sum, u) => sum + u.consultations_count, 0);
   const referralCount = filtered.filter(u => u.acquisition_channel === 'referral').length;
+  const b2bCount      = users.filter(u => !!vinculos[u.id]).length;
+  const b2cCount      = users.length - b2bCount;
 
   return (
     <div className="space-y-6">
@@ -781,15 +783,17 @@ export const AdminUsersManagement: React.FC = () => {
       ) : (
         <>
       {/* ── Cards de métricas ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {[
-          { icon: <User className="w-5 h-5 text-[#7d4a3c]" />,        label: 'Total de usuários',     value: filtered.length.toString() },
-          { icon: <DollarSign className="w-5 h-5 text-[#7d4a3c]" />,  label: 'LTV acumulado',         value: fmtCurrency(totalLtv) },
-          { icon: <Calendar className="w-5 h-5 text-[#7d4a3c]" />,    label: 'Consultas realizadas',  value: totalConsults.toString() },
-          { icon: <Stethoscope className="w-5 h-5 text-[#7d4a3c]" />, label: 'Via indicação médica',  value: referralCount.toString() },
-        ].map(({ icon, label, value }) => (
+          { icon: <User className="w-5 h-5 text-[#7d4a3c]" />,        label: 'Total de usuários',     value: users.length.toString(),     accent: false },
+          { icon: <User className="w-5 h-5 text-blue-600" />,          label: 'B2B (empresas)',         value: b2bCount.toString(),          accent: false, color: 'bg-blue-50 text-blue-600' },
+          { icon: <User className="w-5 h-5 text-green-600" />,         label: 'B2C (direto)',           value: b2cCount.toString(),          accent: false, color: 'bg-green-50 text-green-600' },
+          { icon: <DollarSign className="w-5 h-5 text-[#7d4a3c]" />,  label: 'LTV acumulado',         value: fmtCurrency(totalLtv),        accent: false },
+          { icon: <Calendar className="w-5 h-5 text-[#7d4a3c]" />,    label: 'Consultas realizadas',  value: totalConsults.toString(),      accent: false },
+          { icon: <Stethoscope className="w-5 h-5 text-[#7d4a3c]" />, label: 'Via indicação médica',  value: referralCount.toString(),      accent: false },
+        ].map(({ icon, label, value, color }) => (
           <div key={label} className="bg-white rounded-xl shadow p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#7d4a3c]/10 flex items-center justify-center flex-shrink-0">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${color ? color : 'bg-[#7d4a3c]/10'}`}>
               {icon}
             </div>
             <div>
