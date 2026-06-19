@@ -66,7 +66,7 @@ Deno.serve(async (req: Request) => {
     // 1. Carregar empresa
     const { data: empresa, error: empErr } = await supabaseAdmin
       .from('empresas')
-      .select('id, nome, cnpj, cobranca_email, responsavel_email, valor_por_assento, asaas_customer_id')
+      .select('id, nome, cnpj, cobranca_email, responsavel_email, valor_por_assento, max_assentos, max_assentos_agendado, max_assentos_vigencia, asaas_customer_id')
       .eq('id', empresa_id)
       .single();
     if (empErr || !empresa) return json({ error: 'Empresa não encontrada' }, 404);
@@ -74,14 +74,26 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'Defina o valor por assento da empresa antes de cobrar' }, 422);
     }
 
-    // 2. Assentos ocupados (ativo + convidado) → valor da fatura
-    const { count } = await supabaseAdmin
-      .from('empresa_colaboradores')
-      .select('id', { count: 'exact', head: true })
-      .eq('empresa_id', empresa_id)
-      .in('status', ['ativo', 'convidado']);
-    const assentos = count ?? 0;
-    if (assentos === 0) return json({ error: 'Empresa sem colaboradores para cobrar' }, 422);
+    // Competência = mês do vencimento
+    const competencia = `${vencimento.slice(0, 7)}-01`;
+
+    // 2. Assentos CONTRATADOS → valor da fatura (cobra-se o contratado, não o uso).
+    // Se há redução agendada com vigência ≤ competência desta fatura, aplica-a
+    // (e promove permanentemente em empresas).
+    let maxAssentos = empresa.max_assentos ?? 0;
+    if (empresa.max_assentos_agendado != null && empresa.max_assentos_vigencia &&
+        competencia >= empresa.max_assentos_vigencia) {
+      maxAssentos = empresa.max_assentos_agendado;
+      await supabaseAdmin.from('empresas').update({
+        max_assentos: maxAssentos,
+        max_assentos_agendado: null,
+        max_assentos_vigencia: null,
+      }).eq('id', empresa_id);
+    }
+    const assentos = maxAssentos;
+    if (assentos === 0) {
+      return json({ error: 'Defina a quantidade de assentos contratados (máx. de assentos) antes de cobrar' }, 422);
+    }
     const valor = Number((assentos * Number(empresa.valor_por_assento)).toFixed(2));
 
     // 3. Garantir customer Asaas
@@ -99,8 +111,7 @@ Deno.serve(async (req: Request) => {
       await supabaseAdmin.from('empresas').update({ asaas_customer_id: customerId }).eq('id', empresa_id);
     }
 
-    // 4. Criar registro de fatura (para externalReference) — competência = mês do vencimento
-    const competencia = `${vencimento.slice(0, 7)}-01`;
+    // 4. Criar registro de fatura (para externalReference)
     const { data: fatura, error: fatErr } = await supabaseAdmin
       .from('empresa_faturas')
       .insert([{ empresa_id, competencia, valor, vencimento, status: 'pendente' }])

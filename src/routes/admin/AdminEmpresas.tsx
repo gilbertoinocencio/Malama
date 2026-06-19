@@ -335,7 +335,7 @@ const CobrancaModal: React.FC<{ empresa: EmpresaSummary; onClose: () => void }> 
               </div>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              Valor = assentos ocupados × valor por assento ({empresa.valor_por_assento != null ? fmtCurrency(empresa.valor_por_assento) : '—'}/assento).
+              Valor = assentos contratados ({empresa.max_assentos ?? '—'}) × valor por assento ({empresa.valor_por_assento != null ? fmtCurrency(empresa.valor_por_assento) : '—'}).
             </p>
           </form>
 

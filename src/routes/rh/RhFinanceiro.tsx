@@ -38,6 +38,10 @@ export const RhFinanceiro: React.FC = () => {
   const [cobResp, setCobResp] = useState('');
   const [savingCob, setSavingCob] = useState(false);
 
+  const [editAssentos, setEditAssentos] = useState(false);
+  const [novoAssentos, setNovoAssentos] = useState('');
+  const [savingAssentos, setSavingAssentos] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -70,6 +74,26 @@ export const RhFinanceiro: React.FC = () => {
     }
   };
 
+  const fmtMesAno = (d: string) =>
+    new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  const saveAssentos = async () => {
+    const n = parseInt(novoAssentos, 10);
+    if (!Number.isFinite(n)) { toast.error('Informe um número válido.'); return; }
+    setSavingAssentos(true);
+    try {
+      const vigencia = await rhService.agendarAssentos(n);
+      toast.success(`Redução agendada para ${fmtMesAno(vigencia)}. A fatura atual não muda.`);
+      setEditAssentos(false);
+      setNovoAssentos('');
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || 'Não foi possível agendar a redução.');
+    } finally {
+      setSavingAssentos(false);
+    }
+  };
+
   const copyPix = (payload: string) => {
     navigator.clipboard.writeText(payload).then(
       () => toast.success('Código PIX copiado.'),
@@ -95,7 +119,8 @@ export const RhFinanceiro: React.FC = () => {
     );
   }
 
-  const totalMensal = (resumo.valor_por_assento ?? 0) * resumo.assentos_ocupados;
+  // Total mensal = valor por assento × assentos CONTRATADOS (cobra-se o contratado, não o uso).
+  const totalMensal = (resumo.valor_por_assento ?? 0) * (resumo.max_assentos ?? 0);
   const faturaAtual = faturas.find(f => f.status !== 'pago' && f.status !== 'cancelado') ?? faturas[0];
 
   return (
@@ -139,9 +164,30 @@ export const RhFinanceiro: React.FC = () => {
 
       {/* Resumo do contrato */}
       <div className="bg-white rounded-xl shadow p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Users className="w-5 h-5 text-[#7d4a3c]" />
-          <h2 className="font-semibold text-gray-800">Resumo do contrato</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-[#7d4a3c]" />
+            <h2 className="font-semibold text-gray-800">Resumo do contrato</h2>
+          </div>
+          {!editAssentos ? (
+            <button onClick={() => { setEditAssentos(true); setNovoAssentos(String(resumo.max_assentos ?? '')); }}
+              className="inline-flex items-center gap-1.5 text-sm text-[#7d4a3c] hover:underline">
+              <Pencil className="w-3.5 h-3.5" /> Reduzir assentos
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input type="number" min={resumo.assentos_ocupados} max={(resumo.max_assentos ?? 1) - 1}
+                value={novoAssentos} onChange={e => setNovoAssentos(e.target.value)}
+                className="w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-[#7d4a3c]" />
+              <button onClick={saveAssentos} disabled={savingAssentos}
+                className="inline-flex items-center gap-1 text-sm text-green-600 hover:underline disabled:opacity-50">
+                <Check className="w-4 h-4" /> Agendar
+              </button>
+              <button onClick={() => setEditAssentos(false)} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:underline">
+                <X className="w-4 h-4" /> Cancelar
+              </button>
+            </div>
+          )}
         </div>
         <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
@@ -161,6 +207,20 @@ export const RhFinanceiro: React.FC = () => {
             <dd className="mt-1 text-lg font-semibold text-[#7d4a3c]">{fmtCurrency(totalMensal)}</dd>
           </div>
         </dl>
+
+        {resumo.max_assentos_agendado != null && resumo.max_assentos_vigencia && (
+          <div className="mt-4 flex items-start gap-2 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>
+              Redução agendada: <strong>{resumo.max_assentos_agendado} assentos</strong> a partir de{' '}
+              <strong>{fmtMesAno(resumo.max_assentos_vigencia)}</strong>. A fatura do mês atual mantém o valor vigente.
+            </span>
+          </div>
+        )}
+        <p className="text-xs text-gray-400 mt-3">
+          A cobrança é sempre pelos assentos contratados, independentemente de quantos estão em uso.
+          Reduções passam a valer no mês seguinte. Para aumentar, fale com a Malama.
+        </p>
       </div>
 
       {/* Dados de cobrança */}

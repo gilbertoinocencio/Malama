@@ -141,7 +141,8 @@ export const empresaAdminService = {
       return {
         ...e,
         assentos_ativos: ativos,
-        mrr: ativos * (e.valor_por_assento ?? 0),
+        // Receita = valor por assento × assentos CONTRATADOS (independe do uso).
+        mrr: (e.max_assentos ?? 0) * (e.valor_por_assento ?? 0),
         inadimplente: inadimplentes.has(e.id),
       };
     });
@@ -379,6 +380,8 @@ export type RhResumoFinanceiro = {
   max_assentos: number | null;
   assentos_ocupados: number;
   acesso_bloqueado: boolean;
+  max_assentos_agendado: number | null;
+  max_assentos_vigencia: string | null;
 };
 
 export const rhService = {
@@ -472,6 +475,13 @@ export const rhService = {
       p_responsavel: responsavel,
     });
     if (error) throw error;
+  },
+
+  // RH agenda REDUÇÃO de assentos (vigência no 1º dia do próximo mês). Retorna a data de vigência.
+  async agendarAssentos(novo: number): Promise<string> {
+    const { data, error } = await supabase.rpc('rh_agendar_assentos', { p_novo: novo });
+    if (error) throw error;
+    return data as string;
   },
 
   // ── Compliance NR-1 ─────────────────────────────────
