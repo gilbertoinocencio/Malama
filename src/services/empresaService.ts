@@ -426,6 +426,26 @@ export type RhComplianceMetricas = {
   consultas_realizadas: number;
 };
 
+export type RhMetricasBemestar = {
+  agua_com_dados: number;
+  agua_melhoraram: number;
+  proteina_com_dados: number;
+  proteina_melhoraram: number;
+  atividade_com_dados: number;
+  atividade_melhoraram: number;
+  ativos_total: number;
+  ativos_engajados: number;
+  dias_em_flow: number;
+};
+
+export type RhEvolucaoBemestar = {
+  mes: string;
+  n_contribuintes: number;
+  media_agua: number | null;
+  media_proteina: number | null;
+  media_minutos: number | null;
+};
+
 export type ComplianceDoc = {
   id: string;
   empresa_id: string;
@@ -559,6 +579,21 @@ export const rhService = {
     if (error) { console.error('[rhService] compliance métricas:', error.message); return null; }
     const row = Array.isArray(data) ? data[0] : data;
     return row ?? null;
+  },
+
+  // Indicadores agregados de bem-estar (água, proteína, atividade, engajamento, dias em Flow).
+  // Tolerante a erro: a RPC só existe após a migration 20260623.
+  async getMetricasBemestar(): Promise<RhMetricasBemestar | null> {
+    const { data, error } = await supabase.rpc('rh_metricas_bemestar');
+    if (error) { console.error('[rhService] métricas bem-estar:', error.message); return null; }
+    const row = Array.isArray(data) ? data[0] : data;
+    return row ?? null;
+  },
+
+  async getEvolucaoBemestar(): Promise<RhEvolucaoBemestar[]> {
+    const { data, error } = await supabase.rpc('rh_evolucao_bemestar');
+    if (error) { console.error('[rhService] evolução bem-estar:', error.message); return []; }
+    return (data ?? []) as RhEvolucaoBemestar[];
   },
 
   async getComplianceDocs(): Promise<ComplianceDoc[]> {
