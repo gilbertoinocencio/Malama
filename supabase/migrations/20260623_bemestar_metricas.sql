@@ -93,10 +93,10 @@ RETURNS TABLE (
   ),
   flow AS (
     SELECT COUNT(*) AS dias
-    FROM daily_logs dl
-    JOIN colabs c ON c.user_id = dl.user_id
-    WHERE dl.in_flow = true
-      AND dl.date >= (SELECT d0 FROM janela) AND dl.date <= (SELECT d1 FROM janela)
+    FROM flow_stats fs
+    JOIN colabs c ON c.user_id = fs.user_id
+    WHERE fs.in_flow = true
+      AND fs.date >= (SELECT d0 FROM janela) AND fs.date <= (SELECT d1 FROM janela)
   )
   SELECT
     (SELECT COUNT(*)::INT FROM agua WHERE a1 IS NOT NULL AND a2 IS NOT NULL),
