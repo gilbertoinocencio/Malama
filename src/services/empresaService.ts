@@ -220,6 +220,21 @@ export const empresaAdminService = {
     };
   },
 
+  async getAllFaturas(statusFilter?: EmpresaFatura['status']): Promise<(EmpresaFatura & { empresa_nome: string })[]> {
+    let q = supabase
+      .from('empresa_faturas')
+      .select('*, empresas(nome)')
+      .order('created_at', { ascending: false });
+    if (statusFilter) q = q.eq('status', statusFilter);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []).map((row: any) => ({
+      ...row,
+      empresa_nome: row.empresas?.nome ?? '–',
+      empresas: undefined,
+    }));
+  },
+
   // Cria empresa + conta de login do RH (via Edge Function service_role)
   async create(payload: {
     empresa: Partial<Empresa>;
