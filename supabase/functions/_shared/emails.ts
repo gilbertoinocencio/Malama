@@ -81,11 +81,11 @@ export function brandedEmailHtml(opts: {
 
           <!-- ░░ BANNER ░░ -->
           <tr>
-            <td style="background-color:${COLOR.main};padding:36px 40px 30px;" align="left">
+            <td style="background-color:${COLOR.petrolLight};padding:34px 40px 28px;border-bottom:1px solid ${COLOR.border};" align="left">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
                   <td align="left">
-                    <img src="${LOGO_URL}" alt="Malama" height="40" style="height:40px;width:auto;display:block;border:0;outline:none;text-decoration:none;">
+                    <img src="${LOGO_URL}" alt="Malama" height="50" style="height:50px;width:auto;display:block;border:0;outline:none;text-decoration:none;">
                   </td>
                 </tr>
                 <tr>
