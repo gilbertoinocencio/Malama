@@ -113,6 +113,18 @@ export type B2BDashboard = {
   leads_pendentes: number;
 };
 
+export type B2BDashboardStats = {
+  empresas_ativas: number;
+  novas_mes: number;
+  total_assentos: number;
+  total_colaboradores: number;
+  mrr_b2b: number;
+  bloqueadas: number;
+  inadimplentes: number;
+  reducoes_agendadas: number;
+  leads_pendentes: number;
+};
+
 const OCUPAM_ASSENTO: ColaboradorStatus[] = ['ativo', 'convidado'];
 
 // ─── Super Admin ───────────────────────────────────────
@@ -163,6 +175,48 @@ export const empresaAdminService = {
       total_colaboradores: empresas.reduce((s, e) => s + e.assentos_ativos, 0),
       mrr_total: ativas.reduce((s, e) => s + e.mrr, 0),
       leads_pendentes: leads.count ?? 0,
+    };
+  },
+
+  async getDashboardStats(): Promise<B2BDashboardStats> {
+    const primeiroDiaDoMes = new Date();
+    primeiroDiaDoMes.setDate(1);
+    primeiroDiaDoMes.setHours(0, 0, 0, 0);
+
+    const [
+      { data: empresas },
+      { count: totalColabs },
+      { count: inadimplentes },
+      { count: leads },
+    ] = await Promise.all([
+      supabase
+        .from('empresas')
+        .select('id, status, max_assentos, valor_por_assento, acesso_bloqueado, max_assentos_agendado, created_at'),
+      supabase
+        .from('empresa_colaboradores')
+        .select('*', { count: 'exact', head: true })
+        .in('status', OCUPAM_ASSENTO),
+      supabase
+        .from('empresa_faturas')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'atrasado'),
+      supabase
+        .from('empresa_leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'novo'),
+    ]);
+
+    const ativas = (empresas ?? []).filter(e => e.status === 'ativa');
+    return {
+      empresas_ativas: ativas.length,
+      novas_mes: ativas.filter(e => new Date(e.created_at) >= primeiroDiaDoMes).length,
+      total_assentos: ativas.reduce((s, e) => s + (e.max_assentos ?? 0), 0),
+      total_colaboradores: totalColabs ?? 0,
+      mrr_b2b: ativas.reduce((s, e) => s + (e.max_assentos ?? 0) * (e.valor_por_assento ?? 0), 0),
+      bloqueadas: ativas.filter(e => e.acesso_bloqueado).length,
+      inadimplentes: inadimplentes ?? 0,
+      reducoes_agendadas: ativas.filter(e => e.max_assentos_agendado != null).length,
+      leads_pendentes: leads ?? 0,
     };
   },
 
