@@ -1725,6 +1725,19 @@ export type AdminUserDetail = AdminUserSummary & {
   }>;
 };
 
+export type AdminColaboradorB2B = {
+  id: string;
+  empresa_id: string;
+  empresa_nome: string;
+  user_id: string | null;
+  email: string;
+  status: 'convidado' | 'ativo' | 'removido';
+  data_adicao: string;
+  data_ativacao: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
 // =====================================================
 // ADMIN
 // =====================================================
@@ -1885,6 +1898,53 @@ export const adminService = {
         type: c.type,
       })) ?? [],
     };
+  },
+
+  // Mapa user_id → empresa_nome para usuários B2B ativos
+  async getVinculosEmpresa(): Promise<Record<string, string>> {
+    const { data } = await supabase
+      .from('empresa_colaboradores')
+      .select('user_id, empresas(nome)')
+      .eq('status', 'ativo')
+      .not('user_id', 'is', null);
+    const map: Record<string, string> = {};
+    (data ?? []).forEach((c: any) => {
+      if (c.user_id) map[c.user_id] = c.empresas?.nome ?? '';
+    });
+    return map;
+  },
+
+  // Todos os colaboradores B2B (ativos + convidados) com dados de perfil
+  async getAllColaboradoresB2B(): Promise<AdminColaboradorB2B[]> {
+    const { data, error } = await supabase
+      .from('empresa_colaboradores')
+      .select('*, empresas(nome)')
+      .neq('status', 'removido')
+      .order('data_adicao', { ascending: false });
+    if (error) throw error;
+
+    const userIds = (data ?? []).filter(c => c.user_id).map(c => c.user_id as string);
+    const profileMap: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', userIds);
+      (profiles ?? []).forEach(p => { profileMap[p.id] = p; });
+    }
+
+    return (data ?? []).map((c: any) => ({
+      id: c.id,
+      empresa_id: c.empresa_id,
+      empresa_nome: c.empresas?.nome ?? '—',
+      user_id: c.user_id,
+      email: c.email,
+      status: c.status,
+      data_adicao: c.data_adicao,
+      data_ativacao: c.data_ativacao,
+      display_name: c.user_id ? (profileMap[c.user_id]?.display_name ?? null) : null,
+      avatar_url: c.user_id ? (profileMap[c.user_id]?.avatar_url ?? null) : null,
+    }));
   },
 
   async getDashboardSummary(): Promise<AdminDashboardSummary> {

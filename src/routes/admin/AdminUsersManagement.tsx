@@ -9,10 +9,11 @@ import {
 } from 'recharts';
 import {
   Search, X, User, Calendar, DollarSign,
-  Stethoscope, Globe, Share2, TrendingUp, Hash, Mail, Clock, CheckCircle
+  Stethoscope, Globe, Share2, TrendingUp, Hash, Mail, Clock, CheckCircle,
+  Building2, UserCheck,
 } from 'lucide-react';
 import { adminService } from '../../services/doctorPortalService';
-import type { AdminUserSummary, AdminUserDetail } from '../../services/doctorPortalService';
+import type { AdminUserSummary, AdminUserDetail, AdminColaboradorB2B } from '../../services/doctorPortalService';
 import { supabase } from '../../services/supabase';
 import toast from 'react-hot-toast';
 
@@ -416,19 +417,29 @@ export const AdminUsersManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [channelFilter, setChannelFilter] = useState<string>('all');
+  const [vinculos, setVinculos] = useState<Record<string, string>>({});
 
   // Fila de espera
-  const [activeTab, setActiveTab] = useState<'usuarios' | 'fila'>('usuarios');
+  const [activeTab, setActiveTab] = useState<'usuarios' | 'fila' | 'b2b'>('usuarios');
   const [patientLeads, setPatientLeads] = useState<PatientLead[]>([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [leadSearch, setLeadSearch] = useState('');
   const [invitingLeadId, setInvitingLeadId] = useState<string | null>(null);
 
+  // Colaboradores B2B
+  const [colabsB2B, setColabsB2B] = useState<AdminColaboradorB2B[]>([]);
+  const [b2bLoading, setB2bLoading] = useState(false);
+  const [b2bSearch, setB2bSearch] = useState('');
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await adminService.getAllUsers(search || undefined);
+      const [data, vinc] = await Promise.all([
+        adminService.getAllUsers(search || undefined),
+        adminService.getVinculosEmpresa(),
+      ]);
       setUsers(data);
+      setVinculos(vinc);
     } catch (err) {
       console.error('Erro ao carregar usuários:', err);
     } finally {
@@ -443,7 +454,20 @@ export const AdminUsersManagement: React.FC = () => {
 
   useEffect(() => {
     if (activeTab === 'fila') loadPatientLeads();
+    if (activeTab === 'b2b') loadColabsB2B();
   }, [activeTab]);
+
+  const loadColabsB2B = async () => {
+    setB2bLoading(true);
+    try {
+      const data = await adminService.getAllColaboradoresB2B();
+      setColabsB2B(data);
+    } catch (err) {
+      console.error('Erro ao carregar colaboradores B2B:', err);
+    } finally {
+      setB2bLoading(false);
+    }
+  };
 
   const loadPatientLeads = async () => {
     setLeadsLoading(true);
@@ -481,7 +505,9 @@ export const AdminUsersManagement: React.FC = () => {
 
   const filtered = channelFilter === 'all'
     ? users
-    : users.filter(u => (u.acquisition_channel ?? 'organic') === channelFilter);
+    : channelFilter === 'b2b'
+      ? users.filter(u => !!vinculos[u.id])
+      : users.filter(u => (u.acquisition_channel ?? 'organic') === channelFilter);
 
   const charts = useChartData(filtered);
 
@@ -501,6 +527,17 @@ export const AdminUsersManagement: React.FC = () => {
           Usuários Cadastrados
         </button>
         <button
+          onClick={() => setActiveTab('b2b')}
+          className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'b2b' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Colaboradores B2B
+          {Object.keys(vinculos).length > 0 && (
+            <span className="ml-2 px-1.5 py-0.5 bg-blue-600 text-white text-xs rounded-full">
+              {Object.keys(vinculos).length}
+            </span>
+          )}
+        </button>
+        <button
           onClick={() => setActiveTab('fila')}
           className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'fila' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
         >
@@ -513,7 +550,137 @@ export const AdminUsersManagement: React.FC = () => {
         </button>
       </div>
 
-      {activeTab === 'fila' ? (
+      {activeTab === 'b2b' ? (
+        <div className="space-y-4">
+          {/* Cards de resumo */}
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              {
+                icon: <Building2 className="w-5 h-5 text-blue-600" />,
+                label: 'Total de colaboradores',
+                value: colabsB2B.length,
+                bg: 'bg-blue-50',
+              },
+              {
+                icon: <UserCheck className="w-5 h-5 text-green-600" />,
+                label: 'Ativos (cadastrados)',
+                value: colabsB2B.filter(c => c.status === 'ativo').length,
+                bg: 'bg-green-50',
+              },
+              {
+                icon: <Clock className="w-5 h-5 text-yellow-600" />,
+                label: 'Aguardando cadastro',
+                value: colabsB2B.filter(c => c.status === 'convidado').length,
+                bg: 'bg-yellow-50',
+              },
+            ].map(({ icon, label, value, bg }) => (
+              <div key={label} className={`${bg} rounded-xl p-4 flex items-center gap-3`}>
+                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                  {icon}
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-800">{value}</p>
+                  <p className="text-xs text-gray-500">{label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Busca */}
+          <div className="bg-white rounded-xl shadow p-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={b2bSearch}
+                onChange={e => setB2bSearch(e.target.value)}
+                placeholder="Buscar por nome, email ou empresa..."
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Tabela */}
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            {b2bLoading ? (
+              <div className="flex items-center justify-center h-40">
+                <div className="w-8 h-8 rounded-full border-4 border-[#7d4a3c] border-t-transparent animate-spin" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Colaborador</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Empresa</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Adicionado em</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Ativado em</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {colabsB2B
+                      .filter(c => {
+                        if (!b2bSearch) return true;
+                        const q = b2bSearch.toLowerCase();
+                        return (
+                          c.email.toLowerCase().includes(q) ||
+                          (c.display_name ?? '').toLowerCase().includes(q) ||
+                          c.empresa_nome.toLowerCase().includes(q)
+                        );
+                      })
+                      .map(c => (
+                        <tr key={c.id} className="hover:bg-gray-50 transition">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <Avatar name={c.display_name ?? c.email} url={c.avatar_url} size="sm" />
+                              <div>
+                                <p className="font-medium text-gray-800 text-sm">
+                                  {c.display_name ?? <span className="text-gray-400 italic">Sem nome</span>}
+                                </p>
+                                <p className="text-xs text-gray-400">{c.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1 text-sm text-blue-700 font-medium">
+                              <Building2 className="w-3.5 h-3.5" />
+                              {c.empresa_nome}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {c.status === 'ativo' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                                <UserCheck className="w-3 h-3" /> Ativo
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
+                                <Clock className="w-3 h-3" /> Aguardando
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">
+                            {fmtDate(c.data_adicao)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell">
+                            {c.data_ativacao ? fmtDate(c.data_ativacao) : <span className="text-gray-300">—</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    {colabsB2B.length === 0 && !b2bLoading && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-12 text-center text-gray-400 text-sm">
+                          Nenhum colaborador B2B encontrado.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : activeTab === 'fila' ? (
         <div className="space-y-4">
           {/* Busca leads */}
           <div className="bg-white rounded-xl shadow p-4">
@@ -676,6 +843,7 @@ export const AdminUsersManagement: React.FC = () => {
           className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
         >
           <option value="all">Todos os canais</option>
+          <option value="b2b">B2B (empresas)</option>
           <option value="referral">Indicação médica</option>
           <option value="website">Site</option>
           <option value="social">Redes sociais</option>
@@ -715,9 +883,17 @@ export const AdminUsersManagement: React.FC = () => {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <Avatar name={user.display_name} url={user.avatar_url} size="sm" />
-                        <span className="font-medium text-gray-800 text-sm">
-                          {user.display_name ?? <span className="text-gray-400 italic">Sem nome</span>}
-                        </span>
+                        <div>
+                          <span className="font-medium text-gray-800 text-sm">
+                            {user.display_name ?? <span className="text-gray-400 italic">Sem nome</span>}
+                          </span>
+                          {vinculos[user.id] && (
+                            <p className="text-xs text-blue-600 flex items-center gap-1 mt-0.5">
+                              <Building2 className="w-3 h-3 flex-shrink-0" />
+                              {vinculos[user.id]}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
