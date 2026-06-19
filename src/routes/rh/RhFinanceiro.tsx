@@ -172,7 +172,7 @@ export const RhFinanceiro: React.FC = () => {
           {!editAssentos ? (
             <button onClick={() => { setEditAssentos(true); setNovoAssentos(String(resumo.max_assentos ?? '')); }}
               className="inline-flex items-center gap-1.5 text-sm text-[#7d4a3c] hover:underline">
-              <Pencil className="w-3.5 h-3.5" /> Reduzir assentos
+              <Pencil className="w-3.5 h-3.5" /> Editar assentos
             </button>
           ) : (
             <div className="flex items-center gap-2">
@@ -218,8 +218,7 @@ export const RhFinanceiro: React.FC = () => {
           </div>
         )}
         <p className="text-xs text-gray-400 mt-3">
-          A cobrança é sempre pelos assentos contratados, independentemente de quantos estão em uso.
-          Reduções passam a valer no mês seguinte. Para aumentar, fale com a Malama.
+          As alterações passam a valer no mês seguinte.
         </p>
       </div>
 
