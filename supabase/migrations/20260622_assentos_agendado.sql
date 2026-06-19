@@ -64,7 +64,10 @@ GRANT EXECUTE ON FUNCTION rh_agendar_assentos(INTEGER) TO authenticated;
 
 -- =====================================================
 -- Atualiza rh_get_resumo_financeiro para devolver o agendamento
+-- (DROP necessário: muda as colunas de retorno)
 -- =====================================================
+
+DROP FUNCTION IF EXISTS rh_get_resumo_financeiro();
 
 CREATE OR REPLACE FUNCTION rh_get_resumo_financeiro()
 RETURNS TABLE (
