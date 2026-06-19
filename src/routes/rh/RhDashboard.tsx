@@ -68,10 +68,16 @@ export const RhDashboard: React.FC = () => {
     setAdding(true);
     try {
       const res = await rhService.inviteColaborador(value);
-      if (res.linked) {
-        toast.success('Colaborador vinculado! Já tem conta e acesso imediato.');
+      if (res.existing) {
+        // Já tem conta Malama → e-mail de ativação; vira "Ativo" quando acessar o app
+        toast.success(
+          res.emailed
+            ? 'Colaborador adicionado! Enviamos um e-mail de ativação — o acesso fica ativo quando ele abrir o app.'
+            : 'Colaborador adicionado! Fica ativo quando ele abrir o app.'
+        );
+        if (!res.emailed && res.warning) toast('O e-mail de ativação não pôde ser enviado agora.', { icon: '⚠️' });
       } else if (res.invited) {
-        toast.success('Convite enviado por e-mail ao colaborador.');
+        toast.success('Convite enviado por e-mail. O acesso fica ativo quando o colaborador acessar o app.');
       } else {
         toast.success('Colaborador adicionado.');
         if (res.warning) toast('O e-mail de convite não pôde ser enviado agora.', { icon: '⚠️' });

@@ -210,6 +210,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sync();
     }, [user?.id]);
 
+    // Ativa vínculos de empresa (B2B2C) ao acessar o app: 'convidado' → 'ativo'.
+    // Cobre tanto quem já tinha conta (e-mail de ativação) quanto quem se
+    // cadastrou pelo convite. Best-effort e silencioso.
+    useEffect(() => {
+        if (!user) return;
+        supabase.rpc('ativar_colaboradores_do_usuario').then(({ error }) => {
+            if (error) console.warn('Ativação de colaborador falhou (best-effort):', error.message);
+        });
+    }, [user?.id]);
+
     // Detectar se o usuário logado é um influencer
     useEffect(() => {
         if (!user) { setInfluencerRecord(null); setInfluencerLoading(false); return; }

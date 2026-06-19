@@ -1,0 +1,97 @@
+<!--
+  Malama — Template de e-mail de CONVITE (usuário novo, sem conta)
+  Onde colar: Supabase Dashboard → Authentication → Email Templates → "Invite user"
+  Variável do Supabase: {{ .ConfirmationURL }} (link de cadastro/confirmação)
+
+  Para o e-mail nativo do Supabase realmente ser entregue, configure o SMTP
+  custom em Authentication → SMTP Settings (ex.: ZeptoMail/Zoho). Sem isso, o
+  envio nativo é limitado e costuma cair em spam.
+
+  Identidade visual idêntica a supabase/functions/_shared/emails.ts
+  (paleta do tailwind.config.js: petrol #8c473e, bg #FDFBF9, main #1C1917).
+-->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>Convite Malama</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F2EBE6;">
+  <span style="display:none!important;visibility:hidden;opacity:0;height:0;width:0;overflow:hidden;mso-hide:all;">Sua empresa liberou o benefício de saúde Malama para você.</span>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F2EBE6;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;background-color:#FDFBF9;border-radius:20px;overflow:hidden;border:1px solid #E7E5E4;">
+
+          <!-- BANNER -->
+          <tr>
+            <td style="background-color:#1C1917;padding:36px 40px 30px;" align="left">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="left">
+                    <img src="https://soumalama.com.br/malama-logo-transparent.png" alt="Malama" height="40" style="height:40px;width:auto;display:block;border:0;outline:none;text-decoration:none;">
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-top:22px;" align="left">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="width:28px;border-bottom:1px solid #8c473e;font-size:0;line-height:0;">&nbsp;</td>
+                        <td style="padding-left:12px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#8c473e;font-family:Helvetica,Arial,sans-serif;">Malama Empresas</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CORPO -->
+          <tr>
+            <td style="padding:38px 40px 8px;" align="left">
+              <h1 style="margin:0 0 22px;font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:34px;line-height:1.12;font-weight:400;color:#1C1917;">
+                Você foi convidado para o <em style="font-style:italic;color:#8c473e;">benefício Malama</em>.
+              </h1>
+              <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#57534E;font-family:Helvetica,Arial,sans-serif;">
+                Sua empresa liberou o acesso à Malama — medicina metabólica, nutrição clínica e acompanhamento de saúde direto no app.
+              </p>
+              <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#57534E;font-family:Helvetica,Arial,sans-serif;">
+                Crie sua conta no botão abaixo para começar sua jornada de cuidado. Leva menos de 2 minutos.
+              </p>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 4px;">
+                <tr>
+                  <td align="center" bgcolor="#1C1917" style="border-radius:999px;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:15px 34px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;font-family:Helvetica,Arial,sans-serif;border-radius:999px;">
+                      Criar minha conta &nbsp;&rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:22px 0 0;font-size:13px;line-height:1.6;color:#57534E;opacity:0.7;font-family:Helvetica,Arial,sans-serif;">
+                Se você não esperava este convite, pode ignorar este e-mail com segurança.
+              </p>
+            </td>
+          </tr>
+
+          <!-- RODAPÉ -->
+          <tr>
+            <td style="padding:30px 40px 36px;" align="left">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr><td style="border-top:1px solid #E7E5E4;font-size:0;line-height:0;height:1px;">&nbsp;</td></tr>
+              </table>
+              <p style="margin:20px 0 4px;font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:20px;color:#8c473e;">Malama</p>
+              <p style="margin:0 0 14px;font-size:13px;color:#57534E;font-family:Helvetica,Arial,sans-serif;">Cuide de quem faz sua empresa crescer.</p>
+              <p style="margin:0;font-size:12px;color:#57534E;opacity:0.6;font-family:Helvetica,Arial,sans-serif;">© 2026 Malama. Todos os direitos reservados.</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

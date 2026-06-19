@@ -6,6 +6,7 @@
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { activationEmailHtml, sendEmail } from '../_shared/emails.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,10 +51,10 @@ Deno.serve(async (req: Request) => {
     if (rhError || !rh) return json({ error: 'Apenas o RH da empresa pode adicionar colaboradores' }, 403);
     const empresaId = rh.empresa_id;
 
-    // 2. Carregar empresa (limite de assentos + status)
+    // 2. Carregar empresa (nome + limite de assentos + status)
     const { data: empresa, error: empError } = await supabaseAdmin
       .from('empresas')
-      .select('max_assentos, status')
+      .select('nome, max_assentos, status')
       .eq('id', empresaId)
       .single();
 
@@ -87,18 +88,28 @@ Deno.serve(async (req: Request) => {
       .rpc('get_user_id_by_email', { p_email: normalizedEmail });
 
     if (existingUserId) {
-      // Vincula mantendo todos os dados do usuário
+      // Já tem conta Malama: cria o vínculo como 'convidado' (reserva o assento)
+      // e envia e-mail de ATIVAÇÃO. O status vira 'ativo' quando o colaborador
+      // acessa o app (RPC ativar_colaboradores_do_usuario). Modelo B2B2C: a pessoa
+      // pode ter trocado de empresa — só ativa de fato ao usar o benefício.
       const { error: insErr } = await supabaseAdmin
         .from('empresa_colaboradores')
         .insert([{
           empresa_id: empresaId,
           user_id: existingUserId,
           email: normalizedEmail,
-          status: 'ativo',
-          data_ativacao: new Date().toISOString(),
+          status: 'convidado',
         }]);
       if (insErr) return json({ error: insErr.message }, 400);
-      return json({ status: 'ativo', linked: true });
+
+      // Usuário existente loga normalmente na raiz do app; a RPC ativa o vínculo no acesso.
+      const appUrl = `${(Deno.env.get('SITE_URL') || 'https://soumalama.com.br').replace(/\/$/, '')}/`;
+      const { sent, warning } = await sendEmail({
+        to: normalizedEmail,
+        subject: `${empresa.nome} liberou seu benefício Malama`,
+        html: activationEmailHtml(empresa.nome, appUrl),
+      });
+      return json({ status: 'convidado', existing: true, emailed: sent, warning });
     }
 
     // 6. Não tem conta — cria registro 'convidado' e envia e-mail de convite
