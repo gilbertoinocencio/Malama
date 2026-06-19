@@ -19,6 +19,9 @@ import { DoctorRoute, AdminRoute, PublicDoctorRoute, RhRoute } from './guards';
 import { RhLogin } from './rh/RhLogin';
 import { RhLayout } from './rh/RhLayout';
 import { RhDashboard } from './rh/RhDashboard';
+import { RhFinanceiro } from './rh/RhFinanceiro';
+import { RhCompliance } from './rh/RhCompliance';
+import { RhImpacto } from './rh/RhImpacto';
 
 // Doctor Pages
 import { DoctorLogin } from './doctor/DoctorLogin';
@@ -60,6 +63,7 @@ import { AdminCommunityModeration } from './admin/AdminCommunityModeration';
 import { AdminSubscriptions } from './admin/AdminSubscriptions';
 import { AdminCreditsLog } from './admin/AdminCreditsLog';
 import { AdminEmpresas } from './admin/AdminEmpresas';
+import { AdminImpacto } from './admin/AdminImpacto';
 
 // Admin Layout
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -75,6 +79,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <a href="/admin/usuarios" className="text-sm hover:text-[#2ECC71] transition">Usuários</a>
             <a href="/admin/influencers" className="text-sm hover:text-[#2ECC71] transition">Influenciadores</a>
             <a href="/admin/empresas" className="text-sm hover:text-[#2ECC71] transition">Empresas</a>
+            <a href="/admin/impacto" className="text-sm hover:text-[#2ECC71] transition">Impacto</a>
             <a href="/admin/financeiro" className="text-sm hover:text-[#2ECC71] transition">Financeiro</a>
             <a href="/admin/assinantes" className="text-sm hover:text-[#2ECC71] transition">Assinantes</a>
             <a href="/admin/creditos" className="text-sm hover:text-[#2ECC71] transition">Créditos</a>
@@ -200,6 +205,17 @@ export const AppRoutes: React.FC = () => {
           />
 
           <Route
+            path="/admin/impacto"
+            element={
+              <AdminGuard>
+                <AdminLayout>
+                  <AdminImpacto />
+                </AdminLayout>
+              </AdminGuard>
+            }
+          />
+
+          <Route
             path="/admin/financeiro"
             element={
               <AdminGuard>
@@ -286,6 +302,9 @@ export const AppRoutes: React.FC = () => {
             }
           >
             <Route path="dashboard" element={<RhDashboard />} />
+            <Route path="financeiro" element={<RhFinanceiro />} />
+            <Route path="compliance" element={<RhCompliance />} />
+            <Route path="impacto" element={<RhImpacto />} />
           </Route>
 
           {/* Landing pages de captação */}

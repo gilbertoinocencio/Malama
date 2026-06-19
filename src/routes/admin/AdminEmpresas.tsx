@@ -5,7 +5,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Plus, Search, X, Building2, Users, DollarSign, TrendingUp,
-  Pause, Play, Ban, Inbox, ExternalLink,
+  Pause, Play, Ban, Inbox, ExternalLink, Lock, Unlock, Receipt, Bell, AlertTriangle,
 } from 'lucide-react';
 import {
   empresaAdminService,
@@ -13,6 +13,8 @@ import {
   type Empresa,
   type EmpresaLead,
   type B2BDashboard,
+  type EmpresaFatura,
+  type BillingEvento,
 } from '../../services/empresaService';
 import toast from 'react-hot-toast';
 
@@ -258,6 +260,126 @@ const EmpresaModal: React.FC<{
   );
 };
 
+// ─── Modal de cobrança (faturas + gerar nova) ──────────
+const fmtFaturaStatus: Record<EmpresaFatura['status'], { label: string; cls: string }> = {
+  pendente: { label: 'Pendente', cls: 'bg-yellow-100 text-yellow-700' },
+  pago:     { label: 'Pago',     cls: 'bg-green-100 text-green-700' },
+  atrasado: { label: 'Atrasado', cls: 'bg-red-100 text-red-700' },
+  cancelado:{ label: 'Cancelado',cls: 'bg-gray-100 text-gray-500' },
+};
+
+const CobrancaModal: React.FC<{ empresa: EmpresaSummary; onClose: () => void }> = ({ empresa, onClose }) => {
+  const [faturas, setFaturas] = useState<EmpresaFatura[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [vencimento, setVencimento] = useState('');
+  const [billingType, setBillingType] = useState<'UNDEFINED' | 'BOLETO' | 'PIX'>('UNDEFINED');
+  const [gerando, setGerando] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { setFaturas(await empresaAdminService.getFaturas(empresa.id)); }
+    catch { toast.error('Erro ao carregar faturas.'); }
+    finally { setLoading(false); }
+  }, [empresa.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleGerar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!vencimento) { toast.error('Informe o vencimento.'); return; }
+    setGerando(true);
+    try {
+      const res = await empresaAdminService.gerarCobranca(empresa.id, { vencimento, billingType });
+      toast.success(`Cobrança de ${fmtCurrency(res.valor)} gerada.`);
+      await load();
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao gerar cobrança.');
+    } finally {
+      setGerando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="bg-[#1A1A1A] px-6 py-4 flex items-center justify-between flex-shrink-0">
+          <h2 className="text-white font-semibold flex items-center gap-2"><Receipt className="w-5 h-5" /> Cobrança — {empresa.nome}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="p-6 space-y-5 overflow-y-auto">
+          {/* Gerar nova cobrança */}
+          <form onSubmit={handleGerar} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Gerar nova cobrança</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Vencimento</label>
+                <input type="date" value={vencimento} onChange={e => setVencimento(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c]" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Forma</label>
+                <select value={billingType} onChange={e => setBillingType(e.target.value as any)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c]">
+                  <option value="UNDEFINED">Boleto + PIX</option>
+                  <option value="BOLETO">Boleto</option>
+                  <option value="PIX">PIX</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button type="submit" disabled={gerando}
+                  className="w-full py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50">
+                  {gerando ? 'Gerando...' : 'Gerar'}
+                </button>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Valor = assentos ocupados × valor por assento ({empresa.valor_por_assento != null ? fmtCurrency(empresa.valor_por_assento) : '—'}/assento).
+            </p>
+          </form>
+
+          {/* Histórico de faturas */}
+          {loading ? (
+            <div className="flex justify-center py-8"><div className="w-6 h-6 rounded-full border-2 border-[#7d4a3c] border-t-transparent animate-spin" /></div>
+          ) : faturas.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">Nenhuma fatura gerada ainda.</p>
+          ) : (
+            <table className="w-full">
+              <thead className="border-b border-gray-200">
+                <tr>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Competência</th>
+                  <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Vencimento</th>
+                  <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase">Link</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {faturas.map(f => (
+                  <tr key={f.id}>
+                    <td className="px-2 py-2 text-sm text-gray-700">{f.competencia.slice(0, 7)}</td>
+                    <td className="px-2 py-2 text-sm text-right text-gray-700">{fmtCurrency(f.valor)}</td>
+                    <td className="px-2 py-2 text-sm text-gray-700">{fmtDate(f.vencimento)}</td>
+                    <td className="px-2 py-2 text-center">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${fmtFaturaStatus[f.status].cls}`}>{fmtFaturaStatus[f.status].label}</span>
+                    </td>
+                    <td className="px-2 py-2 text-right">
+                      {f.asaas_invoice_url
+                        ? <a href={f.asaas_invoice_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-[#7d4a3c] hover:underline">Abrir <ExternalLink className="w-3 h-3" /></a>
+                        : <span className="text-xs text-gray-300">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Componente principal ──────────────────────────────
 export const AdminEmpresas: React.FC = () => {
   const [empresas, setEmpresas] = useState<EmpresaSummary[]>([]);
@@ -268,18 +390,22 @@ export const AdminEmpresas: React.FC = () => {
 
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<EmpresaSummary | null>(null);
+  const [cobranca, setCobranca] = useState<EmpresaSummary | null>(null);
+  const [eventos, setEventos] = useState<BillingEvento[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [list, dash, leadList] = await Promise.all([
+      const [list, dash, leadList, ev] = await Promise.all([
         empresaAdminService.getAll(),
         empresaAdminService.getDashboard(),
         empresaAdminService.getLeads(),
+        empresaAdminService.getBillingEventos(true),
       ]);
       setEmpresas(list);
       setDashboard(dash);
       setLeads(leadList);
+      setEventos(ev);
     } catch (err) {
       console.error('Erro ao carregar empresas:', err);
       toast.error('Erro ao carregar empresas.');
@@ -287,6 +413,27 @@ export const AdminEmpresas: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  const empresaNome = (id: string) => empresas.find(e => e.id === id)?.nome ?? '';
+
+  const handleBloqueio = async (e: EmpresaSummary, bloquear: boolean) => {
+    const motivo = bloquear
+      ? (prompt(`Bloquear acesso dos colaboradores de "${e.nome}"?\nMotivo (opcional):`, 'Inadimplência') ?? undefined)
+      : undefined;
+    if (bloquear && motivo === undefined) return; // cancelou o prompt
+    try {
+      await empresaAdminService.setBloqueio(e.id, bloquear, motivo);
+      toast.success(bloquear ? 'Acesso bloqueado. O RH será notificado.' : 'Acesso reativado.');
+      load();
+    } catch {
+      toast.error('Erro ao atualizar bloqueio.');
+    }
+  };
+
+  const dismissEvento = async (id: string) => {
+    await empresaAdminService.marcarEventoLido(id);
+    setEventos(prev => prev.filter(ev => ev.id !== id));
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -363,6 +510,26 @@ export const AdminEmpresas: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* ── Alertas de billing (eventos não lidos) ── */}
+      {eventos.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+          <div className="flex items-center gap-2 text-amber-800 font-semibold text-sm">
+            <Bell className="w-4 h-4" /> Alertas de cobrança ({eventos.length})
+          </div>
+          {eventos.map(ev => (
+            <div key={ev.id} className="flex items-start justify-between gap-3 text-sm bg-white/60 rounded-lg px-3 py-2">
+              <div className="flex items-start gap-2">
+                {ev.tipo === 'inadimplente' && <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />}
+                <span className="text-gray-700">
+                  <strong>{empresaNome(ev.empresa_id)}</strong> — {ev.descricao}
+                </span>
+              </div>
+              <button onClick={() => dismissEvento(ev.id)} className="text-xs text-gray-400 hover:text-gray-600 whitespace-nowrap">Marcar lido</button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {cards.map(({ icon, label, value }) => (
@@ -438,7 +605,21 @@ export const AdminEmpresas: React.FC = () => {
                     <td className="px-4 py-3 text-right">
                       <span className="text-sm font-semibold text-[#7d4a3c]">{fmtCurrency(e.mrr)}</span>
                     </td>
-                    <td className="px-4 py-3 text-center"><StatusBadge status={e.status} /></td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <StatusBadge status={e.status} />
+                        {e.acesso_bloqueado && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            <Lock className="w-3 h-3" /> Bloqueado
+                          </span>
+                        )}
+                        {!e.acesso_bloqueado && e.inadimplente && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                            <AlertTriangle className="w-3 h-3" /> Inadimplente
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
@@ -447,6 +628,21 @@ export const AdminEmpresas: React.FC = () => {
                         >
                           Editar
                         </button>
+                        <button onClick={() => setCobranca(e)} title="Cobrança / faturas"
+                          className="p-1 text-[#7d4a3c] hover:bg-[#7d4a3c]/10 rounded-lg transition">
+                          <Receipt className="w-4 h-4" />
+                        </button>
+                        {e.acesso_bloqueado ? (
+                          <button onClick={() => handleBloqueio(e, false)} title="Reativar acesso"
+                            className="p-1 text-green-600 hover:bg-green-50 rounded-lg transition">
+                            <Unlock className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button onClick={() => handleBloqueio(e, true)} title="Bloquear acesso"
+                            className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition">
+                            <Lock className="w-4 h-4" />
+                          </button>
+                        )}
                         {e.status === 'ativa' && (
                           <button onClick={() => handleStatus(e, 'pausada')} title="Pausar"
                             className="p-1 text-yellow-500 hover:bg-yellow-50 rounded-lg transition">
@@ -536,6 +732,7 @@ export const AdminEmpresas: React.FC = () => {
       {/* ── Modais ── */}
       {showCreate && <EmpresaModal onSave={handleCreate} onClose={() => setShowCreate(false)} />}
       {editing && <EmpresaModal initial={editing} onSave={handleEdit} onClose={() => setEditing(null)} />}
+      {cobranca && <CobrancaModal empresa={cobranca} onClose={() => setCobranca(null)} />}
     </div>
   );
 };

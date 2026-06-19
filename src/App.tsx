@@ -17,6 +17,7 @@ import { AppRoutes } from './routes';
 import { LandingPage } from './routes/LandingPage';
 import { useIdleLogout } from './hooks/useIdleLogout';
 import { PatientChatModal } from './components/PatientChatModal';
+import { AccessBlockedScreen } from './components/AccessBlockedScreen';
 
 // Lazy Load Non-Critical Views — lazyRetry auto-reloads on stale chunk errors
 const CommunityFeed = React.lazy(() => lazyRetry(() => import('./components/community/feed/CommunityFeed').then(m => ({ default: m.CommunityFeed })), 'CommunityFeed'));
@@ -71,6 +72,10 @@ const App: React.FC = () => {
   // Corta o loop de onboarding causado pela race condition entre
   // refreshProfile() e onAuthStateChange no finishOnboarding.
   const [onboardingDone, setOnboardingDone] = useState(false);
+
+  // Bloqueio de acesso por inadimplência da empresa (decisão manual do admin).
+  // null = ainda checando; true/false = resultado. Reativação reflete no próximo load.
+  const [accessBlocked, setAccessBlocked] = useState<boolean | null>(null);
 
   const [isPortalRoute, setIsPortalRoute] = useState(() => {
     // No app nativo (Android/iOS via Capacitor), nunca mostrar landing page —
@@ -294,6 +299,21 @@ const App: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Checa bloqueio de acesso por inadimplência sempre que o usuário muda.
+  // Cobre todos os pontos de entrada (login, deep link, PWA) — App.tsx é o único entry do app.
+  useEffect(() => {
+    if (!user) { setAccessBlocked(null); return; }
+    let cancelled = false;
+    supabase
+      .rpc('empresa_acesso_bloqueado', { p_user_id: user.id })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        // Em caso de erro (ex.: RPC ainda não migrada), não bloqueia — falha aberta.
+        setAccessBlocked(error ? false : !!data);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   const loadStats = async () => {
     if (!user || statsLoading) return;
     try {
@@ -412,6 +432,10 @@ const App: React.FC = () => {
     return <LoginView />;
   }
 
+  // Acesso bloqueado por inadimplência da empresa → trava de render (nenhum dado é tocado).
+  if (accessBlocked === true) {
+    return <AccessBlockedScreen />;
+  }
 
   // Profile still loading from Supabase — show brief spinner (NOT onboarding)
   if (profileLoading || (!profile && user)) {
