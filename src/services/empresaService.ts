@@ -191,7 +191,10 @@ export const rhService = {
       .select('id, nome, max_assentos, status')
       .eq('id', rh.empresa_id)
       .single();
-    if (error) return null;
+    if (error) {
+      console.error('[rhService] Falha ao ler empresa do RH:', error.message, '| empresa_id:', rh.empresa_id);
+      return null;
+    }
     return empresa;
   },
 
