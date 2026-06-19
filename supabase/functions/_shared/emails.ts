@@ -15,7 +15,7 @@ const COLOR = {
 };
 
 const SITE_URL = (Deno.env.get('SITE_URL') || 'https://soumalama.com.br').replace(/\/$/, '');
-const LOGO_URL = `${SITE_URL}/malama-logo-transparent.png`;
+const LOGO_URL = `${SITE_URL}/malama-passaro.png`;
 const SERIF = "'Cormorant Garamond', Georgia, 'Times New Roman', serif";
 
 // ─── Builder do layout de e-mail (banner + corpo) ──────
@@ -81,11 +81,11 @@ export function brandedEmailHtml(opts: {
 
           <!-- ░░ BANNER ░░ -->
           <tr>
-            <td style="background-color:${COLOR.petrolLight};padding:34px 40px 28px;border-bottom:1px solid ${COLOR.border};" align="left">
+            <td style="background-color:${COLOR.main};padding:30px 40px 26px;" align="left">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
                   <td align="left">
-                    <img src="${LOGO_URL}" alt="Malama" height="50" style="height:50px;width:auto;display:block;border:0;outline:none;text-decoration:none;">
+                    <img src="${LOGO_URL}" alt="Malama" width="150" height="150" style="width:150px;height:auto;display:block;border:0;outline:none;text-decoration:none;">
                   </td>
                 </tr>
                 <tr>
@@ -132,6 +132,21 @@ export function brandedEmailHtml(opts: {
 </html>`;
 }
 
+// ─── Versão texto puro (multipart) — reduz spam e cobre clientes sem HTML ──
+export function activationEmailText(empresaNome: string, ctaUrl: string): string {
+  return [
+    `Seu benefício Malama foi liberado.`,
+    ``,
+    `A ${empresaNome} adicionou você ao benefício de saúde Malama.`,
+    `Você já tem conta — é só abrir o app para ativar o acesso:`,
+    ctaUrl,
+    ``,
+    `Se você não reconhece esta empresa, ignore este e-mail — nada muda na sua conta até você acessar.`,
+    ``,
+    `Malama — Cuide de quem faz sua empresa crescer.`,
+  ].join('\n');
+}
+
 // ─── E-mail de ATIVAÇÃO (colaborador que já tem conta Malama) ──
 export function activationEmailHtml(empresaNome: string, ctaUrl: string): string {
   return brandedEmailHtml({
@@ -152,6 +167,7 @@ export async function sendEmail(opts: {
   to: string;
   subject: string;
   html: string;
+  text?: string;
 }): Promise<{ sent: boolean; warning?: string }> {
   const from = Deno.env.get('EMAIL_FROM') || 'Malama <nao-responda@soumalama.com.br>';
   const zeptoToken = Deno.env.get('ZEPTOMAIL_TOKEN');
@@ -173,6 +189,7 @@ export async function sendEmail(opts: {
           to: [{ email_address: { address: opts.to } }],
           subject: opts.subject,
           htmlbody: opts.html,
+          ...(opts.text ? { textbody: opts.text } : {}),
         }),
       });
       if (!resp.ok) {
@@ -190,7 +207,7 @@ export async function sendEmail(opts: {
           Authorization: `Bearer ${resendKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ from, to: opts.to, subject: opts.subject, html: opts.html }),
+        body: JSON.stringify({ from, to: opts.to, subject: opts.subject, html: opts.html, ...(opts.text ? { text: opts.text } : {}) }),
       });
       if (!resp.ok) {
         const body = await resp.text();

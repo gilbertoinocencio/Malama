@@ -6,7 +6,7 @@
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { activationEmailHtml, sendEmail } from '../_shared/emails.ts';
+import { activationEmailHtml, activationEmailText, sendEmail } from '../_shared/emails.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -108,6 +108,7 @@ Deno.serve(async (req: Request) => {
         to: normalizedEmail,
         subject: `${empresa.nome} liberou seu benefício Malama`,
         html: activationEmailHtml(empresa.nome, appUrl),
+        text: activationEmailText(empresa.nome, appUrl),
       });
       return json({ status: 'convidado', existing: true, emailed: sent, warning });
     }
