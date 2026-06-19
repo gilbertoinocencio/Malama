@@ -1725,6 +1725,17 @@ export type AdminUserDetail = AdminUserSummary & {
   }>;
 };
 
+export type AdminDoctorKpis = {
+  aprovados: number;
+  pendentes: number;
+  consultas_mes: number;
+  media_consultas_dia: number;
+  cancelamentos_mes: number;
+  taxa_cancelamento: number;
+  pacientes_unicos_mes: number;
+  medicos_ativos_mes: number;
+};
+
 export type AdminColaboradorB2B = {
   id: string;
   empresa_id: string;
@@ -1743,6 +1754,37 @@ export type AdminColaboradorB2B = {
 // =====================================================
 
 export const adminService = {
+  // KPIs da rede médica (mês corrente)
+  async getDoctorKpis(): Promise<AdminDoctorKpis> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const daysElapsed = Math.max(1, now.getDate());
+
+    const [doctorsRes, consultsRes] = await Promise.all([
+      supabase.from('doctors').select('id, status'),
+      supabase.from('consultations')
+        .select('patient_id, doctor_id, status')
+        .gte('scheduled_at', startOfMonth.toISOString()),
+    ]);
+
+    const doctors = doctorsRes.data ?? [];
+    const consults = consultsRes.data ?? [];
+
+    const completed  = consults.filter(c => c.status === 'completed');
+    const cancelled  = consults.filter(c => c.status === 'cancelled' || c.status === 'no_show');
+
+    return {
+      aprovados:          doctors.filter(d => d.status === 'approved').length,
+      pendentes:          doctors.filter(d => d.status === 'pending').length,
+      consultas_mes:      completed.length,
+      media_consultas_dia: +(completed.length / daysElapsed).toFixed(1),
+      cancelamentos_mes:  cancelled.length,
+      taxa_cancelamento:  consults.length > 0 ? Math.round(cancelled.length / consults.length * 100) : 0,
+      pacientes_unicos_mes: new Set(completed.map(c => c.patient_id)).size,
+      medicos_ativos_mes:   new Set(completed.map(c => c.doctor_id)).size,
+    };
+  },
+
   // Buscar todos os usuários com dados de LTV
   async getAllUsers(search?: string): Promise<AdminUserSummary[]> {
     const { data: profiles, error } = await supabase

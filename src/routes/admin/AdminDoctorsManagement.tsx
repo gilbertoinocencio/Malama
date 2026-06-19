@@ -4,9 +4,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, CheckCircle, XCircle, Link2, X, Copy, Mail, Clock } from 'lucide-react';
-import { doctorService, settingsService } from '../../services/doctorPortalService';
+import { Search, CheckCircle, XCircle, Link2, X, Copy, Mail, Clock, Stethoscope, CalendarCheck, TrendingDown, Users } from 'lucide-react';
+import { doctorService, settingsService, adminService } from '../../services/doctorPortalService';
 import type { Doctor, DoctorStatus } from '../../types/doctorPortal';
+import type { AdminDoctorKpis } from '../../services/doctorPortalService';
 import { SPECIALTY_OPTIONS } from '../../types/doctorPortal';
 import { supabase } from '../../services/supabase';
 import toast from 'react-hot-toast';
@@ -40,6 +41,8 @@ export const AdminDoctorsManagement: React.FC = () => {
   const [leadSearch, setLeadSearch] = useState('');
   const [invitingLeadId, setInvitingLeadId] = useState<string | null>(null);
 
+  const [kpis, setKpis] = useState<AdminDoctorKpis | null>(null);
+
   // Modals
   const [showApproveModal, setShowApproveModal] = useState<string | null>(null);
   const [showSuspendModal, setShowSuspendModal] = useState<string | null>(null);
@@ -56,6 +59,10 @@ export const AdminDoctorsManagement: React.FC = () => {
     loadDoctors();
     loadSettings();
   }, [filterStatus, filterSpecialty]);
+
+  useEffect(() => {
+    adminService.getDoctorKpis().then(setKpis).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'fila') loadLeads();
@@ -340,6 +347,57 @@ export const AdminDoctorsManagement: React.FC = () => {
         </>
       ) : (
         <>
+      {/* ── KPIs ── */}
+      {kpis && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            {
+              icon: <Stethoscope className="w-5 h-5 text-[#7d4a3c]" />,
+              label: 'Médicos aprovados',
+              value: kpis.aprovados.toString(),
+              sub: kpis.pendentes > 0 ? `${kpis.pendentes} aguardando aprovação` : undefined,
+              subColor: 'text-yellow-600',
+              bg: 'bg-[#7d4a3c]/10',
+            },
+            {
+              icon: <Users className="w-5 h-5 text-green-600" />,
+              label: 'Ativos este mês',
+              value: kpis.medicos_ativos_mes.toString(),
+              sub: `de ${kpis.aprovados} aprovados`,
+              subColor: 'text-gray-400',
+              bg: 'bg-green-50',
+            },
+            {
+              icon: <CalendarCheck className="w-5 h-5 text-blue-600" />,
+              label: 'Consultas realizadas',
+              value: kpis.consultas_mes.toString(),
+              sub: `~${kpis.media_consultas_dia}/dia · ${kpis.pacientes_unicos_mes} pacientes únicos`,
+              subColor: 'text-gray-400',
+              bg: 'bg-blue-50',
+            },
+            {
+              icon: <TrendingDown className="w-5 h-5 text-red-500" />,
+              label: 'Cancelamentos / no-show',
+              value: `${kpis.taxa_cancelamento}%`,
+              sub: `${kpis.cancelamentos_mes} ocorrências no mês`,
+              subColor: kpis.taxa_cancelamento > 20 ? 'text-red-500' : 'text-gray-400',
+              bg: 'bg-red-50',
+            },
+          ].map(({ icon, label, value, sub, subColor, bg }) => (
+            <div key={label} className="bg-white rounded-xl shadow p-4 flex items-start gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${bg}`}>
+                {icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-bold text-gray-800">{value}</p>
+                <p className="text-xs text-gray-500">{label}</p>
+                {sub && <p className={`text-xs mt-0.5 ${subColor}`}>{sub}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Filtros */}
       <div className="bg-white rounded-xl shadow p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
