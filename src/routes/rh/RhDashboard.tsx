@@ -1,20 +1,19 @@
 // =====================================================
 // Malama — Dashboard do Portal do RH
-// Assentos, colaboradores, convite por e-mail e relatório CSV.
-// Sem dados financeiros (valor/assento e MRR são só do super admin).
+// Dados da empresa, breakdown de assentos, lista de
+// colaboradores com reenvio de convite e exportação CSV.
 // =====================================================
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  Users, UserPlus, Trash2, Download, Mail, AlertCircle, CheckCircle2, Clock,
+  Users, UserPlus, Trash2, Download, Mail, AlertCircle,
+  CheckCircle2, Clock, Building2, Calendar, Send,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { rhService, type EmpresaColaborador } from '../../services/empresaService';
+import { rhService, type RhEmpresa, type EmpresaColaborador } from '../../services/empresaService';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-
-type Empresa = { id: string; nome: string; max_assentos: number | null; status: string };
 
 const ColabStatusBadge: React.FC<{ status: EmpresaColaborador['status'] }> = ({ status }) => {
   if (status === 'ativo') {
@@ -32,11 +31,12 @@ const ColabStatusBadge: React.FC<{ status: EmpresaColaborador['status'] }> = ({ 
 };
 
 export const RhDashboard: React.FC = () => {
-  const [empresa, setEmpresa] = useState<Empresa | null>(null);
+  const [empresa, setEmpresa] = useState<RhEmpresa | null>(null);
   const [colaboradores, setColaboradores] = useState<EmpresaColaborador[]>([]);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [adding, setAdding] = useState(false);
+  const [resending, setResending] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -54,7 +54,9 @@ export const RhDashboard: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const usados = colaboradores.length; // ativos + convidados (getColaboradores exclui removidos)
+  const ativos = colaboradores.filter(c => c.status === 'ativo').length;
+  const convidados = colaboradores.filter(c => c.status === 'convidado').length;
+  const usados = colaboradores.length;
   const limite = empresa?.max_assentos ?? null;
   const cheio = limite != null && usados >= limite;
   const pct = limite ? Math.min(100, (usados / limite) * 100) : 0;
@@ -69,7 +71,6 @@ export const RhDashboard: React.FC = () => {
     try {
       const res = await rhService.inviteColaborador(value);
       if (res.existing) {
-        // Já tem conta Malama → e-mail de ativação; vira "Ativo" quando acessar o app
         toast.success(
           res.emailed
             ? 'Colaborador adicionado! Enviamos um e-mail de ativação — o acesso fica ativo quando ele abrir o app.'
@@ -99,6 +100,22 @@ export const RhDashboard: React.FC = () => {
       setColaboradores(prev => prev.filter(x => x.id !== c.id));
     } catch {
       toast.error('Erro ao remover colaborador.');
+    }
+  };
+
+  const handleResend = async (c: EmpresaColaborador) => {
+    setResending(c.id);
+    try {
+      const res = await rhService.resendInvite(c.id);
+      if (res.sent) {
+        toast.success(`E-mail reenviado para ${c.email}.`);
+      } else {
+        toast(`Não foi possível reenviar: ${res.warning ?? 'erro desconhecido'}`, { icon: '⚠️' });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao reenviar convite.');
+    } finally {
+      setResending(null);
     }
   };
 
@@ -142,7 +159,7 @@ export const RhDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* ── Cabeçalho da empresa ── */}
+      {/* ── Cabeçalho ── */}
       <div>
         <h1 className="text-2xl font-semibold text-gray-800">{empresa.nome}</h1>
         <p className="text-sm text-gray-500">Gerencie os colaboradores com acesso ao benefício Malama.</p>
@@ -155,33 +172,80 @@ export const RhDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ── Assentos ── */}
+      {/* ── Dados da empresa ── */}
       <div className="bg-white rounded-xl shadow p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#7d4a3c]" />
-            <h2 className="font-semibold text-gray-800">Assentos utilizados</h2>
-          </div>
-          <span className="text-sm font-medium text-gray-700">
-            {usados}{limite != null && <span className="text-gray-400"> / {limite}</span>}
-          </span>
+        <div className="flex items-center gap-2 mb-4">
+          <Building2 className="w-5 h-5 text-[#7d4a3c]" />
+          <h2 className="font-semibold text-gray-800">Dados da empresa</h2>
         </div>
-        {limite != null ? (
-          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {empresa.cnpj && (
+            <div>
+              <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">CNPJ</dt>
+              <dd className="mt-1 text-sm text-gray-700">{empresa.cnpj}</dd>
+            </div>
+          )}
+          {empresa.responsavel_nome && (
+            <div>
+              <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">Responsável</dt>
+              <dd className="mt-1 text-sm text-gray-700">{empresa.responsavel_nome}</dd>
+            </div>
+          )}
+          {empresa.data_inicio && (
+            <div className="flex flex-col">
+              <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-1">
+                <Calendar className="w-3 h-3" /> Início do contrato
+              </dt>
+              <dd className="mt-1 text-sm text-gray-700">{fmtDate(empresa.data_inicio)}</dd>
+            </div>
+          )}
+        </dl>
+      </div>
+
+      {/* ── Breakdown de assentos ── */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl shadow p-4 text-center">
+          <p className="text-2xl font-bold text-green-600">{ativos}</p>
+          <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">
+            <CheckCircle2 className="w-3 h-3" /> Ativos
+          </p>
+        </div>
+        <div className="bg-white rounded-xl shadow p-4 text-center">
+          <p className="text-2xl font-bold text-yellow-500">{convidados}</p>
+          <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">
+            <Clock className="w-3 h-3" /> Convidados
+          </p>
+        </div>
+        <div className="bg-white rounded-xl shadow p-4 text-center">
+          <p className="text-2xl font-bold text-gray-800">
+            {usados}{limite != null && <span className="text-gray-400 text-lg"> / {limite}</span>}
+          </p>
+          <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">
+            <Users className="w-3 h-3" /> Assentos
+          </p>
+        </div>
+      </div>
+
+      {/* Barra de progresso de assentos */}
+      {limite != null && (
+        <div className="bg-white rounded-xl shadow px-5 py-3">
+          <div className="flex items-center justify-between mb-2 text-xs text-gray-500">
+            <span>Ocupação dos assentos contratados</span>
+            <span>{Math.round(pct)}%</span>
+          </div>
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{ width: `${pct}%`, background: cheio ? '#DC2626' : '#7d4a3c' }}
             />
           </div>
-        ) : (
-          <p className="text-xs text-gray-400">Sem limite de assentos definido.</p>
-        )}
-        {cheio && (
-          <p className="text-xs text-red-500 mt-2">
-            Você atingiu o limite de assentos contratados. Remova um colaborador ou fale com a Malama para ampliar.
-          </p>
-        )}
-      </div>
+          {cheio && (
+            <p className="text-xs text-red-500 mt-2">
+              Limite atingido. Remova um colaborador ou fale com a Malama para ampliar.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ── Adicionar colaborador ── */}
       <div className="bg-white rounded-xl shadow p-5">
@@ -254,14 +318,26 @@ export const RhDashboard: React.FC = () => {
                     <td className="px-4 py-3 text-center"><ColabStatusBadge status={c.status} /></td>
                     <td className="px-4 py-3 text-xs text-gray-500 hidden sm:table-cell">{fmtDate(c.data_adicao)}</td>
                     <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{fmtDate(c.data_ativacao)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleRemove(c)}
-                        title="Remover"
-                        className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        {c.status === 'convidado' && (
+                          <button
+                            onClick={() => handleResend(c)}
+                            disabled={resending === c.id}
+                            title="Reenviar convite"
+                            className="p-1.5 text-[#7d4a3c] hover:bg-[#7d4a3c]/10 rounded-lg transition disabled:opacity-40"
+                          >
+                            <Send className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleRemove(c)}
+                          title="Remover"
+                          className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

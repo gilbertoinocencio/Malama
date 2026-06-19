@@ -173,9 +173,14 @@ export const empresaAdminService = {
 
 // ─── Portal do RH ──────────────────────────────────────
 // Importante: o RH NUNCA enxerga valor_por_assento nem MRR.
+
+export type RhEmpresa = Pick<Empresa,
+  'id' | 'nome' | 'cnpj' | 'responsavel_nome' | 'max_assentos' | 'status' | 'data_inicio'
+>;
+
 export const rhService = {
   // Empresa do RH logado (sem campos financeiros)
-  async getMyEmpresa(): Promise<Pick<Empresa, 'id' | 'nome' | 'max_assentos' | 'status'> | null> {
+  async getMyEmpresa(): Promise<RhEmpresa | null> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
@@ -188,7 +193,7 @@ export const rhService = {
 
     const { data: empresa, error } = await supabase
       .from('empresas')
-      .select('id, nome, max_assentos, status')
+      .select('id, nome, cnpj, responsavel_nome, max_assentos, status, data_inicio')
       .eq('id', rh.empresa_id)
       .single();
     if (error) {
@@ -237,5 +242,22 @@ export const rhService = {
       .update({ status: 'removido', removido_em: new Date().toISOString() })
       .eq('id', id);
     if (error) throw error;
+  },
+
+  // Reenvia e-mail de convite/ativação para colaborador ainda 'convidado'
+  async resendInvite(colaboradorId: string): Promise<{ sent: boolean; warning?: string }> {
+    const { data, error } = await supabase.functions.invoke('resend-invite', {
+      body: { colaborador_id: colaboradorId, redirect_to: `${window.location.origin}/acesso` },
+    });
+    if (error) {
+      let msg = error.message;
+      const resp = (error as { context?: Response }).context;
+      if (resp && typeof resp.json === 'function') {
+        try { const b = await resp.json(); if (b?.error) msg = b.error; } catch { /* mantém */ }
+      }
+      throw new Error(msg);
+    }
+    if (data?.error) throw new Error(data.error);
+    return data;
   },
 };
