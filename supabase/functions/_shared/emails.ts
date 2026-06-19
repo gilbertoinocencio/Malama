@@ -85,7 +85,13 @@ export function brandedEmailHtml(opts: {
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
                   <td align="left">
-                    <img src="${LOGO_URL}" alt="Malama" width="150" height="150" style="width:150px;height:auto;display:block;border:0;outline:none;text-decoration:none;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="background-color:${COLOR.bg};border-radius:14px;padding:10px 12px;">
+                          <img src="${LOGO_URL}" alt="Malama" width="100" style="width:100px;height:auto;display:block;border:0;outline:none;text-decoration:none;">
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
                 <tr>
