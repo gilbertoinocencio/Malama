@@ -362,7 +362,7 @@ const InfluencerModal: React.FC<{
                 <LinkIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-semibold mb-1">Após criar, envie estas informações ao influencer:</p>
-                  <p>• <strong>Link de acesso:</strong> http://localhost:3000/influencer/login</p>
+                  <p>• <strong>Link de acesso:</strong> {window.location.origin}/influencer/login</p>
                   <p>• <strong>Email:</strong> (o que você preencher abaixo)</p>
                   <p>• <strong>Senha:</strong> (a que você definir abaixo)</p>
                   <p className="mt-1 text-blue-600">⚠️ O influencer NÃO deve acessar o link de indicação (/i/:token). Esse link é para os seguidores dele.</p>
