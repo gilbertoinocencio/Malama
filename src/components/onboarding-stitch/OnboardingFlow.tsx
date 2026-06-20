@@ -301,12 +301,16 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
 
       // Chega aqui apenas se o upsert foi bem-sucedido
       localStorage.removeItem('Malama_is_influencer_signup');
+      localStorage.removeItem('Malama_influencer_token');
+      localStorage.removeItem('Malama_acquisition_channel');
       localStorage.removeItem(STORAGE_KEY);
       onComplete();
 
     } catch (err) {
       console.error('Error finishing onboarding:', err);
       localStorage.removeItem('Malama_is_influencer_signup');
+      localStorage.removeItem('Malama_influencer_token');
+      localStorage.removeItem('Malama_acquisition_channel');
       // Deixa o usuário tentar novamente ao invés de avançar com dados não salvos
       setIsFinishing(false);
     }

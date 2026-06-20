@@ -105,34 +105,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const influencerToken = localStorage.getItem('Malama_influencer_token');
         const channel         = localStorage.getItem('Malama_acquisition_channel');
 
-        const updates: Record<string, unknown> = {
-            id: userId,
-            acquisition_channel: channel ?? 'organic',
-        };
+        try {
+            const updates: Record<string, unknown> = {
+                id: userId,
+                acquisition_channel: channel ?? 'organic',
+            };
 
-        if (isNewUser) {
-            updates.onboarding_completed = false;
-        }
-
-        if (influencerToken) {
-            const inf = await influencerService.getByToken(influencerToken);
-            if (inf) {
-                updates.referred_by_influencer_id = inf.id;
-                updates.acquisition_channel = 'influencer';
-                await influencerService.registerReferral(inf.id, userId, inf.commission_per_referral);
+            if (isNewUser) {
+                updates.onboarding_completed = false;
             }
-        } else if (doctorToken) {
-            const doctor = await doctorService.getDoctorByReferralToken(doctorToken);
-            if (doctor) {
-                updates.referred_by_doctor_id = doctor.id;
-                updates.acquisition_channel = 'referral';
-            }
-        }
 
-        await supabase.from('profiles').upsert(updates, { onConflict: 'id' });
-        localStorage.removeItem('Malama_referral_token');
-        localStorage.removeItem('Malama_influencer_token');
-        localStorage.removeItem('Malama_acquisition_channel');
+            if (influencerToken) {
+                const inf = await influencerService.getByToken(influencerToken);
+                if (inf) {
+                    updates.referred_by_influencer_id = inf.id;
+                    updates.acquisition_channel = 'influencer';
+                    await influencerService.registerReferral(inf.id, userId, inf.commission_per_referral);
+                }
+            } else if (doctorToken) {
+                const doctor = await doctorService.getDoctorByReferralToken(doctorToken);
+                if (doctor) {
+                    updates.referred_by_doctor_id = doctor.id;
+                    updates.acquisition_channel = 'referral';
+                }
+            }
+
+            await supabase.from('profiles').upsert(updates, { onConflict: 'id' });
+        } finally {
+            localStorage.removeItem('Malama_referral_token');
+            localStorage.removeItem('Malama_influencer_token');
+            localStorage.removeItem('Malama_acquisition_channel');
+        }
     }, []);
 
     useEffect(() => {

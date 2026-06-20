@@ -1608,8 +1608,16 @@ export const influencerService = {
     return data ?? [];
   },
 
-  // Registrar conversão (chamado em applyReferralData)
+  // Registrar conversão (chamado em applyReferralData) — idempotente: ignora se já existe
   async registerReferral(influencerId: string, userId: string, commissionAmount: number): Promise<void> {
+    const { data: existing } = await supabase
+      .from('influencer_referrals')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (existing) return;
+
     const { error } = await supabase
       .from('influencer_referrals')
       .insert([{ influencer_id: influencerId, user_id: userId, commission_amount: commissionAmount }]);
