@@ -1805,10 +1805,16 @@ export const adminService = {
     if (error) throw error;
     if (!profiles?.length) return [];
 
-    // Excluir gestores de empresa (rh_usuarios): eles não são pacientes do app
-    const { data: rhRows } = await supabase.from('rh_usuarios').select('user_id');
-    const rhUserIds = new Set((rhRows ?? []).map((r: any) => r.user_id));
-    const patientProfiles = profiles.filter(p => !rhUserIds.has(p.id));
+    // Excluir gestores de empresa e médicos: cada um tem sua própria aba
+    const [{ data: rhRows }, { data: doctorRows }] = await Promise.all([
+      supabase.from('rh_usuarios').select('user_id'),
+      supabase.from('doctors').select('id'),
+    ]);
+    const excludedIds = new Set([
+      ...(rhRows ?? []).map((r: any) => r.user_id),
+      ...(doctorRows ?? []).map((d: any) => d.id),
+    ]);
+    const patientProfiles = profiles.filter(p => !excludedIds.has(p.id));
     if (!patientProfiles.length) return [];
 
     const doctorIds = [...new Set(patientProfiles.map(p => p.referred_by_doctor_id).filter(Boolean))];
