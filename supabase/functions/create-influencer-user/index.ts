@@ -1,9 +1,11 @@
 // =====================================================
-// NURA — Edge Function: Criar usuário auth do influenciador
-// Requer service_role para criar usuário sem afetar sessão do admin
+// Malama — Edge Function: Criar usuário auth do influenciador
+// Requer service_role para criar usuário sem afetar sessão do admin.
+// Após criar, envia e-mail de boas-vindas com login, senha e link de afiliação.
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendEmail, brandedEmailHtml } from '../_shared/emails.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +18,57 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
+const SITE_URL = (Deno.env.get('SITE_URL') || 'https://soumalama.com.br').replace(/\/$/, '');
+const COLOR_PETROL = '#8c473e';
+
+function welcomeHtml(name: string, email: string, password: string, referralLink: string): string {
+  return brandedEmailHtml({
+    eyebrow: 'Rede de Afiliados',
+    preheader: `Bem-vindo à rede Malama, ${name}! Seu acesso está pronto.`,
+    heading: `Bem-vindo à rede <em style="font-style:italic;color:${COLOR_PETROL};">Malama</em>.`,
+    bodyParagraphs: [
+      `Olá, <strong>${name}</strong>! Sua conta de afiliado foi criada e já está ativa.`,
+      `Baixe o app Malama no seu celular e entre com as credenciais abaixo:
+       <br><br>
+       <span style="display:inline-block;background:#F2EBE6;border-radius:10px;padding:14px 20px;font-family:monospace,monospace;font-size:14px;color:#1C1917;line-height:1.8;">
+         <strong>Login:</strong> ${email}<br>
+         <strong>Senha:</strong> ${password}
+       </span>
+       <br><br>
+       Recomendamos alterar sua senha após o primeiro acesso.`,
+      `Seu link de indicação — compartilhe com seus seguidores:
+       <br><br>
+       <span style="display:inline-block;background:#F2EBE6;border-radius:10px;padding:12px 20px;font-family:monospace,monospace;font-size:13px;color:${COLOR_PETROL};word-break:break-all;">
+         ${referralLink}
+       </span>
+       <br><br>
+       Cada pessoa que se cadastrar pelo seu link gera uma comissão para você.`,
+    ],
+    ctaText: 'Abrir o app Malama',
+    ctaUrl: SITE_URL,
+    footnote: 'Não compartilhe este e-mail — ele contém sua senha temporária. Se você não esperava esta mensagem, ignore-o.',
+  });
+}
+
+function welcomeText(name: string, email: string, password: string, referralLink: string): string {
+  return [
+    `Bem-vindo à rede Malama, ${name}!`,
+    ``,
+    `Sua conta de afiliado está pronta. Baixe o app e acesse com:`,
+    `  Login: ${email}`,
+    `  Senha: ${password}`,
+    ``,
+    `Altere sua senha após o primeiro acesso.`,
+    ``,
+    `Seu link de indicação (compartilhe com seus seguidores):`,
+    referralLink,
+    ``,
+    `Cada cadastro pelo seu link gera uma comissão para você.`,
+    ``,
+    `Malama — Cuide de quem faz sua empresa crescer.`,
+  ].join('\n');
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -25,7 +78,6 @@ Deno.serve(async (req: Request) => {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
-  // Verificar que o chamador está autenticado
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Não autorizado' }), {
@@ -77,23 +129,31 @@ Deno.serve(async (req: Request) => {
         status: status || 'active',
         referral_token,
         access_token,
-        setup_token: null, // não necessário — conta já criada pelo admin
+        setup_token: null,
       }])
       .select()
       .single();
 
     if (infError) {
-      // Rollback: remover o usuário criado
       await supabaseAdmin.auth.admin.deleteUser(userId);
       return new Response(JSON.stringify({ error: infError.message }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify(influencer), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // 3. Enviar e-mail de boas-vindas (não bloqueia nem falha o cadastro)
+    const referralLink = `${SITE_URL}/i/${referral_token}`;
+    const { sent, warning } = await sendEmail({
+      to: email,
+      subject: `Bem-vindo à rede Malama, ${name}!`,
+      html: welcomeHtml(name, email, password, referralLink),
+      text: welcomeText(name, email, password, referralLink),
     });
+
+    return new Response(
+      JSON.stringify({ ...influencer, email_sent: sent, ...(warning ? { email_warning: warning } : {}) }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Erro interno';
     return new Response(JSON.stringify({ error: message }), {

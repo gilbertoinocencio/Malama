@@ -4,7 +4,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  Plus, Search, X, Copy, Check, Instagram,
+  Plus, Search, X, Copy, Check, Instagram, Mail,
   ExternalLink, DollarSign, Users, TrendingUp, Pause, Ban, Play,
   Trophy, Link as LinkIcon
 } from 'lucide-react';
@@ -356,16 +356,13 @@ const InfluencerModal: React.FC<{
               />
             </div>
 
-            {/* Aviso de ativação — apenas na criação */}
+            {/* Aviso de envio automático — apenas na criação */}
             {!initial && (
-              <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 flex items-start gap-2 text-xs text-blue-700">
-                <LinkIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <div className="col-span-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5 flex items-start gap-2 text-xs text-green-700">
+                <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-semibold mb-1">Após criar, envie estas informações ao influencer:</p>
-                  <p>• <strong>Link de acesso:</strong> {window.location.origin}/influencer/login</p>
-                  <p>• <strong>Email:</strong> (o que você preencher abaixo)</p>
-                  <p>• <strong>Senha:</strong> (a que você definir abaixo)</p>
-                  <p className="mt-1 text-blue-600">⚠️ O influencer NÃO deve acessar o link de indicação (/i/:token). Esse link é para os seguidores dele.</p>
+                  <p className="font-semibold mb-0.5">E-mail automático de boas-vindas</p>
+                  <p className="text-green-600">Ao criar, o influenciador recebe automaticamente no e-mail: login, senha e link de indicação. Ele só precisa baixar o app e entrar.</p>
                 </div>
               </div>
             )}
@@ -526,8 +523,8 @@ export const AdminInfluencers: React.FC = () => {
     });
 
     toast.success(
-      'Influenciador criado! Clique em "Ver" para copiar o link de convite e enviar ao influencer.',
-      { duration: 5000 }
+      'Influenciador criado! E-mail de boas-vindas enviado automaticamente.',
+      { duration: 4000 }
     );
     load();
   };
