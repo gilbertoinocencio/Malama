@@ -1805,7 +1805,13 @@ export const adminService = {
     if (error) throw error;
     if (!profiles?.length) return [];
 
-    const doctorIds = [...new Set(profiles.map(p => p.referred_by_doctor_id).filter(Boolean))];
+    // Excluir gestores de empresa (rh_usuarios): eles não são pacientes do app
+    const { data: rhRows } = await supabase.from('rh_usuarios').select('user_id');
+    const rhUserIds = new Set((rhRows ?? []).map((r: any) => r.user_id));
+    const patientProfiles = profiles.filter(p => !rhUserIds.has(p.id));
+    if (!patientProfiles.length) return [];
+
+    const doctorIds = [...new Set(patientProfiles.map(p => p.referred_by_doctor_id).filter(Boolean))];
     let doctorMap: Record<string, string> = {};
     if (doctorIds.length) {
       const { data: doctors } = await supabase
@@ -1815,7 +1821,7 @@ export const adminService = {
       doctors?.forEach(d => { doctorMap[d.id] = d.name; });
     }
 
-    const patientIds = profiles.map(p => p.id);
+    const patientIds = patientProfiles.map(p => p.id);
     const { data: consultations } = await supabase
       .from('consultations')
       .select('patient_id, price, status')
@@ -1837,7 +1843,7 @@ export const adminService = {
       (emailRows as any[]).forEach(r => { if (r.email) emailMap[r.id] = r.email; });
     }
 
-    const result: AdminUserSummary[] = profiles.map(p => ({
+    const result: AdminUserSummary[] = patientProfiles.map(p => ({
       id: p.id,
       display_name: p.display_name,
       avatar_url: p.avatar_url,
