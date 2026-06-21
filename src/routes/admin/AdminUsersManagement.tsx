@@ -14,6 +14,9 @@ import {
 } from 'lucide-react';
 import { adminService } from '../../services/doctorPortalService';
 import type { AdminUserSummary, AdminUserDetail, AdminColaboradorB2B } from '../../services/doctorPortalService';
+import { planPricesService } from '../../services/billingService';
+import type { PlanPrice } from '../../services/billingService';
+import { AdminSubscriptions } from './AdminSubscriptions';
 import { supabase } from '../../services/supabase';
 import toast from 'react-hot-toast';
 
@@ -410,6 +413,99 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
   );
 };
 
+// ─── Editor de preços de planos B2C ───────────────────
+const PLAN_CYCLES = ['mensal', 'semestral', 'anual'] as const;
+const PLAN_TYPES  = ['essencial', 'glp1'] as const;
+const PLAN_LABELS: Record<string, string> = { essencial: 'Essencial', glp1: 'GLP-1' };
+const CYCLE_LABELS: Record<string, string> = { mensal: 'Mensal', semestral: 'Semestral', anual: 'Anual' };
+
+const PlanPricesEditor: React.FC = () => {
+  const [prices, setPrices] = React.useState<Record<string, string>>({});
+  const [loadingPrices, setLoadingPrices] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    planPricesService.getAll()
+      .then((data: PlanPrice[]) => {
+        const map: Record<string, string> = {};
+        data.forEach(p => { map[`${p.plan_type}_${p.billing_cycle}`] = String(p.price); });
+        setPrices(map);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingPrices(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await Promise.all(
+        PLAN_TYPES.flatMap(plan =>
+          PLAN_CYCLES.map(cycle =>
+            planPricesService.upsert(plan, cycle, parseFloat(prices[`${plan}_${cycle}`] || '0'))
+          )
+        )
+      );
+      toast.success('Preços salvos!');
+    } catch {
+      toast.error('Erro ao salvar preços. Verifique se a tabela plan_prices existe no banco.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loadingPrices) return (
+    <div className="bg-white rounded-xl shadow p-5 flex justify-center py-10">
+      <div className="w-6 h-6 rounded-full border-2 border-[#7d4a3c] border-t-transparent animate-spin" />
+    </div>
+  );
+
+  return (
+    <div className="bg-white rounded-xl shadow p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-base font-semibold text-gray-800">Preços dos Planos B2C</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Valores cobrados por plano e ciclo de cobrança.</p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
+        >
+          {saving ? 'Salvando...' : 'Salvar preços'}
+        </button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {PLAN_TYPES.map(plan => (
+          <div key={plan} className="border border-gray-100 rounded-xl p-4">
+            <p className="text-sm font-semibold text-gray-700 mb-3">
+              {plan === 'glp1' ? '💊' : '⚡'} Plano {PLAN_LABELS[plan]}
+            </p>
+            <div className="space-y-3">
+              {PLAN_CYCLES.map(cycle => (
+                <div key={cycle} className="flex items-center gap-3">
+                  <label className="text-xs text-gray-500 w-20">{CYCLE_LABELS[cycle]}</label>
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">R$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={prices[`${plan}_${cycle}`] ?? ''}
+                      onChange={e => setPrices(p => ({ ...p, [`${plan}_${cycle}`]: e.target.value }))}
+                      placeholder="0,00"
+                      className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── Componente principal ──────────────────────────────
 export const AdminUsersManagement: React.FC = () => {
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
@@ -420,7 +516,7 @@ export const AdminUsersManagement: React.FC = () => {
   const [vinculos, setVinculos] = useState<Record<string, string>>({});
 
   // Fila de espera
-  const [activeTab, setActiveTab] = useState<'usuarios' | 'fila' | 'b2b'>('usuarios');
+  const [activeTab, setActiveTab] = useState<'usuarios' | 'fila' | 'b2b' | 'assinantes'>('usuarios');
   const [patientLeads, setPatientLeads] = useState<PatientLead[]>([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [leadSearch, setLeadSearch] = useState('');
@@ -549,6 +645,12 @@ export const AdminUsersManagement: React.FC = () => {
               {patientLeads.filter(l => l.status === 'pendente').length}
             </span>
           )}
+        </button>
+        <button
+          onClick={() => setActiveTab('assinantes')}
+          className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'assinantes' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Assinantes B2C
         </button>
       </div>
 
@@ -779,6 +881,11 @@ export const AdminUsersManagement: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+      ) : activeTab === 'assinantes' ? (
+        <div className="space-y-6">
+          <PlanPricesEditor />
+          <AdminSubscriptions />
         </div>
       ) : (
         <>

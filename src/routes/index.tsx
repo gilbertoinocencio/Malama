@@ -250,13 +250,7 @@ export const AppRoutes: React.FC = () => {
 
           <Route
             path="/admin/assinantes"
-            element={
-              <AdminGuard>
-                <AdminLayout>
-                  <AdminSubscriptions />
-                </AdminLayout>
-              </AdminGuard>
-            }
+            element={<Navigate to="/admin/usuarios" replace />}
           />
 
           <Route

@@ -353,7 +353,7 @@ export const AdminDashboard: React.FC = () => {
           <h4 className="font-semibold text-gray-800 text-sm">Financeiro</h4>
           <p className="text-xs text-gray-500">Repasses e receita</p>
         </Link>
-        <Link to="/admin/assinantes" className="bg-white rounded-xl shadow p-5 hover:shadow-lg transition">
+        <Link to="/admin/usuarios" className="bg-white rounded-xl shadow p-5 hover:shadow-lg transition">
           <CreditCard className="w-7 h-7 text-blue-600 mb-2" />
           <h4 className="font-semibold text-gray-800 text-sm">Assinantes</h4>
           <p className="text-xs text-gray-500">Planos e cobrança</p>

@@ -532,3 +532,34 @@ export const adminBillingService = {
     if (fnError) throw fnError;
   },
 };
+
+// ─── planPricesService ────────────────────────────────────────────────────────
+
+export type PlanPrice = {
+  id: string;
+  plan_type: string;
+  billing_cycle: string;
+  price: number;
+};
+
+export const planPricesService = {
+  async getAll(): Promise<PlanPrice[]> {
+    const { data, error } = await supabase
+      .from('plan_prices')
+      .select('id, plan_type, billing_cycle, price')
+      .order('plan_type')
+      .order('billing_cycle');
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async upsert(planType: string, billingCycle: string, price: number): Promise<void> {
+    const { error } = await supabase
+      .from('plan_prices')
+      .upsert(
+        { plan_type: planType, billing_cycle: billingCycle, price, updated_at: new Date().toISOString() },
+        { onConflict: 'plan_type,billing_cycle' }
+      );
+    if (error) throw error;
+  },
+};
