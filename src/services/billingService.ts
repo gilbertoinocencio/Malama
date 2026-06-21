@@ -31,27 +31,27 @@ function rollingExpiry(): string {
   return new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
 }
 
-/** Valores-padrão por patente (fallback se platform_settings não tiver as chaves). */
-export const DEFAULT_PATENTE_VALUES: Record<string, number> = { bronze: 90, prata: 100, ouro: 120 };
+/** Valores-padrão por nível (fallback se platform_settings não tiver as chaves). */
+export const DEFAULT_NIVEL_VALUES: Record<string, number> = { nivel_1: 90, nivel_2: 100, nivel_3: 120 };
 
-/** Carrega o mapa patente→valor por consulta a partir de platform_settings. */
-export async function loadPatenteValues(): Promise<Record<string, number>> {
-  const map = { ...DEFAULT_PATENTE_VALUES };
+/** Carrega o mapa nível→valor por consulta a partir de platform_settings. */
+export async function loadNivelValues(): Promise<Record<string, number>> {
+  const map = { ...DEFAULT_NIVEL_VALUES };
   const { data } = await supabase
     .from('platform_settings')
     .select('key, value')
-    .in('key', ['doctor_value_bronze', 'doctor_value_prata', 'doctor_value_ouro']);
+    .in('key', ['doctor_value_nivel1', 'doctor_value_nivel2', 'doctor_value_nivel3']);
   for (const row of data ?? []) {
-    if (row.key === 'doctor_value_bronze') map.bronze = parseFloat(row.value);
-    if (row.key === 'doctor_value_prata')  map.prata  = parseFloat(row.value);
-    if (row.key === 'doctor_value_ouro')   map.ouro   = parseFloat(row.value);
+    if (row.key === 'doctor_value_nivel1') map.nivel_1 = parseFloat(row.value);
+    if (row.key === 'doctor_value_nivel2') map.nivel_2 = parseFloat(row.value);
+    if (row.key === 'doctor_value_nivel3') map.nivel_3 = parseFloat(row.value);
   }
   return map;
 }
 
-/** Valor por consulta de um médico conforme sua patente. */
-export function valueForPatente(values: Record<string, number>, patente: string | null | undefined): number {
-  return values[patente ?? 'prata'] ?? values.prata ?? DEFAULT_PATENTE_VALUES.prata;
+/** Valor por consulta de um médico conforme seu nível. */
+export function valueForNivel(values: Record<string, number>, nivel: string | null | undefined): number {
+  return values[nivel ?? 'nivel_2'] ?? values.nivel_2 ?? DEFAULT_NIVEL_VALUES.nivel_2;
 }
 
 // ─── subscriptionService ──────────────────────────────────────────────────────
@@ -460,7 +460,7 @@ export const adminBillingService = {
   },
 
   /** Estimativa do próximo split (créditos realizados ainda não incluídos em payout).
-   *  Soma por médico conforme o valor da patente de cada um. */
+   *  Soma por médico conforme o valor do nível de cada um. */
   async getNextSplitEstimate(): Promise<number> {
     const { data, error } = await supabase
       .from('consultation_credits')
@@ -482,20 +482,20 @@ export const adminBillingService = {
     const unpaid = data.filter((c: any) => !paidIds.has(c.id));
     if (unpaid.length === 0) return 0;
 
-    // Mapear doctor_id → patente para valorizar cada crédito
+    // Mapear doctor_id → nivel para valorizar cada crédito
     const doctorIds = [...new Set(unpaid.map((c: any) => c.doctor_id).filter(Boolean))];
-    const [patenteValues, doctorsRes] = await Promise.all([
-      loadPatenteValues(),
+    const [nivelValues, doctorsRes] = await Promise.all([
+      loadNivelValues(),
       doctorIds.length
-        ? supabase.from('doctors').select('id, patente').in('id', doctorIds)
+        ? supabase.from('doctors').select('id, nivel').in('id', doctorIds)
         : Promise.resolve({ data: [] as any[] }),
     ]);
-    const patenteByDoctor: Record<string, string> = {};
-    for (const d of (doctorsRes as any).data ?? []) patenteByDoctor[d.id] = d.patente;
+    const nivelByDoctor: Record<string, string> = {};
+    for (const d of (doctorsRes as any).data ?? []) nivelByDoctor[d.id] = d.nivel;
 
     return unpaid.reduce((sum: number, c: any) => {
-      const patente = c.doctor_id ? patenteByDoctor[c.doctor_id] : 'prata';
-      return sum + valueForPatente(patenteValues, patente);
+      const nivel = c.doctor_id ? nivelByDoctor[c.doctor_id] : 'nivel_2';
+      return sum + valueForNivel(nivelValues, nivel);
     }, 0);
   },
 

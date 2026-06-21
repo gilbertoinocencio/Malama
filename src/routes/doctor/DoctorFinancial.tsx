@@ -29,10 +29,10 @@ const PERIOD_OPTIONS = [
   { value: 'all', label: 'Todo período' },
 ];
 
-const PATENTE_CONFIG: Record<string, { label: string; color: string }> = {
-  bronze: { label: '🥉 Bronze', color: 'bg-amber-100 text-amber-700' },
-  prata:  { label: '🥈 Prata',  color: 'bg-gray-100 text-gray-700' },
-  ouro:   { label: '🥇 Ouro',   color: 'bg-yellow-100 text-yellow-700' },
+const NIVEL_CONFIG: Record<string, { label: string; color: string }> = {
+  nivel_1: { label: 'Nível 1', color: 'bg-gray-100 text-gray-600' },
+  nivel_2: { label: 'Nível 2', color: 'bg-blue-100 text-blue-700' },
+  nivel_3: { label: 'Nível 3', color: 'bg-yellow-100 text-yellow-700' },
 };
 
 export const DoctorFinancial: React.FC = () => {
@@ -107,7 +107,7 @@ export const DoctorFinancial: React.FC = () => {
 
   const filteredPayouts = payouts.filter(p => payoutFilter === 'all' || p.status === payoutFilter);
 
-  const patente = earnings?.patente ?? 'prata';
+  const nivel = earnings?.nivel ?? 'nivel_2';
   const valuePerConsultation = earnings?.valuePerConsultation ?? 0;
 
   if (loading) {
@@ -125,7 +125,7 @@ export const DoctorFinancial: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Financeiro</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Você recebe um valor fixo por consulta realizada, conforme sua patente.
+            Você recebe um valor fixo por consulta realizada, conforme seu nível.
           </p>
         </div>
 
@@ -170,14 +170,14 @@ export const DoctorFinancial: React.FC = () => {
           <div className="text-xs text-gray-500 mt-1">consultas concluídas</div>
         </div>
 
-        {/* Valor por consulta (patente) */}
+        {/* Valor por consulta (nível) */}
         <div className="bg-white rounded-xl shadow p-5 border-l-4 border-yellow-500">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2 bg-yellow-50 rounded-lg">
               <Award className="w-5 h-5 text-yellow-500" />
             </div>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${PATENTE_CONFIG[patente]?.color}`}>
-              {PATENTE_CONFIG[patente]?.label}
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${NIVEL_CONFIG[nivel]?.color}`}>
+              {NIVEL_CONFIG[nivel]?.label}
             </span>
           </div>
           <div className="text-2xl font-bold text-gray-800">{formatCurrency(valuePerConsultation)}</div>
@@ -352,8 +352,8 @@ export const DoctorFinancial: React.FC = () => {
           <div>
             <h4 className="text-sm font-semibold text-blue-800">Como funcionam os repasses</h4>
             <p className="text-sm text-blue-700 mt-1">
-              Você recebe {formatCurrency(valuePerConsultation)} por consulta realizada (patente{' '}
-              {PATENTE_CONFIG[patente]?.label}). Os repasses são processados via PIX duas vezes por mês:
+              Você recebe {formatCurrency(valuePerConsultation)} por consulta realizada ({NIVEL_CONFIG[nivel]?.label}).
+              Os repasses são processados via PIX duas vezes por mês:
               consultas realizadas nos dias 1–14 são pagas no dia 30; as dos dias 15–fim, no dia 15 do mês seguinte.
             </p>
           </div>

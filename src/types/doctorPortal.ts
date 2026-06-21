@@ -83,7 +83,7 @@ export interface Doctor {
   invite_token: string | null;
   patient_referral_token: string | null;
   platform_fee_percent: number;
-  patente: 'bronze' | 'prata' | 'ouro';
+  nivel: 'nivel_1' | 'nivel_2' | 'nivel_3';
   pix_key: string | null;
   address_zip?: string | null;
   address_street?: string | null;

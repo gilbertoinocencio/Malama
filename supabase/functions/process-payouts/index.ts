@@ -19,27 +19,27 @@ const ASAAS_BASE_URL = ASAAS_ENV === 'production'
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
-// Valores-padrão por patente (fallback caso platform_settings não tenha as chaves)
-const DEFAULT_PATENTE_VALUES: Record<string, number> = { bronze: 90, prata: 100, ouro: 120 };
+// Valores-padrão por nível (fallback caso platform_settings não tenha as chaves)
+const DEFAULT_NIVEL_VALUES: Record<string, number> = { nivel_1: 90, nivel_2: 100, nivel_3: 120 };
 
-/** Carrega o mapa patente→valor por consulta a partir de platform_settings. */
-async function loadPatenteValues(): Promise<Record<string, number>> {
-  const map = { ...DEFAULT_PATENTE_VALUES };
+/** Carrega o mapa nível→valor por consulta a partir de platform_settings. */
+async function loadNivelValues(): Promise<Record<string, number>> {
+  const map = { ...DEFAULT_NIVEL_VALUES };
   const { data } = await supabase
     .from('platform_settings')
     .select('key, value')
-    .in('key', ['doctor_value_bronze', 'doctor_value_prata', 'doctor_value_ouro']);
+    .in('key', ['doctor_value_nivel1', 'doctor_value_nivel2', 'doctor_value_nivel3']);
   for (const row of data ?? []) {
-    if (row.key === 'doctor_value_bronze') map.bronze = parseFloat(row.value);
-    if (row.key === 'doctor_value_prata')  map.prata  = parseFloat(row.value);
-    if (row.key === 'doctor_value_ouro')   map.ouro   = parseFloat(row.value);
+    if (row.key === 'doctor_value_nivel1') map.nivel_1 = parseFloat(row.value);
+    if (row.key === 'doctor_value_nivel2') map.nivel_2 = parseFloat(row.value);
+    if (row.key === 'doctor_value_nivel3') map.nivel_3 = parseFloat(row.value);
   }
   return map;
 }
 
-/** Valor por consulta de um médico conforme sua patente. */
-function valueForPatente(values: Record<string, number>, patente: string | null): number {
-  return values[patente ?? 'prata'] ?? values.prata ?? DEFAULT_PATENTE_VALUES.prata;
+/** Valor por consulta de um médico conforme seu nível. */
+function valueForNivel(values: Record<string, number>, nivel: string | null): number {
+  return values[nivel ?? 'nivel_2'] ?? values.nivel_2 ?? DEFAULT_NIVEL_VALUES.nivel_2;
 }
 
 // ─── Asaas API ────────────────────────────────────────────────────────────────
@@ -171,8 +171,8 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
 
   console.log(`[process-payouts] Found ${credits.length} credits to pay`);
 
-  // Mapa patente→valor por consulta (configurável em platform_settings)
-  const patenteValues = await loadPatenteValues();
+  // Mapa nível→valor por consulta (configurável em platform_settings)
+  const nivelValues = await loadNivelValues();
 
   // Agrupar por doctor_id
   const byDoctor = new Map<string, typeof credits>();
@@ -186,10 +186,10 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
   let payoutsCreated = 0;
 
   for (const [doctorId, doctorCredits] of byDoctor) {
-    // Buscar dados do médico (incl. patente, que define o valor por consulta)
+    // Buscar dados do médico (incl. nivel, que define o valor por consulta)
     const { data: doctor } = await supabase
       .from('doctors')
-      .select('name, pix_key, patente')
+      .select('name, pix_key, nivel')
       .eq('id', doctorId)
       .single();
 
@@ -198,7 +198,7 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
       continue;
     }
 
-    const valuePerConsultation = valueForPatente(patenteValues, doctor.patente);
+    const valuePerConsultation = valueForNivel(nivelValues, doctor.nivel);
     const totalAmount = doctorCredits.length * valuePerConsultation;
 
     // Criar registro de payout com status 'processing'

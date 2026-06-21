@@ -128,14 +128,14 @@ export const AdminDoctorsManagement: React.FC = () => {
     }
   };
 
-  const handlePatenteChange = async (doctorId: string, patente: Doctor['patente']) => {
+  const handleNivelChange = async (doctorId: string, nivel: Doctor['nivel']) => {
     // Atualização otimista no estado local
-    setDoctors(prev => prev.map(d => d.id === doctorId ? { ...d, patente } : d));
+    setDoctors(prev => prev.map(d => d.id === doctorId ? { ...d, nivel } : d));
     try {
-      await doctorService.updateDoctor(doctorId, { patente });
-      toast.success('Patente atualizada');
+      await doctorService.updateDoctor(doctorId, { nivel });
+      toast.success('Nível atualizado');
     } catch {
-      toast.error('Erro ao atualizar patente');
+      toast.error('Erro ao atualizar nível');
       loadDoctors(); // reverte para o estado do servidor
     }
   };
@@ -499,14 +499,14 @@ export const AdminDoctorsManagement: React.FC = () => {
                       </td>
                       <td className="px-4 py-3">
                         <select
-                          value={doctor.patente ?? 'prata'}
-                          onChange={e => handlePatenteChange(doctor.id, e.target.value as Doctor['patente'])}
+                          value={doctor.nivel ?? 'nivel_2'}
+                          onChange={e => handleNivelChange(doctor.id, e.target.value as Doctor['nivel'])}
                           className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-[#7d4a3c] bg-white"
-                          title="Patente do médico (define o valor por consulta)"
+                          title="Nível do médico (define o valor por consulta)"
                         >
-                          <option value="bronze">🥉 Bronze</option>
-                          <option value="prata">🥈 Prata</option>
-                          <option value="ouro">🥇 Ouro</option>
+                          <option value="nivel_1">Nível 1</option>
+                          <option value="nivel_2">Nível 2</option>
+                          <option value="nivel_3">Nível 3</option>
                         </select>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">

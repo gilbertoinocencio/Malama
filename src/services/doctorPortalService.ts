@@ -617,8 +617,8 @@ export const messageService = {
 export interface DoctorEarnings {
   realizedCount: number;        // total de consultas realizadas (créditos 'realizada')
   unpaidCount: number;          // realizadas ainda não incluídas em um repasse
-  patente: 'bronze' | 'prata' | 'ouro';
-  valuePerConsultation: number; // valor da patente
+  nivel: 'nivel_1' | 'nivel_2' | 'nivel_3';
+  valuePerConsultation: number; // valor do nível
   pendingReceivable: number;    // unpaidCount * valor
   realizedCredits: { id: string; realized_at: string | null; paid: boolean }[];
 }
@@ -635,18 +635,18 @@ export const payoutService = {
     return data || [];
   },
 
-  /** Ganhos do médico no modelo de créditos: realizadas, a receber e valor por patente. */
+  /** Ganhos do médico no modelo de créditos: realizadas, a receber e valor por nível. */
   async getDoctorEarnings(doctorId: string): Promise<DoctorEarnings> {
-    const { loadPatenteValues, valueForPatente } = await import('./billingService');
-    const [creditsRes, doctorRes, patenteValues] = await Promise.all([
+    const { loadNivelValues, valueForNivel } = await import('./billingService');
+    const [creditsRes, doctorRes, nivelValues] = await Promise.all([
       supabase
         .from('consultation_credits')
         .select('id, realized_at')
         .eq('doctor_id', doctorId)
         .eq('status', 'realizada')
         .order('realized_at', { ascending: false }),
-      supabase.from('doctors').select('patente').eq('id', doctorId).single(),
-      loadPatenteValues(),
+      supabase.from('doctors').select('nivel').eq('id', doctorId).single(),
+      loadNivelValues(),
     ]);
 
     const credits = creditsRes.data ?? [];
@@ -660,8 +660,8 @@ export const payoutService = {
       paidIds = new Set((items ?? []).map((i: any) => i.consultation_credit_id));
     }
 
-    const patente = ((doctorRes.data as any)?.patente ?? 'prata') as 'bronze' | 'prata' | 'ouro';
-    const valuePerConsultation = valueForPatente(patenteValues, patente);
+    const nivel = ((doctorRes.data as any)?.nivel ?? 'nivel_2') as 'nivel_1' | 'nivel_2' | 'nivel_3';
+    const valuePerConsultation = valueForNivel(nivelValues, nivel);
     const realizedCredits = credits.map((c: any) => ({
       id: c.id,
       realized_at: c.realized_at,
@@ -672,7 +672,7 @@ export const payoutService = {
     return {
       realizedCount: credits.length,
       unpaidCount,
-      patente,
+      nivel,
       valuePerConsultation,
       pendingReceivable: unpaidCount * valuePerConsultation,
       realizedCredits,
@@ -1235,7 +1235,7 @@ export const dashboardService = {
     const todayConsultations = await consultationService.getTodayConsultations(doctorId);
     const weekConsultations = await consultationService.getWeekConsultations(doctorId);
 
-    // A receber = consultas realizadas (créditos) ainda não repassadas × valor da patente
+    // A receber = consultas realizadas (créditos) ainda não repassadas × valor do nível
     const earnings = await payoutService.getDoctorEarnings(doctorId);
     const pendingReceivable = earnings.pendingReceivable;
 
