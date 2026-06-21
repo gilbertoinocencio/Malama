@@ -474,8 +474,6 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
 
 // ─── Editor de preços de planos B2C ───────────────────
 const PLAN_CYCLES = ['mensal', 'semestral', 'anual'] as const;
-const PLAN_TYPES  = ['essencial', 'glp1'] as const;
-const PLAN_LABELS: Record<string, string> = { essencial: 'Essencial', glp1: 'GLP-1' };
 const CYCLE_LABELS: Record<string, string> = { mensal: 'Mensal', semestral: 'Semestral', anual: 'Anual' };
 
 const PlanPricesEditor: React.FC = () => {
@@ -498,10 +496,8 @@ const PlanPricesEditor: React.FC = () => {
     setSaving(true);
     try {
       await Promise.all(
-        PLAN_TYPES.flatMap(plan =>
-          PLAN_CYCLES.map(cycle =>
-            planPricesService.upsert(plan, cycle, parseFloat(prices[`${plan}_${cycle}`] || '0'))
-          )
+        PLAN_CYCLES.map(cycle =>
+          planPricesService.upsert('essencial', cycle, parseFloat(prices[`essencial_${cycle}`] || '0'))
         )
       );
       toast.success('Preços salvos!');
@@ -522,8 +518,8 @@ const PlanPricesEditor: React.FC = () => {
     <div className="bg-white rounded-xl shadow p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-base font-semibold text-gray-800">Preços dos Planos B2C</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Valores cobrados por plano e ciclo de cobrança.</p>
+          <h3 className="text-base font-semibold text-gray-800">Preços do Plano Essencial</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Valores cobrados por ciclo de cobrança.</p>
         </div>
         <button
           onClick={handleSave}
@@ -533,33 +529,26 @@ const PlanPricesEditor: React.FC = () => {
           {saving ? 'Salvando...' : 'Salvar preços'}
         </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {PLAN_TYPES.map(plan => (
-          <div key={plan} className="border border-gray-100 rounded-xl p-4">
-            <p className="text-sm font-semibold text-gray-700 mb-3">
-              {plan === 'glp1' ? '💊' : '⚡'} Plano {PLAN_LABELS[plan]}
-            </p>
-            <div className="space-y-3">
-              {PLAN_CYCLES.map(cycle => (
-                <div key={cycle} className="flex items-center gap-3">
-                  <label className="text-xs text-gray-500 w-20">{CYCLE_LABELS[cycle]}</label>
-                  <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">R$</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={prices[`${plan}_${cycle}`] ?? ''}
-                      onChange={e => setPrices(p => ({ ...p, [`${plan}_${cycle}`]: e.target.value }))}
-                      placeholder="0,00"
-                      className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
-                    />
-                  </div>
-                </div>
-              ))}
+      <div className="border border-gray-100 rounded-xl p-4 max-w-sm">
+        <div className="space-y-3">
+          {PLAN_CYCLES.map(cycle => (
+            <div key={cycle} className="flex items-center gap-3">
+              <label className="text-xs text-gray-500 w-20">{CYCLE_LABELS[cycle]}</label>
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">R$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={prices[`essencial_${cycle}`] ?? ''}
+                  onChange={e => setPrices(p => ({ ...p, [`essencial_${cycle}`]: e.target.value }))}
+                  placeholder="0,00"
+                  className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
