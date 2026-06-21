@@ -81,7 +81,6 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <a href="/admin/empresas" className="text-sm hover:text-[#2ECC71] transition">Empresas</a>
             <a href="/admin/impacto" className="text-sm hover:text-[#2ECC71] transition">Impacto</a>
             <a href="/admin/financeiro" className="text-sm hover:text-[#2ECC71] transition">Financeiro</a>
-            <a href="/admin/creditos" className="text-sm hover:text-[#2ECC71] transition">Créditos</a>
             <a href="/admin/comunidade" className="text-sm hover:text-[#2ECC71] transition">Comunidade</a>
             <a href="/admin/configuracoes" className="text-sm hover:text-[#2ECC71] transition">Configurações</a>
           </nav>
@@ -254,13 +253,7 @@ export const AppRoutes: React.FC = () => {
 
           <Route
             path="/admin/creditos"
-            element={
-              <AdminGuard>
-                <AdminLayout>
-                  <AdminCreditsLog />
-                </AdminLayout>
-              </AdminGuard>
-            }
+            element={<Navigate to="/admin/usuarios" replace />}
           />
 
           {/* Indicação de paciente (médico) */}

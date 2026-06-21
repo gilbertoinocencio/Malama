@@ -314,6 +314,9 @@ export const adminBillingService = {
     if (filters?.status && filters.status !== 'all') {
       query = query.eq('status', filters.status);
     }
+    if (filters?.user_id) {
+      query = query.eq('user_id', filters.user_id);
+    }
     if (filters?.doctor_id) {
       query = query.eq('doctor_id', filters.doctor_id);
     }

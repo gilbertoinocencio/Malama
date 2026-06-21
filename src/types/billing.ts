@@ -116,4 +116,5 @@ export interface CreditFilters {
   month?: string; // 'YYYY-MM'
   doctor_id?: string;
   user_search?: string;
+  user_id?: string;
 }

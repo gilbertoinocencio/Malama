@@ -14,8 +14,9 @@ import {
 } from 'lucide-react';
 import { adminService } from '../../services/doctorPortalService';
 import type { AdminUserSummary, AdminUserDetail, AdminColaboradorB2B } from '../../services/doctorPortalService';
-import { planPricesService } from '../../services/billingService';
+import { planPricesService, adminBillingService } from '../../services/billingService';
 import type { PlanPrice } from '../../services/billingService';
+import type { CreditWithDetails, CreditStatus } from '../../types/billing';
 import { AdminSubscriptions } from './AdminSubscriptions';
 import { supabase } from '../../services/supabase';
 import toast from 'react-hot-toast';
@@ -272,13 +273,42 @@ function useChartData(users: AdminUserSummary[]) {
   }, [users]);
 }
 
+// ─── helpers de crédito (usados só no drawer) ──────────
+const CREDIT_STATUS_LABEL: Record<CreditStatus, string> = {
+  disponivel:             'Disponível',
+  agendada:               'Agendada',
+  realizada:              'Realizada',
+  expirada:               'Expirada',
+  perdida_cancelamento:   'Perdida',
+  cancelada_reagendada:   'Reagendada',
+};
+const CREDIT_STATUS_COLOR: Record<CreditStatus, string> = {
+  disponivel:             'bg-green-100 text-green-700',
+  agendada:               'bg-blue-100 text-blue-700',
+  realizada:              'bg-gray-100 text-gray-600',
+  expirada:               'bg-orange-100 text-orange-700',
+  perdida_cancelamento:   'bg-red-100 text-red-700',
+  cancelada_reagendada:   'bg-purple-100 text-purple-700',
+};
+function fmtMonthRef(d: string) {
+  const [y, m] = d.split('-');
+  return ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(m,10)-1] + '/' + y;
+}
+
 // ─── Drawer de ficha ───────────────────────────────────
 const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId, onClose }) => {
   const [user, setUser] = useState<AdminUserDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [credits, setCredits] = useState<CreditWithDetails[]>([]);
 
   useEffect(() => {
-    adminService.getUserDetail(userId).then(setUser).finally(() => setLoading(false));
+    Promise.all([
+      adminService.getUserDetail(userId),
+      adminBillingService.listCredits({ user_id: userId }),
+    ]).then(([u, c]) => {
+      setUser(u);
+      setCredits(c);
+    }).finally(() => setLoading(false));
   }, [userId]);
 
   const goalLabel: Record<string, string> = { aesthetic: 'Estética', health: 'Saúde', performance: 'Performance' };
@@ -378,6 +408,35 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
                   <p className="text-xs text-gray-400 mt-0.5">Sequência</p>
                 </div>
               </div>
+            </div>
+
+            {/* Créditos de consulta */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Créditos de consulta</h3>
+              {credits.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-3">Nenhum crédito registrado.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {credits.map(c => (
+                    <div key={c.id} className="bg-[#FDFBF9] rounded-xl px-3 py-2.5 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-gray-600">{fmtMonthRef(c.month_reference)}</p>
+                        {c.doctor_name && <p className="text-xs text-gray-400 truncate">{c.doctor_name}</p>}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {c.late_cancellations_count > 0 && (
+                          <span className={`text-xs font-semibold ${c.late_cancellations_count >= 2 ? 'text-red-500' : 'text-orange-400'}`}>
+                            {c.late_cancellations_count}× cancel. tardio
+                          </span>
+                        )}
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${CREDIT_STATUS_COLOR[c.status]}`}>
+                          {CREDIT_STATUS_LABEL[c.status]}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Consultas */}
