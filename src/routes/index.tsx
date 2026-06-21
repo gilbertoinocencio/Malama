@@ -81,7 +81,6 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <a href="/admin/empresas" className="text-sm hover:text-[#2ECC71] transition">Empresas</a>
             <a href="/admin/impacto" className="text-sm hover:text-[#2ECC71] transition">Impacto</a>
             <a href="/admin/financeiro" className="text-sm hover:text-[#2ECC71] transition">Financeiro</a>
-            <a href="/admin/assinantes" className="text-sm hover:text-[#2ECC71] transition">Assinantes</a>
             <a href="/admin/creditos" className="text-sm hover:text-[#2ECC71] transition">Créditos</a>
             <a href="/admin/comunidade" className="text-sm hover:text-[#2ECC71] transition">Comunidade</a>
             <a href="/admin/configuracoes" className="text-sm hover:text-[#2ECC71] transition">Configurações</a>
