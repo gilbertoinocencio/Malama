@@ -16,14 +16,16 @@ Deno.serve(async (_req: Request) => {
   try {
     const now = new Date().toISOString();
 
-    // Buscar e expirar todos os créditos disponíveis ou agendados que passaram do prazo
+    // Expira apenas créditos DISPONÍVEIS vencidos (prazo para agendar esgotado).
+    // Créditos 'agendada' são honrados mesmo após o 30º dia: a janela de 30 dias
+    // é o prazo para AGENDAR; uma vez agendado dentro do prazo, não expira.
     const { data, error } = await supabase
       .from('consultation_credits')
       .update({
         status: 'expirada',
         updated_at: now,
       })
-      .in('status', ['disponivel', 'agendada'])
+      .eq('status', 'disponivel')
       .lt('expires_at', now)
       .select('id, user_id, month_reference');
 

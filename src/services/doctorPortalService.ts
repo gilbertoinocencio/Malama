@@ -614,6 +614,15 @@ export const messageService = {
 // REPASSES
 // =====================================================
 
+export interface DoctorEarnings {
+  realizedCount: number;        // total de consultas realizadas (créditos 'realizada')
+  unpaidCount: number;          // realizadas ainda não incluídas em um repasse
+  patente: 'bronze' | 'prata' | 'ouro';
+  valuePerConsultation: number; // valor da patente
+  pendingReceivable: number;    // unpaidCount * valor
+  realizedCredits: { id: string; realized_at: string | null; paid: boolean }[];
+}
+
 export const payoutService = {
   async getDoctorPayouts(doctorId: string): Promise<Payout[]> {
     const { data, error } = await supabase
@@ -624,6 +633,50 @@ export const payoutService = {
 
     if (error) throw error;
     return data || [];
+  },
+
+  /** Ganhos do médico no modelo de créditos: realizadas, a receber e valor por patente. */
+  async getDoctorEarnings(doctorId: string): Promise<DoctorEarnings> {
+    const { loadPatenteValues, valueForPatente } = await import('./billingService');
+    const [creditsRes, doctorRes, patenteValues] = await Promise.all([
+      supabase
+        .from('consultation_credits')
+        .select('id, realized_at')
+        .eq('doctor_id', doctorId)
+        .eq('status', 'realizada')
+        .order('realized_at', { ascending: false }),
+      supabase.from('doctors').select('patente').eq('id', doctorId).single(),
+      loadPatenteValues(),
+    ]);
+
+    const credits = creditsRes.data ?? [];
+    const ids = credits.map((c: any) => c.id);
+    let paidIds = new Set<string>();
+    if (ids.length) {
+      const { data: items } = await supabase
+        .from('payout_items')
+        .select('consultation_credit_id')
+        .in('consultation_credit_id', ids);
+      paidIds = new Set((items ?? []).map((i: any) => i.consultation_credit_id));
+    }
+
+    const patente = ((doctorRes.data as any)?.patente ?? 'prata') as 'bronze' | 'prata' | 'ouro';
+    const valuePerConsultation = valueForPatente(patenteValues, patente);
+    const realizedCredits = credits.map((c: any) => ({
+      id: c.id,
+      realized_at: c.realized_at,
+      paid: paidIds.has(c.id),
+    }));
+    const unpaidCount = realizedCredits.filter((c) => !c.paid).length;
+
+    return {
+      realizedCount: credits.length,
+      unpaidCount,
+      patente,
+      valuePerConsultation,
+      pendingReceivable: unpaidCount * valuePerConsultation,
+      realizedCredits,
+    };
   },
 
   // Admin: Buscar repasses pendentes
@@ -1185,14 +1238,9 @@ export const dashboardService = {
     const todayConsultations = await consultationService.getTodayConsultations(doctorId);
     const weekConsultations = await consultationService.getWeekConsultations(doctorId);
 
-    // Buscar consultas a receber (agendadas/completas com pagamento pendente)
-    const { data: receivables } = await supabase
-      .from('consultations')
-      .select('doctor_payout')
-      .eq('doctor_id', doctorId)
-      .eq('payment_status', 'pending');
-
-    const pendingReceivable = receivables?.reduce((sum, c) => sum + (c.doctor_payout || 0), 0) || 0;
+    // A receber = consultas realizadas (créditos) ainda não repassadas × valor da patente
+    const earnings = await payoutService.getDoctorEarnings(doctorId);
+    const pendingReceivable = earnings.pendingReceivable;
 
     // Calcular tempo médio de consulta (consultas completadas)
     const { data: completedConsultations } = await supabase

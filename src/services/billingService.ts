@@ -26,12 +26,32 @@ function currentMonthRef(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-/** Retorna o último instante do mês dado 'YYYY-MM-01' */
-function creditExpiry(monthReference: string): string {
-  const ref = new Date(monthReference);
-  // Último dia do mês = dia 0 do mês seguinte
-  const expiry = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59, 999);
-  return expiry.toISOString();
+/** Validade do crédito: 30 dias a partir de agora (prazo para AGENDAR). */
+function rollingExpiry(): string {
+  return new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+}
+
+/** Valores-padrão por patente (fallback se platform_settings não tiver as chaves). */
+export const DEFAULT_PATENTE_VALUES: Record<string, number> = { bronze: 90, prata: 100, ouro: 120 };
+
+/** Carrega o mapa patente→valor por consulta a partir de platform_settings. */
+export async function loadPatenteValues(): Promise<Record<string, number>> {
+  const map = { ...DEFAULT_PATENTE_VALUES };
+  const { data } = await supabase
+    .from('platform_settings')
+    .select('key, value')
+    .in('key', ['doctor_value_bronze', 'doctor_value_prata', 'doctor_value_ouro']);
+  for (const row of data ?? []) {
+    if (row.key === 'doctor_value_bronze') map.bronze = parseFloat(row.value);
+    if (row.key === 'doctor_value_prata')  map.prata  = parseFloat(row.value);
+    if (row.key === 'doctor_value_ouro')   map.ouro   = parseFloat(row.value);
+  }
+  return map;
+}
+
+/** Valor por consulta de um médico conforme sua patente. */
+export function valueForPatente(values: Record<string, number>, patente: string | null | undefined): number {
+  return values[patente ?? 'prata'] ?? values.prata ?? DEFAULT_PATENTE_VALUES.prata;
 }
 
 // ─── subscriptionService ──────────────────────────────────────────────────────
@@ -127,8 +147,8 @@ export const creditService = {
     userId: string,
     subscriptionId: string
   ): Promise<ConsultationCredit> {
-    const monthRef = currentMonthRef();
-    const expiresAt = creditExpiry(monthRef);
+    const monthRef = currentMonthRef(); // apenas rótulo/relatório
+    const expiresAt = rollingExpiry();  // 30 dias a partir de agora
 
     const { data, error } = await supabase
       .from('consultation_credits')
@@ -146,16 +166,18 @@ export const creditService = {
     return data;
   },
 
-  /** Retorna créditos ativos (disponivel/agendada) do usuário no mês corrente */
+  /** Retorna créditos ativos (disponivel/agendada) e ainda válidos do usuário.
+   *  Sob janela rolante de 30 dias o filtro é por status + validade, não por
+   *  mês-calendário (um crédito de 17/jan continua válido em 01/fev). */
   async getAvailableForUser(userId: string): Promise<ConsultationCredit[]> {
-    const monthRef = currentMonthRef();
+    const now = new Date().toISOString();
 
     const { data, error } = await supabase
       .from('consultation_credits')
       .select('*')
       .eq('user_id', userId)
-      .eq('month_reference', monthRef)
       .in('status', ['disponivel', 'agendada'])
+      .gt('expires_at', now)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -209,7 +231,7 @@ export const creditService = {
   ): Promise<void> {
     const { data: credit, error: fetchError } = await supabase
       .from('consultation_credits')
-      .select('user_id, subscription_id, month_reference, late_cancellations_count')
+      .select('user_id, subscription_id, month_reference, expires_at, late_cancellations_count')
       .eq('id', creditId)
       .single();
 
@@ -231,13 +253,14 @@ export const creditService = {
         })
         .eq('id', creditId);
 
-      // Cria novo crédito disponível (herdando contagem de cancelamentos tardios)
+      // Cria novo crédito disponível (herda contagem de cancelamentos tardios e o
+      // expires_at ORIGINAL — o prazo de 30 dias para agendar não se estende por cancelar)
       await supabase.from('consultation_credits').insert([{
         user_id: credit.user_id,
         subscription_id: credit.subscription_id,
         status: 'disponivel' as CreditStatus,
         month_reference: credit.month_reference,
-        expires_at: creditExpiry(credit.month_reference),
+        expires_at: credit.expires_at,
         late_cancellations_count: credit.late_cancellations_count,
       }]);
       return;
@@ -276,7 +299,7 @@ export const creditService = {
         subscription_id: credit.subscription_id,
         status: 'disponivel' as CreditStatus,
         month_reference: credit.month_reference,
-        expires_at: creditExpiry(credit.month_reference),
+        expires_at: credit.expires_at, // herda o prazo original (não estende)
         late_cancellations_count: newCount, // propaga contagem para o novo crédito
       }]);
     }
@@ -436,11 +459,12 @@ export const adminBillingService = {
     return result;
   },
 
-  /** Estimativa do próximo split (créditos realizados ainda não incluídos em payout) */
+  /** Estimativa do próximo split (créditos realizados ainda não incluídos em payout).
+   *  Soma por médico conforme o valor da patente de cada um. */
   async getNextSplitEstimate(): Promise<number> {
     const { data, error } = await supabase
       .from('consultation_credits')
-      .select('id')
+      .select('id, doctor_id')
       .eq('status', 'realizada');
 
     if (error) throw error;
@@ -455,21 +479,37 @@ export const adminBillingService = {
       .in('consultation_credit_id', ids);
 
     const paidIds = new Set((paidItems || []).map((p: any) => p.consultation_credit_id));
-    const unpaidCount = ids.filter((id: string) => !paidIds.has(id)).length;
+    const unpaid = data.filter((c: any) => !paidIds.has(c.id));
+    if (unpaid.length === 0) return 0;
 
-    // Valor fixo por consulta realizada: R$100
-    return unpaidCount * 100;
+    // Mapear doctor_id → patente para valorizar cada crédito
+    const doctorIds = [...new Set(unpaid.map((c: any) => c.doctor_id).filter(Boolean))];
+    const [patenteValues, doctorsRes] = await Promise.all([
+      loadPatenteValues(),
+      doctorIds.length
+        ? supabase.from('doctors').select('id, patente').in('id', doctorIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const patenteByDoctor: Record<string, string> = {};
+    for (const d of (doctorsRes as any).data ?? []) patenteByDoctor[d.id] = d.patente;
+
+    return unpaid.reduce((sum: number, c: any) => {
+      const patente = c.doctor_id ? patenteByDoctor[c.doctor_id] : 'prata';
+      return sum + valueForPatente(patenteValues, patente);
+    }, 0);
   },
 
-  /** Calcula data estimada do próximo split */
+  /** Calcula data estimada do próximo split (dias 15 e 30) */
   getNextSplitDate(): string {
     const now = new Date();
     const day = now.getDate();
     let next: Date;
     if (day < 15) {
       next = new Date(now.getFullYear(), now.getMonth(), 15);
+    } else if (day < 30) {
+      next = new Date(now.getFullYear(), now.getMonth(), 30);
     } else {
-      next = new Date(now.getFullYear(), now.getMonth() + 1, 0); // último dia do mês
+      next = new Date(now.getFullYear(), now.getMonth() + 1, 15);
     }
     return next.toLocaleDateString('pt-BR');
   },

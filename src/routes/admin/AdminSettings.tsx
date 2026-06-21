@@ -12,7 +12,10 @@ export const AdminSettings: React.FC = () => {
     default_platform_fee: '25',
     min_consultation_duration: '20',
     min_consultation_price: '80',
-    support_email: 'suporte@Malama.app'
+    support_email: 'suporte@Malama.app',
+    doctor_value_bronze: '90',
+    doctor_value_prata: '100',
+    doctor_value_ouro: '120',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,7 +72,7 @@ export const AdminSettings: React.FC = () => {
 
         <div className="space-y-4 max-w-lg">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Taxa de comissão padrão (%)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Comissão de indicação de suplementos (%) — uso futuro</label>
             <input
               type="number"
               value={settings.default_platform_fee}
@@ -78,6 +81,7 @@ export const AdminSettings: React.FC = () => {
               max={100}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
             />
+            <p className="text-xs text-gray-400 mt-1">Reservado para a comissão do médico em indicações de suplementos (parceria futura). Não afeta o repasse por consulta.</p>
           </div>
 
           <div>
@@ -110,6 +114,47 @@ export const AdminSettings: React.FC = () => {
               onChange={e => updateSetting('support_email', e.target.value)}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
             />
+          </div>
+
+          {/* Valor por consulta por patente do médico */}
+          <div className="pt-4 border-t border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-1">Valor por consulta realizada (patentes)</h4>
+            <p className="text-xs text-gray-400 mb-3">
+              Valor do repasse por consulta realizada conforme a patente do médico. A patente é
+              atribuída a cada médico na aba Médicos.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">🥉 Bronze (R$)</label>
+                <input
+                  type="number"
+                  value={settings.doctor_value_bronze}
+                  onChange={e => updateSetting('doctor_value_bronze', e.target.value)}
+                  min={0}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">🥈 Prata (R$)</label>
+                <input
+                  type="number"
+                  value={settings.doctor_value_prata}
+                  onChange={e => updateSetting('doctor_value_prata', e.target.value)}
+                  min={0}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">🥇 Ouro (R$)</label>
+                <input
+                  type="number"
+                  value={settings.doctor_value_ouro}
+                  onChange={e => updateSetting('doctor_value_ouro', e.target.value)}
+                  min={0}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                />
+              </div>
+            </div>
           </div>
 
           <button

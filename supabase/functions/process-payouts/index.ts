@@ -17,9 +17,30 @@ const ASAAS_BASE_URL = ASAAS_ENV === 'production'
   ? 'https://api.asaas.com/v3'
   : 'https://sandbox.asaas.com/api/v3';
 
-const DOCTOR_VALUE_PER_CONSULTATION = 100; // R$100 por consulta realizada
-
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+
+// Valores-padrão por patente (fallback caso platform_settings não tenha as chaves)
+const DEFAULT_PATENTE_VALUES: Record<string, number> = { bronze: 90, prata: 100, ouro: 120 };
+
+/** Carrega o mapa patente→valor por consulta a partir de platform_settings. */
+async function loadPatenteValues(): Promise<Record<string, number>> {
+  const map = { ...DEFAULT_PATENTE_VALUES };
+  const { data } = await supabase
+    .from('platform_settings')
+    .select('key, value')
+    .in('key', ['doctor_value_bronze', 'doctor_value_prata', 'doctor_value_ouro']);
+  for (const row of data ?? []) {
+    if (row.key === 'doctor_value_bronze') map.bronze = parseFloat(row.value);
+    if (row.key === 'doctor_value_prata')  map.prata  = parseFloat(row.value);
+    if (row.key === 'doctor_value_ouro')   map.ouro   = parseFloat(row.value);
+  }
+  return map;
+}
+
+/** Valor por consulta de um médico conforme sua patente. */
+function valueForPatente(values: Record<string, number>, patente: string | null): number {
+  return values[patente ?? 'prata'] ?? values.prata ?? DEFAULT_PATENTE_VALUES.prata;
+}
 
 // ─── Asaas API ────────────────────────────────────────────────────────────────
 
@@ -60,17 +81,19 @@ async function createAsaasTransfer(
 function determinePeriod(): { start: Date; end: Date } {
   const now = new Date();
   const day = now.getDate();
+  const y = now.getFullYear();
+  const m = now.getMonth();
 
-  if (day <= 15) {
-    // Executado no dia 15: processa consultas de 1-14 do mês corrente
-    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-    const end   = new Date(now.getFullYear(), now.getMonth(), 14, 23, 59, 59);
+  if (day >= 28) {
+    // Rodada do dia 30 (o 28 cobre fevereiro, que não tem dia 30):
+    // paga créditos realizados nos dias 1–14 do mês corrente.
+    const start = new Date(y, m, 1, 0, 0, 0);
+    const end   = new Date(y, m, 14, 23, 59, 59);
     return { start, end };
   } else {
-    // Executado no dia 28+: processa consultas de 15 até fim do mês corrente
-    const start = new Date(now.getFullYear(), now.getMonth(), 15, 0, 0, 0);
-    // Último dia do mês
-    const end   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    // Rodada do dia 15: paga créditos realizados nos dias 15–fim do mês ANTERIOR.
+    const start = new Date(y, m - 1, 15, 0, 0, 0);
+    const end   = new Date(y, m, 0, 23, 59, 59); // dia 0 do mês corrente = último dia do mês anterior
     return { start, end };
   }
 }
@@ -148,6 +171,9 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
 
   console.log(`[process-payouts] Found ${credits.length} credits to pay`);
 
+  // Mapa patente→valor por consulta (configurável em platform_settings)
+  const patenteValues = await loadPatenteValues();
+
   // Agrupar por doctor_id
   const byDoctor = new Map<string, typeof credits>();
   for (const credit of credits) {
@@ -160,10 +186,10 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
   let payoutsCreated = 0;
 
   for (const [doctorId, doctorCredits] of byDoctor) {
-    // Buscar dados do médico
+    // Buscar dados do médico (incl. patente, que define o valor por consulta)
     const { data: doctor } = await supabase
       .from('doctors')
-      .select('name, pix_key')
+      .select('name, pix_key, patente')
       .eq('id', doctorId)
       .single();
 
@@ -172,7 +198,8 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
       continue;
     }
 
-    const totalAmount = doctorCredits.length * DOCTOR_VALUE_PER_CONSULTATION;
+    const valuePerConsultation = valueForPatente(patenteValues, doctor.patente);
+    const totalAmount = doctorCredits.length * valuePerConsultation;
 
     // Criar registro de payout com status 'processing'
     const { data: payout, error: payoutErr } = await supabase
@@ -201,7 +228,7 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
         doctorCredits.map((c: any) => ({
           payout_id: payout.id,
           consultation_credit_id: c.id,
-          amount: DOCTOR_VALUE_PER_CONSULTATION,
+          amount: valuePerConsultation,
         }))
       );
 

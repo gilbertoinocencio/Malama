@@ -128,6 +128,18 @@ export const AdminDoctorsManagement: React.FC = () => {
     }
   };
 
+  const handlePatenteChange = async (doctorId: string, patente: Doctor['patente']) => {
+    // Atualização otimista no estado local
+    setDoctors(prev => prev.map(d => d.id === doctorId ? { ...d, patente } : d));
+    try {
+      await doctorService.updateDoctor(doctorId, { patente });
+      toast.success('Patente atualizada');
+    } catch {
+      toast.error('Erro ao atualizar patente');
+      loadDoctors(); // reverte para o estado do servidor
+    }
+  };
+
   const handleApprove = async () => {
     if (!showApproveModal) return;
 
@@ -451,6 +463,7 @@ export const AdminDoctorsManagement: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">CRM/UF</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Especialidade</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Patente</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Criado em</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
                 </tr>
@@ -483,6 +496,18 @@ export const AdminDoctorsManagement: React.FC = () => {
                       </td>
                       <td className="px-4 py-3">
                         {getStatusBadge(doctor.status)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={doctor.patente ?? 'prata'}
+                          onChange={e => handlePatenteChange(doctor.id, e.target.value as Doctor['patente'])}
+                          className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-[#7d4a3c] bg-white"
+                          title="Patente do médico (define o valor por consulta)"
+                        >
+                          <option value="bronze">🥉 Bronze</option>
+                          <option value="prata">🥈 Prata</option>
+                          <option value="ouro">🥇 Ouro</option>
+                        </select>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
                         {formatDate(doctor.created_at)}

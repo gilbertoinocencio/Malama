@@ -21,10 +21,9 @@ function currentMonthRef(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-function creditExpiry(monthReference: string): string {
-  const ref = new Date(monthReference);
-  const expiry = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59, 999);
-  return expiry.toISOString();
+/** Validade do crédito: 30 dias a partir do pagamento (prazo para AGENDAR). */
+function rollingExpiry(): string {
+  return new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
 }
 
 function jsonResponse(body: object, status = 200): Response {
@@ -61,20 +60,21 @@ async function handlePaymentConfirmed(payment: any): Promise<void> {
       .eq('id', sub.id);
   }
 
-  const monthRef  = currentMonthRef();
-  const expiresAt = creditExpiry(monthRef);
+  const monthRef  = currentMonthRef(); // apenas rótulo/relatório
+  const expiresAt = rollingExpiry();   // 30 dias a partir do pagamento
 
-  // Guard de idempotência: verificar se já existe crédito ativo para este mês
+  // Guard de idempotência: já existe crédito ATIVO (disponivel/agendada) para
+  // esta assinatura? Regra: um crédito ativo por assinatura por vez. Se o
+  // anterior já foi usado/expirou, um novo pagamento gera um novo crédito.
   const { data: existing } = await supabase
     .from('consultation_credits')
-    .select('id, status')
+    .select('id')
     .eq('subscription_id', sub.id)
-    .eq('month_reference', monthRef)
-    .not('status', 'in', '("expirada","perdida_cancelamento","cancelada_reagendada")')
-    .maybeSingle();
+    .in('status', ['disponivel', 'agendada'])
+    .limit(1);
 
-  if (existing) {
-    console.log(`[webhook-asaas] Credit already exists for sub=${sub.id} month=${monthRef}, skipping`);
+  if (existing && existing.length > 0) {
+    console.log(`[webhook-asaas] Active credit already exists for sub=${sub.id}, skipping`);
     return;
   }
 
