@@ -474,6 +474,20 @@ export const consultationService = {
       .eq('id', consultationId);
 
     if (error) throw error;
+
+    if (status === 'completed') {
+      const { data: credit } = await supabase
+        .from('consultation_credits')
+        .select('id')
+        .eq('appointment_id', consultationId)
+        .eq('status', 'agendada')
+        .maybeSingle();
+
+      if (credit) {
+        const { creditService } = await import('./billingService');
+        await creditService.markAsRealized(credit.id);
+      }
+    }
   },
 
   // Buscar consultas por dia
