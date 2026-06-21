@@ -506,8 +506,9 @@ export const AdminEmpresas: React.FC = () => {
     ? Math.round(dashboard.total_colaboradores / dashboard.empresas_ativas)
     : 0;
 
-  const ticketMedio = dashboard && dashboard.empresas_ativas > 0
-    ? dashboard.mrr_total / dashboard.empresas_ativas
+  const empresasComValor = empresas.filter(e => e.valor_por_assento != null && e.status === 'ativa');
+  const ticketMedio = empresasComValor.length > 0
+    ? empresasComValor.reduce((s, e) => s + (e.valor_por_assento ?? 0), 0) / empresasComValor.length
     : 0;
 
   const ativas = empresas.filter(e => e.status === 'ativa' && e.max_assentos != null);
