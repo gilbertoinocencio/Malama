@@ -795,16 +795,13 @@ export const settingsService = {
     return data || [];
   },
 
-  async updateSetting(key: string, value: string): Promise<PlatformSetting> {
-    const { data, error } = await supabase
-      .from('platform_settings')
-      .update({ value, updated_at: new Date().toISOString() })
-      .eq('key', key)
-      .select()
-      .single();
+  async updateSetting(key: string, value: string): Promise<void> {
+    const { error } = await supabase.rpc('admin_update_setting', {
+      p_key: key,
+      p_value: value,
+    });
 
     if (error) throw error;
-    return data;
   }
 };
 
