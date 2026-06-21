@@ -9,6 +9,7 @@ import {
   bookConsultation,
   Consultation,
 } from '../lib/scheduling';
+import { creditService } from '../services/billingService';
 import { AppView } from '../types';
 import { useLanguage } from '../i18n';
 
@@ -20,12 +21,13 @@ interface AgendarConsultaProps {
 
 type Step = 'objective' | 'doctors' | 'schedule' | 'summary' | 'confirmed';
 
-const generateNextDates = (count = 30): Date[] => {
+const generateNextDates = (count = 30, maxDate?: Date | null): Date[] => {
   const dates: Date[] = [];
   const today = new Date();
-  for (let i = 1; dates.length < count; i++) {
+  for (let i = 1; dates.length < count && i <= 366; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
+    if (maxDate && d > maxDate) break; // não oferecer datas além da validade do crédito
     if (d.getDay() !== 0) dates.push(d); // skip sundays
   }
   return dates;
@@ -47,8 +49,20 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
   const [booking, setBooking] = useState(false);
   const [bookedConsultation, setBookedConsultation] = useState<Consultation | null>(null);
   const [bookError, setBookError] = useState('');
+  const [creditExpiresAt, setCreditExpiresAt] = useState<Date | null>(null);
 
-  const availableDates = generateNextDates(30);
+  // Carrega a validade do crédito disponível para limitar as datas oferecidas
+  useEffect(() => {
+    if (!user) return;
+    creditService.getAvailableForUser(user.id)
+      .then(credits => {
+        const disponivel = credits.find(c => c.status === 'disponivel');
+        if (disponivel?.expires_at) setCreditExpiresAt(new Date(disponivel.expires_at));
+      })
+      .catch(() => {});
+  }, [user]);
+
+  const availableDates = generateNextDates(30, creditExpiresAt);
 
   const OBJECTIVE_OPTIONS = [
     { value: 'emagrecimento', label: t.agendarConsulta.objectiveWeightLoss, icon: '⚖️', desc: t.agendarConsulta.objectiveWeightLossDesc },

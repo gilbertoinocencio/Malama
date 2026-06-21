@@ -253,6 +253,23 @@ export async function bookConsultation(params: {
   const offsetM = (Math.abs(localOffset) % 60).toString().padStart(2, '0');
   const scheduledAt = new Date(`${date}T${time}:00${offsetSign}${offsetH}:${offsetM}`);
 
+  // Crédito ativo do paciente: a data agendada deve estar DENTRO da validade
+  // (janela de 30 dias). Não se pode agendar para uma data além do vencimento.
+  const { data: activeCredit } = await supabase
+    .from('consultation_credits')
+    .select('id, expires_at')
+    .eq('user_id', patientId)
+    .eq('status', 'disponivel')
+    .gt('expires_at', new Date().toISOString())
+    .order('expires_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (activeCredit && scheduledAt > new Date(activeCredit.expires_at)) {
+    const limite = new Date(activeCredit.expires_at).toLocaleDateString('pt-BR');
+    throw new Error(`A data escolhida está fora do período do seu crédito. Agende até ${limite}.`);
+  }
+
   // Race condition: verify slot still available
   const startOfSlot = scheduledAt.toISOString();
   const endOfSlot = new Date(scheduledAt.getTime() + doctor.consultation_duration * 60000).toISOString();
@@ -287,6 +304,14 @@ export async function bookConsultation(params: {
     .single();
 
   if (error) throw error;
+
+  // Vincula o crédito ao agendamento (disponivel → agendada). Isso protege o
+  // crédito da expiração: uma vez agendado dentro do prazo, é honrado.
+  if (activeCredit) {
+    const { creditService } = await import('../services/billingService');
+    await creditService.markAsScheduled(activeCredit.id, data.id, doctorId);
+  }
+
   return data;
 }
 
