@@ -78,6 +78,10 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   const [endingCall, setEndingCall] = useState(false);
   const [callEnded, setCallEnded] = useState(false);
 
+  // Trava de tempo: só pode finalizar após scheduled_at + duration_minutes
+  const [scheduleUnlockMs, setScheduleUnlockMs] = useState<number | null>(null);
+  const [canComplete, setCanComplete] = useState(false);
+
   // Modais de ação
   const [showGoalsModal, setShowGoalsModal] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
@@ -111,6 +115,29 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   useEffect(() => {
     appointmentChatService.openChat(consultationId, 48).catch(() => {/* já existe */});
   }, [consultationId]);
+
+  // Trava de tempo: busca scheduled_at + duration_minutes e recalcula a cada 30s
+  useEffect(() => {
+    supabase.from('consultations')
+      .select('scheduled_at, duration_minutes')
+      .eq('id', consultationId)
+      .single()
+      .then(({ data }) => {
+        if (data?.scheduled_at && data?.duration_minutes != null) {
+          setScheduleUnlockMs(new Date(data.scheduled_at).getTime() + data.duration_minutes * 60_000);
+        } else {
+          setCanComplete(true); // sem horário definido → sem trava
+        }
+      });
+  }, [consultationId]);
+
+  useEffect(() => {
+    if (scheduleUnlockMs == null) return;
+    const check = () => setCanComplete(Date.now() >= scheduleUnlockMs);
+    check();
+    const id = setInterval(check, 30_000);
+    return () => clearInterval(id);
+  }, [scheduleUnlockMs]);
 
   // Carregar dados do paciente
   useEffect(() => {
@@ -189,6 +216,13 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   const handleFinalize = async () => {
     if (!clinicalForm.diagnosis?.trim()) {
       toast.error('Preencha o campo Diagnóstico antes de finalizar');
+      return;
+    }
+    if (callEnded && !canComplete) {
+      const unlockStr = scheduleUnlockMs
+        ? new Date(scheduleUnlockMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        : null;
+      toast.error(unlockStr ? `Consulta só pode ser encerrada após ${unlockStr}` : 'Aguarde o fim do horário agendado');
       return;
     }
     setFinalizing(true);
@@ -644,23 +678,32 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
                   </div>
 
                   {/* Botões */}
-                  <div className="px-4 pb-4 flex gap-2 sticky bottom-0 bg-gray-800 pt-2 border-t border-gray-700">
-                    <button onClick={handleSaveDraft} disabled={savingDraft}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition">
-                      <Save className="w-3.5 h-3.5" />
-                      {savingDraft ? 'Salvando...' : 'Salvar rascunho'}
-                    </button>
-                    <button onClick={handleFinalize} disabled={finalizing || existingNote?.is_draft === false}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition">
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      {finalizing
-                        ? 'Finalizando...'
-                        : existingNote?.is_draft === false
-                        ? 'Já finalizada'
-                        : callEnded
-                        ? 'Finalizar e sair'
-                        : 'Finalizar e salvar no histórico'}
-                    </button>
+                  <div className="px-4 pb-4 space-y-1.5 sticky bottom-0 bg-gray-800 pt-2 border-t border-gray-700">
+                    <div className="flex gap-2">
+                      <button onClick={handleSaveDraft} disabled={savingDraft}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition">
+                        <Save className="w-3.5 h-3.5" />
+                        {savingDraft ? 'Salvando...' : 'Salvar rascunho'}
+                      </button>
+                      <button onClick={handleFinalize} disabled={finalizing || existingNote?.is_draft === false || (callEnded && !canComplete)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        {finalizing
+                          ? 'Finalizando...'
+                          : existingNote?.is_draft === false
+                          ? 'Já finalizada'
+                          : callEnded && !canComplete
+                          ? 'Consulta em andamento…'
+                          : callEnded
+                          ? 'Finalizar e sair'
+                          : 'Finalizar e salvar no histórico'}
+                      </button>
+                    </div>
+                    {callEnded && !canComplete && scheduleUnlockMs && (
+                      <p className="text-[11px] text-center text-amber-400">
+                        Encerramento disponível após {new Date(scheduleUnlockMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
                   </div>
 
                   {/* Histórico de análises anteriores */}

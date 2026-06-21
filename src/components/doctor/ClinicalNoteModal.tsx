@@ -3,7 +3,7 @@
 // Gate obrigatório para encerrar consulta
 // =====================================================
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   X, Save, CheckCircle, AlertTriangle, ChevronDown, ChevronUp,
   Activity, FileText, Stethoscope, ClipboardList, Weight
@@ -18,6 +18,8 @@ interface Props {
   doctorId: string;
   patientId: string;
   patientName: string;
+  scheduledAt?: string;
+  durationMinutes?: number;
   onClose: () => void;
   onConsultationClosed: (consultationId: string) => void;
 }
@@ -112,6 +114,8 @@ export const ClinicalNoteModal: React.FC<Props> = ({
   doctorId,
   patientId,
   patientName,
+  scheduledAt,
+  durationMinutes,
   onClose,
   onConsultationClosed,
 }) => {
@@ -120,6 +124,21 @@ export const ClinicalNoteModal: React.FC<Props> = ({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  // Recheck every 30s so the button unlocks without requiring modal reopen
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const unlockMs = scheduledAt && durationMinutes != null
+    ? new Date(scheduledAt).getTime() + durationMinutes * 60_000
+    : null;
+  const canComplete = unlockMs == null || now >= unlockMs;
+  const unlockTimeStr = unlockMs
+    ? new Date(unlockMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : null;
 
   useEffect(() => {
     clinicalNoteService.getByConsultation(consultationId).then(note => {
@@ -273,29 +292,37 @@ export const ClinicalNoteModal: React.FC<Props> = ({
         )}
 
         {/* Footer actions */}
-        <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            disabled={saving || loading}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300
-                       text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition"
-          >
-            <Save className="w-4 h-4" />
-            {saving ? 'Salvando…' : 'Salvar Rascunho'}
-          </button>
+        <div className="px-5 py-4 border-t border-gray-100 space-y-2">
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              disabled={saving || loading}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300
+                         text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition"
+            >
+              <Save className="w-4 h-4" />
+              {saving ? 'Salvando…' : 'Salvar Rascunho'}
+            </button>
 
-          <button
-            type="button"
-            onClick={handleFinalizeAndClose}
-            disabled={closing || loading}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-                       bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold
-                       disabled:opacity-50 transition"
-          >
-            <CheckCircle className="w-4 h-4" />
-            {closing ? 'Encerrando…' : 'Finalizar e Encerrar Consulta'}
-          </button>
+            <button
+              type="button"
+              onClick={handleFinalizeAndClose}
+              disabled={closing || loading || !canComplete}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+                         bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold
+                         disabled:opacity-50 transition"
+            >
+              <CheckCircle className="w-4 h-4" />
+              {closing ? 'Encerrando…' : !canComplete ? 'Consulta em andamento…' : 'Finalizar e Encerrar Consulta'}
+            </button>
+          </div>
+
+          {!canComplete && unlockTimeStr && (
+            <p className="text-xs text-center text-amber-600">
+              Encerramento disponível após {unlockTimeStr} (fim do horário agendado)
+            </p>
+          )}
         </div>
       </div>
     </div>

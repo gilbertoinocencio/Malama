@@ -984,6 +984,8 @@ export const DoctorAgenda: React.FC = () => {
           doctorId={doctor.id}
           patientId={closeGate.patient_id}
           patientName={closeGate.patient_name ?? 'Paciente'}
+          scheduledAt={closeGate.scheduled_at}
+          durationMinutes={closeGate.duration_minutes}
           onClose={() => setCloseGate(null)}
           onConsultationClosed={async (id) => {
             setConsultationMap(prev => {
