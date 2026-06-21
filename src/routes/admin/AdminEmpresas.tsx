@@ -6,6 +6,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Plus, Search, X, Building2, Users, DollarSign, TrendingUp,
   Pause, Play, Ban, Inbox, ExternalLink, Lock, Unlock, Receipt, Bell, AlertTriangle,
+  Percent, CalendarDays, UserCheck,
 } from 'lucide-react';
 import {
   empresaAdminService,
@@ -501,11 +502,32 @@ export const AdminEmpresas: React.FC = () => {
     }
   };
 
+  const mediaColabs = dashboard && dashboard.empresas_ativas > 0
+    ? Math.round(dashboard.total_colaboradores / dashboard.empresas_ativas)
+    : 0;
+
+  const ticketMedio = dashboard && dashboard.empresas_ativas > 0
+    ? dashboard.mrr_total / dashboard.empresas_ativas
+    : 0;
+
+  const ativas = empresas.filter(e => e.status === 'ativa' && e.max_assentos != null);
+  const totalMaxAssentos = ativas.reduce((s, e) => s + (e.max_assentos ?? 0), 0);
+  const totalAtivos = ativas.reduce((s, e) => s + e.assentos_ativos, 0);
+  const taxaOcupacao = totalMaxAssentos > 0
+    ? Math.round((totalAtivos / totalMaxAssentos) * 100)
+    : null;
+
+  const arr = (dashboard?.mrr_total ?? 0) * 12;
+
   const cards = [
-    { icon: <Building2 className="w-5 h-5 text-[#7d4a3c]" />, label: 'Empresas ativas', value: String(dashboard?.empresas_ativas ?? 0) },
-    { icon: <Users className="w-5 h-5 text-[#7d4a3c]" />, label: 'Colaboradores com acesso', value: String(dashboard?.total_colaboradores ?? 0) },
-    { icon: <TrendingUp className="w-5 h-5 text-[#7d4a3c]" />, label: 'MRR B2B', value: fmtCurrency(dashboard?.mrr_total ?? 0) },
-    { icon: <Inbox className="w-5 h-5 text-[#7d4a3c]" />, label: 'Leads pendentes', value: String(dashboard?.leads_pendentes ?? 0) },
+    { icon: <Building2 className="w-5 h-5 text-[#7d4a3c]" />, label: 'Empresas ativas',          value: String(dashboard?.empresas_ativas ?? 0) },
+    { icon: <Users    className="w-5 h-5 text-[#7d4a3c]" />, label: 'Colaboradores com acesso',   value: String(dashboard?.total_colaboradores ?? 0) },
+    { icon: <TrendingUp className="w-5 h-5 text-[#7d4a3c]" />, label: 'MRR B2B',                 value: fmtCurrency(dashboard?.mrr_total ?? 0) },
+    { icon: <Inbox    className="w-5 h-5 text-[#7d4a3c]" />, label: 'Leads pendentes',            value: String(dashboard?.leads_pendentes ?? 0) },
+    { icon: <UserCheck className="w-5 h-5 text-[#7d4a3c]" />, label: 'Média colabs / empresa',   value: String(mediaColabs) },
+    { icon: <DollarSign className="w-5 h-5 text-[#7d4a3c]" />, label: 'Ticket médio (MRR)',      value: fmtCurrency(ticketMedio) },
+    { icon: <Percent  className="w-5 h-5 text-[#7d4a3c]" />, label: 'Taxa de ocupação',          value: taxaOcupacao != null ? `${taxaOcupacao}%` : '—' },
+    { icon: <CalendarDays className="w-5 h-5 text-[#7d4a3c]" />, label: 'ARR B2B',              value: fmtCurrency(arr) },
   ];
 
   return (
@@ -534,10 +556,10 @@ export const AdminEmpresas: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {cards.map(({ icon, label, value }) => (
           <div key={label} className="bg-white rounded-xl shadow p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#7d4a3c]/10 flex items-center justify-center flex-shrink-0">{icon}</div>
-            <div>
-              <p className="text-xl font-bold text-gray-800">{value}</p>
-              <p className="text-xs text-gray-500">{label}</p>
+            <div className="w-9 h-9 rounded-full bg-[#7d4a3c]/10 flex items-center justify-center flex-shrink-0">{icon}</div>
+            <div className="min-w-0">
+              <p className="text-lg font-bold text-gray-800 truncate">{value}</p>
+              <p className="text-xs text-gray-500 leading-tight">{label}</p>
             </div>
           </div>
         ))}
