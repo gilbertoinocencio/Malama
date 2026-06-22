@@ -41,6 +41,9 @@ export const DoctorSettings: React.FC = () => {
 
   // Financial fields
   const [pixKey, setPixKey] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankAgency, setBankAgency] = useState('');
+  const [bankAccount, setBankAccount] = useState('');
 
   // Certificate
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
@@ -55,6 +58,9 @@ export const DoctorSettings: React.FC = () => {
     setPhotoPreview(doctor.photo_url);
     setConsultationDuration(doctor.consultation_duration || 30);
     setPixKey(doctor.pix_key || '');
+    setBankName(doctor.bank_name || '');
+    setBankAgency(doctor.bank_agency || '');
+    setBankAccount(doctor.bank_account || '');
     setConsultationTypes(['initial', 'follow_up']);
     setObjectives((doctor.objectives as ConsultationObjective[]) || []);
     setAddressZip(doctor.address_zip || '');
@@ -151,7 +157,10 @@ export const DoctorSettings: React.FC = () => {
 
     try {
       await doctorService.updateDoctor(doctor.id, {
-        pix_key: pixKey
+        pix_key: pixKey || null,
+        bank_name: bankName || null,
+        bank_agency: bankAgency || null,
+        bank_account: bankAccount || null,
       });
 
       await refreshDoctor();
@@ -449,6 +458,40 @@ export const DoctorSettings: React.FC = () => {
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
                 placeholder="CPF, email, telefone ou chave aleatória"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Banco</label>
+              <input
+                type="text"
+                value={bankName}
+                onChange={e => setBankName(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                placeholder="Ex: Nubank, Itaú, Bradesco..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Agência</label>
+                <input
+                  type="text"
+                  value={bankAgency}
+                  onChange={e => setBankAgency(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                  placeholder="0000"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Conta</label>
+                <input
+                  type="text"
+                  value={bankAccount}
+                  onChange={e => setBankAccount(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                  placeholder="00000-0"
+                />
+              </div>
             </div>
 
             <button

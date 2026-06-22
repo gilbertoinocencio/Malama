@@ -85,6 +85,9 @@ export interface Doctor {
   platform_fee_percent: number;
   nivel: 'nivel_1' | 'nivel_2' | 'nivel_3';
   pix_key: string | null;
+  bank_name: string | null;
+  bank_agency: string | null;
+  bank_account: string | null;
   address_zip?: string | null;
   address_street?: string | null;
   address_number?: string | null;
