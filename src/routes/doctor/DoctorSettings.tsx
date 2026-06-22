@@ -35,7 +35,6 @@ export const DoctorSettings: React.FC = () => {
   const [addressState, setAddressState] = useState('');
 
   // Consultation fields
-  const [consultationPrice, setConsultationPrice] = useState(80);
   const [consultationDuration, setConsultationDuration] = useState(30);
   const [consultationTypes, setConsultationTypes] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<ConsultationObjective[]>([]);
@@ -54,7 +53,6 @@ export const DoctorSettings: React.FC = () => {
     setSpecialty(doctor.specialty || '');
     setPhone(doctor.phone || '');
     setPhotoPreview(doctor.photo_url);
-    setConsultationPrice(doctor.consultation_price || 80);
     setConsultationDuration(doctor.consultation_duration || 30);
     setPixKey(doctor.pix_key || '');
     setConsultationTypes(['initial', 'follow_up']);
@@ -135,7 +133,6 @@ export const DoctorSettings: React.FC = () => {
 
     try {
       await doctorService.updateDoctor(doctor.id, {
-        consultation_price: consultationPrice,
         consultation_duration: consultationDuration
       });
 
@@ -411,17 +408,6 @@ export const DoctorSettings: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-800">Consulta</h3>
 
           <div className="mt-4 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valor por Consulta (R$)</label>
-              <input
-                type="number"
-                value={consultationPrice}
-                onChange={e => setConsultationPrice(parseFloat(e.target.value) || 80)}
-                min={80}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Duração (minutos)</label>
               <select
