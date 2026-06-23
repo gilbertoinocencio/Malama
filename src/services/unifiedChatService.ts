@@ -625,8 +625,21 @@ Responda APENAS com o JSON, sem texto adicional.
       ? `\n## ⚠️ ALERTAS REATIVOS DO DIA\n${context.dailyAlerts.join('\n')}\n*Incorpore estes alertas na sua resposta de forma gentil e natural, sugerindo como compensar no resto do dia.*`
       : '';
 
-    // Recent meals
-    const mealsBlock = context.recentMeals && context.recentMeals.length > 0
+    // Detect a PURE water-intake log: the user is ONLY reporting water, no food and no other
+    // beverage. In that case we suppress the recent-meals context entirely so the agent focuses
+    // exclusively on hydration and never drifts into commenting on an unrelated past meal
+    // (e.g. summarizing a previous "Poke Bowl" when the user just logged 750ml of water).
+    const isPureWaterLog = (() => {
+      const lower = userMessage.toLowerCase();
+      const mentionsWater = /\b(água|agua|water|hidrat)\b/.test(lower);
+      const reportsIntake = /\b(bebi|tomei|ingeri|bebendo|tomando)\b/.test(lower) || /\d+\s*(ml|l\b|litro|litros|copos?)/.test(lower);
+      const mentionsFood = /\b(comi|almoc|almoç|jantei|jantar|lanchei|lanche|café da manhã|cafe da manha|ovo|pão|pao|arroz|feijão|feijao|frango|carne|salada|fruta|poke|bowl|salmão|salmao|refeição|refeicao|prato|sanduíche|sanduiche|pizza)\b/.test(lower);
+      const mentionsOtherBeverage = /\b(coca|pepsi|guaraná|guarana|refrigerante|suco|café|cafe|chá|cha|cerveja|vinho|leite|energético|energetico|whey|isotônico|isotonico|gatorade|powerade|kombucha|smoothie|vitamina|shake|achocolatado)\b/.test(lower);
+      return mentionsWater && reportsIntake && !mentionsFood && !mentionsOtherBeverage;
+    })();
+
+    // Recent meals — omitted on pure water logs so the agent stays strictly on the hydration topic
+    const mealsBlock = !isPureWaterLog && context.recentMeals && context.recentMeals.length > 0
       ? `\n## REFEIÇÕES RECENTES\n${context.recentMeals.map((m: any) => `- ${m.name || m.meal_name}: ${m.calories}kcal (${new Date(m.created_at).toLocaleDateString('pt-BR')})`).join('\n')}`
       : '';
 
@@ -788,7 +801,10 @@ ${planBlock}${checkinBlock}${mealsBlock}${weightBlock}${snapshotBlock}${rejected
 ## REGRAS DE COMPORTAMENTO
 1. **Seja pessoal** — Use os dados do perfil para personalizar CADA resposta. Jamais responda de forma genérica como se não soubesse quem é a pessoa.
 2. **Reaja antes de responder** — Acknowledge o que o usuário disse: "Boa escolha!", "Faz sentido você perguntar isso...", "Ah, isso acontece muito mesmo..."
-3. **Seja concisa e direta** — 2-3 parágrafos curtos ou uma lista bem feita. Sem introdução longa, sem repetir o que a pessoa disse.
+3. **Tamanho da resposta SEMPRE conforme o contexto:**
+   - **Registro de refeição, água ou dose** (o usuário só relatou o que comeu/bebeu/aplicou): reaja em 1-2 frases curtas, focando APENAS no ponto mais importante. Em registro, mensagem longa não é lida — seja enxuta.
+   - **Perguntas, dúvidas ou pedidos de orientação** (algo além do simples registro): aí sim elabore uma resposta mais completa e útil — 2-3 parágrafos curtos ou uma lista bem feita.
+   - Em ambos os casos: sem introdução longa, sem repetir o que a pessoa disse.
 4. **Respeite SEMPRE** as restrições alimentares e preferências do usuário.
 5. **Emojis com propósito** — 1-2 por mensagem, onde caem bem. Não no começo de cada frase.
 6. **Baseie em evidências, fale como gente** — Fundamente a resposta em ciência, mas comunique como conversa.
