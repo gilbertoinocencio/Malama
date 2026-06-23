@@ -22,14 +22,14 @@ export const CommentsSheetV2: React.FC<CommentsSheetV2Props> = ({ postId, curren
 
   useEffect(() => {
     Promise.all([
-      getThreadedComments(postId),
+      getThreadedComments(postId, currentUserId),
       getPostPreview(postId),
     ]).then(([c, p]) => {
       setComments(c);
       setPost(p);
       setLoading(false);
     });
-  }, [postId]);
+  }, [postId, currentUserId]);
 
   const handleSubmit = async () => {
     const text = inputValue.trim();

@@ -126,6 +126,7 @@ export interface CommunityProfile {
   all_badges: BadgeSummary[];
   is_following: boolean;
   treatment_days: number;
+  is_blocked: boolean;
 }
 
 export interface ProfileSummary {
@@ -282,13 +283,20 @@ export async function getFeed(
 }
 
 async function enrichPosts(postIds: string[], viewerId: string): Promise<EnrichedPost[]> {
-  const { data: posts } = await supabase
-    .from('posts')
-    .select('id, user_id, type, caption, image_url, media_urls, video_url, video_status, content, tags, is_system_post, is_pinned, is_hidden, report_count, created_at')
-    .in('id', postIds)
-    .neq('is_hidden', true);
+  const [{ data: rawPosts }, blockedIds] = await Promise.all([
+    supabase
+      .from('posts')
+      .select('id, user_id, type, caption, image_url, media_urls, video_url, video_status, content, tags, is_system_post, is_pinned, is_hidden, report_count, created_at')
+      .in('id', postIds)
+      .neq('is_hidden', true),
+    getBlockedUserIds(viewerId),
+  ]);
 
-  if (!posts || posts.length === 0) return [];
+  // Esconde posts de usuários bloqueados pelo viewer.
+  const blockedSet = new Set(blockedIds);
+  const posts = (rawPosts ?? []).filter(p => !blockedSet.has(p.user_id));
+
+  if (posts.length === 0) return [];
 
   const authorIds = [...new Set(posts.map(p => p.user_id))];
 
@@ -546,14 +554,21 @@ export async function getReactions(postId: string, userId: string): Promise<Reac
 // SECTION 4: THREADED COMMENTS
 // ================================================================
 
-export async function getThreadedComments(postId: string): Promise<ThreadedComment[]> {
-  const { data: comments } = await supabase
-    .from('comments')
-    .select('id, post_id, user_id, content, created_at')
-    .eq('post_id', postId)
-    .order('created_at', { ascending: true });
+export async function getThreadedComments(postId: string, viewerUserId?: string): Promise<ThreadedComment[]> {
+  const [{ data: rawComments }, blockedIds] = await Promise.all([
+    supabase
+      .from('comments')
+      .select('id, post_id, user_id, content, created_at')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true }),
+    viewerUserId ? getBlockedUserIds(viewerUserId) : Promise.resolve([]),
+  ]);
 
-  if (!comments || comments.length === 0) return [];
+  // Esconde comentários de usuários bloqueados pelo viewer.
+  const blockedSet = new Set(blockedIds);
+  const comments = (rawComments ?? []).filter(c => !blockedSet.has(c.user_id));
+
+  if (comments.length === 0) return [];
 
   const profileIds = [...new Set(comments.map(c => c.user_id))];
   const { data: profiles } = await supabase
@@ -1050,6 +1065,10 @@ export async function getCommunityProfile(
         .single()).data !== null
     : false;
 
+  const blocked = viewerUserId && targetUserId !== viewerUserId
+    ? await isBlocked(viewerUserId, targetUserId)
+    : false;
+
   // Perfil privado: retorna minimal para não-seguidores
   if (profile.is_private && !isFollowing && targetUserId !== viewerUserId) {
     return {
@@ -1068,6 +1087,7 @@ export async function getCommunityProfile(
       all_badges: [],
       is_following: false,
       treatment_days: 0,
+      is_blocked: blocked,
     };
   }
 
@@ -1102,6 +1122,7 @@ export async function getCommunityProfile(
     })),
     is_following: isFollowing,
     treatment_days: treatmentDays,
+    is_blocked: blocked,
   };
 }
 
@@ -1150,10 +1171,14 @@ export async function getSuggestedUsers(userId: string): Promise<ProfileSummary[
   const { data: profile } = await supabase
     .from('profiles').select('glp1_start_date').eq('id', userId).single();
 
-  const { data: following } = await supabase
-    .from('follows').select('following_id').eq('follower_id', userId);
+  const [{ data: following }, blockedIds] = await Promise.all([
+    supabase.from('follows').select('following_id').eq('follower_id', userId),
+    getBlockedUserIds(userId),
+  ]);
   const followingIds = new Set((following ?? []).map(f => f.following_id));
   followingIds.add(userId);
+  // Não sugerir usuários bloqueados.
+  for (const id of blockedIds) followingIds.add(id);
 
   let query = supabase
     .from('profiles')
@@ -1239,16 +1264,20 @@ export async function searchByTag(
   return { posts, nextCursor };
 }
 
-export async function searchUsers(query: string, limit = 10): Promise<ProfileSummary[]> {
-  const { data } = await supabase
-    .from('profiles')
-    .select('id, display_name, community_alias, avatar_url, followers_count')
-    .or(`display_name.ilike.%${query}%,community_alias.ilike.%${query}%`)
-    .eq('is_private', false)
-    .limit(limit);
+export async function searchUsers(query: string, limit = 10, viewerUserId?: string): Promise<ProfileSummary[]> {
+  const [{ data }, blockedIds] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, display_name, community_alias, avatar_url, followers_count')
+      .or(`display_name.ilike.%${query}%,community_alias.ilike.%${query}%`)
+      .eq('is_private', false)
+      .limit(limit),
+    viewerUserId ? getBlockedUserIds(viewerUserId) : Promise.resolve([]),
+  ]);
 
   if (!data) return [];
-  return Promise.all(data.map(async u => ({
+  const blockedSet = new Set(blockedIds);
+  return Promise.all(data.filter(u => !blockedSet.has(u.id)).map(async u => ({
     id: u.id,
     display_name: u.community_alias ?? u.display_name,
     community_alias: u.community_alias,
@@ -1276,6 +1305,49 @@ export async function reportPost(
     p_detail: detail ?? null,
   });
   return !error;
+}
+
+// ================================================================
+// SECTION 11b: USER BLOCKING (exigência App Store — Guideline 1.2)
+// ================================================================
+
+// Retorna os IDs que o usuário bloqueou (para filtrar conteúdo). Falha aberta = [].
+export async function getBlockedUserIds(viewerId: string): Promise<string[]> {
+  if (!viewerId) return [];
+  const { data, error } = await supabase
+    .from('community_blocks')
+    .select('blocked_id')
+    .eq('blocker_id', viewerId);
+  if (error || !data) return [];
+  return data.map(b => b.blocked_id);
+}
+
+export async function blockUser(blockerId: string, blockedId: string): Promise<boolean> {
+  if (!blockerId || !blockedId || blockerId === blockedId) return false;
+  const { error } = await supabase
+    .from('community_blocks')
+    .upsert({ blocker_id: blockerId, blocked_id: blockedId }, { onConflict: 'blocker_id,blocked_id' });
+  return !error;
+}
+
+export async function unblockUser(blockerId: string, blockedId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('community_blocks')
+    .delete()
+    .eq('blocker_id', blockerId)
+    .eq('blocked_id', blockedId);
+  return !error;
+}
+
+export async function isBlocked(blockerId: string, blockedId: string): Promise<boolean> {
+  if (!blockerId || !blockedId) return false;
+  const { data } = await supabase
+    .from('community_blocks')
+    .select('blocker_id')
+    .eq('blocker_id', blockerId)
+    .eq('blocked_id', blockedId)
+    .maybeSingle();
+  return !!data;
 }
 
 export async function getModerationQueue(

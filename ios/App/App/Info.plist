@@ -35,17 +35,36 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>O Malama usa a câmera para a análise corporal (body scan), fotos das suas refeições e as consultas por vídeo com profissionais de saúde.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>O Malama usa o microfone durante as consultas por vídeo com profissionais de saúde.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O Malama acessa suas fotos para você registrar refeições e compartilhar imagens na comunidade.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O Malama salva imagens na sua galeria quando você compartilha seu progresso.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O Malama usa sua localização para sugerir alimentos e opções regionais próximas a você.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.malama.saude</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.malama.saude</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

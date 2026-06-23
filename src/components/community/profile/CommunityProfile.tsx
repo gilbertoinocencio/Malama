@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Lock, Settings } from 'lucide-react';
+import { ArrowLeft, Lock, Settings, Ban } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import {
-  getCommunityProfile, updateCommunitySettings,
+  getCommunityProfile, updateCommunitySettings, blockUser, unblockUser,
   type CommunityProfile as CommunityProfileType,
 } from '../../../services/communityService';
 import { AppView } from '../../../types';
@@ -30,8 +30,24 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
   const [isPrivate, setIsPrivate] = useState(false);
   const [milestoneOptOut, setMilestoneOptOut] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [blocking, setBlocking] = useState(false);
 
   const isOwnProfile = user?.id === userId;
+
+  const toggleBlock = async () => {
+    if (!user || !profile || blocking) return;
+    setBlocking(true);
+    const ok = profile.is_blocked
+      ? await unblockUser(user.id, profile.id)
+      : await blockUser(user.id, profile.id);
+    if (ok) {
+      setProfile(prev => prev ? { ...prev, is_blocked: !prev.is_blocked } : prev);
+      toast.success(profile.is_blocked ? 'Usuário desbloqueado.' : 'Usuário bloqueado.');
+    } else {
+      toast.error('Não foi possível concluir a ação.');
+    }
+    setBlocking(false);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -138,11 +154,24 @@ export const CommunityProfile: React.FC<CommunityProfileProps> = ({ userId, onBa
                 )}
               </div>
               {!isOwnProfile && user && (
-                <FollowButton
-                  currentUserId={user.id}
-                  targetUserId={profile.id}
-                  initialIsFollowing={profile.is_following}
-                />
+                <div className="flex flex-col items-end gap-1.5">
+                  <FollowButton
+                    currentUserId={user.id}
+                    targetUserId={profile.id}
+                    initialIsFollowing={profile.is_following}
+                  />
+                  <button
+                    onClick={toggleBlock}
+                    disabled={blocking}
+                    className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full transition-colors disabled:opacity-50 ${
+                      profile.is_blocked
+                        ? 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-300'
+                        : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-950'
+                    }`}
+                  >
+                    <Ban size={12} /> {profile.is_blocked ? 'Desbloquear' : 'Bloquear'}
+                  </button>
+                </div>
               )}
             </div>
             <div className="flex gap-4 mt-2">

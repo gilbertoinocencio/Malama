@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MoreVertical, Trash2, EyeOff, Loader2, Play } from 'lucide-react';
+import { MoreVertical, Trash2, EyeOff, Loader2, Play, Ban } from 'lucide-react';
 import { formatDistanceToNow } from '../../../utils/dateUtils';
 import { BadgeChip } from '../badges/BadgeChip';
 import { ReactionBar } from '../reactions/ReactionBar';
 import {
   upsertReaction, removeReaction, deletePost, hideSystemPost,
-  followUser, unfollowUser, isFollowing,
+  followUser, unfollowUser, isFollowing, blockUser,
   type EnrichedPost, type ReactionType,
 } from '../../../services/communityService';
 import { AppView } from '../../../types';
@@ -112,6 +112,17 @@ export const PostCard: React.FC<PostCardProps> = ({
     setMenuOpen(false);
   };
 
+  const handleBlock = async () => {
+    setMenuOpen(false);
+    const ok = await blockUser(currentUserId, post.user_id);
+    if (ok) {
+      onDeleted(post.id);
+      toast.success('Usuário bloqueado. Você não verá mais o conteúdo dele.');
+    } else {
+      toast.error('Não foi possível bloquear o usuário.');
+    }
+  };
+
   const mediaUrls = post.media_urls?.length ? post.media_urls : (post.image_url ? [post.image_url] : []);
   const isMilestone = post.is_system_post && post.type === 'milestone';
 
@@ -205,6 +216,12 @@ export const PostCard: React.FC<PostCardProps> = ({
                     <button onClick={() => { onOpenReport(post.id); setMenuOpen(false); }}
                       className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#403d3a] transition-colors">
                       Denunciar
+                    </button>
+                  )}
+                  {!isOwn && (
+                    <button onClick={handleBlock}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors">
+                      <Ban size={14} /> Bloquear usuário
                     </button>
                   )}
                 </div>

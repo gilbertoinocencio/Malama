@@ -1,8 +1,31 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from '../services/supabase';
 import { doctorService, influencerService } from '../services/doctorPortalService';
 import type { Influencer } from '../services/doctorPortalService';
+
+// Deep link de retorno do OAuth no app nativo. Usa um scheme dedicado (reverse-DNS)
+// para NÃO colidir com o scheme `malama` que o Capacitor usa para servir o app.
+// Registrado em CFBundleURLTypes no Info.plist.
+const NATIVE_OAUTH_SCHEME = 'com.malama.saude';
+const NATIVE_OAUTH_REDIRECT = `${NATIVE_OAUTH_SCHEME}://auth/callback`;
+
+// SHA-256 em hex — usado para o nonce do Sign in with Apple.
+// A Apple recebe o nonce já hasheado; o Supabase verifica contra o nonce cru.
+const sha256Hex = async (input: string): Promise<string> => {
+    const data = new TextEncoder().encode(input);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(digest))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+};
+
+const randomNonce = (length = 32): string => {
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const values = crypto.getRandomValues(new Uint8Array(length));
+    return Array.from(values).map((v) => charset[v % charset.length]).join('');
+};
 
 export type InfluencerRecord = Influencer & {
     total_referrals: number;
@@ -22,6 +45,7 @@ interface AuthContextType {
     updateProfile: (updates: any) => Promise<void>;
     refreshProfile: () => Promise<void>;
     signInWithGoogle: () => Promise<void>;
+    signInWithApple: () => Promise<void>;
     signInWithEmail: (email: string, password: string) => Promise<void>;
     signUpWithEmail: (email: string, password: string) => Promise<void>;
     signOut: () => Promise<void>;
@@ -199,6 +223,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     }, [fetchProfile, applyReferralData]);
 
+    // Captura o retorno do OAuth (Google) no app nativo via deep link malama://auth/callback,
+    // troca o code por sessão e fecha o browser do sistema. No-op na web.
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+        let cleanup: (() => void) | undefined;
+
+        (async () => {
+            const { App } = await import('@capacitor/app');
+            const handle = await App.addListener('appUrlOpen', async ({ url }) => {
+                if (!url || !url.startsWith(`${NATIVE_OAUTH_SCHEME}://`)) return;
+                try {
+                    const { Browser } = await import('@capacitor/browser');
+                    await Browser.close().catch(() => {});
+
+                    // Suporta tanto PKCE (?code=...) quanto retorno por fragmento (#access_token=...)
+                    const parsed = new URL(url);
+                    const code = parsed.searchParams.get('code');
+                    if (code) {
+                        await supabase.auth.exchangeCodeForSession(code);
+                    } else if (parsed.hash.includes('access_token')) {
+                        const params = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+                        const access_token = params.get('access_token');
+                        const refresh_token = params.get('refresh_token');
+                        if (access_token && refresh_token) {
+                            await supabase.auth.setSession({ access_token, refresh_token });
+                        }
+                    }
+                } catch (err) {
+                    console.error('Erro ao processar deep link de OAuth:', err);
+                }
+            });
+            cleanup = () => { handle.remove(); };
+        })();
+
+        return () => { cleanup?.(); };
+    }, []);
+
     // Sincronizar integrações de fitness em background ao logar
     useEffect(() => {
         if (!user) return;
@@ -261,9 +322,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [user]);
 
     const signInWithGoogle = useCallback(async () => {
+        // No app nativo, o redirect web (window.location.origin = capacitor://localhost)
+        // não retorna pro app. Abrimos o fluxo OAuth num browser do sistema e capturamos
+        // o retorno via deep link (listener appUrlOpen registrado no useEffect abaixo).
+        if (Capacitor.isNativePlatform()) {
+            const { Browser } = await import('@capacitor/browser');
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: NATIVE_OAUTH_REDIRECT,
+                    skipBrowserRedirect: true,
+                },
+            });
+            if (error) throw error;
+            if (data?.url) await Browser.open({ url: data.url });
+            return;
+        }
+
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: { redirectTo: window.location.origin }
+        });
+        if (error) throw error;
+    }, []);
+
+    const signInWithApple = useCallback(async () => {
+        // No iOS nativo, usamos o Sign in with Apple nativo (exigência da App Store,
+        // Guideline 4.8) e trocamos o identityToken por uma sessão Supabase.
+        if (Capacitor.isNativePlatform()) {
+            const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
+            const rawNonce = randomNonce();
+            const hashedNonce = await sha256Hex(rawNonce);
+
+            const result = await SignInWithApple.authorize({
+                clientId: 'com.malama.saude',
+                redirectURI: NATIVE_OAUTH_REDIRECT,
+                scopes: 'name email',
+                nonce: hashedNonce,
+            });
+
+            const idToken = result.response?.identityToken;
+            if (!idToken) throw new Error('Apple não retornou o token de identidade.');
+
+            const { error } = await supabase.auth.signInWithIdToken({
+                provider: 'apple',
+                token: idToken,
+                nonce: rawNonce,
+            });
+            if (error) throw error;
+            return;
+        }
+
+        // Na web, fluxo OAuth padrão do Supabase.
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'apple',
+            options: { redirectTo: window.location.origin },
         });
         if (error) throw error;
     }, []);
@@ -296,7 +409,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user, session, profile, loading, profileLoading,
             influencerRecord, influencerLoading, refreshInfluencerRecord,
             updateProfile, refreshProfile,
-            signInWithGoogle, signInWithEmail, signUpWithEmail, signOut
+            signInWithGoogle, signInWithApple, signInWithEmail, signUpWithEmail, signOut
         }}>
             {children}
         </AuthContext.Provider>

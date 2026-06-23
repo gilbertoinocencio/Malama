@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
 import { MalamaLogo } from './MalamaLogo';
 
+// Sign in with Apple é exibido no iOS (exigência da App Store, Guideline 4.8).
+const isIOS = Capacitor.getPlatform() === 'ios';
+
 export const LoginView: React.FC = () => {
-    const { signInWithGoogle, signInWithEmail, signUpWithEmail, loading, user } = useAuth();
+    const { signInWithGoogle, signInWithApple, signInWithEmail, signUpWithEmail, loading, user } = useAuth();
     const { t, language, setLanguage } = useLanguage();
     const a = t.auth;
     const [error, setError] = useState<string | null>(null);
@@ -23,6 +27,23 @@ export const LoginView: React.FC = () => {
             setError(err.message || a.authError);
         }
     };
+
+    const handleAppleLogin = async () => {
+        try {
+            setError(null);
+            await signInWithApple();
+        } catch (err: any) {
+            // Usuário cancelou o prompt da Apple — não mostrar erro.
+            const msg = String(err?.message || '');
+            if (/cancel/i.test(msg) || err?.code === '1001') return;
+            setError(err.message || a.authError);
+        }
+    };
+
+    const appleButtonText =
+        language === 'pt' ? 'Continuar com a Apple'
+        : language === 'es' ? 'Continuar con Apple'
+        : 'Continue with Apple';
 
     const handleEmailAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -155,6 +176,18 @@ export const LoginView: React.FC = () => {
                             <span className="px-2 bg-Malama-bg dark:bg-background-dark text-Malama-muted">{a.orContinueWith}</span>
                         </div>
                     </div>
+
+                    {isIOS && (
+                        <button
+                            onClick={handleAppleLogin}
+                            className="w-full h-14 bg-black text-white rounded-xl flex items-center justify-center gap-3 shadow-sm hover:bg-black/90 active:scale-[0.99] transition-all font-semibold"
+                        >
+                            <svg viewBox="0 0 384 512" className="w-5 h-5 fill-current" aria-hidden="true">
+                                <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
+                            </svg>
+                            <span>{appleButtonText}</span>
+                        </button>
+                    )}
 
                     <button
                         onClick={handleGoogleLogin}

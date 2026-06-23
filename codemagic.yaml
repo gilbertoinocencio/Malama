@@ -1,0 +1,77 @@
+# ============================================================================
+# Codemagic CI/CD — Build iOS do app de usuário Malama (Capacitor + Vite)
+# ----------------------------------------------------------------------------
+# Pré-requisitos a configurar no painel do Codemagic (uma vez):
+#   1. Integração "App Store Connect API key" → nomeie como  malama_asc_key
+#      (Issuer ID + Key ID + arquivo .p8 gerados no App Store Connect).
+#   2. Grupo de variáveis  malama_vite_env  com as VITE_* (marcar como secret):
+#        VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_GEMINI_API_KEY,
+#        VITE_APP_URL, VITE_TURN_SERVER_URL, VITE_TURN_USERNAME,
+#        VITE_TURN_CREDENTIAL, VITE_COMMUNITY_SYSTEM_USER_ID,
+#        VITE_STRAVA_CLIENT_ID, VITE_GOOGLE_FIT_CLIENT_ID  (os que o app usar)
+#   3. Variável  APP_APPLE_ID  = o "Apple ID" numérico do app no App Store Connect.
+#   4. Bundle ID  com.malama.saude  registrado no Apple Developer com a
+#      capability "Sign in with Apple" habilitada.
+# ============================================================================
+
+workflows:
+  ios-release:
+    name: Malama iOS — App Store / TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    integrations:
+      app_store_connect: malama_asc_key
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.malama.saude
+      groups:
+        - malama_vite_env
+      vars:
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+        BUNDLE_ID: "com.malama.saude"
+      node: 20
+      xcode: latest
+
+    scripts:
+      - name: Instalar dependências npm
+        script: npm ci
+
+      - name: Build web (Vite → dist)
+        script: npm run build
+
+      - name: Sincronizar Capacitor iOS
+        script: npx cap sync ios
+
+      - name: Configurar assinatura (provisioning profiles)
+        script: xcode-project use-profiles
+
+      - name: Definir número de build (auto-incremento via TestFlight)
+        script: |
+          set -e
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_APPLE_ID" 2>/dev/null || echo "0")
+          NEXT=$(( ${LATEST:-0} + 1 ))
+          cd ios/App
+          agvtool new-version -all "$NEXT"
+
+      - name: Gerar IPA assinada
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Sobe automaticamente para o TestFlight a cada build verde.
+        submit_to_testflight: true
+        # Para submeter à revisão da App Store automaticamente, troque para true
+        # depois que os metadados (privacy labels, screenshots, conta demo) estiverem prontos.
+        submit_to_app_store: false

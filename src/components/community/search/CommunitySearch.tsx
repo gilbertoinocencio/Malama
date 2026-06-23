@@ -32,7 +32,7 @@ export const CommunitySearch: React.FC<CommunitySearchProps> = ({ onBack, onNavi
     setLoading(true);
     const [postsResult, usersResult] = await Promise.all([
       searchPosts(q, user.id),
-      searchUsers(q),
+      searchUsers(q, 10, user.id),
     ]);
     setPosts(postsResult.posts);
     setUsers(usersResult);

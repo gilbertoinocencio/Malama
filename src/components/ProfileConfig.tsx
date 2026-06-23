@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { ProfileService, ProfileUpdates } from '../services/profileService';
 import { WeightLogService } from '../services/weightLogService';
+import { supabase } from '../services/supabase';
 import { useLanguage } from '../i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,9 +13,28 @@ interface ProfileConfigProps {
 }
 
 export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }) => {
-  const { user, profile, updateProfile } = useAuth();
+  const { user, profile, updateProfile, signOut } = useAuth();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
+
+  // Exclusão de conta (exigência da App Store — deve ser iniciada de dentro do app)
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const { error } = await supabase.functions.invoke('delete-account', { body: {} });
+      if (error) throw error;
+      await signOut();
+      window.location.replace('/');
+    } catch (err: any) {
+      setDeleteError(err?.message || 'Não foi possível excluir a conta. Tente novamente.');
+      setDeleting(false);
+    }
+  };
 
   const [biotype, setBiotype] = useState<'ecto' | 'meso' | 'endo'>('meso');
   const [goal, setGoal] = useState<'aesthetic' | 'health' | 'performance'>('aesthetic');
@@ -261,7 +281,75 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
             ))}
           </div>
         </section>
+
+        {/* Danger Zone — exclusão de conta */}
+        <section className="space-y-4 pt-4">
+          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-500 opacity-80">Zona de perigo</h2>
+          <button
+            onClick={() => { setDeleteError(null); setShowDelete(true); }}
+            className="w-full p-4 rounded-xl border border-red-300 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-bold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+          >
+            <span className="material-symbols-outlined text-xl">delete_forever</span>
+            <span>Excluir minha conta</span>
+          </button>
+          <p className="text-[11px] text-Malama-muted text-center">
+            A exclusão é permanente e remove seu perfil, histórico e todos os seus dados.
+          </p>
+        </section>
       </main>
+
+      {/* Modal de confirmação de exclusão */}
+      <AnimatePresence>
+        {showDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4"
+            onClick={() => !deleting && setShowDelete(false)}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-white dark:bg-surface-dark rounded-2xl p-6 space-y-4 shadow-xl"
+            >
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-red-500 text-3xl">warning</span>
+                <h3 className="text-lg font-bold text-Malama-main dark:text-white">Excluir conta</h3>
+              </div>
+              <p className="text-sm text-Malama-muted dark:text-gray-300">
+                Tem certeza? Esta ação é <strong>permanente e irreversível</strong>. Todos os seus dados
+                (perfil, histórico de refeições, consultas, planos e progresso) serão apagados.
+              </p>
+              {deleteError && (
+                <p className="text-sm text-red-500 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                  {deleteError}
+                </p>
+              )}
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                  className="w-full h-12 bg-red-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {deleting ? (
+                    <span className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></span>
+                  ) : 'Sim, excluir permanentemente'}
+                </button>
+                <button
+                  onClick={() => setShowDelete(false)}
+                  disabled={deleting}
+                  className="w-full h-12 rounded-xl font-bold text-Malama-main dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Save Button */}
       <footer className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-Malama-bg dark:from-background-dark pt-10 z-20">
