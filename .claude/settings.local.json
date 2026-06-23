@@ -16,7 +16,20 @@
       "Bash(git commit -m \"fix: reorder onboarding steps to start with Metodologia screen\n\n- Move METODOLOGIA to be first step (was 2nd)\n- Move OBJETIVOS to be second step  \n- Move OBJETIVOS_PRINCIPAIS to third step\n- Fixes issue where old ''objetivo principal'' screen was showing first\n- Now shows correct Stitch design: Metodologia Flow → Objetivos Adicionais → Objetivo Principal\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
       "Bash(dir /b *.tsx)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\DELL\\\\Desktop\\\\projetos\\\\Malama\" -Recurse -Filter \"*.json\")",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "mcp__claude_ai_Higgsfield__generate_image",
+      "Bash(curl -s -o c:/temp/img_gergelim.jpg -w \"%{http_code}\" \"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Sesame_seeds.jpg/330px-Sesame_seeds.jpg\")",
+      "Bash(curl -s -o c:/temp/img_chia2.jpg -w \"%{http_code}\" \"https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Salvia_hispanica_seeds.jpg/330px-Salvia_hispanica_seeds.jpg\")",
+      "Bash(curl -s -o c:/temp/img_mandioca2.jpg -w \"%{http_code}\" \"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Cassava_%28Manihot_esculenta%29.jpg/330px-Cassava_%28Manihot_esculenta%29.jpg\")",
+      "Bash(curl -s -o c:/temp/img_linhaca2.jpg -w \"%{http_code}\" \"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Seme_di_Lino.jpg/330px-Seme_di_Lino.jpg\")",
+      "Bash(curl -s -o c:/temp/img_creme.jpg -w \"%{http_code}\" \"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Cream_cream.jpg/330px-Cream_cream.jpg\")",
+      "Bash(curl -s -o c:/temp/img_sesame.jpg \"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Sesame_seeds.jpg/330px-Sesame_seeds.jpg\")",
+      "Bash(echo \"status:$?\")",
+      "WebFetch(domain:commons.wikimedia.org)",
+      "Bash(curl -sL -o c:/temp/v_chia.jpg \"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Seed_of_chia_%28Salvia_hispanica%29Salvia_hispanica_group.jpg/330px-Seed_of_chia_%28Salvia_hispanica%29Salvia_hispanica_group.jpg\")",
+      "WebFetch(domain:en.wikipedia.org)",
+      "Bash(curl -sL -o c:/temp/v_feijao_preto.jpg \"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Black_Beans_2.JPG/330px-Black_Beans_2.JPG\")",
+      "Bash(curl -sL -o c:/temp/v_tapioca.jpg \"https://upload.wikimedia.org/wikipedia/commons/6/65/IMG0521_Venda_de_tapioca_e_beiju_em_mercado_popular_do_Nordeste_do_Brasil._Jacobina_-_Bahia.jpg\")"
     ],
     "deny": [],
     "ask": []

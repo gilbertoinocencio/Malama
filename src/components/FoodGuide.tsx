@@ -42,12 +42,18 @@ interface UiFoodItem {
     swapping?: boolean;
 }
 
+const CATEGORY_EMOJI: Record<string, string> = {
+    protein: '🥩',
+    carbs:   '🌾',
+    fats:    '🥑',
+};
+
 const mapDbToUi = (f: ServiceFoodItem): UiFoodItem => ({
     name: f.name,
     description: `${f.calories || 0} kcal / 100g`,
     priceTier: f.tier === 'budget' ? 1 : f.tier === 'balanced' ? 2 : 3,
     quality: f.quality_score || 3,
-    image: f.image_url || 'https://via.placeholder.com/150',
+    image: f.image_url || '',
     category: f.category,
     tier: f.tier,
     calories: f.calories || 0,
@@ -384,11 +390,25 @@ export const FoodGuide: React.FC<FoodGuideProps> = ({ onBack, onNavigate, onMeal
                                         onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
                                     >
                                         {/* Food Image */}
-                                        <div className="size-16 rounded-xl bg-gray-100 dark:bg-Malama-dark shrink-0 overflow-hidden relative mr-4">
-                                            <div
-                                                className="absolute inset-0 bg-cover bg-center"
-                                                style={{ backgroundImage: `url('${item.image}')` }}
-                                            />
+                                        <div className="size-16 rounded-xl bg-gray-100 dark:bg-Malama-dark shrink-0 overflow-hidden relative mr-4 flex items-center justify-center">
+                                            {item.image ? (
+                                                <img
+                                                    src={item.image}
+                                                    alt={item.name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        e.currentTarget.style.display = 'none';
+                                                        const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                                        if (fallback) fallback.style.display = 'flex';
+                                                    }}
+                                                />
+                                            ) : null}
+                                            <span
+                                                className="text-3xl"
+                                                style={{ display: item.image ? 'none' : 'flex' }}
+                                            >
+                                                {CATEGORY_EMOJI[item.category] ?? '🍽️'}
+                                            </span>
                                         </div>
 
                                         {/* Food Info */}
