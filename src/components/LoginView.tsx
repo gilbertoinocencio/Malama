@@ -206,24 +206,40 @@ export const LoginView: React.FC = () => {
 
                 <p className="text-xs text-center text-Malama-muted dark:text-slate-500 max-w-xs leading-relaxed">
                     {(() => {
-                        // URL absoluta hospedada — funciona tanto na web quanto no app nativo
-                        // (Capacitor), onde a rota interna /privacidade não existe.
-                        const privacyUrl = 'https://www.soumalama.com.br/privacidade';
-                        const privacyText =
-                            language === 'pt' ? 'Política de Privacidade'
-                            : language === 'es' ? 'Política de Privacidad'
-                            : 'Privacy Policy';
-                        const idx = a.terms.indexOf(privacyText);
-                        if (idx === -1) return a.terms;
-                        return (
-                            <>
-                                {a.terms.slice(0, idx)}
-                                <a href={privacyUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-Malama-main transition-colors">
-                                    {privacyText}
+                        // URLs absolutas hospedadas — funcionam na web e no app nativo
+                        // (Capacitor), onde as rotas internas /termos e /privacidade não existem.
+                        const linkDefs = [
+                            {
+                                text: language === 'pt' ? 'Termos de Serviço'
+                                    : language === 'es' ? 'Términos de Servicio'
+                                    : 'Terms of Service',
+                                url: 'https://www.soumalama.com.br/termos',
+                            },
+                            {
+                                text: language === 'pt' ? 'Política de Privacidade'
+                                    : language === 'es' ? 'Política de Privacidad'
+                                    : 'Privacy Policy',
+                                url: 'https://www.soumalama.com.br/privacidade',
+                            },
+                        ];
+                        const matches = linkDefs
+                            .map(d => ({ ...d, idx: a.terms.indexOf(d.text) }))
+                            .filter(d => d.idx !== -1)
+                            .sort((x, y) => x.idx - y.idx);
+                        if (matches.length === 0) return a.terms;
+                        const parts: React.ReactNode[] = [];
+                        let cursor = 0;
+                        matches.forEach((m, i) => {
+                            parts.push(a.terms.slice(cursor, m.idx));
+                            parts.push(
+                                <a key={i} href={m.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-Malama-main transition-colors">
+                                    {m.text}
                                 </a>
-                                {a.terms.slice(idx + privacyText.length)}
-                            </>
-                        );
+                            );
+                            cursor = m.idx + m.text.length;
+                        });
+                        parts.push(a.terms.slice(cursor));
+                        return <>{parts}</>;
                     })()}
                     <br /><br />
                     {a.aiNote}
