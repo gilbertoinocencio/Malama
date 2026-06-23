@@ -100,9 +100,15 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Chat é somente-leitura se o status não é 'open' OU se a data de expiração já passou
+  const isExpired =
+    !chat ||
+    chat.status !== 'open' ||
+    (chat.expires_at ? new Date(chat.expires_at) <= new Date() : false);
+
   // Polling fallback — guarantees delivery when realtime events aren't firing
   const chatId     = chat?.id;
-  const chatIsOpen = chat?.status === 'open';
+  const chatIsOpen = chat?.status === 'open' && !isExpired;
   useEffect(() => {
     if (!chatId || !chatIsOpen) return;
     const poll = setInterval(async () => {
@@ -175,9 +181,11 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
       </header>
 
       {/* Chat fechado / expirado */}
-      {chat && chat.status !== 'open' && (
+      {chat && isExpired && (
         <div className="mx-4 mt-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-medium">
-          {chat.status === 'expired' ? '⏰ Canal de suporte expirado.' : '🔒 Canal de suporte encerrado.'}
+          {chat.status === 'expired' || (chat.expires_at && new Date(chat.expires_at) <= new Date())
+            ? '⏰ Canal de suporte expirado. Você pode visualizar o histórico.'
+            : '🔒 Canal de suporte encerrado.'}
         </div>
       )}
 
@@ -259,8 +267,8 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      {chat?.status === 'open' && (
+      {/* Input — oculto quando o canal está expirado/encerrado */}
+      {!isExpired && (
         <div className="px-4 pb-6 pt-2 bg-white border-t border-gray-100">
           <div className="flex items-end gap-2">
             <button

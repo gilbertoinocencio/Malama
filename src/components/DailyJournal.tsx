@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { AppView } from '../types';
 import { DailyLogService } from '../services/dailyLogService';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,10 +27,11 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack }) => {
   const jt = t.journal;
 
   useEffect(() => {
-    if (user) loadLog();
+    if (user) loadInitial();
   }, [user]);
 
-  const loadLog = async () => {
+  // Carrega o log de hoje + streak + notas anteriores (só no mount inicial)
+  const loadInitial = async () => {
     if (!user) return;
     const [log, s, recent] = await Promise.all([
       DailyLogService.getDailyLog(user.id),
@@ -41,6 +43,18 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack }) => {
       setNotes(log.notes || '');
       setImagePreview(log.photo_url || null);
     }
+    setStreak(s);
+    const today = new Date().toISOString().split('T')[0];
+    setPastLogs(recent.filter(l => l.date !== today));
+  };
+
+  // Após salvar, só atualiza streak e notas anteriores (não sobrescreve o que o usuário acabou de digitar)
+  const reloadAfterSave = async () => {
+    if (!user) return;
+    const [s, recent] = await Promise.all([
+      DailyLogService.getStreak(user.id),
+      DailyLogService.getRecentLogs(user.id),
+    ]);
     setStreak(s);
     const today = new Date().toISOString().split('T')[0];
     setPastLogs(recent.filter(l => l.date !== today));
@@ -60,10 +74,10 @@ export const DailyJournal: React.FC<DailyJournalProps> = ({ onBack }) => {
 
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-      await loadLog();
+      await reloadAfterSave();
     } catch (e) {
       console.error(e);
-      alert(jt.saveError);
+      toast.error(jt.saveError);
     } finally {
       setSaving(false);
     }

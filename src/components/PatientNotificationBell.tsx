@@ -3,7 +3,7 @@
 // Badge realtime + abre PatientNotificationCenter
 // =====================================================
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { PatientNotificationCenter } from './PatientNotificationCenter';
 
@@ -40,10 +40,34 @@ export const PatientNotificationBell: React.FC<Props> = ({ userId, isDarkMode, o
     return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
+  // Marca todas como lidas e zera o badge. Usa UPDATE direto (permitido pela
+  // RLS do próprio paciente) para não depender de a RPC estar publicada em prod;
+  // a RPC fica como fallback.
+  const markAllRead = useCallback(async () => {
+    setUnreadCount(0);
+    const { error } = await supabase
+      .from('patient_notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+    if (error) {
+      const { error: rpcError } = await supabase.rpc('mark_patient_notifications_read');
+      if (rpcError) console.error(rpcError);
+    }
+  }, [userId]);
+
+  const handleToggle = () => {
+    setOpen(o => {
+      const next = !o;
+      if (next) void markAllRead();
+      return next;
+    });
+  };
+
   return (
     <>
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={handleToggle}
         className="relative flex items-center justify-center size-10 rounded-full bg-white dark:bg-surface-dark border border-Malama-border dark:border-transparent hover:bg-Malama-petrol-light dark:hover:bg-primary/10 transition-colors text-Malama-petrol dark:text-primary shadow-sm dark:shadow-none"
         title="Notificações médicas"
       >

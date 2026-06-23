@@ -41,7 +41,7 @@ export const DailyLogService = {
             .from('daily_logs')
             .upsert(logData, { onConflict: 'user_id,date' })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
         savedLog = data;
