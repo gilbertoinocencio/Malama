@@ -182,7 +182,10 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   /** Prevents saying the stability greeting more than once per pose cycle. */
   const stableGreetedRef = useRef(false);
 
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  // Front camera by default: in a solo self-scan the user needs to see the on-screen guide and
+  // hear the voice prompts while positioning. The flip button switches to the rear camera for
+  // higher quality when someone else is holding the phone.
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [step, setStep]             = useState<CameraStep>('loading');
   const [statusMsg, setStatusMsg]   = useState('Inicializando...');
   const [stabilityPct, setStabilityPct] = useState(0);
@@ -190,16 +193,45 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   const [frameValid, setFrameValid]     = useState(false);
   const [distanceStatus, setDistanceStatus] = useState<'too_close' | 'too_far' | 'ok'>('too_far');
 
-  // ── Voice guidance (Web Speech API — available in all modern browsers & Safari iOS 14+) ──
+  // ── Voice guidance (Web Speech API — modern browsers, Safari iOS 14+, and Android WebView
+  //    when a TTS engine is installed) ──
+
+  /** Best available pt-BR (or pt-*) voice, resolved asynchronously after mount. */
+  const ptVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+
+  // Voices load asynchronously in Android WebView — populate the ref now and on 'voiceschanged'.
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+
+    const pickVoice = () => {
+      let voices: SpeechSynthesisVoice[] = [];
+      try { voices = window.speechSynthesis.getVoices(); } catch { return; }
+      if (!voices.length) return;
+      // Prefer pt-BR, then any pt-*; otherwise leave null (engine uses utt.lang default).
+      ptVoiceRef.current =
+        voices.find(v => v.lang?.toLowerCase() === 'pt-br') ??
+        voices.find(v => v.lang?.toLowerCase().startsWith('pt')) ??
+        null;
+    };
+
+    pickVoice();
+    window.speechSynthesis.addEventListener?.('voiceschanged', pickVoice);
+    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', pickVoice);
+  }, []);
 
   const speak = useCallback((text: string) => {
     if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang = 'pt-BR';
-    utt.rate = 0.92;
-    utt.pitch = 1.0;
-    window.speechSynthesis.speak(utt);
+    try {
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = 'pt-BR';
+      if (ptVoiceRef.current) utt.voice = ptVoiceRef.current;
+      utt.rate = 0.92;
+      utt.pitch = 1.0;
+      window.speechSynthesis.speak(utt);
+    } catch {
+      // WebView without a usable TTS engine — guidance stays visual-only, non-blocking.
+    }
   }, []);
 
   // Keep ref in sync so interval callback always reads the freshest message

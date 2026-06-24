@@ -17,9 +17,17 @@ import {
 
 import type { IVisionProvider, FrameAnalysis, PoseLandmark } from './visionProvider';
 
-// CDN base for WASM + model — avoids Vite bundling issues and works in Safari iOS 16+
-const WASM_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm';
-const MODEL_URL =
+// Local bundled assets — work 100% offline, faster cold start, no network dependency.
+// import.meta.env.BASE_URL is '/' by default; in the packaged app the WebView serves from
+// https://localhost/ (Android) or capacitor://localhost/ (iOS), so '/mediapipe/...' resolves
+// directly from the bundle inside the APK/IPA.
+const LOCAL_WASM  = `${import.meta.env.BASE_URL}mediapipe/wasm`;
+const LOCAL_MODEL = `${import.meta.env.BASE_URL}mediapipe/pose_landmarker_lite.task`;
+
+// CDN fallback — used ONLY if the local assets fail to load (defensive; keeps the feature
+// working even if a bundled asset path ever breaks).
+const CDN_WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm';
+const CDN_MODEL =
   'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task';
 
 export class MediaPipeProvider implements IVisionProvider {
@@ -28,27 +36,37 @@ export class MediaPipeProvider implements IVisionProvider {
   private lastTimestamp = -1;
 
   async initialize(): Promise<void> {
+    // Local-first: try bundled assets, fall back to CDN only if they fail.
     try {
-      const vision = await FilesetResolver.forVisionTasks(WASM_CDN);
-
-      this.landmarker = await PoseLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: MODEL_URL,
-          // CPU delegate is more reliable across Safari iOS 16+ than GPU
-          delegate: 'CPU',
-        },
-        runningMode: 'VIDEO',
-        numPoses: 1,
-        minPoseDetectionConfidence: 0.5,
-        minPosePresenceConfidence: 0.5,
-        minTrackingConfidence: 0.5,
-      });
-
+      await this._createFrom(LOCAL_WASM, LOCAL_MODEL);
       this.ready = true;
-    } catch (err) {
-      console.error('[MediaPipeProvider] initialize failed:', err);
-      throw err;
+    } catch (localErr) {
+      console.warn('[MediaPipeProvider] local assets failed, falling back to CDN:', localErr);
+      try {
+        await this._createFrom(CDN_WASM, CDN_MODEL);
+        this.ready = true;
+      } catch (cdnErr) {
+        console.error('[MediaPipeProvider] initialize failed (local + CDN):', cdnErr);
+        throw cdnErr;
+      }
     }
+  }
+
+  /** Create the PoseLandmarker from a given WASM directory + model path. */
+  private async _createFrom(wasmPath: string, modelPath: string): Promise<void> {
+    const vision = await FilesetResolver.forVisionTasks(wasmPath);
+    this.landmarker = await PoseLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: modelPath,
+        // CPU delegate is more reliable across Safari iOS 16+ than GPU
+        delegate: 'CPU',
+      },
+      runningMode: 'VIDEO',
+      numPoses: 1,
+      minPoseDetectionConfidence: 0.5,
+      minPosePresenceConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
   }
 
   isReady(): boolean {
