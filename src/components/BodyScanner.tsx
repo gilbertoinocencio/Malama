@@ -134,6 +134,10 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
   const [captures, setCaptures] = useState<CaptureState>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  // Bumped by "Tentar novamente" to force a full remount of BodyScanCamera (re-runs its
+  // camera-init effect). Without this, retrying after a permission denial does nothing because
+  // setStep(step) keeps the same value and React skips the re-render.
+  const [cameraRetry, setCameraRetry] = useState(0);
   const [finalMeasurements, setFinalMeasurements] = useState<AnthroMeasurements | null>(null);
 
   const [validCaptures, setValidCaptures] = useState<AnthroMeasurements[]>([]);
@@ -466,6 +470,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
 
               <div className="flex-1 relative">
                 <BodyScanCamera
+                  key={`${step}-${cameraRetry}`}
                   pose={step as ScanPose}
                   requireLiveness={step === 'front'}
                   heightCm={heightCm}
@@ -502,7 +507,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   >
                     <p className="text-white/90 text-sm font-light">{cameraError}</p>
                     <button
-                      onClick={() => { setCameraError(null); setStep(step); }}
+                      onClick={() => { setCameraError(null); setCameraRetry(n => n + 1); }}
                       className="mt-2 text-white/60 text-xs underline"
                     >
                       Tentar novamente
