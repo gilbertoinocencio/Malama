@@ -10,3 +10,11 @@ export {
   deurenbergBF,
 } from './measurements';
 export { LivenessDetector, StabilityDetector } from './livenessDetector';
+export {
+  primeVoice,
+  speak,
+  stopSpeaking,
+  hapticTick,
+  hapticStep,
+  hapticSuccess,
+} from './voiceGuide';

@@ -219,11 +219,36 @@ export const UnifiedChatService = {
         // --- WATER INGESTION INTERCEPTOR ---
         const waterMatches = [...aiResponse.content.matchAll(/<water_json>([\s\S]*?)<\/water_json>/g)];
 
-        // Parse ml directly from the user's current message — sole source of truth for quantity.
-        // If the user stated a quantity, it is used unconditionally; the AI's <water_json> value
-        // is only a fallback for messages that contain no explicit number (e.g. "bebi um copo").
+        // The water-intent signal MUST come from what the USER actually wrote — never from the AI.
+        // Use userDisplayContent (the user's real words) when present, falling back to the raw
+        // message; this also strips out any injected meal-context prefix so it can't trip detection.
+        const userWaterText = (options?.userDisplayContent ?? userMessage).toLowerCase();
+
+        // HARD GATE: only log water when the user's own message reports actually DRINKING water.
+        // The AI's <water_json> block is NOT sufficient on its own — the model sometimes fabricates
+        // hydration (it knows GLP-1 users "should drink more water" and confabulates "bebi 2L") when
+        // the user only logged food. The user is the sole source of truth for WHETHER water was
+        // consumed; the AI block is consulted only to estimate the QUANTITY when no number was given.
+        const userReportedWater = (() => {
+          const lower = userWaterText;
+          const mentionsWater = /\b(água|agua|water|h2o)\b/.test(lower);
+          if (!mentionsWater) return false;
+          // A calorie-bearing beverage in the same message → not a pure-water log; <meal_json> owns it.
+          const hasNonWaterBeverage = /\b(coca|pepsi|guaraná|guarana|refrigerante|suco|café|cafe|chá|cha|cerveja|vinho|leite|energético|energetico|whey|isotônico|isotonico|gatorade|powerade|kombucha|smoothie|vitamina|shake|achocolatado|alcohol|álcool|alcool)\b/.test(lower);
+          if (hasNonWaterBeverage) return false;
+          // Must read as a real intake event, not a question/mention ("preciso beber água?", "água faz bem").
+          const reportsIntake =
+            /\b(bebi|tomei|ingeri|bebendo|tomando|bebo|tomo|enchi|tomada)\b/.test(lower)
+            || /\d+\s*(ml|l\b|litro|litros)\b/.test(lower)
+            || /\b(um|uma|dois|duas|tr[êe]s|quatro|\d+)\s*(copo|copos|garrafa|garrafas|gole|goles)\b/.test(lower);
+          return reportsIntake;
+        })();
+
+        // Parse ml from the user's current message — sole source of truth for quantity.
+        // Only meaningful when the user actually reported drinking water.
         const userStatedMl = (() => {
-          const lower = userMessage.toLowerCase();
+          if (!userReportedWater) return 0;
+          const lower = userWaterText;
           const mlMatch    = lower.match(/(\d+(?:[.,]\d+)?)\s*ml/);
           const litroMatch = lower.match(/(\d+(?:[.,]\d+)?)\s*(?:litro|litros)\b/);
           const lMatch     = lower.match(/(\d+(?:[.,]\d+)?)\s*l\b/);
@@ -233,29 +258,21 @@ export const UnifiedChatService = {
           return 0;
         })();
 
-        // Determine the ml to log:
-        // 1. User stated a quantity → use it directly (AI value ignored).
-        // 2. No quantity in message → use the AI's <water_json> value (e.g. "bebi um copo").
-        // 3. No water signal at all → 0, nothing logged.
+        // Determine the ml to log. NOTHING is logged unless the user reported drinking water.
+        // 1. User reported water + stated a quantity → use the user's quantity (AI value ignored).
+        // 2. User reported water, no quantity ("bebi um copo") → use the AI's <water_json> estimate.
+        // 3. User did NOT report water → 0, nothing logged (AI hallucinations are discarded here).
         let totalMl = 0;
-        if (waterMatches.length > 0) {
-          if (userStatedMl > 0) {
-            // User was explicit — trust the message, not the AI.
+        if (userReportedWater) {
+          if (userStatedMl > 0 && userStatedMl <= 5000) {
             totalMl = userStatedMl;
-          } else {
-            // No quantity stated; use whatever the AI extracted (single block expected).
+          } else if (waterMatches.length > 0) {
             try {
               const parsed = JSON.parse(waterMatches[0][1]);
               const ml = Number(parsed.ml);
               if (!isNaN(ml) && ml > 0 && ml <= 5000) totalMl = ml;
             } catch { /* ignore malformed block */ }
           }
-        } else if (userStatedMl > 0 && userStatedMl <= 5000) {
-          // AI forgot the JSON block but user clearly stated water + quantity — use it as fallback.
-          const lower = userMessage.toLowerCase();
-          const hasWaterKeyword    = /\b(água|agua|water|hidrat)\b/.test(lower);
-          const hasNonWaterBeverage = /\b(coca|pepsi|guaraná|guarana|refrigerante|suco|café|cafe|chá|cha|cerveja|vinho|leite|energético|energetico|whey|isotônico|isotonico|gatorade|powerade|kombucha|smoothie|vitamina|shake|achocolatado|alcohol|álcool|alcool)\b/.test(lower);
-          if (hasWaterKeyword && !hasNonWaterBeverage) totalMl = userStatedMl;
         }
 
         if (totalMl > 0) {
@@ -1061,6 +1078,11 @@ Celebre a ação e extraia a quantidade em mililitros (ml). Inclua EXATAMENTE UM
 - Qualquer bebida que não seja H₂O pura
 
 Para qualquer uma dessas bebidas, use **obrigatoriamente** <meal_json> com as calorias reais da bebida.
+
+**CRÍTICO — NUNCA invente, afirme ou registre consumo de água que o usuário NÃO relatou na mensagem ATUAL.**
+- Só fale sobre o usuário ter bebido água, e só emita <water_json>, quando a mensagem ATUAL dele relatar explicitamente que ele bebeu água (ex: "bebi 500ml", "tomei um copo d'água"). É PROIBIDO emitir <water_json> em qualquer outra situação.
+- Se o usuário registrou APENAS comida (ex: "comi uma banana"), comente SOMENTE a comida. NÃO diga "você mandou bem na hidratação", NÃO afirme que ele bebeu X litros, NÃO emita <water_json>. Atribuir ao usuário uma ingestão de água que ele não relatou é um ERRO GRAVE.
+- Recomendar hidratação de forma genérica é permitido SOMENTE como conselho ("lembre de se hidratar bem hoje"), nunca como se ele já tivesse bebido. Mesmo assim, jamais emita <water_json> nesse caso.
 
 **CRÍTICO — extração de quantidade:** Use SOMENTE o número literal que o usuário informou na mensagem ATUAL. Se disse "200ml", o campo ml deve ser 200. Se disse "1 litro", o campo ml deve ser 1000. No texto da resposta, mencione exatamente a mesma quantidade — nunca some, dobre, ou some com totais do dia. NUNCA mencione o total acumulado do dia como se fosse a quantidade ingerida agora.
 

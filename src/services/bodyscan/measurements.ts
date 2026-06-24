@@ -170,7 +170,16 @@ export interface DistanceValidation {
   valid: boolean;
   fraction: number;
   status: 'too_close' | 'too_far' | 'ok';
+  /**
+   * Whether the full body (head→ankles) is genuinely inside the frame.
+   * False when the ankles aren't actually visible — the most common cause of a
+   * failed scan (user framed only the upper body, like a hand-held selfie).
+   */
+  bodyInFrame: boolean;
 }
+
+/** Minimum landmark visibility to treat a point as truly "in frame". */
+const ANKLE_VIS_MIN = 0.5;
 
 export function validateDistance(
   landmarks: PoseLandmark[],
@@ -181,30 +190,75 @@ export function validateDistance(
   const rightAnkle = landmarks[LM.RIGHT_ANKLE];
 
   if (!nose || !leftAnkle || !rightAnkle) {
-    return { valid: false, fraction: 0, status: 'too_far' };
+    return { valid: false, fraction: 0, status: 'too_close', bodyInFrame: false };
+  }
+
+  // CRITICAL: MediaPipe always returns all 33 landmarks, extrapolating the ones
+  // outside the frame with low visibility. We must NOT trust ankle coordinates
+  // unless the ankles are actually visible — otherwise a head-and-torso selfie
+  // gets a bogus distance reading. If ankles aren't visible, the body simply
+  // isn't fully framed → the user needs to step back.
+  const ankleVis = Math.max(leftAnkle.visibility ?? 0, rightAnkle.visibility ?? 0);
+  if (ankleVis < ANKLE_VIS_MIN) {
+    return { valid: false, fraction: 0, status: 'too_close', bodyInFrame: false };
   }
 
   const avgAnkleY = (leftAnkle.y + rightAnkle.y) / 2;
   const fraction = Math.abs(avgAnkleY - nose.y);
 
-  if (fraction > 0.85) return { valid: false, fraction, status: 'too_close' };
-  if (fraction < 0.70) return { valid: false, fraction, status: 'too_far' };
-  return { valid: true, fraction, status: 'ok' };
+  // Slightly wider band than before (0.62–0.92) to reduce false rejections while
+  // still keeping the whole body comfortably inside the frame.
+  if (fraction > 0.92) return { valid: false, fraction, status: 'too_close', bodyInFrame: true };
+  if (fraction < 0.62) return { valid: false, fraction, status: 'too_far', bodyInFrame: true };
+  return { valid: true, fraction, status: 'ok', bodyInFrame: true };
 }
 
 // ─── Pose orientation detection ───────────────────────────────────────────────
 
 export type PoseOrientation = 'frontal' | 'side' | 'unknown';
 
+/**
+ * Detect body orientation in a **distance-invariant** way.
+ *
+ * The previous version compared raw shoulder X-spread to absolute thresholds, so
+ * at 2–3 m (where the spread shrinks) it could never confirm "frontal". Instead we
+ * normalise the horizontal shoulder/hip spread by the torso height (vertical
+ * shoulder→hip distance), which scales the same way with distance, and we also use
+ * the left/right shoulder **visibility asymmetry** — when someone stands sideways,
+ * the far shoulder is occluded, producing a large visibility gap.
+ */
 export function detectPoseOrientation(landmarks: PoseLandmark[]): PoseOrientation {
   const ls = landmarks[LM.LEFT_SHOULDER];
   const rs = landmarks[LM.RIGHT_SHOULDER];
+  const lh = landmarks[LM.LEFT_HIP];
+  const rh = landmarks[LM.RIGHT_HIP];
 
-  if (!ls || !rs) return 'unknown';
+  if (!ls || !rs || !lh || !rh) return 'unknown';
 
-  const spreadX = Math.abs(ls.x - rs.x);
-  if (spreadX > 0.10) return 'frontal';
-  if (spreadX < 0.05) return 'side';
+  const shoulderSpread = Math.abs(ls.x - rs.x);
+  const hipSpread = Math.abs(lh.x - rh.x);
+
+  // Torso height = vertical distance between shoulder line and hip line.
+  // This is our distance-invariant scale reference.
+  const shoulderY = (ls.y + rs.y) / 2;
+  const hipY = (lh.y + rh.y) / 2;
+  const torsoH = Math.abs(hipY - shoulderY);
+  if (torsoH < 0.05) return 'unknown'; // torso not clearly visible
+
+  const shoulderRatio = shoulderSpread / torsoH;
+  const hipRatio = hipSpread / torsoH;
+
+  // Side pose occludes the far shoulder/hip → strong visibility asymmetry.
+  const shoulderVisAsym = Math.abs((ls.visibility ?? 0) - (rs.visibility ?? 0));
+  const hipVisAsym = Math.abs((lh.visibility ?? 0) - (rh.visibility ?? 0));
+  const strongAsymmetry = shoulderVisAsym > 0.35 || hipVisAsym > 0.35;
+
+  // Frontal: shoulders and hips are wide relative to the torso height.
+  if (shoulderRatio > 0.55 && hipRatio > 0.30 && !strongAsymmetry) return 'frontal';
+
+  // Side: shoulders/hips collapse horizontally, OR clear occlusion asymmetry.
+  if (shoulderRatio < 0.32 || strongAsymmetry) return 'side';
+
   return 'unknown';
 }
 

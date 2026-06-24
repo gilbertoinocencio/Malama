@@ -3,16 +3,20 @@
  *
  * Pipeline per frame:
  *   1. MediaPipe → landmarks
- *   2. validateDistance → distance feedback
- *   3. detectPoseOrientation → confirms correct pose
- *   4. LivenessDetector (right-arm raise)  ← only for the first scan
+ *   2. validateDistance → full-body-in-frame + distance feedback
+ *   3. detectPoseOrientation → confirms correct pose (distance-invariant)
+ *   4. LivenessDetector (right-arm raise)  ← only for the first scan, hands-on mode
  *   5. StabilityDetector (2 s hold)
  *   6. Auto-capture → computeMeasurements → onCapture callback
  *
  * UX features:
- *   - Camera flip button (front ↔ rear) for self-scans
- *   - Large, full-width status banner (visible against any background)
- *   - Web Speech API voice guidance in pt-BR (no extra libraries)
+ *   - Native voice guidance (Android/iOS TTS) + Web Speech fallback — audible even
+ *     when the user is in profile and can't see the screen.
+ *   - Haptic cues (pose valid / capture) for non-visual confirmation.
+ *   - Anti-flicker: spoken guidance only changes once a state persists a few frames.
+ *   - Front-camera mirror so left/right feels natural.
+ *   - Hands-free mode: spoken countdown to prop the phone and step back, then it
+ *     captures automatically guided by voice + vibration.
  */
 
 import React, {
@@ -29,6 +33,12 @@ import {
   validateDistance,
   detectPoseOrientation,
   computeMeasurements,
+  primeVoice,
+  speak,
+  stopSpeaking,
+  hapticTick,
+  hapticStep,
+  hapticSuccess,
   type AnthroMeasurements,
   type PoseLandmark,
   type PoseOrientation,
@@ -56,6 +66,12 @@ interface BodyScanCameraProps {
   pose: ScanPose;
   /** Whether to run liveness check (raise right arm) before allowing capture */
   requireLiveness?: boolean;
+  /**
+   * Hands-free mode for solo self-scans: shows a spoken countdown so the user can
+   * prop the phone and step back, and disables the arm-raise liveness (impossible
+   * to perform while far from a propped phone).
+   */
+  handsFree?: boolean;
   heightCm: number;
   weightKg: number;
   age: number;
@@ -68,10 +84,26 @@ interface BodyScanCameraProps {
 
 type CameraStep =
   | 'loading'       // MediaPipe initialising
+  | 'countdown'     // hands-free: get-into-position countdown
   | 'liveness'      // waiting for right-arm raise
   | 'positioning'   // pose / distance validation
   | 'stable'        // 2-s countdown
   | 'captured';     // frame captured, processing
+
+// ─── Guidance phrases ───────────────────────────────────────────────────────────
+
+type GuidanceKey =
+  | 'no_pose'
+  | 'step_back'
+  | 'come_closer'
+  | 'turn_front'
+  | 'turn_side'
+  | 'liveness'
+  | 'hold_still';
+
+/** Number of consecutive frames a guidance state must persist before we announce it.
+ *  Prevents the voice from contradicting itself on momentary tracking jitter. */
+const GUIDANCE_DEBOUNCE_FRAMES = 4;
 
 // ─── Overlay drawing helpers ────────────────────────────────────────────────────
 
@@ -159,6 +191,7 @@ function drawLandmarkDots(
 export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   pose,
   requireLiveness = true,
+  handsFree = false,
   heightCm,
   weightKg,
   age,
@@ -166,6 +199,10 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   onCapture,
   onError,
 }) => {
+  // In hands-free mode the arm-raise liveness is impossible (user is far from a
+  // propped phone), so we always skip it.
+  const livenessEnabled = requireLiveness && !handsFree;
+
   const videoRef      = useRef<HTMLVideoElement>(null);
   const canvasRef     = useRef<HTMLCanvasElement>(null);
   const streamRef     = useRef<MediaStream | null>(null);
@@ -181,6 +218,13 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   const repeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /** Prevents saying the stability greeting more than once per pose cycle. */
   const stableGreetedRef = useRef(false);
+  /** True while the hands-free positioning countdown is running — blocks capture. */
+  const countdownActiveRef = useRef(false);
+  /** Interval ID for the hands-free countdown, so restarts don't overlap. */
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Debounce bookkeeping for spoken guidance. */
+  const pendingKeyRef   = useRef<{ key: GuidanceKey; count: number } | null>(null);
+  const committedKeyRef = useRef<GuidanceKey | null>(null);
 
   // Front camera by default: in a solo self-scan the user needs to see the on-screen guide and
   // hear the voice prompts while positioning. The flip button switches to the rear camera for
@@ -192,55 +236,54 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   const [livenessPct, setLivenessPct]   = useState(0);
   const [frameValid, setFrameValid]     = useState(false);
   const [distanceStatus, setDistanceStatus] = useState<'too_close' | 'too_far' | 'ok'>('too_far');
+  const [countdown, setCountdown]       = useState<number | null>(null);
 
-  // ── Voice guidance (Web Speech API — modern browsers, Safari iOS 14+, and Android WebView
-  //    when a TTS engine is installed) ──
-
-  /** Best available pt-BR (or pt-*) voice, resolved asynchronously after mount. */
-  const ptVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
-
-  // Voices load asynchronously in Android WebView — populate the ref now and on 'voiceschanged'.
-  useEffect(() => {
-    if (!('speechSynthesis' in window)) return;
-
-    const pickVoice = () => {
-      let voices: SpeechSynthesisVoice[] = [];
-      try { voices = window.speechSynthesis.getVoices(); } catch { return; }
-      if (!voices.length) return;
-      // Prefer pt-BR, then any pt-*; otherwise leave null (engine uses utt.lang default).
-      ptVoiceRef.current =
-        voices.find(v => v.lang?.toLowerCase() === 'pt-br') ??
-        voices.find(v => v.lang?.toLowerCase().startsWith('pt')) ??
-        null;
-    };
-
-    pickVoice();
-    window.speechSynthesis.addEventListener?.('voiceschanged', pickVoice);
-    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', pickVoice);
-  }, []);
-
-  const speak = useCallback((text: string) => {
-    if (!('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = 'pt-BR';
-      if (ptVoiceRef.current) utt.voice = ptVoiceRef.current;
-      utt.rate = 0.92;
-      utt.pitch = 1.0;
-      window.speechSynthesis.speak(utt);
-    } catch {
-      // WebView without a usable TTS engine — guidance stays visual-only, non-blocking.
+  // Guidance phrases — short, warm, imperative (good for audio-only guidance).
+  const guidanceMsg = useCallback((key: GuidanceKey): string => {
+    switch (key) {
+      case 'no_pose':
+        return pose === 'front'
+          ? 'Apareça inteiro na câmera, da cabeça aos pés'
+          : 'Fique de lado e apareça inteiro na câmera';
+      case 'step_back':   return 'Afaste-se até aparecer o corpo todo';
+      case 'come_closer': return 'Aproxime-se um pouco';
+      case 'turn_front':  return 'Fique de frente para a câmera';
+      case 'turn_side':   return 'Vire de lado, fique de perfil para a câmera';
+      case 'liveness':    return 'Levante o braço direito acima do ombro';
+      case 'hold_still':  return 'Isso! Perfeito, fique bem imóvel';
     }
-  }, []);
+  }, [pose]);
+
+  /**
+   * Commit a guidance state only after it persists GUIDANCE_DEBOUNCE_FRAMES frames.
+   * The visual frame validity updates every frame elsewhere; this gates only the
+   * textual + spoken message so the voice never flip-flops on tracking jitter.
+   */
+  const commitGuidance = useCallback((key: GuidanceKey) => {
+    if (committedKeyRef.current === key) return;
+    const pending = pendingKeyRef.current;
+    if (pending && pending.key === key) {
+      pending.count += 1;
+      if (pending.count >= GUIDANCE_DEBOUNCE_FRAMES) {
+        committedKeyRef.current = key;
+        pendingKeyRef.current = null;
+        setStatusMsg(guidanceMsg(key));
+      }
+    } else {
+      pendingKeyRef.current = { key, count: 1 };
+    }
+  }, [guidanceMsg]);
+
+  // ── Voice guidance ───────────────────────────────────────────────────────────
+  // speak()/stopSpeaking() live in voiceGuide (native TTS + Web Speech fallback).
 
   // Keep ref in sync so interval callback always reads the freshest message
   statusMsgRef.current = statusMsg;
 
-  // Speak immediately when message changes; repeat every 9 s while stuck in same state.
+  // Speak immediately when message changes; repeat every 6 s while stuck in same state.
   // This ensures the user hears guidance even if they miss the first prompt.
   useEffect(() => {
-    if (step === 'loading' || step === 'captured' || !statusMsg) {
+    if (step === 'loading' || step === 'captured' || step === 'countdown' || !statusMsg) {
       if (repeatTimerRef.current) { clearInterval(repeatTimerRef.current); repeatTimerRef.current = null; }
       return;
     }
@@ -248,12 +291,12 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
     speak(statusMsg);
 
     if (repeatTimerRef.current) clearInterval(repeatTimerRef.current);
-    repeatTimerRef.current = setInterval(() => speak(statusMsgRef.current), 9000);
+    repeatTimerRef.current = setInterval(() => speak(statusMsgRef.current), 6000);
 
     return () => {
       if (repeatTimerRef.current) { clearInterval(repeatTimerRef.current); repeatTimerRef.current = null; }
     };
-  }, [statusMsg]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [statusMsg, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Camera ─────────────────────────────────────────────────────────────────
 
@@ -323,10 +366,14 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         return;
       }
 
-      // Pose-aware capture confirmation
-      speak(pose === 'front'
-        ? 'Perfeito! Agora vire o corpo para o lado direito'
-        : 'Scan concluído!');
+      // Multisensory capture confirmation — felt, heard and seen, even in profile.
+      hapticSuccess();
+      if (pose === 'front') {
+        hapticStep();
+        speak('Capturei! Agora vire o corpo de lado, de perfil');
+      } else {
+        speak('Capturei! Scan concluído');
+      }
 
       // Capture JPEG — stays 100% local, never uploaded
       const canvas = document.createElement('canvas');
@@ -341,7 +388,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
       onCapture({ pose, measurements, landmarks, frameWidth: frameW, frameHeight: frameH, imageDataUrl });
     },
-    [heightCm, weightKg, age, gender, pose, onCapture, onError, stopCamera, speak],
+    [heightCm, weightKg, age, gender, pose, onCapture, onError, stopCamera],
   );
 
   // ── Inference loop ──────────────────────────────────────────────────────────
@@ -367,27 +414,24 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
     provider.analyzeFrame(video).then((frame) => {
       const now = frame.timestamp;
 
+      // ── No pose detected ────────────────────────────────────────────────
       if (!frame.poseDetected || !frame.result) {
-        setStatusMsg(
-          pose === 'front'
-            ? 'Posicione-se de frente para a câmera'
-            : 'Vire o corpo completamente para o lado direito',
-        );
+        commitGuidance('no_pose');
         drawGuideLines(ctx, frameW, frameH, false);
         setFrameValid(false);
+        if (!countdownActiveRef.current) setStep('positioning');
         rafRef.current = requestAnimationFrame(runLoop);
         return;
       }
 
       const { landmarks } = frame.result;
 
-      // Distance
+      // Distance (full-body-in-frame aware)
       const dist = validateDistance(landmarks, frameH);
       setDistanceStatus(dist.status);
 
-      // Orientation
+      // Orientation (distance-invariant)
       const orientation = detectPoseOrientation(landmarks);
-
       const expectedOrientation: PoseOrientation = pose === 'front' ? 'frontal' : 'side';
       const orientationOk = orientation === expectedOrientation;
       const positionOk = dist.valid && orientationOk;
@@ -396,12 +440,30 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       drawGuideLines(ctx, frameW, frameH, positionOk);
       drawLandmarkDots(ctx, landmarks, frameW, frameH);
 
-      // ── Liveness ────────────────────────────────────────────────────────
-      if (requireLiveness && !livenessRef.current.validated) {
+      // While the hands-free countdown runs, only give positioning guidance —
+      // never capture yet (gives the user time to get into place).
+      const captureBlocked = countdownActiveRef.current;
+
+      // ── Liveness (hands-on first scan only, AND only once well-positioned) ─
+      if (livenessEnabled && !livenessRef.current.validated) {
+        if (!positionOk) {
+          // Guide them into frame first; don't ask for the arm raise yet.
+          stabilityRef.current.reset();
+          setStabilityPct(0);
+          if (!dist.valid) {
+            commitGuidance(dist.status === 'too_close' ? 'step_back' : 'come_closer');
+          } else {
+            commitGuidance(pose === 'front' ? 'turn_front' : 'turn_side');
+          }
+          setStep('positioning');
+          prevLandmarks.current = landmarks;
+          rafRef.current = requestAnimationFrame(runLoop);
+          return;
+        }
         setStep('liveness');
         setLivenessPct(livenessRef.current.progress);
         livenessRef.current.addFrame(landmarks);
-        setStatusMsg('Levante o braço direito acima do ombro direito');
+        commitGuidance('liveness');
         prevLandmarks.current = landmarks;
         rafRef.current = requestAnimationFrame(runLoop);
         return;
@@ -414,17 +476,9 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         setStabilityPct(0);
 
         if (!dist.valid) {
-          setStatusMsg(
-            dist.status === 'too_close'
-              ? 'Afaste-se da câmera'
-              : 'Aproxime-se da câmera',
-          );
+          commitGuidance(dist.status === 'too_close' ? 'step_back' : 'come_closer');
         } else if (!orientationOk) {
-          setStatusMsg(
-            pose === 'front'
-              ? 'Vire o rosto e o corpo de frente para a câmera'
-              : 'Vire o corpo de lado — fique de perfil para a câmera',
-          );
+          commitGuidance(pose === 'front' ? 'turn_front' : 'turn_side');
         }
 
         setStep('positioning');
@@ -433,16 +487,24 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         return;
       }
 
-      // ── Stable entry: greet only once per pose cycle ─────────────────────
+      // ── Stable: pose is correct ──────────────────────────────────────────
       setStep('stable');
+      commitGuidance('hold_still');
       if (!stableGreetedRef.current) {
         stableGreetedRef.current = true;
-        setStatusMsg('Ótimo! Agora fique bem imóvel');
-      } else {
-        setStatusMsg('Fique imóvel');
+        hapticTick(); // felt confirmation that the pose locked in
       }
 
-      // ── Stability ────────────────────────────────────────────────────────
+      // During the hands-free countdown we hold here without capturing.
+      if (captureBlocked) {
+        stabilityRef.current.reset();
+        setStabilityPct(0);
+        prevLandmarks.current = landmarks;
+        rafRef.current = requestAnimationFrame(runLoop);
+        return;
+      }
+
+      // ── Stability hold → capture ─────────────────────────────────────────
       const isStable = stabilityRef.current.addFrame(landmarks, prevLandmarks.current, now);
       setStabilityPct(stabilityRef.current.progress);
       prevLandmarks.current = landmarks;
@@ -454,7 +516,38 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
       rafRef.current = requestAnimationFrame(runLoop);
     });
-  }, [pose, requireLiveness, captureFrame]);
+  }, [pose, livenessEnabled, captureFrame, commitGuidance]);
+
+  // ── Hands-free positioning countdown ──────────────────────────────────────────
+
+  const startCountdown = useCallback(() => {
+    // Clear any countdown already in flight (e.g. user tapped "Recontar").
+    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    countdownActiveRef.current = true;
+    let n = 10;
+    setCountdown(n);
+    setStep('countdown');
+    speak('Apoie o celular e se afaste. Você tem dez segundos para se posicionar.');
+
+    const id = setInterval(() => {
+      n -= 1;
+      if (n <= 0) {
+        clearInterval(id);
+        countdownTimerRef.current = null;
+        setCountdown(null);
+        countdownActiveRef.current = false;
+        stabilityRef.current.reset();
+        setStep('positioning');
+        speak('Pode começar. Vou te guiar pela voz.');
+        return;
+      }
+      setCountdown(n);
+      if (n <= 5) speak(String(n)); // spoken final 5-second countdown
+    }, 1000);
+    countdownTimerRef.current = id;
+
+    return () => { clearInterval(id); countdownTimerRef.current = null; };
+  }, []);
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
   // Reruns when `pose` OR `facingMode` changes.
@@ -462,8 +555,12 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
   useEffect(() => {
     let mounted = true;
+    let cancelCountdown: (() => void) | undefined;
     capturedRef.current = false;
     stableGreetedRef.current = false;
+    countdownActiveRef.current = false;
+    pendingKeyRef.current = null;
+    committedKeyRef.current = null;
     stabilityRef.current.reset();
     livenessRef.current.reset();
     prevLandmarks.current = null;
@@ -479,14 +576,20 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         if (!mounted) return;
         await provider.initialize();
         if (!mounted) return;
-        setStep(requireLiveness ? 'liveness' : 'positioning');
-        setStatusMsg(
-          requireLiveness
-            ? 'Levante o braço direito acima do ombro direito'
-            : pose === 'front'
-              ? 'Posicione-se de frente para a câmera'
-              : 'Agora vire o corpo para o lado direito e fique de perfil',
-        );
+
+        if (handsFree) {
+          // Give the user time to prop the phone and step back, guided by voice.
+          cancelCountdown = startCountdown();
+        } else {
+          setStep(livenessEnabled ? 'liveness' : 'positioning');
+          setStatusMsg(
+            livenessEnabled
+              ? 'Levante o braço direito acima do ombro'
+              : pose === 'front'
+                ? 'Fique de frente e apareça da cabeça aos pés'
+                : 'Fique de perfil e apareça da cabeça aos pés',
+          );
+        }
         rafRef.current = requestAnimationFrame(runLoop);
       } catch (err) {
         console.error('[BodyScanCamera] init error:', err);
@@ -496,10 +599,12 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
     return () => {
       mounted = false;
+      cancelCountdown?.();
+      if (countdownTimerRef.current) { clearInterval(countdownTimerRef.current); countdownTimerRef.current = null; }
       cancelAnimationFrame(rafRef.current);
       stopCamera();
       provider.destroy();
-      window.speechSynthesis?.cancel();
+      stopSpeaking();
       if (repeatTimerRef.current) { clearInterval(repeatTimerRef.current); repeatTimerRef.current = null; }
     };
   }, [pose, facingMode]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -518,12 +623,17 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         ? 'Aproxime-se'
         : 'Distância ✓';
 
+  // Front camera is mirrored so left/right feels natural (like a mirror).
+  // The overlay canvas gets the same transform to stay aligned with the video.
+  const mirrorStyle = facingMode === 'user' ? { transform: 'scaleX(-1)' } : undefined;
+
   return (
     <div className="relative w-full h-full bg-[#0a0a0a] overflow-hidden rounded-2xl">
       {/* Live video */}
       <video
         ref={videoRef}
         className="w-full h-full object-cover"
+        style={mirrorStyle}
         playsInline
         muted
         autoPlay
@@ -533,6 +643,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       <canvas
         ref={canvasRef}
         className={`absolute inset-0 w-full h-full transition-all duration-700 ${borderClass}`}
+        style={mirrorStyle}
       />
 
       {/* Loading overlay */}
@@ -548,6 +659,32 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
             <div className="w-8 h-8 border border-white/30 border-t-white/80 rounded-full animate-spin" />
             <p className="text-white/60 text-sm font-light tracking-widest uppercase">
               Carregando IA
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hands-free positioning countdown */}
+      <AnimatePresence>
+        {step === 'countdown' && countdown !== null && (
+          <motion.div
+            key="countdown"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-[#0a0a0a]/70 flex flex-col items-center justify-center gap-3"
+          >
+            <p className="text-white/70 text-sm font-light tracking-wide text-center px-8">
+              Apoie o celular e se afaste
+            </p>
+            <span
+              className="text-white leading-none"
+              style={{ fontFamily: "'Playfair Display', serif", fontSize: 96 }}
+            >
+              {countdown}
+            </span>
+            <p className="text-white/50 text-xs font-light tracking-widest uppercase">
+              Vou te guiar pela voz
             </p>
           </motion.div>
         )}
@@ -580,9 +717,21 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         </button>
       )}
 
+      {/* Hands-free restart button — top centre-left */}
+      {handsFree && step !== 'loading' && step !== 'captured' && step !== 'countdown' && (
+        <button
+          onClick={() => startCountdown()}
+          className="absolute top-10 left-16 bg-black/40 backdrop-blur-md px-3 py-2 rounded-full border border-white/20 text-white/80 active:scale-95 transition-transform z-10 flex items-center gap-1.5"
+          aria-label="Reiniciar contagem"
+        >
+          <span className="material-symbols-outlined text-base leading-none">timer</span>
+          <span className="text-xs font-light">Recontar</span>
+        </button>
+      )}
+
       {/* Status banner — large, full-width, bottom centre */}
       <AnimatePresence mode="wait">
-        {step !== 'loading' && step !== 'captured' && (
+        {step !== 'loading' && step !== 'captured' && step !== 'countdown' && (
           <motion.div
             key={statusMsg}
             initial={{ opacity: 0, y: 10 }}
@@ -660,7 +809,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       </AnimatePresence>
 
       {/* Distance badge — top right */}
-      {step !== 'loading' && step !== 'liveness' && (
+      {step !== 'loading' && step !== 'liveness' && step !== 'countdown' && (
         <div className="absolute top-10 right-4">
           <div
             className={`text-[10px] px-2.5 py-1 rounded-full backdrop-blur-md border font-light tracking-wider uppercase transition-colors duration-300 ${

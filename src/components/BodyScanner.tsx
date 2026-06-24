@@ -29,7 +29,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { BodyScanCamera, type BodyScanCaptureResult, type ScanPose } from './BodyScanCamera';
 import { useBodyScan } from '../hooks/useBodyScan';
 import type { AnthroMeasurements } from '../services/bodyscan';
-import { computeMeasurements } from '../services/bodyscan';
+import { computeMeasurements, primeVoice } from '../services/bodyscan';
 import {
   CONFIDENCE_MIN,
   TARGET_VALID,
@@ -138,6 +138,9 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
   // camera-init effect). Without this, retrying after a permission denial does nothing because
   // setStep(step) keeps the same value and React skips the re-render.
   const [cameraRetry, setCameraRetry] = useState(0);
+  // Hands-free self-scan: spoken countdown + voice/haptic guidance, no arm-raise.
+  // Default ON because the common case is a solo user propping the phone.
+  const [handsFree, setHandsFree] = useState(true);
   const [finalMeasurements, setFinalMeasurements] = useState<AnthroMeasurements | null>(null);
 
   const [validCaptures, setValidCaptures] = useState<AnthroMeasurements[]>([]);
@@ -391,9 +394,9 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   {[
                     { icon: 'checkroom',     text: 'Vista roupa justa ou traje de banho' },
                     { icon: 'lightbulb',     text: 'Escolha local bem iluminado' },
-                    { icon: 'straighten',    text: 'Fique a 2–3 m da câmera' },
-                    { icon: 'accessibility', text: 'Corpo inteiro visível (70–85% do frame)' },
-                    { icon: 'back_hand',     text: 'Levante o braço direito quando solicitado' },
+                    { icon: 'smartphone',    text: 'Apoie o celular e fique a 2–3 m' },
+                    { icon: 'accessibility', text: 'Corpo inteiro no quadro, da cabeça aos pés' },
+                    { icon: 'record_voice_over', text: 'A voz e a vibração vão te guiar — não precisa olhar a tela' },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-4 bg-white rounded-xl px-4 py-3 shadow-sm">
                       <span className="material-symbols-outlined text-stone-400 text-xl">{item.icon}</span>
@@ -428,12 +431,21 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   </div>
                 )}
 
+                {/* primeVoice() runs inside the tap (user gesture) so the TTS engine
+                    is unlocked and the first spoken instruction isn't swallowed. */}
                 <button
-                  onClick={() => setStep('front')}
-                  className="w-full text-white rounded-2xl py-4 font-light tracking-wider transition-opacity hover:opacity-90 active:scale-[0.98]"
+                  onClick={() => { setHandsFree(true); primeVoice(); setStep('front'); }}
+                  className="w-full text-white rounded-2xl py-4 font-light tracking-wider transition-opacity hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                   style={{ background: '#7d4a3c' }}
                 >
-                  Iniciar Scan
+                  <span className="material-symbols-outlined text-xl">record_voice_over</span>
+                  Iniciar sozinho (mãos-livres)
+                </button>
+                <button
+                  onClick={() => { setHandsFree(false); primeVoice(); setStep('front'); }}
+                  className="w-full text-stone-500 text-sm font-light py-3 mt-2 hover:text-stone-700 transition-colors"
+                >
+                  Tenho alguém para me ajudar
                 </button>
               </div>
             </motion.div>
@@ -473,6 +485,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   key={`${step}-${cameraRetry}`}
                   pose={step as ScanPose}
                   requireLiveness={step === 'front'}
+                  handsFree={handsFree}
                   heightCm={heightCm}
                   weightKg={weightKg}
                   age={age}
