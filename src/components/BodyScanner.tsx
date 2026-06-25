@@ -431,21 +431,13 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   </div>
                 )}
 
-                {/* primeVoice() runs inside the tap (user gesture) so the TTS engine
-                    is unlocked and the first spoken instruction isn't swallowed. */}
                 <button
                   onClick={() => { setHandsFree(true); primeVoice(); setStep('front'); }}
                   className="w-full text-white rounded-2xl py-4 font-light tracking-wider transition-opacity hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
                   style={{ background: '#7d4a3c' }}
                 >
-                  <span className="material-symbols-outlined text-xl">record_voice_over</span>
-                  Iniciar sozinho (mãos-livres)
-                </button>
-                <button
-                  onClick={() => { setHandsFree(false); primeVoice(); setStep('front'); }}
-                  className="w-full text-stone-500 text-sm font-light py-3 mt-2 hover:text-stone-700 transition-colors"
-                >
-                  Tenho alguém para me ajudar
+                  <span className="material-symbols-outlined text-xl">accessibility</span>
+                  Iniciar Body Scan
                 </button>
               </div>
             </motion.div>

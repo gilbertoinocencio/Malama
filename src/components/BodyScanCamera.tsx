@@ -611,10 +611,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
   // ── Derived UI ──────────────────────────────────────────────────────────────
 
-  const borderClass =
-    frameValid
-      ? 'ring-2 ring-[#86a88d]/70'
-      : 'ring-1 ring-white/20';
+  const borderClass = '';
 
   const distanceLabel =
     distanceStatus === 'too_close'
@@ -628,7 +625,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   const mirrorStyle = facingMode === 'user' ? { transform: 'scaleX(-1)' } : undefined;
 
   return (
-    <div className="relative w-full h-full bg-[#0a0a0a] overflow-hidden rounded-2xl">
+    <div className="relative w-full h-full bg-[#0a0a0a] overflow-hidden">
       {/* Live video */}
       <video
         ref={videoRef}
@@ -654,7 +651,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-[#0a0a0a]/80 flex flex-col items-center justify-center gap-4"
+            className="absolute inset-0 bg-[#0a0a0a] flex flex-col items-center justify-center gap-4"
           >
             <div className="w-8 h-8 border border-white/30 border-t-white/80 rounded-full animate-spin" />
             <p className="text-white/60 text-sm font-light tracking-widest uppercase">
@@ -691,20 +688,22 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       </AnimatePresence>
 
       {/* Step progress bars — top centre */}
-      <div className="absolute top-4 left-0 right-0 flex justify-center gap-2 px-14">
-        {(['liveness', 'positioning', 'stable'] as CameraStep[]).map((s, i) => (
-          <div
-            key={s}
-            className={`h-0.5 flex-1 rounded-full transition-all duration-500 ${
-              step === s
-                ? 'bg-white/70'
-                : i < (['liveness', 'positioning', 'stable'] as CameraStep[]).indexOf(step)
-                  ? 'bg-white/40'
-                  : 'bg-white/15'
-            }`}
-          />
-        ))}
-      </div>
+      {step !== 'loading' && (
+        <div className="absolute top-4 left-0 right-0 flex justify-center gap-2 px-14">
+          {(['liveness', 'positioning', 'stable'] as CameraStep[]).map((s, i) => (
+            <div
+              key={s}
+              className={`h-0.5 flex-1 rounded-full transition-all duration-500 ${
+                step === s
+                  ? 'bg-white/70'
+                  : i < (['liveness', 'positioning', 'stable'] as CameraStep[]).indexOf(step)
+                    ? 'bg-white/40'
+                    : 'bg-white/15'
+              }`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Camera flip button — top left */}
       {step !== 'loading' && step !== 'captured' && (
