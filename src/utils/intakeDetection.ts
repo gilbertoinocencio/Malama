@@ -107,3 +107,13 @@ export function mentionsQuantitySignal(text: string): boolean {
     || /\d/.test(lower)
     || containsWord(lower, '(?:um|uma|dois|duas|tr[êe]s|quatro|meio|meia)?\\s*(?:copo|copos|garrafa|garrafas|gole|goles)');
 }
+
+/**
+ * A mensagem é APENAS uma quantidade de bebida (ex: "300ml", "2 copos", "meio litro",
+ * "1l"), nada mais? Indica que o usuário está respondendo a uma pergunta da agente
+ * ("quanto você bebeu?"). Restrito de propósito para não capturar porção de comida
+ * ("300g de arroz" não casa — "g" não está na lista).
+ */
+export function isBareQuantityAnswer(text: string): boolean {
+  return /^\s*(?:meio|meia|um|uma|dois|duas|tr[êe]s|quatro|\d+(?:[.,]\d+)?)?\s*(?:ml|l|litros?|copos?|garrafas?|goles?)\s*$/iu.test(text.trim());
+}

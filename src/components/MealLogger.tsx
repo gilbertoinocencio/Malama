@@ -2,7 +2,7 @@
 import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog, generateMealFeedback, MealFeedbackContext } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
-import { userReportedWaterIntake } from '../utils/intakeDetection';
+import { userReportedWaterIntake, isBareQuantityAnswer } from '../utils/intakeDetection';
 
 import { MalamaAiScan } from './MalamaAiScan';
 import { USER_AVATAR } from '../constants';
@@ -506,6 +506,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       'fiz uma refeicao', 'belisquei', 'petisquei', 'me alimentei', 'acabei de comer',
     ];
     if (mealReportVerbs.some(v => lower.includes(v))) return true;
+
+    // Pure quantity ("300ml", "2 copos") — likely answering the agent's "quanto você bebeu?".
+    // Route to the chat agent so the water multi-turn (pergunta → resposta) funciona aqui também.
+    if (isBareQuantityAnswer(lower)) return true;
 
     // Corrections and clarifications - always route to chat agent, never to food analysis
     const correctionIndicators = [

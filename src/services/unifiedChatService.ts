@@ -269,7 +269,10 @@ export const UnifiedChatService = {
         ) {
           // The user answered the agent's "quanto você bebeu?" without repeating "água".
           // Require a quantity signal from the user's OWN words so we never confabulate.
-          const ml = userStatedMl > 0 ? userStatedMl : aiWaterMl;
+          // Prefer the user's literal number ("300ml" → 300); fall back to the AI's reading
+          // only for vessel-only answers ("2 copos" → 500), capped at WATER_MAX_ML.
+          const userMlInAnswer = parseStatedMl(userWaterText);
+          const ml = userMlInAnswer > 0 ? userMlInAnswer : aiWaterMl;
           if (ml > 0 && ml <= WATER_MAX_ML) totalMl = ml;
         }
 
@@ -1080,7 +1083,7 @@ Celebre a ação e extraia a quantidade em mililitros (ml). Inclua EXATAMENTE UM
 Para qualquer uma dessas bebidas, use **obrigatoriamente** <meal_json> com as calorias reais da bebida.
 
 **CRÍTICO — NUNCA invente, afirme ou registre consumo de água que o usuário NÃO relatou na mensagem ATUAL.**
-- Só fale sobre o usuário ter bebido água, e só emita <water_json>, quando a mensagem ATUAL dele relatar explicitamente que ele bebeu água (ex: "bebi 500ml", "tomei um copo d'água"). É PROIBIDO emitir <water_json> em qualquer outra situação.
+- Só fale sobre o usuário ter bebido água, e só emita <water_json>, quando (a) a mensagem ATUAL dele relatar explicitamente que ele bebeu água (ex: "bebi 500ml", "tomei um copo d'água"), OU (b) ele estiver RESPONDENDO à sua pergunta sobre a quantidade de água (você perguntou "quanto?" e ele respondeu, ainda que só com "300ml" ou "2 copos"). FORA desses dois casos é PROIBIDO emitir <water_json>.
 - Se o usuário registrou APENAS comida (ex: "comi uma banana"), comente SOMENTE a comida. NÃO diga "você mandou bem na hidratação", NÃO afirme que ele bebeu X litros, NÃO emita <water_json>. Atribuir ao usuário uma ingestão de água que ele não relatou é um ERRO GRAVE.
 - Recomendar hidratação de forma genérica é permitido SOMENTE como conselho ("lembre de se hidratar bem hoje"), nunca como se ele já tivesse bebido. Mesmo assim, jamais emita <water_json> nesse caso.
 
