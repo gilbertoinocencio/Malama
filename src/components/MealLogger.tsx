@@ -2,6 +2,7 @@
 import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog, generateMealFeedback, MealFeedbackContext } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
+import { userReportedWaterIntake } from '../utils/intakeDetection';
 
 import { MalamaAiScan } from './MalamaAiScan';
 import { USER_AVATAR } from '../constants';
@@ -587,8 +588,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         // Inject current meal context so the agent knows which meal is being discussed
         // Water intake messages (e.g. "bebi 1500ml de água") must NOT carry the previous
         // meal context - otherwise the AI responds about the meal instead of the hydration.
-        const isWaterIntakeMessage = /\b(bebi|tomei|ingeri|bebei)\b.{0,40}\b(água|agua|water|\d+\s*ml|\d+\s*litro)/i.test(userText)
-          || /\b\d+\s*(ml|litros?|copos?)\b.{0,30}\b(água|agua|water)\b/i.test(userText);
+        // Detecção Unicode-safe centralizada (ver src/utils/intakeDetection.ts) — o `\b`
+        // colado em "água" falhava e o contexto de refeição rascunho vazava em logs de água.
+        const isWaterIntakeMessage = userReportedWaterIntake(userText);
 
         const mealContext = (!isWaterIntakeMessage && draftMeal)
           ? `[Contexto da refeição atual: ${draftMeal.foodName} - ${(draftMeal.items || []).map(i => `${i.name} ${i.weightGrams}g (${i.calories}kcal)`).join(', ')}]\n\n`

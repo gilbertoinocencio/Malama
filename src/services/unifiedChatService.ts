@@ -3,6 +3,7 @@ import { GeminiProxy } from '../lib/geminiProxy';
 import { getLocalDateString } from '../utils/dateUtils';
 import { glp1Service } from './glp1Service';
 import { WeightLogService, MeasurementSnapshotService } from './weightLogService';
+import { userReportedWaterIntake, parseStatedMl, isPureWaterLog, mentionsQuantitySignal, mentionsFood, mentionsCalorieBeverage, WATER_MAX_ML } from '../utils/intakeDetection';
 
 const genAI = new GeminiProxy();
 const MODEL_NAME = "gemini-2.5-flash";
@@ -214,8 +215,8 @@ export const UnifiedChatService = {
       if (session.session_type === 'onboarding' && !session.onboarding_completed) {
         aiResponse = await this.generateOnboardingResponse(userId, userMessage, session);
       } else {
-        aiResponse = await this.generateChatResponse(userId, userMessage);
-        
+        aiResponse = await this.generateChatResponse(userId, userMessage, options?.userDisplayContent);
+
         // --- WATER INGESTION INTERCEPTOR ---
         const waterMatches = [...aiResponse.content.matchAll(/<water_json>([\s\S]*?)<\/water_json>/g)];
 
@@ -229,50 +230,47 @@ export const UnifiedChatService = {
         // hydration (it knows GLP-1 users "should drink more water" and confabulates "bebi 2L") when
         // the user only logged food. The user is the sole source of truth for WHETHER water was
         // consumed; the AI block is consulted only to estimate the QUANTITY when no number was given.
-        const userReportedWater = (() => {
-          const lower = userWaterText;
-          const mentionsWater = /\b(água|agua|water|h2o)\b/.test(lower);
-          if (!mentionsWater) return false;
-          // A calorie-bearing beverage in the same message → not a pure-water log; <meal_json> owns it.
-          const hasNonWaterBeverage = /\b(coca|pepsi|guaraná|guarana|refrigerante|suco|café|cafe|chá|cha|cerveja|vinho|leite|energético|energetico|whey|isotônico|isotonico|gatorade|powerade|kombucha|smoothie|vitamina|shake|achocolatado|alcohol|álcool|alcool)\b/.test(lower);
-          if (hasNonWaterBeverage) return false;
-          // Must read as a real intake event, not a question/mention ("preciso beber água?", "água faz bem").
-          const reportsIntake =
-            /\b(bebi|tomei|ingeri|bebendo|tomando|bebo|tomo|enchi|tomada)\b/.test(lower)
-            || /\d+\s*(ml|l\b|litro|litros)\b/.test(lower)
-            || /\b(um|uma|dois|duas|tr[êe]s|quatro|\d+)\s*(copo|copos|garrafa|garrafas|gole|goles)\b/.test(lower);
-          return reportsIntake;
-        })();
+        // Detecção Unicode-safe centralizada (ver src/utils/intakeDetection.ts).
+        const userReportedWater = userReportedWaterIntake(userWaterText);
 
         // Parse ml from the user's current message — sole source of truth for quantity.
         // Only meaningful when the user actually reported drinking water.
-        const userStatedMl = (() => {
-          if (!userReportedWater) return 0;
-          const lower = userWaterText;
-          const mlMatch    = lower.match(/(\d+(?:[.,]\d+)?)\s*ml/);
-          const litroMatch = lower.match(/(\d+(?:[.,]\d+)?)\s*(?:litro|litros)\b/);
-          const lMatch     = lower.match(/(\d+(?:[.,]\d+)?)\s*l\b/);
-          if (mlMatch)    return parseFloat(mlMatch[1].replace(',', '.'));
-          if (litroMatch) return parseFloat(litroMatch[1].replace(',', '.')) * 1000;
-          if (lMatch)     return parseFloat(lMatch[1].replace(',', '.')) * 1000;
-          return 0;
+        const userStatedMl = userReportedWater ? parseStatedMl(userWaterText) : 0;
+
+        // Quantity estimated by the AI's <water_json> block (used ONLY on the answer turn).
+        const aiWaterMl = (() => {
+          if (waterMatches.length === 0) return 0;
+          try {
+            const ml = Number(JSON.parse(waterMatches[0][1]).ml);
+            return !isNaN(ml) && ml > 0 ? ml : 0;
+          } catch { return 0; }
         })();
 
-        // Determine the ml to log. NOTHING is logged unless the user reported drinking water.
-        // 1. User reported water + stated a quantity → use the user's quantity (AI value ignored).
-        // 2. User reported water, no quantity ("bebi um copo") → use the AI's <water_json> estimate.
-        // 3. User did NOT report water → 0, nothing logged (AI hallucinations are discarded here).
+        // Determine the ml to log. The USER is always the source of WHETHER water was drunk
+        // and (when stated) HOW MUCH. There is NO automatic estimate anymore:
+        //   • reported water + plausible number (0 < ml ≤ WATER_MAX_ML) → log it.
+        //   • reported water, NO number ("bebi água")                   → log NOTHING; the agent asks "quanto?".
+        //   • reported water, EXORBITANT number (> WATER_MAX_ML)        → log NOTHING; the agent confirms/advises.
+        //   • answer turn ("300ml" / "2 copos", no "água" keyword, not food/other-beverage,
+        //     and the agent emitted <water_json>) → log the user's stated number, or the AI's
+        //     reading of the user's vessel ("2 copos"), capped at WATER_MAX_ML.
         let totalMl = 0;
         if (userReportedWater) {
-          if (userStatedMl > 0 && userStatedMl <= 5000) {
+          if (userStatedMl > 0 && userStatedMl <= WATER_MAX_ML) {
             totalMl = userStatedMl;
-          } else if (waterMatches.length > 0) {
-            try {
-              const parsed = JSON.parse(waterMatches[0][1]);
-              const ml = Number(parsed.ml);
-              if (!isNaN(ml) && ml > 0 && ml <= 5000) totalMl = ml;
-            } catch { /* ignore malformed block */ }
           }
+          // userStatedMl === 0  → ask for the amount (prompt-driven; nothing logged here)
+          // userStatedMl  > MAX → confirm/advise (prompt-driven; nothing logged here)
+        } else if (
+          aiWaterMl > 0 &&
+          mentionsQuantitySignal(userWaterText) &&
+          !mentionsFood(userWaterText) &&
+          !mentionsCalorieBeverage(userWaterText)
+        ) {
+          // The user answered the agent's "quanto você bebeu?" without repeating "água".
+          // Require a quantity signal from the user's OWN words so we never confabulate.
+          const ml = userStatedMl > 0 ? userStatedMl : aiWaterMl;
+          if (ml > 0 && ml <= WATER_MAX_ML) totalMl = ml;
         }
 
         if (totalMl > 0) {
@@ -498,7 +496,8 @@ Responda APENAS com o JSON, sem texto adicional.
    */
   async generateChatResponse(
     userId: string,
-    userMessage: string
+    userMessage: string,
+    userDisplayContent?: string
   ): Promise<{
     content: string;
     tokensUsed: number;
@@ -646,18 +645,12 @@ Responda APENAS com o JSON, sem texto adicional.
     // beverage. In that case we suppress the recent-meals context entirely so the agent focuses
     // exclusively on hydration and never drifts into commenting on an unrelated past meal
     // (e.g. summarizing a previous "Poke Bowl" when the user just logged 750ml of water).
-    const isPureWaterLog = (() => {
-      const lower = userMessage.toLowerCase();
-      const mentionsWater = /\b(água|agua|water|hidrat)\b/.test(lower);
-      const reportsIntake = /\b(bebi|tomei|ingeri|bebendo|tomando)\b/.test(lower) || /\d+\s*(ml|l\b|litro|litros|copos?)/.test(lower);
-      const mentionsFood = /\b(comi|almoc|almoç|jantei|jantar|lanchei|lanche|café da manhã|cafe da manha|ovo|pão|pao|arroz|feijão|feijao|frango|carne|salada|fruta|poke|bowl|salmão|salmao|refeição|refeicao|prato|sanduíche|sanduiche|pizza)\b/.test(lower);
-      const mentionsOtherBeverage = /\b(coca|pepsi|guaraná|guarana|refrigerante|suco|café|cafe|chá|cha|cerveja|vinho|leite|energético|energetico|whey|isotônico|isotonico|gatorade|powerade|kombucha|smoothie|vitamina|shake|achocolatado)\b/.test(lower);
-      return mentionsWater && reportsIntake && !mentionsFood && !mentionsOtherBeverage;
-    })();
+    // Detecção Unicode-safe centralizada; usa o texto REAL do usuário (sem prefixo injetado).
+    const pureWaterLog = isPureWaterLog(userDisplayContent ?? userMessage);
 
     // Recent meals — omitted on pure water logs so the agent stays strictly on the hydration topic
-    const mealsBlock = !isPureWaterLog && context.recentMeals && context.recentMeals.length > 0
-      ? `\n## REFEIÇÕES RECENTES\n${context.recentMeals.map((m: any) => `- ${m.name || m.meal_name}: ${m.calories}kcal (${new Date(m.created_at).toLocaleDateString('pt-BR')})`).join('\n')}`
+    const mealsBlock = !pureWaterLog && context.recentMeals && context.recentMeals.length > 0
+      ? `\n## REFEIÇÕES RECENTES (histórico dos últimos 3 dias — APENAS referência)\n${context.recentMeals.map((m: any) => `- ${m.name || m.meal_name}: ${m.calories}kcal (${new Date(m.created_at).toLocaleDateString('pt-BR')})`).join('\n')}\n*Estes itens são HISTÓRICO. NÃO são a mensagem atual do usuário. NUNCA recapitule, resuma nem dê feedback sobre nenhuma destas refeições a menos que o usuário a cite na mensagem ATUAL. Use só como contexto de raciocínio (ex.: saber se já bateu a meta de proteína).*`
       : '';
 
     // Quarterly plan block — current phase and strategy
@@ -1030,6 +1023,8 @@ Responda com uma frase motivacional curta e inclua o bloco <meal_json> ao final:
 4. Não pergunte confirmação — simplesmente registre e mostre o resumo para aprovação
 5. **CRÍTICO — o array "items" deve conter EXCLUSIVAMENTE os alimentos e bebidas mencionados na mensagem ATUAL.** NUNCA inclua itens de refeições anteriores presentes no histórico da conversa. O histórico serve apenas como contexto informativo — jamais como fonte de itens para o <meal_json> atual. Se a mensagem diz "comi arroz", registre APENAS arroz. Se diz "comi arroz com feijão", registre APENAS arroz e feijão. Nenhum item além dos explicitamente citados na mensagem atual.
 
+**CRÍTICO — PROIBIDO inventar/recapitular refeições na sua resposta em prosa:** Nunca resuma, comente nem dê feedback sobre uma refeição específica (ex.: "seu café da manhã com ovos e pão foi ótimo") a menos que o usuário a tenha citado na mensagem ATUAL. As "REFEIÇÕES RECENTES" são histórico de outros momentos/dias — jamais as trate como se tivessem acabado de ser relatadas. Se o usuário relatou SÓ água ("bebi 750ml de água"), responda APENAS sobre hidratação e NÃO mencione nenhuma comida. Atribuir ao usuário um consumo que ele não relatou no turno atual é um erro grave e quebra a confiança.
+
 **NUNCA emita <meal_json> nas seguintes situações (lista exaustiva de exceções):**
 - O usuário expressou fome, saciedade ou ausência de apetite sem relatar ingestão real (ex: "estou sem fome", "tô cheio", "não comi nada", "não tenho fome")
 - O usuário expressou **desejo, vontade ou intenção** de comer algo — mas ainda não comeu (ex: "tô com vontade de comer um doce", "quero comer uma pizza", "pensei em tomar um sorvete", "estou pensando em almoçar X")
@@ -1061,12 +1056,17 @@ Formato do bloco (idêntico ao das sugestões, com micros por item):
 }
 </meal_json>
 
-**Quando o usuário relatar que ingeriu ÁGUA PURA (ex: "bebi 500ml de água", "tomei 1 litro de água", "tomei um copo d'água"):**
+**Quando o usuário relatar que ingeriu ÁGUA PURA (ex: "bebi 500ml de água", "tomei 1 litro de água"):**
 Celebre a ação e extraia a quantidade em mililitros (ml). Inclua EXATAMENTE UM bloco ao final da sua resposta, após todo o texto, sem repetir:
 
 <water_json>
 {"ml": QUANTIDADE_EM_ML}
 </water_json>
+
+**CRÍTICO — quantidade É OBRIGATÓRIA para registrar. NUNCA estime nem invente um número.**
+- **Sem quantidade** (ex: "bebi água", "tomei água agora", "bebi um pouco de água"): NÃO emita <water_json>. Em vez disso, PERGUNTE a quantidade de forma curta e gentil. Ex: "Boa! Pra registrar sua hidratação eu preciso saber quanto você bebeu. Quantos ml (ou litros/copos) foram?" Assim que o usuário responder com a quantidade (mesmo que só "300ml" ou "2 copos"), aí sim celebre e emita o <water_json>.
+- **Quantidade exorbitante** (mais de ${WATER_MAX_ML} ml, ou seja, acima de ${(WATER_MAX_ML / 1000).toLocaleString('pt-BR')} litros, em um ÚNICO registro): NÃO emita <water_json>. Confirme com cuidado se foi isso mesmo, explique que esse volume de uma vez é muito alto (beber água em excesso de uma só vez pode ser prejudicial) e sugira registrar um valor realista. Ex: "X litros de uma vez é bastante — foi isso mesmo? Se quiser, posso registrar um valor mais próximo do que você bebeu agora. Quanto foi?" Só emita o <water_json> depois que o usuário confirmar/corrigir para um valor de até ${WATER_MAX_ML} ml.
+- Um "copo" equivale a ~250 ml e uma "garrafa" comum a ~500 ml — use essas referências SOMENTE para converter o que o usuário de fato informou (ex: "2 copos" → 500 ml), nunca para inventar quantidade que ele não deu.
 
 **CRÍTICO — <water_json> é EXCLUSIVO para água pura. NUNCA emita <water_json> para:**
 - Refrigerantes (Coca-Cola, Coca Zero, Pepsi, Guaraná, Sprite, Fanta, etc.)
