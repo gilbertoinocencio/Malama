@@ -116,6 +116,27 @@ function ellipseCircumference(widthCm: number, depthCm: number): number {
   return Math.PI * (widthCm / 2 + depthCm / 2);
 }
 
+// ─── Anatomical correction factors ──────────────────────────────────────────────
+
+/**
+ * MediaPipe landmarks don't sit on the true circumference sites:
+ *   - HIP landmarks are at the bony pelvis (bi-iliac breadth), which is NARROWER
+ *     than the maximal hip/gluteal girth (measured lower, around the buttocks) →
+ *     raw hip is underestimated, often coming out smaller than the waist.
+ *   - SHOULDER landmarks give biacromial breadth (bony shoulders), WIDER than the
+ *     chest at bust level → raw bust is overestimated.
+ *
+ * These per-sex factors map the landmark-derived circumference to the true site.
+ * They are heuristic starting points grounded in anthropometric ratios — tune
+ * against tape-measure ground truth. The ±2–4 cm disclaimer still applies.
+ */
+const HIP_CORRECTION   = { female: 1.18, male: 1.10 } as const;
+const BUST_CORRECTION  = { female: 0.95, male: 0.90 } as const;
+const WAIST_CORRECTION = { female: 1.0,  male: 1.0  } as const;
+
+/** Confidence penalty applied when the plausibility guard has to floor the hip. */
+const IMPLAUSIBLE_HIP_PENALTY = 15;
+
 // ─── Dynamic waist detection ──────────────────────────────────────────────────
 
 /**
@@ -392,10 +413,24 @@ export function computeMeasurements(input: MeasurementInput): AnthroMeasurements
     waist_depth_cm = waist_width_cm * dynamicDepthRatio(bmi, 0.70);
   }
 
-  // ── Circumferences via ellipse model ─────────────────────────────────
-  const bust_cm = Math.round(ellipseCircumference(bust_width_cm, bust_depth_cm) * 10) / 10;
-  const hip_cm = Math.round(ellipseCircumference(hip_width_cm, hip_depth_cm) * 10) / 10;
-  const waist_cm = Math.round(ellipseCircumference(waist_width_cm, waist_depth_cm) * 10) / 10;
+  // ── Circumferences via ellipse model + anatomical correction ──────────
+  // The raw ellipse value is corrected to the true circumference site (see the
+  // HIP/BUST/WAIST_CORRECTION rationale above) so the hip isn't underestimated
+  // below the waist and the bust isn't inflated by shoulder breadth.
+  const bust_cm = Math.round(ellipseCircumference(bust_width_cm, bust_depth_cm) * BUST_CORRECTION[gender] * 10) / 10;
+  let   hip_cm  = Math.round(ellipseCircumference(hip_width_cm, hip_depth_cm) * HIP_CORRECTION[gender] * 10) / 10;
+  const waist_cm = Math.round(ellipseCircumference(waist_width_cm, waist_depth_cm) * WAIST_CORRECTION[gender] * 10) / 10;
+
+  // Plausibility guard: for the vast majority of bodies the hip girth is ≥ the
+  // waist. If it still comes out smaller after correction (landmark noise, or a
+  // genuine android shape), floor the hip to the waist — they're within the stated
+  // ±2–4 cm margin — and dock confidence so the result shows the low-confidence
+  // (amber) state rather than a confidently wrong number.
+  let confidencePenalty = 0;
+  if (hip_cm < waist_cm) {
+    hip_cm = waist_cm;
+    confidencePenalty = IMPLAUSIBLE_HIP_PENALTY;
+  }
 
   // ── Neck circumference from ear landmarks ─────────────────────────────
   let neck_cm: number | null = null;
@@ -437,8 +472,9 @@ export function computeMeasurements(input: MeasurementInput): AnthroMeasurements
     LM.NOSE,
   ].map(i => landmarks[i]?.visibility ?? 0);
 
-  const estimation_confidence =
+  const rawConfidence =
     Math.round((keyVis.reduce((a, b) => a + b, 0) / keyVis.length) * 100 * 10) / 10;
+  const estimation_confidence = Math.max(0, rawConfidence - confidencePenalty);
 
   return {
     waist_cm,

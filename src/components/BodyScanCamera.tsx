@@ -15,7 +15,7 @@
  *   - Haptic cues (pose valid / capture) for non-visual confirmation.
  *   - Anti-flicker: spoken guidance only changes once a state persists a few frames.
  *   - Front-camera mirror so left/right feels natural.
- *   - Hands-free mode: spoken countdown to prop the phone and step back, then it
+ *   - Hands-free mode: a single spoken intro to prop the phone and step back, then it
  *     captures automatically guided by voice + vibration.
  */
 
@@ -35,6 +35,7 @@ import {
   computeMeasurements,
   primeVoice,
   speak,
+  announce,
   stopSpeaking,
   hapticTick,
   hapticStep,
@@ -67,11 +68,19 @@ interface BodyScanCameraProps {
   /** Whether to run liveness check (raise right arm) before allowing capture */
   requireLiveness?: boolean;
   /**
-   * Hands-free mode for solo self-scans: shows a spoken countdown so the user can
-   * prop the phone and step back, and disables the arm-raise liveness (impossible
-   * to perform while far from a propped phone).
+   * Hands-free mode for solo self-scans: speaks a single opening instruction so
+   * the user can prop the phone and step back, and disables the arm-raise liveness
+   * (impossible to perform while far from a propped phone).
    */
   handsFree?: boolean;
+  /** Total target cycles in the session (TARGET_VALID) — spoken in the intro. */
+  totalCycles?: number;
+  /**
+   * Whether to play the full spoken intro + step-back grace window. Only true for
+   * the very first scan of the session; later poses go straight to guidance since
+   * the user is already positioned and just rotates in place.
+   */
+  showIntro?: boolean;
   heightCm: number;
   weightKg: number;
   age: number;
@@ -84,7 +93,7 @@ interface BodyScanCameraProps {
 
 type CameraStep =
   | 'loading'       // MediaPipe initialising
-  | 'countdown'     // hands-free: get-into-position countdown
+  | 'intro'         // hands-free: spoken opening + step-back grace window
   | 'liveness'      // waiting for right-arm raise
   | 'positioning'   // pose / distance validation
   | 'stable'        // 2-s countdown
@@ -192,6 +201,8 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   pose,
   requireLiveness = true,
   handsFree = false,
+  totalCycles = 3,
+  showIntro = true,
   heightCm,
   weightKg,
   age,
@@ -218,10 +229,10 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   const repeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /** Prevents saying the stability greeting more than once per pose cycle. */
   const stableGreetedRef = useRef(false);
-  /** True while the hands-free positioning countdown is running — blocks capture. */
-  const countdownActiveRef = useRef(false);
-  /** Interval ID for the hands-free countdown, so restarts don't overlap. */
-  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** True while the hands-free intro / step-back grace is running — blocks capture. */
+  const introActiveRef = useRef(false);
+  /** Timer ID for the intro grace window, so restarts don't overlap. */
+  const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Debounce bookkeeping for spoken guidance. */
   const pendingKeyRef   = useRef<{ key: GuidanceKey; count: number } | null>(null);
   const committedKeyRef = useRef<GuidanceKey | null>(null);
@@ -236,7 +247,6 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   const [livenessPct, setLivenessPct]   = useState(0);
   const [frameValid, setFrameValid]     = useState(false);
   const [distanceStatus, setDistanceStatus] = useState<'too_close' | 'too_far' | 'ok'>('too_far');
-  const [countdown, setCountdown]       = useState<number | null>(null);
 
   // Guidance phrases — short, warm, imperative (good for audio-only guidance).
   const guidanceMsg = useCallback((key: GuidanceKey): string => {
@@ -283,7 +293,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   // Speak immediately when message changes; repeat every 6 s while stuck in same state.
   // This ensures the user hears guidance even if they miss the first prompt.
   useEffect(() => {
-    if (step === 'loading' || step === 'captured' || step === 'countdown' || !statusMsg) {
+    if (step === 'loading' || step === 'captured' || step === 'intro' || !statusMsg) {
       if (repeatTimerRef.current) { clearInterval(repeatTimerRef.current); repeatTimerRef.current = null; }
       return;
     }
@@ -366,14 +376,11 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         return;
       }
 
-      // Multisensory capture confirmation — felt, heard and seen, even in profile.
+      // Multisensory capture confirmation — felt and seen, even in profile.
+      // The spoken milestone ("frente registrada", "primeira amostra…") is owned by
+      // the orchestrator (BodyScanner), which knows whether the sample was accepted.
       hapticSuccess();
-      if (pose === 'front') {
-        hapticStep();
-        speak('Capturei! Agora vire o corpo de lado, de perfil');
-      } else {
-        speak('Capturei! Scan concluído');
-      }
+      if (pose === 'front') hapticStep();
 
       // Capture JPEG — stays 100% local, never uploaded
       const canvas = document.createElement('canvas');
@@ -419,7 +426,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         commitGuidance('no_pose');
         drawGuideLines(ctx, frameW, frameH, false);
         setFrameValid(false);
-        if (!countdownActiveRef.current) setStep('positioning');
+        if (!introActiveRef.current) setStep('positioning');
         rafRef.current = requestAnimationFrame(runLoop);
         return;
       }
@@ -440,9 +447,9 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       drawGuideLines(ctx, frameW, frameH, positionOk);
       drawLandmarkDots(ctx, landmarks, frameW, frameH);
 
-      // While the hands-free countdown runs, only give positioning guidance —
+      // While the hands-free intro grace runs, only give positioning guidance —
       // never capture yet (gives the user time to get into place).
-      const captureBlocked = countdownActiveRef.current;
+      const captureBlocked = introActiveRef.current;
 
       // ── Liveness (hands-on first scan only, AND only once well-positioned) ─
       if (livenessEnabled && !livenessRef.current.validated) {
@@ -495,7 +502,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         hapticTick(); // felt confirmation that the pose locked in
       }
 
-      // During the hands-free countdown we hold here without capturing.
+      // During the hands-free intro grace we hold here without capturing.
       if (captureBlocked) {
         stabilityRef.current.reset();
         setStabilityPct(0);
@@ -518,36 +525,37 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
     });
   }, [pose, livenessEnabled, captureFrame, commitGuidance]);
 
-  // ── Hands-free positioning countdown ──────────────────────────────────────────
+  // ── Hands-free spoken intro + step-back grace ─────────────────────────────────
+  // Replaces the old numeric countdown: a single flowing announcement explaining the
+  // multi-sample scan, then a fixed grace window so the user can prop the phone and
+  // step back. No spoken numbers — the milestone narration carries the experience.
 
-  const startCountdown = useCallback(() => {
-    // Clear any countdown already in flight (e.g. user tapped "Recontar").
-    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-    countdownActiveRef.current = true;
-    let n = 10;
-    setCountdown(n);
-    setStep('countdown');
-    speak('Apoie o celular e se afaste. Você tem dez segundos para se posicionar.');
+  const GRACE_MS = 9000;
 
-    const id = setInterval(() => {
-      n -= 1;
-      if (n <= 0) {
-        clearInterval(id);
-        countdownTimerRef.current = null;
-        setCountdown(null);
-        countdownActiveRef.current = false;
-        stabilityRef.current.reset();
-        setStep('positioning');
-        speak('Pode começar. Vou te guiar pela voz.');
-        return;
-      }
-      setCountdown(n);
-      if (n <= 5) speak(String(n)); // spoken final 5-second countdown
-    }, 1000);
-    countdownTimerRef.current = id;
+  const startIntro = useCallback(() => {
+    // Clear any intro grace already in flight (e.g. user tapped "Recomeçar").
+    if (introTimerRef.current) clearTimeout(introTimerRef.current);
+    introActiveRef.current = true;
+    setStep('intro');
 
-    return () => { clearInterval(id); countdownTimerRef.current = null; };
-  }, []);
+    const count = totalCycles === 3 ? 'três' : String(totalCycles);
+    announce(
+      `Vamos começar o Body Scan. Vou tirar ${count} amostras de frente e ${count} de lado ` +
+      'para uma avaliação precisa. Apoie o celular num lugar firme e afaste-se até aparecer ' +
+      'o corpo inteiro.',
+    );
+
+    const id = setTimeout(() => {
+      introTimerRef.current = null;
+      introActiveRef.current = false;
+      stabilityRef.current.reset();
+      setStep('positioning');
+      announce('Pode se posicionar, vou te guiar pela voz.');
+    }, GRACE_MS);
+    introTimerRef.current = id;
+
+    return () => { clearTimeout(id); introTimerRef.current = null; };
+  }, [totalCycles]);
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
   // Reruns when `pose` OR `facingMode` changes.
@@ -555,10 +563,10 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
   useEffect(() => {
     let mounted = true;
-    let cancelCountdown: (() => void) | undefined;
+    let cancelIntro: (() => void) | undefined;
     capturedRef.current = false;
     stableGreetedRef.current = false;
-    countdownActiveRef.current = false;
+    introActiveRef.current = false;
     pendingKeyRef.current = null;
     committedKeyRef.current = null;
     stabilityRef.current.reset();
@@ -577,9 +585,11 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         await provider.initialize();
         if (!mounted) return;
 
-        if (handsFree) {
-          // Give the user time to prop the phone and step back, guided by voice.
-          cancelCountdown = startCountdown();
+        // Full spoken intro + step-back grace only on the very first (front) scan
+        // of the session; later poses go straight to guidance (user is already in
+        // place and just rotates).
+        if (handsFree && showIntro && pose === 'front') {
+          cancelIntro = startIntro();
         } else {
           setStep(livenessEnabled ? 'liveness' : 'positioning');
           setStatusMsg(
@@ -599,15 +609,21 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
     return () => {
       mounted = false;
-      cancelCountdown?.();
-      if (countdownTimerRef.current) { clearInterval(countdownTimerRef.current); countdownTimerRef.current = null; }
+      cancelIntro?.();
+      if (introTimerRef.current) { clearTimeout(introTimerRef.current); introTimerRef.current = null; }
       cancelAnimationFrame(rafRef.current);
       stopCamera();
       provider.destroy();
-      stopSpeaking();
+      // NOTE: stopSpeaking() is intentionally NOT called here. This cleanup also
+      // runs on every pose transition (front→side→next cycle), and cutting speech
+      // here would chop the orchestrator's milestone announcements. Speech is only
+      // torn down on true unmount (real close) by the dedicated effect below.
       if (repeatTimerRef.current) { clearInterval(repeatTimerRef.current); repeatTimerRef.current = null; }
     };
   }, [pose, facingMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Stop speech only on true unmount (real close), so it survives pose transitions.
+  useEffect(() => () => { stopSpeaking(); }, []);
 
   // ── Derived UI ──────────────────────────────────────────────────────────────
 
@@ -661,25 +677,28 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Hands-free positioning countdown */}
+      {/* Hands-free spoken intro — step-back grace (no numeric countdown) */}
       <AnimatePresence>
-        {step === 'countdown' && countdown !== null && (
+        {step === 'intro' && (
           <motion.div
-            key="countdown"
+            key="intro"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-[#0a0a0a]/70 flex flex-col items-center justify-center gap-3"
+            className="absolute inset-0 bg-[#0a0a0a]/70 flex flex-col items-center justify-center gap-4 px-10 text-center"
           >
-            <p className="text-white/70 text-sm font-light tracking-wide text-center px-8">
+            <span
+              className="material-symbols-outlined text-white/70"
+              style={{ fontSize: 56 }}
+            >
+              record_voice_over
+            </span>
+            <p
+              className="text-white text-xl leading-snug"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               Apoie o celular e se afaste
             </p>
-            <span
-              className="text-white leading-none"
-              style={{ fontFamily: "'Playfair Display', serif", fontSize: 96 }}
-            >
-              {countdown}
-            </span>
             <p className="text-white/50 text-xs font-light tracking-widest uppercase">
               Vou te guiar pela voz
             </p>
@@ -716,21 +735,21 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         </button>
       )}
 
-      {/* Hands-free restart button — top centre-left */}
-      {handsFree && step !== 'loading' && step !== 'captured' && step !== 'countdown' && (
+      {/* Hands-free restart button — top centre-left (only during the intro grace) */}
+      {handsFree && showIntro && step === 'intro' && (
         <button
-          onClick={() => startCountdown()}
+          onClick={() => startIntro()}
           className="absolute top-10 left-16 bg-black/40 backdrop-blur-md px-3 py-2 rounded-full border border-white/20 text-white/80 active:scale-95 transition-transform z-10 flex items-center gap-1.5"
-          aria-label="Reiniciar contagem"
+          aria-label="Recomeçar instruções"
         >
-          <span className="material-symbols-outlined text-base leading-none">timer</span>
-          <span className="text-xs font-light">Recontar</span>
+          <span className="material-symbols-outlined text-base leading-none">replay</span>
+          <span className="text-xs font-light">Recomeçar</span>
         </button>
       )}
 
       {/* Status banner — large, full-width, bottom centre */}
       <AnimatePresence mode="wait">
-        {step !== 'loading' && step !== 'captured' && step !== 'countdown' && (
+        {step !== 'loading' && step !== 'captured' && step !== 'intro' && (
           <motion.div
             key={statusMsg}
             initial={{ opacity: 0, y: 10 }}
@@ -808,7 +827,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       </AnimatePresence>
 
       {/* Distance badge — top right */}
-      {step !== 'loading' && step !== 'liveness' && step !== 'countdown' && (
+      {step !== 'loading' && step !== 'liveness' && step !== 'intro' && (
         <div className="absolute top-10 right-4">
           <div
             className={`text-[10px] px-2.5 py-1 rounded-full backdrop-blur-md border font-light tracking-wider uppercase transition-colors duration-300 ${

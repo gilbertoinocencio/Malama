@@ -29,7 +29,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { BodyScanCamera, type BodyScanCaptureResult, type ScanPose } from './BodyScanCamera';
 import { useBodyScan } from '../hooks/useBodyScan';
 import type { AnthroMeasurements } from '../services/bodyscan';
-import { computeMeasurements, primeVoice } from '../services/bodyscan';
+import { computeMeasurements, primeVoice, announce } from '../services/bodyscan';
 import {
   CONFIDENCE_MIN,
   TARGET_VALID,
@@ -189,10 +189,20 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
       setLastDiscardHint(null);
 
       if (newValid.length >= TARGET_VALID || newAttempt >= MAX_ATTEMPTS) {
+        announce('Perfeito! Análise concluída. Calculando seus resultados.');
         const final = aggregateScans(newValid);
         setFinalMeasurements(final);
         setStep('saving');
       } else {
+        // Tell the user a valid sample landed and another pass is coming, so the
+        // camera "restarting" feels intentional rather than a glitch.
+        if (newValid.length === 1) {
+          announce('Boa, primeira amostra registrada! Vamos para a próxima.');
+        } else if (newValid.length === TARGET_VALID - 1) {
+          announce('Quase lá. Agora a última amostra.');
+        } else {
+          announce('Mais uma amostra. Vamos lá.');
+        }
         setCaptures({});
         setStep('front');
       }
@@ -202,6 +212,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
 
       if (newAttempt >= MAX_ATTEMPTS) {
         if (validCaptures.length >= 2) {
+          announce('Vamos finalizar com o que já temos. Calculando seus resultados.');
           const final = aggregateScans(validCaptures);
           setFinalMeasurements(final);
           setStep('saving');
@@ -209,6 +220,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
           setSessionFailed(true);
         }
       } else {
+        announce('Vamos repetir essa amostra, fica tranquilo.');
         setTimeout(() => {
           setLastDiscardHint(null);
           setCaptures({});
@@ -221,6 +233,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
   // ── Capture handlers ────────────────────────────────────────────────────────
 
   const handleFrontCapture = useCallback((result: BodyScanCaptureResult) => {
+    announce('Frente registrada. Agora vire de lado, de perfil.');
     setCaptures((prev: CaptureState) => ({ ...prev, front: result }));
     setCameraError(null);
     setStep('side');
@@ -478,6 +491,8 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   pose={step as ScanPose}
                   requireLiveness={step === 'front'}
                   handsFree={handsFree}
+                  totalCycles={TARGET_VALID}
+                  showIntro={sessionAttempt === 0}
                   heightCm={heightCm}
                   weightKg={weightKg}
                   age={age}
@@ -586,11 +601,6 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                     </span>
                     <span className="text-stone-400 text-lg mb-1.5 font-light">%</span>
                   </div>
-                  <p className="text-stone-400 text-[10px] mt-1 font-light">
-                    {finalMeasurements.bf_formula === 'navy'
-                      ? 'Fórmula da Marinha dos EUA (câmera-derivada)'
-                      : 'Fórmula de Deurenberg (IMC + idade + sexo)'}
-                  </p>
                   {progress?.bf_delta !== undefined && (
                     <p
                       className={`text-sm mt-1 ${

@@ -70,9 +70,21 @@ export async function primeVoice(): Promise<void> {
 
 // ─── Speech ──────────────────────────────────────────────────────────────────
 
-/** Speak a phrase in pt-BR, cancelling whatever was being said. */
-export async function speak(text: string): Promise<void> {
-  if (!text) return;
+/**
+ * Priority lock: while a milestone announcement (announce) "owns" the audio
+ * channel, reactive positioning guidance (speak) yields instead of cutting it
+ * off. Without this, the per-frame guidance + 6 s repeat timer trample the
+ * milestone phrases ("frente registrada", "agora a última amostra").
+ */
+let announceLockUntil = 0;
+
+/** Rough spoken duration of a pt-BR phrase, used to hold the priority lock. */
+function estimateDurationMs(text: string): number {
+  return Math.min(9000, Math.max(1200, text.length * 60));
+}
+
+/** Low-level speak — cancels whatever was being said and speaks `text`. */
+async function rawSpeak(text: string): Promise<void> {
   try {
     if (isNative) {
       await TextToSpeech.stop().catch(() => {});
@@ -100,8 +112,31 @@ export async function speak(text: string): Promise<void> {
   }
 }
 
-/** Stop any ongoing speech (used on unmount / pose transitions). */
+/**
+ * Reactive guidance phrase (positioning hints). Yields to an in-flight
+ * announcement so milestones are never cut off mid-sentence; it will simply
+ * re-fire on the next frame once the lock expires.
+ */
+export async function speak(text: string): Promise<void> {
+  if (!text) return;
+  if (Date.now() < announceLockUntil) return;
+  await rawSpeak(text);
+}
+
+/**
+ * Milestone announcement (session intro, capture confirmations, cycle cues).
+ * Always interrupts and holds the priority lock for its estimated duration so
+ * reactive guidance won't talk over it.
+ */
+export async function announce(text: string): Promise<void> {
+  if (!text) return;
+  announceLockUntil = Date.now() + estimateDurationMs(text);
+  await rawSpeak(text);
+}
+
+/** Stop any ongoing speech and release the priority lock (real teardown only). */
 export async function stopSpeaking(): Promise<void> {
+  announceLockUntil = 0;
   try {
     if (isNative) {
       await TextToSpeech.stop().catch(() => {});

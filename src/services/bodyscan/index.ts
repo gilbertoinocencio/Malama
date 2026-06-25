@@ -13,6 +13,7 @@ export { LivenessDetector, StabilityDetector } from './livenessDetector';
 export {
   primeVoice,
   speak,
+  announce,
   stopSpeaking,
   hapticTick,
   hapticStep,

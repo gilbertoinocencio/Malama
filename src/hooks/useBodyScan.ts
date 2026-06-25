@@ -105,7 +105,10 @@ export function useBodyScan() {
         .select()
         .single();
 
-      if (dbErr) throw dbErr;
+      // Supabase/PostgrestError is a plain object, not an Error instance — wrap its
+      // message so the UI surfaces the real cause (e.g. missing column) instead of a
+      // generic "Erro ao salvar".
+      if (dbErr) throw new Error(dbErr.message);
 
       const record = data as BodyScanRecord;
       setHistory(prev => [record, ...prev]);
@@ -127,7 +130,7 @@ export function useBodyScan() {
           gender,
         });
 
-        await supabase.from('body_measurement_snapshots').insert({
+        const { error: snapErr } = await supabase.from('body_measurement_snapshots').insert({
           user_id:            user.id,
           avg_body_fat_pct:   measurements.bf_percentage,
           avg_muscle_mass_kg: muscleMassKg,
@@ -147,6 +150,8 @@ export function useBodyScan() {
           bmi,
           snapped_at:         new Date().toISOString(),
         });
+        // Secondary mirror — never fails the primary save, but log the real reason.
+        if (snapErr) throw new Error(snapErr.message);
       } catch (snapshotErr) {
         console.warn('Could not mirror scan to body_measurement_snapshots:', snapshotErr);
       }
