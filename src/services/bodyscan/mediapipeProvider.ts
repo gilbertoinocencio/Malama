@@ -15,7 +15,7 @@ import {
   type PoseLandmarkerResult,
 } from '@mediapipe/tasks-vision';
 
-import type { IVisionProvider, FrameAnalysis, PoseLandmark } from './visionProvider';
+import type { IVisionProvider, FrameAnalysis, PoseLandmark, SegMask } from './visionProvider';
 
 // Local bundled assets — work 100% offline, faster cold start, no network dependency.
 // import.meta.env.BASE_URL is '/' by default; in the packaged app the WebView serves from
@@ -66,6 +66,8 @@ export class MediaPipeProvider implements IVisionProvider {
       minPoseDetectionConfidence: 0.5,
       minPosePresenceConfidence: 0.5,
       minTrackingConfidence: 0.5,
+      // Person silhouette — measured directly for true widths/depths (see SegMask).
+      outputSegmentationMasks: true,
     });
   }
 
@@ -111,9 +113,23 @@ export class MediaPipeProvider implements IVisionProvider {
       keyIndices.reduce((sum, i) => sum + (landmarks[i]?.visibility ?? 0), 0) /
       keyIndices.length;
 
+    // Copy the segmentation mask out of MediaPipe's recycled buffer, then free it.
+    let mask: SegMask | undefined;
+    const mpMask = mpResult.segmentationMasks?.[0];
+    if (mpMask) {
+      try {
+        const src = mpMask.getAsFloat32Array();
+        mask = { data: new Float32Array(src), width: mpMask.width, height: mpMask.height };
+      } catch {
+        /* mask unavailable this frame — measurements fall back to BMI depth ratios */
+      } finally {
+        mpMask.close();
+      }
+    }
+
     return {
       poseDetected: true,
-      result: { landmarks, confidence },
+      result: { landmarks, confidence, mask },
       timestamp: now,
     };
   }

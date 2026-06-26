@@ -14,12 +14,29 @@ export interface PoseLandmark {
   visibility?: number; // 0–1 confidence from the model
 }
 
+/**
+ * Person segmentation mask for one frame: per-pixel confidence (0–1) that the
+ * pixel belongs to the person. Used to measure the body silhouette directly —
+ * its horizontal extent at a given level gives the true width (frontal) or the
+ * true anterior-posterior depth (side profile), which 2D joint landmarks cannot.
+ *
+ * `data` is a plain copy (length = width × height, row-major), safe to hold after
+ * the inference pass — the underlying MediaPipe buffer is recycled per frame.
+ */
+export interface SegMask {
+  data: Float32Array;
+  width: number;
+  height: number;
+}
+
 /** Raw output of a single pose inference pass. */
 export interface PoseResult {
   /** 33 landmarks in MediaPipe order (indices match LANDMARK_INDEX). */
   landmarks: PoseLandmark[];
   /** Overall confidence for this pose (0–1). */
   confidence: number;
+  /** Person segmentation mask, when the provider produces one. */
+  mask?: SegMask;
 }
 
 /** Result of analysing one video frame. */

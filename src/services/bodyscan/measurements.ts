@@ -13,7 +13,7 @@
  *   5. Neck circumference from ear landmarks (frontal view).
  */
 
-import type { PoseLandmark } from './visionProvider';
+import type { PoseLandmark, SegMask } from './visionProvider';
 import { LANDMARK_INDEX as LM } from './visionProvider';
 import { navyBF, dynamicDepthRatio } from '../../utils/bodyCompositionCalculators';
 
@@ -54,6 +54,14 @@ export interface MeasurementInput {
   /** Frame dimensions used for the side scan (may differ from frontal frame). */
   sideFrameWidth?: number;
   sideFrameHeight?: number;
+  /**
+   * Person segmentation masks (Phase 3). The SIDE mask gives the real sagittal
+   * depth — its horizontal silhouette extent at each torso level is the body's
+   * anterior-posterior thickness, which 2D landmarks cannot provide. The FRONT
+   * mask is reserved for silhouette-based widths (Phase 4 recalibration).
+   */
+  sideMask?: SegMask;
+  frontMask?: SegMask;
 }
 
 // ─── Pixel helpers ────────────────────────────────────────────────────────────
@@ -283,7 +291,7 @@ export function detectPoseOrientation(landmarks: PoseLandmark[]): PoseOrientatio
   return 'unknown';
 }
 
-// ─── Side-scan depth extraction ───────────────────────────────────────────────
+// ─── Side-scan depth extraction (silhouette) ──────────────────────────────────
 
 interface SideDepths {
   hip_depth_cm: number;
@@ -291,16 +299,55 @@ interface SideDepths {
   waist_depth_cm: number;
 }
 
+/** Mask confidence above which a pixel counts as "person". */
+const MASK_THRESHOLD = 0.5;
+
 /**
- * Extract real sagittal depths from side-scan landmarks.
- *
- * When a person is at 90°, LEFT_HIP / RIGHT_HIP represent front and back
- * of the body — their horizontal spread equals the actual body depth at
- * that level. Same logic applies to shoulders (bust) and interpolated waist.
- *
- * Returns null if side landmarks are insufficient quality.
+ * Horizontal extent (cm) of the person silhouette at a normalized height yNorm.
+ * Samples a small vertical band and takes the median so a stray row of pixels
+ * can't skew the result. `frameWidthPx` is the side frame's pixel width; `cmPerPx`
+ * comes from the side scale factor. Returns 0 when no person pixels are found.
  */
-function extractSideDepths(
+function maskExtentCm(
+  mask: SegMask,
+  yNorm: number,
+  frameWidthPx: number,
+  cmPerPx: number,
+): number {
+  const band = 0.015;   // ±1.5% of height around the level
+  const samples = 5;
+  const extents: number[] = [];
+  for (let i = 0; i < samples; i++) {
+    const y = yNorm + ((i / (samples - 1)) - 0.5) * 2 * band;
+    const row = Math.round(Math.min(1, Math.max(0, y)) * (mask.height - 1));
+    const base = row * mask.width;
+    let minX = -1;
+    let maxX = -1;
+    for (let x = 0; x < mask.width; x++) {
+      if (mask.data[base + x] >= MASK_THRESHOLD) {
+        if (minX < 0) minX = x;
+        maxX = x;
+      }
+    }
+    if (minX >= 0) extents.push(((maxX - minX) / mask.width) * frameWidthPx);
+  }
+  if (extents.length === 0) return 0;
+  extents.sort((a, b) => a - b);
+  return extents[Math.floor(extents.length / 2)] * cmPerPx;
+}
+
+/**
+ * Extract real sagittal depths from the SIDE segmentation mask.
+ *
+ * In profile, the silhouette's horizontal extent at a torso level IS the body's
+ * anterior-posterior thickness (front-to-back depth) at that level. This replaces
+ * the old landmark approach, which was invalid: MediaPipe places LEFT_HIP/RIGHT_HIP
+ * at the anatomical joints, so in profile they overlap (≈0 spread), not the depth.
+ *
+ * Returns null if the mask/landmarks are insufficient or implausible.
+ */
+function extractSideDepthsFromMask(
+  sideMask: SegMask,
   sideLandmarks: PoseLandmark[],
   sideFrameWidth: number,
   sideFrameHeight: number,
@@ -316,28 +363,21 @@ function extractSideDepths(
   const rs = sideLandmarks[LM.RIGHT_SHOULDER];
   const lh = sideLandmarks[LM.LEFT_HIP];
   const rh = sideLandmarks[LM.RIGHT_HIP];
+  if (!ls || !rs || !lh || !rh) return null;
 
-  const minSideVis = 0.3;
-  if (
-    (ls.visibility ?? 0) < minSideVis ||
-    (rs.visibility ?? 0) < minSideVis ||
-    (lh.visibility ?? 0) < minSideVis ||
-    (rh.visibility ?? 0) < minSideVis
-  ) {
-    return null;
-  }
+  // Torso level heights (normalized y). waistT: 0 = hip, 1 = shoulder.
+  const shoulderY = (ls.y + rs.y) / 2;
+  const hipY = (lh.y + rh.y) / 2;
+  const waistY = hipY + (shoulderY - hipY) * waistT;
 
-  const hip_depth_cm = spreadPx(lh, rh, sideFrameWidth) * sideScale;
-  const bust_depth_cm = spreadPx(ls, rs, sideFrameWidth) * sideScale;
+  const bust_depth_cm = maskExtentCm(sideMask, shoulderY, sideFrameWidth, sideScale);
+  const hip_depth_cm = maskExtentCm(sideMask, hipY, sideFrameWidth, sideScale);
+  const waist_depth_cm = maskExtentCm(sideMask, waistY, sideFrameWidth, sideScale);
 
-  const sideWaistL = interpolate(lh, ls, waistT);
-  const sideWaistR = interpolate(rh, rs, waistT);
-  const waist_depth_cm = spreadPx(sideWaistL, sideWaistR, sideFrameWidth) * sideScale;
-
-  // Sanity: depths must be positive and physically plausible
-  if (hip_depth_cm < 5 || hip_depth_cm > 60) return null;
-  if (bust_depth_cm < 5 || bust_depth_cm > 60) return null;
-  if (waist_depth_cm < 4 || waist_depth_cm > 55) return null;
+  // Sanity: depths must be positive and physically plausible.
+  if (hip_depth_cm < 8 || hip_depth_cm > 60) return null;
+  if (bust_depth_cm < 8 || bust_depth_cm > 60) return null;
+  if (waist_depth_cm < 6 || waist_depth_cm > 55) return null;
 
   return { hip_depth_cm, bust_depth_cm, waist_depth_cm };
 }
@@ -356,6 +396,7 @@ export function computeMeasurements(input: MeasurementInput): AnthroMeasurements
     sideLandmarks,
     sideFrameWidth,
     sideFrameHeight,
+    sideMask,
   } = input;
 
   if (landmarks.length < 33) return null;
@@ -402,8 +443,8 @@ export function computeMeasurements(input: MeasurementInput): AnthroMeasurements
   let waist_depth_cm: number;
 
   const sideDepths =
-    sideLandmarks && sideFrameWidth && sideFrameHeight
-      ? extractSideDepths(sideLandmarks, sideFrameWidth, sideFrameHeight, heightCm, waistT)
+    sideMask && sideLandmarks && sideFrameWidth && sideFrameHeight
+      ? extractSideDepthsFromMask(sideMask, sideLandmarks, sideFrameWidth, sideFrameHeight, heightCm, waistT)
       : null;
 
   if (sideDepths) {

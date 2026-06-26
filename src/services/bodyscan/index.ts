@@ -1,4 +1,4 @@
-export type { IVisionProvider, PoseLandmark, PoseResult, FrameAnalysis } from './visionProvider';
+export type { IVisionProvider, PoseLandmark, PoseResult, FrameAnalysis, SegMask } from './visionProvider';
 export { LANDMARK_INDEX } from './visionProvider';
 export { MediaPipeProvider } from './mediapipeProvider';
 export type { AnthroMeasurements, MeasurementInput, DistanceValidation, PoseOrientation } from './measurements';

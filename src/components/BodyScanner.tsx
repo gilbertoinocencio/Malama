@@ -261,6 +261,9 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
         sideLandmarks:   result.landmarks,
         sideFrameWidth:  result.frameWidth,
         sideFrameHeight: result.frameHeight,
+        // Real silhouette depth (side) + clean torso widths (front), Phase 3.
+        sideMask:        result.mask,
+        frontMask:       front.mask,
       });
 
       merged = recomputed ?? {

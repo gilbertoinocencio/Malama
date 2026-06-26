@@ -45,6 +45,7 @@ import {
   type AnthroMeasurements,
   type PoseLandmark,
   type PoseOrientation,
+  type SegMask,
 } from '../services/bodyscan';
 import { LANDMARK_INDEX as LM } from '../services/bodyscan';
 
@@ -60,6 +61,8 @@ export interface BodyScanCaptureResult {
   landmarks: PoseLandmark[];
   frameWidth: number;
   frameHeight: number;
+  /** Person silhouette of the captured frame — true widths (front) / depths (side). */
+  mask?: SegMask;
   /** JPEG data-URL of the captured frame (not uploaded — stays on device) */
   imageDataUrl: string;
 }
@@ -414,7 +417,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   // ── Capture ─────────────────────────────────────────────────────────────────
 
   const captureFrame = useCallback(
-    (landmarks: PoseLandmark[], frameW: number, frameH: number) => {
+    (landmarks: PoseLandmark[], frameW: number, frameH: number, mask?: SegMask) => {
       if (capturedRef.current) return;
       capturedRef.current = true;
       setStep('captured');
@@ -454,7 +457,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
       stopCamera();
 
-      onCapture({ pose, measurements, landmarks, frameWidth: frameW, frameHeight: frameH, imageDataUrl });
+      onCapture({ pose, measurements, landmarks, frameWidth: frameW, frameHeight: frameH, mask, imageDataUrl });
     },
     [heightCm, weightKg, age, gender, pose, onCapture, onError, stopCamera],
   );
@@ -492,7 +495,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         return;
       }
 
-      const { landmarks } = frame.result;
+      const { landmarks, mask } = frame.result;
 
       // Distance (full-body-in-frame aware) + smoothing & hysteresis so the spoken
       // guidance doesn't flip-flop between "afaste-se"/"aproxime-se" at a borderline
@@ -618,7 +621,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       prevLandmarks.current = landmarks;
 
       if (isStable) {
-        captureFrame(landmarks, frameW, frameH);
+        captureFrame(landmarks, frameW, frameH, mask);
         return;
       }
 
