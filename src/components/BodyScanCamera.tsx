@@ -112,7 +112,20 @@ type GuidanceKey =
 
 /** Number of consecutive frames a guidance state must persist before we announce it.
  *  Prevents the voice from contradicting itself on momentary tracking jitter. */
-const GUIDANCE_DEBOUNCE_FRAMES = 4;
+const GUIDANCE_DEBOUNCE_FRAMES = 8;
+
+/** Minimum time before the spoken guidance may switch to a *different* phrase.
+ *  Stops the voice flip-flopping ("afaste-se"/"aproxime-se") at borderline distance. */
+const GUIDANCE_MIN_SWITCH_MS = 1800;
+
+// ─── Distance hysteresis (anti flip-flop) ────────────────────────────────────────
+// Smoothing + a dead-band around the valid distance window so per-frame landmark
+// jitter doesn't bounce the status between too_close/too_far/ok.
+const DIST_EMA_ALPHA   = 0.3;   // weight of the newest frame in the moving average
+const DIST_ENTER_NEAR  = 0.64;  // enter "ok" only inside this tighter window …
+const DIST_ENTER_FAR   = 0.90;
+const DIST_EXIT_NEAR   = 0.60;  // … but leave "ok" only past this wider band
+const DIST_EXIT_FAR    = 0.94;
 
 // ─── Overlay drawing helpers ────────────────────────────────────────────────────
 
@@ -236,6 +249,11 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   /** Debounce bookkeeping for spoken guidance. */
   const pendingKeyRef   = useRef<{ key: GuidanceKey; count: number } | null>(null);
   const committedKeyRef = useRef<GuidanceKey | null>(null);
+  /** Timestamp of the last committed guidance switch (for the min-switch cooldown). */
+  const lastSwitchAtRef = useRef(0);
+  /** EMA of the distance fraction + last stable status (distance hysteresis). */
+  const distEmaRef      = useRef<number | null>(null);
+  const distStatusRef   = useRef<'too_close' | 'too_far' | 'ok'>('too_far');
 
   // Front camera by default: in a solo self-scan the user needs to see the on-screen guide and
   // hear the voice prompts while positioning. The flip button switches to the rear camera for
@@ -265,9 +283,11 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   }, [pose]);
 
   /**
-   * Commit a guidance state only after it persists GUIDANCE_DEBOUNCE_FRAMES frames.
-   * The visual frame validity updates every frame elsewhere; this gates only the
-   * textual + spoken message so the voice never flip-flops on tracking jitter.
+   * Commit a guidance state only after it persists GUIDANCE_DEBOUNCE_FRAMES frames
+   * AND at least GUIDANCE_MIN_SWITCH_MS elapsed since the last switch. The visual
+   * frame validity updates every frame elsewhere; this gates only the textual +
+   * spoken message so the voice never flip-flops on tracking jitter. 'hold_still'
+   * (positive lock-in) is exempt from the cooldown so success feedback stays snappy.
    */
   const commitGuidance = useCallback((key: GuidanceKey) => {
     if (committedKeyRef.current === key) return;
@@ -275,7 +295,14 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
     if (pending && pending.key === key) {
       pending.count += 1;
       if (pending.count >= GUIDANCE_DEBOUNCE_FRAMES) {
+        const now = Date.now();
+        const cooling =
+          key !== 'hold_still' &&
+          committedKeyRef.current !== null &&
+          now - lastSwitchAtRef.current < GUIDANCE_MIN_SWITCH_MS;
+        if (cooling) return; // keep the current phrase a bit longer; re-evaluate next frame
         committedKeyRef.current = key;
+        lastSwitchAtRef.current = now;
         pendingKeyRef.current = null;
         setStatusMsg(guidanceMsg(key));
       }
@@ -433,9 +460,38 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
       const { landmarks } = frame.result;
 
-      // Distance (full-body-in-frame aware)
-      const dist = validateDistance(landmarks, frameH);
-      setDistanceStatus(dist.status);
+      // Distance (full-body-in-frame aware) + smoothing & hysteresis so the spoken
+      // guidance doesn't flip-flop between "afaste-se"/"aproxime-se" at a borderline
+      // distance. Large fraction = too close; small fraction = too far.
+      const rawDist = validateDistance(landmarks, frameH);
+      let effStatus: 'too_close' | 'too_far' | 'ok';
+      if (!rawDist.bodyInFrame) {
+        // Ankles not framed → fraction is bogus; force step-back and reset the EMA.
+        distEmaRef.current = null;
+        effStatus = rawDist.status;
+      } else {
+        const ema = distEmaRef.current == null
+          ? rawDist.fraction
+          : distEmaRef.current * (1 - DIST_EMA_ALPHA) + rawDist.fraction * DIST_EMA_ALPHA;
+        distEmaRef.current = ema;
+        if (distStatusRef.current === 'ok') {
+          effStatus = ema < DIST_EXIT_NEAR ? 'too_far'
+            : ema > DIST_EXIT_FAR ? 'too_close'
+            : 'ok';
+        } else {
+          effStatus = (ema >= DIST_ENTER_NEAR && ema <= DIST_ENTER_FAR) ? 'ok'
+            : ema < DIST_ENTER_NEAR ? 'too_far'
+            : 'too_close';
+        }
+      }
+      distStatusRef.current = effStatus;
+      const dist = {
+        valid: effStatus === 'ok',
+        fraction: rawDist.fraction,
+        status: effStatus,
+        bodyInFrame: rawDist.bodyInFrame,
+      };
+      setDistanceStatus(effStatus);
 
       // Orientation (distance-invariant)
       const orientation = detectPoseOrientation(landmarks);
@@ -569,6 +625,9 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
     introActiveRef.current = false;
     pendingKeyRef.current = null;
     committedKeyRef.current = null;
+    lastSwitchAtRef.current = 0;
+    distEmaRef.current = null;
+    distStatusRef.current = 'too_far';
     stabilityRef.current.reset();
     livenessRef.current.reset();
     prevLandmarks.current = null;

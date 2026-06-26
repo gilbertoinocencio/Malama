@@ -4,6 +4,7 @@ import { getLocalDateString } from '../utils/dateUtils';
 import { glp1Service } from './glp1Service';
 import { WeightLogService, MeasurementSnapshotService } from './weightLogService';
 import { userReportedWaterIntake, parseStatedMl, isPureWaterLog, mentionsQuantitySignal, mentionsFood, mentionsCalorieBeverage, WATER_MAX_ML } from '../utils/intakeDetection';
+import { normalizeGender } from '../utils/bodyCompositionCalculators';
 
 const genAI = new GeminiProxy();
 const MODEL_NAME = "gemini-2.5-flash";
@@ -558,7 +559,15 @@ Responda APENAS com o JSON, sem texto adicional.
     };
 
     const primaryGoal = goalMap[profile.primary_goal] || profile.primary_goal || goalMap[profile.goal] || profile.goal || 'Não definido';
-    const gender = genderMap[profile.gender] || profile.gender || 'Não informado';
+    // Normalize first ('masculino'/'feminino' from onboarding → canonical) so gender agreement is reliable.
+    const canonicalGender = profile.gender === 'non_binary' ? 'non_binary' : normalizeGender(profile.gender);
+    const gender = genderMap[canonicalGender] || 'Não informado';
+    // Explicit, imperative gender-agreement rule (the persona is female, but the USER is addressed by THEIR gender).
+    const genderAgreement = canonicalGender === 'non_binary'
+      ? 'Dirija-se ao usuário de forma NEUTRA em gênero (evite "amigo/amiga", adjetivos marcados).'
+      : canonicalGender === 'male'
+        ? 'O usuário é HOMEM. Trate-o no masculino — "amigo", adjetivos masculinos ("focado", "preparado", "animado"). NUNCA use "amiga" nem adjetivos femininos para ele.'
+        : 'A usuária é MULHER. Trate-a no feminino — "amiga", adjetivos femininos ("focada", "preparada", "animada").';
     const activityLevel = activityMap[profile.activity_level] || profile.activity_level || 'Não informado';
     const restrictionsList = Array.isArray(profile.dietary_restrictions) && profile.dietary_restrictions.length > 0
       ? profile.dietary_restrictions.join(', ')
@@ -741,6 +750,11 @@ Você conhece este usuário de cor: sabe o peso, o objetivo, o que gosta de come
 - Usa o nome do usuário ocasionalmente (se disponível) para personalizar ainda mais
 - Quando algo é bom: celebra de verdade. Quando algo saiu do plano: normaliza sem julgamento
 - Pergunta de volta quando faz sentido — uma boa nutricionista quer entender o contexto, não só responder
+
+## 🚦 REGRAS CRÍTICAS (LEIA PRIMEIRO — VALEM SEMPRE)
+1. **CONCORDÂNCIA DE GÊNERO:** ${genderAgreement} Você (Malama) é mulher, mas quem é tratado por gênero é o USUÁRIO, conforme a regra acima.
+2. **NUNCA recapitule nem comente refeições do histórico.** As "REFEIÇÕES RECENTES" e o histórico da conversa são apenas contexto de raciocínio. Só fale de uma refeição/alimento se o usuário a citou na MENSAGEM ATUAL. Atribuir ao usuário algo que ele não disse agora (ex.: comentar salmão/chips quando ele relatou pão com ovo) é erro grave.
+3. **Registro = resposta curta.** Quando o usuário só relata o que comeu/bebeu/aplicou, responda em 1–2 frases. Nada de textão.
 
 ## PERFIL COMPLETO DO PACIENTE
 - **Gênero:** ${gender}

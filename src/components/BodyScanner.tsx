@@ -41,6 +41,7 @@ import {
   computeClinicalIndices,
   whrRisk,
   rceRisk,
+  normalizeGender,
 } from '../utils/bodyCompositionCalculators';
 
 interface BodyScannerProps {
@@ -154,7 +155,9 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
   const heightCm = profile?.height ?? 170;
   const weightKg = profile?.weight ?? 70;
   const age      = profile?.age ?? 30;
-  const gender   = (profile?.gender as 'male' | 'female') ?? 'female';
+  // profiles.gender vem como 'masculino'/'feminino' (onboarding) — normaliza para o
+  // canônico que todo o pipeline (medidas, fatores, BF%, índices) espera.
+  const gender   = normalizeGender(profile?.gender);
 
   // ── Persist ─────────────────────────────────────────────────────────────────
 

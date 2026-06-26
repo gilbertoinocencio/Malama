@@ -360,6 +360,10 @@ export function computeMeasurements(input: MeasurementInput): AnthroMeasurements
 
   if (landmarks.length < 33) return null;
 
+  // Defensive: lookups keyed by gender must never receive a non-canonical value
+  // (a bad key → undefined → NaN). Callers should already normalize, but guard here.
+  const g: 'male' | 'female' = gender === 'male' ? 'male' : 'female';
+
   const scaleCmPerPx = computeScaleFactor(landmarks, frameHeight, heightCm);
   if (scaleCmPerPx <= 0) return null;
 
@@ -417,9 +421,9 @@ export function computeMeasurements(input: MeasurementInput): AnthroMeasurements
   // The raw ellipse value is corrected to the true circumference site (see the
   // HIP/BUST/WAIST_CORRECTION rationale above) so the hip isn't underestimated
   // below the waist and the bust isn't inflated by shoulder breadth.
-  const bust_cm = Math.round(ellipseCircumference(bust_width_cm, bust_depth_cm) * BUST_CORRECTION[gender] * 10) / 10;
-  let   hip_cm  = Math.round(ellipseCircumference(hip_width_cm, hip_depth_cm) * HIP_CORRECTION[gender] * 10) / 10;
-  const waist_cm = Math.round(ellipseCircumference(waist_width_cm, waist_depth_cm) * WAIST_CORRECTION[gender] * 10) / 10;
+  const bust_cm = Math.round(ellipseCircumference(bust_width_cm, bust_depth_cm) * BUST_CORRECTION[g] * 10) / 10;
+  let   hip_cm  = Math.round(ellipseCircumference(hip_width_cm, hip_depth_cm) * HIP_CORRECTION[g] * 10) / 10;
+  const waist_cm = Math.round(ellipseCircumference(waist_width_cm, waist_depth_cm) * WAIST_CORRECTION[g] * 10) / 10;
 
   // Plausibility guard: for the vast majority of bodies the hip girth is ≥ the
   // waist. If it still comes out smaller after correction (landmark noise, or a
@@ -453,14 +457,14 @@ export function computeMeasurements(input: MeasurementInput): AnthroMeasurements
   let bf_formula: 'navy' | 'deurenberg';
 
   const navyResult = neck_cm !== null
-    ? navyBF(waist_cm, hip_cm, neck_cm, heightCm, gender)
+    ? navyBF(waist_cm, hip_cm, neck_cm, heightCm, g)
     : null;
 
   if (navyResult !== null) {
     bf_percentage = navyResult;
     bf_formula = 'navy';
   } else {
-    bf_percentage = deurenbergBF(weightKg, heightCm, age, gender);
+    bf_percentage = deurenbergBF(weightKg, heightCm, age, g);
     bf_formula = 'deurenberg';
   }
 

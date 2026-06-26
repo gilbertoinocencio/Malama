@@ -2,6 +2,33 @@ import { SchemaType } from "@google/generative-ai";
 import { GeminiProxy } from '../lib/geminiProxy';
 import { AIResponse, MealItem, MicroNutrients, Profile } from '../types';
 import { searchOpenFoodFacts, formatOFFBlock } from './openFoodFactsService';
+import { normalizeGender } from '../utils/bodyCompositionCalculators';
+
+/**
+ * Deterministic meal-slot label from the device clock. Single source of truth for
+ * naming a meal ("Café da Manhã", "Almoço", "Jantar"…) — never let the model derive
+ * it from a time string (that produced "Almoço" at 21h).
+ */
+export const getMealSlotLabel = (date: Date = new Date()): string => {
+  const h = date.getHours();
+  if (h >= 5  && h < 10) return 'Café da Manhã';
+  if (h >= 10 && h < 12) return 'Lanche da Manhã';
+  if (h >= 12 && h < 15) return 'Almoço';
+  if (h >= 15 && h < 18) return 'Lanche da Tarde';
+  if (h >= 18 && h < 22) return 'Jantar';
+  return 'Ceia';
+};
+
+/** Portuguese gender-agreement instruction for the user being addressed. */
+const genderAgreementRule = (raw?: string | null): string => {
+  if (raw === 'non_binary') {
+    return 'IMPORTANTE: dirija-se ao usuário de forma NEUTRA em gênero (evite "amigo/amiga", "focado/focada"). Use construções neutras.';
+  }
+  const g = normalizeGender(raw);
+  return g === 'male'
+    ? 'IMPORTANTE: o usuário é do gênero MASCULINO. Trate-o no masculino — "amigo", e todos os adjetivos no masculino ("focado", "encaminhado", "preparado"). NUNCA use "amiga" ou adjetivos femininos.'
+    : 'IMPORTANTE: a usuária é do gênero FEMININO. Trate-a no feminino — "amiga", e todos os adjetivos no feminino ("focada", "encaminhada", "preparada").';
+};
 
 // Shared micronutrient schema properties (optional — not in required[])
 const MICRO_SCHEMA_PROPERTIES = {
@@ -122,9 +149,12 @@ export const analyzeTextLog = async (text: string, language: string = 'pt', prof
 - **Weight:** ${profile.weight ? profile.weight + 'kg' : 'Not provided'}
 - **Height:** ${profile.height ? profile.height + 'cm' : 'Not provided'}
 - **Age:** ${profile.age || 'Not provided'}
-- **Gender:** ${profile.gender || 'Not provided'}
+- **Gender:** ${normalizeGender(profile.gender) === 'male' ? 'Masculino' : 'Feminino'} (raw: ${profile.gender || 'N/A'})
 - **Daily Calorie Target:** ${profile.target_calories ? profile.target_calories + ' kcal' : 'Not defined'}
 - **Daily Protein Target:** ${profile.target_protein ? profile.target_protein + 'g' : 'Not defined'}
+
+## CONCORDÂNCIA DE GÊNERO NO CAMPO "message" (OBRIGATÓRIO)
+${genderAgreementRule(profile.gender)}
 ` : '';
 
     const prompt = `You are Malama, a clinical-grade nutrition analysis engine AND a strict, evidence-based nutritionist who cares about the user's health.
@@ -425,7 +455,12 @@ export const generateMealFeedback = async (
       activityBlock = `\n## ATIVIDADES FÍSICAS HOJE\n${acts}`;
     }
 
-    const prompt = `Você é a Malama — uma nutricionista de verdade, daquelas que viraram amiga do paciente. Você fala como gente, não como relatório clínico. O usuário acabou de registrar uma refeição e você dá uma reação rápida, como uma amiga nutricionista comentaria olhando o prato dele. Responda em ${langName}.
+    const genderRule = genderAgreementRule(ctx?.profile?.gender);
+
+    const prompt = `Você é a Malama — uma nutricionista de verdade, próxima do paciente. Você fala como gente, não como relatório clínico. O usuário acabou de registrar uma refeição e você dá uma reação rápida, como uma nutricionista de confiança comentaria olhando o prato dele. Responda em ${langName}.
+
+## CONCORDÂNCIA DE GÊNERO (OBRIGATÓRIO)
+${genderRule}
 
 ## REFEIÇÃO REGISTRADA
 - Nome: ${foodName}
@@ -447,7 +482,7 @@ Se houver atividade física hoje E for realmente relevante, conecte em poucas pa
 ## TOM — FALE COMO UMA PESSOA, NÃO COMO UM SISTEMA
 - Soe como uma amiga nutricionista conversando, não como um laudo. Calorosa, leve, encorajadora, sem julgamento.
 - PROIBIDO o estilo de relatório. NUNCA escreva frases como "Seu almoço às 13:10 forneceu 405kcal e 25g de proteína, contribuindo para seu objetivo de saúde" nem "Considere adicionar uma fonte de vegetais para aumentar a ingestão de micronutrientes". Isso é robótico.
-- Em vez disso, fale natural: "Boa! Esse almoço já te deixou bem encaminhada na proteína 💪 No próximo prato, joga uns vegetais pra fechar o dia com mais fibra." Os números entram só se ajudarem, dito de forma humana ("já bateu metade da proteína do dia"), nunca como planilha.
+- Em vez disso, fale natural: "Boa! Esse almoço já te deixou bem na proteína 💪 No próximo prato, joga uns vegetais pra fechar o dia com mais fibra." (ajuste os adjetivos ao gênero do usuário conforme a regra acima). Os números entram só se ajudarem, dito de forma humana ("já bateu metade da proteína do dia"), nunca como planilha.
 - Pode usar 1 emoji se cair bem. Português coloquial do Brasil.
 - Idioma: ${langName}
 - NÃO use saudações genéricas, NÃO repita o nome da refeição, NÃO liste vários pontos. Uma mensagem enxuta, humana e útil.

@@ -1,6 +1,6 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse, MealItem } from '../types';
-import { analyzeTextLog, analyzeImageLog, generateMealFeedback, MealFeedbackContext } from '../services/geminiService';
+import { analyzeTextLog, analyzeImageLog, generateMealFeedback, MealFeedbackContext, getMealSlotLabel } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
 import { userReportedWaterIntake, isBareQuantityAnswer } from '../utils/intakeDetection';
 
@@ -263,6 +263,64 @@ const buildFeedbackContext = async (userId: string, profile: import('../types').
   };
 };
 
+// ── Routing indicator lists (module-scope so both isQuestion and isPureMealReport reuse them) ──
+
+/** Past-tense ingestion verbs that signal a real food/drink log. */
+const MEAL_REPORT_VERBS = [
+  'comi', 'almocei', 'jantei', 'lanchei', 'lancei', 'tomei', 'bebi', 'ingeri',
+  'café da manhã', 'cafe da manha', 'tomei café', 'tomei cafe', 'fiz uma refeição',
+  'fiz uma refeicao', 'belisquei', 'petisquei', 'me alimentei', 'acabei de comer',
+];
+
+/** Corrections/clarifications — need conversational context, stay with the agent. */
+const CORRECTION_INDICATORS = [
+  'eu disse', 'não disse', 'disse que', 'falei que', 'não falei',
+  'na verdade', 'na realidade', 'quero corrigir', 'está errado', 'esta errado',
+  'não é isso', 'nao e isso', 'você errou', 'voce errou', 'errou',
+  'tá errado', 'ta errado', 'não é esse', 'nao e esse',
+  'foi diferente', 'foi outro', 'foi outra',
+  'corrija', 'corrige',
+];
+
+/** Emotion/craving/satiety — not a real log; stay with the agent for support. */
+const EMOTION_CRAVING_INDICATORS = [
+  'sem fome', 'não estou com fome', 'nao estou com fome', 'não tô com fome', 'nao to com fome',
+  'tô cheio', 'to cheio', 'estou cheio', 'estou satisfeito', 'tô satisfeito',
+  'vontade de comer', 'vontade de tomar', 'vontade de beber',
+  'com vontade', 'tô com vontade', 'to com vontade', 'estou com vontade',
+  'pensei em comer', 'pensando em comer', 'quero comer', 'queria comer',
+  'quero tomar', 'queria tomar', 'quero beber', 'bateu uma vontade',
+  'tô cansado', 'to cansado', 'estou cansado', 'sem energia', 'sem animo', 'sem ânimo',
+  'tô bem', 'to bem', 'estou bem', 'tô mal', 'to mal', 'estou mal',
+  'tô ansioso', 'to ansioso', 'estou ansioso', 'tô estressado', 'estou estressado',
+  'tô feliz', 'to feliz', 'tô triste', 'to triste', 'estou triste',
+  'mal dormi', 'dormi mal', 'não dormi', 'acordei cedo',
+  'comi demais', 'exagerei', 'vacilei', 'escoreguei', 'saí do plano', 'sai do plano',
+  'minha dieta', 'foi pro espaço', 'foi pro espaco', 'largar tudo',
+  'haha', 'kkkk', 'rsrs', 'kkk', 'lol', 'brincando', 'só brincando', 'so brincando',
+];
+
+/** GLP-1 dose mentions — must reach the agent (dose interceptor), never food analysis. */
+const DOSE_INDICATORS = [
+  'dose', 'apliquei', 'aplicação', 'aplicacao', 'injeção', 'injecao', 'caneta',
+  'ozempic', 'wegovy', 'saxenda', 'mounjaro', 'semaglutida', 'tirzepatida', 'liraglutida',
+];
+
+/**
+ * A PURE meal/drink log ("comi pão com ovo") that should go to the isolated analysis
+ * path (no chat history) — NOT to the conversational agent. Excludes water, doses,
+ * corrections, emotions/cravings and questions, which still need the agent.
+ */
+const isPureMealReport = (text: string): boolean => {
+  const lower = text.toLowerCase().trim();
+  if (lower.includes('?')) return false;
+  if (userReportedWaterIntake(lower)) return false;          // água → agente (multi-turn)
+  if (DOSE_INDICATORS.some(i => lower.includes(i))) return false;
+  if (CORRECTION_INDICATORS.some(i => lower.includes(i))) return false;
+  if (EMOTION_CRAVING_INDICATORS.some(i => lower.includes(i))) return false;
+  return MEAL_REPORT_VERBS.some(v => lower.includes(v));
+};
+
 export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -500,46 +558,17 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     const lower = text.toLowerCase().trim();
 
     // Meal/drink reports in past tense - route to chat agent for personalized feedback
-    const mealReportVerbs = [
-      'comi', 'almocei', 'jantei', 'lancei', 'lancei', 'tomei', 'bebi', 'ingeri',
-      'café da manhã', 'cafe da manha', 'tomei café', 'tomei cafe', 'fiz uma refeição',
-      'fiz uma refeicao', 'belisquei', 'petisquei', 'me alimentei', 'acabei de comer',
-    ];
-    if (mealReportVerbs.some(v => lower.includes(v))) return true;
+    if (MEAL_REPORT_VERBS.some(v => lower.includes(v))) return true;
 
     // Pure quantity ("300ml", "2 copos") — likely answering the agent's "quanto você bebeu?".
     // Route to the chat agent so the water multi-turn (pergunta → resposta) funciona aqui também.
     if (isBareQuantityAnswer(lower)) return true;
 
     // Corrections and clarifications - always route to chat agent, never to food analysis
-    const correctionIndicators = [
-      'eu disse', 'não disse', 'disse que', 'falei que', 'não falei',
-      'na verdade', 'na realidade', 'quero corrigir', 'está errado', 'esta errado',
-      'não é isso', 'nao e isso', 'você errou', 'voce errou', 'errou',
-      'tá errado', 'ta errado', 'não é esse', 'nao e esse',
-      'foi diferente', 'foi outro', 'foi outra',
-      'corrija', 'corrige',
-    ];
-    if (correctionIndicators.some(i => lower.includes(i))) return true;
+    if (CORRECTION_INDICATORS.some(i => lower.includes(i))) return true;
 
     // Emotional state, cravings, satiety, humor - always route to chat agent
-    const emotionAndCravingIndicators = [
-      'sem fome', 'não estou com fome', 'nao estou com fome', 'não tô com fome', 'nao to com fome',
-      'tô cheio', 'to cheio', 'estou cheio', 'estou satisfeito', 'tô satisfeito',
-      'vontade de comer', 'vontade de tomar', 'vontade de beber',
-      'com vontade', 'tô com vontade', 'to com vontade', 'estou com vontade',
-      'pensei em comer', 'pensando em comer', 'quero comer', 'queria comer',
-      'quero tomar', 'queria tomar', 'quero beber', 'bateu uma vontade',
-      'tô cansado', 'to cansado', 'estou cansado', 'sem energia', 'sem animo', 'sem ânimo',
-      'tô bem', 'to bem', 'estou bem', 'tô mal', 'to mal', 'estou mal',
-      'tô ansioso', 'to ansioso', 'estou ansioso', 'tô estressado', 'estou estressado',
-      'tô feliz', 'to feliz', 'tô triste', 'to triste', 'estou triste',
-      'mal dormi', 'dormi mal', 'não dormi', 'acordei cedo',
-      'comi demais', 'exagerei', 'vacilei', 'escoreguei', 'saí do plano', 'sai do plano',
-      'minha dieta', 'foi pro espaço', 'foi pro espaco', 'largar tudo',
-      'haha', 'kkkk', 'rsrs', 'kkk', 'lol', 'brincando', 'só brincando', 'so brincando',
-    ];
-    if (emotionAndCravingIndicators.some(i => lower.includes(i))) return true;
+    if (EMOTION_CRAVING_INDICATORS.some(i => lower.includes(i))) return true;
 
     // Conversational affirmations and short responses - always route to chat agent, never to food analysis
     const conversationalAffirmations = [
@@ -587,7 +616,13 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     setLoading(true);
 
     try {
-      if (isQuestion(userText) && user) {
+      // A PURE meal/drink log goes to the ISOLATED analysis path (no chat history),
+      // so the feedback never blends with past meals from history (the "phantom meal"
+      // bug) and there's no double feedback. Questions, water, doses, corrections and
+      // emotional messages still go to the conversational agent.
+      const routeToAgent = isQuestion(userText) && !isPureMealReport(userText) && !!user;
+
+      if (routeToAgent) {
         // Route to Smart Agent (UnifiedChatService)
         // Inject current meal context so the agent knows which meal is being discussed
         // Water intake messages (e.g. "bebi 1500ml de água") must NOT carry the previous
@@ -666,6 +701,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       } else {
         // Route to Food Analysis (original behavior)
         const result = await analyzeTextLog(userText, language, profile);
+
+        // Name the meal by the device-clock slot ("Jantar", "Ceia"…) instead of trusting
+        // a model-derived time — fixes the "Almoço às 21h" bug. Skip when the user already
+        // named the meal explicitly (almocei/jantei/café…).
+        const userNamedMeal = /\b(almoc|jant|café da manh|cafe da manh|lanch|ceia|ceei)/i.test(userText);
+        if (isPureMealReport(userText) && !userNamedMeal) {
+          result.foodName = getMealSlotLabel();
+        }
 
         const aiTextMsg: Message = {
           id: (Date.now() + 1).toString(),

@@ -5,6 +5,24 @@
  * All functions are pure — no side effects, no I/O.
  */
 
+// ─── Gender normalization ─────────────────────────────────────────────────────
+
+/**
+ * Normalizes whatever the profile stores (the onboarding saves the Portuguese
+ * 'masculino'/'feminino', and 'non_binary' is also possible) into the canonical
+ * 'male' | 'female' that every calculator expects.
+ *
+ * Critical: lookups keyed by gender (e.g. correction factors) would yield
+ * `undefined` → NaN for a non-canonical value; the US Navy / Deurenberg formulas
+ * would silently pick the wrong branch. Always run raw gender through this first.
+ */
+export function normalizeGender(raw?: string | null): 'male' | 'female' {
+  const g = (raw ?? '').toLowerCase();
+  if (['male', 'masculino', 'homem', 'm'].includes(g)) return 'male';
+  if (['female', 'feminino', 'mulher', 'f'].includes(g)) return 'female';
+  return 'female'; // default já adotado no app
+}
+
 // ─── US Navy Body Fat Formula ─────────────────────────────────────────────────
 
 /**
