@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { AnthroMeasurements } from '../services/bodyscan';
-import { estimateLimbCircumferences } from '../utils/bodyCompositionCalculators';
+import { estimateLimbCircumferences, bodyComposition } from '../utils/bodyCompositionCalculators';
 
 // ─── Database row type ─────────────────────────────────────────────────────────
 
@@ -115,10 +115,14 @@ export function useBodyScan() {
 
       // 2. Extended snapshot for MetricsChart + doctor portal
       try {
-        const bfFraction   = measurements.bf_percentage / 100;
         const heightM      = heightCmUsed / 100;
         const bmi          = heightM > 0 ? +(weightKg / (heightM * heightM)).toFixed(2) : undefined;
-        const muscleMassKg = +(weightKg * (1 - bfFraction)).toFixed(2);
+        // Single source of truth — same lean-mass formula the result screen uses.
+        const muscleMassKg = bodyComposition({
+          weight_kg: weightKg,
+          bf_percentage: measurements.bf_percentage,
+          height_cm: heightCmUsed,
+        }).lean_mass_kg;
 
         // Limb estimates from regression (population-based, ±4 cm)
         const limbs = estimateLimbCircumferences({

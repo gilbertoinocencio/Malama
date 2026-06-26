@@ -100,11 +100,10 @@ export function computeClinicalIndices(params: {
       ? Math.round((hip_cm / Math.pow(height_m, 1.5) - 18) * 10) / 10
       : null;
 
-  // FFMI = lean_mass_kg / height_m²
+  // FFMI = lean_mass_kg / height_m² — single source of truth in bodyComposition()
   let ffmi: number | null = null;
   if (bf_percentage != null && weight_kg > 0 && height_m > 0) {
-    const lean_kg = weight_kg * (1 - bf_percentage / 100);
-    ffmi = Math.round((lean_kg / (height_m * height_m)) * 10) / 10;
+    ffmi = bodyComposition({ weight_kg, bf_percentage, height_cm }).ffmi;
   }
 
   // ABSI = waist_m / (BMI^(2/3) × height_m^(1/2))
@@ -147,6 +146,138 @@ export function ffmiRisk(ffmi: number, gender: 'male' | 'female'): RiskLevel {
   if (ffmi >= 19) return 'low';
   if (ffmi >= 16) return 'moderate';
   return 'high';
+}
+
+/**
+ * Risk classification for body-fat % (ACE/ACSM general-fitness bands).
+ * 'low' = healthy/athletic; 'moderate' = borderline (too low OR slightly high);
+ * 'high' = obese range. Women's thresholds run ~8-9 pts above men's.
+ */
+export function bfRisk(bf: number, gender: 'male' | 'female'): RiskLevel {
+  if (gender === 'female') {
+    if (bf < 14) return 'moderate'; // essential/too-low
+    if (bf <= 31) return 'low';     // athletic → acceptable
+    if (bf < 39) return 'moderate';
+    return 'high';
+  }
+  if (bf < 6) return 'moderate';    // essential/too-low
+  if (bf <= 24) return 'low';       // athletic → acceptable
+  if (bf < 30) return 'moderate';
+  return 'high';
+}
+
+/** Risk classification for Fat Mass Index (kg/m²). Mirrors bfRisk semantics. */
+export function fmiRisk(fmi: number, gender: 'male' | 'female'): RiskLevel {
+  if (gender === 'female') {
+    if (fmi < 5) return 'moderate';  // too-low
+    if (fmi <= 9) return 'low';      // healthy
+    if (fmi < 13) return 'moderate';
+    return 'high';
+  }
+  if (fmi < 3) return 'moderate';    // too-low
+  if (fmi <= 6) return 'low';        // healthy
+  if (fmi < 9) return 'moderate';
+  return 'high';
+}
+
+/** Risk classification for BMI (WHO bands). Extracted from inline UI logic. */
+export function bmiRisk(bmi: number): RiskLevel {
+  if (bmi < 18.5) return 'moderate'; // underweight
+  if (bmi < 25) return 'low';        // normal
+  if (bmi < 30) return 'moderate';   // overweight
+  return 'high';                     // obese
+}
+
+// ─── Body composition (mass & indices derived from BF%) ──────────────────────
+
+export interface BodyComposition {
+  fat_mass_kg: number;
+  lean_mass_kg: number;
+  fmi: number;   // Fat Mass Index = fat_mass_kg / height_m²
+  ffmi: number;  // Fat-Free Mass Index = lean_mass_kg / height_m²
+}
+
+/**
+ * Derives fat/lean mass (kg) and their height-normalized indices from BF%.
+ * Single source of truth — `computeClinicalIndices` reuses the FFMI from here.
+ */
+export function bodyComposition(params: {
+  weight_kg: number;
+  bf_percentage: number;
+  height_cm: number;
+}): BodyComposition {
+  const { weight_kg, bf_percentage, height_cm } = params;
+  const height_m = height_cm / 100;
+  const fatFraction = bf_percentage / 100;
+
+  const fat_mass_kg = weight_kg * fatFraction;
+  const lean_mass_kg = weight_kg * (1 - fatFraction);
+  const denom = height_m > 0 ? height_m * height_m : NaN;
+
+  return {
+    fat_mass_kg: Math.round(fat_mass_kg * 10) / 10,
+    lean_mass_kg: Math.round(lean_mass_kg * 10) / 10,
+    fmi: Math.round((fat_mass_kg / denom) * 10) / 10,
+    ffmi: Math.round((lean_mass_kg / denom) * 10) / 10,
+  };
+}
+
+// ─── Resting Metabolic Rate ──────────────────────────────────────────────────
+
+/**
+ * Resting Metabolic Rate via Mifflin-St Jeor (kcal/day).
+ * Chosen over Harris-Benedict (used in profileService for calorie targets)
+ * because it matches Spren's reported RMR: 85.3kg/181cm/40a/male → 1789 (Spren: 1786).
+ *
+ * RMR depends only on weight/height/age/sex — NOT on the camera scan — so it is
+ * the most trustworthy number on the result screen regardless of scan quality.
+ */
+export function restingMetabolicRate(params: {
+  weight_kg: number;
+  height_cm: number;
+  age: number;
+  gender: 'male' | 'female';
+}): number {
+  const { weight_kg, height_cm, age, gender } = params;
+  const base = 10 * weight_kg + 6.25 * height_cm - 5 * age;
+  const rmr = base + (gender === 'male' ? 5 : -161);
+  return Math.round(rmr);
+}
+
+// ─── Metric display bands (for Low│Healthy│High sliders) ─────────────────────
+
+export type MetricKind = 'bf' | 'fmi' | 'ffmi' | 'bmi';
+
+export interface MetricBand {
+  min: number;          // left edge of the rendered bar
+  max: number;          // right edge of the rendered bar
+  healthyLow: number;   // start of the green zone
+  healthyHigh: number;  // end of the green zone
+}
+
+/**
+ * Display band for a metric's slider: full range + the healthy sub-range.
+ * The healthy edges mirror the thresholds used by the *Risk classifiers above so
+ * the green zone always agrees with the chip color.
+ */
+export function metricBand(kind: MetricKind, gender: 'male' | 'female'): MetricBand {
+  const female = gender === 'female';
+  switch (kind) {
+    case 'bf':
+      return female
+        ? { min: 10, max: 45, healthyLow: 14, healthyHigh: 31 }
+        : { min: 4, max: 40, healthyLow: 6, healthyHigh: 24 };
+    case 'fmi':
+      return female
+        ? { min: 2, max: 16, healthyLow: 5, healthyHigh: 9 }
+        : { min: 1, max: 12, healthyLow: 3, healthyHigh: 6 };
+    case 'ffmi':
+      return female
+        ? { min: 10, max: 22, healthyLow: 15, healthyHigh: 21 }
+        : { min: 14, max: 26, healthyLow: 19, healthyHigh: 24 };
+    case 'bmi':
+      return { min: 15, max: 40, healthyLow: 18.5, healthyHigh: 25 };
+  }
 }
 
 // ─── Limb Circumference Regression ───────────────────────────────────────────

@@ -41,7 +41,16 @@ import {
   computeClinicalIndices,
   whrRisk,
   rceRisk,
+  bmiRisk,
+  bfRisk,
+  fmiRisk,
+  ffmiRisk,
+  bodyComposition,
+  restingMetabolicRate,
+  metricBand,
   normalizeGender,
+  type RiskLevel,
+  type MetricKind,
 } from '../utils/bodyCompositionCalculators';
 
 interface BodyScannerProps {
@@ -75,49 +84,131 @@ const StepDot: React.FC<{ active: boolean; done: boolean }> = ({ active, done })
   />
 );
 
-const MeasCard: React.FC<{
+// Solid marker colours, aligned with RISK_COLORS semantics.
+const RISK_DOT: Record<RiskLevel, string> = {
+  low: 'bg-emerald-500',
+  moderate: 'bg-amber-500',
+  high: 'bg-rose-500',
+  very_high: 'bg-rose-700',
+};
+
+const RISK_LABEL: Record<RiskLevel, string> = {
+  low: 'Saudável',
+  moderate: 'Atenção',
+  high: 'Alto',
+  very_high: 'Muito alto',
+};
+
+/** Delta wording + colour. `goodDirection` decides which sign is "improvement". */
+const DeltaLabel: React.FC<{ delta: number; goodDirection: 'up' | 'down'; unit?: string }> = ({
+  delta,
+  goodDirection,
+  unit = '',
+}) => {
+  const improved = goodDirection === 'down' ? delta < 0 : delta > 0;
+  const neutral = delta === 0;
+  const color = neutral ? 'text-stone-400' : improved ? 'text-emerald-600' : 'text-rose-400';
+  return (
+    <span className={`text-[11px] ${color}`}>
+      {delta > 0 ? '+' : ''}{delta.toFixed(1)}{unit} vs anterior
+    </span>
+  );
+};
+
+/** Absolute-number card (kg, kcal): no health band, just value + optional trend. */
+const StatCard: React.FC<{
   label: string;
   value: number;
   unit: string;
-  badge?: string;
+  decimals?: number;
   delta?: number;
-}> = ({ label, value, unit, badge, delta }) => (
+  goodDirection?: 'up' | 'down';
+  note?: string;
+}> = ({ label, value, unit, decimals = 1, delta, goodDirection = 'down', note }) => (
   <div className="flex flex-col gap-1 bg-white rounded-2xl p-3.5 shadow-sm">
-    <div className="flex items-center gap-1">
-      <span className="text-[10px] font-light tracking-widest uppercase text-stone-400 flex-1">
-        {label}
-      </span>
-      {badge && (
-        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-400 border border-stone-200">
-          {badge}
-        </span>
-      )}
-    </div>
+    <span className="text-[10px] font-light tracking-widest uppercase text-stone-400">{label}</span>
     <div className="flex items-end gap-1">
       <span
         className="text-2xl text-stone-800 leading-none"
         style={{ fontFamily: "'Playfair Display', serif" }}
       >
-        {value.toFixed(1)}
+        {value.toFixed(decimals)}
       </span>
       <span className="text-stone-400 text-xs pb-0.5">{unit}</span>
     </div>
-    {delta !== undefined && (
-      <span
-        className={`text-[11px] ${
-          delta < 0 ? 'text-emerald-600' : delta > 0 ? 'text-rose-400' : 'text-stone-400'
-        }`}
-      >
-        {delta > 0 ? '+' : ''}{delta.toFixed(1)} vs anterior
-      </span>
-    )}
+    {delta !== undefined && <DeltaLabel delta={delta} goodDirection={goodDirection} />}
+    {note && <span className="text-[10px] text-stone-400 font-light leading-tight">{note}</span>}
   </div>
 );
+
+/**
+ * Metric shown with a Low│Healthy│High band and a marker at the value.
+ * The green zone is derived from metricBand() so it always agrees with the chip colour.
+ */
+const CompositionBar: React.FC<{
+  label: string;
+  value: number;
+  unit: string;
+  kind: MetricKind;
+  gender: 'male' | 'female';
+  risk: RiskLevel;
+  delta?: number;
+  goodDirection?: 'up' | 'down';
+  deltaUnit?: string;
+}> = ({ label, value, unit, kind, gender, risk, delta, goodDirection = 'down', deltaUnit = '' }) => {
+  const band = metricBand(kind, gender);
+  const span = band.max - band.min || 1;
+  const pct = (v: number) => Math.max(0, Math.min(100, ((v - band.min) / span) * 100));
+  const markerPct = pct(value);
+  const healthyLeft = pct(band.healthyLow);
+  const healthyWidth = pct(band.healthyHigh) - healthyLeft;
+
+  return (
+    <div className="bg-white rounded-2xl p-3.5 shadow-sm">
+      <div className="flex items-baseline justify-between mb-2.5">
+        <span className="text-[10px] font-light tracking-widest uppercase text-stone-400">{label}</span>
+        <div className="flex items-end gap-1">
+          <span
+            className="text-xl text-stone-800 leading-none"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
+            {value.toFixed(1)}
+          </span>
+          <span className="text-stone-400 text-xs">{unit}</span>
+        </div>
+      </div>
+
+      {/* Track */}
+      <div className="relative h-1.5 rounded-full bg-stone-100">
+        <div
+          className="absolute inset-y-0 rounded-full bg-emerald-200"
+          style={{ left: `${healthyLeft}%`, width: `${Math.max(0, healthyWidth)}%` }}
+        />
+        <div
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full ring-2 ring-white shadow ${RISK_DOT[risk]}`}
+          style={{ left: `${markerPct}%` }}
+        />
+      </div>
+
+      <div className="flex justify-between mt-1.5 text-[9px] text-stone-400 font-light tracking-wide">
+        <span>Baixo</span>
+        <span className="text-emerald-600">Saudável</span>
+        <span>Alto</span>
+      </div>
+
+      {delta !== undefined && (
+        <div className="mt-1.5">
+          <DeltaLabel delta={delta} goodDirection={goodDirection} unit={deltaUnit} />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const IndexChip: React.FC<{
   label: string;
   value: string;
-  risk: 'low' | 'moderate' | 'high' | 'very_high';
+  risk: RiskLevel;
 }> = ({ label, value, risk }) => (
   <div className={`flex flex-col items-center px-3 py-2 rounded-xl border text-center ${RISK_COLORS[risk]}`}>
     <span className="text-[9px] font-light tracking-widest uppercase opacity-70">{label}</span>
@@ -351,6 +442,30 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
         gender,
       })
     : null;
+
+  // ── Body composition panel (Spren-style: mass + indices + RMR) ──────────────
+  // RMR depends only on weight/height/age/sex (camera-independent) — the most
+  // trustworthy number here. Mass/FMI/FFMI flow from BF% so their *trend* (delta)
+  // is more reliable than the absolute value; we derive the mass delta from the
+  // already-computed bf_delta applied to the current weight (body_scans stores no
+  // historical weight), which isolates the composition change.
+  const composition = React.useMemo(() => {
+    if (!finalMeasurements) return null;
+    const bf = finalMeasurements.bf_percentage;
+    const comp = bodyComposition({ weight_kg: weightKg, bf_percentage: bf, height_cm: heightCm });
+    const rmr = restingMetabolicRate({ weight_kg: weightKg, height_cm: heightCm, age, gender });
+
+    const bfDelta = progress?.bf_delta;
+    const fatDelta = bfDelta !== undefined ? Math.round(weightKg * (bfDelta / 100) * 10) / 10 : undefined;
+    const leanDelta = fatDelta !== undefined ? Math.round(-fatDelta * 10) / 10 : undefined;
+    const heightM = heightCm / 100;
+    const fmiDelta =
+      fatDelta !== undefined && heightM > 0 ? Math.round((fatDelta / (heightM * heightM)) * 10) / 10 : undefined;
+    const ffmiDelta =
+      leanDelta !== undefined && heightM > 0 ? Math.round((leanDelta / (heightM * heightM)) * 10) / 10 : undefined;
+
+    return { ...comp, rmr, fatDelta, leanDelta, fmiDelta, ffmiDelta };
+  }, [finalMeasurements, weightKg, heightCm, age, gender, progress]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#FDFBF9]">
@@ -593,32 +708,119 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   )}
                 </div>
 
-                {/* BF% hero */}
-                <div className="text-center mb-6">
-                  <p className="text-stone-400 text-xs tracking-widest uppercase font-light mb-1">
-                    Gordura Corporal
-                  </p>
-                  <div className="flex items-end justify-center gap-1">
-                    <span
-                      className="text-6xl text-stone-800 leading-none"
-                      style={{ fontFamily: "'Playfair Display', serif" }}
-                    >
-                      {finalMeasurements.bf_percentage.toFixed(1)}
-                    </span>
-                    <span className="text-stone-400 text-lg mb-1.5 font-light">%</span>
-                  </div>
-                  {progress?.bf_delta !== undefined && (
-                    <p
-                      className={`text-sm mt-1 ${
-                        progress.bf_delta < 0 ? 'text-emerald-600' : 'text-rose-400'
-                      }`}
-                    >
-                      {progress.bf_delta > 0 ? '+' : ''}{progress.bf_delta.toFixed(1)}% vs anterior
-                    </p>
-                  )}
-                </div>
+                {/* BF% hero with health band */}
+                {(() => {
+                  const bf = finalMeasurements.bf_percentage;
+                  const risk = bfRisk(bf, gender);
+                  const band = metricBand('bf', gender);
+                  const span = band.max - band.min || 1;
+                  const pct = (v: number) => Math.max(0, Math.min(100, ((v - band.min) / span) * 100));
+                  const healthyLeft = pct(band.healthyLow);
+                  const healthyWidth = pct(band.healthyHigh) - healthyLeft;
+                  return (
+                    <div className="text-center mb-6">
+                      <p className="text-stone-400 text-xs tracking-widest uppercase font-light mb-1">
+                        Gordura Corporal
+                      </p>
+                      <div className="flex items-end justify-center gap-1">
+                        <span
+                          className="text-6xl text-stone-800 leading-none"
+                          style={{ fontFamily: "'Playfair Display', serif" }}
+                        >
+                          {bf.toFixed(1)}
+                        </span>
+                        <span className="text-stone-400 text-lg mb-1.5 font-light">%</span>
+                      </div>
+                      <p className={`text-xs font-light tracking-widest uppercase mt-1 ${RISK_COLORS[risk].split(' ')[0]}`}>
+                        {RISK_LABEL[risk]}
+                      </p>
+                      {progress?.bf_delta !== undefined && (
+                        <div className="mt-1">
+                          <DeltaLabel delta={progress.bf_delta} goodDirection="down" unit="%" />
+                        </div>
+                      )}
 
-                {/* Clinical indices */}
+                      {/* Band */}
+                      <div className="relative h-1.5 rounded-full bg-stone-100 mt-4 max-w-[240px] mx-auto">
+                        <div
+                          className="absolute inset-y-0 rounded-full bg-emerald-200"
+                          style={{ left: `${healthyLeft}%`, width: `${Math.max(0, healthyWidth)}%` }}
+                        />
+                        <div
+                          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full ring-2 ring-white shadow ${RISK_DOT[risk]}`}
+                          style={{ left: `${pct(bf)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between mt-1.5 max-w-[240px] mx-auto text-[9px] text-stone-400 font-light tracking-wide">
+                        <span>Baixo</span>
+                        <span className="text-emerald-600">Saudável</span>
+                        <span>Alto</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Composition: mass cards */}
+                {composition && (
+                  <>
+                    <p className="text-stone-400 text-[10px] tracking-widest uppercase font-light mb-2 text-center">
+                      Composição Corporal
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <StatCard
+                        label="Massa Gorda"
+                        value={composition.fat_mass_kg}
+                        unit="kg"
+                        delta={composition.fatDelta}
+                        goodDirection="down"
+                      />
+                      <StatCard
+                        label="Massa Magra"
+                        value={composition.lean_mass_kg}
+                        unit="kg"
+                        delta={composition.leanDelta}
+                        goodDirection="up"
+                      />
+                    </div>
+
+                    {/* Composition: normalized indices with health bands */}
+                    <div className="space-y-2 mb-3">
+                      <CompositionBar
+                        label="Índice de Massa Gorda (FMI)"
+                        value={composition.fmi}
+                        unit="kg/m²"
+                        kind="fmi"
+                        gender={gender}
+                        risk={fmiRisk(composition.fmi, gender)}
+                        delta={composition.fmiDelta}
+                        goodDirection="down"
+                      />
+                      <CompositionBar
+                        label="Índice de Massa Magra (FFMI)"
+                        value={composition.ffmi}
+                        unit="kg/m²"
+                        kind="ffmi"
+                        gender={gender}
+                        risk={ffmiRisk(composition.ffmi, gender)}
+                        delta={composition.ffmiDelta}
+                        goodDirection="up"
+                      />
+                    </div>
+
+                    {/* RMR — camera-independent, no band */}
+                    <div className="mb-3">
+                      <StatCard
+                        label="Taxa Metabólica (RMR)"
+                        value={composition.rmr}
+                        unit="kcal/dia"
+                        decimals={0}
+                        note="Energia em repouso (Mifflin-St Jeor)"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Clinical indices (ratios — kept as compact chips) */}
                 {indices && (
                   <div className="mb-5">
                     <p className="text-stone-400 text-[10px] tracking-widest uppercase font-light mb-2 text-center">
@@ -643,68 +845,19 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                         <IndexChip
                           label="IMC"
                           value={indices.bmi.toFixed(1)}
-                          risk={
-                            indices.bmi < 18.5 ? 'moderate'
-                            : indices.bmi < 25 ? 'low'
-                            : indices.bmi < 30 ? 'moderate'
-                            : 'high'
-                          }
+                          risk={bmiRisk(indices.bmi)}
                         />
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Main circumference cards */}
-                <p className="text-stone-400 text-[10px] tracking-widest uppercase font-light mb-2 text-center">
-                  Circunferências
-                </p>
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  <MeasCard
-                    label="Cintura"
-                    value={finalMeasurements.waist_cm}
-                    unit="cm"
-                    badge="📷"
-                    delta={progress?.waist_delta}
-                  />
-                  <MeasCard
-                    label="Quadril"
-                    value={finalMeasurements.hip_cm}
-                    unit="cm"
-                    badge="📷"
-                    delta={progress?.hip_delta}
-                  />
-                  <MeasCard
-                    label="Busto"
-                    value={finalMeasurements.bust_cm}
-                    unit="cm"
-                    badge="📷"
-                  />
-                </div>
-
-                {/* Neck (if detected) */}
-                {finalMeasurements.neck_cm !== null && (
-                  <div className="grid grid-cols-1 gap-2 mb-3">
-                    <MeasCard
-                      label="Pescoço"
-                      value={finalMeasurements.neck_cm}
-                      unit="cm"
-                      badge="📷 ±2cm"
-                    />
-                  </div>
-                )}
-
-                {/* Legend */}
-                <div className="flex gap-4 justify-center text-[10px] text-stone-400 font-light mb-5">
-                  <span>📷 Câmera-derivado</span>
-                  <span>📊 Estimativa estatística</span>
-                </div>
-
                 {/* Disclaimer */}
                 <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-5">
                   <p className="text-amber-700 text-xs text-center font-light leading-relaxed">
-                    Circunferências com margem ±2 cm (scan lateral) a ±4 cm (regressão).
-                    BF% com margem ±4%. Use para acompanhar evolução, não como diagnóstico.
+                    Estimativas de composição corporal (margem ±4%). Acompanhe a
+                    tendência ao longo do tempo, não o valor absoluto. Não substitui
+                    avaliação clínica (ex.: bioimpedância, DEXA).
                   </p>
                 </div>
 
