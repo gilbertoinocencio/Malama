@@ -14,6 +14,7 @@ export {
   primeVoice,
   speak,
   announce,
+  isSpeaking,
   stopSpeaking,
   hapticTick,
   hapticStep,

@@ -26,6 +26,7 @@ import React, {
   useState,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDeviceLevel } from '../hooks/useDeviceLevel';
 import {
   MediaPipeProvider,
   LivenessDetector,
@@ -36,6 +37,7 @@ import {
   primeVoice,
   speak,
   announce,
+  isSpeaking,
   stopSpeaking,
   hapticTick,
   hapticStep,
@@ -107,6 +109,8 @@ type GuidanceKey =
   | 'come_closer'
   | 'turn_front'
   | 'turn_side'
+  | 'level_phone'
+  | 'raise_arms'
   | 'liveness'
   | 'hold_still';
 
@@ -208,6 +212,23 @@ function drawLandmarkDots(
   }
 }
 
+/**
+ * Both arms raised / abducted (Spren-style "cactus" pose) so the torso silhouette
+ * is clean and separated from the arms — essential for reliable width measurement
+ * (and for the silhouette-based depth in the next phase). y grows downward, so a
+ * raised wrist has a SMALLER y than its shoulder. Small margin guards against jitter.
+ */
+function armsRaised(landmarks: PoseLandmark[]): boolean {
+  const lw = landmarks[LM.LEFT_WRIST];
+  const rw = landmarks[LM.RIGHT_WRIST];
+  const ls = landmarks[LM.LEFT_SHOULDER];
+  const rs = landmarks[LM.RIGHT_SHOULDER];
+  if (!lw || !rw || !ls || !rs) return false;
+  const visOk = [lw, rw, ls, rs].every(l => (l.visibility ?? 0) > 0.4);
+  if (!visOk) return false;
+  return lw.y < ls.y - 0.03 && rw.y < rs.y - 0.03;
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
@@ -266,6 +287,13 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
   const [frameValid, setFrameValid]     = useState(false);
   const [distanceStatus, setDistanceStatus] = useState<'too_close' | 'too_far' | 'ok'>('too_far');
 
+  // Device tilt (Spren-style upright/level capture). Active while the camera runs.
+  // Only gates capture in hands-free mode (propped phone) — when the user holds the
+  // phone there's nothing to "level". A ref mirrors it for the rAF loop closure.
+  const level = useDeviceLevel(step !== 'loading' && step !== 'captured');
+  const levelRef = useRef(level);
+  levelRef.current = level;
+
   // Guidance phrases — short, warm, imperative (good for audio-only guidance).
   const guidanceMsg = useCallback((key: GuidanceKey): string => {
     switch (key) {
@@ -277,6 +305,8 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       case 'come_closer': return 'Aproxime-se um pouco';
       case 'turn_front':  return 'Fique de frente para a câmera';
       case 'turn_side':   return 'Vire de lado, fique de perfil para a câmera';
+      case 'level_phone': return 'Endireite o celular, deixe ele reto e em pé';
+      case 'raise_arms':  return 'Levante os braços, afastados do corpo';
       case 'liveness':    return 'Levante o braço direito acima do ombro';
       case 'hold_still':  return 'Isso! Perfeito, fique bem imóvel';
     }
@@ -319,6 +349,8 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
   // Speak immediately when message changes; repeat every 6 s while stuck in same state.
   // This ensures the user hears guidance even if they miss the first prompt.
+  // voiceGuide.speak() self-gates (skips while busy), so this never overlaps; the
+  // explicit isSpeaking() guard just avoids queuing a redundant repeat.
   useEffect(() => {
     if (step === 'loading' || step === 'captured' || step === 'intro' || !statusMsg) {
       if (repeatTimerRef.current) { clearInterval(repeatTimerRef.current); repeatTimerRef.current = null; }
@@ -328,7 +360,9 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
     speak(statusMsg);
 
     if (repeatTimerRef.current) clearInterval(repeatTimerRef.current);
-    repeatTimerRef.current = setInterval(() => speak(statusMsgRef.current), 6000);
+    repeatTimerRef.current = setInterval(() => {
+      if (!isSpeaking()) speak(statusMsgRef.current);
+    }, 6000);
 
     return () => {
       if (repeatTimerRef.current) { clearInterval(repeatTimerRef.current); repeatTimerRef.current = null; }
@@ -499,8 +533,15 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       const orientationOk = orientation === expectedOrientation;
       const positionOk = dist.valid && orientationOk;
 
-      setFrameValid(positionOk);
-      drawGuideLines(ctx, frameW, frameH, positionOk);
+      // Standardization gates (Spren-inspired):
+      //  - phone roughly upright — hands-free / propped only; skip if no sensor data.
+      //  - front capture needs arms raised for a clean torso silhouette.
+      const phoneLevelOk = !handsFree || !levelRef.current.available || levelRef.current.level;
+      const armsOk = pose !== 'front' || armsRaised(landmarks);
+      const ready = positionOk && phoneLevelOk && armsOk;
+
+      setFrameValid(ready);
+      drawGuideLines(ctx, frameW, frameH, ready);
       drawLandmarkDots(ctx, landmarks, frameW, frameH);
 
       // While the hands-free intro grace runs, only give positioning guidance —
@@ -533,7 +574,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
       }
 
       // ── Positioning ─────────────────────────────────────────────────────
-      if (!positionOk) {
+      if (!ready) {
         stableGreetedRef.current = false;
         stabilityRef.current.reset();
         setStabilityPct(0);
@@ -542,6 +583,10 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
           commitGuidance(dist.status === 'too_close' ? 'step_back' : 'come_closer');
         } else if (!orientationOk) {
           commitGuidance(pose === 'front' ? 'turn_front' : 'turn_side');
+        } else if (!phoneLevelOk) {
+          commitGuidance('level_phone');
+        } else if (!armsOk) {
+          commitGuidance('raise_arms');
         }
 
         setStep('positioning');
@@ -579,7 +624,7 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
 
       rafRef.current = requestAnimationFrame(runLoop);
     });
-  }, [pose, livenessEnabled, captureFrame, commitGuidance]);
+  }, [pose, livenessEnabled, handsFree, captureFrame, commitGuidance]);
 
   // ── Hands-free spoken intro + step-back grace ─────────────────────────────────
   // Replaces the old numeric countdown: a single flowing announcement explaining the
@@ -792,6 +837,29 @@ export const BodyScanCamera: React.FC<BodyScanCameraProps> = ({
         >
           <span className="material-symbols-outlined text-xl leading-none">flip_camera_ios</span>
         </button>
+      )}
+
+      {/* Bubble level — top right (hands-free / propped phone, when sensor available) */}
+      {handsFree && level.available && step !== 'loading' && step !== 'captured' && (
+        <div className="absolute top-10 right-4 z-10 flex flex-col items-center gap-1">
+          <div className="relative w-24 h-6 rounded-full bg-black/40 backdrop-blur-md border border-white/20 overflow-hidden">
+            {/* centre target zone */}
+            <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-6 border-x border-white/15" />
+            {/* bubble — x reflects side roll, colour reflects level */}
+            <div
+              className={`absolute top-1/2 w-4 h-4 rounded-full transition-all duration-150 ${
+                level.level ? 'bg-emerald-400' : 'bg-amber-300'
+              }`}
+              style={{
+                left: `calc(50% + ${Math.max(-1, Math.min(1, level.roll / 30)) * 38}px)`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            />
+          </div>
+          <span className="text-white/60 text-[10px] font-light tracking-wider uppercase">
+            {level.level ? 'Nivelado' : 'Endireite o celular'}
+          </span>
+        </div>
       )}
 
       {/* Hands-free restart button — top centre-left (only during the intro grace) */}

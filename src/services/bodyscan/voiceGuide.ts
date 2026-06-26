@@ -71,19 +71,42 @@ export async function primeVoice(): Promise<void> {
 // ─── Speech ──────────────────────────────────────────────────────────────────
 
 /**
- * Priority lock: while a milestone announcement (announce) "owns" the audio
- * channel, reactive positioning guidance (speak) yields instead of cutting it
- * off. Without this, the per-frame guidance + 6 s repeat timer trample the
- * milestone phrases ("frente registrada", "agora a última amostra").
+ * Serialization. The overlap the user saw came from CONCURRENT speech calls: the
+ * old time-estimated lock expired before the native TTS actually finished, so the
+ * per-frame guidance + 6 s repeat timer started a second utterance on top of the
+ * first. We now allow only ONE utterance at a time and resolve on its REAL end:
+ *   - `locked` is held for the whole duration of an utterance (a true mutex).
+ *   - reactive `speak` SKIPS while busy (it re-fires later via the repeat timer).
+ *   - `announce` (milestones) cuts in-flight reactive guidance and then speaks.
  */
-let announceLockUntil = 0;
+let locked = false;       // an utterance is currently playing
+let announcing = false;   // a milestone owns the channel → reactive guidance yields
 
-/** Rough spoken duration of a pt-BR phrase, used to hold the priority lock. */
-function estimateDurationMs(text: string): number {
-  return Math.min(9000, Math.max(1200, text.length * 60));
+/** True while a phrase is being spoken — lets callers avoid stacking new speech. */
+export function isSpeaking(): boolean {
+  return locked;
 }
 
-/** Low-level speak — cancels whatever was being said and speaks `text`. */
+/** Stop whatever is playing now (does not touch the `announcing` intent flag). */
+async function stopCurrent(): Promise<void> {
+  try {
+    if (isNative) { await TextToSpeech.stop().catch(() => {}); return; }
+    window.speechSynthesis?.cancel();
+  } catch { /* non-blocking */ }
+}
+
+/** Wait (briefly) for an in-flight utterance to release the mutex. */
+async function waitUnlock(): Promise<void> {
+  for (let i = 0; locked && i < 60; i++) {
+    await new Promise(r => setTimeout(r, 50)); // ~3 s safety cap
+  }
+}
+
+/**
+ * Low-level speak that RESOLVES WHEN SPEECH ACTUALLY ENDS. Native TTS resolves its
+ * own promise on completion; the Web Speech fallback is wrapped so onend/onerror
+ * resolve it. Knowing the real end is what prevents the next phrase from cutting in.
+ */
 async function rawSpeak(text: string): Promise<void> {
   try {
     if (isNative) {
@@ -106,46 +129,50 @@ async function rawSpeak(text: string): Promise<void> {
     if (webVoice) utt.voice = webVoice;
     utt.rate = 0.95;
     utt.pitch = 1.0;
-    window.speechSynthesis.speak(utt);
+    await new Promise<void>((resolve) => {
+      utt.onend = () => resolve();
+      utt.onerror = () => resolve();
+      window.speechSynthesis.speak(utt);
+    });
   } catch {
     /* WebView without a usable TTS engine — visual + haptic guidance still works */
   }
 }
 
 /**
- * Reactive guidance phrase (positioning hints). Yields to an in-flight
- * announcement so milestones are never cut off mid-sentence; it will simply
- * re-fire on the next frame once the lock expires.
+ * Reactive guidance phrase (positioning hints). Skips if something is already
+ * being spoken (a milestone or a previous hint) so phrases never overlap; the
+ * per-state effect / repeat timer re-issues it once the channel is free.
  */
 export async function speak(text: string): Promise<void> {
-  if (!text) return;
-  if (Date.now() < announceLockUntil) return;
-  await rawSpeak(text);
+  if (!text || locked || announcing) return;
+  locked = true;
+  try { await rawSpeak(text); } finally { locked = false; }
 }
 
 /**
  * Milestone announcement (session intro, capture confirmations, cycle cues).
- * Always interrupts and holds the priority lock for its estimated duration so
- * reactive guidance won't talk over it.
+ * Cuts any in-flight reactive guidance and owns the channel until it finishes,
+ * so nothing talks over it.
  */
 export async function announce(text: string): Promise<void> {
   if (!text) return;
-  announceLockUntil = Date.now() + estimateDurationMs(text);
-  await rawSpeak(text);
+  announcing = true;
+  try {
+    await stopCurrent();   // cut a reactive phrase that may be playing
+    await waitUnlock();    // let its mutex release
+    locked = true;
+    try { await rawSpeak(text); } finally { locked = false; }
+  } finally {
+    announcing = false;
+  }
 }
 
-/** Stop any ongoing speech and release the priority lock (real teardown only). */
+/** Stop any ongoing speech and clear all speech state (real teardown only). */
 export async function stopSpeaking(): Promise<void> {
-  announceLockUntil = 0;
-  try {
-    if (isNative) {
-      await TextToSpeech.stop().catch(() => {});
-      return;
-    }
-    window.speechSynthesis?.cancel();
-  } catch {
-    /* non-blocking */
-  }
+  announcing = false;
+  locked = false;
+  await stopCurrent();
 }
 
 // ─── Haptics ───────────────────────────────────────────────────────────────────

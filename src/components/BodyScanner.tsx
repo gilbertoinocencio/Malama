@@ -193,7 +193,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
 
       if (newValid.length >= TARGET_VALID || newAttempt >= MAX_ATTEMPTS) {
         announce('Perfeito! Análise concluída. Calculando seus resultados.');
-        const final = aggregateScans(newValid);
+        const final = aggregateScans(newValid, { heightCm, gender, weightKg, age });
         setFinalMeasurements(final);
         setStep('saving');
       } else {
@@ -216,7 +216,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
       if (newAttempt >= MAX_ATTEMPTS) {
         if (validCaptures.length >= 2) {
           announce('Vamos finalizar com o que já temos. Calculando seus resultados.');
-          const final = aggregateScans(validCaptures);
+          const final = aggregateScans(validCaptures, { heightCm, gender, weightKg, age });
           setFinalMeasurements(final);
           setStep('saving');
         } else {
@@ -231,7 +231,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
         }, 2000);
       }
     }
-  }, [sessionAttempt, validCaptures]);
+  }, [sessionAttempt, validCaptures, heightCm, gender, weightKg, age]);
 
   // ── Capture handlers ────────────────────────────────────────────────────────
 

@@ -167,11 +167,20 @@ export function useBodyScan() {
 
   // ── Progress delta ────────────────────────────────────────────────────────
 
-  const progress = history.length >= 2
+  // Delta is meaningful only when there's a real previous scan AND both records
+  // have a non-null value for that field. Using `?? 0` would turn "no baseline"
+  // into a zero baseline and show the full current value as a fake variation
+  // (e.g. "+65.7 vs anterior" on the very first scan).
+  const cur = history[0] ?? null;
+  const prev = history.length >= 2 ? history[1] : null;
+  const fieldDelta = (a: number | null, b: number | null): number | undefined =>
+    a != null && b != null ? Math.round((a - b) * 10) / 10 : undefined;
+
+  const progress = cur && prev
     ? {
-        waist_delta: (history[0].waist_cm ?? 0) - (history[1].waist_cm ?? 0),
-        hip_delta:   (history[0].hip_cm   ?? 0) - (history[1].hip_cm   ?? 0),
-        bf_delta:    (history[0].bf_percentage ?? 0) - (history[1].bf_percentage ?? 0),
+        waist_delta: fieldDelta(cur.waist_cm, prev.waist_cm),
+        hip_delta:   fieldDelta(cur.hip_cm, prev.hip_cm),
+        bf_delta:    fieldDelta(cur.bf_percentage, prev.bf_percentage),
       }
     : null;
 
