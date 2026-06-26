@@ -100,11 +100,18 @@ O Serviço, sua marca, design, código e conteúdos próprios são de titularida
 Malama e protegidos por lei. Estes Termos não transferem a você nenhum direito de
 propriedade intelectual além da licença limitada de uso do Serviço.
 
-## 8. Privacidade
+## 8. Privacidade e Tratamento de Imagens (Body Scan)
 
 O tratamento de dados pessoais é regido pela nossa
 [Política de Privacidade](https://www.soumalama.com.br/privacidade), em
 conformidade com a Lei Geral de Proteção de Dados (LGPD).
+
+### 8.1. Escaneamento Corporal (Body Scan) e Anonimização de Dados
+Ao utilizar a funcionalidade de escaneamento corporal (body scan) no aplicativo, o Usuário autoriza o envio seguro de suas imagens corporais para processamento em nuvem, compreendendo e concordando com os seguintes termos:
+- **Desidentificação e Eliminação Facial:** Para proteger a privacidade do Usuário, toda imagem enviada é submetida a um processo automático e imediato de desidentificação, com a detecção e exclusão ou descaracterização definitiva da face do Usuário, impedindo qualquer identificação visual.
+- **Anonimização Irreversível:** Todos os metadados identificáveis, vínculos de conta e informações pessoais são permanentemente removidos da imagem. O resultado armazenado é exclusivamente um modelo de silhueta corporal anonimizado, do qual é impossível restabelecer a identidade do Usuário através de meios técnicos razoáveis.
+- **Uso para Aprimoramento Científico e Tecnológico:** Os dados corporais e silhuetas completamente anonimizados serão armazenados e utilizados de forma exclusiva pelo Malama para fins de pesquisa interna, testes estatísticos, treinamento de algoritmos de inteligência artificial e melhoria contínua da precisão e qualidade técnica da funcionalidade de escaneamento corporal.
+- **Conformidade Legal (LGPD):** Nos termos do Artigo 12 da Lei Geral de Proteção de Dados (Lei nº 13.709/2018), os dados submetidos a processo de anonimização irreversível não são considerados dados pessoais para fins legais. Consequentemente, o Usuário concorda que o Malama poderá reter e utilizar tais dados anonimizados por prazo indeterminado, de forma lícita, segura e isenta de ônus, royalties ou restrições de direitos autorais.
 
 ## 9. Encerramento e exclusão de conta
 
