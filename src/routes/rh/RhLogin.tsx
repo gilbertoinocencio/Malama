@@ -26,7 +26,7 @@ export const RhLogin: React.FC = () => {
       if (authError) throw authError;
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.user_metadata?.role !== 'rh') {
+      if (user?.app_metadata?.role !== 'rh') {
         setError('Acesso não autorizado. Use as credenciais de RH fornecidas pela Malama.');
         await supabase.auth.signOut();
         return;

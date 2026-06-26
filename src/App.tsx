@@ -350,8 +350,11 @@ const App: React.FC = () => {
         fats: prev.macros.fats + meal.macros.fats,
       }
     }));
-    // Photo scans stay in the chat so the user can read the nutritionist feedback
-    if (meal.type !== 'ai-photo') {
+    // AI-logged meals (chat, voice, photo) stay in their screen so the user can read the
+    // nutritionist's feedback after confirming. Only manual/dashboard logs return to Home.
+    // (Navigating away here would unmount MealLogger before the async feedback renders.)
+    const isAiMeal = meal.type === 'ai-photo' || meal.type === 'ai-chat' || meal.type === 'ai-voice';
+    if (!isAiMeal) {
       setView(AppView.HOME);
     }
   };

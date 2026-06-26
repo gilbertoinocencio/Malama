@@ -109,7 +109,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
 
         // Verificar role nos metadados do usuário
         const { data: { user } } = await supabase.auth.getUser();
-        const isAdmin = user?.user_metadata?.role === 'super_admin';
+        const isAdmin = user?.app_metadata?.role === 'super_admin';
 
         setAuthorized(isAdmin);
       } catch (error) {
@@ -165,7 +165,7 @@ export const RhRoute: React.FC<RhRouteProps> = ({ children }) => {
         }
 
         const { data: { user } } = await supabase.auth.getUser();
-        setAuthorized(user?.user_metadata?.role === 'rh');
+        setAuthorized(user?.app_metadata?.role === 'rh');
       } catch (error) {
         console.error('Error checking RH auth:', error);
         setAuthorized(false);

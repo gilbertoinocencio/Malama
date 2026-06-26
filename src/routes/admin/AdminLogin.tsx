@@ -30,7 +30,7 @@ export const AdminLogin: React.FC = () => {
 
       // Verificar se é admin
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.user_metadata?.role !== 'super_admin') {
+      if (user?.app_metadata?.role !== 'super_admin') {
         setError('Acesso não autorizado.');
         await supabase.auth.signOut();
         return;

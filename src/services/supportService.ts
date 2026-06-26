@@ -137,7 +137,7 @@ export const supportService = {
 
     // Verificar se é admin
     const { data: { user } } = await supabase.auth.getUser();
-    const isAdmin = user?.user_metadata?.role === 'super_admin';
+    const isAdmin = user?.app_metadata?.role === 'super_admin';
 
     const updateData: any = {};
 

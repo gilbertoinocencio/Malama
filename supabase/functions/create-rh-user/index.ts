@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
   if (!authHeader) return json({ error: 'Não autorizado' }, 401);
 
   const { data: caller } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
-  if (caller?.user?.user_metadata?.role !== 'super_admin') {
+  if (caller?.user?.app_metadata?.role !== 'super_admin') {
     return json({ error: 'Acesso restrito ao super admin' }, 403);
   }
 
@@ -69,7 +69,8 @@ Deno.serve(async (req: Request) => {
       email: rh.email,
       password: rh.password,
       email_confirm: true,
-      user_metadata: { role: 'rh', name: rh.nome || empresa.responsavel_nome || '' },
+      app_metadata: { role: 'rh' },
+      user_metadata: { name: rh.nome || empresa.responsavel_nome || '' },
     });
 
     if (userError) {

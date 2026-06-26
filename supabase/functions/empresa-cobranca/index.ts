@@ -53,7 +53,7 @@ Deno.serve(async (req: Request) => {
 
   // Só super_admin
   const { data: caller } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
-  if (caller?.user?.user_metadata?.role !== 'super_admin') {
+  if (caller?.user?.app_metadata?.role !== 'super_admin') {
     return json({ error: 'Acesso restrito ao super admin' }, 403);
   }
 
