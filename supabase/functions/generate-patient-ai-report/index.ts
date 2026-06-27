@@ -201,6 +201,19 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // 2.1. Garantir vínculo médico-paciente (evita ler dados de paciente de outro médico)
+    const [{ data: hasConsult }, { data: isReferred }] = await Promise.all([
+      supabase.from('consultations').select('id')
+        .eq('doctor_id', doctor.id).eq('patient_id', patient_id).limit(1).maybeSingle(),
+      supabase.from('profiles').select('id')
+        .eq('id', patient_id).eq('referred_by_doctor_id', doctor.id).maybeSingle(),
+    ]);
+    if (!hasConsult && !isReferred) {
+      return new Response(JSON.stringify({ error: 'Paciente não vinculado a este médico' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     // 3. Coletar dados do paciente
     const data = await collectPatientData(patient_id, doctor.id);
     if (!data.profile) {

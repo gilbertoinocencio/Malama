@@ -85,6 +85,14 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Só super_admin pode criar influenciadores (cria conta auth + define comissão)
+  const { data: caller } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
+  if (caller?.user?.app_metadata?.role !== 'super_admin') {
+    return new Response(JSON.stringify({ error: 'Acesso restrito ao super admin' }), {
+      status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const {
       email, password, name,

@@ -22,6 +22,20 @@ Deno.serve(async (req: Request) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
+  // Só super_admin pode disparar convites (evita spam e phishing via redirect_to)
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  const { data: caller } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+  if (caller?.user?.app_metadata?.role !== 'super_admin') {
+    return new Response(JSON.stringify({ error: 'Acesso restrito ao super admin' }), {
+      status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const { email, type, lead_id, redirect_to }: Payload = await req.json();
 
   const { error } = await supabase.auth.admin.inviteUserByEmail(email, {

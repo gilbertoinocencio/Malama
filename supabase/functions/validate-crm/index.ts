@@ -39,11 +39,14 @@ Deno.serve(async (req: Request) => {
 
   if (!crm || !uf) return err('crm e uf são obrigatórios');
 
+  const ufClean = String(uf).toUpperCase().trim();
+  if (!/^[A-Z]{2}$/.test(ufClean)) return err('UF inválida');
+
   const crmClean = crm.replace(/\D/g, '');
   if (crmClean.length < 4 || crmClean.length > 7) return err('Formato de CRM inválido');
 
   try {
-    const cfmUrl = `https://portal.cfm.org.br/api/v1/medicos/?crm=${crmClean}&uf=${uf.toUpperCase()}`;
+    const cfmUrl = `https://portal.cfm.org.br/api/v1/medicos/?crm=${crmClean}&uf=${ufClean}`;
 
     const response = await fetch(cfmUrl, {
       headers: {
