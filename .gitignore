@@ -59,6 +59,9 @@ Thumbs.db
 .env.local
 node_modules
 
+# Claude Code local settings (não compartilhar)
+.claude/settings.local.json
+
 # Android signing — NEVER commit these
 signing/
 
