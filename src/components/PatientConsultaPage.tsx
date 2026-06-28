@@ -129,7 +129,7 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
         <div className="flex items-center gap-1.5">
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
-              connectionState === 'connected' ? 'bg-green-400 animate-pulse' :
+              connectionState === 'connected' ? 'bg-Malama-neon animate-pulse' :
               connectionState === 'connecting' ? 'bg-yellow-400 animate-pulse' :
               'bg-red-400'
             }`}
@@ -154,7 +154,7 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
             </div>
             <p className="text-base font-semibold">{doctorName}</p>
             {connectionState === 'connecting' && (
-              <div className="mt-3 w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+              <div className="mt-3 w-8 h-8 border-2 border-Malama-neon border-t-transparent rounded-full animate-spin" />
             )}
           </div>
         )}

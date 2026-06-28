@@ -119,11 +119,11 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
     new Date(iso).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
   const statusColor: Record<string, string> = {
-    scheduled: 'text-green-600 bg-green-100',
+    scheduled: 'text-Malama-petrol bg-Malama-petrol-light',
     in_progress: 'text-blue-600 bg-blue-100',
-    completed: 'text-gray-500 bg-gray-100',
-    cancelled: 'text-red-500 bg-red-100',
-    no_show: 'text-orange-500 bg-orange-100',
+    completed: 'text-Malama-muted bg-Malama-border',
+    cancelled: 'text-red-500 bg-red-50',
+    no_show: 'text-orange-500 bg-orange-50',
   };
   const statusLabel: Record<string, string> = {
     scheduled: '✅ Confirmada', in_progress: '🔴 Em andamento',
@@ -148,16 +148,16 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
       </header>
 
       {/* Tabs */}
-      <div className="flex mx-4 bg-white rounded-2xl p-1 mb-4 shadow-sm border border-gray-100">
+      <div className="flex mx-4 bg-white rounded-2xl p-1 mb-4 shadow-sm border border-Malama-border">
         <button
           onClick={() => setTab('consultations')}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${tab === 'consultations' ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${tab === 'consultations' ? 'bg-Malama-petrol text-white shadow-sm' : 'text-Malama-muted hover:text-Malama-main'}`}
         >
           Consultas
         </button>
         <button
           onClick={() => setTab('prescriptions')}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${tab === 'prescriptions' ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${tab === 'prescriptions' ? 'bg-Malama-petrol text-white shadow-sm' : 'text-Malama-muted hover:text-Malama-main'}`}
         >
           Receitas
         </button>
@@ -166,7 +166,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
       <div className="px-4">
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-Malama-petrol border-t-transparent rounded-full animate-spin" />
           </div>
         ) : tab === 'consultations' ? (
           <>
@@ -245,12 +245,12 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                         {canEnter(c) ? (
                           <button
                             onClick={() => onEnterConsulta(c)}
-                            className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-bold transition-colors"
+                            className="flex-1 py-2 bg-Malama-petrol hover:bg-[#7a3d35] text-white rounded-xl text-xs font-bold transition-colors"
                           >
                             Entrar na consulta
                           </button>
                         ) : (
-                          <div className="flex-1 py-2 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold text-center">
+                          <div className="flex-1 py-2 bg-Malama-border text-Malama-muted rounded-xl text-xs font-semibold text-center">
                             Disponível 10 min antes
                           </div>
                         )}
@@ -291,7 +291,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                       {c.status === 'completed' && !c.rating && (
                         <button
                           onClick={() => setRatingModal({ id: c.id, doctorName: (c.doctors as any)?.name || 'Médico' })}
-                          className="text-xs text-blue-500 hover:text-blue-600 font-semibold"
+                          className="text-xs text-Malama-petrol hover:text-Malama-petroleum font-semibold"
                         >
                           ★ Avaliar consulta
                         </button>
@@ -334,7 +334,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                 <p className="text-sm text-gray-500 mt-3">Nenhuma consulta ainda</p>
                 <button
                   onClick={() => onNavigate(AppView.GLP1_CONSULTA)}
-                  className="mt-4 px-5 py-2.5 bg-gray-900 text-white rounded-full text-sm font-bold hover:bg-gray-800 transition-colors"
+                  className="mt-4 px-5 py-2.5 bg-Malama-petrol text-white rounded-full text-sm font-bold hover:bg-[#7a3d35] transition-colors"
                 >
                   Agendar primeira consulta
                 </button>
@@ -383,7 +383,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                     {(expiring || days <= 0) && (
                       <button
                         onClick={() => onNavigate(AppView.GLP1_CONSULTA)}
-                        className="flex-1 py-2 bg-green-500 text-white rounded-xl text-xs font-bold hover:bg-green-600 transition-colors"
+                        className="flex-1 py-2 bg-Malama-petrol text-white rounded-xl text-xs font-bold hover:bg-[#7a3d35] transition-colors"
                       >
                         Renovar receita
                       </button>

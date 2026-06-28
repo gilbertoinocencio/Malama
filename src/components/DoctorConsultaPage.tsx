@@ -457,7 +457,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
     : connectionState === 'idle' ? 'Aguardando' : 'Desconectado';
 
   return (
-    <div className="fixed inset-0 bg-gray-900 flex overflow-hidden z-50">
+    <div className="fixed inset-0 bg-background-dark flex overflow-hidden z-50">
 
       {/* ── VIDEO AREA ── */}
       {!videoMinimized ? (
@@ -467,8 +467,8 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
               <VideoStream stream={remoteStream} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-white">
-                <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center mb-4">
-                  <User className="w-12 h-12 text-gray-400" />
+                <div className="w-24 h-24 rounded-full bg-[#2E2C2A] flex items-center justify-center mb-4">
+                  <User className="w-12 h-12 text-stone-400" />
                 </div>
                 <p className="text-lg font-semibold">{patientName}</p>
                 <p className={`text-sm mt-1 ${connColor}`}>{connLabel}</p>
@@ -493,7 +493,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
               <div className="absolute top-14 left-4 right-4 bg-red-500/90 text-white text-sm px-3 py-2 rounded-lg">{error}</div>
             )}
           </div>
-          <div className="bg-gray-800 px-6 py-3 flex items-center justify-center gap-4">
+          <div className="bg-surface-dark px-6 py-3 flex items-center justify-center gap-4">
             {connectionState === 'idle' ? (
               <button onClick={startCall}
                 className="px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-full font-bold text-sm flex items-center gap-2">
@@ -518,7 +518,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
         <div className="absolute bottom-6 left-6 z-50 w-48 h-36 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl bg-black">
           {remoteStream
             ? <VideoStream stream={remoteStream} className="w-full h-full object-cover" />
-            : <div className="w-full h-full flex items-center justify-center"><User className="w-8 h-8 text-gray-500" /></div>
+            : <div className="w-full h-full flex items-center justify-center"><User className="w-8 h-8 text-stone-500" /></div>
           }
           {localStream && (
             <div className="absolute bottom-2 right-2 w-14 h-10 rounded-lg overflow-hidden border border-white/20">
@@ -543,18 +543,18 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
       )}
 
       {/* ── PATIENT PANEL ── */}
-      <div className="flex flex-col bg-gray-800 border-l border-gray-700 overflow-hidden" style={{ flex: 1 }}>
+      <div className="flex flex-col bg-surface-dark border-l border-white/8 overflow-hidden" style={{ flex: 1 }}>
 
         {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-700 flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 rounded-full bg-gray-600 flex items-center justify-center shrink-0">
+        <div className="px-4 py-3 border-b border-white/8 flex items-center gap-3 shrink-0">
+          <div className="w-9 h-9 rounded-full bg-[#3C3A38] flex items-center justify-center shrink-0">
             {patientData?.photo_url
               ? <img src={patientData.photo_url} className="w-full h-full rounded-full object-cover" alt="" />
-              : <User className="w-4 h-4 text-gray-300" />}
+              : <User className="w-4 h-4 text-stone-300" />}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-sm truncate">{patientName}</p>
-            <p className="text-gray-400 text-xs">IMC {bmi} · {patientData?.weight || '—'} kg · {patientData?.height || '—'} cm</p>
+            <p className="text-stone-400 text-xs">IMC {bmi} · {patientData?.weight || '—'} kg · {patientData?.height || '—'} cm</p>
           </div>
           {/* Timer / status — sempre visível no painel do paciente */}
           <div className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-bold tabular-nums ${
@@ -562,12 +562,12 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
               ? 'bg-green-900/40 text-green-400'
               : connectionState === 'connecting'
               ? 'bg-yellow-900/40 text-yellow-400'
-              : 'bg-gray-700 text-gray-400'
+              : 'bg-[#2E2C2A] text-stone-400'
           }`}>
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
               connectionState === 'connected' ? 'bg-green-400 animate-pulse' :
               connectionState === 'connecting' ? 'bg-yellow-400 animate-pulse' :
-              'bg-gray-500'
+              'bg-stone-500'
             }`} />
             {connectionState === 'connected' ? formatTime(elapsed) : connLabel}
           </div>
@@ -579,11 +579,11 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-700 shrink-0 overflow-x-auto">
+        <div className="flex border-b border-white/8 shrink-0 overflow-x-auto">
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors border-b-2 ${
-                tab === t.key ? 'text-green-400 border-green-400' : 'text-gray-400 border-transparent hover:text-gray-200'
+                tab === t.key ? 'text-green-400 border-green-400' : 'text-stone-400 border-transparent hover:text-stone-200'
               }`}>
               {t.icon}{t.label}
             </button>
@@ -643,9 +643,9 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
                         <p className="text-xs text-yellow-400">Rascunho — não visível no histórico</p>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-700 rounded-lg">
-                        <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                        <p className="text-xs text-gray-400">Nova análise clínica para esta consulta</p>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-[#2E2C2A] rounded-lg">
+                        <FileText className="w-4 h-4 text-stone-400 shrink-0" />
+                        <p className="text-xs text-stone-400">Nova análise clínica para esta consulta</p>
                       </div>
                     )}
                   </div>
@@ -684,10 +684,10 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
                   </div>
 
                   {/* Botões */}
-                  <div className="px-4 pb-4 space-y-1.5 sticky bottom-0 bg-gray-800 pt-2 border-t border-gray-700">
+                  <div className="px-4 pb-4 space-y-1.5 sticky bottom-0 bg-surface-dark pt-2 border-t border-white/8">
                     <div className="flex gap-2">
                       <button onClick={handleSaveDraft} disabled={savingDraft}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition">
+                        className="flex items-center gap-1.5 px-3 py-2 bg-[#2E2C2A] hover:bg-[#3C3A38] text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition">
                         <Save className="w-3.5 h-3.5" />
                         {savingDraft ? 'Salvando...' : 'Salvar rascunho'}
                       </button>
@@ -716,8 +716,8 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
                   {noteHistory.length > 0 && (
                     <div className="px-4 pb-6">
                       <div className="flex items-center gap-2 mb-3">
-                        <Clock className="w-4 h-4 text-gray-400" />
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                        <Clock className="w-4 h-4 text-stone-400" />
+                        <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide">
                           Histórico — {noteHistory.length} consulta{noteHistory.length !== 1 ? 's' : ''} anterior{noteHistory.length !== 1 ? 'es' : ''}
                         </p>
                       </div>
@@ -736,11 +736,11 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
           {/* ── NOTAS RÁPIDAS ── */}
           {tab === 'notes' && (
             <div className="p-4 h-full flex flex-col">
-              <p className="text-xs text-gray-400 mb-2">Auto-salvo · Visível apenas para você</p>
+              <p className="text-xs text-stone-400 mb-2">Auto-salvo · Visível apenas para você</p>
               <textarea value={notes} onChange={e => handleNotesChange(e.target.value)}
                 placeholder="Anotações da consulta..."
-                className="flex-1 w-full min-h-[200px] bg-gray-700 text-white text-sm rounded-xl p-3
-                           resize-none focus:outline-none focus:ring-1 focus:ring-green-500 placeholder-gray-500" />
+                className="flex-1 w-full min-h-[200px] bg-[#2E2C2A] text-white text-sm rounded-xl p-3
+                           resize-none focus:outline-none focus:ring-1 focus:ring-green-500 placeholder-stone-600" />
             </div>
           )}
 
@@ -750,7 +750,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
               {!briefing ? (
                 <div className="flex flex-col items-center py-10 gap-3">
                   <span className="text-4xl">🧠</span>
-                  <p className="text-gray-400 text-sm text-center max-w-xs">
+                  <p className="text-stone-400 text-sm text-center max-w-xs">
                     Resumo clínico gerado por IA com base nos dados do paciente
                   </p>
                   <button onClick={handleGenerateBriefing} disabled={briefingLoading}
@@ -760,7 +760,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
                 </div>
               ) : (
                 <div>
-                  <div className="text-gray-200 text-xs leading-relaxed whitespace-pre-wrap">{briefing}</div>
+                  <div className="text-stone-200 text-xs leading-relaxed whitespace-pre-wrap">{briefing}</div>
                   <button onClick={handleGenerateBriefing} disabled={briefingLoading}
                     className="mt-3 text-xs text-green-400 hover:text-green-300 disabled:opacity-50">
                     {briefingLoading ? 'Regenerando...' : '↻ Regenerar'}
@@ -791,7 +791,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
         </div>
 
         {/* Actions bar */}
-        <div className="p-3 border-t border-gray-700 space-y-1.5 shrink-0">
+        <div className="p-3 border-t border-white/8 space-y-1.5 shrink-0">
           {actionMsg && <p className="text-xs text-green-400 text-center mb-1">{actionMsg}</p>}
           <div className="grid grid-cols-2 gap-1.5">
             <ActionBtn icon={<Target className="w-3.5 h-3.5" />}      label="Ajustar metas"  onClick={openGoalsModal} />
@@ -824,14 +824,14 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
 
             {/* Energia */}
             <div>
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Energia</p>
+              <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wide mb-1.5">Energia</p>
               <ModalInput type="number" label="Calorias (kcal/dia)" value={goalAdjust.calories}
                 onChange={v => setGoalAdjust(p => ({ ...p, calories: v }))} placeholder={patientData?.target_calories?.toString() || '1800'} />
             </div>
 
             {/* Macros */}
             <div>
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Macronutrientes</p>
+              <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wide mb-1.5">Macronutrientes</p>
               <div className="grid grid-cols-2 gap-2">
                 <ModalInput type="number" label="Proteína (g/dia)" value={goalAdjust.protein}
                   onChange={v => setGoalAdjust(p => ({ ...p, protein: v }))} placeholder={patientData?.target_protein?.toString() || '120'} />
@@ -846,7 +846,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
 
             {/* Hábitos */}
             <div>
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Hábitos</p>
+              <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wide mb-1.5">Hábitos</p>
               <div className="grid grid-cols-2 gap-2">
                 <ModalInput type="number" label="Água (ml/dia)" value={goalAdjust.water}
                   onChange={v => setGoalAdjust(p => ({ ...p, water: v }))} placeholder={patientData?.water_goal_ml?.toString() || '2500'} />
@@ -857,10 +857,10 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
 
             {/* Observação */}
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Observação / justificativa</label>
+              <label className="block text-xs text-stone-400 mb-1">Observação / justificativa</label>
               <textarea value={goalAdjust.notes} onChange={e => setGoalAdjust(p => ({ ...p, notes: e.target.value }))}
                 placeholder="Ex: redução calórica por estagnação de peso..."
-                className="w-full bg-gray-700 text-white rounded-lg p-3 text-sm resize-none h-16 focus:outline-none focus:ring-1 focus:ring-green-500 placeholder-gray-500" />
+                className="w-full bg-[#2E2C2A] text-white rounded-lg p-3 text-sm resize-none h-16 focus:outline-none focus:ring-1 focus:ring-green-500 placeholder-stone-600" />
             </div>
           </div>
 
@@ -882,10 +882,10 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
           <ModalInput label="Posologia" value={prescription.dosage}
             onChange={v => setPrescription(p => ({ ...p, dosage: v }))} placeholder="Ex: 1x semana, via subcutânea" />
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Instruções adicionais</label>
+            <label className="block text-xs text-stone-400 mb-1">Instruções adicionais</label>
             <textarea value={prescription.instructions} onChange={e => setPrescription(p => ({ ...p, instructions: e.target.value }))}
               placeholder="Instruções ao paciente..."
-              className="w-full bg-gray-700 text-white rounded-lg p-3 text-sm resize-none h-20 focus:outline-none focus:ring-1 focus:ring-green-500" />
+              className="w-full bg-[#2E2C2A] text-white rounded-lg p-3 text-sm resize-none h-20 focus:outline-none focus:ring-1 focus:ring-green-500" />
           </div>
 
           {/* Assinatura ICP-Brasil */}
@@ -938,7 +938,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
 const CtrlBtn: React.FC<{ icon: React.ReactNode; active: boolean; onClick: () => void }> = ({ icon, active, onClick }) => (
   <button onClick={onClick}
     className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-      active ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+      active ? 'bg-[#3C3A38] hover:bg-[#4A4846] text-white' : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
     }`}>
     {icon}
   </button>
@@ -946,24 +946,24 @@ const CtrlBtn: React.FC<{ icon: React.ReactNode; active: boolean; onClick: () =>
 
 const ActionBtn: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void }> = ({ icon, label, onClick }) => (
   <button onClick={onClick}
-    className="flex items-center justify-center gap-1.5 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-semibold transition-colors">
+    className="flex items-center justify-center gap-1.5 py-2 bg-[#2E2C2A] hover:bg-[#3C3A38] text-white rounded-lg text-xs font-semibold transition-colors">
     {icon}{label}
   </button>
 );
 
 const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="flex justify-between text-xs">
-    <span className="text-gray-400">{label}</span>
+    <span className="text-stone-400">{label}</span>
     <span className="text-white font-medium">{value}</span>
   </div>
 );
 
 const FloatingModal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode; className?: string }> = ({ title, onClose, children, className = '' }) => (
   <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10 p-4">
-    <div className={`bg-gray-800 rounded-2xl w-full p-5 shadow-xl space-y-3 max-w-sm ${className}`}>
+    <div className={`bg-surface-dark rounded-2xl w-full p-5 shadow-xl space-y-3 max-w-sm ${className}`}>
       <div className="flex items-center justify-between">
         <h3 className="text-white font-bold text-sm">{title}</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-white p-1"><X className="w-4 h-4" /></button>
+        <button onClick={onClose} className="text-stone-400 hover:text-white p-1"><X className="w-4 h-4" /></button>
       </div>
       {children}
     </div>
@@ -972,9 +972,9 @@ const FloatingModal: React.FC<{ title: string; onClose: () => void; children: Re
 
 const ModalInput: React.FC<{ label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }> = ({ label, value, onChange, placeholder, type = 'text' }) => (
   <div>
-    <label className="block text-xs text-gray-400 mb-1">{label}</label>
+    <label className="block text-xs text-stone-400 mb-1">{label}</label>
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 placeholder-gray-500" />
+      className="w-full bg-[#2E2C2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 placeholder-stone-600" />
   </div>
 );
 
@@ -982,30 +982,30 @@ const ModalInput: React.FC<{ label: string; value: string; onChange: (v: string)
 const CSection: React.FC<{ title: string; icon: React.ReactNode; defaultOpen?: boolean; children: React.ReactNode }> = ({ title, icon, defaultOpen = false, children }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-gray-600 rounded-xl overflow-hidden">
+    <div className="border border-white/10 rounded-xl overflow-hidden">
       <button type="button" onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-700 hover:bg-gray-600 transition text-left">
-        <div className="flex items-center gap-2 text-xs font-semibold text-gray-200">{icon}{title}</div>
-        {open ? <ChevronUp className="w-3.5 h-3.5 text-gray-400" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400" />}
+        className="w-full flex items-center justify-between px-3 py-2.5 bg-[#2E2C2A] hover:bg-[#3C3A38] transition text-left">
+        <div className="flex items-center gap-2 text-xs font-semibold text-stone-200">{icon}{title}</div>
+        {open ? <ChevronUp className="w-3.5 h-3.5 text-stone-400" /> : <ChevronDown className="w-3.5 h-3.5 text-stone-400" />}
       </button>
-      {open && <div className="p-3 space-y-2 bg-gray-800">{children}</div>}
+      {open && <div className="p-3 space-y-2 bg-surface-dark">{children}</div>}
     </div>
   );
 };
 
 const CInput: React.FC<{ label: string; value: string; onChange: (v: string) => void; type?: string }> = ({ label, value, onChange, type = 'text' }) => (
   <div>
-    <label className="block text-[10px] text-gray-400 mb-1">{label}</label>
+    <label className="block text-[10px] text-stone-400 mb-1">{label}</label>
     <input type={type} value={value} onChange={e => onChange(e.target.value)}
-      className="w-full bg-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-green-500 border border-gray-600" />
+      className="w-full bg-[#2E2C2A] text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-green-500 border border-white/10" />
   </div>
 );
 
 const CTextArea: React.FC<{ label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }> = ({ label, value, onChange, placeholder, rows = 2 }) => (
   <div>
-    {label && <label className="block text-[10px] text-gray-400 mb-1">{label}</label>}
+    {label && <label className="block text-[10px] text-stone-400 mb-1">{label}</label>}
     <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows}
-      className="w-full bg-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-green-500 placeholder-gray-500 border border-gray-600" />
+      className="w-full bg-[#2E2C2A] text-white rounded-lg px-2.5 py-1.5 text-xs resize-none focus:outline-none focus:ring-1 focus:ring-green-500 placeholder-stone-600 border border-white/10" />
   </div>
 );
 
@@ -1017,26 +1017,26 @@ const HistoryNoteCard: React.FC<{ note: any }> = ({ note }) => {
     : '—';
 
   return (
-    <div className="border border-gray-600 rounded-xl overflow-hidden">
+    <div className="border border-white/10 rounded-xl overflow-hidden">
       <button type="button" onClick={() => setExpanded(o => !o)}
-        className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-700 hover:bg-gray-600 transition text-left">
+        className="w-full flex items-center justify-between px-3 py-2.5 bg-[#2E2C2A] hover:bg-[#3C3A38] transition text-left">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
           <div>
             <p className="text-xs font-semibold text-white">{date}</p>
             {note.diagnosis && (
-              <p className="text-[10px] text-gray-400 truncate max-w-[180px]">{note.diagnosis}</p>
+              <p className="text-[10px] text-stone-400 truncate max-w-[180px]">{note.diagnosis}</p>
             )}
           </div>
         </div>
-        {expanded ? <ChevronUp className="w-3.5 h-3.5 text-gray-400" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400" />}
+        {expanded ? <ChevronUp className="w-3.5 h-3.5 text-stone-400" /> : <ChevronDown className="w-3.5 h-3.5 text-stone-400" />}
       </button>
 
       {expanded && (
-        <div className="p-3 bg-gray-800 space-y-2 text-xs">
+        <div className="p-3 bg-surface-dark space-y-2 text-xs">
           {/* Métricas */}
           {(note.weight_kg || note.blood_pressure_sys || note.heart_rate) && (
-            <div className="flex flex-wrap gap-2 pb-2 border-b border-gray-700">
+            <div className="flex flex-wrap gap-2 pb-2 border-b border-white/8">
               {note.weight_kg       && <Pill label="Peso"  value={`${note.weight_kg} kg`} />}
               {note.blood_pressure_sys && <Pill label="PA"  value={`${note.blood_pressure_sys}/${note.blood_pressure_dia} mmHg`} />}
               {note.heart_rate      && <Pill label="FC"    value={`${note.heart_rate} bpm`} />}
@@ -1057,15 +1057,15 @@ const HistoryNoteCard: React.FC<{ note: any }> = ({ note }) => {
 };
 
 const Pill: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <span className="px-2 py-0.5 bg-gray-700 rounded-full text-[10px] text-gray-300">
-    <span className="text-gray-500">{label}: </span>{value}
+  <span className="px-2 py-0.5 bg-[#2E2C2A] rounded-full text-[10px] text-stone-300">
+    <span className="text-stone-500">{label}: </span>{value}
   </span>
 );
 
 const HistRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <p className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</p>
-    <p className="text-gray-200 whitespace-pre-wrap leading-relaxed">{value}</p>
+    <p className="text-[10px] text-stone-400 uppercase tracking-wide">{label}</p>
+    <p className="text-stone-200 whitespace-pre-wrap leading-relaxed">{value}</p>
   </div>
 );
 
