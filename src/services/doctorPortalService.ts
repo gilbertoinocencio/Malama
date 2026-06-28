@@ -820,6 +820,19 @@ export interface PatientActivity {
   activity_date: string;
 }
 
+export interface PatientDailyMetric {
+  metric_date: string;
+  steps: number | null;
+  active_calories: number | null;
+  total_calories: number | null;
+  distance_meters: number | null;
+  resting_heart_rate: number | null;
+  avg_heart_rate: number | null;
+  sleep_minutes: number | null;
+  body_fat_pct: number | null;
+  weight_kg: number | null;
+}
+
 export const patientActivitiesService = {
   async getPatientActivities(patientId: string, days = 30): Promise<PatientActivity[]> {
     const since = new Date(Date.now() - days * 86_400_000).toISOString();
@@ -830,6 +843,19 @@ export const patientActivitiesService = {
       .gte('activity_date', since)
       .order('activity_date', { ascending: false });
     return (data ?? []) as PatientActivity[];
+  },
+
+  // Sinais diários de wearable / Google Health Connect (passos, FC, sono, % gordura).
+  // A RLS de health_daily_metrics libera o médico via consultations + doctors.
+  async getPatientDailyMetrics(patientId: string, days = 30): Promise<PatientDailyMetric[]> {
+    const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+    const { data } = await supabase
+      .from('health_daily_metrics')
+      .select('metric_date, steps, active_calories, total_calories, distance_meters, resting_heart_rate, avg_heart_rate, sleep_minutes, body_fat_pct, weight_kg')
+      .eq('user_id', patientId)
+      .gte('metric_date', since)
+      .order('metric_date', { ascending: true });
+    return (data ?? []) as PatientDailyMetric[];
   },
 
   async getActivityHealthInsights(patientId: string): Promise<string> {

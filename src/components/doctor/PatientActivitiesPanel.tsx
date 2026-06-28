@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { Activity, Flame, Clock, Route, Brain, RefreshCw } from 'lucide-react';
+import { Activity, Flame, Clock, Route, Brain, RefreshCw, Footprints, HeartPulse, Moon, Percent } from 'lucide-react';
 import { patientActivitiesService } from '../../services/doctorPortalService';
-import type { PatientActivity } from '../../services/doctorPortalService';
+import type { PatientActivity, PatientDailyMetric } from '../../services/doctorPortalService';
 
 interface Props {
   patientId: string;
@@ -61,8 +61,32 @@ function buildWeeklyChart(activities: PatientActivity[]) {
   return weeks;
 }
 
+/** Parse 'YYYY-MM-DD' como data local (a coluna metric_date é DATE). */
+const toLocalDate = (s: string) => {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+/** Média diária de passos por semana (mesmo eixo de 8 semanas do gráfico de calorias). */
+function buildWeeklySteps(daily: PatientDailyMetric[]) {
+  const weeks: { week: string; steps: number }[] = [];
+  for (let i = 7; i >= 0; i--) {
+    const end   = new Date(Date.now() - i * 7 * 86_400_000);
+    const start = new Date(end.getTime() - 7 * 86_400_000);
+    const label = `${start.getDate()}/${start.getMonth() + 1}`;
+    const slice = daily.filter(d => {
+      const dt = toLocalDate(d.metric_date);
+      return dt >= start && dt < end && d.steps != null;
+    });
+    const avg = slice.length ? Math.round(slice.reduce((s, d) => s + (d.steps || 0), 0) / slice.length) : 0;
+    weeks.push({ week: label, steps: avg });
+  }
+  return weeks;
+}
+
 export const PatientActivitiesPanel: React.FC<Props> = ({ patientId }) => {
   const [activities, setActivities]     = useState<PatientActivity[]>([]);
+  const [daily, setDaily]               = useState<PatientDailyMetric[]>([]);
   const [loading, setLoading]           = useState(true);
   const [insights, setInsights]         = useState<string | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
@@ -70,8 +94,12 @@ export const PatientActivitiesPanel: React.FC<Props> = ({ patientId }) => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await patientActivitiesService.getPatientActivities(patientId, period);
-    setActivities(data);
+    const [acts, dm] = await Promise.all([
+      patientActivitiesService.getPatientActivities(patientId, period),
+      patientActivitiesService.getPatientDailyMetrics(patientId, period),
+    ]);
+    setActivities(acts);
+    setDaily(dm);
     setLoading(false);
   }, [patientId, period]);
 
@@ -100,6 +128,20 @@ export const PatientActivitiesPanel: React.FC<Props> = ({ patientId }) => {
   const topType      = (Object.entries(typeFreq) as [string, number][]).sort((a, b) => b[1] - a[1])[0];
   const weeklyChart  = buildWeeklyChart(activities);
   const weeksWithActivity = weeklyChart.filter(w => w.count > 0).length;
+
+  // Sinais diários (wearable / Health Connect)
+  const stepsVals     = daily.filter(d => d.steps != null).map(d => d.steps!);
+  const avgSteps      = stepsVals.length ? Math.round(stepsVals.reduce((a, b) => a + b, 0) / stepsVals.length) : null;
+  const hrVals        = daily.filter(d => d.avg_heart_rate != null).map(d => d.avg_heart_rate!);
+  const avgHR         = hrVals.length ? Math.round(hrVals.reduce((a, b) => a + b, 0) / hrVals.length) : null;
+  const restingRows   = daily.filter(d => d.resting_heart_rate != null);
+  const latestResting = restingRows.length ? restingRows[restingRows.length - 1].resting_heart_rate : null;
+  const sleepVals     = daily.filter(d => d.sleep_minutes != null).map(d => d.sleep_minutes!);
+  const avgSleepH     = sleepVals.length ? sleepVals.reduce((a, b) => a + b, 0) / sleepVals.length / 60 : null;
+  const bfRows        = daily.filter(d => d.body_fat_pct != null);
+  const latestBf      = bfRows.length ? bfRows[bfRows.length - 1] : null;
+  const weeklySteps   = buildWeeklySteps(daily);
+  const hasDaily      = avgSteps != null || avgHR != null || avgSleepH != null || latestBf != null;
 
   return (
     <div className="space-y-6">
@@ -160,6 +202,59 @@ export const PatientActivitiesPanel: React.FC<Props> = ({ patientId }) => {
               sub={topType ? 'atividade mais frequente' : 'nenhuma atividade'}
             />
           </div>
+
+          {/* Sinais diários · wearable / Health Connect */}
+          {hasDaily && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-[#7d4a3c]">ecg_heart</span>
+                Sinais diários · Health Connect
+              </h4>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  icon={<Footprints className="w-5 h-5 text-[#7d4a3c]" />}
+                  label="Passos / dia"
+                  value={avgSteps != null ? avgSteps.toLocaleString('pt-BR') : '—'}
+                  sub="média no período"
+                />
+                <StatCard
+                  icon={<HeartPulse className="w-5 h-5 text-red-500" />}
+                  label="Batimentos"
+                  value={avgHR != null ? `${avgHR} bpm` : '—'}
+                  sub={latestResting != null ? `repouso ${latestResting} bpm` : 'média no período'}
+                />
+                <StatCard
+                  icon={<Moon className="w-5 h-5 text-indigo-500" />}
+                  label="Sono"
+                  value={avgSleepH != null ? `${avgSleepH.toFixed(1)} h` : '—'}
+                  sub="média por noite"
+                />
+                <StatCard
+                  icon={<Percent className="w-5 h-5 text-amber-500" />}
+                  label="% Gordura"
+                  value={latestBf ? `${latestBf.body_fat_pct!.toFixed(1)}%` : '—'}
+                  sub={latestBf ? `em ${toLocalDate(latestBf.metric_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}` : 'último registro'}
+                />
+              </div>
+
+              {stepsVals.length > 0 && (
+                <div className="mt-4">
+                  <h5 className="text-xs font-semibold text-gray-500 mb-2">Passos por semana (média/dia)</h5>
+                  <div className="h-40">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={weeklySteps} margin={{ top: 0, right: 0, bottom: 0, left: -10 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="week" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                        <Tooltip formatter={(v: number) => [`${v.toLocaleString('pt-BR')} passos`, 'Média/dia']} contentStyle={{ fontSize: 12 }} />
+                        <Bar dataKey="steps" fill="#7d4a3c" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Gráfico semanal */}
           {activities.length > 0 && (

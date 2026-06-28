@@ -53,8 +53,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const since30d = new Date(Date.now() - 30 * 86_400_000).toISOString();
+    const since30dDate = since30d.slice(0, 10); // 'YYYY-MM-DD' p/ coluna DATE
 
-    const [profileRes, activitiesRes, mealsRes] = await Promise.all([
+    const [profileRes, activitiesRes, mealsRes, dailyRes] = await Promise.all([
       supabase.from('profiles')
         .select('display_name, age, gender, weight, height, goal, target_calories, target_protein, target_carbs, target_fats, glp1_mode, glp1_medication')
         .eq('id', patient_id)
@@ -71,11 +72,19 @@ Deno.serve(async (req: Request) => {
         .eq('user_id', patient_id)
         .gte('created_at', since30d)
         .order('created_at', { ascending: false }),
+
+      // Sinais diários de wearable / Health Connect (passos, FC, sono, % gordura)
+      supabase.from('health_daily_metrics')
+        .select('metric_date, steps, active_calories, total_calories, distance_meters, resting_heart_rate, avg_heart_rate, sleep_minutes, body_fat_pct, weight_kg')
+        .eq('user_id', patient_id)
+        .gte('metric_date', since30dDate)
+        .order('metric_date', { ascending: false }),
     ]);
 
     const profile    = profileRes.data;
     const activities = activitiesRes.data ?? [];
     const meals      = mealsRes.data ?? [];
+    const daily      = dailyRes.data ?? [];
 
     if (!profile) {
       return new Response(JSON.stringify({ error: 'Paciente não encontrado' }), {
@@ -102,6 +111,33 @@ Deno.serve(async (req: Request) => {
     const avgCalActive   = mealsOnActiveDays.length   > 0 ? Math.round(mealsOnActiveDays.reduce((s, m)   => s + (m.calories ?? 0), 0) / Math.max(mealsOnActiveDays.length, 1))   : 0;
     const avgCalInactive = mealsOnInactiveDays.length > 0 ? Math.round(mealsOnInactiveDays.reduce((s, m) => s + (m.calories ?? 0), 0) / Math.max(mealsOnInactiveDays.length, 1)) : 0;
     const avgProtActive  = mealsOnActiveDays.length   > 0 ? Math.round(mealsOnActiveDays.reduce((s, m)   => s + (m.protein  ?? 0), 0) / Math.max(mealsOnActiveDays.length, 1))   : 0;
+
+    // Sinais diários (wearable / Health Connect) — `daily` vem em ordem decrescente
+    const avgOf = (vals: number[]) => vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : null;
+    const stepsArr     = daily.filter(d => d.steps != null).map(d => d.steps as number);
+    const avgSteps     = avgOf(stepsArr);
+    const avgHR        = avgOf(daily.filter(d => d.avg_heart_rate != null).map(d => d.avg_heart_rate as number));
+    const avgResting   = avgOf(daily.filter(d => d.resting_heart_rate != null).map(d => d.resting_heart_rate as number));
+    const avgActiveCal = avgOf(daily.filter(d => d.active_calories != null).map(d => d.active_calories as number));
+    const sleepArr     = daily.filter(d => d.sleep_minutes != null).map(d => d.sleep_minutes as number);
+    const avgSleepH    = sleepArr.length ? (sleepArr.reduce((s, v) => s + v, 0) / sleepArr.length / 60).toFixed(1) : null;
+    const bfRows       = daily.filter(d => d.body_fat_pct != null);
+    const latestBf     = bfRows.length ? bfRows[0].body_fat_pct : null;
+    const hasDaily     = avgSteps != null || avgHR != null || avgSleepH != null || latestBf != null;
+
+    const dailySection = hasDaily ? `
+## Sinais Diários — Wearable / Health Connect (últimos 30 dias)
+Dias com dados de dispositivo: ${daily.length}
+Passos (média/dia): ${avgSteps != null ? avgSteps.toLocaleString('pt-BR') : 'N/A'}
+Calorias ativas (média/dia): ${avgActiveCal != null ? `${avgActiveCal} kcal` : 'N/A'}
+Frequência cardíaca média: ${avgHR != null ? `${avgHR} bpm` : 'N/A'}
+FC de repouso média: ${avgResting != null ? `${avgResting} bpm` : 'N/A'}
+Sono (média/noite): ${avgSleepH != null ? `${avgSleepH} h` : 'N/A'}
+% Gordura (mais recente): ${latestBf != null ? `${latestBf}%` : 'N/A'}
+` : `
+## Sinais Diários — Wearable / Health Connect
+Sem dados de dispositivo no período (paciente ainda não conectou um wearable / Health Connect).
+`;
 
     const prompt = `Você é um especialista em medicina do esporte e nutrição clínica assistindo o Dr(a). ${doctor.name}.
 Analise os dados de atividade física do paciente e gere um resumo clínico focado nos efeitos na saúde e alimentação.
@@ -131,7 +167,7 @@ Dias com registro de refeição: ${mealDays}/30
 Média calórica em dias COM atividade: ${avgCalActive} kcal
 Média calórica em dias SEM atividade: ${avgCalInactive} kcal
 Média de proteína em dias com atividade: ${avgProtActive}g
-
+${dailySection}
 ## Análise Solicitada
 
 Gere uma análise em português com as seguintes seções (use markdown com ##):
@@ -146,10 +182,15 @@ ${profile.glp1_mode ? 'Considere a interação entre atividade física e uso de 
 ### 3. Relação Atividade × Alimentação
 Compare a ingestão calórica e proteica nos dias com e sem atividade. O paciente ajusta a alimentação conforme o treino? Há compensação calórica?
 
-### 4. Recomendações para o Médico
-3-4 sugestões práticas de ajuste de conduta (treino, metas nutricionais, timing de macros).
+### 4. Sinais Fisiológicos — Frequência Cardíaca e Sono
+${hasDaily
+  ? 'Interprete a FC de repouso (faixa e tendência), a FC média e a duração média de sono (referência 7–9h) — relacionando com recuperação, estresse/sobrecarga de treino e adesão. Avalie o volume de passos diários como marcador de NEAT/sedentarismo (referência ~7–10 mil passos/dia) e a evolução da % de gordura.'
+  : 'Não há dados de wearable/Health Connect no período. Destaque, em uma linha, que conectar um dispositivo (passos, FC, sono) enriqueceria a avaliação clínica.'}
 
-Seja conciso e direto. Máximo de 400 palavras no total.`;
+### 5. Recomendações para o Médico
+3-4 sugestões práticas de ajuste de conduta (treino, metas nutricionais, timing de macros), considerando também sono e sinais cardiovasculares quando disponíveis.
+
+Seja conciso e direto. Máximo de 450 palavras no total.`;
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -160,7 +201,7 @@ Seja conciso e direto. Máximo de 400 palavras no total.`;
       },
       body: JSON.stringify({
         model:      CLAUDE_MODEL,
-        max_tokens: 1024,
+        max_tokens: 1536,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
