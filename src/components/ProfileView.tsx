@@ -360,44 +360,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     return grid;
   };
 
-  // Achievements based on real gamification data
-  const getAchievements = () => {
-    const achievements = [];
-
-    if (gamification) {
-      if (gamification.currentStreak >= 3) {
-        achievements.push({
-          icon: 'local_fire_department',
-          color: 'bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400',
-          title: `🔥 ${gamification.currentStreak}-Day Streak`,
-          subtitle: `${gamification.currentStreak} ${t.quarterlyPlan.days} in Flow`,
-        });
-      }
-
-      if (gamification.totalFlowDays >= 7) {
-        achievements.push({
-          icon: 'eco',
-          color: 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400',
-          title: 'Green Flow',
-          subtitle: `${gamification.totalFlowDays} ${t.profile.flowDays}`,
-        });
-      }
-
-    }
-
-    if (totalMeals >= 10) {
-      achievements.push({
-        icon: 'restaurant_menu',
-        color: 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
-        title: 'Meal Master',
-        subtitle: `${totalMeals} ${t.profile.meals}`,
-      });
-    }
-
-    return achievements;
-  };
-
-  const achievements = getAchievements();
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden bg-Malama-bg dark:bg-background-dark font-display text-Malama-main dark:text-white animate-fade-in transition-colors duration-300">
@@ -722,30 +684,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </section>
 
-        {/* Achievements Section */}
-        <section className="w-full px-6 mb-8">
-          <h3 className="text-Malama-main dark:text-white text-lg font-bold leading-tight mb-4">{t.profile.recentAchievements}</h3>
-          <div className="flex flex-col gap-3">
-            {achievements.length === 0 ? (
-              <div className="text-center py-8 text-Malama-muted dark:text-gray-500 flex flex-col items-center gap-2">
-                <span className="material-symbols-outlined text-3xl">emoji_events</span>
-                <span className="text-sm">{t.quarterlyPlan.noData}</span>
-              </div>
-            ) : (
-              achievements.map((ach, idx) => (
-                <div key={idx} className="flex items-center gap-4 p-4 bg-white dark:bg-surface-dark rounded-xl border border-Malama-border dark:border-white/10 transition-colors shadow-sm dark:shadow-none">
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-full ${ach.color}`}>
-                    <span className="material-symbols-outlined">{ach.icon}</span>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-base font-bold text-Malama-main dark:text-white">{ach.title}</h4>
-                    <p className="text-sm text-Malama-muted dark:text-gray-400">{ach.subtitle}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
 
         {/* Influencer Card — visível apenas para usuários influenciadores */}
         {influencerRecord && (
