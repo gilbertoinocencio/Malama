@@ -255,9 +255,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     try {
       // 1) Gamification stats (streak, flow days, level)
       console.log('[ProfileView] Fetching gamification stats...');
-      const stats = await GamificationService.updateStats(user.id);
-      console.log('[ProfileView] Gamification stats received:', stats);
-      if (stats) {
+      const statsResult = await GamificationService.updateStats(user.id);
+      console.log('[ProfileView] Gamification stats received:', statsResult);
+      if (statsResult) {
+        const stats = statsResult.stats;
         setGamification({
           currentStreak: stats.currentStreak || 0,
           totalFlowDays: stats.totalFlowDays || 0,
