@@ -205,3 +205,39 @@ export const MeasurementSnapshotService = {
     return data as BodyMeasurementSnapshot | null;
   },
 };
+
+// ─── Agregados diários de dispositivos (Google Health Connect / wearables) ──────
+export interface HealthDailyMetric {
+  metric_date: string;            // YYYY-MM-DD
+  steps?: number | null;
+  active_calories?: number | null;
+  total_calories?: number | null;
+  distance_meters?: number | null;
+  resting_heart_rate?: number | null;
+  avg_heart_rate?: number | null;
+  sleep_minutes?: number | null;
+  body_fat_pct?: number | null;
+  weight_kg?: number | null;
+}
+
+export const HealthMetricsService = {
+  /**
+   * Histórico diário (cronológico) lido da tabela health_daily_metrics. Funciona em
+   * qualquer plataforma — os dados são gravados no Supabase pelo sync do Health Connect.
+   */
+  async getDailyMetrics(userId: string, days = 90): Promise<HealthDailyMetric[]> {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const sinceStr = since.toISOString().slice(0, 10); // coluna DATE → 'YYYY-MM-DD'
+
+    const { data, error } = await supabase
+      .from('health_daily_metrics')
+      .select('metric_date, steps, active_calories, total_calories, distance_meters, resting_heart_rate, avg_heart_rate, sleep_minutes, body_fat_pct, weight_kg')
+      .eq('user_id', userId)
+      .gte('metric_date', sinceStr)
+      .order('metric_date', { ascending: true });
+
+    if (error) return [];
+    return (data || []) as HealthDailyMetric[];
+  },
+};

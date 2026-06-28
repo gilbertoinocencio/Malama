@@ -1,38 +1,76 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { WeightLogService, MeasurementSnapshotService, WeightLog, BodyMeasurementSnapshot } from '../services/weightLogService';
+import {
+  WeightLogService,
+  MeasurementSnapshotService,
+  HealthMetricsService,
+  WeightLog,
+  BodyMeasurementSnapshot,
+  HealthDailyMetric,
+} from '../services/weightLogService';
 import { WeightLogModal } from './WeightLogModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type MetricTab = 'weight' | 'body_fat' | 'muscle' | 'measurements';
+type LineTab = 'weight' | 'body_fat' | 'muscle' | 'steps' | 'heart_rate' | 'sleep';
+type MetricTab = LineTab | 'measurements';
 type ChartPeriod = '30d' | '90d' | '180d';
 
 interface MetricsChartProps {
   onClose: () => void;
 }
 
-// ─── SVG Line Chart ───────────────────────────────────────────────────────────
 interface ChartPoint { label: string; value: number; date: string; }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+/** Parse 'YYYY-MM-DD' como data local (evita off-by-one); ISO completo via Date normal. */
+const toDate = (s: string): Date => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(s);
+};
+const fmtDay = (s: string) => toDate(s).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+// ─── Metric configuration (data-viz semantics, paleta quente alinhada à marca) ──
+const METRICS: Record<LineTab, {
+  label: string;
+  icon: string;
+  color: string;
+  unit: string;
+  good: 'down' | 'up' | 'neutral';
+  fmtValue: (v: number) => string;
+  fmtAxis?: (v: number) => string;
+  emptyIcon: string;
+  emptyText: string;
+}> = {
+  weight:     { label: 'Peso',       icon: 'monitor_weight', color: '#8c473e', unit: 'kg',  good: 'down',    fmtValue: v => v.toFixed(1), emptyIcon: 'monitor_weight', emptyText: 'Nenhum registro de peso ainda.' },
+  body_fat:   { label: 'Gordura',    icon: 'opacity',        color: '#d47311', unit: '%',   good: 'down',    fmtValue: v => v.toFixed(1), emptyIcon: 'opacity',        emptyText: 'Faça um Body Scan ou conecte o Health Connect.' },
+  muscle:     { label: 'Músculo',    icon: 'fitness_center', color: '#7E9B5B', unit: 'kg',  good: 'up',      fmtValue: v => v.toFixed(1), emptyIcon: 'fitness_center', emptyText: 'Faça seu primeiro Body Scan para ver a evolução.' },
+  steps:      { label: 'Passos',     icon: 'directions_walk',color: '#C4856A', unit: '',    good: 'up',      fmtValue: v => Math.round(v).toLocaleString('pt-BR'), fmtAxis: v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toFixed(0), emptyIcon: 'directions_walk', emptyText: 'Conecte o Health Connect (em Integrações) para ver seus passos.' },
+  heart_rate: { label: 'Batimentos', icon: 'cardiology',     color: '#C0392B', unit: 'bpm', good: 'neutral', fmtValue: v => v.toFixed(0), emptyIcon: 'cardiology',     emptyText: 'Conecte o Health Connect para acompanhar sua frequência cardíaca.' },
+  sleep:      { label: 'Sono',       icon: 'bedtime',        color: '#7C6BA6', unit: 'h',   good: 'neutral', fmtValue: v => v.toFixed(1), emptyIcon: 'bedtime',        emptyText: 'Conecte o Health Connect para ver seu histórico de sono.' },
+};
+
+// ─── SVG Line Chart ───────────────────────────────────────────────────────────
 const LineChart: React.FC<{
   data: ChartPoint[];
   color: string;
-  unit: string;
   height?: number;
-  isDark: boolean;
-}> = ({ data, color, unit, height = 160, isDark }) => {
+  formatAxis?: (v: number) => string;
+}> = ({ data, color, height = 180, formatAxis }) => {
   if (data.length < 2) {
     return (
       <div className="flex items-center justify-center" style={{ height }}>
-        <p className="text-xs text-gray-400 dark:text-white/50">Registre mais dados para ver o gráfico</p>
+        <p className="text-xs text-Malama-muted/70 dark:text-white/50">Registre mais dados para ver o gráfico</p>
       </div>
     );
   }
 
   const W = 320;
   const H = height;
-  const PAD = { top: 12, right: 16, bottom: 28, left: 36 };
+  const PAD = { top: 12, right: 16, bottom: 28, left: 40 };
 
   const values = data.map(d => d.value);
   const minVal = Math.min(...values);
@@ -52,9 +90,8 @@ const LineChart: React.FC<{
 
   const areaPath = path + ` L ${toX(data.length - 1)} ${H - PAD.bottom} L ${toX(0)} ${H - PAD.bottom} Z`;
 
-  const ticks = [minVal, minVal + range / 2, maxVal].map(v => ({
-    v, y: toY(v), label: v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)
-  }));
+  const fmt = formatAxis ?? ((v: number) => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)));
+  const ticks = [minVal, minVal + range / 2, maxVal].map(v => ({ v, y: toY(v) }));
 
   const xLabels = data.filter((_, i) => {
     const step = Math.max(1, Math.floor(data.length / 5));
@@ -62,16 +99,12 @@ const LineChart: React.FC<{
   });
 
   const gradId = `grad-${color.replace('#', '')}`;
-  const gridStroke = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-  const tickFill   = isDark ? 'rgba(255,255,255,0.4)'  : 'rgba(0,0,0,0.4)';
-  const xFill      = isDark ? 'rgba(255,255,255,0.5)'  : 'rgba(0,0,0,0.45)';
-  const dotStroke  = isDark ? '#0a0f10' : '#f9fafb';
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height }}>
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.22" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
@@ -79,9 +112,9 @@ const LineChart: React.FC<{
       {ticks.map(t => (
         <g key={t.v}>
           <line x1={PAD.left} x2={W - PAD.right} y1={t.y} y2={t.y}
-            stroke={gridStroke} strokeWidth="1" />
-          <text x={PAD.left - 4} y={t.y + 4} textAnchor="end"
-            fontSize="9" fill={tickFill}>{t.label}</text>
+            className="stroke-Malama-border dark:stroke-white/10" strokeWidth="1" />
+          <text x={PAD.left - 6} y={t.y + 4} textAnchor="end"
+            className="fill-Malama-muted/70 dark:fill-white/40" fontSize="9">{fmt(t.v)}</text>
         </g>
       ))}
 
@@ -90,12 +123,12 @@ const LineChart: React.FC<{
 
       {data.map((pt, i) => (
         <circle key={i} cx={toX(i)} cy={toY(pt.value)} r="3.5"
-          fill={color} stroke={dotStroke} strokeWidth="1.5" />
+          fill={color} className="stroke-white dark:stroke-surface-dark" strokeWidth="1.5" />
       ))}
 
       {xLabels.map((pt, i) => (
-        <text key={i} x={toX(data.indexOf(pt))} y={H - PAD.bottom + 14}
-          textAnchor="middle" fontSize="9" fill={xFill}>
+        <text key={i} x={toX(data.indexOf(pt))} y={H - PAD.bottom + 16}
+          textAnchor="middle" className="fill-Malama-muted/60 dark:fill-white/40" fontSize="9">
           {pt.label}
         </text>
       ))}
@@ -115,26 +148,28 @@ const MeasurementBar: React.FC<{
   const isGood = diff !== null && diff < 0;
 
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-gray-100 dark:border-white/5 last:border-0">
+    <div className="flex items-center gap-3 py-2.5 border-b border-Malama-border dark:border-white/5 last:border-0">
       <div className="w-20 flex-shrink-0">
-        <span className="text-xs text-gray-500 dark:text-white/60">{label}</span>
+        <span className="text-xs text-Malama-muted dark:text-white/60">{label}</span>
       </div>
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-sm font-bold text-gray-900 dark:text-white">{current.toFixed(1)} cm</span>
+          <span className="text-sm font-bold text-Malama-main dark:text-white">{current.toFixed(1)} cm</span>
           {diff !== null && (
-            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${isGood ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/20 text-red-600 dark:text-red-400'}`}>
+            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${isGood ? 'bg-green-500/15 text-green-600 dark:text-green-400' : 'bg-red-500/15 text-red-600 dark:text-red-400'}`}>
               {diff > 0 ? '+' : ''}{diff.toFixed(1)}
             </span>
           )}
         </div>
-        <div className="h-1.5 rounded-full bg-gray-200 dark:bg-white/10 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-Malama-petrol-light dark:bg-white/10 overflow-hidden">
           <div className="h-full rounded-full" style={{ width: `${Math.min(100, current / 1.5)}%`, background: color }} />
         </div>
       </div>
     </div>
   );
 };
+
+const CARD = 'rounded-2xl border border-Malama-border dark:border-white/5 bg-white dark:bg-surface-dark shadow-sm dark:shadow-none';
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
@@ -144,181 +179,231 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
   const [period, setPeriod] = useState<ChartPeriod>('90d');
   const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
   const [snapshots, setSnapshots] = useState<BodyMeasurementSnapshot[]>([]);
+  const [daily, setDaily] = useState<HealthDailyMetric[]>([]);
   const [loading, setLoading] = useState(true);
   const [showWeightModal, setShowWeightModal] = useState(false);
-  const [isDark, setIsDark] = useState(
-    document.documentElement.classList.contains('dark')
-  );
 
-  // Track dark mode changes
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    });
-    observer.observe(document.documentElement, { attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
+  const periodDays = period === '30d' ? 30 : period === '90d' ? 90 : 180;
 
-  // Load data
-  const loadData = (userId: string, p: ChartPeriod) => {
+  const loadData = (userId: string, days: number) => {
     setLoading(true);
-    const days = p === '30d' ? 30 : p === '90d' ? 90 : 180;
     Promise.all([
       WeightLogService.getWeightHistoryForChart(userId, days),
       MeasurementSnapshotService.getSnapshotHistory(userId, days),
-    ]).then(([wl, sn]) => {
+      HealthMetricsService.getDailyMetrics(userId, days),
+    ]).then(([wl, sn, dm]) => {
       setWeightLogs(wl);
       setSnapshots(sn);
+      setDaily(dm);
     }).finally(() => setLoading(false));
   };
 
   useEffect(() => {
     if (!user) return;
-    loadData(user.id, period);
-  }, [user, period]);
+    loadData(user.id, periodDays);
+  }, [user, periodDays]);
 
-  const periodDays = period === '30d' ? 30 : period === '90d' ? 90 : 180;
+  // ── Séries por aba ──────────────────────────────────────────────────────────
+  const series: Record<LineTab, ChartPoint[]> = useMemo(() => {
+    const pt = (value: number, date: string): ChartPoint => ({ value, date, label: fmtDay(date) });
+    const byDate = (a: ChartPoint, b: ChartPoint) => toDate(a.date).getTime() - toDate(b.date).getTime();
 
-  const weightChartData = useMemo((): ChartPoint[] =>
-    weightLogs.map(log => ({
-      value: log.weight_kg,
-      date: log.logged_at,
-      label: new Date(log.logged_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-    })), [weightLogs]);
+    return {
+      weight: weightLogs.map(l => pt(l.weight_kg, l.logged_at)),
+      // % gordura: funde Body Scan (snapshots) + Health Connect (daily)
+      body_fat: [
+        ...snapshots.filter(s => s.avg_body_fat_pct != null).map(s => pt(s.avg_body_fat_pct!, s.snapped_at)),
+        ...daily.filter(d => d.body_fat_pct != null).map(d => pt(d.body_fat_pct!, d.metric_date)),
+      ].sort(byDate),
+      muscle: snapshots.filter(s => s.avg_muscle_mass_kg != null).map(s => pt(s.avg_muscle_mass_kg!, s.snapped_at)),
+      steps: daily.filter(d => d.steps != null).map(d => pt(d.steps!, d.metric_date)),
+      heart_rate: daily.filter(d => d.avg_heart_rate != null).map(d => pt(d.avg_heart_rate!, d.metric_date)),
+      sleep: daily.filter(d => d.sleep_minutes != null).map(d => pt(+(d.sleep_minutes! / 60).toFixed(1), d.metric_date)),
+    };
+  }, [weightLogs, snapshots, daily]);
 
-  const bodyFatChartData = useMemo((): ChartPoint[] =>
-    snapshots.filter(s => s.avg_body_fat_pct != null).map(s => ({
-      value: s.avg_body_fat_pct!,
-      date: s.snapped_at,
-      label: new Date(s.snapped_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-    })), [snapshots]);
-
-  const muscleChartData = useMemo((): ChartPoint[] =>
-    snapshots.filter(s => s.avg_muscle_mass_kg != null).map(s => ({
-      value: s.avg_muscle_mass_kg!,
-      date: s.snapped_at,
-      label: new Date(s.snapped_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-    })), [snapshots]);
+  const latestResting = useMemo(() => {
+    const withResting = daily.filter(d => d.resting_heart_rate != null);
+    return withResting.length ? withResting[withResting.length - 1].resting_heart_rate! : null;
+  }, [daily]);
 
   const latestSnapshot = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
-  const prevSnapshot   = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
+  const prevSnapshot = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
 
-  const weightChange = weightChartData.length >= 2
-    ? weightChartData[weightChartData.length - 1].value - weightChartData[0].value : null;
-  const bfChange = bodyFatChartData.length >= 2
-    ? bodyFatChartData[bodyFatChartData.length - 1].value - bodyFatChartData[0].value : null;
-  const muscleChange = muscleChartData.length >= 2
-    ? muscleChartData[muscleChartData.length - 1].value - muscleChartData[0].value : null;
+  const tabs: MetricTab[] = ['weight', 'body_fat', 'muscle', 'steps', 'heart_rate', 'sleep', 'measurements'];
 
-  const tabs: { id: MetricTab; label: string; icon: string; color: string }[] = [
-    { id: 'weight',       label: 'Peso',    icon: 'monitor_weight', color: '#1a9aaf' },
-    { id: 'body_fat',     label: 'Gordura', icon: 'opacity',        color: '#f59e0b' },
-    { id: 'muscle',       label: 'Músculo', icon: 'fitness_center', color: '#10b981' },
-    { id: 'measurements', label: 'Medidas', icon: 'straighten',     color: '#8b5cf6' },
-  ];
+  // ── Renderer compartilhado para as abas de linha ──────────────────────────────
+  const renderLineTab = (key: LineTab) => {
+    const cfg = METRICS[key];
+    const data = series[key];
+    const latest = data.length ? data[data.length - 1] : null;
+    const change = data.length >= 2 ? data[data.length - 1].value - data[0].value : null;
+    const changeGood = change !== null && cfg.good !== 'neutral'
+      ? (cfg.good === 'down' ? change < 0 : change > 0)
+      : null;
 
-  // Inline style helpers that depend on isDark
-  const cardStyle = {
-    background: isDark ? '#111c1e' : '#ffffff',
-    border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e5e7eb',
+    return (
+      <div className="space-y-4">
+        {/* Hero */}
+        <div className={`${CARD} p-5`}>
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="material-symbols-outlined text-[18px]" style={{ color: cfg.color }}>{cfg.icon}</span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-Malama-muted dark:text-slate-400">{cfg.label}</span>
+              </div>
+              {latest ? (
+                <div className="flex items-end gap-1.5">
+                  <span className="text-[40px] leading-none font-bold text-Malama-main dark:text-white">{cfg.fmtValue(latest.value)}</span>
+                  {cfg.unit && <span className="text-base font-semibold text-Malama-muted dark:text-slate-400 pb-1">{cfg.unit}</span>}
+                </div>
+              ) : (
+                <span className="text-2xl font-bold text-Malama-muted/40 dark:text-white/30">—</span>
+              )}
+              {latest && (
+                <p className="text-xs text-Malama-muted dark:text-slate-500 mt-1.5">
+                  {toDate(latest.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                  {key === 'heart_rate' && latestResting != null && ` · repouso ${latestResting} bpm`}
+                </p>
+              )}
+            </div>
+            {change !== null && (
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                changeGood === null ? 'bg-Malama-petrol-light text-Malama-muted dark:bg-white/10 dark:text-slate-300'
+                  : changeGood ? 'bg-green-500/15 text-green-600 dark:text-green-400'
+                  : 'bg-red-500/15 text-red-600 dark:text-red-400'
+              }`}>
+                {change > 0 ? '+' : ''}{cfg.fmtValue(change)}{cfg.unit && ` ${cfg.unit}`}
+                <span className="font-medium opacity-70"> · {periodDays}d</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Chart */}
+        <div className={`${CARD} p-4`}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-Malama-main dark:text-white">Evolução</h3>
+            <span className="text-xs text-Malama-muted/70 dark:text-white/40">{data.length} {data.length === 1 ? 'registro' : 'registros'}</span>
+          </div>
+          {data.length === 0 ? (
+            <div className="flex flex-col items-center py-8 text-center gap-2">
+              <span className="material-symbols-outlined text-3xl text-Malama-muted/30 dark:text-white/20">{cfg.emptyIcon}</span>
+              <p className="text-xs text-Malama-muted dark:text-white/40 max-w-[15rem]">{cfg.emptyText}</p>
+              {key === 'weight' && (
+                <button onClick={() => setShowWeightModal(true)}
+                  className="mt-2 px-4 py-2 rounded-xl text-xs font-semibold bg-Malama-petrol/10 text-Malama-petrol dark:bg-primary/15 dark:text-primary">
+                  Registrar agora
+                </button>
+              )}
+            </div>
+          ) : (
+            <LineChart data={data} color={cfg.color} formatAxis={cfg.fmtAxis} />
+          )}
+        </div>
+
+        {/* Histórico recente (só peso) */}
+        {key === 'weight' && weightLogs.length > 0 && (
+          <div className={`${CARD} p-4`}>
+            <h3 className="text-sm font-bold text-Malama-main dark:text-white mb-3">Histórico recente</h3>
+            <div className="space-y-1">
+              {weightLogs.slice(-8).reverse().map((log, i, arr) => {
+                const prev = arr[i + 1];
+                const diff = prev ? log.weight_kg - prev.weight_kg : null;
+                return (
+                  <div key={log.id} className="flex items-center justify-between py-2 border-b border-Malama-border dark:border-white/5 last:border-0">
+                    <div>
+                      <p className="text-sm font-semibold text-Malama-main dark:text-white">{log.weight_kg.toFixed(1)} kg</p>
+                      <p className="text-xs text-Malama-muted/80 dark:text-white/40">
+                        {toDate(log.logged_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                        {log.source === 'body_scan' && ' · Body Scan'}
+                        {log.source === 'wearable' && ' · Health Connect'}
+                      </p>
+                    </div>
+                    {diff !== null && (
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${diff < 0 ? 'bg-green-500/15 text-green-600 dark:text-green-400' : diff > 0 ? 'bg-red-500/15 text-red-600 dark:text-red-400' : 'text-Malama-muted dark:text-white/40'}`}>
+                        {diff > 0 ? '+' : ''}{diff.toFixed(1)} kg
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
-  const mutedText  = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)';
-  const faintText  = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
-  const inactiveBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-gray-50 dark:bg-[#0a0f10] text-gray-900 dark:text-white">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white font-display animate-fade-in">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
+      <div className="flex items-center justify-between px-4 py-3 sticky top-0 z-10 bg-Malama-bg/90 dark:bg-background-dark/90 backdrop-blur-sm border-b border-Malama-border dark:border-white/5">
         <button
           onClick={onClose}
-          className="flex items-center gap-2 text-gray-600 dark:text-white/80 hover:text-gray-900 dark:hover:text-white transition-colors"
+          className="flex size-10 shrink-0 items-center justify-center rounded-full text-Malama-main dark:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors group"
+          aria-label="Voltar"
         >
-          <span className="material-symbols-outlined">arrow_back</span>
-          <span className="text-sm font-medium">Voltar</span>
+          <span className="material-symbols-outlined text-[24px] group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
         </button>
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined" style={{ color: '#1a9aaf' }}>insights</span>
-          <h1 className="font-bold text-gray-900 dark:text-white">Métricas</h1>
-        </div>
+        <h1 className="text-lg font-bold tracking-tight text-Malama-main dark:text-white">Gráficos de Evolução</h1>
         <button
           onClick={() => setShowWeightModal(true)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-          style={{ background: 'rgba(26,154,175,0.15)', color: '#1a9aaf' }}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-Malama-petrol/10 text-Malama-petrol dark:bg-primary/15 dark:text-primary hover:bg-Malama-petrol/15 transition-colors"
         >
-          <span className="material-symbols-outlined text-sm">add</span>
+          <span className="material-symbols-outlined text-[16px]">add</span>
           Peso
         </button>
       </div>
 
       {/* Period selector */}
-      <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-200 dark:border-white/5 bg-gray-100/80 dark:bg-[rgba(17,28,30,0.5)]">
+      <div className="flex items-center gap-2 px-4 py-3">
         {(['30d', '90d', '180d'] as ChartPeriod[]).map(p => (
           <button
             key={p}
             onClick={() => setPeriod(p)}
-            className="px-3 py-1 rounded-full text-xs font-medium transition-all"
-            style={{
-              background: period === p ? '#1a9aaf' : inactiveBg,
-              color: period === p ? 'white' : mutedText,
-            }}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+              period === p
+                ? 'bg-Malama-petrol text-white dark:bg-primary'
+                : 'bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/10 text-Malama-muted dark:text-slate-400'
+            }`}
           >
             {p === '30d' ? '30 dias' : p === '90d' ? '90 dias' : '6 meses'}
           </button>
         ))}
       </div>
 
-      {/* Summary cards */}
-      <div className="flex gap-3 px-4 py-3 overflow-x-auto no-scrollbar">
-        {[
-          { label: 'Peso',    value: weightChange, unit: 'kg', invertGood: true  },
-          { label: 'Gordura', value: bfChange,     unit: '%',  invertGood: true  },
-          { label: 'Músculo', value: muscleChange, unit: 'kg', invertGood: false },
-        ].map(({ label, value, unit, invertGood }) => (
-          <div key={label} className="flex-shrink-0 rounded-xl px-4 py-3" style={{ ...cardStyle, minWidth: 100 }}>
-            <p className="text-xs mb-1" style={{ color: mutedText }}>{label}</p>
-            {value !== null ? (
-              <p className={`text-base font-bold ${
-                (invertGood ? value < 0 : value > 0) ? 'text-green-500 dark:text-green-400'
-                  : value === 0 ? 'text-gray-400 dark:text-white/60'
-                  : 'text-red-500 dark:text-red-400'
-              }`}>
-                {value > 0 ? '+' : ''}{value.toFixed(1)}{unit}
-              </p>
-            ) : (
-              <p className="text-gray-300 dark:text-white/30 text-sm">—</p>
-            )}
-            <p className="text-[10px] mt-0.5" style={{ color: faintText }}>{periodDays}d</p>
-          </div>
-        ))}
-      </div>
-
       {/* Tabs */}
-      <div className="flex gap-1 px-4 pb-3 overflow-x-auto no-scrollbar">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all flex-shrink-0"
-            style={{
-              background: activeTab === tab.id ? tab.color + '22' : inactiveBg,
-              color: activeTab === tab.id ? tab.color : mutedText,
-              border: activeTab === tab.id ? `1px solid ${tab.color}44` : '1px solid transparent',
-            }}
-          >
-            <span className="material-symbols-outlined text-sm">{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar">
+        {tabs.map(id => {
+          const cfg = id === 'measurements'
+            ? { label: 'Medidas', icon: 'straighten', color: '#8b5cf6' }
+            : METRICS[id];
+          const active = activeTab === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 border"
+              style={{
+                background: active ? cfg.color + '1f' : 'transparent',
+                color: active ? cfg.color : undefined,
+                borderColor: active ? cfg.color + '55' : 'transparent',
+              }}
+            >
+              <span className={`material-symbols-outlined text-[16px] ${active ? '' : 'text-Malama-muted dark:text-slate-400'}`}>{cfg.icon}</span>
+              <span className={active ? '' : 'text-Malama-muted dark:text-slate-400'}>{cfg.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Chart Content */}
-      <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-4">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-4 pb-10">
         {loading ? (
           <div className="flex items-center justify-center h-40">
-            <div className="w-8 h-8 rounded-full animate-spin border-2 border-t-transparent"
-              style={{ borderColor: 'rgba(26,154,175,0.3)', borderTopColor: '#1a9aaf' }} />
+            <div className="w-7 h-7 rounded-full animate-spin border-2 border-Malama-petrol/30 border-t-Malama-petrol dark:border-primary/30 dark:border-t-primary" />
           </div>
         ) : (
           <AnimatePresence mode="wait">
@@ -327,160 +412,37 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
             >
-              {/* ── Weight Tab ── */}
-              {activeTab === 'weight' && (
-                <div className="space-y-4">
-                  <div className="rounded-xl p-4" style={cardStyle}>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Evolução do Peso</h3>
-                      <span className="text-xs text-gray-400 dark:text-white/40">{weightLogs.length} registros</span>
-                    </div>
-                    {weightChartData.length === 0 ? (
-                      <div className="flex flex-col items-center py-8 text-center gap-2">
-                        <span className="material-symbols-outlined text-3xl text-gray-300 dark:text-white/20">monitor_weight</span>
-                        <p className="text-xs text-gray-400 dark:text-white/40">Nenhum registro de peso ainda.</p>
-                        <button onClick={() => setShowWeightModal(true)}
-                          className="mt-2 px-4 py-2 rounded-xl text-xs font-medium"
-                          style={{ background: 'rgba(26,154,175,0.12)', color: '#1a9aaf' }}>
-                          Registrar agora
-                        </button>
-                      </div>
-                    ) : (
-                      <LineChart data={weightChartData} color="#1a9aaf" unit="kg" isDark={isDark} />
-                    )}
-                  </div>
-
-                  {weightLogs.length > 0 && (
-                    <div className="rounded-xl p-4" style={cardStyle}>
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Histórico Recente</h3>
-                      <div className="space-y-2">
-                        {weightLogs.slice(0, 8).reverse().map((log, i, arr) => {
-                          const prev = arr[i - 1];
-                          const diff = prev ? log.weight_kg - prev.weight_kg : null;
-                          return (
-                            <div key={log.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-white/5 last:border-0">
-                              <div>
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{log.weight_kg.toFixed(1)} kg</p>
-                                <p className="text-xs text-gray-400 dark:text-white/40">
-                                  {new Date(log.logged_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                                  {log.source === 'body_scan' && ' · Body Scan'}
-                                </p>
-                              </div>
-                              {diff !== null && (
-                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${diff < 0 ? 'bg-green-500/15 text-green-600 dark:text-green-400' : diff > 0 ? 'bg-red-500/15 text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-white/40'}`}>
-                                  {diff > 0 ? '+' : ''}{diff.toFixed(1)} kg
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ── Body Fat Tab ── */}
-              {activeTab === 'body_fat' && (
-                <div className="space-y-4">
-                  <div className="rounded-xl p-4" style={cardStyle}>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">% Gordura Corporal</h3>
-                      <span className="text-xs text-gray-400 dark:text-white/40">{snapshots.length} scans</span>
-                    </div>
-                    {bodyFatChartData.length === 0 ? (
-                      <div className="flex flex-col items-center py-8 text-center gap-2">
-                        <span className="material-symbols-outlined text-3xl text-gray-300 dark:text-white/20">photo_camera</span>
-                        <p className="text-xs text-gray-400 dark:text-white/40">Faça seu primeiro Body Scan para ver o gráfico.</p>
-                      </div>
-                    ) : (
-                      <LineChart data={bodyFatChartData} color="#f59e0b" unit="%" isDark={isDark} />
-                    )}
-                  </div>
-
-                  {latestSnapshot?.avg_body_fat_pct != null && (
-                    <div className="rounded-xl p-4" style={cardStyle}>
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Último Scan</h3>
-                      <div className="flex items-end gap-3">
-                        <span className="text-4xl font-bold" style={{ color: '#f59e0b' }}>
-                          {latestSnapshot.avg_body_fat_pct.toFixed(1)}%
-                        </span>
-                        <span className="text-xs text-gray-400 dark:text-white/40 pb-1">
-                          {new Date(latestSnapshot.snapped_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
-                        </span>
-                      </div>
-                      {latestSnapshot.detected_biotype && (
-                        <p className="text-xs text-gray-500 dark:text-white/50 mt-1 capitalize">Biotipo: {latestSnapshot.detected_biotype}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ── Muscle Tab ── */}
-              {activeTab === 'muscle' && (
-                <div className="space-y-4">
-                  <div className="rounded-xl p-4" style={cardStyle}>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Massa Muscular Magra</h3>
-                      <span className="text-xs text-gray-400 dark:text-white/40">{snapshots.length} scans</span>
-                    </div>
-                    {muscleChartData.length === 0 ? (
-                      <div className="flex flex-col items-center py-8 text-center gap-2">
-                        <span className="material-symbols-outlined text-3xl text-gray-300 dark:text-white/20">fitness_center</span>
-                        <p className="text-xs text-gray-400 dark:text-white/40">Faça seu primeiro Body Scan para ver o gráfico.</p>
-                      </div>
-                    ) : (
-                      <LineChart data={muscleChartData} color="#10b981" unit="kg" isDark={isDark} />
-                    )}
-                  </div>
-
-                  {latestSnapshot?.avg_muscle_mass_kg != null && (
-                    <div className="rounded-xl p-4" style={cardStyle}>
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Último Scan</h3>
-                      <div className="flex items-end gap-3">
-                        <span className="text-4xl font-bold" style={{ color: '#10b981' }}>
-                          {latestSnapshot.avg_muscle_mass_kg.toFixed(1)} kg
-                        </span>
-                        <span className="text-xs text-gray-400 dark:text-white/40 pb-1">
-                          {new Date(latestSnapshot.snapped_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ── Measurements Tab ── */}
-              {activeTab === 'measurements' && (
+              {activeTab !== 'measurements' ? (
+                renderLineTab(activeTab)
+              ) : (
                 <div className="space-y-4">
                   {!latestSnapshot ? (
                     <div className="flex flex-col items-center py-12 text-center gap-3">
-                      <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-white/20">straighten</span>
-                      <p className="text-sm text-gray-500 dark:text-white/50">Nenhum scan realizado ainda.</p>
-                      <p className="text-xs text-gray-400 dark:text-white/30">Complete um Body Scan para ver suas medidas aqui.</p>
+                      <span className="material-symbols-outlined text-4xl text-Malama-muted/30 dark:text-white/20">straighten</span>
+                      <p className="text-sm text-Malama-muted dark:text-white/50">Nenhum scan realizado ainda.</p>
+                      <p className="text-xs text-Malama-muted/70 dark:text-white/30">Complete um Body Scan para ver suas medidas aqui.</p>
                     </div>
                   ) : (
                     <>
-                      <div className="rounded-xl p-4" style={cardStyle}>
+                      <div className={`${CARD} p-4`}>
                         <div className="flex items-center justify-between mb-3">
-                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Medidas Atuais</h3>
-                          <span className="text-xs text-gray-400 dark:text-white/40">
-                            {new Date(latestSnapshot.snapped_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                          <h3 className="text-sm font-bold text-Malama-main dark:text-white">Medidas atuais</h3>
+                          <span className="text-xs text-Malama-muted/70 dark:text-white/40">
+                            {toDate(latestSnapshot.snapped_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                           </span>
                         </div>
-
                         {[
-                          { label: 'Cintura',       key: 'waist_cm' as const,       color: '#f59e0b' },
+                          { label: 'Cintura',       key: 'waist_cm' as const,       color: '#d47311' },
                           { label: 'Quadril',        key: 'hip_cm' as const,         color: '#8b5cf6' },
-                          { label: 'Peitoral',       key: 'chest_cm' as const,       color: '#1a9aaf' },
-                          { label: 'Braço E.',       key: 'arm_left_cm' as const,    color: '#10b981' },
-                          { label: 'Braço D.',       key: 'arm_right_cm' as const,   color: '#10b981' },
-                          { label: 'Coxa E.',        key: 'thigh_left_cm' as const,  color: '#f97316' },
-                          { label: 'Coxa D.',        key: 'thigh_right_cm' as const, color: '#f97316' },
-                          { label: 'Panturrilha E.', key: 'calf_left_cm' as const,   color: '#ec4899' },
-                          { label: 'Panturrilha D.', key: 'calf_right_cm' as const,  color: '#ec4899' },
+                          { label: 'Peitoral',       key: 'chest_cm' as const,       color: '#8c473e' },
+                          { label: 'Braço E.',       key: 'arm_left_cm' as const,    color: '#7E9B5B' },
+                          { label: 'Braço D.',       key: 'arm_right_cm' as const,   color: '#7E9B5B' },
+                          { label: 'Coxa E.',        key: 'thigh_left_cm' as const,  color: '#C4856A' },
+                          { label: 'Coxa D.',        key: 'thigh_right_cm' as const, color: '#C4856A' },
+                          { label: 'Panturrilha E.', key: 'calf_left_cm' as const,   color: '#9C6644' },
+                          { label: 'Panturrilha D.', key: 'calf_right_cm' as const,  color: '#9C6644' },
                         ].map(m => (
                           <MeasurementBar
                             key={m.key}
@@ -493,17 +455,17 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
                       </div>
 
                       {latestSnapshot.bmi && (
-                        <div className="rounded-xl p-4" style={cardStyle}>
-                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">IMC & Dados Físicos</h3>
+                        <div className={`${CARD} p-4`}>
+                          <h3 className="text-sm font-bold text-Malama-main dark:text-white mb-3">IMC & dados físicos</h3>
                           <div className="grid grid-cols-3 gap-3">
                             {[
-                              { label: 'IMC',    value: latestSnapshot.bmi?.toFixed(1),        unit: ''   },
-                              { label: 'Peso',   value: latestSnapshot.weight_kg?.toFixed(1),  unit: 'kg' },
-                              { label: 'Altura', value: latestSnapshot.height_cm?.toFixed(0),  unit: 'cm' },
+                              { label: 'IMC',    value: latestSnapshot.bmi?.toFixed(1),       unit: ''   },
+                              { label: 'Peso',   value: latestSnapshot.weight_kg?.toFixed(1), unit: 'kg' },
+                              { label: 'Altura', value: latestSnapshot.height_cm?.toFixed(0), unit: 'cm' },
                             ].map(item => (
-                              <div key={item.label} className="text-center rounded-lg py-3 bg-black/[0.03] dark:bg-white/[0.04]">
-                                <p className="text-lg font-bold text-gray-900 dark:text-white">{item.value}{item.unit}</p>
-                                <p className="text-[10px] text-gray-400 dark:text-white/40 mt-0.5">{item.label}</p>
+                              <div key={item.label} className="text-center rounded-xl py-3 bg-Malama-bg dark:bg-white/[0.04]">
+                                <p className="text-lg font-bold text-Malama-main dark:text-white">{item.value}{item.unit}</p>
+                                <p className="text-[10px] text-Malama-muted/70 dark:text-white/40 mt-0.5">{item.label}</p>
                               </div>
                             ))}
                           </div>
@@ -518,11 +480,11 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
         )}
       </div>
 
-      {/* Weight Log Modal — self-contained, opens above this screen */}
+      {/* Weight Log Modal */}
       {showWeightModal && (
         <WeightLogModal
           onClose={() => setShowWeightModal(false)}
-          onSaved={() => { if (user) loadData(user.id, period); }}
+          onSaved={() => { if (user) loadData(user.id, periodDays); }}
         />
       )}
     </div>
