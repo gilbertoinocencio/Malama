@@ -10,7 +10,9 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../services/supabase';
+import { ClinicalLoopService } from '../../services/clinicalLoopService';
 import type { QuarterlyPlanData } from '../../services/planService';
+import type { FeedbackVerdict } from '../../types/clinicalLoop';
 
 interface PlanRow {
   id: string;
@@ -150,6 +152,50 @@ export const AIPlanCustomization: React.FC<Props> = ({ patientId, doctorId, doct
     if (activePlan?.doctor_note) setNote(activePlan.doctor_note);
   }, [activePlan?.id]);
 
+  // Garante um ai_clinical_reports do tipo plan_suggestion p/ ancorar o feedback (RLHF)
+  const ensurePlanReport = async (plan: PlanRow): Promise<string | null> => {
+    const { data: existing } = await supabase
+      .from('ai_clinical_reports')
+      .select('id')
+      .eq('patient_id', patientId)
+      .eq('report_type', 'plan_suggestion')
+      .eq('structured_output->>plan_id', plan.id)
+      .maybeSingle();
+    if (existing?.id) return existing.id as string;
+
+    const c = plan.content;
+    const summary =
+      `Plano IA — ${c.calories} kcal | P ${c.macros?.protein}g · C ${c.macros?.carbs}g · G ${c.macros?.fats}g`
+      + (c.optimization_tag ? `\n${c.optimization_tag}` : '')
+      + (c.phases?.length ? '\n' + c.phases.map(p => `• ${p.title}: ${p.focus}`).join('\n') : '');
+
+    return ClinicalLoopService.saveAiReport({
+      patient_id:        patientId,
+      doctor_id:         doctorId,
+      report_type:       'plan_suggestion',
+      model:             'gemini-2.5-flash',
+      content:           summary,
+      structured_output: { ...c, plan_id: plan.id },
+    });
+  };
+
+  const recordPlanFeedback = async (verdict: FeedbackVerdict) => {
+    if (!activePlan) return;
+    try {
+      const reportId = await ensurePlanReport(activePlan);
+      if (reportId) {
+        await ClinicalLoopService.submitReportFeedback({
+          report_id:     reportId,
+          doctor_id:     doctorId,
+          verdict,
+          justification: note.trim() || null,
+        });
+      }
+    } catch (e) {
+      console.error('recordPlanFeedback error', e);
+    }
+  };
+
   const handleApprove = async () => {
     if (!activePlan) return;
     setApproving(true);
@@ -165,10 +211,27 @@ export const AIPlanCustomization: React.FC<Props> = ({ patientId, doctorId, doct
         .eq('id', activePlan.id);
 
       if (error) throw error;
+      // alimenta o corpus de RLHF: aprovar = accept (ou accept_with_edits se houver nota)
+      await recordPlanFeedback(note.trim() ? 'accept_with_edits' : 'accept');
       toast.success('Plano marcado como supervisionado');
       load();
     } catch {
       toast.error('Erro ao aprovar plano');
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!activePlan) return;
+    if (!note.trim()) { toast.error('Descreva na nota por que discorda do plano'); return; }
+    setApproving(true);
+    try {
+      await recordPlanFeedback('reject');
+      toast.success('Discordância registrada (treina a Inteligência)');
+      load();
+    } catch {
+      toast.error('Erro ao registrar discordância');
     } finally {
       setApproving(false);
     }
@@ -270,6 +333,15 @@ export const AIPlanCustomization: React.FC<Props> = ({ patientId, doctorId, doct
                 {approving ? 'Aprovando…' : 'Supervisionar'}
               </button>
             )}
+
+            <button
+              onClick={handleReject}
+              disabled={approving}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-red-300 text-red-700
+                         text-xs font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition"
+            >
+              Discordar
+            </button>
           </div>
         </div>
       )}

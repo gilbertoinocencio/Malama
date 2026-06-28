@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { HealthConnectService } from './healthConnectService';
 import type { FitnessService, ConnectedIntegration, Activity } from '../types';
 
 const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
@@ -90,6 +91,9 @@ export const IntegrationService = {
         .from('strava_connections')
         .delete()
         .eq('user_id', userId);
+    } else if (service === 'health_connect') {
+      // Health Connect é on-device: revoga as permissões no aparelho + marca inativo
+      await HealthConnectService.disconnect(userId);
     } else {
       await supabase
         .from('user_integrations')
@@ -104,11 +108,13 @@ export const IntegrationService = {
     await supabase.functions.invoke('google-fit-sync');
   },
 
-  // Sincroniza atividades de todas as integrações ativas em paralelo
+  // Sincroniza atividades de todas as integrações ativas em paralelo.
+  // Health Connect (Android) lê on-device e grava direto; auto-gateia em web/iOS.
   async syncActivities(): Promise<void> {
     await Promise.allSettled([
       supabase.functions.invoke('strava-sync'),
       supabase.functions.invoke('google-fit-sync'),
+      HealthConnectService.sync(),
     ]);
   },
 

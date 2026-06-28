@@ -40,7 +40,7 @@ async function getAuthDoctor(req: Request) {
 async function collectPatientData(patientId: string, doctorId: string) {
   const since30d = new Date(Date.now() - 30 * 86_400_000).toISOString();
 
-  const [profileRes, mealsRes, checkinsRes, consultRes, noteRes, activitiesRes] = await Promise.all([
+  const [profileRes, mealsRes, checkinsRes, consultRes, noteRes, activitiesRes, bodyScanRes] = await Promise.all([
     supabase.from('profiles').select(
       'display_name, age, gender, weight, height, goal, glp1_mode, glp1_medication, glp1_phase, target_calories, target_protein, target_carbs, target_fats'
     ).eq('id', patientId).single(),
@@ -72,6 +72,13 @@ async function collectPatientData(patientId: string, doctorId: string) {
       .eq('user_id', patientId)
       .gte('activity_date', since30d)
       .order('activity_date', { ascending: false }),
+
+    // Body scan: composição corporal — feature crítica p/ a Inteligência clínica
+    supabase.from('body_measurement_snapshots')
+      .select('avg_body_fat_pct, avg_muscle_mass_kg, waist_cm, hip_cm, chest_cm, bmi, weight_kg, snapped_at')
+      .eq('user_id', patientId)
+      .order('snapped_at', { ascending: false })
+      .limit(6),
   ]);
 
   return {
@@ -81,12 +88,13 @@ async function collectPatientData(patientId: string, doctorId: string) {
     consultations: consultRes.data ?? [],
     clinicalNotes: noteRes.data ?? [],
     activities:    activitiesRes.data ?? [],
+    bodyScans:     bodyScanRes.data ?? [],
   };
 }
 
 // ─── Build prompt ────────────────────────────────────
 function buildPrompt(data: Awaited<ReturnType<typeof collectPatientData>>, doctorName: string): string {
-  const { profile, meals, checkins, consultations, clinicalNotes, activities } = data;
+  const { profile, meals, checkins, consultations, clinicalNotes, activities, bodyScans } = data;
 
   // Compute adherence
   const dayCount = new Set(meals.map(m => m.created_at?.split('T')[0])).size;
@@ -148,6 +156,16 @@ ${activities.length > 0
       `- ${new Date(a.activity_date).toLocaleDateString('pt-BR')}: ${a.activity_type} — ${Math.round((a.duration_seconds ?? 0) / 60)}min, ${a.calories_burned ?? 0} kcal`
     ).join('\n')
   : '- Nenhuma atividade registrada'}
+
+## Composição Corporal (Body Scan)
+${bodyScans.length > 0
+  ? bodyScans.map((b: { snapped_at: string; avg_body_fat_pct: number; avg_muscle_mass_kg: number; waist_cm: number; hip_cm: number; bmi: number; weight_kg: number }) =>
+      `- ${new Date(b.snapped_at).toLocaleDateString('pt-BR')}: BF ${b.avg_body_fat_pct ?? 'N/A'}% | Massa magra ${b.avg_muscle_mass_kg ?? 'N/A'}kg | Cintura ${b.waist_cm ?? 'N/A'}cm | Quadril ${b.hip_cm ?? 'N/A'}cm | IMC ${b.bmi ?? 'N/A'} | Peso ${b.weight_kg ?? 'N/A'}kg`
+    ).join('\n')
+  : '- Nenhum body scan registrado'}
+${bodyScans.length >= 2
+  ? `Tendência de composição: gordura ${bodyScans[0].avg_body_fat_pct} → ${bodyScans[bodyScans.length - 1].avg_body_fat_pct}% | massa magra ${bodyScans[0].avg_muscle_mass_kg} → ${bodyScans[bodyScans.length - 1].avg_muscle_mass_kg}kg (do mais recente ao mais antigo)`
+  : ''}
 
 ## Estrutura do Relatório
 
@@ -249,9 +267,45 @@ Deno.serve(async (req: Request) => {
 
     const claudeData = await anthropicRes.json();
     const report     = claudeData.content?.[0]?.text ?? '';
+    const usage      = claudeData.usage ?? {};
 
-    // 5. Persistir relatório (opcional — tabela ai_reports não criada ainda, retornar texto)
-    // Futura expansão: salvar em public.ai_reports com patient_id, doctor_id, content, created_at
+    // 5. Persistir relatório em ai_clinical_reports (loop fechado p/ Fine-Tuning + RLHF).
+    //    input_snapshot = as features dadas ao modelo, SEM identificadores diretos
+    //    (display_name removido) — alinhado à camada de export pseudonimizado.
+    const { display_name: _omitName, ...profileFeatures } = data.profile ?? {};
+    const inputSnapshot = {
+      profile:       profileFeatures,
+      meals:         data.meals,
+      checkins:      data.checkins,
+      consultations: data.consultations,
+      clinicalNotes: data.clinicalNotes,
+      activities:    data.activities,
+      bodyScans:     data.bodyScans,   // composição corporal — feature p/ a Inteligência
+    };
+
+    let reportId: string | null = null;
+    const { data: savedReport, error: saveErr } = await supabase
+      .from('ai_clinical_reports')
+      .insert({
+        patient_id:         patient_id,
+        doctor_id:          doctor.id,
+        report_type:        'clinical_report',
+        model:              CLAUDE_MODEL,
+        input_snapshot:     inputSnapshot,
+        input_window_start: new Date(Date.now() - 30 * 86_400_000).toISOString(),
+        input_window_end:   new Date().toISOString(),
+        content:            report,
+        tokens_input:       usage.input_tokens  ?? null,
+        tokens_output:      usage.output_tokens ?? null,
+      })
+      .select('id')
+      .single();
+
+    if (saveErr) {
+      console.error('Falha ao persistir ai_clinical_reports:', saveErr);
+    } else {
+      reportId = savedReport.id;
+    }
 
     // 6. Notificar médico que o relatório foi gerado
     await supabase.rpc('notify_doctor', {
@@ -263,7 +317,7 @@ Deno.serve(async (req: Request) => {
       p_data:       { patient_id },
     });
 
-    return new Response(JSON.stringify({ report }), {
+    return new Response(JSON.stringify({ report, report_id: reportId }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

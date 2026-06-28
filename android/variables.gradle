@@ -1,5 +1,7 @@
 ext {
-    minSdkVersion = 24
+    // Health Connect (androidx.health.connect:connect-client) exige minSdk 26.
+    // Subido de 24 → 26; perde apenas Android 7.x (fração ínfima da base).
+    minSdkVersion = 26
     compileSdkVersion = 36
     targetSdkVersion = 36
     androidxActivityVersion = '1.11.0'

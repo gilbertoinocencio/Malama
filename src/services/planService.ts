@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { generatePlanContent } from './geminiService';
+import { ClinicalLoopService } from './clinicalLoopService';
 
 export interface QuarterlyPlanPhase {
     title: string;
@@ -101,16 +102,47 @@ export const PlanService = {
 
         if (saveError) throw saveError;
 
-        // 6. Update user profile targets so they reflect on the Home/Flow dashboard
-        await supabase
-            .from('profiles')
-            .update({
-                target_calories: planContent.calories,
-                target_protein: planContent.macros.protein,
-                target_carbs: planContent.macros.carbs,
-                target_fats: planContent.macros.fats
-            })
-            .eq('id', userId);
+        // 6. Persiste a sugestão da IA (loop fechado) e registra a conduta de macros.
+        //    A conduta via RPC atualiza profiles E grava no ledger imutável numa só
+        //    transação, vinculada ao report de origem (source_report_id).
+        let reportId: string | null = null;
+        try {
+            reportId = await ClinicalLoopService.saveAiReport({
+                patient_id:        userId,
+                report_type:       'plan_suggestion',
+                model:             'gemini-2.5-flash',
+                content:           `Plano IA — ${planContent.calories} kcal | P ${planContent.macros.protein}g · C ${planContent.macros.carbs}g · G ${planContent.macros.fats}g`,
+                structured_output: { ...planContent, plan_id: newPlan.id },
+                input_snapshot:    { profile, onboarding: onboardingData },
+            });
+        } catch (e) {
+            console.error('Falha ao persistir plan_suggestion:', e);
+        }
+
+        try {
+            await ClinicalLoopService.applyMacroConduct(
+                userId,
+                {
+                    calories: planContent.calories,
+                    protein:  planContent.macros.protein,
+                    carbs:    planContent.macros.carbs,
+                    fats:     planContent.macros.fats,
+                },
+                { sourceReportId: reportId, rationale: 'Plano nutricional gerado pela IA' }
+            );
+        } catch (e) {
+            // Fallback: garante que o dashboard reflita as metas mesmo se a RPC falhar
+            console.error('applyMacroConduct falhou, usando update direto:', e);
+            await supabase
+                .from('profiles')
+                .update({
+                    target_calories: planContent.calories,
+                    target_protein: planContent.macros.protein,
+                    target_carbs: planContent.macros.carbs,
+                    target_fats: planContent.macros.fats
+                })
+                .eq('id', userId);
+        }
 
         return {
             id: newPlan.id,

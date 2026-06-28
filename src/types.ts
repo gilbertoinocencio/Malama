@@ -127,7 +127,22 @@ export enum AppView {
 
 export type Theme = 'light' | 'dark';
 
-export type FitnessService = 'strava' | 'google_fit' | 'garmin' | 'polar' | 'samsung';
+export type FitnessService = 'strava' | 'google_fit' | 'garmin' | 'polar' | 'samsung' | 'health_connect';
+
+/** Agregados diários de origem device (Google Health Connect). Tabela health_daily_metrics. */
+export interface HealthDailyMetrics {
+  metric_date: string;            // YYYY-MM-DD
+  steps?: number | null;
+  active_calories?: number | null;
+  total_calories?: number | null;
+  distance_meters?: number | null;
+  resting_heart_rate?: number | null;
+  avg_heart_rate?: number | null;
+  sleep_minutes?: number | null;
+  body_fat_pct?: number | null;
+  weight_kg?: number | null;
+  source?: string;
+}
 
 export interface ConnectedIntegration {
   service: FitnessService;

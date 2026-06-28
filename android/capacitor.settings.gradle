@@ -16,3 +16,6 @@ project(':capacitor-browser').projectDir = new File('../node_modules/@capacitor/
 
 include ':capacitor-haptics'
 project(':capacitor-haptics').projectDir = new File('../node_modules/@capacitor/haptics/android')
+
+include ':kiwi-health-capacitor-health-connect'
+project(':kiwi-health-capacitor-health-connect').projectDir = new File('../node_modules/@kiwi-health/capacitor-health-connect/android')

@@ -1,10 +1,16 @@
 import { GeminiProxy } from './geminiProxy';
 import { supabase } from '../services/supabase';
+import { ClinicalLoopService } from '../services/clinicalLoopService';
 
 const genAI = new GeminiProxy();
 const MODEL_NAME = 'gemini-2.5-flash';
 
-export async function generateConsultationBriefing(patientId: string): Promise<string> {
+export interface ConsultationBriefingResult {
+  text: string;
+  reportId: string | null;
+}
+
+export async function generateConsultationBriefing(patientId: string): Promise<ConsultationBriefingResult> {
   // 1. Fetch patient profile
   const { data: patient } = await supabase
     .from('profiles')
@@ -228,6 +234,21 @@ export async function generateConsultationBriefing(patientId: string): Promise<s
   const habitChangesList = (patient.habit_changes || []).map((h: string) => habitChangeLabels[h] ?? h);
   const dietaryRestrictionsList = (patient.dietary_restrictions || []) as string[];
 
+  // 5b. Composição corporal — último body scan (crítico p/ a Inteligência clínica)
+  const { data: lastScan } = await supabase
+    .from('body_measurement_snapshots')
+    .select('avg_body_fat_pct, avg_muscle_mass_kg, waist_cm, hip_cm, chest_cm, bmi, weight_kg, snapped_at')
+    .eq('user_id', patientId)
+    .order('snapped_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const bodyComposition = lastScan
+    ? `Composição corporal (último scan ${fmtDate(lastScan.snapped_at)}): `
+      + `BF ${lastScan.avg_body_fat_pct ?? '—'}% | Massa magra ${lastScan.avg_muscle_mass_kg ?? '—'}kg | `
+      + `Cintura ${lastScan.waist_cm ?? '—'}cm | Quadril ${lastScan.hip_cm ?? '—'}cm | IMC ${lastScan.bmi ?? '—'}`
+    : 'Composição corporal: sem body scan registrado';
+
   const context = `
 Paciente: ${patient.display_name || 'Paciente'}, ${patientAge ?? '—'} anos, ${patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Feminino' : '—'}
 IMC: ${bmi} | Peso: ${patient.weight || '—'}kg | Altura: ${patient.height || '—'}cm
@@ -244,6 +265,7 @@ Perfil alimentar e estilo de vida (coletado no onboarding):
 - Hábitos que deseja mudar: ${habitChangesList.length > 0 ? habitChangesList.join(', ') : 'Nenhum informado'}
 
 Evolução de peso (90 dias): ${weightStart}kg → ${weightCurrent}kg (${parseFloat(weightDiff) > 0 ? '+' : ''}${weightDiff}kg)
+${bodyComposition}
 
 Nutrição (média 28 dias):
 - Calorias: ${avgCalories}kcal/dia (meta: ${patient.target_calories || '—'}kcal)
@@ -271,6 +293,55 @@ Notas do diário (últimos 30 dias):
 ${diarySummary ?? 'Nenhuma nota registrada no período.'}
   `.trim();
 
+  // Snapshot de features p/ treino (loop fechado) — SEM identificadores diretos
+  const inputSnapshot: Record<string, unknown> = {
+    age: patientAge,
+    gender: patient.gender,
+    bmi,
+    glp1_medication: patient.glp1_medication ?? null,
+    glp1_phase: patient.glp1_phase ?? null,
+    weight_start: weightStart,
+    weight_current: weightCurrent,
+    weight_diff_90d: weightDiff,
+    avg_calories: avgCalories,
+    avg_protein: avgProtein,
+    target_calories: patient.target_calories ?? null,
+    target_protein: patient.target_protein ?? null,
+    adherence_percent: adherencePercent,
+    top_meals: topMeals,
+    heavy_meals: heavyMeals,
+    connected_services: connectedServices,
+    top_activities: topActivities,
+    avg_daily_burn: avgDailyBurn,
+    avg_water: avgWater,
+    water_goal: waterGoal,
+    water_adherence: waterAdherence,
+    top_symptoms: topSymptoms,
+    avg_energy_label: avgEnergyLabel,
+    body_composition: lastScan ?? null,   // body scan: feature crítica p/ a Inteligência
+  };
+
+  // Resolve o médico autenticado (p/ vincular o relatório ao feedback dele)
+  const { data: authData } = await supabase.auth.getUser();
+  let doctorId: string | null = null;
+  if (authData?.user) {
+    const { data: doc } = await supabase
+      .from('doctors').select('id').eq('user_id', authData.user.id).maybeSingle();
+    doctorId = doc?.id ?? null;
+  }
+
+  const persistBriefing = async (text: string): Promise<string | null> =>
+    ClinicalLoopService.saveAiReport({
+      patient_id:    patientId,
+      doctor_id:     doctorId,
+      report_type:   'pre_consult_briefing',
+      model:         MODEL_NAME,
+      content:       text,
+      input_snapshot: inputSnapshot,
+      input_window_start: since90.toISOString(),
+      input_window_end:   new Date().toISOString(),
+    });
+
   // 6. Gerar briefing via Gemini (mesmo padrão do chat do paciente)
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
@@ -292,9 +363,13 @@ Inclua obrigatoriamente:
 Dados do paciente:
 ${context}`
     );
-    return result.response.text() || buildFallbackBriefing(context, patient, weightDiff, adherencePercent, topSymptoms);
+    const text = result.response.text() || buildFallbackBriefing(context, patient, weightDiff, adherencePercent, topSymptoms, patientAge);
+    const reportId = await persistBriefing(text);
+    return { text, reportId };
   } catch {
-    return buildFallbackBriefing(context, patient, weightDiff, adherencePercent, topSymptoms);
+    const text = buildFallbackBriefing(context, patient, weightDiff, adherencePercent, topSymptoms, patientAge);
+    const reportId = await persistBriefing(text);
+    return { text, reportId };
   }
 }
 
@@ -303,7 +378,8 @@ function buildFallbackBriefing(
   patient: any,
   weightDiff: any,
   adherencePercent: number,
-  topSymptoms: string[]
+  topSymptoms: string[],
+  patientAge: number | null
 ): string {
   const diffNum = parseFloat(weightDiff);
   const progressLine =

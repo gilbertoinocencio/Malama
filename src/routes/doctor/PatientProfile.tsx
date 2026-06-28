@@ -17,6 +17,8 @@ import { AppointmentChatPanel } from '../../components/doctor/AppointmentChatPan
 import { PatientExamPanel } from '../../components/doctor/PatientExamPanel';
 import { AIInsightsSidebar } from '../../components/doctor/AIInsightsSidebar';
 import { AIPlanCustomization } from '../../components/doctor/AIPlanCustomization';
+import { AIReportFeedback } from '../../components/doctor/AIReportFeedback';
+import { ClinicalTimeline } from '../../components/doctor/ClinicalTimeline';
 import { BodyCompositionDashboard } from '../../components/doctor/BodyCompositionDashboard';
 import { PatientActivitiesPanel } from '../../components/doctor/PatientActivitiesPanel';
 
@@ -44,6 +46,7 @@ export const PatientProfile: React.FC = () => {
   const [adjustTag, setAdjustTag] = useState('');
   const [history, setHistory] = useState<PatientFullHistory | null>(null);
   const [briefing, setBriefing] = useState<string | null>(null);
+  const [briefingReportId, setBriefingReportId] = useState<string | null>(null);
   const [generatingBriefing, setGeneratingBriefing] = useState(false);
   const [glp1Schedule, setGlp1Schedule] = useState<GLP1MealSlot[]>([]);
   const [glp1ScheduleSaving, setGlp1ScheduleSaving] = useState(false);
@@ -132,8 +135,9 @@ export const PatientProfile: React.FC = () => {
     if (!patientId) return;
     try {
       setGeneratingBriefing(true);
-      const res = await generateConsultationBriefing(patientId);
-      setBriefing(res);
+      const { text, reportId } = await generateConsultationBriefing(patientId);
+      setBriefing(text);
+      setBriefingReportId(reportId);
       toast.success('Briefing gerado com sucesso!');
     } catch (err) {
       toast.error('Erro ao gerar briefing da IA');
@@ -923,11 +927,14 @@ export const PatientProfile: React.FC = () => {
 
           {/* Aba Plano IA */}
           {activeTab === 'plano' && patientId && (
-            <AIPlanCustomization
-              patientId={patientId}
-              doctorId={doctor.id}
-              doctorName={doctor.name}
-            />
+            <div className="space-y-6">
+              <AIPlanCustomization
+                patientId={patientId}
+                doctorId={doctor.id}
+                doctorName={doctor.name}
+              />
+              <ClinicalTimeline patientId={patientId} />
+            </div>
           )}
 
           {/* Aba Briefing IA */}
@@ -965,6 +972,11 @@ export const PatientProfile: React.FC = () => {
                       🔄 Gerar novamente
                     </button>
                   </div>
+                  {briefingReportId && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <AIReportFeedback reportId={briefingReportId} doctorId={doctor.id} aiContent={briefing} />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 flex flex-col items-center text-center">

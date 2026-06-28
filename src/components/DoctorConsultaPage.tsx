@@ -5,6 +5,7 @@ import { supabase } from '../services/supabase';
 import { generatePrescriptionPDF, savePrescription, signPrescriptionPDF } from '../lib/prescription';
 import { generateConsultationBriefing } from '../lib/briefing';
 import { clinicalNoteService, appointmentChatService } from '../services/doctorPortalService';
+import { AIReportFeedback } from './doctor/AIReportFeedback';
 import { AppointmentChatPanel } from './doctor/AppointmentChatPanel';
 import { PatientExamPanel } from './doctor/PatientExamPanel';
 import { PatientInfoPanel } from './doctor/PatientInfoPanel';
@@ -64,6 +65,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
 
   // Briefing IA
   const [briefing, setBriefing] = useState('');
+  const [briefingReportId, setBriefingReportId] = useState<string | null>(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
 
   // Análise clínica
@@ -274,7 +276,11 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
 
   const handleGenerateBriefing = async () => {
     setBriefingLoading(true);
-    try { setBriefing(await generateConsultationBriefing(patientId)); }
+    try {
+      const { text, reportId } = await generateConsultationBriefing(patientId);
+      setBriefing(text);
+      setBriefingReportId(reportId);
+    }
     catch { setBriefing('Erro ao gerar briefing. Tente novamente.'); }
     finally { setBriefingLoading(false); }
   };
@@ -759,6 +765,11 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
                     className="mt-3 text-xs text-green-400 hover:text-green-300 disabled:opacity-50">
                     {briefingLoading ? 'Regenerando...' : '↻ Regenerar'}
                   </button>
+                  {briefingReportId && (
+                    <div className="mt-4 rounded-xl bg-white p-3">
+                      <AIReportFeedback reportId={briefingReportId} doctorId={doctorId} aiContent={briefing} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

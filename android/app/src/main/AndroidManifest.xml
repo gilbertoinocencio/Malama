@@ -18,7 +18,26 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Health Connect (Android ≤13): tratador da tela de justificativa de
+                 privacidade, aberta quando o usuário toca no link de "política de
+                 privacidade" dentro do app Health Connect. -->
+            <intent-filter>
+                <action android:name="androidx.health.connect.action.SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
         </activity>
+
+        <!-- Health Connect (Android 14+): alias para a mesma tela de justificativa. -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -41,4 +60,25 @@
 
     <!-- Vibração: usada pelo Body Scan (Haptics) para guiar por toque quem está de perfil. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- ── Google Health Connect ─────────────────────────────────────────────
+         Leitura de atividade física e sinais de saúde do repositório on-device.
+         IMPORTANTE: cada permissão precisa de um uso visível no app, senão a
+         revisão de dados de saúde do Google Play é rejeitada. -->
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_DISTANCE" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <uses-permission android:name="android.permission.health.READ_WEIGHT" />
+    <uses-permission android:name="android.permission.health.READ_BODY_FAT" />
+
+    <!-- Visibilidade de pacote (Android 11+): permite detectar e abrir o app
+         Health Connect a partir do nosso app. -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
 </manifest>

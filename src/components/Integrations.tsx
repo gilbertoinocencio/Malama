@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { IntegrationService } from '../services/integrationService';
+import { HealthConnectService } from '../services/healthConnectService';
 import type { FitnessService, ConnectedIntegration } from '../types';
 
 interface IntegrationsProps {
@@ -25,6 +27,7 @@ const INTEGRATION_DEFS: IntegrationItem[] = [
   { id: 'strava',     name: 'Strava',         icon: 'directions_run',  color: 'text-[#FC4C02]',               iconBg: 'bg-[#FC4C02]/10',  darkIconBg: 'dark:bg-[#FC4C02]/20' },
   { id: 'apple',      name: 'Apple Health',   icon: 'favorite',        color: 'text-Malama-main dark:text-white', iconBg: 'bg-Malama-bg',  darkIconBg: 'dark:bg-[#363330]', comingSoon: true },
   { id: 'google_fit', name: 'Google Fit',     icon: 'health_and_safety', color: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50', darkIconBg: 'dark:bg-blue-900/30' },
+  { id: 'health_connect', name: 'Health Connect', icon: 'ecg_heart',     color: 'text-green-600 dark:text-green-400', iconBg: 'bg-green-50', darkIconBg: 'dark:bg-green-900/30' },
   { id: 'garmin',     name: 'Garmin',         icon: 'watch',           color: 'text-[#007cc3]',               iconBg: 'bg-blue-100',      darkIconBg: 'dark:bg-blue-800/30',  uiOnly: true },
   { id: 'polar',      name: 'Polar',          icon: 'monitor_heart',   color: 'text-[#E60012]',               iconBg: 'bg-red-50',        darkIconBg: 'dark:bg-red-900/20',   uiOnly: true },
   { id: 'samsung',    name: 'Samsung Health', icon: 'vital_signs',     color: 'text-[#1428a0] dark:text-indigo-400', iconBg: 'bg-indigo-50', darkIconBg: 'dark:bg-indigo-900/20', uiOnly: true },
@@ -40,6 +43,11 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
 
+  // Health Connect é on-device (Android): o estado real de conexão é a permissão
+  // concedida no aparelho, verificada em runtime — não um flag vindo do banco.
+  const isAndroid = Capacitor.getPlatform() === 'android';
+  const [hcConnected, setHcConnected] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     IntegrationService.getConnectedIntegrations(user.id)
@@ -51,8 +59,16 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
       .finally(() => setLoading(false));
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!isAndroid) return;
+    HealthConnectService.getStatus()
+      .then(s => setHcConnected(s.connected))
+      .catch(() => {});
+  }, [isAndroid]);
+
   const isConnected = (id: FitnessService | 'apple'): boolean => {
     if (id === 'apple') return false;
+    if (id === 'health_connect') return hcConnected;
     return connected[id as FitnessService] ?? false;
   };
 
@@ -62,6 +78,19 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
 
     const service = item.id as FitnessService;
     setToggling(item.id);
+
+    // Health Connect: diálogo nativo de permissões (sem redirect OAuth).
+    if (item.id === 'health_connect') {
+      if (hcConnected) {
+        await IntegrationService.disconnectService('health_connect', user.id);
+        setHcConnected(false);
+      } else {
+        const ok = await HealthConnectService.requestPermissions();
+        setHcConnected(ok);
+      }
+      setToggling(null);
+      return;
+    }
 
     if (isConnected(item.id)) {
       // Desconectar
@@ -128,7 +157,9 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
             <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-Malama-petrol dark:border-primary" />
           </div>
         ) : (
-          INTEGRATION_DEFS.map((item) => {
+          INTEGRATION_DEFS
+            .filter((item) => item.id !== 'health_connect' || isAndroid)
+            .map((item) => {
             const connected_ = isConnected(item.id);
             const disabled = item.comingSoon || item.uiOnly;
 
