@@ -32,13 +32,8 @@ const PlanProgressShare = React.lazy(() => lazyRetry(() => import('./components/
 const ProfileConfig = React.lazy(() => lazyRetry(() => import('./components/ProfileConfig'), 'ProfileConfig'));
 const ProfileView = React.lazy(() => lazyRetry(() => import('./components/ProfileView'), 'ProfileView'));
 const HydrationSocial = React.lazy(() => lazyRetry(() => import('./components/HydrationSocial'), 'HydrationSocial'));
-const QuarterlyAnalysis = React.lazy(() => lazyRetry(() => import('./components/QuarterlyAnalysis'), 'QuarterlyAnalysis'));
 const DailyJournal = React.lazy(() => lazyRetry(() => import('./components/DailyJournal'), 'DailyJournal'));
-const PlanRenewal = React.lazy(() => lazyRetry(() => import('./components/PlanRenewal'), 'PlanRenewal'));
-const RefinePlan = React.lazy(() => lazyRetry(() => import('./components/RefinePlan'), 'RefinePlan'));
 const FlowAdaptation = React.lazy(() => lazyRetry(() => import('./components/FlowAdaptation'), 'FlowAdaptation'));
-const VisualEvolution = React.lazy(() => lazyRetry(() => import('./components/VisualEvolution'), 'VisualEvolution'));
-const VisualShare = React.lazy(() => lazyRetry(() => import('./components/VisualShare'), 'VisualShare'));
 const Integrations = React.lazy(() => lazyRetry(() => import('./components/Integrations'), 'Integrations'));
 const GLP1Onboarding = React.lazy(() => lazyRetry(() => import('./components/GLP1Onboarding'), 'GLP1Onboarding'));
 const GLP1Dashboard = React.lazy(() => lazyRetry(() => import('./components/GLP1Dashboard'), 'GLP1Dashboard'));
@@ -527,40 +522,6 @@ const App: React.FC = () => {
 
         {view === AppView.PLAN_SHARE && (
           <PlanProgressShare onBack={() => setView(AppView.PLAN)} />
-        )}
-
-        {view === AppView.QUARTERLY_ANALYSIS && (
-          <QuarterlyAnalysis
-            onBack={() => setView(AppView.PROFILE)}
-            onNavigate={setView}
-          />
-        )}
-
-        {view === AppView.VISUAL_EVOLUTION && (
-          <VisualEvolution
-            onBack={() => setView(AppView.QUARTERLY_ANALYSIS)}
-            onNavigate={setView}
-          />
-        )}
-
-        {view === AppView.VISUAL_SHARE && (
-          <VisualShare
-            onBack={() => setView(AppView.VISUAL_EVOLUTION)}
-          />
-        )}
-
-        {view === AppView.PLAN_RENEWAL && (
-          <PlanRenewal
-            onBack={() => setView(AppView.QUARTERLY_ANALYSIS)}
-            onNavigate={setView}
-          />
-        )}
-
-        {view === AppView.REFINE_PLAN && (
-          <RefinePlan
-            onBack={() => setView(AppView.PLAN_RENEWAL)}
-            onNavigate={setView}
-          />
         )}
 
         {view === AppView.FLOW_ADAPTATION && (

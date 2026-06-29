@@ -514,7 +514,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <p className="text-xs text-center text-Malama-muted dark:text-gray-400 mt-1 font-medium">{t.profile.meals}</p>
             </div>
             <div
-              onClick={() => onNavClick(AppView.QUARTERLY_ANALYSIS)}
+              onClick={() => setShowMetricsChart(true)}
               className="flex flex-col items-center justify-center p-4 bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-Malama-border dark:border-white/10 h-28 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors relative overflow-hidden group"
             >
               <div className="absolute top-1 right-1">

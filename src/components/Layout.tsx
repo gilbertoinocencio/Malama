@@ -30,8 +30,6 @@ export const Layout: React.FC<LayoutProps> = ({
     AppView.FOOD_GUIDE,
     AppView.PLAN,
     AppView.PROFILE,
-    AppView.QUARTERLY_ANALYSIS,
-    AppView.VISUAL_EVOLUTION,
     AppView.COMMUNITY_SEARCH,
     AppView.NOTIFICATION_CENTER,
     AppView.COMMUNITY_PROFILE,
