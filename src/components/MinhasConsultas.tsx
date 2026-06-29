@@ -119,8 +119,8 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
     new Date(iso).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
   const statusColor: Record<string, string> = {
-    scheduled: 'text-Malama-petrol bg-Malama-petrol-light',
-    in_progress: 'text-blue-600 bg-blue-100',
+    scheduled: 'text-Malama-petrol bg-[#8c473e]/10',
+    in_progress: 'text-blue-600 bg-blue-50',
     completed: 'text-Malama-muted bg-Malama-border',
     cancelled: 'text-red-500 bg-red-50',
     no_show: 'text-orange-500 bg-orange-50',
@@ -139,9 +139,9 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
   };
 
   return (
-    <div className="min-h-screen bg-[#EEEFF4] font-display text-gray-900 pb-32">
+    <div className="min-h-screen bg-Malama-bg font-display text-Malama-main pb-32">
       <header className="flex items-center gap-3 px-4 pt-12 pb-4">
-        <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors">
+        <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-Malama-main/5 transition-colors">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-xl font-bold flex-1">Saúde & Consultas</h1>
@@ -175,7 +175,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-4 flex items-center justify-between shadow-md mb-5 cursor-pointer"
+                className="bg-gradient-to-r from-Malama-petrol to-[#7a3d35] rounded-2xl p-4 flex items-center justify-between shadow-md mb-5 cursor-pointer"
                 onClick={() => onNavigate(AppView.AGENDAR_CONSULTA)}
               >
                 <div className="flex items-center gap-3">
@@ -222,25 +222,25 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
             {/* Upcoming */}
             {upcoming.length > 0 && (
               <div className="mb-5">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Próximas</p>
+                <p className="text-xs font-semibold text-Malama-muted uppercase tracking-wider mb-3">Próximas</p>
                 <div className="space-y-3">
                   {upcoming.map((c) => (
                     <motion.div
                       key={c.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+                      className="bg-white rounded-2xl p-4 shadow-sm border border-Malama-border"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <p className="text-sm font-bold">{(c.doctors as any)?.name || 'Médico'}</p>
-                          <p className="text-xs text-gray-500">{(c.doctors as any)?.specialty}</p>
+                          <p className="text-xs text-Malama-muted">{(c.doctors as any)?.specialty}</p>
                         </div>
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor[c.status]}`}>
                           {statusLabel[c.status]}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-600 mb-3 capitalize">📅 {formatDate(c.scheduled_at)}</p>
+                      <p className="text-xs text-Malama-muted mb-3 capitalize">📅 {formatDate(c.scheduled_at)}</p>
                       <div className="flex gap-2">
                         {canEnter(c) ? (
                           <button
@@ -272,14 +272,14 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
             {/* Past */}
             {past.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Histórico</p>
+                <p className="text-xs font-semibold text-Malama-muted uppercase tracking-wider mb-3">Histórico</p>
                 <div className="space-y-3">
                   {past.map((c) => (
                     <motion.div
                       key={c.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+                      className="bg-white rounded-2xl p-4 shadow-sm border border-Malama-border"
                     >
                       <div className="flex items-start justify-between mb-1">
                         <p className="text-sm font-bold">{(c.doctors as any)?.name || 'Médico'}</p>
@@ -287,11 +287,11 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                           {statusLabel[c.status]}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 mb-2 capitalize">📅 {formatDate(c.scheduled_at)}</p>
+                      <p className="text-xs text-Malama-muted mb-2 capitalize">📅 {formatDate(c.scheduled_at)}</p>
                       {c.status === 'completed' && !c.rating && (
                         <button
                           onClick={() => setRatingModal({ id: c.id, doctorName: (c.doctors as any)?.name || 'Médico' })}
-                          className="text-xs text-Malama-petrol hover:text-Malama-petroleum font-semibold"
+                          className="text-xs text-Malama-petrol hover:text-[#7a3d35] font-semibold"
                         >
                           ★ Avaliar consulta
                         </button>
@@ -306,7 +306,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                         return (
                           <button
                             onClick={() => onOpenChat?.({ consultationId: c.id, doctorName: (c.doctors as any)?.name || 'Médico' })}
-                            className="mt-2 w-full flex items-center justify-between px-3 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-semibold transition-colors"
+                            className="mt-2 w-full flex items-center justify-between px-3 py-2.5 bg-Malama-main hover:bg-[#2c2420] text-white rounded-xl text-xs font-semibold transition-colors"
                           >
                             <div className="flex items-center gap-2">
                               <span className="material-symbols-outlined text-base">chat</span>
@@ -314,7 +314,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                             </div>
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               days <= 3 ? 'bg-red-500 text-white' :
-                              days <= 7 ? 'bg-amber-400 text-gray-900' :
+                              days <= 7 ? 'bg-amber-400 text-Malama-main' :
                                           'bg-white/20 text-white'
                             }`}>
                               {days}d
@@ -331,7 +331,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
             {consultations.length === 0 && (
               <div className="text-center py-12">
                 <span className="text-4xl">🗓</span>
-                <p className="text-sm text-gray-500 mt-3">Nenhuma consulta ainda</p>
+                <p className="text-sm text-Malama-muted mt-3">Nenhuma consulta ainda</p>
                 <button
                   onClick={() => onNavigate(AppView.GLP1_CONSULTA)}
                   className="mt-4 px-5 py-2.5 bg-Malama-petrol text-white rounded-full text-sm font-bold hover:bg-[#7a3d35] transition-colors"
@@ -352,7 +352,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                   key={rx.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+                  className="bg-white rounded-2xl p-4 shadow-sm border border-Malama-border"
                 >
                   <div className="flex items-start justify-between mb-1">
                     <p className="text-sm font-bold">💊 {rx.medication}</p>
@@ -363,10 +363,10 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                       <span className="text-xs font-semibold px-2 py-0.5 bg-red-100 text-red-500 rounded-full">Vencida</span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 mb-1">
+                  <p className="text-xs text-Malama-muted mb-1">
                     {(rx.doctors as any)?.name || 'Médico'} · {new Date(rx.issued_at).toLocaleDateString('pt-BR')}
                   </p>
-                  <p className="text-xs text-gray-400 mb-3">
+                  <p className="text-xs text-Malama-muted/70 mb-3">
                     {days > 0 ? `Vence em ${days} dias` : 'Receita vencida'}
                   </p>
                   <div className="flex gap-2">
@@ -375,7 +375,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                         href={rx.pdf_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 py-2 text-center border border-gray-200 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-50 transition-colors"
+                        className="flex-1 py-2 text-center border border-Malama-border text-Malama-main rounded-xl text-xs font-semibold hover:bg-Malama-border/30 transition-colors"
                       >
                         Baixar PDF
                       </a>
@@ -395,7 +395,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
             {prescriptions.length === 0 && (
               <div className="text-center py-12">
                 <span className="text-4xl">📋</span>
-                <p className="text-sm text-gray-500 mt-3">Nenhuma receita ainda</p>
+                <p className="text-sm text-Malama-muted mt-3">Nenhuma receita ainda</p>
               </div>
             )}
           </div>
@@ -407,10 +407,10 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
       {rescheduleModal && (
         <div className="fixed inset-0 bg-black/50 flex items-end z-50">
           <div className="bg-white w-full rounded-t-3xl p-6">
-            <h3 className="font-bold text-lg mb-1">Escolha um novo horário</h3>
-            <p className="text-sm text-gray-500 mb-1">Dr(a). {(rescheduleModal.doctors as any)?.name || 'Médico'}</p>
+            <h3 className="font-bold text-lg mb-1 text-Malama-main">Escolha um novo horário</h3>
+            <p className="text-sm text-Malama-muted mb-1">Dr(a). {(rescheduleModal.doctors as any)?.name || 'Médico'}</p>
             {rescheduleModal.reschedule_message && (
-              <p className="text-xs text-gray-400 italic mb-4">"{rescheduleModal.reschedule_message}"</p>
+              <p className="text-xs text-Malama-muted/70 italic mb-4">"{rescheduleModal.reschedule_message}"</p>
             )}
             <div className="space-y-2 mb-5">
               {(rescheduleModal.reschedule_proposals || []).map((p, i) => {
@@ -423,17 +423,17 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                     key={i}
                     onClick={() => setChosenProposal(p.date)}
                     className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 text-left transition ${
-                      selected ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                      selected ? 'border-Malama-petrol bg-[#8c473e]/5' : 'border-Malama-border hover:border-Malama-muted'
                     }`}
                   >
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                      selected ? 'border-green-500 bg-green-500' : 'border-gray-300'
+                      selected ? 'border-Malama-petrol bg-Malama-petrol' : 'border-Malama-muted/50'
                     }`}>
                       {selected && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-gray-800 capitalize">{label}</p>
-                      <p className="text-xs text-gray-500">às {time}</p>
+                      <p className="text-sm font-semibold text-Malama-main capitalize">{label}</p>
+                      <p className="text-xs text-Malama-muted">às {time}</p>
                     </div>
                   </button>
                 );
@@ -450,7 +450,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
               <button
                 onClick={handleAcceptReschedule}
                 disabled={!chosenProposal || rescheduleLoading}
-                className="flex-1 py-3 bg-green-500 text-white rounded-2xl text-sm font-bold hover:bg-green-600 transition disabled:opacity-50"
+                className="flex-1 py-3 bg-Malama-petrol text-white rounded-2xl text-sm font-bold hover:bg-[#7a3d35] transition disabled:opacity-50"
               >
                 {rescheduleLoading ? 'Confirmando...' : 'Confirmar horário'}
               </button>
@@ -463,11 +463,11 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
       {ratingModal && (
         <div className="fixed inset-0 bg-black/50 flex items-end z-50">
           <div className="bg-white w-full rounded-t-3xl p-6">
-            <h3 className="font-bold text-lg mb-1">Avaliar consulta</h3>
-            <p className="text-sm text-gray-500 mb-4">{ratingModal.doctorName}</p>
+            <h3 className="font-bold text-lg mb-1 text-Malama-main">Avaliar consulta</h3>
+            <p className="text-sm text-Malama-muted mb-4">{ratingModal.doctorName}</p>
             <div className="flex justify-center gap-3 mb-4">
               {[1, 2, 3, 4, 5].map((n) => (
-                <button key={n} onClick={() => setRatingValue(n)} className="text-3xl">
+                <button key={n} onClick={() => setRatingValue(n)} className="text-3xl text-Malama-petrol">
                   {n <= ratingValue ? '★' : '☆'}
                 </button>
               ))}
@@ -476,19 +476,19 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
               value={ratingComment}
               onChange={(e) => setRatingComment(e.target.value)}
               placeholder="Comentário opcional..."
-              className="w-full border border-gray-200 rounded-xl p-3 text-sm resize-none h-20 mb-4 focus:outline-none focus:ring-2 focus:ring-gray-300"
+              className="w-full border border-Malama-border rounded-xl p-3 text-sm resize-none h-20 mb-4 focus:outline-none focus:ring-2 focus:ring-Malama-petrol/30 text-Malama-main placeholder:text-Malama-muted/60"
             />
             <div className="flex gap-3">
               <button
                 onClick={() => setRatingModal(null)}
-                className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-500"
+                className="flex-1 py-3 border border-Malama-border rounded-xl text-sm font-semibold text-Malama-muted"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleRate}
                 disabled={ratingSaving}
-                className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-sm font-bold disabled:opacity-50"
+                className="flex-1 py-3 bg-Malama-petrol text-white rounded-xl text-sm font-bold hover:bg-[#7a3d35] transition disabled:opacity-50"
               >
                 {ratingSaving ? 'Enviando...' : 'Enviar avaliação'}
               </button>

@@ -160,12 +160,12 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
   };
 
   return (
-    <div className="min-h-screen bg-[#EEEFF4] font-display text-gray-900">
+    <div className="min-h-screen bg-Malama-bg font-display text-Malama-main">
       {/* Header */}
       <header className="flex items-center gap-3 px-4 pt-12 pb-4">
         <button
           onClick={goBack}
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors"
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-Malama-main/5 transition-colors"
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
@@ -174,9 +174,9 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
 
       {/* Progress */}
       <div className="px-4 mb-5">
-        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-Malama-border rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-green-500 rounded-full"
+            className="h-full bg-Malama-petrol rounded-full"
             animate={{ width: `${progressPct}%` }}
             transition={{ duration: 0.4 }}
           />
@@ -189,20 +189,20 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
           {step === 'objective' && (
             <StepWrap key="objective">
               <h2 className="text-xl font-bold mb-2">{t.agendarConsulta.whatIsYourObjective}</h2>
-              <p className="text-sm text-gray-500 mb-6">{t.agendarConsulta.findRightSpecialist}</p>
+              <p className="text-sm text-Malama-muted mb-6">{t.agendarConsulta.findRightSpecialist}</p>
               <div className="space-y-3">
                 {OBJECTIVE_OPTIONS.map((obj) => (
                   <button
                     key={obj.value}
                     onClick={() => { setSelectedObjective(obj.value); setDoctors([]); setStep('doctors'); }}
-                    className="w-full text-left px-5 py-4 rounded-2xl bg-white border-2 border-gray-200 hover:border-green-400 transition-all flex items-center gap-3 shadow-sm"
+                    className="w-full text-left px-5 py-4 rounded-2xl bg-white border-2 border-Malama-border hover:border-Malama-petrol transition-all flex items-center gap-3 shadow-sm"
                   >
                     <span className="text-2xl">{obj.icon}</span>
                     <div className="flex-1">
-                      <p className="text-sm font-bold text-gray-800">{obj.label}</p>
-                      <p className="text-xs text-gray-500">{obj.desc}</p>
+                      <p className="text-sm font-bold text-Malama-main">{obj.label}</p>
+                      <p className="text-xs text-Malama-muted">{obj.desc}</p>
                     </div>
-                    <span className="material-symbols-outlined text-gray-400">chevron_right</span>
+                    <span className="material-symbols-outlined text-Malama-muted">chevron_right</span>
                   </button>
                 ))}
               </div>
@@ -213,10 +213,10 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
           {step === 'doctors' && (
             <StepWrap key="doctors">
               <h2 className="text-xl font-bold mb-1">{t.agendarConsulta.chooseDoctor}</h2>
-              <p className="text-sm text-gray-500 mb-5">{OBJECTIVE_OPTIONS.find(o => o.value === selectedObjective)?.label}</p>
+              <p className="text-sm text-Malama-muted mb-5">{OBJECTIVE_OPTIONS.find(o => o.value === selectedObjective)?.label}</p>
               {loadingDoctors ? (
                 <div className="flex justify-center py-12">
-                  <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-2 border-Malama-petrol border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -224,10 +224,10 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                     <button
                       key={doc.id}
                       onClick={() => { setSelectedDoctor(doc); setStep('schedule'); }}
-                      className="w-full text-left px-4 py-4 rounded-2xl bg-white border-2 border-gray-200 hover:border-green-400 transition-all shadow-sm"
+                      className="w-full text-left px-4 py-4 rounded-2xl bg-white border-2 border-Malama-border hover:border-Malama-petrol transition-all shadow-sm"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 flex-shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-Malama-border flex items-center justify-center text-Malama-muted flex-shrink-0">
                           {doc.avatar_url ? (
                             <img src={doc.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
                           ) : (
@@ -235,26 +235,26 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-gray-800">{doc.name}</p>
-                          <p className="text-xs text-gray-500">{doc.crm} · {doc.specialty}</p>
+                          <p className="text-sm font-bold text-Malama-main">{doc.name}</p>
+                          <p className="text-xs text-Malama-muted">{doc.crm} · {doc.specialty}</p>
                           <div className="flex items-center gap-1 mt-1">
                             <span className="text-yellow-500 text-xs">★</span>
-                            <span className="text-xs text-gray-700 font-semibold">{doc.rating.toFixed(1)}</span>
-                            <span className="text-xs text-gray-400">· {doc.total_consultations} {t.agendarConsulta.consultationsCount}</span>
+                            <span className="text-xs text-Malama-main font-semibold">{doc.rating.toFixed(1)}</span>
+                            <span className="text-xs text-Malama-muted">· {doc.total_consultations} {t.agendarConsulta.consultationsCount}</span>
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-bold text-gray-800">R$ {doc.price}</p>
-                          <p className="text-[10px] text-gray-400">{doc.consultation_duration} min</p>
+                          <p className="text-sm font-bold text-Malama-main">R$ {doc.price}</p>
+                          <p className="text-[10px] text-Malama-muted">{doc.consultation_duration} min</p>
                         </div>
                       </div>
                       {doc.bio && (
-                        <p className="text-xs text-gray-500 mt-2 line-clamp-2">{doc.bio}</p>
+                        <p className="text-xs text-Malama-muted mt-2 line-clamp-2">{doc.bio}</p>
                       )}
                     </button>
                   ))}
                   {doctors.length === 0 && (
-                    <div className="text-center py-12 text-gray-400">
+                    <div className="text-center py-12 text-Malama-muted">
                       <p className="text-sm">{t.agendarConsulta.noDoctorsAvailable}</p>
                     </div>
                   )}
@@ -267,10 +267,10 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
           {step === 'schedule' && selectedDoctor && (
             <StepWrap key="schedule">
               <h2 className="text-xl font-bold mb-1">{t.agendarConsulta.dateAndTime}</h2>
-              <p className="text-sm text-gray-500 mb-5">{selectedDoctor.name}</p>
+              <p className="text-sm text-Malama-muted mb-5">{selectedDoctor.name}</p>
 
               {/* Date picker */}
-              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-2">{t.agendarConsulta.date}</p>
+              <p className="text-xs text-Malama-muted font-semibold uppercase tracking-wider mb-2">{t.agendarConsulta.date}</p>
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 hide-scrollbar mb-5">
                 {availableDates.map((date) => {
                   const f = formatDateShort(date);
@@ -279,12 +279,15 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                     <button
                       key={date.toISOString()}
                       onClick={() => setSelectedDate(date)}
-                      className={`flex flex-col items-center px-3 py-2.5 rounded-xl min-w-[56px] border-2 transition-all flex-shrink-0 ${isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
+                      className={`flex flex-col items-center px-3 py-2.5 rounded-xl min-w-[56px] border-2 transition-all flex-shrink-0 ${
+                        isSelected
+                          ? 'border-Malama-petrol bg-[#8c473e]/5'
+                          : 'border-Malama-border bg-white hover:border-Malama-muted'
+                      }`}
                     >
-                      <span className="text-[10px] text-gray-400 uppercase">{f.weekday}</span>
-                      <span className={`text-lg font-bold ${isSelected ? 'text-green-700' : 'text-gray-800'}`}>{f.day}</span>
-                      <span className="text-[10px] text-gray-400">{f.month}</span>
+                      <span className="text-[10px] text-Malama-muted uppercase">{f.weekday}</span>
+                      <span className={`text-lg font-bold ${isSelected ? 'text-Malama-petrol' : 'text-Malama-main'}`}>{f.day}</span>
+                      <span className="text-[10px] text-Malama-muted">{f.month}</span>
                     </button>
                   );
                 })}
@@ -293,10 +296,10 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
               {/* Time slots */}
               {selectedDate && (
                 <>
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-2">{t.agendarConsulta.availableTimeSlots}</p>
+                  <p className="text-xs text-Malama-muted font-semibold uppercase tracking-wider mb-2">{t.agendarConsulta.availableTimeSlots}</p>
                   {loadingSlots ? (
                     <div className="flex justify-center py-6">
-                      <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-6 h-6 border-2 border-Malama-petrol border-t-transparent rounded-full animate-spin" />
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 gap-2 mb-6">
@@ -304,16 +307,17 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                         <button
                           key={slot.time}
                           onClick={() => setSelectedSlot(slot.time)}
-                          className={`py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${selectedSlot === slot.time
-                            ? 'border-green-500 bg-green-50 text-green-700'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                            }`}
+                          className={`py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
+                            selectedSlot === slot.time
+                              ? 'border-Malama-petrol bg-[#8c473e]/5 text-Malama-petrol'
+                              : 'border-Malama-border bg-white text-Malama-main hover:border-Malama-muted'
+                          }`}
                         >
                           {slot.time}
                         </button>
                       ))}
                       {slots.filter((s) => s.available).length === 0 && (
-                        <p className="col-span-3 text-sm text-gray-400 text-center py-4">
+                        <p className="col-span-3 text-sm text-Malama-muted text-center py-4">
                           {t.agendarConsulta.noTimeSlotsAvailable}
                         </p>
                       )}
@@ -325,7 +329,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
               {selectedDate && selectedSlot && (
                 <button
                   onClick={() => setStep('summary')}
-                  className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors"
+                  className="w-full py-3.5 rounded-full bg-Malama-petrol text-white text-sm font-bold hover:bg-[#7a3d35] transition-colors"
                 >
                   {t.agendarConsulta.continue}
                 </button>
@@ -339,40 +343,40 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
               <h2 className="text-xl font-bold mb-5">{t.agendarConsulta.consultationSummary}</h2>
 
               {/* Doctor card */}
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-Malama-border mb-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                  <div className="w-12 h-12 rounded-full bg-Malama-border flex items-center justify-center text-Malama-muted">
                     <span className="material-symbols-outlined">person</span>
                   </div>
                   <div>
-                    <p className="text-sm font-bold">{selectedDoctor.name}</p>
-                    <p className="text-xs text-gray-500">{selectedDoctor.specialty}</p>
+                    <p className="text-sm font-bold text-Malama-main">{selectedDoctor.name}</p>
+                    <p className="text-xs text-Malama-muted">{selectedDoctor.specialty}</p>
                   </div>
                 </div>
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">{t.agendarConsulta.objective}</span>
-                    <span className="font-semibold">{OBJECTIVE_OPTIONS.find(o => o.value === selectedObjective)?.label}</span>
+                    <span className="text-Malama-muted">{t.agendarConsulta.objective}</span>
+                    <span className="font-semibold text-Malama-main">{OBJECTIVE_OPTIONS.find(o => o.value === selectedObjective)?.label}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">{t.agendarConsulta.date}</span>
-                    <span className="font-semibold capitalize">{formatDateLong(selectedDate)}</span>
+                    <span className="text-Malama-muted">{t.agendarConsulta.date}</span>
+                    <span className="font-semibold text-Malama-main capitalize">{formatDateLong(selectedDate)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">{t.agendarConsulta.time}</span>
-                    <span className="font-semibold">{selectedSlot}</span>
+                    <span className="text-Malama-muted">{t.agendarConsulta.time}</span>
+                    <span className="font-semibold text-Malama-main">{selectedSlot}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">{t.agendarConsulta.duration}</span>
-                    <span className="font-semibold">{selectedDoctor.consultation_duration} min</span>
+                    <span className="text-Malama-muted">{t.agendarConsulta.duration}</span>
+                    <span className="font-semibold text-Malama-main">{selectedDoctor.consultation_duration} min</span>
                   </div>
                 </div>
               </div>
 
               {/* Data sharing */}
-              <div className="bg-gray-50 rounded-2xl p-4 mb-4">
-                <p className="text-xs font-semibold text-gray-600 mb-2">{t.agendarConsulta.sharedDataWith}</p>
-                <div className="space-y-1 text-xs text-gray-500">
+              <div className="bg-Malama-bg border border-Malama-border rounded-2xl p-4 mb-4">
+                <p className="text-xs font-semibold text-Malama-muted mb-2">{t.agendarConsulta.sharedDataWith}</p>
+                <div className="space-y-1 text-xs text-Malama-muted/80">
                   <p>{t.agendarConsulta.last90DaysNutritional}</p>
                   <p>{t.agendarConsulta.currentWeightBMI.replace('{weight}', profile?.weight?.toString() || '—')}</p>
                   <p>{t.agendarConsulta.goalsAndObjectives}</p>
@@ -383,22 +387,24 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
               {/* Consent */}
               <div
                 onClick={() => setConsentGiven(!consentGiven)}
-                className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all mb-4 ${consentGiven ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'
-                  }`}
+                className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all mb-4 ${
+                  consentGiven ? 'border-Malama-petrol bg-[#8c473e]/5' : 'border-Malama-border bg-white'
+                }`}
               >
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${consentGiven ? 'border-green-500 bg-green-500' : 'border-gray-300'
-                  }`}>
+                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                  consentGiven ? 'border-Malama-petrol bg-Malama-petrol' : 'border-Malama-muted/50'
+                }`}>
                   {consentGiven && <span className="text-white text-xs">✓</span>}
                 </div>
-                <p className="text-xs text-gray-600 leading-relaxed">
+                <p className="text-xs text-Malama-muted leading-relaxed">
                   {t.agendarConsulta.consentText}
                 </p>
               </div>
 
               {/* Price */}
-              <div className="bg-white rounded-2xl p-4 mb-5 flex items-center justify-between border border-gray-100">
-                <span className="text-sm text-gray-600">{t.agendarConsulta.total}</span>
-                <span className="text-xl font-bold">R$ {selectedDoctor.price}</span>
+              <div className="bg-white rounded-2xl p-4 mb-5 flex items-center justify-between border border-Malama-border">
+                <span className="text-sm text-Malama-muted">{t.agendarConsulta.total}</span>
+                <span className="text-xl font-bold text-Malama-main">R$ {selectedDoctor.price}</span>
               </div>
 
               {bookError && (
@@ -408,12 +414,12 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
               <button
                 onClick={handleBook}
                 disabled={booking || !consentGiven}
-                className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className="w-full py-3.5 rounded-full bg-Malama-petrol text-white text-sm font-bold hover:bg-[#7a3d35] transition-colors disabled:opacity-50"
               >
                 {booking ? t.agendarConsulta.booking : t.agendarConsulta.confirmConsultation.replace('{price}', selectedDoctor.price.toString())}
               </button>
               {!consentGiven && (
-                <p className="text-xs text-center text-gray-400 mt-2">{t.agendarConsulta.acceptDataSharingToContinue}</p>
+                <p className="text-xs text-center text-Malama-muted mt-2">{t.agendarConsulta.acceptDataSharingToContinue}</p>
               )}
             </StepWrap>
           )}
@@ -422,22 +428,24 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
           {step === 'confirmed' && bookedConsultation && selectedDoctor && selectedDate && (
             <StepWrap key="confirmed">
               <div className="flex flex-col items-center text-center pt-8">
-                <span className="text-6xl mb-4">✅</span>
-                <h2 className="text-2xl font-bold mb-2">{t.agendarConsulta.consultationBooked}</h2>
-                <p className="text-gray-600 text-sm mb-1">{selectedDoctor.name}</p>
-                <p className="text-gray-500 text-sm mb-1 capitalize">{formatDateLong(selectedDate)} às {selectedSlot}</p>
-                <p className="text-xs text-gray-400 mb-8">{t.agendarConsulta.reminderBefore24h}</p>
+                <div className="w-20 h-20 rounded-full bg-[#8c473e]/10 flex items-center justify-center mb-4">
+                  <span className="material-symbols-outlined text-4xl text-Malama-petrol">check_circle</span>
+                </div>
+                <h2 className="text-2xl font-bold mb-2 text-Malama-main">{t.agendarConsulta.consultationBooked}</h2>
+                <p className="text-Malama-muted text-sm mb-1">{selectedDoctor.name}</p>
+                <p className="text-Malama-muted text-sm mb-1 capitalize">{formatDateLong(selectedDate)} às {selectedSlot}</p>
+                <p className="text-xs text-Malama-muted/70 mb-8">{t.agendarConsulta.reminderBefore24h}</p>
 
                 <div className="w-full space-y-3">
                   <button
                     onClick={() => onNavigate(AppView.PROFILE)}
-                    className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors"
+                    className="w-full py-3.5 rounded-full bg-Malama-petrol text-white text-sm font-bold hover:bg-[#7a3d35] transition-colors"
                   >
                     {t.agendarConsulta.viewMyConsultations}
                   </button>
                   <button
                     onClick={onBack}
-                    className="w-full py-2 text-sm text-gray-500 hover:text-gray-700"
+                    className="w-full py-2 text-sm text-Malama-muted hover:text-Malama-main"
                   >
                     {t.agendarConsulta.backToHome}
                   </button>
