@@ -4,7 +4,6 @@ import type { FitnessService, ConnectedIntegration, Activity } from '../types';
 
 const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID as string;
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_FIT_CLIENT_ID as string;
 
 export const IntegrationService = {
 
@@ -40,7 +39,7 @@ export const IntegrationService = {
   },
 
   // Inicia o fluxo OAuth redirecionando o usuário para a plataforma
-  initiateOAuth(service: 'strava' | 'google_fit'): void {
+  initiateOAuth(service: 'strava'): void {
     if (service === 'strava') {
       const redirectUri = `${APP_URL}/strava/callback`;
       const params = new URLSearchParams({
@@ -52,32 +51,11 @@ export const IntegrationService = {
       });
       window.location.href = `https://www.strava.com/oauth/authorize?${params}`;
     }
-
-    if (service === 'google_fit') {
-      const redirectUri = `${APP_URL}/google/callback`;
-      const params = new URLSearchParams({
-        client_id: GOOGLE_CLIENT_ID,
-        response_type: 'code',
-        redirect_uri: redirectUri,
-        scope: 'https://www.googleapis.com/auth/fitness.activity.read',
-        access_type: 'offline',
-        prompt: 'consent',
-      });
-      window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-    }
   },
 
   // Envia o code para a edge function que faz o token exchange server-side (Strava)
   async handleStravaCallback(code: string, userId: string): Promise<boolean> {
     const { error } = await supabase.functions.invoke('strava-oauth', {
-      body: { code, user_id: userId },
-    });
-    return !error;
-  },
-
-  // Envia o code para a edge function que faz o token exchange server-side (Google Fit)
-  async handleGoogleFitCallback(code: string, userId: string): Promise<boolean> {
-    const { error } = await supabase.functions.invoke('google-fit-oauth', {
       body: { code, user_id: userId },
     });
     return !error;
@@ -103,17 +81,11 @@ export const IntegrationService = {
     }
   },
 
-  // Sincroniza atividades do Google Fit com o banco local
-  async syncGoogleFit(): Promise<void> {
-    await supabase.functions.invoke('google-fit-sync');
-  },
-
   // Sincroniza atividades de todas as integrações ativas em paralelo.
   // Health Connect (Android) lê on-device e grava direto; auto-gateia em web/iOS.
   async syncActivities(): Promise<void> {
     await Promise.allSettled([
       supabase.functions.invoke('strava-sync'),
-      supabase.functions.invoke('google-fit-sync'),
       HealthConnectService.sync(),
     ]);
   },

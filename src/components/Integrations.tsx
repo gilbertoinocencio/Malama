@@ -26,7 +26,6 @@ interface IntegrationItem {
 const INTEGRATION_DEFS: IntegrationItem[] = [
   { id: 'strava',     name: 'Strava',         icon: 'directions_run',  color: 'text-[#FC4C02]',               iconBg: 'bg-[#FC4C02]/10',  darkIconBg: 'dark:bg-[#FC4C02]/20' },
   { id: 'apple',      name: 'Apple Health',   icon: 'favorite',        color: 'text-Malama-main dark:text-white', iconBg: 'bg-Malama-bg',  darkIconBg: 'dark:bg-[#363330]', comingSoon: true },
-  { id: 'google_fit', name: 'Google Fit',     icon: 'health_and_safety', color: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50', darkIconBg: 'dark:bg-blue-900/30' },
   { id: 'health_connect', name: 'Health Connect', icon: 'ecg_heart',     color: 'text-green-600 dark:text-green-400', iconBg: 'bg-green-50', darkIconBg: 'dark:bg-green-900/30' },
   { id: 'garmin',     name: 'Garmin',         icon: 'watch',           color: 'text-[#007cc3]',               iconBg: 'bg-blue-100',      darkIconBg: 'dark:bg-blue-800/30',  uiOnly: true },
   { id: 'polar',      name: 'Polar',          icon: 'monitor_heart',   color: 'text-[#E60012]',               iconBg: 'bg-red-50',        darkIconBg: 'dark:bg-red-900/20',   uiOnly: true },
@@ -98,7 +97,7 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
       setConnected(prev => ({ ...prev, [service]: false }));
     } else {
       // Iniciar OAuth — o usuário será redirecionado
-      IntegrationService.initiateOAuth(service as 'strava' | 'google_fit');
+      IntegrationService.initiateOAuth(service as 'strava');
       // A função redirect não retorna; o estado será atualizado ao voltar do OAuth
     }
 
