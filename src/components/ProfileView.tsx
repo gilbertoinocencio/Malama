@@ -513,13 +513,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </p>
               <p className="text-xs text-center text-Malama-muted dark:text-gray-400 mt-1 font-medium">{t.profile.meals}</p>
             </div>
-            <div
-              onClick={() => setShowMetricsChart(true)}
-              className="flex flex-col items-center justify-center p-4 bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-Malama-border dark:border-white/10 h-28 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors relative overflow-hidden group"
-            >
-              <div className="absolute top-1 right-1">
-                <span className="material-symbols-outlined text-gray-300 text-xs">arrow_outward</span>
-              </div>
+            <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-Malama-border dark:border-white/10 h-28 relative overflow-hidden">
               <span className="material-symbols-outlined text-Malama-petrol dark:text-primary mb-2" style={{ fontSize: '24px' }}>trending_up</span>
               <p className="text-2xl font-bold text-Malama-main dark:text-white leading-none">
                 {loading ? '—' : `${consistencyPercent}%`}
