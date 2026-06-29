@@ -171,9 +171,32 @@ const MeasurementBar: React.FC<{
 
 const CARD = 'rounded-2xl border border-Malama-border dark:border-white/5 bg-white dark:bg-surface-dark shadow-sm dark:shadow-none';
 
+// ─── Circular goal ring (reaproveitado da casca "Renovação de Plano") ───────────
+const GoalRing: React.FC<{ percent: number; color: string }> = ({ percent, color }) => (
+  <div className="relative w-[68px] h-[68px] flex items-center justify-center shrink-0">
+    <svg className="transform -rotate-90 w-full h-full" viewBox="0 0 36 36">
+      <path
+        className="text-Malama-border dark:text-white/10"
+        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+        fill="none" stroke="currentColor" strokeWidth="3"
+      />
+      <path
+        style={{ color }}
+        strokeDasharray={`${percent}, 100`}
+        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+        fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"
+      />
+    </svg>
+    <div className="absolute flex flex-col items-center leading-none">
+      <span className="text-sm font-bold text-Malama-main dark:text-white">{Math.round(percent)}%</span>
+      <span className="text-[7px] font-semibold uppercase tracking-wider text-Malama-muted dark:text-white/50 mt-0.5">meta</span>
+    </div>
+  </div>
+);
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [activeTab, setActiveTab] = useState<MetricTab>('weight');
   const [period, setPeriod] = useState<ChartPeriod>('90d');
@@ -232,6 +255,9 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
 
   const tabs: MetricTab[] = ['weight', 'body_fat', 'muscle', 'steps', 'heart_rate', 'sleep', 'measurements'];
 
+  // Métricas primárias usadas no grid-resumo (cards h-36 estilo "Análise Trimestral")
+  const PRIMARY: LineTab[] = ['weight', 'body_fat', 'muscle'];
+
   // ── Renderer compartilhado para as abas de linha ──────────────────────────────
   const renderLineTab = (key: LineTab) => {
     const cfg = METRICS[key];
@@ -242,47 +268,97 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
       ? (cfg.good === 'down' ? change < 0 : change > 0)
       : null;
 
+    // Anel circular — progresso real rumo à meta de peso (profiles.target_weight_kg).
+    const goalWeight = key === 'weight' ? (profile?.target_weight_kg ?? null) : null;
+    const startVal = data.length ? data[0].value : null;
+    let goalRing: number | null = null;
+    if (goalWeight && startVal != null && latest != null && startVal !== goalWeight) {
+      const losing = goalWeight < startVal;
+      const progressed = losing ? startVal - latest.value : latest.value - startVal;
+      goalRing = Math.max(0, Math.min(100, (progressed / Math.abs(startVal - goalWeight)) * 100));
+    }
+
+    // Cards-resumo: as outras métricas primárias (troca o gráfico em destaque ao tocar)
+    const summary = PRIMARY.filter(k => k !== key).map(k => {
+      const c = METRICS[k];
+      const d = series[k];
+      const last = d.length ? d[d.length - 1] : null;
+      const ch = d.length >= 2 ? d[d.length - 1].value - d[0].value : null;
+      const good = ch !== null && c.good !== 'neutral' ? (c.good === 'down' ? ch < 0 : ch > 0) : null;
+      return { k, c, last, ch, good };
+    });
+
     return (
-      <div className="space-y-4">
-        {/* Hero */}
-        <div className={`${CARD} p-5`}>
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
+      <div className="space-y-5">
+        {/* Card-herói editorial */}
+        <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 shadow-sm border border-Malama-border dark:border-white/10 relative overflow-hidden">
+          <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-2xl opacity-10" style={{ background: cfg.color }} />
+          <div className="flex items-start justify-between relative z-10">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2 mb-2">
                 <span className="material-symbols-outlined text-[18px]" style={{ color: cfg.color }}>{cfg.icon}</span>
-                <span className="text-xs font-semibold uppercase tracking-wide text-Malama-muted dark:text-slate-400">{cfg.label}</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-Malama-muted dark:text-slate-400">{cfg.label}</span>
               </div>
               {latest ? (
                 <div className="flex items-end gap-1.5">
-                  <span className="text-[40px] leading-none font-bold text-Malama-main dark:text-white">{cfg.fmtValue(latest.value)}</span>
-                  {cfg.unit && <span className="text-base font-semibold text-Malama-muted dark:text-slate-400 pb-1">{cfg.unit}</span>}
+                  <span className="text-[44px] leading-none font-light tracking-tight text-Malama-main dark:text-white">{cfg.fmtValue(latest.value)}</span>
+                  {cfg.unit && <span className="text-base font-semibold text-Malama-muted dark:text-slate-400 pb-1.5">{cfg.unit}</span>}
                 </div>
               ) : (
-                <span className="text-2xl font-bold text-Malama-muted/40 dark:text-white/30">—</span>
+                <span className="text-3xl font-light text-Malama-muted/40 dark:text-white/30">—</span>
               )}
               {latest && (
-                <p className="text-xs text-Malama-muted dark:text-slate-500 mt-1.5">
+                <p className="text-xs text-Malama-muted dark:text-slate-500 mt-2">
                   {toDate(latest.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
                   {key === 'heart_rate' && latestResting != null && ` · repouso ${latestResting} bpm`}
                 </p>
               )}
             </div>
-            {change !== null && (
+            {goalRing !== null ? (
+              <GoalRing percent={goalRing} color={cfg.color} />
+            ) : change !== null ? (
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
                 changeGood === null ? 'bg-Malama-petrol-light text-Malama-muted dark:bg-white/10 dark:text-slate-300'
                   : changeGood ? 'bg-green-500/15 text-green-600 dark:text-green-400'
                   : 'bg-red-500/15 text-red-600 dark:text-red-400'
               }`}>
                 {change > 0 ? '+' : ''}{cfg.fmtValue(change)}{cfg.unit && ` ${cfg.unit}`}
-                <span className="font-medium opacity-70"> · {periodDays}d</span>
               </span>
-            )}
+            ) : null}
           </div>
         </div>
 
-        {/* Chart */}
-        <div className={`${CARD} p-4`}>
-          <div className="flex items-center justify-between mb-3">
+        {/* Card terracota de destaque — variação no período (métrica-chave) */}
+        {change !== null && (
+          <div className="bg-Malama-petrol dark:bg-primary rounded-2xl p-6 relative overflow-hidden">
+            <div className="absolute -right-10 -top-10 size-40 bg-white/10 rounded-full blur-3xl" />
+            <div className="relative z-10 flex items-center justify-between">
+              <div>
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mb-1">
+                  Variação · {periodDays === 30 ? '30 dias' : periodDays === 90 ? '90 dias' : '6 meses'}
+                </p>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-white font-serif text-3xl italic tracking-wide">
+                    {change > 0 ? '+' : ''}{cfg.fmtValue(change)}
+                  </span>
+                  {cfg.unit && <span className="text-white/80 text-sm font-medium">{cfg.unit}</span>}
+                </div>
+                {goalWeight && (
+                  <p className="text-white/70 text-xs mt-1 font-light">rumo à sua meta de {goalWeight} kg</p>
+                )}
+              </div>
+              <div className="size-12 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20">
+                <span className="material-symbols-outlined text-white text-2xl">
+                  {changeGood === null ? 'trending_flat' : changeGood ? 'trending_up' : 'trending_down'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Chart card */}
+        <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 shadow-sm border border-Malama-border dark:border-white/10">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-Malama-main dark:text-white">Evolução</h3>
             <span className="text-xs text-Malama-muted/70 dark:text-white/40">{data.length} {data.length === 1 ? 'registro' : 'registros'}</span>
           </div>
@@ -301,6 +377,44 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
             <LineChart data={data} color={cfg.color} formatAxis={cfg.fmtAxis} />
           )}
         </div>
+
+        {/* Grid-resumo — outras métricas primárias (cards h-36, troca o destaque) */}
+        {summary.length > 0 && (
+          <div className="grid grid-cols-2 gap-4">
+            {summary.map(({ k, c, last, ch, good }) => (
+              <button
+                key={k}
+                onClick={() => setActiveTab(k)}
+                className="text-left bg-white dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-Malama-border dark:border-white/10 flex flex-col justify-between h-36 relative overflow-hidden group"
+              >
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <span className="material-symbols-outlined text-4xl" style={{ color: c.color }}>{c.icon}</span>
+                </div>
+                <div className="size-10 rounded-full bg-Malama-bg dark:bg-Malama-dark border border-Malama-border dark:border-white/10 flex items-center justify-center mb-2" style={{ color: c.color }}>
+                  <span className="material-symbols-outlined text-xl">{c.icon}</span>
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-display font-semibold text-Malama-main dark:text-white">
+                      {last ? c.fmtValue(last.value) : '—'}
+                    </span>
+                    {last && c.unit && <span className="text-xs font-medium text-Malama-muted">{c.unit}</span>}
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs font-medium text-Malama-muted">{c.label}</p>
+                    {ch !== null && (
+                      <span className={`text-[10px] font-bold ${
+                        good === null ? 'text-Malama-muted' : good ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {ch > 0 ? '+' : ''}{c.fmtValue(ch)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Histórico recente (só peso) */}
         {key === 'weight' && weightLogs.length > 0 && (
@@ -335,10 +449,17 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
     );
   };
 
+  // Range de datas do herói editorial (— 30 MAR — 28 JUN —)
+  const rangeEnd = new Date();
+  const rangeStart = new Date();
+  rangeStart.setDate(rangeStart.getDate() - periodDays);
+  const fmtRange = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '').toUpperCase();
+  const dateRange = `${fmtRange(rangeStart)} — ${fmtRange(rangeEnd)}`;
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white font-display animate-fade-in">
 
-      {/* Header */}
+      {/* Header editorial */}
       <div className="flex items-center justify-between px-4 py-3 sticky top-0 z-10 bg-Malama-bg/90 dark:bg-background-dark/90 backdrop-blur-sm border-b border-Malama-border dark:border-white/5">
         <button
           onClick={onClose}
@@ -347,18 +468,30 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
         >
           <span className="material-symbols-outlined text-[24px] group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
         </button>
-        <h1 className="text-lg font-bold tracking-tight text-Malama-main dark:text-white">Gráficos de Evolução</h1>
+        <h1 className="text-xs font-bold uppercase tracking-[0.18em] text-Malama-muted dark:text-gray-400">Evolução</h1>
         <button
           onClick={() => setShowWeightModal(true)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-Malama-petrol/10 text-Malama-petrol dark:bg-primary/15 dark:text-primary hover:bg-Malama-petrol/15 transition-colors"
+          className="flex size-10 shrink-0 items-center justify-center rounded-full text-Malama-petrol dark:text-primary hover:bg-Malama-petrol/10 transition-colors"
+          aria-label="Registrar peso"
         >
-          <span className="material-symbols-outlined text-[16px]">add</span>
-          Peso
+          <span className="material-symbols-outlined text-[22px]">add</span>
         </button>
       </div>
 
+      {/* Herói editorial */}
+      <div className="flex flex-col items-center px-6 pt-6 pb-2 animate-fade-in-up">
+        <h2 className="text-[34px] font-light leading-tight tracking-tight text-Malama-main dark:text-white text-center">
+          Sua <span className="font-serif italic text-Malama-petrol dark:text-primary">Evolução</span>
+        </h2>
+        <div className="mt-3 flex items-center gap-2">
+          <span className="h-px w-6 bg-Malama-border dark:bg-white/15" />
+          <p className="text-Malama-muted dark:text-gray-400 text-[11px] font-semibold tracking-wider uppercase">{dateRange}</p>
+          <span className="h-px w-6 bg-Malama-border dark:bg-white/15" />
+        </div>
+      </div>
+
       {/* Period selector */}
-      <div className="flex items-center gap-2 px-4 py-3">
+      <div className="flex items-center justify-center gap-2 px-4 py-3">
         {(['30d', '90d', '180d'] as ChartPeriod[]).map(p => (
           <button
             key={p}
