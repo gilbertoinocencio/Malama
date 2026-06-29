@@ -157,7 +157,13 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
           </div>
         ) : (
           INTEGRATION_DEFS
-            .filter((item) => item.id !== 'health_connect' || isAndroid)
+            // Health Connect só no Android nativo; Apple Health só fora do Android (iOS/web).
+            // Cada um some na plataforma onde não funciona.
+            .filter((item) => {
+              if (item.id === 'health_connect') return isAndroid;
+              if (item.id === 'apple') return !isAndroid;
+              return true;
+            })
             .map((item) => {
             const connected_ = isConnected(item.id);
             const disabled = item.comingSoon || item.uiOnly;
