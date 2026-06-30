@@ -128,7 +128,7 @@ export const CoachChatModal: React.FC<CoachChatModalProps> = ({ onClose }) => {
       className="fixed inset-0 z-50 bg-Malama-bg dark:bg-background-dark flex flex-col max-w-md mx-auto"
     >
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-white dark:bg-surface-dark border-b border-Malama-border dark:border-white/5">
+      <header className="flex items-center justify-between px-6 pb-4 pt-safe-header bg-white dark:bg-surface-dark border-b border-Malama-border dark:border-white/5">
         <div className="flex items-center gap-3">
           <div className="size-12 rounded-full bg-gradient-to-br from-Malama-petrol to-Malama-petrol-light dark:from-primary dark:to-primary/70 flex items-center justify-center text-white shadow-lg">
             <span className="material-symbols-outlined text-[24px]">psychology</span>

@@ -121,7 +121,7 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
   const hy = t.hydration;
 
   return (
-    <div className="fixed inset-0 z-50 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white flex flex-col font-display animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white flex flex-col font-display animate-fade-in pt-safe">
 
       {/* Header */}
       <header className="flex items-center justify-between p-4 sticky top-0 z-20 bg-Malama-bg/95 dark:bg-background-dark/95 backdrop-blur-sm transition-colors border-b border-Malama-border dark:border-white/5">

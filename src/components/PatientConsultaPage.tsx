@@ -113,7 +113,7 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
       : 'Desconectado';
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col overflow-hidden z-50">
+    <div className="fixed inset-0 bg-black flex flex-col overflow-hidden z-50 pt-safe">
 
       {/* ── Barra de status + timer (sempre visível) ── */}
       <div className="shrink-0 bg-black/70 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between z-10">

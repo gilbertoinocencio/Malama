@@ -229,7 +229,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
       <div className="fixed inset-0 z-50 bg-background-light dark:bg-background-dark flex flex-col h-full animate-fade-in font-display overflow-y-auto hide-scrollbar text-slate-900 dark:text-white">
         
         {/* Header */}
-        <header className="sticky top-0 z-10 flex items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm p-4 pb-2 justify-between border-b border-gray-100 dark:border-white/10/50">
+        <header className="sticky top-0 z-10 flex items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm px-4 pt-safe-header pb-2 justify-between border-b border-gray-100 dark:border-white/10/50">
           <div onClick={onClose} className="flex size-12 shrink-0 items-center justify-start cursor-pointer hover:opacity-70 transition-opacity">
             <span className="material-symbols-outlined text-2xl">arrow_back</span>
           </div>
@@ -298,7 +298,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
   // CUSTOMIZE VIEW
   return (
     <div className="fixed inset-0 z-50 bg-[#f8f7f6] dark:bg-[#221910] flex flex-col h-full animate-fade-in font-display overflow-y-auto hide-scrollbar text-[#181411] dark:text-[#f8f7f6]">
-      <header className="flex items-center justify-between p-4 sticky top-0 z-20 bg-[#f8f7f6]/95 dark:bg-[#221910]/95 backdrop-blur-sm transition-colors">
+      <header className="flex items-center justify-between px-4 pb-4 pt-safe-header sticky top-0 z-20 bg-[#f8f7f6]/95 dark:bg-[#221910]/95 backdrop-blur-sm transition-colors">
         <button onClick={() => setView('LANDING')} className="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>

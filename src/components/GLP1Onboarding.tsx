@@ -414,7 +414,7 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
   return (
     <div className="fixed inset-0 z-50 bg-[#EEEFF4] flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 pt-12 pb-3">
+      <header className="flex items-center justify-between px-4 pt-safe-header pb-3">
         <button
           onClick={() => {
             if (screen === 'initial') { onClose(); return; }

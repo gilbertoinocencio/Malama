@@ -1112,7 +1112,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white flex flex-col font-display animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white flex flex-col font-display animate-fade-in pt-safe">
 
       {/* Top Navigation */}
       <header className="flex items-center px-4 py-3 justify-between shrink-0 z-10 bg-Malama-bg/95 dark:bg-background-dark/95 backdrop-blur-sm sticky top-0 border-b border-Malama-border dark:border-white/5">

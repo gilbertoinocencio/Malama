@@ -457,7 +457,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
   const dateRange = `${fmtRange(rangeStart)} — ${fmtRange(rangeEnd)}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white font-display animate-fade-in">
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white font-display animate-fade-in pt-safe">
 
       {/* Header editorial */}
       <div className="flex items-center justify-between px-4 py-3 sticky top-0 z-10 bg-Malama-bg/90 dark:bg-background-dark/90 backdrop-blur-sm border-b border-Malama-border dark:border-white/5">

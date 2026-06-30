@@ -124,7 +124,7 @@ export const BodyProgressTimeline: React.FC<BodyProgressTimelineProps> = ({
   const progress = getProgressMetrics();
 
   return (
-    <div className="fixed inset-0 z-50 bg-background-dark flex flex-col">
+    <div className="fixed inset-0 z-50 bg-background-dark flex flex-col pt-safe">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-surface-dark border-b border-white/10">
         <button
