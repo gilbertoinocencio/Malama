@@ -34,6 +34,7 @@ export const RhDashboard: React.FC = () => {
   const [empresa, setEmpresa] = useState<RhEmpresa | null>(null);
   const [colaboradores, setColaboradores] = useState<EmpresaColaborador[]>([]);
   const [loading, setLoading] = useState(true);
+  const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [adding, setAdding] = useState(false);
   const [resending, setResending] = useState<string | null>(null);
@@ -64,12 +65,14 @@ export const RhDashboard: React.FC = () => {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     const value = email.trim().toLowerCase();
+    const nomeValue = nome.trim();
     if (!value) return;
+    if (!nomeValue) { toast.error('Informe o nome do colaborador.'); return; }
     if (cheio) { toast.error('Limite de assentos atingido.'); return; }
 
     setAdding(true);
     try {
-      const res = await rhService.inviteColaborador(value);
+      const res = await rhService.inviteColaborador(value, nomeValue);
       if (res.existing) {
         toast.success(
           res.emailed
@@ -84,6 +87,7 @@ export const RhDashboard: React.FC = () => {
         if (res.warning) toast('O e-mail de convite não pôde ser enviado agora.', { icon: '⚠️' });
       }
       setEmail('');
+      setNome('');
       await load();
     } catch (err: any) {
       toast.error(err?.message || 'Não foi possível adicionar o colaborador.');
@@ -254,6 +258,15 @@ export const RhDashboard: React.FC = () => {
           <h2 className="font-semibold text-gray-800">Adicionar colaborador</h2>
         </div>
         <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text" value={nome} onChange={e => setNome(e.target.value)}
+              placeholder="Nome do colaborador"
+              disabled={cheio || empresa.status !== 'ativa'}
+              className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
+            />
+          </div>
           <div className="relative flex-1">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input

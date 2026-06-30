@@ -47,7 +47,7 @@ interface AuthContextType {
     signInWithGoogle: () => Promise<void>;
     signInWithApple: () => Promise<void>;
     signInWithEmail: (email: string, password: string) => Promise<void>;
-    signUpWithEmail: (email: string, password: string) => Promise<void>;
+    signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
     signOut: () => Promise<void>;
 }
 
@@ -364,12 +364,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const idToken = result.response?.identityToken;
             if (!idToken) throw new Error('Apple não retornou o token de identidade.');
 
-            const { error } = await supabase.auth.signInWithIdToken({
+            const { data, error } = await supabase.auth.signInWithIdToken({
                 provider: 'apple',
                 token: idToken,
                 nonce: rawNonce,
             });
             if (error) throw error;
+
+            // A Apple só envia o nome no PRIMEIRO login (consentimento). Se veio,
+            // salva como display_name no metadata e no perfil — senão o usuário
+            // ficaria sem nome (e o app mostraria o e-mail de relay).
+            const appleName = [result.response?.givenName, result.response?.familyName]
+                .filter(Boolean)
+                .join(' ')
+                .trim();
+            if (appleName && data?.user) {
+                try {
+                    await supabase.auth.updateUser({ data: { display_name: appleName } });
+                    const { ProfileService } = await import('../services/profileService');
+                    await ProfileService.updateProfile(data.user.id, { display_name: appleName });
+                } catch (e) {
+                    console.error('Erro ao salvar nome da Apple:', e);
+                }
+            }
             return;
         }
 
@@ -386,8 +403,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error) throw error;
     }, []);
 
-    const signUpWithEmail = useCallback(async (email: string, password: string) => {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+    const signUpWithEmail = useCallback(async (email: string, password: string, displayName?: string) => {
+        const name = displayName?.trim();
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            // Guarda o nome no metadata do usuário (usado como fallback no app).
+            ...(name ? { options: { data: { display_name: name } } } : {}),
+        });
         if (error) throw error;
         if (data.user) {
             // applyReferralData grava onboarding_completed=false no perfil.
@@ -395,6 +418,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // correto, sobrescrevendo qualquer fetch prematuro disparado pelo
             // evento SIGNED_IN (que pode correr antes do upsert terminar).
             await applyReferralData(data.user.id, true);
+            if (name) {
+                try {
+                    const { ProfileService } = await import('../services/profileService');
+                    await ProfileService.updateProfile(data.user.id, { display_name: name });
+                } catch (e) {
+                    console.error('Erro ao salvar nome no perfil:', e);
+                }
+            }
             await fetchProfile(data.user.id);
         }
     }, [applyReferralData, fetchProfile]);

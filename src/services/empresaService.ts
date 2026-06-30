@@ -510,9 +510,9 @@ export const rhService = {
   },
 
   // Adiciona colaborador por e-mail (via Edge Function: valida assentos, vincula ou convida)
-  async inviteColaborador(email: string): Promise<{ status: ColaboradorStatus; linked?: boolean; invited?: boolean; existing?: boolean; emailed?: boolean; warning?: string }> {
+  async inviteColaborador(email: string, nome?: string): Promise<{ status: ColaboradorStatus; linked?: boolean; invited?: boolean; existing?: boolean; emailed?: boolean; warning?: string }> {
     const { data, error } = await supabase.functions.invoke('invite-colaborador', {
-      body: { email, redirect_to: `${window.location.origin}/acesso` },
+      body: { email, nome: nome?.trim() || undefined, redirect_to: `${window.location.origin}/acesso` },
     });
     if (error) {
       // FunctionsHttpError expõe a Response em .context — lê o { error } do corpo

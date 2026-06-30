@@ -12,6 +12,7 @@ export const LoginView: React.FC = () => {
     const { t, language, setLanguage } = useLanguage();
     const a = t.auth;
     const [error, setError] = useState<string | null>(null);
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isSignUp, setIsSignUp] = useState(() =>
@@ -51,11 +52,15 @@ export const LoginView: React.FC = () => {
             setError(a.fillFields);
             return;
         }
+        if (isSignUp && !name.trim()) {
+            setError(a.fillFields);
+            return;
+        }
         setAuthLoading(true);
         setError(null);
         try {
             if (isSignUp) {
-                await signUpWithEmail(email, password);
+                await signUpWithEmail(email, password, name.trim());
                 // Se é signup de influencer, o onAuthStateChange vai detectar
                 // e redirecionar para o onboarding automaticamente
                 setError(a.accountCreated);
@@ -132,6 +137,16 @@ export const LoginView: React.FC = () => {
                 {/* Action */}
                 <div className="w-full flex flex-col gap-4">
                     <form onSubmit={handleEmailAuth} className="w-full flex flex-col gap-3">
+                        {isSignUp && (
+                            <input
+                                type="text"
+                                autoComplete="name"
+                                placeholder={language === 'pt' ? 'Nome' : language === 'es' ? 'Nombre' : 'Name'}
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full h-12 px-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-black/20 text-Malama-main dark:text-white placeholder-Malama-muted focus:outline-none focus:ring-2 focus:ring-Malama-petrol/20 transition-all"
+                            />
+                        )}
                         <input
                             type="email"
                             placeholder="Email"

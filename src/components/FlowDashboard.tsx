@@ -367,7 +367,16 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     ? Math.round(weeklyScores.reduce((s, d) => s + d.score, 0) / weeklyScores.length)
     : flowScore;
   const displayedScore = period === 'week' ? weeklyAvgScore : flowScore;
-  const displayName = profile?.display_name || user?.email?.split('@')[0] || t.dashboard.defaultUser;
+  // Mostra apenas o PRIMEIRO nome no cabeçalho — nunca o e-mail (fica longo e feio,
+  // ex.: relay do Sign in with Apple). Nome vem do perfil ou do metadata (Google/Apple).
+  const rawName = (
+    profile?.display_name ||
+    (user?.user_metadata?.display_name as string) ||
+    (user?.user_metadata?.full_name as string) ||
+    (user?.user_metadata?.name as string) ||
+    ''
+  ).trim();
+  const displayName = rawName.split(/\s+/)[0] || t.dashboard.defaultUser;
 
   // Use profile level as fallback if gameStats is not yet loaded
   const currentLevel = gameStats?.level || profile?.level || 'seed';
@@ -669,9 +678,6 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
             )}
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-Malama-muted dark:text-slate-400 font-medium tracking-wide uppercase">
-              {`${t.dashboard.levelPrefix} ${getLevelLabel(currentLevel)}`}
-            </span>
             <h2 className="text-Malama-main dark:text-white text-lg font-bold leading-tight">{displayName}</h2>
           </div>
         </div>

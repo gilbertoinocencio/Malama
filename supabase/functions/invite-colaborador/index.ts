@@ -33,10 +33,11 @@ Deno.serve(async (req: Request) => {
   if (!authHeader) return json({ error: 'Não autorizado' }, 401);
 
   try {
-    const { email, redirect_to } = await req.json();
+    const { email, nome, redirect_to } = await req.json();
     if (!email) return json({ error: 'E-mail é obrigatório' }, 400);
 
     const normalizedEmail = String(email).trim().toLowerCase();
+    const displayName = nome ? String(nome).trim() : '';
 
     // 1. Identificar o RH chamador e a empresa dele
     const { data: caller } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
@@ -125,7 +126,11 @@ Deno.serve(async (req: Request) => {
 
     const { error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       normalizedEmail,
-      { redirectTo: redirect_to || undefined }
+      {
+        redirectTo: redirect_to || undefined,
+        // Guarda o nome no metadata para o app exibir o primeiro nome (não o e-mail).
+        ...(displayName ? { data: { display_name: displayName } } : {}),
+      }
     );
     // O convite falhar (ex.: e-mail já registrado em corrida) não deve reverter o
     // vínculo — o colaborador segue 'convidado' e pode ser reenviado depois.
