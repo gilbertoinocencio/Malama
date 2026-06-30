@@ -62,9 +62,17 @@ workflows:
           keychain add-certificates
           # Grava a API key (.p8) em arquivo para o xcodebuild autenticar no Apple
           # durante o automatic signing (-allowProvisioningUpdates).
+          # %b interpreta \n escapadas (o Codemagic pode expor a chave numa linha só).
           mkdir -p "$HOME/private_keys"
-          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" \
-            > "$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+          KEYFILE="$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+          printf '%b' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEYFILE"
+          # Valida o PEM antes de prosseguir (falha cedo com diagnóstico claro).
+          if ! grep -q 'BEGIN PRIVATE KEY' "$KEYFILE"; then
+            echo "ERRO: APP_STORE_CONNECT_PRIVATE_KEY não gerou um .p8 PEM válido."
+            echo "Tamanho do arquivo: $(wc -c < "$KEYFILE") bytes (0 = variável vazia)."
+            exit 1
+          fi
+          echo "API key (.p8) escrita e validada ($(wc -c < "$KEYFILE") bytes)."
 
       - name: Definir número de build (auto-incremento via TestFlight)
         script: |
