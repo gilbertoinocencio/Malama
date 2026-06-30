@@ -65,15 +65,16 @@ workflows:
           # arquivo (mais comum) OU como CONTEÚDO — tratamos os dois casos.
           mkdir -p "$HOME/private_keys"
           KEYFILE="$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
-          if [ -f "$APP_STORE_CONNECT_PRIVATE_KEY" ]; then
-            cp "$APP_STORE_CONNECT_PRIVATE_KEY" "$KEYFILE"
-          else
-            printf '%b' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEYFILE"
-          fi
+          RAW="$APP_STORE_CONNECT_PRIVATE_KEY"
+          # O Codemagic expõe a chave como referência: @file:/caminho ou @env:VAR.
+          # Também tratamos caminho puro e conteúdo direto, por segurança.
+          case "$RAW" in
+            @file:*) cp "${RAW#@file:}" "$KEYFILE" ;;
+            @env:*)  VAR="${RAW#@env:}"; printf '%b' "${!VAR}" > "$KEYFILE" ;;
+            *)       if [ -f "$RAW" ]; then cp "$RAW" "$KEYFILE"; else printf '%b' "$RAW" > "$KEYFILE"; fi ;;
+          esac
           if ! grep -q 'BEGIN PRIVATE KEY' "$KEYFILE"; then
-            echo "ERRO: não consegui obter a API key (.p8) válida."
-            echo "  É caminho de arquivo? $([ -f "$APP_STORE_CONNECT_PRIVATE_KEY" ] && echo SIM || echo NAO)"
-            echo "  Primeiro caractere do valor: '$(printf %s "$APP_STORE_CONNECT_PRIVATE_KEY" | head -c1)'"
+            echo "ERRO: API key .p8 inválida. Valor começa com: '$(printf %s "$RAW" | head -c8)'"
             echo "  Tamanho do .p8 gerado: $(wc -c < "$KEYFILE") bytes"
             exit 1
           fi
