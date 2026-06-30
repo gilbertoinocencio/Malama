@@ -44,41 +44,22 @@ workflows:
       - name: Sincronizar Capacitor iOS
         script: npx cap sync ios
 
-      - name: Preparar certificado de distribuição + API key
+      - name: Preparar assinatura (certificado + profile com Sign in with Apple)
         script: |
           set -e
           keychain initialize
-          # Baixa/cria o certificado de distribuição e instala no keychain.
-          # --certificate-key usa uma chave privada FIXA (env var CERTIFICATE_PRIVATE_KEY),
-          # para que todo build reuse o MESMO certificado em vez de criar um novo a cada
-          # vez (a Apple limita a ~2-3 certificados de distribuição).
-          # (O profile criado aqui é ignorado — a assinatura automática do xcodebuild
-          #  gera o profile correto, com a capability Sign in with Apple.)
+          # Busca o certificado de distribuição (chave fixa CERTIFICATE_PRIVATE_KEY)
+          # e o provisioning profile App Store, instalando no keychain.
+          # SEM --create de propósito: o profile App Store é criado MANUALMENTE no
+          # portal da Apple porque precisa da capability Sign in with Apple — perfis
+          # criados pela API NÃO a incluem (causa raiz dos erros de archive anteriores).
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --platform IOS \
-            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
-            --create
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY
           keychain add-certificates
-          # Prepara a API key (.p8) para o xcodebuild autenticar durante o automatic
-          # signing. O Codemagic expõe APP_STORE_CONNECT_PRIVATE_KEY como CAMINHO do
-          # arquivo (mais comum) OU como CONTEÚDO — tratamos os dois casos.
-          mkdir -p "$HOME/private_keys"
-          KEYFILE="$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
-          RAW="$APP_STORE_CONNECT_PRIVATE_KEY"
-          # O Codemagic expõe a chave como referência: @file:/caminho ou @env:VAR.
-          # Também tratamos caminho puro e conteúdo direto, por segurança.
-          case "$RAW" in
-            @file:*) cp "${RAW#@file:}" "$KEYFILE" ;;
-            @env:*)  VAR="${RAW#@env:}"; printf '%b' "${!VAR}" > "$KEYFILE" ;;
-            *)       if [ -f "$RAW" ]; then cp "$RAW" "$KEYFILE"; else printf '%b' "$RAW" > "$KEYFILE"; fi ;;
-          esac
-          if ! grep -q 'BEGIN PRIVATE KEY' "$KEYFILE"; then
-            echo "ERRO: API key .p8 inválida. Valor começa com: '$(printf %s "$RAW" | head -c8)'"
-            echo "  Tamanho do .p8 gerado: $(wc -c < "$KEYFILE") bytes"
-            exit 1
-          fi
-          echo "API key (.p8) pronta ($(wc -c < "$KEYFILE") bytes)."
+          # Aplica o profile baixado no projeto (assinatura MANUAL).
+          xcode-project use-profiles
 
       - name: Definir número de build (auto-incremento via TestFlight)
         script: |
@@ -97,37 +78,11 @@ workflows:
             -scheme App \
             -resolvePackageDependencies
 
-      - name: Arquivar e exportar IPA (automatic signing com Sign in with Apple)
+      - name: Gerar IPA assinada (App Store, assinatura manual)
         script: |
-          set -e
-          KEYPATH="$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
-          # Archive com automatic signing: -allowProvisioningUpdates faz o Xcode
-          # criar/atualizar o provisioning profile com TODAS as capabilities do
-          # App ID (incl. Sign in with Apple), autenticando via a API key.
-          # CODE_SIGN_IDENTITY="Apple Distribution" sobrescreve o "iPhone Developer"
-          # que vem por padrão no projeto Capacitor — assim o archive usa assinatura
-          # de DISTRIBUIÇÃO (App Store, não precisa de aparelho) em vez de Development.
-          xcodebuild -project "$XCODE_PROJECT" \
-            -scheme "$XCODE_SCHEME" \
-            -configuration Release \
-            -archivePath "build/ios/xcarchive/App.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$KEYPATH" \
-            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            CODE_SIGN_STYLE=Automatic \
-            archive
-          # Exporta a IPA para distribuição na App Store.
-          xcodebuild -exportArchive \
-            -archivePath "build/ios/xcarchive/App.xcarchive" \
-            -exportPath "build/ios/ipa" \
-            -exportOptionsPlist "ios/export_options.plist" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$KEYPATH" \
-            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
 
     artifacts:
       - build/ios/ipa/*.ipa
