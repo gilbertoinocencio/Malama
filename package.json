@@ -11,7 +11,7 @@
     "build:ios": "vite build && npx cap sync ios",
     "open:android": "npx cap open android",
     "open:ios": "npx cap open ios",
-    "postinstall": "patch-package"
+    "postinstall": "node scripts/fix-apple-signin-spm.cjs"
   },
   "dependencies": {
     "@capacitor-community/apple-sign-in": "^7.1.0",
@@ -50,7 +50,6 @@
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.27",
-    "patch-package": "^8.0.1",
     "pdf-parse": "^1.1.1",
     "postcss": "^8.5.8",
     "tailwindcss": "^3.4.16",

@@ -64,20 +64,17 @@ workflows:
       - name: Resolver dependências SPM (Capacitor usa Swift Package Manager)
         script: |
           set -e
-          # Sem resolver os pacotes Swift antes, o `xcodebuild -showBuildSettings`
-          # que o build-ipa executa falha com status 74 ("Failed to show build settings").
-          # Se este passo falhar, o erro REAL do xcodebuild aparece aqui no log.
+          # Resolve os pacotes Swift antes do build-ipa. Se falhar, o erro REAL
+          # do xcodebuild aparece aqui (em vez do genérico "Failed to show build settings").
           xcodebuild -project ios/App/App.xcodeproj \
             -scheme App \
-            -resolvePackageDependencies \
-            -clonedSourcePackagesDirPath ios/App/SourcePackages
+            -resolvePackageDependencies
 
       - name: Gerar IPA assinada
         script: |
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME" \
-            -- -clonedSourcePackagesDirPath ios/App/SourcePackages
+            --scheme "$XCODE_SCHEME"
 
     artifacts:
       - build/ios/ipa/*.ipa
