@@ -60,19 +60,24 @@ workflows:
             --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
             --create
           keychain add-certificates
-          # Grava a API key (.p8) em arquivo para o xcodebuild autenticar no Apple
-          # durante o automatic signing (-allowProvisioningUpdates).
-          # %b interpreta \n escapadas (o Codemagic pode expor a chave numa linha só).
+          # Prepara a API key (.p8) para o xcodebuild autenticar durante o automatic
+          # signing. O Codemagic expõe APP_STORE_CONNECT_PRIVATE_KEY como CAMINHO do
+          # arquivo (mais comum) OU como CONTEÚDO — tratamos os dois casos.
           mkdir -p "$HOME/private_keys"
           KEYFILE="$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
-          printf '%b' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEYFILE"
-          # Valida o PEM antes de prosseguir (falha cedo com diagnóstico claro).
+          if [ -f "$APP_STORE_CONNECT_PRIVATE_KEY" ]; then
+            cp "$APP_STORE_CONNECT_PRIVATE_KEY" "$KEYFILE"
+          else
+            printf '%b' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEYFILE"
+          fi
           if ! grep -q 'BEGIN PRIVATE KEY' "$KEYFILE"; then
-            echo "ERRO: APP_STORE_CONNECT_PRIVATE_KEY não gerou um .p8 PEM válido."
-            echo "Tamanho do arquivo: $(wc -c < "$KEYFILE") bytes (0 = variável vazia)."
+            echo "ERRO: não consegui obter a API key (.p8) válida."
+            echo "  É caminho de arquivo? $([ -f "$APP_STORE_CONNECT_PRIVATE_KEY" ] && echo SIM || echo NAO)"
+            echo "  Primeiro caractere do valor: '$(printf %s "$APP_STORE_CONNECT_PRIVATE_KEY" | head -c1)'"
+            echo "  Tamanho do .p8 gerado: $(wc -c < "$KEYFILE") bytes"
             exit 1
           fi
-          echo "API key (.p8) escrita e validada ($(wc -c < "$KEYFILE") bytes)."
+          echo "API key (.p8) pronta ($(wc -c < "$KEYFILE") bytes)."
 
       - name: Definir número de build (auto-incremento via TestFlight)
         script: |
