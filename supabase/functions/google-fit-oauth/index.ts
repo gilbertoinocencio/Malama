@@ -5,7 +5,7 @@ const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_FIT_CLIENT_ID')!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_FIT_CLIENT_SECRET')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const APP_URL = Deno.env.get('APP_URL') || 'https://nura.app';
+const APP_URL = Deno.env.get('APP_URL') || 'https://soumalama.com.br';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
