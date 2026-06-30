@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { HealthConnectService } from './healthConnectService';
+import { AppleHealthService } from './appleHealthService';
 import type { FitnessService, ConnectedIntegration, Activity } from '../types';
 
 const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
@@ -72,6 +73,9 @@ export const IntegrationService = {
     } else if (service === 'health_connect') {
       // Health Connect é on-device: revoga as permissões no aparelho + marca inativo
       await HealthConnectService.disconnect(userId);
+    } else if (service === 'apple_health') {
+      // HealthKit é on-device: sem API de revogação — limpa estado local + marca inativo
+      await AppleHealthService.disconnect(userId);
     } else {
       await supabase
         .from('user_integrations')
@@ -86,7 +90,8 @@ export const IntegrationService = {
   async syncActivities(): Promise<void> {
     await Promise.allSettled([
       supabase.functions.invoke('strava-sync'),
-      HealthConnectService.sync(),
+      HealthConnectService.sync(),   // no-op fora do Android
+      AppleHealthService.sync(),     // no-op fora do iOS
     ]);
   },
 

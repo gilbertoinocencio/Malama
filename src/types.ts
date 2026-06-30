@@ -122,7 +122,7 @@ export enum AppView {
 
 export type Theme = 'light' | 'dark';
 
-export type FitnessService = 'strava' | 'google_fit' | 'garmin' | 'polar' | 'samsung' | 'health_connect';
+export type FitnessService = 'strava' | 'google_fit' | 'garmin' | 'polar' | 'samsung' | 'health_connect' | 'apple_health';
 
 /** Agregados diários de origem device (Google Health Connect). Tabela health_daily_metrics. */
 export interface HealthDailyMetrics {

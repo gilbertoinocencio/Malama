@@ -4,6 +4,7 @@ import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { IntegrationService } from '../services/integrationService';
 import { HealthConnectService } from '../services/healthConnectService';
+import { AppleHealthService } from '../services/appleHealthService';
 import type { FitnessService, ConnectedIntegration } from '../types';
 
 interface IntegrationsProps {
@@ -11,7 +12,7 @@ interface IntegrationsProps {
 }
 
 interface IntegrationItem {
-  id: FitnessService | 'apple';
+  id: FitnessService;
   name: string;
   icon: string;
   color: string;
@@ -24,8 +25,8 @@ interface IntegrationItem {
 }
 
 const INTEGRATION_DEFS: IntegrationItem[] = [
-  { id: 'strava',     name: 'Strava',         icon: 'directions_run',  color: 'text-[#FC4C02]',               iconBg: 'bg-[#FC4C02]/10',  darkIconBg: 'dark:bg-[#FC4C02]/20' },
-  { id: 'apple',      name: 'Apple Health',   icon: 'favorite',        color: 'text-Malama-main dark:text-white', iconBg: 'bg-Malama-bg',  darkIconBg: 'dark:bg-[#363330]', comingSoon: true },
+  { id: 'strava',        name: 'Strava',         icon: 'directions_run',  color: 'text-[#FC4C02]',               iconBg: 'bg-[#FC4C02]/10',  darkIconBg: 'dark:bg-[#FC4C02]/20' },
+  { id: 'apple_health', name: 'Apple Health',   icon: 'favorite',        color: 'text-Malama-main dark:text-white', iconBg: 'bg-Malama-bg',  darkIconBg: 'dark:bg-[#363330]' },
   { id: 'health_connect', name: 'Health Connect', icon: 'ecg_heart',     color: 'text-green-600 dark:text-green-400', iconBg: 'bg-green-50', darkIconBg: 'dark:bg-green-900/30' },
   { id: 'garmin',     name: 'Garmin',         icon: 'watch',           color: 'text-[#007cc3]',               iconBg: 'bg-blue-100',      darkIconBg: 'dark:bg-blue-800/30',  uiOnly: true },
   { id: 'polar',      name: 'Polar',          icon: 'monitor_heart',   color: 'text-[#E60012]',               iconBg: 'bg-red-50',        darkIconBg: 'dark:bg-red-900/20',   uiOnly: true },
@@ -42,10 +43,13 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
 
-  // Health Connect é on-device (Android): o estado real de conexão é a permissão
-  // concedida no aparelho, verificada em runtime — não um flag vindo do banco.
   const isAndroid = Capacitor.getPlatform() === 'android';
+  const isIOS = Capacitor.getPlatform() === 'ios';
+
+  // Health Connect (Android) e Apple Health (iOS) são on-device — estado de
+  // conexão vem do aparelho em runtime, não de um flag no banco.
   const [hcConnected, setHcConnected] = useState(false);
+  const [ahConnected, setAhConnected] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -65,20 +69,27 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
       .catch(() => {});
   }, [isAndroid]);
 
-  const isConnected = (id: FitnessService | 'apple'): boolean => {
-    if (id === 'apple') return false;
+  useEffect(() => {
+    if (!isIOS) return;
+    AppleHealthService.getStatus()
+      .then(s => setAhConnected(s.connected))
+      .catch(() => {});
+  }, [isIOS]);
+
+  const isConnected = (id: FitnessService): boolean => {
+    if (id === 'apple_health') return ahConnected;
     if (id === 'health_connect') return hcConnected;
-    return connected[id as FitnessService] ?? false;
+    return connected[id] ?? false;
   };
 
   const handleToggle = async (item: IntegrationItem) => {
     if (!user || item.comingSoon || item.uiOnly) return;
     if (toggling) return; // evitar double-tap
 
-    const service = item.id as FitnessService;
+    const service = item.id;
     setToggling(item.id);
 
-    // Health Connect: diálogo nativo de permissões (sem redirect OAuth).
+    // Health Connect (Android): diálogo nativo de permissões (sem redirect OAuth).
     if (item.id === 'health_connect') {
       if (hcConnected) {
         await IntegrationService.disconnectService('health_connect', user.id);
@@ -86,6 +97,19 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
       } else {
         const ok = await HealthConnectService.requestPermissions();
         setHcConnected(ok);
+      }
+      setToggling(null);
+      return;
+    }
+
+    // Apple Health (iOS): diálogo nativo de permissões (sem redirect OAuth).
+    if (item.id === 'apple_health') {
+      if (ahConnected) {
+        await IntegrationService.disconnectService('apple_health', user.id);
+        setAhConnected(false);
+      } else {
+        const ok = await AppleHealthService.requestPermissions();
+        setAhConnected(ok);
       }
       setToggling(null);
       return;
@@ -157,11 +181,11 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
           </div>
         ) : (
           INTEGRATION_DEFS
-            // Health Connect só no Android nativo; Apple Health só fora do Android (iOS/web).
+            // Health Connect só no Android; Apple Health só no iOS.
             // Cada um some na plataforma onde não funciona.
             .filter((item) => {
               if (item.id === 'health_connect') return isAndroid;
-              if (item.id === 'apple') return !isAndroid;
+              if (item.id === 'apple_health') return isIOS;
               return true;
             })
             .map((item) => {
@@ -180,9 +204,14 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
                       <p className="text-Malama-main dark:text-white text-base font-semibold leading-normal">{item.name}</p>
-                      {item.comingSoon && (
+                      {item.id === 'apple_health' && (
                         <span className="text-[10px] font-bold uppercase tracking-wide bg-Malama-muted/15 dark:bg-white/10 text-Malama-muted dark:text-slate-400 px-1.5 py-0.5 rounded-full">
                           iOS
+                        </span>
+                      )}
+                      {item.comingSoon && item.id !== 'apple_health' && (
+                        <span className="text-[10px] font-bold uppercase tracking-wide bg-Malama-muted/15 dark:bg-white/10 text-Malama-muted dark:text-slate-400 px-1.5 py-0.5 rounded-full">
+                          Em breve
                         </span>
                       )}
                     </div>
