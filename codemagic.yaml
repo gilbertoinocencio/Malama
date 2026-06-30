@@ -49,11 +49,15 @@ workflows:
           set -e
           keychain initialize
           # Baixa/cria o certificado de distribuição e instala no keychain.
+          # --certificate-key usa uma chave privada FIXA (env var CERTIFICATE_PRIVATE_KEY),
+          # para que todo build reuse o MESMO certificado em vez de criar um novo a cada
+          # vez (a Apple limita a ~2-3 certificados de distribuição).
           # (O profile criado aqui é ignorado — a assinatura automática do xcodebuild
           #  gera o profile correto, com a capability Sign in with Apple.)
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --platform IOS \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
             --create
           keychain add-certificates
           # Grava a API key (.p8) em arquivo para o xcodebuild autenticar no Apple
