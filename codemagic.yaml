@@ -104,6 +104,9 @@ workflows:
           # Archive com automatic signing: -allowProvisioningUpdates faz o Xcode
           # criar/atualizar o provisioning profile com TODAS as capabilities do
           # App ID (incl. Sign in with Apple), autenticando via a API key.
+          # CODE_SIGN_IDENTITY="Apple Distribution" sobrescreve o "iPhone Developer"
+          # que vem por padrão no projeto Capacitor — assim o archive usa assinatura
+          # de DISTRIBUIÇÃO (App Store, não precisa de aparelho) em vez de Development.
           xcodebuild -project "$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME" \
             -configuration Release \
@@ -113,6 +116,8 @@ workflows:
             -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGN_STYLE=Automatic \
             archive
           # Exporta a IPA para distribuição na App Store.
           xcodebuild -exportArchive \
