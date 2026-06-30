@@ -3,6 +3,52 @@
  * Detecta a localização do usuário para personalizar sugestões regionais
  */
 
+import { Capacitor } from '@capacitor/core';
+
+/**
+ * Obtém a posição atual usando o plugin NATIVO (@capacitor/geolocation) quando o
+ * app roda no iOS/Android — assim o diálogo de permissão mostra "Malama" e o texto
+ * do Info.plist, em vez de "localhost" (origem do WebView). No navegador, usa a
+ * Web Geolocation API normal. Erros mantêm `.code` compatível (1 = permissão negada).
+ */
+export async function getCurrentPositionUnified(
+  options: PositionOptions = {}
+): Promise<{ latitude: number; longitude: number; accuracy: number }> {
+  if (Capacitor.isNativePlatform()) {
+    const { Geolocation } = await import('@capacitor/geolocation');
+    let perm = await Geolocation.checkPermissions();
+    if (perm.location !== 'granted' && perm.coarseLocation !== 'granted') {
+      perm = await Geolocation.requestPermissions();
+    }
+    if (perm.location !== 'granted' && perm.coarseLocation !== 'granted') {
+      const err = new Error('Permissão de localização negada pelo usuário') as Error & { code: number };
+      err.code = 1; // PERMISSION_DENIED (compatível com a Web Geolocation API)
+      throw err;
+    }
+    const pos = await Geolocation.getCurrentPosition({
+      enableHighAccuracy: options.enableHighAccuracy ?? true,
+      timeout: options.timeout ?? 10000,
+      maximumAge: options.maximumAge ?? 0,
+    });
+    return {
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+      accuracy: pos.coords.accuracy,
+    };
+  }
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({
+        latitude: p.coords.latitude,
+        longitude: p.coords.longitude,
+        accuracy: p.coords.accuracy,
+      }),
+      (e) => reject(e),
+      options
+    );
+  });
+}
+
 interface LocationData {
   latitude: number;
   longitude: number;
@@ -86,62 +132,36 @@ export const GeolocationService = {
    * Solicita permissão e obtém a localização atual do usuário
    */
   async requestLocation(): Promise<LocationData> {
-    if (!this.isSupported()) {
-      throw new Error('Geolocalização não suportada neste navegador');
-    }
-
-    return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
-          
-          // Detecta estado baseado nas coordenadas
-          const state = this.detectStateFromCoordinates(latitude, longitude);
-          const region = state ? UF_TO_REGION[state] : undefined;
-          const country = this.detectCountryFromCoordinates(latitude, longitude);
-
-          const locationData: LocationData = {
-            latitude,
-            longitude,
-            accuracy,
-            state,
-            region,
-            country,
-            timestamp: Date.now()
-          };
-
-          console.log('📍 Localização detectada:', {
-            coords: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-            state: state ? `${state} (${UF_NAMES[state]})` : 'Desconhecido',
-            region: region || 'Desconhecida',
-            country: country || 'Desconhecido',
-            accuracy: `${accuracy}m`
-          });
-
-          resolve(locationData);
-        },
-        (error) => {
-          let errorMessage = 'Erro ao obter localização';
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = 'Permissão de localização negada pelo usuário';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Localização indisponível';
-              break;
-            case error.TIMEOUT:
-              errorMessage = 'Tempo esgotado ao obter localização';
-              break;
-          }
-          reject(new Error(errorMessage));
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000 // 5 minutos de cache
-        }
-      );
+    const { latitude, longitude, accuracy } = await getCurrentPositionUnified({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 300000, // 5 minutos de cache
     });
+
+    // Detecta estado baseado nas coordenadas
+    const state = this.detectStateFromCoordinates(latitude, longitude);
+    const region = state ? UF_TO_REGION[state] : undefined;
+    const country = this.detectCountryFromCoordinates(latitude, longitude);
+
+    const locationData: LocationData = {
+      latitude,
+      longitude,
+      accuracy,
+      state,
+      region,
+      country,
+      timestamp: Date.now()
+    };
+
+    console.log('📍 Localização detectada:', {
+      coords: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+      state: state ? `${state} (${UF_NAMES[state]})` : 'Desconhecido',
+      region: region || 'Desconhecida',
+      country: country || 'Desconhecido',
+      accuracy: `${accuracy}m`
+    });
+
+    return locationData;
   },
 
   /**

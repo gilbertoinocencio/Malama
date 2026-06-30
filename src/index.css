@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =====================================================================
+   Safe area (iOS notch / Dynamic Island / home indicator)
+   Requer viewport-fit=cover no <meta viewport> (já configurado).
+   Utilitários reaproveitáveis para cabeçalhos e barras fixas.
+   ===================================================================== */
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+/* topo com a inset + um respiro; usado em cabeçalhos de modais full-screen */
+.pt-safe-header { padding-top: calc(env(safe-area-inset-top) + 0.5rem); }
+/* barra inferior: pelo menos o espaço atual (1.5rem) ou a inset, o que for maior */
+.pb-safe-nav { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+
 html {
   background-color: #FDFBF9;
   color-scheme: light dark;

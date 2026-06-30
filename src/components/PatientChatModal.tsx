@@ -158,7 +158,7 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#EEEFF4] font-display">
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 pt-12 pb-3 bg-white shadow-sm">
+      <header className="flex items-center gap-3 px-4 pt-safe-header pb-3 bg-white shadow-sm">
         <button
           onClick={onClose}
           className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors"

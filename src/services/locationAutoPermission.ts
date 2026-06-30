@@ -4,6 +4,7 @@
 // =====================================================
 
 import { supabase } from '../services/supabase';
+import { getCurrentPositionUnified } from './geolocationService';
 
 const LOCATION_PROMPTED_KEY = 'Malama_location_prompted';
 const LOCATION_ENABLED_KEY = 'Malama_location_enabled';
@@ -56,36 +57,14 @@ export const LocationAutoPermission = {
    * Solicita permissão de localização automaticamente (após onboarding)
    */
   async requestAutoPermission(userId: string, supabaseClient: any): Promise<void> {
-    // Verifica se o navegador suporta geolocalização
-    if (!('geolocation' in navigator)) {
-      console.log('⚠️ Geolocalização não suportada');
-      this.markAsPrompted();
-      return;
-    }
-
     try {
       console.log('📍 Solicitando localização automaticamente...');
-      
-      const location = await new Promise<{
-        latitude: number;
-        longitude: number;
-      }>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            resolve({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            });
-          },
-          (error) => {
-            reject(error);
-          },
-          {
-            enableHighAccuracy: false,
-            timeout: 5000,
-            maximumAge: 600000, // 10 minutos
-          }
-        );
+
+      // Usa o plugin nativo no app (diálogo mostra "Malama"), Web API no navegador.
+      const location = await getCurrentPositionUnified({
+        enableHighAccuracy: false,
+        timeout: 5000,
+        maximumAge: 600000, // 10 minutos
       });
 
       // Se chegou aqui, o usuário permitiu

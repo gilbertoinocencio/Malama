@@ -44,7 +44,7 @@ export const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
-    <div className="h-screen w-full flex flex-col overflow-hidden max-w-md mx-auto relative bg-background-light dark:bg-background-dark shadow-2xl transition-colors duration-300">
+    <div className="h-screen w-full flex flex-col overflow-hidden max-w-md mx-auto relative bg-background-light dark:bg-background-dark shadow-2xl transition-colors duration-300 pt-safe">
       <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar relative">
         {children}
       </main>

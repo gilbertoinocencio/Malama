@@ -24,7 +24,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full bg-white/90 dark:bg-background-dark/90 backdrop-blur-md border-t border-Malama-border dark:border-white/5 pb-6 pt-2 px-6 z-40 transition-colors duration-300 max-w-md mx-auto left-0 right-0">
+    <nav className="fixed bottom-0 left-0 w-full bg-white/90 dark:bg-background-dark/90 backdrop-blur-md border-t border-Malama-border dark:border-white/5 pb-safe-nav pt-2 px-6 z-40 transition-colors duration-300 max-w-md mx-auto left-0 right-0">
       <ul className="flex justify-between items-end h-12">
         {navItems.map((item, index) => {
           if (item.view === 'FAB') {
