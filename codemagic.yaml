@@ -30,6 +30,7 @@ workflows:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "com.malama.saude"
+        APPLE_TEAM_ID: "4P83L4L578"
       node: 22
       xcode: latest
 
@@ -43,15 +44,23 @@ workflows:
       - name: Sincronizar Capacitor iOS
         script: npx cap sync ios
 
-      - name: Configurar assinatura (cria certificado + profile via API key)
+      - name: Preparar certificado de distribuição + API key
         script: |
+          set -e
           keychain initialize
+          # Baixa/cria o certificado de distribuição e instala no keychain.
+          # (O profile criado aqui é ignorado — a assinatura automática do xcodebuild
+          #  gera o profile correto, com a capability Sign in with Apple.)
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --platform IOS \
             --create
           keychain add-certificates
-          xcode-project use-profiles
+          # Grava a API key (.p8) em arquivo para o xcodebuild autenticar no Apple
+          # durante o automatic signing (-allowProvisioningUpdates).
+          mkdir -p "$HOME/private_keys"
+          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" \
+            > "$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
 
       - name: Definir número de build (auto-incremento via TestFlight)
         script: |
@@ -70,11 +79,32 @@ workflows:
             -scheme App \
             -resolvePackageDependencies
 
-      - name: Gerar IPA assinada
+      - name: Arquivar e exportar IPA (automatic signing com Sign in with Apple)
         script: |
-          xcode-project build-ipa \
-            --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
+          set -e
+          KEYPATH="$HOME/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+          # Archive com automatic signing: -allowProvisioningUpdates faz o Xcode
+          # criar/atualizar o provisioning profile com TODAS as capabilities do
+          # App ID (incl. Sign in with Apple), autenticando via a API key.
+          xcodebuild -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -archivePath "build/ios/xcarchive/App.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEYPATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            archive
+          # Exporta a IPA para distribuição na App Store.
+          xcodebuild -exportArchive \
+            -archivePath "build/ios/xcarchive/App.xcarchive" \
+            -exportPath "build/ios/ipa" \
+            -exportOptionsPlist "ios/export_options.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEYPATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
 
     artifacts:
       - build/ios/ipa/*.ipa
