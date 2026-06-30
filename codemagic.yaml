@@ -24,9 +24,6 @@ workflows:
       app_store_connect: malama_asc_key
 
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.malama.saude
       groups:
         - malama_vite_env
       vars:
@@ -46,8 +43,15 @@ workflows:
       - name: Sincronizar Capacitor iOS
         script: npx cap sync ios
 
-      - name: Configurar assinatura (provisioning profiles)
-        script: xcode-project use-profiles
+      - name: Configurar assinatura (cria certificado + profile via API key)
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --platform IOS \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
 
       - name: Definir número de build (auto-incremento via TestFlight)
         script: |
