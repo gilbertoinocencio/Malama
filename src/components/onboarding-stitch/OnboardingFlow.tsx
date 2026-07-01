@@ -121,7 +121,10 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
     savedState?.data ? { ...DEFAULT_DATA, ...savedState.data } : DEFAULT_DATA
   );
 
-  const steps = Object.values(OnboardingStep);
+  // Cobrança é 100% B2B (o RH paga e libera assentos) — o app não exibe planos
+  // nem preços ao usuário. As telas de premium/assinatura ficam fora do fluxo.
+  const HIDDEN_STEPS = new Set<OnboardingStep>([OnboardingStep.VANTAGENS_PREMIUM, OnboardingStep.ASSINATURAS]);
+  const steps = Object.values(OnboardingStep).filter(s => !HIDDEN_STEPS.has(s));
   const currentStep = steps[currentStepIndex];
 
   const updateData = (newData: Partial<StitchOnboardingData>) => {
@@ -139,9 +142,10 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
 
     console.log('🟢 [OnboardingFlow] handleNext - currentStep:', currentStep, 'nextStep:', nextStep, 'isInfluencer:', isInfluencer);
 
-    // Influencers não pagam — pular telas de premium/planos e encerrar o onboarding
-    if (isInfluencer && nextStep === OnboardingStep.VANTAGENS_PREMIUM) {
-      console.log('✅ [OnboardingFlow] Influencer detectado! Pulando telas de premium e finalizando onboarding...');
+    // Influencers encerram após o onboarding base (as telas de premium/planos já
+    // foram removidas do fluxo; FLOW é o 1º passo pós-plano agora).
+    if (isInfluencer && nextStep === OnboardingStep.FLOW) {
+      console.log('✅ [OnboardingFlow] Influencer detectado! Finalizando onboarding...');
       await finishOnboarding();
       return;
     }

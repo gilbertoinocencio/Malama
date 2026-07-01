@@ -87,7 +87,6 @@ export const GLP1Consulta: React.FC<GLP1ConsultaProps> = ({ onBack }) => {
         date: selectedDate,
         time: selectedTime,
         status: 'scheduled' as const,
-        price: 249,
       };
       const existing = profile?.glp1_consultations || [];
       const updated = [...existing, consultation];
@@ -173,7 +172,6 @@ export const GLP1Consulta: React.FC<GLP1ConsultaProps> = ({ onBack }) => {
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-bold text-gray-800">R$ 249</p>
                       <p className="text-[10px] text-gray-400">{doc.nextSlots.length} horários</p>
                     </div>
                   </div>
@@ -287,18 +285,12 @@ export const GLP1Consulta: React.FC<GLP1ConsultaProps> = ({ onBack }) => {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 mb-6 text-center border border-gray-100">
-              <span className="text-xs text-gray-500">Total</span>
-              <p className="text-2xl font-bold text-gray-900">R$ 249</p>
-              <p className="text-[10px] text-gray-400">PIX ou cartão</p>
-            </div>
-
             <button
               onClick={handleConfirm}
               disabled={saving}
               className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
-              {saving ? 'Confirmando...' : 'Confirmar consulta — R$ 249'}
+              {saving ? 'Confirmando...' : 'Confirmar consulta'}
             </button>
           </StepWrap>
         );

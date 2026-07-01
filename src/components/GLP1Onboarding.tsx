@@ -389,13 +389,8 @@ export const GLP1Onboarding: React.FC<GLP1OnboardingProps> = ({ onComplete, onCl
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-2xl p-4 mb-6 text-center">
-              <span className="text-xs text-gray-500">Consulta</span>
-              <p className="text-2xl font-bold text-gray-900">R$ 249</p>
-            </div>
-
             <button
-              onClick={() => onNavigate(AppView.GLP1_CONSULTA)}
+              onClick={() => onNavigate(AppView.AGENDAR_CONSULTA)}
               className="w-full py-3.5 rounded-full bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition-colors mb-3"
             >
               Agendar consulta

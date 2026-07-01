@@ -244,7 +244,6 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-bold text-Malama-main">R$ {doc.price}</p>
                           <p className="text-[10px] text-Malama-muted">{doc.consultation_duration} min</p>
                         </div>
                       </div>

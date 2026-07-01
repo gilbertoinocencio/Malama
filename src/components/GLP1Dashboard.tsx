@@ -516,7 +516,7 @@ export const GLP1Dashboard: React.FC<GLP1DashboardProps> = ({ onBack, onNavigate
                   </p>
                 </div>
                 <button
-                  onClick={() => onNavigate(AppView.GLP1_CONSULTA)}
+                  onClick={() => onNavigate(AppView.AGENDAR_CONSULTA)}
                   className="text-xs font-bold text-emerald-600 whitespace-nowrap"
                 >
                   Renovar →
@@ -736,7 +736,7 @@ export const GLP1Dashboard: React.FC<GLP1DashboardProps> = ({ onBack, onNavigate
                 <p className="text-xs text-gray-500">Renovar receita ou tirar dúvidas</p>
               </div>
               <button
-                onClick={() => onNavigate(AppView.GLP1_CONSULTA)}
+                onClick={() => onNavigate(AppView.AGENDAR_CONSULTA)}
                 className="px-3 py-1.5 rounded-lg border-2 border-gray-200 text-xs font-semibold text-gray-700"
               >
                 Agendar

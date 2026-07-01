@@ -229,7 +229,7 @@ export interface Profile {
     date: string;
     time: string;
     status: 'scheduled' | 'completed' | 'cancelled';
-    price: number;
+    price?: number;
   }>;
   glp1_meal_schedule?: GLP1MealSlot[];
   glp1_application_schedule?: GLP1ApplicationSchedule;

@@ -37,7 +37,7 @@ const FlowAdaptation = React.lazy(() => lazyRetry(() => import('./components/Flo
 const Integrations = React.lazy(() => lazyRetry(() => import('./components/Integrations'), 'Integrations'));
 const GLP1Onboarding = React.lazy(() => lazyRetry(() => import('./components/GLP1Onboarding'), 'GLP1Onboarding'));
 const GLP1Dashboard = React.lazy(() => lazyRetry(() => import('./components/GLP1Dashboard'), 'GLP1Dashboard'));
-const GLP1Consulta = React.lazy(() => lazyRetry(() => import('./components/GLP1Consulta'), 'GLP1Consulta'));
+// GLP1Consulta (mock) desativado — consultas GLP-1 usam o fluxo real AgendarConsulta (médicos do banco + créditos B2B).
 const AgendarConsulta = React.lazy(() => lazyRetry(() => import('./components/AgendarConsulta'), 'AgendarConsulta'));
 const MinhasConsultas = React.lazy(() => lazyRetry(() => import('./components/MinhasConsultas'), 'MinhasConsultas'));
 const PatientConsultaPage = React.lazy(() => lazyRetry(() => import('./components/PatientConsultaPage'), 'PatientConsultaPage'));
@@ -592,11 +592,6 @@ const App: React.FC = () => {
           />
         )}
 
-        {view === AppView.GLP1_CONSULTA && (
-          <GLP1Consulta
-            onBack={() => setView(AppView.GLP1_DASHBOARD)}
-          />
-        )}
 
         {/* Telemedicine — Real Scheduling Flow */}
         {view === AppView.AGENDAR_CONSULTA && (

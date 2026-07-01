@@ -333,7 +333,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                 <span className="text-4xl">🗓</span>
                 <p className="text-sm text-Malama-muted mt-3">Nenhuma consulta ainda</p>
                 <button
-                  onClick={() => onNavigate(AppView.GLP1_CONSULTA)}
+                  onClick={() => onNavigate(AppView.AGENDAR_CONSULTA)}
                   className="mt-4 px-5 py-2.5 bg-Malama-petrol text-white rounded-full text-sm font-bold hover:bg-[#7a3d35] transition-colors"
                 >
                   Agendar primeira consulta
@@ -382,7 +382,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                     )}
                     {(expiring || days <= 0) && (
                       <button
-                        onClick={() => onNavigate(AppView.GLP1_CONSULTA)}
+                        onClick={() => onNavigate(AppView.AGENDAR_CONSULTA)}
                         className="flex-1 py-2 bg-Malama-petrol text-white rounded-xl text-xs font-bold hover:bg-[#7a3d35] transition-colors"
                       >
                         Renovar receita
