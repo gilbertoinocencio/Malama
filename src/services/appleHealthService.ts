@@ -132,6 +132,12 @@ export const AppleHealthService = {
     const userId = auth.user?.id;
     if (!userId) return null;
 
+    // Só sincroniza se o usuário tiver ativado a integração pelo toggle (concedendo a
+    // permissão do HealthKit). O iOS não revela se a permissão de leitura foi concedida,
+    // então este flag local é a fonte de verdade — evita "conectar" sozinho no boot,
+    // já que o sync roda automaticamente via IntegrationService.syncActivities().
+    if (localStorage.getItem(CONNECTED_KEY(userId)) !== 'true') return null;
+
     const now = new Date();
     const stored = localStorage.getItem(LAST_SYNC_KEY(userId));
     const since = stored
@@ -247,8 +253,14 @@ export const AppleHealthService = {
       if (error) console.warn('[AppleHealth] upsert health_daily_metrics', error.message);
     }
 
-    await this.markConnected(userId, now);
+    // Já está ativo (checado no início) — só atualiza o carimbo de sync, sem
+    // re-marcar a conexão (markConnected é responsabilidade só do requestPermissions).
     localStorage.setItem(LAST_SYNC_KEY(userId), String(now.getTime()));
+    await supabase
+      .from('user_integrations')
+      .update({ last_sync: now.toISOString() })
+      .eq('user_id', userId)
+      .eq('service', SERVICE);
 
     return { activities: activityRows.length, days: daily.size };
   },
