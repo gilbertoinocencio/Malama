@@ -66,8 +66,10 @@ CREATE TABLE IF NOT EXISTS public.consultation_reminders_sent (
 ALTER TABLE public.consultation_reminders_sent ENABLE ROW LEVEL SECURITY;
 
 -- 3. Agendamento do cron (a cada 5 min) — só se pg_cron estiver habilitado.
---    URLs/keys vêm de platform_settings ('supabase_functions_url' e
---    'service_role_key_for_cron'), mesmo padrão dos jobs de billing.
+--    URL (não-secreta) vem de platform_settings ('supabase_functions_url').
+--    A service_role key do cron fica no VAULT (nunca em platform_settings, que
+--    é legível por todos): vault.decrypted_secrets name='service_role_key_for_cron'.
+--    Requer pg_net habilitado no schema 'net'.
 -- ---------------------------------------------------------------------
 DO $$
 BEGIN
@@ -84,7 +86,7 @@ BEGIN
           url     := (SELECT value FROM platform_settings WHERE key = 'supabase_functions_url') || '/send-consultation-reminders',
           headers := jsonb_build_object(
             'Content-Type',  'application/json',
-            'Authorization', 'Bearer ' || (SELECT value FROM platform_settings WHERE key = 'service_role_key_for_cron')
+            'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'service_role_key_for_cron')
           ),
           body    := '{}'::jsonb
         )
