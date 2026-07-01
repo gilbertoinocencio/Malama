@@ -75,6 +75,17 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
 
   const qp = t.quarterlyPlan;
 
+  // Semana atual dentro do plano de 12 semanas (1–12)
+  const currentWeek = (() => {
+    if (!plan?.start_date) return 1;
+    const diffMs = Date.now() - new Date(plan.start_date).getTime();
+    const week = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1;
+    return Math.max(1, Math.min(12, week));
+  })();
+
+  // Fase atual: 1 = semanas 1-4, 2 = semanas 5-8, 3 = semanas 9-12
+  const currentPhase = currentWeek <= 4 ? 1 : currentWeek <= 8 ? 2 : 3;
+
   if (loading) return (
     <div className="flex justify-center items-center h-screen bg-Malama-bg dark:bg-background-dark">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-Malama-petrol dark:border-primary"></div>
@@ -176,7 +187,7 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
 
             {/* Roadmap Visual */}
             <div className="w-full mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              <PlanRoadmap currentWeek={1} />
+              <PlanRoadmap currentWeek={currentWeek} />
             </div>
 
             {/* Timeline */}
@@ -188,7 +199,7 @@ export const QuarterlyPlan: React.FC<QuarterlyPlanProps> = ({ onBack, onNavigate
               <div className="flex flex-col space-y-0">
 
                 {plan.phases.map((phase, idx) => {
-                  const isMainPhase = idx === 1;
+                  const isMainPhase = idx === currentPhase - 1;
                   const isExpanded = expandedPhase === idx;
                   return (
                     <div key={idx} className="timeline-item flex gap-4 pb-8">

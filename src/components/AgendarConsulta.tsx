@@ -400,12 +400,6 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                 </p>
               </div>
 
-              {/* Price */}
-              <div className="bg-white rounded-2xl p-4 mb-5 flex items-center justify-between border border-Malama-border">
-                <span className="text-sm text-Malama-muted">{t.agendarConsulta.total}</span>
-                <span className="text-xl font-bold text-Malama-main">R$ {selectedDoctor.price}</span>
-              </div>
-
               {bookError && (
                 <p className="text-sm text-red-500 text-center mb-3">{bookError}</p>
               )}
@@ -415,7 +409,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                 disabled={booking || !consentGiven}
                 className="w-full py-3.5 rounded-full bg-Malama-petrol text-white text-sm font-bold hover:bg-[#7a3d35] transition-colors disabled:opacity-50"
               >
-                {booking ? t.agendarConsulta.booking : t.agendarConsulta.confirmConsultation.replace('{price}', selectedDoctor.price.toString())}
+                {booking ? t.agendarConsulta.booking : t.agendarConsulta.confirmConsultation}
               </button>
               {!consentGiven && (
                 <p className="text-xs text-center text-Malama-muted mt-2">{t.agendarConsulta.acceptDataSharingToContinue}</p>
