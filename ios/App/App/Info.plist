@@ -55,6 +55,8 @@
 	<string>O Malama salva imagens na sua galeria quando você compartilha seu progresso.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>O Malama usa sua localização para sugerir alimentos e opções regionais próximas a você.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>O Malama usa sua localização para sugerir alimentos e opções regionais próximas a você.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>O Malama lê seus dados do Apple Saúde (passos, calorias, treinos e distância) para personalizar seu plano de saúde e acompanhar sua evolução.</string>
 	<key>NSHealthUpdateUsageDescription</key>
