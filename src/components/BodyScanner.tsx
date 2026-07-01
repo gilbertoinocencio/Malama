@@ -471,7 +471,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
     <div className="fixed inset-0 z-50 flex flex-col bg-[#FDFBF9]">
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-5 pt-safe-top py-4 border-b border-stone-100">
+      <div className="flex items-center justify-between px-5 pt-safe-header pb-4 border-b border-stone-100">
         <button
           onClick={onClose}
           className="flex items-center gap-1.5 text-stone-500 hover:text-stone-800 transition-colors"

@@ -140,7 +140,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
 
   return (
     <div className="min-h-screen bg-Malama-bg font-display text-Malama-main pb-32">
-      <header className="flex items-center gap-3 px-4 pt-12 pb-4">
+      <header className="flex items-center gap-3 px-4 pt-safe-header pb-4">
         <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-Malama-main/5 transition-colors">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
@@ -330,11 +330,11 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
 
             {consultations.length === 0 && (
               <div className="text-center py-12">
-                <span className="text-4xl">🗓</span>
+                <span className="material-symbols-outlined text-5xl text-Malama-muted/40">calendar_month</span>
                 <p className="text-sm text-Malama-muted mt-3">Nenhuma consulta ainda</p>
                 <button
                   onClick={() => onNavigate(AppView.AGENDAR_CONSULTA)}
-                  className="mt-4 px-5 py-2.5 bg-Malama-petrol text-white rounded-full text-sm font-bold hover:bg-[#7a3d35] transition-colors"
+                  className="mt-5 px-6 py-3 bg-Malama-petrol text-white rounded-2xl text-sm font-bold hover:bg-[#7a3d35] transition-colors"
                 >
                   Agendar primeira consulta
                 </button>
@@ -394,7 +394,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
             })}
             {prescriptions.length === 0 && (
               <div className="text-center py-12">
-                <span className="text-4xl">📋</span>
+                <span className="material-symbols-outlined text-5xl text-Malama-muted/40">description</span>
                 <p className="text-sm text-Malama-muted mt-3">Nenhuma receita ainda</p>
               </div>
             )}

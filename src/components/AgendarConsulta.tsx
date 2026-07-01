@@ -65,9 +65,9 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
   const availableDates = generateNextDates(30, creditExpiresAt);
 
   const OBJECTIVE_OPTIONS = [
-    { value: 'emagrecimento', label: t.agendarConsulta.objectiveWeightLoss, icon: '⚖️', desc: t.agendarConsulta.objectiveWeightLossDesc },
-    { value: 'performance_esportiva', label: t.agendarConsulta.objectiveSportsPerformance, icon: '🏋️', desc: t.agendarConsulta.objectiveSportsDesc },
-    { value: 'saude_bem_estar', label: t.agendarConsulta.objectiveHealthWellbeing, icon: '🌿', desc: t.agendarConsulta.objectiveHealthDesc },
+    { value: 'emagrecimento', label: t.agendarConsulta.objectiveWeightLoss, icon: 'monitor_weight', desc: t.agendarConsulta.objectiveWeightLossDesc },
+    { value: 'performance_esportiva', label: t.agendarConsulta.objectiveSportsPerformance, icon: 'fitness_center', desc: t.agendarConsulta.objectiveSportsDesc },
+    { value: 'saude_bem_estar', label: t.agendarConsulta.objectiveHealthWellbeing, icon: 'spa', desc: t.agendarConsulta.objectiveHealthDesc },
   ];
 
   useEffect(() => {
@@ -162,7 +162,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
   return (
     <div className="min-h-screen bg-Malama-bg font-display text-Malama-main">
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 pt-12 pb-4">
+      <header className="flex items-center gap-3 px-4 pt-safe-header pb-4">
         <button
           onClick={goBack}
           className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-Malama-main/5 transition-colors"
@@ -197,7 +197,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                     onClick={() => { setSelectedObjective(obj.value); setDoctors([]); setStep('doctors'); }}
                     className="w-full text-left px-5 py-4 rounded-2xl bg-white border-2 border-Malama-border hover:border-Malama-petrol transition-all flex items-center gap-3 shadow-sm"
                   >
-                    <span className="text-2xl">{obj.icon}</span>
+                    <span className="material-symbols-outlined text-Malama-petrol text-2xl">{obj.icon}</span>
                     <div className="flex-1">
                       <p className="text-sm font-bold text-Malama-main">{obj.label}</p>
                       <p className="text-xs text-Malama-muted">{obj.desc}</p>

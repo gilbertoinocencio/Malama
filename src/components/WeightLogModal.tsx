@@ -19,7 +19,6 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({ onClose, onSaved
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load last 5 entries
   useEffect(() => {
     if (!user) return;
     WeightLogService.getWeightHistory(user.id, 5)
@@ -42,11 +41,9 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({ onClose, onSaved
     setError(null);
     try {
       const log = await WeightLogService.logWeight(user.id, weightNum, 'manual', note || undefined);
-      // Keep profiles.weight in sync (no DB trigger exists for this)
       await updateProfile({ weight: weightNum }).catch(() => {});
       setSaved(true);
       onSaved?.(log);
-      // Auto-close after 1.2s
       setTimeout(() => onClose(), 1200);
     } catch (err) {
       setError('Erro ao salvar. Tente novamente.');
@@ -62,12 +59,11 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({ onClose, onSaved
     } catch { /* silent */ }
   };
 
-  // Weight trend indicator
   const getTrendInfo = () => {
     if (diff === null) return null;
     if (diff < -0.2) return { icon: 'trending_down', color: '#10b981', text: `↓ ${Math.abs(diff).toFixed(1)} kg` };
-    if (diff > 0.2) return { icon: 'trending_up', color: '#f59e0b', text: `↑ ${diff.toFixed(1)} kg` };
-    return { icon: 'trending_flat', color: '#6b7280', text: 'Estável' };
+    if (diff > 0.2) return { icon: 'trending_up', color: '#d47311', text: `↑ ${diff.toFixed(1)} kg` };
+    return { icon: 'trending_flat', color: '#78716C', text: 'Estável' };
   };
   const trend = getTrendInfo();
 
@@ -83,49 +79,53 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({ onClose, onSaved
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
         <motion.div
-          className="relative w-full max-w-md rounded-t-3xl pb-safe-bottom"
-          style={{ background: '#111c1e' }}
+          className="relative w-full max-w-md rounded-t-3xl bg-Malama-bg pb-safe-nav overflow-hidden"
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 30, stiffness: 320 }}
         >
+          {/* Decorative orb */}
+          <div
+            className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl opacity-10 pointer-events-none"
+            style={{ background: '#8c473e' }}
+          />
+
           {/* Handle */}
-          <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-4" style={{ background: 'rgba(255,255,255,0.2)' }} />
+          <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-5 bg-Malama-border" />
 
           <div className="px-6 pb-8">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-white text-xl font-bold">Registrar Peso</h2>
+                <h2 className="text-Malama-main text-xl font-bold">Registrar Peso</h2>
                 {lastWeight && (
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  <p className="text-xs text-Malama-muted mt-0.5">
                     Último: {lastWeight.toFixed(1)} kg
                   </p>
                 )}
               </div>
-              <button onClick={onClose}
-                className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: 'rgba(255,255,255,0.08)' }}>
-                <span className="material-symbols-outlined text-white/60 text-xl">close</span>
+              <button
+                onClick={onClose}
+                className="w-9 h-9 rounded-full bg-Malama-border flex items-center justify-center transition-colors hover:bg-Malama-petrol-light"
+              >
+                <span className="material-symbols-outlined text-Malama-muted text-xl">close</span>
               </button>
             </div>
 
             {saved ? (
-              /* Success state */
               <div className="flex flex-col items-center py-8 gap-3">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center"
-                  style={{ background: 'rgba(16,185,129,0.15)' }}>
-                  <span className="material-symbols-outlined text-4xl" style={{ color: '#10b981' }}>check_circle</span>
+                <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-4xl text-emerald-500">check_circle</span>
                 </div>
-                <p className="text-white font-bold text-lg">{weightNum.toFixed(1)} kg registrado!</p>
+                <p className="text-Malama-main font-bold text-lg">{weightNum.toFixed(1)} kg registrado!</p>
                 {trend && (
                   <p className="text-sm font-medium" style={{ color: trend.color }}>{trend.text} em relação ao último</p>
                 )}
               </div>
             ) : (
               <>
-                {/* Weight Input */}
+                {/* Weight input */}
                 <div className="mb-4">
                   <div className="flex items-end gap-3 justify-center mb-2">
                     <input
@@ -136,11 +136,11 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({ onClose, onSaved
                       step="0.1"
                       min="20"
                       max="400"
-                      className="text-center text-5xl font-bold bg-transparent border-none outline-none w-40"
-                      style={{ color: '#1a9aaf', caretColor: '#1a9aaf' }}
+                      className="text-center text-5xl font-light bg-transparent border-none outline-none w-40 tracking-tight"
+                      style={{ color: '#8c473e', caretColor: '#8c473e' }}
                       autoFocus
                     />
-                    <span className="text-xl font-semibold pb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>kg</span>
+                    <span className="text-xl font-semibold pb-2 text-Malama-muted">kg</span>
                   </div>
 
                   {/* Diff indicator */}
@@ -160,8 +160,7 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({ onClose, onSaved
                           const v = (parseFloat(prev) || 0) + delta;
                           return v > 0 ? v.toFixed(1) : prev;
                         })}
-                        className="px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors"
-                        style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.7)' }}
+                        className="px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors bg-Malama-petrol-light text-Malama-main hover:bg-Malama-border"
                       >
                         {delta > 0 ? '+' : ''}{delta}
                       </button>
@@ -176,24 +175,18 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({ onClose, onSaved
                   onChange={e => setNote(e.target.value)}
                   placeholder="Observação (opcional)"
                   maxLength={80}
-                  className="w-full rounded-xl px-4 py-3 text-sm bg-transparent border outline-none mb-4 transition-colors"
-                  style={{
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: 'rgba(255,255,255,0.8)',
-                    caretColor: '#1a9aaf',
-                  }}
+                  className="w-full rounded-xl px-4 py-3 text-sm bg-white border border-Malama-border outline-none mb-4 transition-colors focus:border-Malama-petrol/40 text-Malama-main placeholder:text-Malama-muted/50"
                 />
 
                 {error && (
-                  <p className="text-xs mb-3 text-center" style={{ color: '#f87171' }}>{error}</p>
+                  <p className="text-xs mb-3 text-center text-red-500">{error}</p>
                 )}
 
                 {/* Save button */}
                 <button
                   onClick={handleSave}
                   disabled={saving || !weight}
-                  className="w-full py-4 rounded-2xl font-bold text-white transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-                  style={{ background: '#1a9aaf' }}
+                  className="w-full py-4 rounded-2xl font-bold text-white transition-all disabled:opacity-40 flex items-center justify-center gap-2 bg-Malama-petrol hover:bg-[#7a3d35]"
                 >
                   {saving ? (
                     <>
@@ -213,35 +206,36 @@ export const WeightLogModal: React.FC<WeightLogModalProps> = ({ onClose, onSaved
             {/* Recent history */}
             {!saved && recentLogs.length > 0 && (
               <div className="mt-6">
-                <h3 className="text-xs font-semibold mb-3 uppercase tracking-wider"
-                  style={{ color: 'rgba(255,255,255,0.4)' }}>Últimos registros</h3>
+                <h3 className="text-xs font-semibold mb-3 uppercase tracking-wider text-Malama-muted">
+                  Últimos registros
+                </h3>
                 <div className="space-y-2">
                   {loadingHistory ? (
                     <div className="h-16 flex items-center justify-center">
-                      <div className="w-5 h-5 rounded-full animate-spin border-2 border-t-transparent"
-                        style={{ borderColor: 'rgba(26,154,175,0.3)', borderTopColor: '#1a9aaf' }} />
+                      <div className="w-5 h-5 rounded-full animate-spin border-2 border-t-transparent border-Malama-petrol" />
                     </div>
                   ) : recentLogs.map((log, i) => {
                     const prev = recentLogs[i + 1];
                     const d = prev ? log.weight_kg - prev.weight_kg : null;
                     return (
-                      <div key={log.id} className="flex items-center justify-between py-2 px-3 rounded-xl"
-                        style={{ background: 'rgba(255,255,255,0.04)' }}>
+                      <div key={log.id} className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-Malama-petrol-light">
                         <div>
-                          <span className="text-sm font-semibold text-white">{log.weight_kg.toFixed(1)} kg</span>
-                          <span className="text-xs ml-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                          <span className="text-sm font-semibold text-Malama-main">{log.weight_kg.toFixed(1)} kg</span>
+                          <span className="text-xs ml-2 text-Malama-muted/70">
                             {new Date(log.logged_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                             {log.source !== 'manual' && ` · ${log.source}`}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           {d !== null && (
-                            <span className={`text-xs font-medium ${d < 0 ? 'text-green-400' : d > 0 ? 'text-red-400' : 'text-white/30'}`}>
+                            <span className={`text-xs font-medium ${d < 0 ? 'text-emerald-600' : d > 0 ? 'text-red-500' : 'text-Malama-muted/50'}`}>
                               {d > 0 ? '+' : ''}{d.toFixed(1)}
                             </span>
                           )}
-                          <button onClick={() => handleDelete(log.id)}
-                            className="text-white/20 hover:text-red-400 transition-colors">
+                          <button
+                            onClick={() => handleDelete(log.id)}
+                            className="text-Malama-muted/30 hover:text-red-400 transition-colors"
+                          >
                             <span className="material-symbols-outlined text-sm">delete</span>
                           </button>
                         </div>
