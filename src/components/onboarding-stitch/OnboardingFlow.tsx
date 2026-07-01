@@ -36,8 +36,7 @@ import LembretesRotinaStep from './steps/LembretesRotinaStep';
 import CriandoPlanoStep from './steps/CriandoPlanoStep';
 import PlanoPersonalizadoStep from './steps/PlanoPersonalizadoStep';
 import RecomendacaoMacrosStep from './steps/RecomendacaoMacrosStep';
-import VantagensPremiumStep from './steps/VantagensPremiumStep';
-import AssinaturasStep from './steps/AssinaturasStep';
+// VantagensPremiumStep e AssinaturasStep removidos — cobrança é B2B (RH paga), sem planos/preço no app.
 import ExperienciaCaloriasStep from './steps/ExperienciaCaloriasStep';
 import MalamaFlowStep from './steps/MalamaFlowStep';
 import HomeFeedStep from './steps/HomeFeedStep';
@@ -385,10 +384,6 @@ export const OnboardingFlow: React.FC<{ onComplete: () => void }> = ({ onComplet
         return <PlanoPersonalizadoStep {...props} />;
       case OnboardingStep.RECOMENDACAO_MACROS:
         return <RecomendacaoMacrosStep {...props} />;
-      case OnboardingStep.VANTAGENS_PREMIUM:
-        return <VantagensPremiumStep {...props} />;
-      case OnboardingStep.ASSINATURAS:
-        return <AssinaturasStep {...props} />;
       case OnboardingStep.EXPERIENCIA_CALORIAS:
         return <ExperienciaCaloriasStep {...props} />;
       case OnboardingStep.FLOW:
