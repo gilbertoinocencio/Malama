@@ -119,11 +119,11 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
     new Date(iso).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
   const statusColor: Record<string, string> = {
-    scheduled: 'text-Malama-petrol bg-[#8c473e]/10',
-    in_progress: 'text-blue-600 bg-blue-50',
-    completed: 'text-Malama-muted bg-Malama-border',
-    cancelled: 'text-red-500 bg-red-50',
-    no_show: 'text-orange-500 bg-orange-50',
+    scheduled: 'text-Malama-petrol bg-[#8c473e]/10 dark:bg-[#8c473e]/20',
+    in_progress: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30',
+    completed: 'text-Malama-muted dark:text-slate-400 bg-Malama-border dark:bg-white/10',
+    cancelled: 'text-red-500 bg-red-50 dark:bg-red-900/30',
+    no_show: 'text-orange-500 bg-orange-50 dark:bg-orange-900/30',
   };
   const statusLabel: Record<string, string> = {
     scheduled: '✅ Confirmada', in_progress: '🔴 Em andamento',
@@ -139,25 +139,36 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
   };
 
   return (
-    <div className="min-h-screen bg-Malama-bg font-display text-Malama-main pb-32">
+    <div className="min-h-screen bg-Malama-bg dark:bg-background-dark font-display text-Malama-main dark:text-white pb-32">
       <header className="flex items-center gap-3 px-4 pt-safe-header pb-4">
-        <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-Malama-main/5 transition-colors">
+        <button
+          onClick={onBack}
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-Malama-main/5 dark:hover:bg-white/5 transition-colors"
+        >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-xl font-bold flex-1">Saúde & Consultas</h1>
       </header>
 
       {/* Tabs */}
-      <div className="flex mx-4 bg-white rounded-2xl p-1 mb-4 shadow-sm border border-Malama-border">
+      <div className="flex mx-4 bg-white dark:bg-surface-dark rounded-2xl p-1 mb-4 shadow-sm border border-Malama-border dark:border-white/10">
         <button
           onClick={() => setTab('consultations')}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${tab === 'consultations' ? 'bg-Malama-petrol text-white shadow-sm' : 'text-Malama-muted hover:text-Malama-main'}`}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            tab === 'consultations'
+              ? 'bg-Malama-petrol text-white shadow-sm'
+              : 'text-Malama-muted dark:text-slate-400 hover:text-Malama-main dark:hover:text-white'
+          }`}
         >
           Consultas
         </button>
         <button
           onClick={() => setTab('prescriptions')}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${tab === 'prescriptions' ? 'bg-Malama-petrol text-white shadow-sm' : 'text-Malama-muted hover:text-Malama-main'}`}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            tab === 'prescriptions'
+              ? 'bg-Malama-petrol text-white shadow-sm'
+              : 'text-Malama-muted dark:text-slate-400 hover:text-Malama-main dark:hover:text-white'
+          }`}
         >
           Receitas
         </button>
@@ -200,13 +211,13 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                 key={`rsch-${c.id}`}
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4"
+                className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl p-4 mb-4"
               >
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-base">📅</span>
-                  <p className="text-sm font-bold text-amber-800">Solicitação de reagendamento</p>
+                  <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Solicitação de reagendamento</p>
                 </div>
-                <p className="text-xs text-amber-700 mb-3">
+                <p className="text-xs text-amber-700 dark:text-amber-400 mb-3">
                   Dr(a). {(c.doctors as any)?.name || 'Médico'} propôs {(c.reschedule_proposals || []).length} opções de horário.
                   {c.reschedule_message && ` "${c.reschedule_message}"`}
                 </p>
@@ -222,25 +233,25 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
             {/* Upcoming */}
             {upcoming.length > 0 && (
               <div className="mb-5">
-                <p className="text-xs font-semibold text-Malama-muted uppercase tracking-wider mb-3">Próximas</p>
+                <p className="text-xs font-semibold text-Malama-muted dark:text-slate-400 uppercase tracking-wider mb-3">Próximas</p>
                 <div className="space-y-3">
                   {upcoming.map((c) => (
                     <motion.div
                       key={c.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-2xl p-4 shadow-sm border border-Malama-border"
+                      className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-Malama-border dark:border-white/10"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <p className="text-sm font-bold">{(c.doctors as any)?.name || 'Médico'}</p>
-                          <p className="text-xs text-Malama-muted">{(c.doctors as any)?.specialty}</p>
+                          <p className="text-sm font-bold dark:text-white">{(c.doctors as any)?.name || 'Médico'}</p>
+                          <p className="text-xs text-Malama-muted dark:text-slate-400">{(c.doctors as any)?.specialty}</p>
                         </div>
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor[c.status]}`}>
                           {statusLabel[c.status]}
                         </span>
                       </div>
-                      <p className="text-xs text-Malama-muted mb-3 capitalize">📅 {formatDate(c.scheduled_at)}</p>
+                      <p className="text-xs text-Malama-muted dark:text-slate-400 mb-3 capitalize">📅 {formatDate(c.scheduled_at)}</p>
                       <div className="flex gap-2">
                         {canEnter(c) ? (
                           <button
@@ -250,14 +261,14 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                             Entrar na consulta
                           </button>
                         ) : (
-                          <div className="flex-1 py-2 bg-Malama-border text-Malama-muted rounded-xl text-xs font-semibold text-center">
+                          <div className="flex-1 py-2 bg-Malama-border dark:bg-white/10 text-Malama-muted dark:text-slate-400 rounded-xl text-xs font-semibold text-center">
                             Disponível 10 min antes
                           </div>
                         )}
                         {c.status === 'scheduled' && (
                           <button
                             onClick={() => handleCancel(c.id)}
-                            className="px-3 py-2 border border-red-200 text-red-400 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors"
+                            className="px-3 py-2 border border-red-200 dark:border-red-900/50 text-red-400 rounded-xl text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                           >
                             Cancelar
                           </button>
@@ -272,22 +283,22 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
             {/* Past */}
             {past.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-Malama-muted uppercase tracking-wider mb-3">Histórico</p>
+                <p className="text-xs font-semibold text-Malama-muted dark:text-slate-400 uppercase tracking-wider mb-3">Histórico</p>
                 <div className="space-y-3">
                   {past.map((c) => (
                     <motion.div
                       key={c.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-2xl p-4 shadow-sm border border-Malama-border"
+                      className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-Malama-border dark:border-white/10"
                     >
                       <div className="flex items-start justify-between mb-1">
-                        <p className="text-sm font-bold">{(c.doctors as any)?.name || 'Médico'}</p>
+                        <p className="text-sm font-bold dark:text-white">{(c.doctors as any)?.name || 'Médico'}</p>
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor[c.status]}`}>
                           {statusLabel[c.status]}
                         </span>
                       </div>
-                      <p className="text-xs text-Malama-muted mb-2 capitalize">📅 {formatDate(c.scheduled_at)}</p>
+                      <p className="text-xs text-Malama-muted dark:text-slate-400 mb-2 capitalize">📅 {formatDate(c.scheduled_at)}</p>
                       {c.status === 'completed' && !c.rating && (
                         <button
                           onClick={() => setRatingModal({ id: c.id, doctorName: (c.doctors as any)?.name || 'Médico' })}
@@ -299,7 +310,6 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                       {c.rating && (
                         <p className="text-xs text-yellow-500">{'★'.repeat(c.rating)}{'☆'.repeat(5 - c.rating)}</p>
                       )}
-                      {/* Botão de chat pós-consulta */}
                       {activeChats.has(c.id) && (() => {
                         const ch = activeChats.get(c.id)!;
                         const days = Math.max(0, Math.ceil((new Date(ch.expires_at).getTime() - Date.now()) / 86_400_000));
@@ -330,8 +340,8 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
 
             {consultations.length === 0 && (
               <div className="text-center py-12">
-                <span className="material-symbols-outlined text-5xl text-Malama-muted/40">calendar_month</span>
-                <p className="text-sm text-Malama-muted mt-3">Nenhuma consulta ainda</p>
+                <span className="material-symbols-outlined text-5xl text-Malama-muted/40 dark:text-white/20">calendar_month</span>
+                <p className="text-sm text-Malama-muted dark:text-slate-400 mt-3">Nenhuma consulta ainda</p>
                 <button
                   onClick={() => onNavigate(AppView.AGENDAR_CONSULTA)}
                   className="mt-5 px-6 py-3 bg-Malama-petrol text-white rounded-2xl text-sm font-bold hover:bg-[#7a3d35] transition-colors"
@@ -352,21 +362,21 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                   key={rx.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-2xl p-4 shadow-sm border border-Malama-border"
+                  className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-Malama-border dark:border-white/10"
                 >
                   <div className="flex items-start justify-between mb-1">
-                    <p className="text-sm font-bold">💊 {rx.medication}</p>
+                    <p className="text-sm font-bold dark:text-white">💊 {rx.medication}</p>
                     {expiring && days > 0 && (
-                      <span className="text-xs font-semibold px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full">⚠️ {days}d</span>
+                      <span className="text-xs font-semibold px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-full">⚠️ {days}d</span>
                     )}
                     {days <= 0 && (
-                      <span className="text-xs font-semibold px-2 py-0.5 bg-red-100 text-red-500 rounded-full">Vencida</span>
+                      <span className="text-xs font-semibold px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400 rounded-full">Vencida</span>
                     )}
                   </div>
-                  <p className="text-xs text-Malama-muted mb-1">
+                  <p className="text-xs text-Malama-muted dark:text-slate-400 mb-1">
                     {(rx.doctors as any)?.name || 'Médico'} · {new Date(rx.issued_at).toLocaleDateString('pt-BR')}
                   </p>
-                  <p className="text-xs text-Malama-muted/70 mb-3">
+                  <p className="text-xs text-Malama-muted/70 dark:text-slate-500 mb-3">
                     {days > 0 ? `Vence em ${days} dias` : 'Receita vencida'}
                   </p>
                   <div className="flex gap-2">
@@ -375,7 +385,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                         href={rx.pdf_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 py-2 text-center border border-Malama-border text-Malama-main rounded-xl text-xs font-semibold hover:bg-Malama-border/30 transition-colors"
+                        className="flex-1 py-2 text-center border border-Malama-border dark:border-white/10 text-Malama-main dark:text-white rounded-xl text-xs font-semibold hover:bg-Malama-border/30 dark:hover:bg-white/10 transition-colors"
                       >
                         Baixar PDF
                       </a>
@@ -394,23 +404,22 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
             })}
             {prescriptions.length === 0 && (
               <div className="text-center py-12">
-                <span className="material-symbols-outlined text-5xl text-Malama-muted/40">description</span>
-                <p className="text-sm text-Malama-muted mt-3">Nenhuma receita ainda</p>
+                <span className="material-symbols-outlined text-5xl text-Malama-muted/40 dark:text-white/20">description</span>
+                <p className="text-sm text-Malama-muted dark:text-slate-400 mt-3">Nenhuma receita ainda</p>
               </div>
             )}
           </div>
         )}
       </div>
 
-
       {/* Reschedule Modal */}
       {rescheduleModal && (
         <div className="fixed inset-0 bg-black/50 flex items-end z-50">
-          <div className="bg-white w-full rounded-t-3xl p-6">
-            <h3 className="font-bold text-lg mb-1 text-Malama-main">Escolha um novo horário</h3>
-            <p className="text-sm text-Malama-muted mb-1">Dr(a). {(rescheduleModal.doctors as any)?.name || 'Médico'}</p>
+          <div className="bg-white dark:bg-surface-dark w-full rounded-t-3xl p-6">
+            <h3 className="font-bold text-lg mb-1 text-Malama-main dark:text-white">Escolha um novo horário</h3>
+            <p className="text-sm text-Malama-muted dark:text-slate-400 mb-1">Dr(a). {(rescheduleModal.doctors as any)?.name || 'Médico'}</p>
             {rescheduleModal.reschedule_message && (
-              <p className="text-xs text-Malama-muted/70 italic mb-4">"{rescheduleModal.reschedule_message}"</p>
+              <p className="text-xs text-Malama-muted/70 dark:text-slate-500 italic mb-4">"{rescheduleModal.reschedule_message}"</p>
             )}
             <div className="space-y-2 mb-5">
               {(rescheduleModal.reschedule_proposals || []).map((p, i) => {
@@ -423,17 +432,19 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                     key={i}
                     onClick={() => setChosenProposal(p.date)}
                     className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border-2 text-left transition ${
-                      selected ? 'border-Malama-petrol bg-[#8c473e]/5' : 'border-Malama-border hover:border-Malama-muted'
+                      selected
+                        ? 'border-Malama-petrol bg-[#8c473e]/5 dark:bg-[#8c473e]/20'
+                        : 'border-Malama-border dark:border-white/10 hover:border-Malama-muted dark:hover:border-white/30'
                     }`}
                   >
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                      selected ? 'border-Malama-petrol bg-Malama-petrol' : 'border-Malama-muted/50'
+                      selected ? 'border-Malama-petrol bg-Malama-petrol' : 'border-Malama-muted/50 dark:border-white/30'
                     }`}>
                       {selected && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-Malama-main capitalize">{label}</p>
-                      <p className="text-xs text-Malama-muted">às {time}</p>
+                      <p className="text-sm font-semibold text-Malama-main dark:text-white capitalize">{label}</p>
+                      <p className="text-xs text-Malama-muted dark:text-slate-400">às {time}</p>
                     </div>
                   </button>
                 );
@@ -443,7 +454,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
               <button
                 onClick={handleRejectReschedule}
                 disabled={rescheduleLoading}
-                className="flex-1 py-3 border-2 border-red-200 text-red-500 rounded-2xl text-sm font-semibold hover:bg-red-50 transition disabled:opacity-50"
+                className="flex-1 py-3 border-2 border-red-200 dark:border-red-900/50 text-red-500 rounded-2xl text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition disabled:opacity-50"
               >
                 Recusar tudo
               </button>
@@ -462,9 +473,9 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
       {/* Rating Modal */}
       {ratingModal && (
         <div className="fixed inset-0 bg-black/50 flex items-end z-50">
-          <div className="bg-white w-full rounded-t-3xl p-6">
-            <h3 className="font-bold text-lg mb-1 text-Malama-main">Avaliar consulta</h3>
-            <p className="text-sm text-Malama-muted mb-4">{ratingModal.doctorName}</p>
+          <div className="bg-white dark:bg-surface-dark w-full rounded-t-3xl p-6">
+            <h3 className="font-bold text-lg mb-1 text-Malama-main dark:text-white">Avaliar consulta</h3>
+            <p className="text-sm text-Malama-muted dark:text-slate-400 mb-4">{ratingModal.doctorName}</p>
             <div className="flex justify-center gap-3 mb-4">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button key={n} onClick={() => setRatingValue(n)} className="text-3xl text-Malama-petrol">
@@ -476,12 +487,12 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
               value={ratingComment}
               onChange={(e) => setRatingComment(e.target.value)}
               placeholder="Comentário opcional..."
-              className="w-full border border-Malama-border rounded-xl p-3 text-sm resize-none h-20 mb-4 focus:outline-none focus:ring-2 focus:ring-Malama-petrol/30 text-Malama-main placeholder:text-Malama-muted/60"
+              className="w-full border border-Malama-border dark:border-white/10 rounded-xl p-3 text-sm resize-none h-20 mb-4 focus:outline-none focus:ring-2 focus:ring-Malama-petrol/30 bg-white dark:bg-Malama-dark text-Malama-main dark:text-white placeholder:text-Malama-muted/60 dark:placeholder:text-slate-500"
             />
             <div className="flex gap-3">
               <button
                 onClick={() => setRatingModal(null)}
-                className="flex-1 py-3 border border-Malama-border rounded-xl text-sm font-semibold text-Malama-muted"
+                className="flex-1 py-3 border border-Malama-border dark:border-white/10 rounded-xl text-sm font-semibold text-Malama-muted dark:text-slate-400"
               >
                 Cancelar
               </button>
