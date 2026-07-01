@@ -4,7 +4,7 @@
 // =====================================================
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { X, Bell, Stethoscope, Clock, FileText, ClipboardList, RefreshCw, MessageSquare } from 'lucide-react';
+import { X, Bell, Stethoscope, Clock, FileText, ClipboardList, RefreshCw, MessageSquare, CalendarClock } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 interface PatientNotification {
@@ -18,11 +18,13 @@ interface PatientNotification {
 }
 
 const CHAT_TYPES = new Set(['chat_opened', 'chat_message']);
+const CONSULTA_TYPES = new Set(['consultation_reminder']);
 
 const TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
   chat_opened:                    { icon: <Stethoscope className="w-4 h-4" />,   color: 'text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-900/30' },
   chat_message:                   { icon: <MessageSquare className="w-4 h-4" />, color: 'text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-900/30' },
   chat_expiring:                  { icon: <Clock className="w-4 h-4" />,         color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30' },
+  consultation_reminder:          { icon: <CalendarClock className="w-4 h-4" />, color: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30' },
   exam_reviewed:                  { icon: <FileText className="w-4 h-4" />,      color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30' },
   prescription_issued:            { icon: <ClipboardList className="w-4 h-4" />, color: 'text-violet-600 bg-violet-50 dark:text-violet-400 dark:bg-violet-900/30' },
   appointment_reschedule_request: { icon: <RefreshCw className="w-4 h-4" />,     color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30' },
@@ -42,9 +44,10 @@ interface Props {
   onClose: () => void;
   onUnreadChange?: (count: number) => void;
   onOpenChat?: (params: { consultationId: string; doctorName: string }) => void;
+  onOpenConsultas?: () => void;
 }
 
-export const PatientNotificationCenter: React.FC<Props> = ({ onClose, onUnreadChange, onOpenChat }) => {
+export const PatientNotificationCenter: React.FC<Props> = ({ onClose, onUnreadChange, onOpenChat, onOpenConsultas }) => {
   const [notifications, setNotifications] = useState<PatientNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -67,6 +70,11 @@ export const PatientNotificationCenter: React.FC<Props> = ({ onClose, onUnreadCh
   }, [fetchNotifications]);
 
   const handleNotificationClick = (n: PatientNotification) => {
+    // Lembrete de consulta → tela "Minhas Consultas" (onde fica o botão Entrar)
+    if (CONSULTA_TYPES.has(n.type)) {
+      onOpenConsultas?.();
+      return;
+    }
     if (!CHAT_TYPES.has(n.type)) return;
     const consultationId = n.data?.consultation_id as string | undefined;
     if (!consultationId) return;
@@ -109,7 +117,7 @@ export const PatientNotificationCenter: React.FC<Props> = ({ onClose, onUnreadCh
 
           {!loading && notifications.map(n => {
             const cfg = TYPE_CONFIG[n.type] ?? { icon: <Bell className="w-4 h-4" />, color: 'text-gray-600 bg-gray-100' };
-            const isClickable = CHAT_TYPES.has(n.type) && !!n.data?.consultation_id;
+            const isClickable = CONSULTA_TYPES.has(n.type) || (CHAT_TYPES.has(n.type) && !!n.data?.consultation_id);
             return (
               <div
                 key={n.id}

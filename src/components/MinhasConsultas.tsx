@@ -12,6 +12,7 @@ import {
 } from '../lib/scheduling';
 import { creditService } from '../services/billingService';
 import { appointmentChatService } from '../services/doctorPortalService';
+import { consultationReminderService } from '../services/consultationReminderService';
 import type { AppointmentChat } from '../types/doctorPortal';
 import { AppView } from '../types';
 
@@ -72,6 +73,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
     if (!user || !confirm('Tem certeza que deseja cancelar esta consulta?')) return;
     await cancelConsultation(id, user.id);
     setConsultations((prev) => prev.map((c) => (c.id === id ? { ...c, status: 'cancelled' } : c)));
+    void consultationReminderService.cancelFor(id).catch(() => {});
   };
 
   const handleRate = async () => {
@@ -95,6 +97,10 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
           ? { ...c, scheduled_at: chosenProposal, reschedule_status: 'accepted', reschedule_proposals: null }
           : c
       ));
+      // Re-agenda os lembretes locais para o novo horário
+      void consultationReminderService
+        .scheduleFor({ ...rescheduleModal, scheduled_at: chosenProposal, status: 'scheduled' })
+        .catch(() => {});
       setRescheduleModal(null);
       setChosenProposal(null);
     } catch (e) { console.error(e); }
@@ -110,6 +116,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
       setConsultations(prev => prev.map(c =>
         c.id === rescheduleModal.id ? { ...c, status: 'cancelled', reschedule_proposals: null } : c
       ));
+      void consultationReminderService.cancelFor(rescheduleModal.id).catch(() => {});
       setRescheduleModal(null);
     } catch (e) { console.error(e); }
     finally { setRescheduleLoading(false); }

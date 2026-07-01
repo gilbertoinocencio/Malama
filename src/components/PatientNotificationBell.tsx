@@ -11,9 +11,10 @@ interface Props {
   userId: string;
   isDarkMode: boolean;
   onOpenChat?: (params: { consultationId: string; doctorName: string }) => void;
+  onOpenConsultas?: () => void;
 }
 
-export const PatientNotificationBell: React.FC<Props> = ({ userId, isDarkMode, onOpenChat }) => {
+export const PatientNotificationBell: React.FC<Props> = ({ userId, isDarkMode, onOpenChat, onOpenConsultas }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
 
@@ -86,6 +87,10 @@ export const PatientNotificationBell: React.FC<Props> = ({ userId, isDarkMode, o
           onOpenChat={(params) => {
             setOpen(false);
             onOpenChat?.(params);
+          }}
+          onOpenConsultas={() => {
+            setOpen(false);
+            onOpenConsultas?.();
           }}
         />
       )}

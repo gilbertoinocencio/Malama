@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useOutletContext, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Clock, User } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { DoctorConsultaPage } from '../../components/DoctorConsultaPage';
 import type { Doctor } from '../../types/doctorPortal';
+
+// A sala da consulta abre 15 min antes do horário agendado.
+// Antes disso o médico só acessa o PERFIL do paciente (dados), não a sala.
+const JOIN_WINDOW_BEFORE_MS = 15 * 60_000;
 
 interface ConsultationData {
   id: string;
@@ -11,6 +15,9 @@ interface ConsultationData {
   patient_id: string;
   doctor_id: string;
   patient_name: string;
+  scheduled_at: string | null;
+  duration_minutes: number | null;
+  status: string;
 }
 
 export const ConsultationRoom: React.FC = () => {
@@ -20,6 +27,7 @@ export const ConsultationRoom: React.FC = () => {
   const [consultation, setConsultation] = useState<ConsultationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
     if (!id || !doctor) return;
@@ -27,7 +35,7 @@ export const ConsultationRoom: React.FC = () => {
     const load = async () => {
       const { data, error } = await supabase
         .from('consultations')
-        .select('id, room_id, patient_id, doctor_id')
+        .select('id, room_id, patient_id, doctor_id, scheduled_at, duration_minutes, status')
         .eq('id', id)
         .eq('doctor_id', doctor.id)
         .single();
@@ -55,6 +63,12 @@ export const ConsultationRoom: React.FC = () => {
     load();
   }, [id, doctor]);
 
+  // Recalcula a janela a cada 30s para liberar a sala automaticamente na hora
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
@@ -75,6 +89,57 @@ export const ConsultationRoom: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
             Voltar à agenda
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Gate de horário: a sala (vídeo) só abre 15 min antes do agendado.
+  // Só bloqueia consultas ainda 'scheduled' que estão longe do horário —
+  // in_progress/completed/cancelled passam direto (retomar/rever).
+  const scheduledMs = consultation.scheduled_at ? new Date(consultation.scheduled_at).getTime() : null;
+  const windowStartMs = scheduledMs != null ? scheduledMs - JOIN_WINDOW_BEFORE_MS : null;
+  const tooEarly =
+    consultation.status === 'scheduled' &&
+    windowStartMs != null &&
+    nowMs < windowStartMs;
+
+  if (tooEarly) {
+    const opensAt = new Date(scheduledMs! - JOIN_WINDOW_BEFORE_MS).toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    });
+    const startsAt = new Date(scheduledMs!).toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    });
+    return (
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4">
+        <div className="max-w-sm w-full text-center">
+          <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-5">
+            <Clock className="w-8 h-8 text-white/70" />
+          </div>
+          <h1 className="text-white text-xl font-bold mb-2">Sala ainda não disponível</h1>
+          <p className="text-white/60 text-sm mb-1">
+            A sala da consulta com <span className="text-white/90 font-semibold">{consultation.patient_name}</span> abre 15 min antes do horário.
+          </p>
+          <p className="text-white/60 text-sm mb-6">
+            Disponível a partir de <span className="text-white/90 font-semibold">{opensAt}</span> · consulta às {startsAt}.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => navigate(`/medico/paciente/${consultation.patient_id}`)}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium transition"
+            >
+              <User className="w-4 h-4" />
+              Ver perfil do paciente
+            </button>
+            <button
+              onClick={() => navigate('/medico/agenda')}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/15 text-white rounded-lg font-medium transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Voltar à agenda
+            </button>
+          </div>
         </div>
       </div>
     );

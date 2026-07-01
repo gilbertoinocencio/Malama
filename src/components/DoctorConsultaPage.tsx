@@ -97,6 +97,9 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
 
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Âncora do cronômetro: o tempo da consulta só conta a partir do horário
+  // agendado (mesmo que o médico entre até 15 min antes).
+  const scheduledAtMsRef = useRef<number | null>(null);
 
   const {
     localStream, remoteStream, connectionState,
@@ -105,18 +108,23 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   } = useWebRTC({
     roomId, role: 'doctor',
     onConnected: () => {
-      timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+      const tick = () => {
+        const anchor = scheduledAtMsRef.current;
+        if (anchor != null) {
+          // Antes do horário agendado o cronômetro fica em 00:00
+          setElapsed(Math.max(0, Math.floor((Date.now() - anchor) / 1000)));
+        } else {
+          setElapsed(e => e + 1);
+        }
+      };
+      tick();
+      timerRef.current = setInterval(tick, 1000);
       supabase.from('consultations')
         .update({ status: 'in_progress', started_at: new Date().toISOString() })
         .eq('id', consultationId);
     },
     onDisconnected: () => { if (timerRef.current) clearInterval(timerRef.current); },
   });
-
-  // Abrir canal de chat assim que a página da consulta carrega
-  useEffect(() => {
-    appointmentChatService.openChat(consultationId, 48).catch(() => {/* já existe */});
-  }, [consultationId]);
 
   // Trava de tempo: busca scheduled_at + duration_minutes e recalcula a cada 30s
   useEffect(() => {
@@ -126,6 +134,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
       .single()
       .then(({ data }) => {
         if (data?.scheduled_at && data?.duration_minutes != null) {
+          scheduledAtMsRef.current = new Date(data.scheduled_at).getTime();
           setScheduleUnlockMs(new Date(data.scheduled_at).getTime() + data.duration_minutes * 60_000);
         } else {
           setCanComplete(true); // sem horário definido → sem trava

@@ -10,6 +10,7 @@ import {
   Consultation,
 } from '../lib/scheduling';
 import { creditService } from '../services/billingService';
+import { consultationReminderService } from '../services/consultationReminderService';
 import { AppView } from '../types';
 import { useLanguage } from '../i18n';
 
@@ -130,6 +131,10 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
       setBookedConsultation(consultation);
       setStep('confirmed');
       onBooked(consultation);
+      // Agenda os lembretes locais no device (24h/3h/30min). Não bloqueia o fluxo.
+      void consultationReminderService
+        .scheduleFor({ ...consultation, doctors: { name: selectedDoctor.name, specialty: selectedDoctor.specialty, crm: selectedDoctor.crm } })
+        .catch(() => {});
     } catch (err: any) {
       setBookError(err.message || t.agendarConsulta.schedulingError);
     } finally {

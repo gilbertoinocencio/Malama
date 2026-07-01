@@ -85,15 +85,22 @@ self.addEventListener('push', event => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// ─── Notification click: open the app ───────────────────────────────────────
+// ─── Notification click: open/focus the app on the right screen ─────────────
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   const url = event.notification.data?.url || '/';
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      // Focus existing window if possible
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async windowClients => {
+      // Foca uma janela já aberta e navega até a rota do deep-link
+      // (o App lê ?view=... no boot e abre a tela certa).
       for (const client of windowClients) {
-        if (client.url === url && 'focus' in client) return client.focus();
+        if ('focus' in client) {
+          await client.focus();
+          if (url !== '/' && 'navigate' in client) {
+            try { await client.navigate(url); } catch { /* ignora e mantém a janela focada */ }
+          }
+          return;
+        }
       }
       return self.clients.openWindow(url);
     })

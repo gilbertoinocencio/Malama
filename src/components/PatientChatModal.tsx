@@ -1,4 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
 import { appointmentChatService } from '../services/doctorPortalService';
 import type { AppointmentChat, ChatMessage } from '../types/doctorPortal';
 import { supabase } from '../services/supabase';
@@ -49,6 +52,15 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMyUserId(data.user?.id ?? null));
   }, []);
+
+  // Botão físico "voltar" do Android fecha o chat (evita o usuário ficar preso).
+  // No iOS o botão visível resolve; aqui só reforçamos o hardware back.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let handle: { remove: () => void } | undefined;
+    CapApp.addListener('backButton', () => { onClose(); }).then(h => { handle = h; });
+    return () => { handle?.remove(); };
+  }, [onClose]);
 
   useEffect(() => {
     let sub: ReturnType<typeof supabase.channel> | null = null;
@@ -161,9 +173,10 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
       <header className="flex items-center gap-3 px-4 pt-safe-header pb-3 bg-white shadow-sm">
         <button
           onClick={onClose}
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors"
+          aria-label="Voltar"
+          className="w-11 h-11 -ml-1 flex items-center justify-center rounded-full hover:bg-black/5 active:bg-black/10 transition-colors shrink-0"
         >
-          <span className="material-symbols-outlined">arrow_back</span>
+          <ArrowLeft className="w-6 h-6 text-gray-800" />
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold truncate">{doctorName}</p>

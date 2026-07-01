@@ -17,6 +17,7 @@ import { AppRoutes } from './routes';
 import { LandingPage } from './routes/LandingPage';
 import { useIdleLogout } from './hooks/useIdleLogout';
 import { PatientChatModal } from './components/PatientChatModal';
+import { consultationReminderService } from './services/consultationReminderService';
 import { AccessBlockedScreen } from './components/AccessBlockedScreen';
 
 // Lazy Load Non-Critical Views — lazyRetry auto-reloads on stale chunk errors
@@ -309,6 +310,39 @@ const App: React.FC = () => {
     return () => { cancelled = true; };
   }, [user?.id]);
 
+  // Deep-link de notificações de consulta → abre "Minhas Consultas", e
+  // re-sincroniza os lembretes locais do device no boot.
+  useEffect(() => {
+    if (!user) return;
+
+    // (a) Web/PWA: o service worker abre com ?view=minhas-consultas no clique do push
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('view') === 'minhas-consultas') {
+        setView(AppView.MINHAS_CONSULTAS);
+        params.delete('view');
+        const qs = params.toString();
+        window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+      }
+    } catch { /* noop */ }
+
+    if (!Capacitor.isNativePlatform()) return;
+
+    // (b) Nativo: re-sincroniza lembretes locais + escuta o tap na notificação local
+    let handle: { remove: () => void } | undefined;
+    (async () => {
+      void consultationReminderService.reconcile(user.id);
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      handle = await LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+        const extra = action?.notification?.extra as { url?: string; consultationId?: string } | undefined;
+        if (extra?.url?.includes('minhas-consultas') || extra?.consultationId) {
+          setView(AppView.MINHAS_CONSULTAS);
+        }
+      });
+    })();
+    return () => { handle?.remove(); };
+  }, [user?.id]);
+
   const loadStats = async () => {
     if (!user || statsLoading) return;
     try {
@@ -470,6 +504,7 @@ const App: React.FC = () => {
             isDarkMode={darkMode}
             onToggleTheme={toggleTheme}
             onOpenChat={setOpenChat}
+            onOpenConsultas={() => setView(AppView.MINHAS_CONSULTAS)}
           />
         )}
 
