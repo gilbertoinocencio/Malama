@@ -619,6 +619,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
               doctorId={doctorId}
               doctorName={doctorName}
               patientData={patientData}
+              consultationId={consultationId}
               onPatientUpdated={(updated) => setPatientData(updated)}
             />
           )}

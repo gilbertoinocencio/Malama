@@ -1,15 +1,23 @@
 // =====================================================
 // Malama — Painel de Informações do Paciente (consulta)
-// Gráfico de peso, humor, GLP-1, ativação pelo médico
+// Prontuário ao vivo: peso (weight_logs), composição corporal (body scan),
+// atividade (Health Connect/HealthKit), adesão alimentar, humor/energia,
+// anamnese, histórico de consultas e GLP-1 — tudo visível durante a chamada.
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
 import {
   TrendingDown, TrendingUp, Minus, Activity, Heart,
-  Zap, Pill, AlertTriangle, ToggleRight,
+  Zap, Pill, AlertTriangle, ToggleRight, Scan, Footprints,
+  Moon, HeartPulse, Utensils, ClipboardList, CalendarCheck,
 } from 'lucide-react';
 import { supabase } from '../../services/supabase';
-import { glp1DoctorService } from '../../services/doctorPortalService';
+import { glp1DoctorService, patientService, clinicalNoteService } from '../../services/doctorPortalService';
+import {
+  MeasurementSnapshotService, HealthMetricsService,
+  type BodyMeasurementSnapshot, type HealthDailyMetric,
+} from '../../services/weightLogService';
+import type { PatientFullProfile, ClinicalNote } from '../../types/doctorPortal';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -17,6 +25,7 @@ interface Props {
   doctorId: string;
   doctorName: string;
   patientData: any; // profile row
+  consultationId?: string; // consulta atual — excluída da busca pela nota anterior
   onPatientUpdated: (updated: any) => void;
 }
 
@@ -101,43 +110,93 @@ const MOOD_COLORS: Record<number, string> = {
 const MOOD_LABEL: Record<number, string> = {
   1: 'Péssimo', 2: 'Ruim', 3: 'Neutro', 4: 'Bom', 5: 'Excelente',
 };
-const ENERGY_LABEL: Record<number, string> = {
-  1: 'Esgotado', 2: 'Baixa', 3: 'Média', 4: 'Boa', 5: 'Alta',
+
+// Check-ins usam escala 1–10; comprime para os 5 buckets de cor/label
+const bucket = (v: number) => Math.min(5, Math.max(1, Math.ceil(v / 2)));
+
+const DIARY_ENERGY_COLOR: Record<string, string> = {
+  Baixa: '#f97316', 'Média': '#eab308', Boa: '#84cc16', Flow: '#22c55e',
 };
 
-function MoodRow({ checkins }: { checkins: any[] }) {
+interface DiaryEntryLite {
+  date: string;
+  energy_level: string | null;
+  mood: string | null;
+  notes: string | null;
+}
+
+function MoodEnergyBlock({ checkins, diary }: { checkins: any[]; diary: DiaryEntryLite[] }) {
   const last7 = checkins.slice(0, 7).reverse();
+
+  // Sem check-ins: cai no diário do paciente (daily_logs), que o médico pode ler
   if (last7.length === 0) {
-    return <p className="text-xs text-gray-500 italic">Sem check-ins recentes.</p>;
+    const entries = diary.filter(d => d.energy_level || d.mood || d.notes).slice(0, 5);
+    if (entries.length === 0) {
+      return <p className="text-xs text-gray-500 italic">Paciente ainda não registrou check-ins nem diário.</p>;
+    }
+    return (
+      <div className="space-y-1.5">
+        {entries.map((d, i) => (
+          <div key={i} className="flex items-start gap-2 p-2 bg-gray-700/60 rounded-lg">
+            <span className="text-[9px] text-gray-400 shrink-0 mt-0.5 w-12">{d.date?.slice(0, 5)}</span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap gap-1">
+                {d.energy_level && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold text-gray-900"
+                    style={{ backgroundColor: DIARY_ENERGY_COLOR[d.energy_level] || '#94a3b8' }}>
+                    ⚡ {d.energy_level}
+                  </span>
+                )}
+                {d.mood && <span className="px-1.5 py-0.5 bg-gray-600 rounded text-[9px] text-gray-200">{d.mood}</span>}
+              </div>
+              {d.notes && <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-2">{d.notes}</p>}
+            </div>
+          </div>
+        ))}
+        <p className="text-[9px] text-gray-500">Fonte: diário do paciente</p>
+      </div>
+    );
   }
 
+  const lastCheckin = last7[last7.length - 1];
   return (
     <div className="space-y-2">
       <div className="flex gap-1.5">
         {last7.map((c, i) => {
-          const mood = typeof c.mood === 'number' ? c.mood : null;
+          const mood = typeof c.mood === 'number' ? bucket(c.mood) : null;
           const color = mood ? MOOD_COLORS[mood] : '#374151';
           return (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1" title={mood ? MOOD_LABEL[mood] : '—'}>
+            <div key={i} className="flex-1 flex flex-col items-center gap-1" title={mood ? `${MOOD_LABEL[mood]} (${c.mood}/10)` : '—'}>
               <div className="w-full h-8 rounded-md" style={{ backgroundColor: color, opacity: mood ? 1 : 0.2 }} />
-              <span className="text-[9px] text-gray-400">{c.date?.slice(0, 5) || '—'}</span>
+              <span className="text-[9px] text-gray-400">{c.date?.slice(5).split('-').reverse().join('/') || '—'}</span>
             </div>
           );
         })}
       </div>
       <div className="flex justify-between text-[10px] text-gray-400">
-        <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> Humor — 7 dias</span>
-        {last7[last7.length - 1]?.mood && (
-          <span className="font-medium" style={{ color: MOOD_COLORS[last7[last7.length - 1].mood] }}>
-            Último: {MOOD_LABEL[last7[last7.length - 1].mood]}
+        <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> Humor — últimos check-ins</span>
+        {typeof lastCheckin?.mood === 'number' && (
+          <span className="font-medium" style={{ color: MOOD_COLORS[bucket(lastCheckin.mood)] }}>
+            Último: {MOOD_LABEL[bucket(lastCheckin.mood)]} ({lastCheckin.mood}/10)
           </span>
         )}
       </div>
-      {last7[last7.length - 1]?.energy && (
-        <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
-          <Zap className="w-3 h-3 text-yellow-400" />
-          <span>Energia: <strong className="text-gray-200">{ENERGY_LABEL[last7[last7.length - 1].energy] || last7[last7.length - 1].energy}</strong></span>
-        </div>
+      <div className="flex items-center gap-3 text-[10px] text-gray-400">
+        {typeof lastCheckin?.energy === 'number' && (
+          <span className="flex items-center gap-1">
+            <Zap className="w-3 h-3 text-yellow-400" />
+            Energia: <strong className="text-gray-200">{lastCheckin.energy}/10</strong>
+          </span>
+        )}
+        {typeof lastCheckin?.sleep_hours === 'number' && (
+          <span className="flex items-center gap-1">
+            <Moon className="w-3 h-3 text-indigo-400" />
+            Sono: <strong className="text-gray-200">{lastCheckin.sleep_hours}h</strong>
+          </span>
+        )}
+      </div>
+      {lastCheckin?.notes && (
+        <p className="text-[10px] text-gray-400 italic line-clamp-2">"{lastCheckin.notes}"</p>
       )}
     </div>
   );
@@ -442,74 +501,363 @@ function ActivateGlp1Form({
   );
 }
 
+// ─── Composição corporal (Body Scan) ─────────────────
+
+function BodyCompositionCard({ snap }: { snap: BodyMeasurementSnapshot }) {
+  const rcq = snap.waist_cm && snap.hip_cm ? (snap.waist_cm / snap.hip_cm).toFixed(2) : null;
+  const scanDate = new Date(snap.snapped_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-3 gap-2">
+        <StatCard label="Gordura" value={snap.avg_body_fat_pct != null ? `${snap.avg_body_fat_pct.toFixed(1)}%` : '—'} />
+        <StatCard label="M. magra" value={snap.avg_muscle_mass_kg != null ? `${snap.avg_muscle_mass_kg.toFixed(1)} kg` : '—'} />
+        <StatCard label="RCQ" value={rcq || '—'} highlight={rcq ? parseFloat(rcq) >= 0.9 : false} />
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <StatCard label="Cintura" value={snap.waist_cm ? `${snap.waist_cm} cm` : '—'} />
+        <StatCard label="Quadril" value={snap.hip_cm ? `${snap.hip_cm} cm` : '—'} />
+        <StatCard label="Biotipo" value={snap.detected_biotype || '—'} />
+      </div>
+      <p className="text-[9px] text-gray-500">Body Scan de {scanDate}</p>
+    </div>
+  );
+}
+
+// ─── Atividade (dispositivos) ────────────────────────
+
+function ActivitySummary({ metrics }: { metrics: HealthDailyMetric[] }) {
+  const avg = (vals: (number | null | undefined)[]) => {
+    const v = vals.filter((x): x is number => typeof x === 'number' && x > 0);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  };
+  const steps = avg(metrics.map(m => m.steps));
+  const sleepMin = avg(metrics.map(m => m.sleep_minutes));
+  const restHr = [...metrics].reverse().find(m => m.resting_heart_rate)?.resting_heart_rate ?? null;
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      <div className="bg-gray-700 rounded-xl p-2.5 text-center">
+        <Footprints className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-1" />
+        <p className="text-sm font-bold text-white">{steps != null ? Math.round(steps).toLocaleString('pt-BR') : '—'}</p>
+        <p className="text-[9px] text-gray-400">passos/dia</p>
+      </div>
+      <div className="bg-gray-700 rounded-xl p-2.5 text-center">
+        <Moon className="w-3.5 h-3.5 text-indigo-400 mx-auto mb-1" />
+        <p className="text-sm font-bold text-white">{sleepMin != null ? `${(sleepMin / 60).toFixed(1)}h` : '—'}</p>
+        <p className="text-[9px] text-gray-400">sono/noite</p>
+      </div>
+      <div className="bg-gray-700 rounded-xl p-2.5 text-center">
+        <HeartPulse className="w-3.5 h-3.5 text-red-400 mx-auto mb-1" />
+        <p className="text-sm font-bold text-white">{restHr != null ? `${Math.round(restHr)} bpm` : '—'}</p>
+        <p className="text-[9px] text-gray-400">FC repouso</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Adesão alimentar ────────────────────────────────
+
+function AdherenceCard({ adherence }: { adherence: PatientFullProfile['adherence'] }) {
+  const pctColor = adherence.registration_percentage >= 70 ? '#4ade80'
+    : adherence.registration_percentage >= 40 ? '#eab308' : '#f87171';
+  const Bar = ({ value, goal }: { value: number; goal: number }) => (
+    <div className="h-1.5 bg-gray-600 rounded-full overflow-hidden">
+      <div className="h-full rounded-full bg-green-500" style={{ width: `${Math.min(100, goal > 0 ? (value / goal) * 100 : 0)}%` }} />
+    </div>
+  );
+  return (
+    <div className="space-y-2.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-gray-400">Dias com registro (30d)</span>
+        <span className="text-sm font-bold" style={{ color: pctColor }}>{adherence.registration_percentage}%</span>
+      </div>
+      <div>
+        <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+          <span>Calorias</span>
+          <span><strong className="text-gray-200">{adherence.average_calories}</strong> / {adherence.calorie_goal} kcal</span>
+        </div>
+        <Bar value={adherence.average_calories} goal={adherence.calorie_goal} />
+      </div>
+      <div>
+        <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+          <span>Proteína</span>
+          <span><strong className="text-gray-200">{adherence.average_protein}</strong> / {adherence.protein_goal} g</span>
+        </div>
+        <Bar value={adherence.average_protein} goal={adherence.protein_goal} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Anamnese ────────────────────────────────────────
+
+function AnamnesisCard({ p }: { p: PatientFullProfile }) {
+  const rows: { label: string; value: string | null }[] = [
+    { label: 'Objetivo', value: p.health_goal },
+    { label: 'Nível de atividade', value: p.activity_level },
+    { label: 'Tipo de dieta', value: p.diet_type },
+    { label: 'Refeições/dia', value: p.meals_per_day ? String(p.meals_per_day) : null },
+    {
+      label: 'Janela alimentar',
+      value: p.eating_window_start && p.eating_window_end ? `${p.eating_window_start} – ${p.eating_window_end}` : null,
+    },
+    { label: 'Onde come', value: p.eating_location },
+    { label: 'Hidratação', value: p.drinks_enough_water },
+  ];
+  const filled = rows.filter(r => r.value);
+  const restrictions = [
+    ...(p.dietary_restrictions || []),
+    ...(p.dietary_restrictions_detail ? [p.dietary_restrictions_detail] : []),
+  ];
+
+  if (filled.length === 0 && restrictions.length === 0 && (p.additional_goals || []).length === 0) {
+    return <p className="text-xs text-gray-500 italic">Paciente ainda não completou o onboarding.</p>;
+  }
+
+  return (
+    <div className="space-y-2.5">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+        {filled.map(r => (
+          <div key={r.label}>
+            <p className="text-[9px] text-gray-400 uppercase tracking-wide">{r.label}</p>
+            <p className="text-[11px] font-medium text-gray-200">{r.value}</p>
+          </div>
+        ))}
+      </div>
+      {restrictions.length > 0 && (
+        <div>
+          <p className="text-[9px] text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3 text-amber-400" /> Restrições alimentares
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {restrictions.map(r => (
+              <span key={r} className="px-1.5 py-0.5 bg-amber-900/30 border border-amber-700/50 text-amber-300 rounded text-[10px]">{r}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {(p.additional_goals || []).length > 0 && (
+        <div>
+          <p className="text-[9px] text-gray-400 uppercase tracking-wide mb-1">Metas adicionais</p>
+          <div className="flex flex-wrap gap-1">
+            {p.additional_goals.map(g => (
+              <span key={g} className="px-1.5 py-0.5 bg-gray-600 rounded text-[10px] text-gray-300">{g}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Consulta anterior (sinais vitais + conduta) ─────
+
+function PreviousConsultationCard({ note, currentWeight }: { note: ClinicalNote; currentWeight: number | null }) {
+  const noteDate = note.finalized_at
+    ? new Date(note.finalized_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+    : null;
+  const weightDelta = note.weight_kg != null && currentWeight != null
+    ? currentWeight - note.weight_kg : null;
+
+  const vitals: { label: string; value: string; delta?: string; deltaColor?: string }[] = [];
+  if (note.weight_kg != null) {
+    vitals.push({
+      label: 'Peso',
+      value: `${note.weight_kg} kg`,
+      delta: weightDelta != null && Math.abs(weightDelta) >= 0.1
+        ? `${weightDelta > 0 ? '+' : ''}${weightDelta.toFixed(1)} kg hoje`
+        : undefined,
+      deltaColor: weightDelta != null ? (weightDelta > 0 ? '#f87171' : '#4ade80') : undefined,
+    });
+  }
+  if (note.blood_pressure_sys != null && note.blood_pressure_dia != null) {
+    vitals.push({ label: 'PA', value: `${note.blood_pressure_sys}/${note.blood_pressure_dia}` });
+  }
+  if (note.heart_rate != null) vitals.push({ label: 'FC', value: `${note.heart_rate} bpm` });
+  if (note.waist_cm != null) vitals.push({ label: 'Cintura', value: `${note.waist_cm} cm` });
+
+  return (
+    <div className="space-y-2.5">
+      {vitals.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          {vitals.map(v => (
+            <div key={v.label} className="bg-gray-700 rounded-xl p-2.5">
+              <p className="text-[9px] text-gray-400 uppercase tracking-wide">{v.label}</p>
+              <p className="text-sm font-bold text-white">{v.value}</p>
+              {v.delta && <p className="text-[10px] font-semibold" style={{ color: v.deltaColor }}>{v.delta}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+      {note.diagnosis && (
+        <div>
+          <p className="text-[9px] text-gray-400 uppercase tracking-wide mb-0.5">Diagnóstico</p>
+          <p className="text-[11px] text-gray-200 line-clamp-2">{note.diagnosis}</p>
+        </div>
+      )}
+      {note.plan && (
+        <div>
+          <p className="text-[9px] text-gray-400 uppercase tracking-wide mb-0.5">Conduta combinada</p>
+          <p className="text-[11px] text-gray-200 line-clamp-3">{note.plan}</p>
+        </div>
+      )}
+      {noteDate && <p className="text-[9px] text-gray-500">Finalizada em {noteDate}</p>}
+    </div>
+  );
+}
+
+// ─── Alertas proativos ───────────────────────────────
+
+interface PanelAlert { text: string; severity: 'high' | 'medium' }
+
+function computeAlerts(input: {
+  fullProfile: PatientFullProfile | null;
+  lastNote: ClinicalNote | null;
+  checkins: any[];
+  currentWeight: number | null;
+}): PanelAlert[] {
+  const { fullProfile, lastNote, checkins, currentWeight } = input;
+  const alerts: PanelAlert[] = [];
+
+  // Peso contra o objetivo: baseline = consulta anterior; sem nota, o registro
+  // mais antigo dos últimos 90 dias
+  const baseline = lastNote?.weight_kg
+    ?? (fullProfile?.weight_history && fullProfile.weight_history.length > 1
+      ? fullProfile.weight_history[0].weight : null);
+  if (baseline != null && currentWeight != null) {
+    const diff = currentWeight - baseline;
+    const since = lastNote?.weight_kg != null ? 'desde a última consulta' : 'nos últimos 90 dias';
+    const wantsGain = fullProfile?.health_goal === 'Ganho de massa';
+    if (!wantsGain && diff >= 2) {
+      alerts.push({ text: `Peso subiu ${diff.toFixed(1)} kg ${since} (${baseline} → ${currentWeight} kg)`, severity: 'high' });
+    } else if (wantsGain && diff <= -2) {
+      alerts.push({ text: `Peso caiu ${Math.abs(diff).toFixed(1)} kg ${since} — objetivo é ganho de massa`, severity: 'high' });
+    }
+  }
+
+  // Adesão alimentar
+  const adherence = fullProfile?.adherence?.registration_percentage;
+  if (adherence != null && adherence < 40) {
+    alerts.push({ text: `Baixa adesão alimentar: registrou apenas ${adherence}% dos dias no último mês`, severity: adherence < 20 ? 'high' : 'medium' });
+  }
+
+  // Humor em queda: 3 check-ins consecutivos piorando, ou os 2 últimos ≤ 3/10
+  const moods = checkins
+    .filter(c => typeof c.mood === 'number')
+    .slice(0, 3)
+    .map(c => c.mood as number); // mais recente primeiro
+  if (moods.length >= 3 && moods[0] < moods[1] && moods[1] < moods[2]) {
+    alerts.push({ text: `Humor em queda nos últimos 3 check-ins (${moods[2]} → ${moods[1]} → ${moods[0]}/10)`, severity: 'medium' });
+  } else if (moods.length >= 2 && moods[0] <= 3 && moods[1] <= 3) {
+    alerts.push({ text: `Humor muito baixo nos últimos check-ins (${moods[1]} e ${moods[0]}/10)`, severity: 'high' });
+  }
+
+  return alerts;
+}
+
+function AlertsBanner({ alerts }: { alerts: PanelAlert[] }) {
+  if (alerts.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      {alerts.map((a, i) => (
+        <div key={i}
+          className={`flex items-start gap-2 p-2.5 rounded-xl border ${
+            a.severity === 'high'
+              ? 'bg-red-900/25 border-red-700/50'
+              : 'bg-amber-900/25 border-amber-700/50'
+          }`}>
+          <AlertTriangle className={`w-4 h-4 shrink-0 mt-0.5 ${a.severity === 'high' ? 'text-red-400' : 'text-amber-400'}`} />
+          <p className={`text-[11px] font-medium ${a.severity === 'high' ? 'text-red-200' : 'text-amber-200'}`}>{a.text}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────
 
-export const PatientInfoPanel: React.FC<Props> = ({ patientId, doctorId, doctorName, patientData, onPatientUpdated }) => {
-  const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
+export const PatientInfoPanel: React.FC<Props> = ({ patientId, doctorId, doctorName, patientData, consultationId, onPatientUpdated }) => {
+  const [fullProfile, setFullProfile] = useState<PatientFullProfile | null>(null);
+  const [bodySnap, setBodySnap] = useState<BodyMeasurementSnapshot | null>(null);
+  const [healthMetrics, setHealthMetrics] = useState<HealthDailyMetric[]>([]);
   const [checkins, setCheckins] = useState<any[]>([]);
   const [lastDose, setLastDose] = useState<any>(null);
+  const [lastNote, setLastNote] = useState<ClinicalNote | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      try {
-        const [weightRes, checkinRes, doseRes] = await Promise.all([
-          // Peso dos últimos 60 dias via daily_logs
-          supabase
-            .from('daily_logs')
-            .select('date, weight')
-            .eq('user_id', patientId)
-            .not('weight', 'is', null)
-            .order('date', { ascending: true })
-            .limit(60),
+      const [profileRes, snapRes, metricsRes, checkinRes, doseRes, noteRes] = await Promise.allSettled([
+        // Perfil completo — mesma fonte da página de perfil do paciente:
+        // anamnese, peso via weight_logs, metas, adesão (meals), diário e consultas
+        patientService.getPatientFullProfile(patientId, doctorId),
 
-          // Check-ins de humor
-          supabase
-            .from('daily_checkins')
-            .select('checkin_date, mood, energy_level, symptoms')
-            .eq('user_id', patientId)
-            .order('checkin_date', { ascending: false })
-            .limit(14),
+        // Última composição corporal do Body Scan
+        MeasurementSnapshotService.getLatestSnapshot(patientId),
 
-          // Última dose GLP-1
-          patientData?.glp1_mode
-            ? supabase
-                .from('glp1_dose_logs')
-                .select('applied_at, dose_mg, symptoms_reported, mood_level')
-                .eq('user_id', patientId)
-                .order('applied_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
-            : Promise.resolve({ data: null }),
-        ]);
+        // Agregados de dispositivos (Health Connect / HealthKit) — 7 dias
+        HealthMetricsService.getDailyMetrics(patientId, 7),
 
-        const rawWeight = (weightRes.data || []).filter((d: any) => d.weight && d.weight > 0);
-        setWeightHistory(rawWeight.map((d: any) => ({
-          date: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-          weight: Number(d.weight),
-        })));
+        // Check-ins de humor/energia (escala 1–10)
+        supabase
+          .from('daily_checkins')
+          .select('checkin_date, mood, energy_level, sleep_hours, notes')
+          .eq('user_id', patientId)
+          .order('checkin_date', { ascending: false })
+          .limit(14),
 
-        setCheckins((checkinRes.data || []).map((c: any) => ({
+        // Última dose GLP-1
+        patientData?.glp1_mode
+          ? supabase
+              .from('glp1_dose_logs')
+              .select('applied_at, dose_mg, symptoms_reported, mood_level')
+              .eq('user_id', patientId)
+              .order('applied_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+
+        // Sinais vitais e conduta da consulta anterior
+        clinicalNoteService.getLastFinalizedForPatient(patientId, consultationId),
+      ]);
+
+      if (profileRes.status === 'fulfilled') setFullProfile(profileRes.value);
+      else console.error('getPatientFullProfile:', profileRes.reason);
+      if (snapRes.status === 'fulfilled') setBodySnap(snapRes.value);
+      if (metricsRes.status === 'fulfilled') setHealthMetrics(metricsRes.value);
+      if (checkinRes.status === 'fulfilled') {
+        setCheckins((checkinRes.value.data || []).map((c: any) => ({
           date: c.checkin_date,
           mood: c.mood,
           energy: c.energy_level,
-          symptoms: c.symptoms,
+          sleep_hours: c.sleep_hours,
+          notes: c.notes,
         })));
-
-        setLastDose((doseRes as any)?.data || null);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
       }
+      if (doseRes.status === 'fulfilled') setLastDose((doseRes.value as any)?.data || null);
+      if (noteRes.status === 'fulfilled') setLastNote(noteRes.value);
+      setLoading(false);
     };
 
     if (patientId) load();
-  }, [patientId, patientData?.glp1_mode]);
+  }, [patientId, doctorId, consultationId, patientData?.glp1_mode]);
 
-  const bmi = patientData?.weight && patientData?.height
-    ? (patientData.weight / Math.pow(patientData.height / 100, 2)).toFixed(1) : null;
+  const weight = fullProfile?.current_weight ?? patientData?.weight;
+  const height = fullProfile?.height ?? patientData?.height;
+  const bmi = weight && height ? (weight / Math.pow(height / 100, 2)).toFixed(1) : null;
+  const age = fullProfile?.age ?? patientData?.age;
+
+  const weightHistory: WeightEntry[] = (fullProfile?.weight_history || []).map(w => ({
+    date: new Date(`${w.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+    weight: Number(w.weight),
+  }));
+
+  const hasActivityData = healthMetrics.some(m => m.steps || m.sleep_minutes || m.resting_heart_rate);
+  const pastConsultations = (fullProfile?.past_consultations || []).filter((c: any) => c.status === 'completed');
+  const lastConsultation = pastConsultations[0] as any;
+
+  const alerts = computeAlerts({ fullProfile, lastNote, checkins, currentWeight: weight ?? null });
 
   if (loading) {
     return (
@@ -521,25 +869,83 @@ export const PatientInfoPanel: React.FC<Props> = ({ patientId, doctorId, doctorN
 
   return (
     <div className="p-4 space-y-5">
+      {/* Alertas proativos — o que mudou desde a última consulta */}
+      <AlertsBanner alerts={alerts} />
+
       {/* Dados básicos */}
       <div className="grid grid-cols-3 gap-2">
-        <StatCard label="Peso" value={patientData?.weight ? `${patientData.weight} kg` : '—'} />
-        <StatCard label="Altura" value={patientData?.height ? `${patientData.height} cm` : '—'} />
+        <StatCard label="Peso" value={weight ? `${weight} kg` : '—'} />
+        <StatCard label="Altura" value={height ? `${height} cm` : '—'} />
         <StatCard label="IMC" value={bmi || '—'} highlight={bmi ? parseFloat(bmi) > 25 : false} />
-        <StatCard label="Meta cal." value={patientData?.target_calories ? `${patientData.target_calories} kcal` : '—'} />
-        <StatCard label="Meta prot." value={patientData?.target_protein ? `${patientData.target_protein} g` : '—'} />
-        <StatCard label="Idade" value={patientData?.age ? `${patientData.age} anos` : '—'} />
+        <StatCard label="Meta cal." value={fullProfile?.current_goals?.calories ? `${fullProfile.current_goals.calories} kcal` : (patientData?.target_calories ? `${patientData.target_calories} kcal` : '—')} />
+        <StatCard label="Meta prot." value={fullProfile?.current_goals?.protein ? `${fullProfile.current_goals.protein} g` : (patientData?.target_protein ? `${patientData.target_protein} g` : '—')} />
+        <StatCard label="Idade" value={age ? `${age} anos` : '—'} />
       </div>
+
+      {/* Objetivo + histórico de consultas */}
+      {(fullProfile?.health_goal || pastConsultations.length > 0) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {fullProfile?.health_goal && (
+            <span className="px-2 py-1 bg-blue-900/30 border border-blue-700/50 text-blue-300 rounded-lg text-[10px] font-semibold">
+              🎯 {fullProfile.health_goal}
+            </span>
+          )}
+          {pastConsultations.length > 0 && (
+            <span className="flex items-center gap-1 px-2 py-1 bg-gray-700 rounded-lg text-[10px] text-gray-300">
+              <CalendarCheck className="w-3 h-3 text-gray-400" />
+              {pastConsultations.length}ª consulta
+              {lastConsultation?.scheduled_at && (
+                <> · última em {new Date(lastConsultation.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</>
+              )}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Sinais vitais e conduta da consulta anterior */}
+      {lastNote && (
+        <Section title="Consulta Anterior" icon={<CalendarCheck className="w-3.5 h-3.5 text-teal-400" />}>
+          <PreviousConsultationCard note={lastNote} currentWeight={weight ?? null} />
+        </Section>
+      )}
 
       {/* Gráfico de Peso */}
       <Section title="Evolução do Peso" icon={<Activity className="w-3.5 h-3.5 text-blue-400" />}>
         <WeightSparkline data={weightHistory} />
       </Section>
 
-      {/* Humor */}
+      {/* Composição corporal (Body Scan) */}
+      {bodySnap && (
+        <Section title="Composição Corporal" icon={<Scan className="w-3.5 h-3.5 text-cyan-400" />}>
+          <BodyCompositionCard snap={bodySnap} />
+        </Section>
+      )}
+
+      {/* Atividade & sono (dispositivos) */}
+      {hasActivityData && (
+        <Section title="Atividade — 7 dias" icon={<Footprints className="w-3.5 h-3.5 text-emerald-400" />}>
+          <ActivitySummary metrics={healthMetrics} />
+        </Section>
+      )}
+
+      {/* Adesão alimentar */}
+      {fullProfile?.adherence && (
+        <Section title="Adesão Alimentar — 30 dias" icon={<Utensils className="w-3.5 h-3.5 text-orange-400" />}>
+          <AdherenceCard adherence={fullProfile.adherence} />
+        </Section>
+      )}
+
+      {/* Humor & Energia */}
       <Section title="Humor & Energia" icon={<Heart className="w-3.5 h-3.5 text-pink-400" />}>
-        <MoodRow checkins={checkins} />
+        <MoodEnergyBlock checkins={checkins} diary={fullProfile?.diary_entries || []} />
       </Section>
+
+      {/* Anamnese */}
+      {fullProfile && (
+        <Section title="Anamnese" icon={<ClipboardList className="w-3.5 h-3.5 text-violet-400" />}>
+          <AnamnesisCard p={fullProfile} />
+        </Section>
+      )}
 
       {/* GLP-1 */}
       <Section

@@ -31,19 +31,19 @@ export async function generateConsultationBriefing(patientId: string): Promise<C
     return age;
   })();
 
-  // 2. Weight history (last 90 days)
+  // 2. Weight history (last 90 days) — weight_logs é onde o paciente registra
+  // peso (manual/body scan/wearable); daily_logs.weight é legado e fica vazio
   const since90 = new Date();
   since90.setDate(since90.getDate() - 90);
 
   const { data: weightLogs } = await supabase
-    .from('daily_logs')
-    .select('date, weight')
+    .from('weight_logs')
+    .select('logged_at, weight_kg')
     .eq('user_id', patientId)
-    .not('weight', 'is', null)
-    .gte('date', since90.toISOString().split('T')[0])
-    .order('date', { ascending: true });
+    .gte('logged_at', since90.toISOString())
+    .order('logged_at', { ascending: true });
 
-  const weights = (weightLogs || []).filter((w: any) => w.weight);
+  const weights = (weightLogs || []).filter((w: any) => w.weight_kg).map((w: any) => ({ weight: Number(w.weight_kg) }));
   const weightStart = weights[0]?.weight || patient.weight || '—';
   const weightCurrent = weights[weights.length - 1]?.weight || patient.weight || '—';
   const weightDiff =
@@ -178,11 +178,84 @@ export async function generateConsultationBriefing(patientId: string): Promise<C
   const waterGoal = waterLogs[0]?.water_goal || patient.water_goal_ml || 2000;
   const waterAdherence = avgWater != null ? Math.round((avgWater / waterGoal) * 100) : null;
 
-  // 5. GLP-1 symptoms (last 4 check-ins)
-  const checkins = (patient.glp1_weekly_checkins || []).slice(-4);
+  // 4b. Check-ins diários (humor/energia/sono em escala 1–10) — 30 dias
+  const { data: dailyCheckins } = await supabase
+    .from('daily_checkins')
+    .select('checkin_date, mood, energy_level, sleep_hours, notes')
+    .eq('user_id', patientId)
+    .gte('checkin_date', since30.toISOString().split('T')[0])
+    .order('checkin_date', { ascending: false })
+    .limit(30);
+
+  const checkinRows = dailyCheckins || [];
+  const avgOf = (vals: (number | null)[]) => {
+    const v = vals.filter((x): x is number => typeof x === 'number');
+    return v.length ? (v.reduce((a, b) => a + b, 0) / v.length) : null;
+  };
+  const avgMood10   = avgOf(checkinRows.map((c: any) => c.mood));
+  const avgEnergy10 = avgOf(checkinRows.map((c: any) => c.energy_level));
+  const avgSleepH   = avgOf(checkinRows.map((c: any) => c.sleep_hours));
+  const checkinSummary = checkinRows.length > 0
+    ? `${checkinRows.length} check-ins em 30 dias — Humor médio ${avgMood10?.toFixed(1) ?? '—'}/10 | Energia ${avgEnergy10?.toFixed(1) ?? '—'}/10 | Sono ${avgSleepH?.toFixed(1) ?? '—'}h`
+      + `; últimos 3 (humor): ${checkinRows.slice(0, 3).map((c: any) => `${c.mood ?? '—'}/10`).join(' ← ')}`
+    : 'Sem check-ins no período';
+
+  // 4c. Dispositivos (Health Connect / HealthKit) — 28 dias
+  const { data: deviceMetrics } = await supabase
+    .from('health_daily_metrics')
+    .select('steps, sleep_minutes, resting_heart_rate')
+    .eq('user_id', patientId)
+    .gte('metric_date', since28.toISOString().split('T')[0]);
+
+  const devRows = deviceMetrics || [];
+  const avgSteps   = avgOf(devRows.map((d: any) => d.steps > 0 ? d.steps : null));
+  const avgSleepMin = avgOf(devRows.map((d: any) => d.sleep_minutes > 0 ? d.sleep_minutes : null));
+  const restHr     = avgOf(devRows.map((d: any) => d.resting_heart_rate > 0 ? d.resting_heart_rate : null));
+  const deviceSummary = (avgSteps || avgSleepMin || restHr)
+    ? `Passos ${avgSteps != null ? Math.round(avgSteps).toLocaleString('pt-BR') + '/dia' : '—'} | `
+      + `Sono ${avgSleepMin != null ? (avgSleepMin / 60).toFixed(1) + 'h/noite' : '—'} | `
+      + `FC repouso ${restHr != null ? Math.round(restHr) + ' bpm' : '—'}`
+    : 'Sem dispositivo conectado (Health Connect/HealthKit)';
+
+  // 4d. Última consulta finalizada — continuidade clínica (RLS: só notas do
+  // próprio médico autenticado)
+  const { data: lastNote } = await supabase
+    .from('clinical_notes')
+    .select('finalized_at, diagnosis, plan, weight_kg, blood_pressure_sys, blood_pressure_dia, heart_rate, waist_cm')
+    .eq('patient_id', patientId)
+    .eq('is_draft', false)
+    .order('finalized_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const lastConsultSummary = lastNote
+    ? `Data: ${lastNote.finalized_at ? fmtDate(lastNote.finalized_at) : '—'}`
+      + ` | Peso: ${lastNote.weight_kg ?? '—'}kg`
+      + (lastNote.blood_pressure_sys ? ` | PA: ${lastNote.blood_pressure_sys}/${lastNote.blood_pressure_dia}` : '')
+      + (lastNote.heart_rate ? ` | FC: ${lastNote.heart_rate}bpm` : '')
+      + (lastNote.waist_cm ? ` | Cintura: ${lastNote.waist_cm}cm` : '')
+      + (lastNote.diagnosis ? `\n- Diagnóstico: ${lastNote.diagnosis}` : '')
+      + (lastNote.plan ? `\n- Conduta combinada: ${lastNote.plan}` : '')
+    : 'Primeira consulta com este médico (sem prontuário anterior)';
+
+  // 5. GLP-1 symptoms — glp1_dose_logs é o registro canônico de aplicações;
+  // profiles.glp1_weekly_checkins é o formato legado (fallback)
+  const { data: doseLogs } = patient.glp1_mode
+    ? await supabase
+        .from('glp1_dose_logs')
+        .select('symptoms_reported')
+        .eq('user_id', patientId)
+        .order('applied_at', { ascending: false })
+        .limit(4)
+    : { data: null };
+
+  const symptomSources: string[][] = (doseLogs && doseLogs.length > 0)
+    ? doseLogs.map((d: any) => d.symptoms_reported || [])
+    : ((patient.glp1_weekly_checkins || []).slice(-4)).map((c: any) => c.symptoms || []);
+
   const symptomCounts: Record<string, number> = {};
-  checkins.forEach((c: any) => {
-    (c.symptoms || []).forEach((s: string) => {
+  symptomSources.forEach(symptoms => {
+    symptoms.forEach((s: string) => {
       symptomCounts[s] = (symptomCounts[s] || 0) + 1;
     });
   });
@@ -264,6 +337,9 @@ Perfil alimentar e estilo de vida (coletado no onboarding):
 - Objetivos adicionais: ${additionalGoalsList.length > 0 ? additionalGoalsList.join(', ') : 'Nenhum'}
 - Hábitos que deseja mudar: ${habitChangesList.length > 0 ? habitChangesList.join(', ') : 'Nenhum informado'}
 
+Última consulta deste médico:
+${lastConsultSummary}
+
 Evolução de peso (90 dias): ${weightStart}kg → ${weightCurrent}kg (${parseFloat(weightDiff) > 0 ? '+' : ''}${weightDiff}kg)
 ${bodyComposition}
 
@@ -282,6 +358,10 @@ Atividade física (28 dias):
 
 Hidratação (28 dias):
 - Média: ${avgWater != null ? `${avgWater}ml/dia` : 'Sem dados'} (meta: ${waterGoal}ml${waterAdherence != null ? `, ${waterAdherence}% de adesão` : ''})
+
+Dispositivos (28 dias): ${deviceSummary}
+
+Check-ins de bem-estar (30 dias): ${checkinSummary}
 
 Sintomas frequentes GLP-1: ${topSymptoms.length > 0 ? topSymptoms.join(', ') : 'Nenhum relatado'}
 Principal preocupação: ${concernMap[patient.glp1_main_concern] || 'N/A'}
@@ -319,6 +399,19 @@ ${diarySummary ?? 'Nenhuma nota registrada no período.'}
     top_symptoms: topSymptoms,
     avg_energy_label: avgEnergyLabel,
     body_composition: lastScan ?? null,   // body scan: feature crítica p/ a Inteligência
+    avg_mood_10: avgMood10,
+    avg_energy_10: avgEnergy10,
+    avg_sleep_hours: avgSleepH,
+    avg_steps: avgSteps != null ? Math.round(avgSteps) : null,
+    device_sleep_minutes: avgSleepMin != null ? Math.round(avgSleepMin) : null,
+    resting_heart_rate: restHr != null ? Math.round(restHr) : null,
+    last_consult_vitals: lastNote ? {
+      weight_kg: lastNote.weight_kg,
+      bp_sys: lastNote.blood_pressure_sys,
+      bp_dia: lastNote.blood_pressure_dia,
+      heart_rate: lastNote.heart_rate,
+      waist_cm: lastNote.waist_cm,
+    } : null,
   };
 
   // Resolve o médico autenticado (p/ vincular o relatório ao feedback dele)
@@ -347,18 +440,26 @@ ${diarySummary ?? 'Nenhuma nota registrada no período.'}
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const result = await model.generateContent(
       `Você é um assistente médico especializado em nutrição e emagrecimento.
-Gere um briefing pré-consulta objetivo e clinicamente relevante para o médico.
-Use português brasileiro. Seja direto e prático.
-Formato: seções com emojis, máximo 500 palavras.
+Gere um briefing pré-consulta para o médico ler em 2 minutos, imediatamente antes de atender.
+Use português brasileiro. Seja direto e prático. Máximo 450 palavras.
 
-Inclua obrigatoriamente:
-- Perfil alimentar e estilo de vida: mencione o tipo de dieta, restrições ou alergias (críticas para o plano), hábitos que deseja mudar e objetivos adicionais informados no onboarding — esses dados refletem a realidade do paciente e devem guiar as recomendações
-- Progresso de peso e adesão ao plano
-- Padrão alimentar: comente os pratos mais consumidos e destaque refeições pesadas repetidas com nome e frequência (ex: "consumiu tiramisu 3x na semana"); cruce com o tipo de dieta declarado pelo paciente (ex: dieta vegetariana mas consumindo carne frequentemente)
-- Atividade física e hidratação: se há dados de treinos, comente o gasto calórico vs ingestão; alerte se o paciente treina mas não compensa na hidratação ou proteína; se não há integração ativa, mencione brevemente; cruce com a resposta de hidratação do onboarding
-- Diário pessoal: se houver notas relevantes, cite textualmente as mais significativas usando o nome do paciente (ex: "em seu diário, João relatou desconforto intestinal após comer feijão em 02/05"); ignore notas triviais
-- Pontos de atenção clínicos
-- Sugestões objetivas para a consulta, levando em conta os hábitos que o paciente quer mudar e seus objetivos adicionais
+ESTRUTURA OBRIGATÓRIA, nesta ordem:
+
+⚡ **RESUMO** — no máximo 3 bullets com o que o médico PRECISA saber antes de abrir a câmera: a mudança mais importante desde a última consulta, o maior risco/ponto de atenção e o que o paciente espera resolver. Se houver conduta combinada na consulta anterior, diga se o paciente a está cumprindo.
+
+Depois, seções curtas com emojis:
+- 📉 **Peso e composição** — evolução de 90 dias e delta desde a última consulta; use os dados de body scan se existirem
+- 🥗 **Padrão alimentar** — adesão ao registro, médias vs metas, pratos mais consumidos; destaque refeições pesadas repetidas com nome e frequência (ex: "tiramisu 3x na semana"); cruze com o tipo de dieta declarado (ex: declara dieta vegetariana mas registra carne)
+- 🏃 **Atividade, sono e hidratação** — treinos, passos e sono de dispositivos; gasto vs ingestão; cruze com a resposta de hidratação do onboarding; se não há dados, uma linha só
+- 😊 **Bem-estar** — humor/energia dos check-ins e do diário; cite textualmente no máximo 2 notas do diário clinicamente relevantes usando o nome do paciente (ex: "João relatou desconforto intestinal após feijão em 02/05"); ignore notas triviais
+- 💊 **GLP-1** — só se o paciente usa: medicação, fase, sintomas relatados
+- 🎯 **Sugestões para esta consulta** — no máximo 4 ações objetivas, priorizadas, ligadas à conduta anterior, aos hábitos que o paciente quer mudar e aos objetivos declarados
+
+Regras:
+- NÃO repita o mesmo dado em duas seções; cada número aparece uma vez, na seção certa
+- Se uma seção não tem dados, escreva uma linha só (ex: "Sem dados de treino — nenhuma integração ativa") em vez de especular
+- Não invente dados nem calcule estimativas não pedidas; use apenas o que está abaixo
+- Não use jargão de app ("logou", "trackeou"); escreva como colega médico
 
 Dados do paciente:
 ${context}`

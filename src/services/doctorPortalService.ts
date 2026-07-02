@@ -2355,6 +2355,23 @@ export const clinicalNoteService = {
     return data;
   },
 
+  // Última nota finalizada do paciente — sinais vitais e conduta da consulta
+  // anterior, para dar continuidade clínica na consulta atual.
+  async getLastFinalizedForPatient(patientId: string, excludeConsultationId?: string): Promise<ClinicalNote | null> {
+    let query = supabase
+      .from('clinical_notes')
+      .select('*')
+      .eq('patient_id', patientId)
+      .eq('is_draft', false)
+      .order('finalized_at', { ascending: false })
+      .limit(1);
+    if (excludeConsultationId) query = query.neq('consultation_id', excludeConsultationId);
+
+    const { data, error } = await query.maybeSingle();
+    if (error) return null;
+    return data;
+  },
+
   async upsert(consultationId: string, doctorId: string, patientId: string, fields: Partial<ClinicalNoteFormData>): Promise<ClinicalNote> {
     const numericField = (v: string | undefined) => v ? parseFloat(v) || null : null;
     const intField    = (v: string | undefined) => v ? parseInt(v)   || null : null;
