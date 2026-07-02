@@ -58,25 +58,30 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
 
   // Subscribe to real-time goals updates from doctor
   useEffect(() => {
-    const { data: { user } } = supabase.auth as any;
-    const userId = user?.id;
-    if (!userId) return;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
 
-    const channel = supabase
-      .channel(`patient:${userId}`)
-      .on('broadcast', { event: 'goals_updated' }, ({ payload }) => {
-        setGoalsUpdate(payload);
-        setShowGoalsToast(true);
-        setTimeout(() => setShowGoalsToast(false), 6000);
-      })
-      .on('broadcast', { event: 'prescription_issued' }, ({ payload }) => {
-        setRxToast(payload);
-        setTimeout(() => setRxToast(null), 10000);
-      })
-      .subscribe();
+    supabase.auth.getSession().then(({ data }) => {
+      const userId = data.session?.user?.id;
+      if (!userId || cancelled) return;
+
+      channel = supabase
+        .channel(`patient:${userId}`)
+        .on('broadcast', { event: 'goals_updated' }, ({ payload }) => {
+          setGoalsUpdate(payload);
+          setShowGoalsToast(true);
+          setTimeout(() => setShowGoalsToast(false), 6000);
+        })
+        .on('broadcast', { event: 'prescription_issued' }, ({ payload }) => {
+          setRxToast(payload);
+          setTimeout(() => setRxToast(null), 10000);
+        })
+        .subscribe();
+    });
 
     return () => {
-      channel.unsubscribe();
+      cancelled = true;
+      channel?.unsubscribe();
     };
   }, []);
 
