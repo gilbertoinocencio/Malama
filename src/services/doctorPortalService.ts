@@ -417,6 +417,40 @@ export const consultationService = {
     return data as unknown as Consultation;
   },
 
+  /**
+   * Registra falta do paciente (no_show) com a regra de penalidade real:
+   * 1ª falta libera novo crédito para remarcação única; 2ª falta perde o
+   * crédito do mês. Diferente de cancelConsultation, que é sem penalidade.
+   * Idempotente: se o cron ou o app do paciente já oficializou, não reprocessa.
+   */
+  async markNoShow(consultationId: string): Promise<void> {
+    const { data, error } = await supabase
+      .from('consultations')
+      .update({ status: 'no_show', notes: 'Paciente não compareceu' })
+      .eq('id', consultationId)
+      .eq('status', 'scheduled')
+      .select('id, scheduled_at');
+
+    if (error) throw error;
+    if (!data || data.length === 0) return; // já processado (cron/paciente)
+
+    const { data: credit } = await supabase
+      .from('consultation_credits')
+      .select('id')
+      .eq('appointment_id', consultationId)
+      .maybeSingle();
+
+    if (credit) {
+      const { creditService } = await import('./billingService');
+      // scheduled_at no passado → cai no ramo de falta/cancelamento tardio
+      await creditService.handleAppointmentCancellation(
+        credit.id,
+        consultationId,
+        data[0].scheduled_at
+      );
+    }
+  },
+
   // Médico propõe até 3 novas datas para o paciente escolher
   async proposeReschedule(consultationId: string, proposals: string[], message?: string): Promise<Consultation> {
     const { data, error } = await supabase

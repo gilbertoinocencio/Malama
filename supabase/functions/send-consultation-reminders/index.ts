@@ -1,9 +1,15 @@
 // =====================================================
 // Malama — Edge Function: send-consultation-reminders
 // Roda no cron a cada 5 min (via pg_cron).
-// Cria a notificação in-app (patient_notifications) e envia
-// Web Push (VAPID) para lembretes 24h / 3h / 30min antes da consulta.
-// Dedupe via tabela consultation_reminders_sent.
+// 1) Lembretes 24h / 3h / 30min antes da consulta: notificação in-app
+//    (patient_notifications) + Web Push (VAPID). Dedupe via tabela
+//    consultation_reminders_sent.
+// 2) No-show: consultas 'scheduled' que passaram 30 min do horário sem
+//    iniciar viram no_show e o crédito é processado — 1ª falta libera um
+//    novo crédito para remarcar uma única vez (validade mínima de 7 dias);
+//    2ª falta perde o crédito do mês (renova no próximo ciclo). O paciente
+//    é notificado (sino + push). Espelha a regra client-side de
+//    billingService.handleAppointmentCancellation / lib/consultationWindow.
 //
 // No app nativo (iOS/Android) o alerta na tela bloqueada vem das
 // notificações locais (Capacitor). Aqui garantimos o sino in-app e o
@@ -112,6 +118,145 @@ function contentFor(kind: Kind, doctorName: string | null, scheduledAt: string):
   }
 }
 
+// ─── No-show ──────────────────────────────────────────────────────────────────
+
+const MISSED_AFTER_MS = 30 * 60_000; // mesmo limite de src/lib/consultationWindow.ts
+
+async function notifyPatient(
+  userId: string,
+  title: string,
+  body: string,
+  data: Record<string, unknown>,
+  tag: string,
+): Promise<void> {
+  await supabase.from('patient_notifications').insert({
+    user_id: userId,
+    type: 'consultation_reminder',
+    title,
+    body,
+    data,
+  });
+
+  const { data: subs } = await supabase
+    .from('push_subscriptions')
+    .select('endpoint, p256dh, auth')
+    .eq('user_id', userId);
+  if (subs && subs.length > 0) {
+    const payload = { title, body, tag, url: '/?view=minhas-consultas' };
+    await Promise.allSettled(subs.map(s => sendPush(s, payload)));
+  }
+}
+
+/** Processa o crédito de uma consulta no_show. Retorna se o crédito foi perdido (null = sem crédito vinculado). */
+async function processNoShowCredit(consultationId: string): Promise<boolean | null> {
+  const { data: credit } = await supabase
+    .from('consultation_credits')
+    .select('id, user_id, subscription_id, month_reference, expires_at, late_cancellations_count')
+    .eq('appointment_id', consultationId)
+    .maybeSingle();
+  if (!credit) return null;
+
+  const newCount = (credit.late_cancellations_count ?? 0) + 1;
+  const nowIso = new Date().toISOString();
+
+  if (newCount >= 2) {
+    // 2ª falta: crédito do mês perdido — renova no próximo ciclo da assinatura
+    await supabase
+      .from('consultation_credits')
+      .update({
+        status: 'perdida_cancelamento',
+        late_cancellations_count: newCount,
+        appointment_id: null,
+        doctor_id: null,
+        updated_at: nowIso,
+      })
+      .eq('id', credit.id);
+    return true;
+  }
+
+  // 1ª falta: libera novo crédito para a remarcação única, com ao menos
+  // 7 dias de validade (senão um crédito à beira do vencimento tornaria
+  // a remarcação impossível).
+  await supabase
+    .from('consultation_credits')
+    .update({
+      status: 'cancelada_reagendada',
+      late_cancellations_count: newCount,
+      appointment_id: null,
+      doctor_id: null,
+      updated_at: nowIso,
+    })
+    .eq('id', credit.id);
+
+  const minExpiry = new Date(Date.now() + 7 * 86_400_000).toISOString();
+  await supabase.from('consultation_credits').insert({
+    user_id: credit.user_id,
+    subscription_id: credit.subscription_id,
+    status: 'disponivel',
+    month_reference: credit.month_reference,
+    expires_at: credit.expires_at > minExpiry ? credit.expires_at : minExpiry,
+    late_cancellations_count: newCount,
+  });
+  return false;
+}
+
+async function processNoShows(nowMs: number): Promise<number> {
+  const overdueIso = new Date(nowMs - MISSED_AFTER_MS).toISOString();
+  const { data: overdue, error } = await supabase
+    .from('consultations')
+    .select('id, patient_id, scheduled_at, doctors(name)')
+    .eq('status', 'scheduled')
+    .lt('scheduled_at', overdueIso)
+    .limit(100);
+
+  if (error) throw error;
+  let processed = 0;
+
+  for (const c of overdue ?? []) {
+    // Compare-and-set: o app do paciente também pode oficializar o no-show
+    // (processMissedConsultation) — só quem vencer o UPDATE trata o crédito.
+    const { data: updated } = await supabase
+      .from('consultations')
+      .update({ status: 'no_show' })
+      .eq('id', c.id)
+      .eq('status', 'scheduled')
+      .select('id');
+    if (!updated || updated.length === 0) continue;
+
+    const creditLost = await processNoShowCredit(c.id);
+
+    const doctorName = (c.doctors as { name?: string } | null)?.name ?? null;
+    const doctor = doctorName ? `Dr(a). ${doctorName}` : 'seu médico';
+    const time = formatTime(c.scheduled_at);
+    const { title, body } = creditLost === true
+      ? {
+          title: 'Consulta perdida — crédito do mês encerrado',
+          body: `Você não entrou na consulta remarcada com ${doctor} (${time}). O crédito deste mês foi perdido e renova no próximo ciclo da assinatura.`,
+        }
+      : {
+          title: 'Você perdeu sua consulta',
+          body: `Você não entrou na consulta com ${doctor} das ${time}. Remarque uma nova data pelo app — se faltar novamente, o crédito do mês será perdido.`,
+        };
+
+    await notifyPatient(
+      c.patient_id,
+      title,
+      body,
+      {
+        consultation_id: c.id,
+        doctor_name: doctorName,
+        scheduled_at: c.scheduled_at,
+        reminder_kind: 'no_show',
+        credit_lost: creditLost === true,
+      },
+      `consulta-${c.id}-no-show`,
+    );
+    processed++;
+  }
+
+  return processed;
+}
+
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 Deno.serve(async (_req) => {
@@ -129,8 +274,12 @@ Deno.serve(async (_req) => {
       .lte('scheduled_at', in24hIso);
 
     if (error) throw error;
+
+    // Consultas vencidas → no_show + crédito + aviso (roda mesmo sem lembretes pendentes)
+    const noShows = await processNoShows(nowMs);
+
     if (!consults || consults.length === 0) {
-      return new Response(JSON.stringify({ sent: 0 }), { status: 200 });
+      return new Response(JSON.stringify({ sent: 0, noShows }), { status: 200 });
     }
 
     // Lembretes já enviados (dedupe)
@@ -186,7 +335,7 @@ Deno.serve(async (_req) => {
       }
     }
 
-    return new Response(JSON.stringify({ sent }), { status: 200 });
+    return new Response(JSON.stringify({ sent, noShows }), { status: 200 });
   } catch (err) {
     console.error('[send-consultation-reminders] error:', err);
     return new Response(JSON.stringify({ error: String(err) }), { status: 500 });

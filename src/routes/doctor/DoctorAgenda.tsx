@@ -454,7 +454,9 @@ export const DoctorAgenda: React.FC = () => {
 
   const handleNoShow = async (id: string) => {
     try {
-      await consultationService.cancelConsultation(id, 'Paciente não compareceu');
+      // no_show de verdade (não 'cancelled'): aplica a regra de penalidade do
+      // crédito — 1ª falta permite remarcar uma vez, 2ª perde o crédito do mês.
+      await consultationService.markNoShow(id);
       toast.success('Falta registrada');
       setSelectedConsult(null);
       await loadCalendarData();

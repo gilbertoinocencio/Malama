@@ -332,16 +332,64 @@ export async function getTodayConsultation(patientId: string): Promise<Consultat
   const end = new Date();
   end.setHours(23, 59, 59, 999);
 
+  // Inclui no_show para a home poder avisar "você perdeu a consulta" e
+  // oferecer a remarcação — antes o banner simplesmente sumia (ou pior,
+  // continuava mostrando "Entrar" para um horário que já passou).
   const { data } = await supabase
     .from('consultations')
     .select('*, doctors(name, specialty, crm)')
     .eq('patient_id', patientId)
     .gte('scheduled_at', start.toISOString())
     .lte('scheduled_at', end.toISOString())
+    .in('status', ['scheduled', 'in_progress', 'no_show'])
+    .order('scheduled_at', { ascending: true });
+
+  if (!data || data.length === 0) return null;
+  // Prioriza a consulta ainda válida; senão mostra a perdida mais recente.
+  const active = data.find(c => c.status === 'scheduled' || c.status === 'in_progress');
+  return active ?? data[data.length - 1];
+}
+
+/**
+ * Oficializa uma consulta perdida (paciente não entrou até 30 min após o
+ * horário): marca no_show e processa o crédito — 1ª falta libera um novo
+ * crédito para remarcar uma única vez; 2ª falta perde o crédito do mês.
+ * Idempotente e à prova de corrida com o cron server-side: o UPDATE é
+ * condicionado a status='scheduled', então só um dos lados processa.
+ */
+export async function processMissedConsultation(
+  consultationId: string,
+  patientId: string
+): Promise<{ creditLost: boolean; alreadyProcessed: boolean }> {
+  const { data: updated, error } = await supabase
+    .from('consultations')
+    .update({ status: 'no_show' })
+    .eq('id', consultationId)
+    .eq('patient_id', patientId)
     .eq('status', 'scheduled')
+    .select('id, scheduled_at');
+
+  if (error) throw error;
+  if (!updated || updated.length === 0) {
+    // Cron (ou outra aba) já processou — o crédito já foi tratado lá.
+    return { creditLost: false, alreadyProcessed: true };
+  }
+
+  const { data: credit } = await supabase
+    .from('consultation_credits')
+    .select('id')
+    .eq('appointment_id', consultationId)
     .maybeSingle();
 
-  return data || null;
+  if (!credit) return { creditLost: false, alreadyProcessed: false };
+
+  const { creditService } = await import('../services/billingService');
+  const { creditLost } = await creditService.handleAppointmentCancellation(
+    credit.id,
+    consultationId,
+    updated[0].scheduled_at // horário no passado → conta como falta/cancelamento tardio
+  );
+  return { creditLost, alreadyProcessed: false };
 }
 
 export async function cancelConsultation(consultationId: string, patientId: string): Promise<void> {

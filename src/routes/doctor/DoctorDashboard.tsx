@@ -17,6 +17,14 @@ export const DoctorDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [advancedData, setAdvancedData] = useState<AdvancedDashboardData | null>(null);
   const [advancedLoading, setAdvancedLoading] = useState(true);
+  const [, setTick] = useState(0);
+
+  // Reavalia a janela de entrada a cada 30s para o botão "Entrar"
+  // ativar/desativar sozinho, sem precisar recarregar a página.
+  useEffect(() => {
+    const t = setInterval(() => setTick(n => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -75,11 +83,11 @@ export const DoctorDashboard: React.FC = () => {
     }
   };
 
+  // Alinhado ao gate da sala (ConsultationRoom): abre 15 min antes e fecha
+  // 30 min após o horário sem a consulta iniciar (vira no-show).
   const isConsultationAvailable = (scheduledAt: string) => {
-    const now = new Date();
-    const consultDate = new Date(scheduledAt);
-    const diffMs = consultDate.getTime() - now.getTime();
-    return diffMs <= 10 * 60 * 1000 && diffMs >= 0; // 10 minutos antes
+    const diffMs = new Date(scheduledAt).getTime() - Date.now();
+    return diffMs <= 15 * 60 * 1000 && diffMs >= -30 * 60 * 1000;
   };
 
   const formatCurrency = (value: number) => {
@@ -238,17 +246,27 @@ export const DoctorDashboard: React.FC = () => {
                     >
                       <User className="w-4 h-4" />
                     </Link>
-                    <Link
-                      to={`/medico/consulta/${consultation.id}`}
-                      className={`px-4 py-2 text-sm rounded-lg transition flex items-center gap-2 ${available
-                        ? 'bg-[#7d4a3c] hover:bg-[#623a2f] text-white'
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        }`}
-                      title={!available ? 'Disponível 10 min antes' : 'Entrar na consulta'}
-                    >
-                      <Video className="w-4 h-4" />
-                      <span className="hidden sm:inline">Entrar</span>
-                    </Link>
+                    {available ? (
+                      <Link
+                        to={`/medico/consulta/${consultation.id}`}
+                        className="px-4 py-2 text-sm rounded-lg transition flex items-center gap-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white"
+                        title="Entrar na consulta"
+                      >
+                        <Video className="w-4 h-4" />
+                        <span className="hidden sm:inline">Entrar</span>
+                      </Link>
+                    ) : (
+                      /* Fora da janela: elemento inerte — antes era um Link "desabilitado"
+                         só no estilo, que ainda navegava e abria a sala */
+                      <span
+                        className="px-4 py-2 text-sm rounded-lg flex items-center gap-2 bg-gray-100 text-gray-400 cursor-not-allowed select-none"
+                        title="Disponível 15 min antes do horário"
+                        aria-disabled="true"
+                      >
+                        <Video className="w-4 h-4" />
+                        <span className="hidden sm:inline">Entrar</span>
+                      </span>
+                    )}
                   </div>
                 </div>
               );

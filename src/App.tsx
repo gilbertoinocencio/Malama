@@ -254,10 +254,17 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [user, profile]);
 
-  // Subscribe to Web Push when GLP-1 mode is active
+  // Web Push (web/PWA) para TODOS os usuários — lembretes de consulta chegam
+  // no celular mesmo com o app fechado. Pede permissão para quem usa GLP-1
+  // (lembretes de dose) ou já concedeu antes; para os demais, a permissão é
+  // solicitada no momento do agendamento da consulta (AgendarConsulta).
   useEffect(() => {
-    if (!user || !profile?.glp1_mode) return;
-    glp1Service.subscribeToPush(user.id).catch(() => {});
+    if (!user) return;
+    const alreadyGranted =
+      typeof Notification !== 'undefined' && Notification.permission === 'granted';
+    if (profile?.glp1_mode || alreadyGranted) {
+      glp1Service.subscribeToPush(user.id).catch(() => {});
+    }
   }, [user?.id, profile?.glp1_mode]);
 
   // Detectar callback do Strava em /strava/callback?code=xxx

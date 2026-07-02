@@ -11,6 +11,7 @@ import {
 } from '../lib/scheduling';
 import { creditService } from '../services/billingService';
 import { consultationReminderService } from '../services/consultationReminderService';
+import { subscribeToPush } from '../services/pushService';
 import { AppView } from '../types';
 import { useLanguage } from '../i18n';
 
@@ -135,6 +136,9 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
       void consultationReminderService
         .scheduleFor({ ...consultation, doctors: { name: selectedDoctor.name, specialty: selectedDoctor.specialty, crm: selectedDoctor.crm } })
         .catch(() => {});
+      // Web/PWA: pede permissão de notificação agora (momento com contexto claro)
+      // para os lembretes chegarem no celular mesmo com o app fechado.
+      void subscribeToPush(user.id).catch(() => {});
     } catch (err: any) {
       setBookError(err.message || t.agendarConsulta.schedulingError);
     } finally {

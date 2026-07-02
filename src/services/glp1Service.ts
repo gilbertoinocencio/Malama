@@ -7,60 +7,15 @@
 import { supabase } from './supabase';
 import type { GLP1Dose, GLP1ApplicationSchedule, GLP1DoctorPrescription, Profile } from '../types';
 import { getNextApplicationSite, getNextDoseStep, getWeeksElapsed, getNextApplicationDate } from '../constants/glp1Protocols';
-
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
-
-// Convert a base64url VAPID public key to Uint8Array for pushManager.subscribe
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
-}
+import { subscribeToPush } from './pushService';
 
 export const glp1Service = {
   // ──────────────────────────────────────────────────────────────────────────
-  // Push Subscription
+  // Push Subscription (implementação movida para pushService — compartilhada
+  // com os lembretes de consulta)
   // ──────────────────────────────────────────────────────────────────────────
 
-  /**
-   * Subscribe the browser to Web Push and persist the subscription
-   * in the push_subscriptions table. Safe to call multiple times.
-   */
-  async subscribeToPush(userId: string): Promise<boolean> {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
-    if (!VAPID_PUBLIC_KEY) {
-      console.warn('[GLP1] VITE_VAPID_PUBLIC_KEY not set — push disabled');
-      return false;
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') return false;
-
-      const reg = await navigator.serviceWorker.ready;
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      });
-
-      const json = subscription.toJSON();
-      const { endpoint, keys } = json as {
-        endpoint: string;
-        keys: { p256dh: string; auth: string };
-      };
-
-      await supabase.from('push_subscriptions').upsert(
-        { user_id: userId, endpoint, p256dh: keys.p256dh, auth: keys.auth },
-        { onConflict: 'endpoint' }
-      );
-
-      return true;
-    } catch (err) {
-      console.error('[GLP1] subscribeToPush error:', err);
-      return false;
-    }
-  },
+  subscribeToPush,
 
   // ──────────────────────────────────────────────────────────────────────────
   // Dose Logging

@@ -9,7 +9,9 @@ import {
   rateConsultation,
   acceptRescheduleProposal,
   rejectAllRescheduleProposals,
+  processMissedConsultation,
 } from '../lib/scheduling';
+import { canPatientJoin, isMissed } from '../lib/consultationWindow';
 import { creditService } from '../services/billingService';
 import { appointmentChatService } from '../services/doctorPortalService';
 import { consultationReminderService } from '../services/consultationReminderService';
@@ -40,6 +42,17 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
   const [chosenProposal, setChosenProposal] = useState<string | null>(null);
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
   const [activeChats, setActiveChats] = useState<Map<string, AppointmentChat>>(new Map());
+  const [hasBookableCredit, setHasBookableCredit] = useState(false);
+  const [missedProcessing, setMissedProcessing] = useState<string | null>(null);
+  const [creditLostNotice, setCreditLostNotice] = useState(false);
+  const [, setTick] = useState(0);
+
+  // Reavalia as janelas de horário a cada 30s: o botão "Entrar" ativa sozinho
+  // quando a janela abre e a consulta vira "perdida" quando o prazo estoura.
+  useEffect(() => {
+    const t = setInterval(() => setTick(n => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -54,6 +67,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
         setConsultations(c);
         setPrescriptions(p);
         setHasAvailableCredit((credits as any[]).length > 0);
+        setHasBookableCredit((credits as any[]).some(cr => cr.status === 'disponivel'));
         const chatMap = new Map<string, AppointmentChat>();
         (chats as AppointmentChat[]).forEach(ch => chatMap.set(ch.consultation_id, ch));
         setActiveChats(chatMap);
@@ -62,11 +76,27 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
       .finally(() => setLoading(false));
   }, [user]);
 
-  const canEnter = (c: Consultation) => {
-    const scheduled = new Date(c.scheduled_at);
-    const now = new Date();
-    const diffMin = (scheduled.getTime() - now.getTime()) / 60000;
-    return c.status === 'scheduled' && diffMin <= 10 && diffMin >= -60;
+  const canEnter = (c: Consultation) => canPatientJoin(c);
+
+  // Consulta perdida (horário passou sem entrar): oficializa o no-show,
+  // processa o crédito e leva para o agendamento se ainda houver remarcação.
+  const handleRescheduleMissed = async (c: Consultation) => {
+    if (!user || missedProcessing) return;
+    setMissedProcessing(c.id);
+    try {
+      const { creditLost } = await processMissedConsultation(c.id, user.id);
+      setConsultations(prev => prev.map(x => (x.id === c.id ? { ...x, status: 'no_show' as const } : x)));
+      void consultationReminderService.cancelFor(c.id).catch(() => {});
+      if (creditLost) {
+        setCreditLostNotice(true);
+      } else {
+        onNavigate(AppView.AGENDAR_CONSULTA);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setMissedProcessing(null);
+    }
   };
 
   const handleCancel = async (id: string) => {
@@ -137,7 +167,11 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
     completed: '✓ Concluída', cancelled: '✗ Cancelada', no_show: '⚠️ Não compareceu',
   };
 
-  const upcoming = consultations.filter((c) => ['scheduled', 'in_progress'].includes(c.status));
+  // Consulta 'scheduled' cujo horário já passou (30 min de tolerância) é
+  // tratada como perdida — nunca mais aparece como "Confirmada / Disponível
+  // 10 min antes" depois do horário.
+  const missed = consultations.filter((c) => isMissed(c));
+  const upcoming = consultations.filter((c) => ['scheduled', 'in_progress'].includes(c.status) && !isMissed(c));
   const past = consultations.filter((c) => ['completed', 'cancelled', 'no_show'].includes(c.status));
 
   const daysUntilExpiry = (expiresAt: string) => {
@@ -189,7 +223,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
         ) : tab === 'consultations' ? (
           <>
             {/* Banner: crédito disponível mas não agendado */}
-            {hasAvailableCredit && upcoming.length === 0 && (
+            {hasAvailableCredit && upcoming.length === 0 && missed.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -211,6 +245,53 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                 </div>
               </motion.div>
             )}
+
+            {/* Aviso: crédito do mês perdido (2ª falta) */}
+            {creditLostNotice && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/40 rounded-2xl p-4 mb-4"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">😔</span>
+                  <p className="text-sm font-bold text-red-700 dark:text-red-300">Crédito do mês perdido</p>
+                </div>
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  Você não compareceu à consulta remarcada, então o crédito deste mês foi perdido.
+                  Um novo crédito estará disponível no próximo ciclo da sua assinatura.
+                </p>
+              </motion.div>
+            )}
+
+            {/* Consultas perdidas (horário passou sem entrar) */}
+            {missed.map((c) => (
+              <motion.div
+                key={`missed-${c.id}`}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700/40 rounded-2xl p-4 mb-4"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">⚠️</span>
+                  <p className="text-sm font-bold text-orange-800 dark:text-orange-300">Você não entrou na consulta</p>
+                </div>
+                <p className="text-xs text-orange-700 dark:text-orange-400 mb-1 capitalize">
+                  Dr(a). {(c.doctors as any)?.name || 'Médico'} · 📅 {formatDate(c.scheduled_at)}
+                </p>
+                <p className="text-xs text-orange-700/80 dark:text-orange-400/80 mb-3">
+                  Você pode remarcar uma única vez. Se não comparecer na nova data, o crédito do
+                  mês será perdido e renovará no próximo ciclo.
+                </p>
+                <button
+                  onClick={() => handleRescheduleMissed(c)}
+                  disabled={missedProcessing === c.id}
+                  className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition disabled:opacity-50"
+                >
+                  {missedProcessing === c.id ? 'Processando...' : 'Remarcar consulta'}
+                </button>
+              </motion.div>
+            ))}
 
             {/* Pending reschedule banners */}
             {upcoming.filter(c => c.reschedule_status === 'pending').map(c => (
@@ -317,7 +398,21 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                       {c.rating && (
                         <p className="text-xs text-yellow-500">{'★'.repeat(c.rating)}{'☆'.repeat(5 - c.rating)}</p>
                       )}
-                      {activeChats.has(c.id) && (() => {
+                      {c.status === 'no_show' && (
+                        hasBookableCredit ? (
+                          <button
+                            onClick={() => onNavigate(AppView.AGENDAR_CONSULTA)}
+                            className="mt-1 w-full py-2 bg-Malama-petrol hover:bg-[#7a3d35] text-white rounded-xl text-xs font-bold transition-colors"
+                          >
+                            Remarcar consulta
+                          </button>
+                        ) : (
+                          <p className="mt-1 text-xs text-Malama-muted dark:text-slate-400">
+                            Sem crédito disponível — renova no próximo ciclo da assinatura.
+                          </p>
+                        )
+                      )}
+                      {c.status === 'completed' && activeChats.has(c.id) && (() => {
                         const ch = activeChats.get(c.id)!;
                         const days = Math.max(0, Math.ceil((new Date(ch.expires_at).getTime() - Date.now()) / 86_400_000));
                         return (

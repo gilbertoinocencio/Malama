@@ -221,14 +221,15 @@ export const creditService = {
    * Lógica de cancelamento de agendamento:
    * - >= 24h de antecedência: crédito liberado para reagendamento sem penalidade
    * - < 24h (ou no-show): incrementa late_cancellations_count
-   *   - count >= 2: crédito perdido
+   *   - count >= 2: crédito perdido (renova no próximo ciclo da assinatura)
    *   - count == 1: crédito liberado com contagem herdada
+   * Retorna se o crédito foi perdido, para a UI informar o paciente.
    */
   async handleAppointmentCancellation(
     creditId: string,
     appointmentId: string,
     scheduledAt: string
-  ): Promise<void> {
+  ): Promise<{ creditLost: boolean }> {
     const { data: credit, error: fetchError } = await supabase
       .from('consultation_credits')
       .select('user_id, subscription_id, month_reference, expires_at, late_cancellations_count')
@@ -263,7 +264,7 @@ export const creditService = {
         expires_at: credit.expires_at,
         late_cancellations_count: credit.late_cancellations_count,
       }]);
-      return;
+      return { creditLost: false };
     }
 
     // Cancelamento tardio ou no-show
@@ -281,6 +282,7 @@ export const creditService = {
           updated_at: new Date().toISOString(),
         })
         .eq('id', creditId);
+      return { creditLost: true };
     } else {
       // Primeiro cancelamento tardio: libera crédito com contagem herdada
       await supabase
@@ -294,15 +296,21 @@ export const creditService = {
         })
         .eq('id', creditId);
 
+      // Garante ao menos 7 dias para a remarcação única pós-falta: sem isso,
+      // um crédito à beira do vencimento tornaria a remarcação impossível.
+      const minExpiry = new Date(Date.now() + 7 * 86_400_000).toISOString();
+      const newExpiry = credit.expires_at > minExpiry ? credit.expires_at : minExpiry;
+
       await supabase.from('consultation_credits').insert([{
         user_id: credit.user_id,
         subscription_id: credit.subscription_id,
         status: 'disponivel' as CreditStatus,
         month_reference: credit.month_reference,
-        expires_at: credit.expires_at, // herda o prazo original (não estende)
+        expires_at: newExpiry,
         late_cancellations_count: newCount, // propaga contagem para o novo crédito
       }]);
     }
+    return { creditLost: false };
   },
 
   /** Retorna logs de auditoria admin para um crédito */

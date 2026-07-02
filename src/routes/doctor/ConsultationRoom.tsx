@@ -7,7 +7,10 @@ import type { Doctor } from '../../types/doctorPortal';
 
 // A sala da consulta abre 15 min antes do horário agendado.
 // Antes disso o médico só acessa o PERFIL do paciente (dados), não a sala.
+// Depois de 30 min sem iniciar, a consulta expira (vira no-show) e a sala
+// não abre mais — mesmos limites de src/lib/consultationWindow.ts.
 const JOIN_WINDOW_BEFORE_MS = 15 * 60_000;
+const EXPIRES_AFTER_MS = 30 * 60_000;
 
 interface ConsultationData {
   id: string;
@@ -94,15 +97,60 @@ export const ConsultationRoom: React.FC = () => {
     );
   }
 
-  // Gate de horário: a sala (vídeo) só abre 15 min antes do agendado.
-  // Só bloqueia consultas ainda 'scheduled' que estão longe do horário —
-  // in_progress/completed/cancelled passam direto (retomar/rever).
+  // Gate de horário/status: a sala (vídeo) só abre 15 min antes do agendado
+  // e fecha 30 min depois se a consulta não iniciou. in_progress/completed
+  // passam direto (retomar/rever); cancelled e no_show nunca abrem a sala.
   const scheduledMs = consultation.scheduled_at ? new Date(consultation.scheduled_at).getTime() : null;
   const windowStartMs = scheduledMs != null ? scheduledMs - JOIN_WINDOW_BEFORE_MS : null;
   const tooEarly =
     consultation.status === 'scheduled' &&
     windowStartMs != null &&
     nowMs < windowStartMs;
+  const expired =
+    consultation.status === 'scheduled' &&
+    scheduledMs != null &&
+    nowMs > scheduledMs + EXPIRES_AFTER_MS;
+  const blockedStatus =
+    consultation.status === 'cancelled' ? 'Consulta cancelada' :
+    consultation.status === 'no_show'   ? 'Paciente não compareceu' :
+    expired                             ? 'Consulta expirada' : null;
+
+  if (blockedStatus) {
+    const startsAt = scheduledMs != null
+      ? new Date(scheduledMs).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+      : null;
+    return (
+      <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-4">
+        <div className="max-w-sm w-full text-center">
+          <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-5">
+            <Clock className="w-8 h-8 text-white/70" />
+          </div>
+          <h1 className="text-white text-xl font-bold mb-2">{blockedStatus}</h1>
+          <p className="text-white/60 text-sm mb-6">
+            {expired || consultation.status === 'no_show'
+              ? <>O paciente <span className="text-white/90 font-semibold">{consultation.patient_name}</span> não entrou na consulta{startsAt ? ` de ${startsAt}` : ''}. A sala foi encerrada e o paciente foi orientado a remarcar.</>
+              : <>Esta consulta com <span className="text-white/90 font-semibold">{consultation.patient_name}</span>{startsAt ? ` (${startsAt})` : ''} foi cancelada. A sala de vídeo não está disponível.</>}
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => navigate(`/medico/paciente/${consultation.patient_id}`)}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium transition"
+            >
+              <User className="w-4 h-4" />
+              Ver perfil do paciente
+            </button>
+            <button
+              onClick={() => navigate('/medico/agenda')}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/15 text-white rounded-lg font-medium transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Voltar à agenda
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (tooEarly) {
     const opensAt = new Date(scheduledMs! - JOIN_WINDOW_BEFORE_MS).toLocaleString('pt-BR', {

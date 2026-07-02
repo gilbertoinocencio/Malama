@@ -11,6 +11,7 @@ import { DailyCheckinModal } from './DailyCheckinModal';
 import { DailyMealsList } from './DailyMealsList';
 import { getLocalDateString } from '../utils/dateUtils';
 import { getTodayConsultation, getDoctorMessage, getLatestGoalAdjustment } from '../lib/scheduling';
+import { isMissed } from '../lib/consultationWindow';
 import { creditService } from '../services/billingService';
 import { GLP1Section } from './GLP1Section';
 import { WeekDaysCircle } from './WeekDaysCircle';
@@ -779,8 +780,34 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
               </div>
             )}
 
-            {/* Telemedicine: Today's Consultation Banner */}
-            {todayConsultation && (
+            {/* Telemedicine: Today's Consultation Banner (perdida vs. válida) */}
+            {todayConsultation && (todayConsultation.status === 'no_show' || isMissed(todayConsultation) ? (
+              <div className="px-6">
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 dark:from-orange-600 dark:to-amber-600 rounded-2xl p-4 flex items-center justify-between shadow-lg cursor-pointer"
+                  onClick={() => onNavClick(AppView.MINHAS_CONSULTAS)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white text-xl">event_busy</span>
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-bold">Você não entrou na consulta de hoje</p>
+                      <p className="text-white/80 text-xs">
+                        {(todayConsultation.doctors as any)?.name || 'Médico'} · era às{' '}
+                        {new Date(todayConsultation.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 bg-white/20 px-3 py-1.5 rounded-full">
+                    <span className="text-white text-xs font-bold">Remarcar</span>
+                    <span className="material-symbols-outlined text-white text-sm">arrow_forward</span>
+                  </div>
+                </motion.div>
+              </div>
+            ) : (
               <div className="px-6">
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
@@ -805,7 +832,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                   </div>
                 </motion.div>
               </div>
-            )}
+            ))}
 
             {/* Telemedicine: Doctor Message */}
             {doctorMsg && (
