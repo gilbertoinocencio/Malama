@@ -167,11 +167,27 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
     completed: '✓ Concluída', cancelled: '✗ Cancelada', no_show: '⚠️ Não compareceu',
   };
 
-  // Consulta 'scheduled' cujo horário já passou (30 min de tolerância) é
-  // tratada como perdida — nunca mais aparece como "Confirmada / Disponível
-  // 10 min antes" depois do horário.
-  const missed = consultations.filter((c) => isMissed(c));
-  const upcoming = consultations.filter((c) => ['scheduled', 'in_progress'].includes(c.status) && !isMissed(c));
+  // Modelo B2B: o paciente tem no máximo UMA consulta ativa por vez (1 crédito/
+  // mês). Quando uma nova consulta é criada — ou uma é remarcada — as anteriores
+  // ainda 'scheduled' ficavam empilhadas na tela. Agora mostramos só a PRÓXIMA
+  // consulta válida (a mais cedo que ainda não passou); as demais somem.
+
+  // Consulta 'scheduled' cujo horário já passou (30 min de tolerância) é tratada
+  // como perdida — não aparece mais como "Confirmada / Disponível 10 min antes".
+  const upcomingAll = consultations
+    .filter((c) => ['scheduled', 'in_progress'].includes(c.status) && !isMissed(c))
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+  // Só a próxima consulta relevante fica em destaque (evita empilhar duplicatas
+  // de teste ou consultas obsoletas que não foram canceladas).
+  const upcoming = upcomingAll.slice(0, 1);
+
+  // Perdida: só avisa se NÃO houver uma próxima já marcada — se o paciente já
+  // remarcou (ou tem outra agendada), a perdida anterior é irrelevante e some.
+  const missedAll = consultations
+    .filter((c) => isMissed(c))
+    .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
+  const missed = upcoming.length === 0 ? missedAll.slice(0, 1) : [];
+
   const past = consultations.filter((c) => ['completed', 'cancelled', 'no_show'].includes(c.status));
 
   const daysUntilExpiry = (expiresAt: string) => {
