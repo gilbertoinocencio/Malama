@@ -149,7 +149,10 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
       </div>
 
       {/* Remote video */}
-      <div className="flex-1 relative">
+      {/* min-h-0: sem isso o <video> impõe min-height ao flex item, cresce e
+          empurra a barra de controles pra fora da tela (pai tem overflow-hidden)
+          — no celular o paciente ficaria sem os botões de mutar/câmera/desligar. */}
+      <div className="flex-1 min-h-0 relative">
         {remoteStream ? (
           <VideoStream stream={remoteStream} className="w-full h-full object-cover" />
         ) : (
@@ -216,7 +219,7 @@ export const PatientConsultaPage: React.FC<PatientConsultaPageProps> = ({
       </div>
 
       {/* Controls */}
-      <div className="bg-black/80 px-6 py-5 flex items-center justify-center gap-6 safe-area-pb">
+      <div className="shrink-0 bg-black/80 px-6 py-5 flex items-center justify-center gap-6 safe-area-pb">
         <MobileControlBtn
           icon={isMuted ? 'mic_off' : 'mic'}
           label={isMuted ? 'Mudo' : 'Microfone'}

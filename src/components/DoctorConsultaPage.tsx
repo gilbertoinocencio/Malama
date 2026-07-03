@@ -471,7 +471,10 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
       {/* ── VIDEO AREA ── */}
       {!videoMinimized ? (
         <div className="flex flex-col" style={{ width: '55%', minWidth: 320 }}>
-          <div className="flex-1 relative bg-black">
+          {/* min-h-0: sem isso o <video> (720p) impõe min-height ao flex item,
+              cresce e empurra a barra de controles pra fora da tela (o pai tem
+              overflow-hidden) — os botões mudo/câmera/encerrar somem ao conectar. */}
+          <div className="flex-1 min-h-0 relative bg-black">
             {remoteStream ? (
               <VideoStream stream={remoteStream} className="w-full h-full object-cover" />
             ) : (
@@ -502,7 +505,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
               <div className="absolute top-14 left-4 right-4 bg-red-500/90 text-white text-sm px-3 py-2 rounded-lg">{error}</div>
             )}
           </div>
-          <div className="bg-surface-dark px-6 py-3 flex items-center justify-center gap-4">
+          <div className="bg-surface-dark px-6 py-3 flex items-center justify-center gap-4 shrink-0">
             {connectionState === 'idle' ? (
               <button onClick={startCall}
                 className="px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-full font-bold text-sm flex items-center gap-2">
