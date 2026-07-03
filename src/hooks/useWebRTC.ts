@@ -174,9 +174,21 @@ export function useWebRTC({
       if (signal.from === role) return;
       if (signal.type !== 'ice-candidate') console.log(`[WebRTC] ← recebido ${signal.type} de ${signal.from}`);
       const pc = pcRef.current;
-      if (!pc) return;
 
       try {
+        if (signal.type === 'ice-candidate' && signal.candidate) {
+          // Pode chegar antes do pc existir (o canal agora assina ANTES da
+          // câmera) ou antes da remoteDescription — buffer nos dois casos.
+          if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          } else {
+            pendingCandidatesRef.current.push(signal.candidate);
+          }
+          return;
+        }
+
+        if (!pc) return;
+
         if (signal.type === 'hello') {
           // Presença do peer detectada — o médico oferta imediatamente (caminho
           // rápido; a retry periódica é a rede de segurança).
@@ -215,15 +227,6 @@ export function useWebRTC({
           return;
         }
 
-        if (signal.type === 'ice-candidate' && signal.candidate) {
-          if (pc.remoteDescription && pc.remoteDescription.type) {
-            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-          } else {
-            // Chegou antes da descrição remota — buffer até estar pronto.
-            pendingCandidatesRef.current.push(signal.candidate);
-          }
-          return;
-        }
       } catch (err) {
         console.error('[WebRTC] Signal handling error:', err);
       }
@@ -232,36 +235,102 @@ export function useWebRTC({
   );
 
   const startCall = useCallback(async () => {
+    setError(null);
+    setConnectionState('connecting');
+
+    // Tear down de qualquer sessão anterior — evita DUAS inscrições no mesmo
+    // canal `webrtc:<room>` (o Supabase fecha a duplicada → o CLOSED que
+    // aparecia nos logs e engolia sinais). Idempotente e seguro.
+    stopRetries();
+    try { channelRef.current?.unsubscribe(); } catch { /* ignore */ }
+    try { pcRef.current?.close(); } catch { /* ignore */ }
+    channelRef.current = null;
+    pcRef.current = null;
+
+    // Reset das guardas de handshake para esta nova sessão de chamada
+    pendingCandidatesRef.current = [];
+    makingOfferRef.current = false;
+    lastRemoteOfferSdpRef.current = null;
+    lastAnswerSdpRef.current = null;
+
+    // Credenciais TURN em paralelo com o resto — nunca bloqueia a chamada.
+    const iceServersPromise = fetchIceServers();
+
+    // 1. SINALIZAÇÃO PRIMEIRO — independente da câmera. No app nativo
+    // (WKWebView/Capacitor) o getUserMedia pode falhar ou travar na permissão;
+    // antes isso abortava o startCall ANTES de assinar o canal → o outro lado
+    // via silêncio absoluto, indistinguível de problema de rede. Agora o peer
+    // SEMPRE anuncia presença (hello); falha de mídia vira erro visível na
+    // tela + chamada recvonly, e o console do médico mostra o que está vivo.
+    const channel = supabase.channel(`webrtc:${roomId}`, {
+      config: { broadcast: { self: false } },
+    });
+    channelRef.current = channel;
+
+    channel
+      .on('broadcast', { event: 'signal' }, ({ payload }) => {
+        handleSignal(payload);
+      })
+      .subscribe(async (status) => {
+        console.log(`[WebRTC] canal realtime: ${status} (sala ${roomId})`);
+        if (status === 'SUBSCRIBED') {
+          // Anuncia presença e liga a rede de segurança. O broadcast do
+          // Supabase é efêmero (sem replay): quem entra primeiro perde o
+          // hello/oferta do outro. Por isso repetimos:
+          //  - hello a cada 2s (ambos os lados) até conectar → presença
+          //  - oferta a cada 2s (médico) até conectar → renegocia mesmo se a
+          //    1ª oferta se perdeu ou se o paciente é bundle antigo (que só
+          //    responde ofertas, não envia hello).
+          await sendSignal('hello', {});
+          if (role === 'doctor') await createAndSendOffer(); // no-op até o pc existir
+
+          stopRetries();
+          helloRetryRef.current = setInterval(() => {
+            if (pcRef.current?.connectionState === 'connected') { stopRetries(); return; }
+            sendSignal('hello', {});
+          }, 2000);
+          if (role === 'doctor') {
+            offerRetryRef.current = setInterval(() => {
+              const rpc = pcRef.current;
+              if (!rpc) return; // câmera/pc ainda inicializando — continua tentando
+              if (rpc.connectionState === 'connected') { stopRetries(); return; }
+              // Já temos oferta local pendente → apenas REENVIA o mesmo SDP
+              // (o paciente pode não tê-lo recebido). Não cria oferta nova
+              // para não reiniciar o ICE de uma conexão em andamento.
+              if (rpc.signalingState === 'have-local-offer' && rpc.localDescription) {
+                sendSignal('offer', { sdp: rpc.localDescription.sdp });
+              } else if (rpc.signalingState === 'stable') {
+                createAndSendOffer();
+              }
+            }, 2000);
+          }
+        }
+      });
+
+    // 2. Câmera/microfone — falha NÃO derruba a sinalização.
+    let stream: MediaStream | null = null;
     try {
-      setError(null);
-      setConnectionState('connecting');
-
-      // Tear down de qualquer sessão anterior — evita DUAS inscrições no mesmo
-      // canal `webrtc:<room>` (o Supabase fecha a duplicada → o CLOSED que
-      // aparecia nos logs e engolia sinais). Idempotente e seguro.
-      stopRetries();
-      try { channelRef.current?.unsubscribe(); } catch { /* ignore */ }
-      try { pcRef.current?.close(); } catch { /* ignore */ }
-      channelRef.current = null;
-      pcRef.current = null;
-
-      // Reset das guardas de handshake para esta nova sessão de chamada
-      pendingCandidatesRef.current = [];
-      makingOfferRef.current = false;
-      lastRemoteOfferSdpRef.current = null;
-      lastAnswerSdpRef.current = null;
-
-      // 1. Get local media (busca de credenciais TURN corre em paralelo
-      // com o prompt de permissão — não adiciona latência)
-      const iceServersPromise = fetchIceServers();
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: { echoCancellation: true, noiseSuppression: true },
       });
       localStreamRef.current = stream;
       setLocalStream(stream);
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.name === 'NotAllowedError'
+            ? 'Permissão de câmera/microfone negada. Verifique as permissões do aplicativo nos Ajustes.'
+            : err.name === 'NotFoundError'
+            ? 'Câmera ou microfone não encontrado.'
+            : err.message
+          : 'Erro ao acessar câmera/microfone';
+      setError(msg);
+      console.error('[WebRTC] getUserMedia falhou — seguindo sem mídia local (recvonly):', err);
+    }
 
-      // 2. Create RTCPeerConnection
+    try {
+      // 3. Create RTCPeerConnection
       const iceServers = await iceServersPromise;
       // Em redes móveis (4G/5G) o NAT da operadora rotaciona o mapeamento de
       // IP/porta e DERRUBA os pares host/srflx → a conexão cai e religa em loop
@@ -277,8 +346,15 @@ export function useWebRTC({
       console.log(`[WebRTC] iceTransportPolicy: ${hasTurn ? 'relay (TURN estável)' : 'all (sem TURN)'}`);
       pcRef.current = pc;
 
-      // 3. Add local tracks
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      // 3b. Add local tracks (ou recvonly se a câmera falhou — ainda dá para
+      // VER e OUVIR o outro lado enquanto o problema de permissão é resolvido)
+      if (stream) {
+        const s = stream;
+        s.getTracks().forEach((track) => pc.addTrack(track, s));
+      } else {
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        pc.addTransceiver('audio', { direction: 'recvonly' });
+      }
 
       // 4. Receive remote stream
       remoteStreamRef.current = new MediaStream();
@@ -327,59 +403,13 @@ export function useWebRTC({
         }
       };
 
-      // 7. Subscribe to Supabase Realtime channel
-      const channel = supabase.channel(`webrtc:${roomId}`, {
-        config: { broadcast: { self: false } },
-      });
-      channelRef.current = channel;
-
-      channel
-        .on('broadcast', { event: 'signal' }, ({ payload }) => {
-          handleSignal(payload);
-        })
-        .subscribe(async (status) => {
-          console.log(`[WebRTC] canal realtime: ${status} (sala ${roomId})`);
-          if (status === 'SUBSCRIBED') {
-            // 8. Anuncia presença e liga a rede de segurança. O broadcast do
-            // Supabase é efêmero (sem replay): quem entra primeiro perde o
-            // hello/oferta do outro. Por isso repetimos:
-            //  - hello a cada 2s (ambos os lados) até conectar → presença
-            //  - oferta a cada 2s (médico) até conectar → renegocia mesmo se a
-            //    1ª oferta se perdeu ou se o paciente é bundle antigo (que só
-            //    responde ofertas, não envia hello).
-            await sendSignal('hello', {});
-            if (role === 'doctor') await createAndSendOffer();
-
-            stopRetries();
-            helloRetryRef.current = setInterval(() => {
-              if (pcRef.current?.connectionState === 'connected') { stopRetries(); return; }
-              sendSignal('hello', {});
-            }, 2000);
-            if (role === 'doctor') {
-              offerRetryRef.current = setInterval(() => {
-                const rpc = pcRef.current;
-                if (!rpc || rpc.connectionState === 'connected') { stopRetries(); return; }
-                // Já temos oferta local pendente → apenas REENVIA o mesmo SDP
-                // (o paciente pode não tê-lo recebido). Não cria oferta nova
-                // para não reiniciar o ICE de uma conexão em andamento.
-                if (rpc.signalingState === 'have-local-offer' && rpc.localDescription) {
-                  sendSignal('offer', { sdp: rpc.localDescription.sdp });
-                } else if (rpc.signalingState === 'stable') {
-                  createAndSendOffer();
-                }
-              }, 2000);
-            }
-          }
-        });
+      // 5. O canal pode já estar inscrito (a inscrição corre em paralelo com a
+      // câmera): reanuncia presença e, no médico, oferta imediatamente agora
+      // que o pc existe — sem esperar o próximo tick de 2s.
+      sendSignal('hello', {});
+      if (role === 'doctor') await createAndSendOffer();
     } catch (err) {
-      const msg =
-        err instanceof Error
-          ? err.name === 'NotAllowedError'
-            ? 'Permissão de câmera/microfone negada. Verifique as configurações do seu navegador.'
-            : err.name === 'NotFoundError'
-            ? 'Câmera ou microfone não encontrado.'
-            : err.message
-          : 'Erro ao iniciar chamada';
+      const msg = err instanceof Error ? err.message : 'Erro ao iniciar chamada';
       setError(msg);
       setConnectionState('idle');
       console.error('[WebRTC] startCall error:', err);
