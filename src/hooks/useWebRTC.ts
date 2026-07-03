@@ -100,6 +100,11 @@ export function useWebRTC({
   // answerer, então reofertas não causam glare.
   const offerRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const helloRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // O paciente guarda a última oferta aplicada e a resposta gerada. Como o
+  // médico reenvia a MESMA oferta até conectar, ao ver uma oferta repetida o
+  // paciente só reenvia a resposta (idempotente) — sem renegociar o PC.
+  const lastRemoteOfferSdpRef = useRef<string | null>(null);
+  const lastAnswerSdpRef = useRef<string | null>(null);
 
   const sendSignal = useCallback(
     async (type: string, payload: object) => {
@@ -134,8 +139,13 @@ export function useWebRTC({
     if (!pc || role !== 'doctor') return;
     if (makingOfferRef.current) return;
     if (pc.connectionState === 'connected') return;
-    // Só reofertar quando estável ou já com oferta local pendente (renovar).
-    if (pc.signalingState !== 'stable' && pc.signalingState !== 'have-local-offer') return;
+    // Já existe oferta pendente → reenvia a MESMA (mantém o SDP estável e
+    // aproveita a deduplicação do paciente), em vez de criar uma nova.
+    if (pc.signalingState === 'have-local-offer' && pc.localDescription) {
+      await sendSignal('offer', { sdp: pc.localDescription.sdp });
+      return;
+    }
+    if (pc.signalingState !== 'stable') return;
     try {
       makingOfferRef.current = true;
       const offer = await pc.createOffer();
@@ -175,17 +185,23 @@ export function useWebRTC({
         }
 
         if (signal.type === 'offer' && signal.sdp) {
-          // Paciente (answerer). Aceita a oferta em qualquer estado estável;
-          // reofertas do médico (retry) apenas renegociam — respondemos de novo.
+          // Oferta repetida (retry do médico) → só reenvia a última resposta,
+          // que pode ter se perdido. Não mexe no PC (evita churn de ICE).
+          if (signal.sdp === lastRemoteOfferSdpRef.current) {
+            if (lastAnswerSdpRef.current) await sendSignal('answer', { sdp: lastAnswerSdpRef.current });
+            return;
+          }
+          // Paciente (answerer). Glare improvável (paciente nunca oferta), mas
+          // por segurança volta ao estado estável antes de aplicar a oferta.
           if (pc.signalingState !== 'stable') {
-            // Glare improvável (paciente nunca oferta), mas por segurança
-            // volta ao estado estável antes de aplicar a oferta remota.
             try { await pc.setLocalDescription({ type: 'rollback' } as RTCSessionDescriptionInit); } catch { /* ignore */ }
           }
           await pc.setRemoteDescription({ type: 'offer', sdp: signal.sdp });
+          lastRemoteOfferSdpRef.current = signal.sdp;
           await flushPendingCandidates(pc);
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
+          lastAnswerSdpRef.current = pc.localDescription?.sdp ?? null;
           await sendSignal('answer', { sdp: pc.localDescription?.sdp });
           return;
         }
@@ -232,6 +248,8 @@ export function useWebRTC({
       // Reset das guardas de handshake para esta nova sessão de chamada
       pendingCandidatesRef.current = [];
       makingOfferRef.current = false;
+      lastRemoteOfferSdpRef.current = null;
+      lastAnswerSdpRef.current = null;
 
       // 1. Get local media (busca de credenciais TURN corre em paralelo
       // com o prompt de permissão — não adiciona latência)
