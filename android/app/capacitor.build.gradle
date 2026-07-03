@@ -13,8 +13,11 @@ dependencies {
     implementation project(':capacitor-community-text-to-speech')
     implementation project(':capacitor-app')
     implementation project(':capacitor-browser')
+    implementation project(':capacitor-geolocation')
     implementation project(':capacitor-haptics')
+    implementation project(':capacitor-local-notifications')
     implementation project(':kiwi-health-capacitor-health-connect')
+    implementation project(':capacitor-health')
 
 }
 
