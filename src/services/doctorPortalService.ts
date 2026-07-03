@@ -541,7 +541,22 @@ export const consultationService = {
       .order('scheduled_at', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    if (!data || data.length === 0) return [];
+
+    const patientIds = [...new Set(data.map((c: any) => c.patient_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url')
+      .in('id', patientIds);
+
+    const profileMap: Record<string, { display_name: string; avatar_url: string | null }> = {};
+    for (const p of (profiles || [])) profileMap[p.id] = p;
+
+    return data.map((c: any) => ({
+      ...c,
+      patient_name: profileMap[c.patient_id]?.display_name || null,
+      patient_photo: profileMap[c.patient_id]?.avatar_url || null,
+    }));
   }
 };
 
