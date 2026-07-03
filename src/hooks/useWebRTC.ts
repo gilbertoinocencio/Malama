@@ -24,11 +24,13 @@ interface UseWebRTCReturn {
   error: string | null;
 }
 
-const getIceServers = (): RTCIceServer[] => {
-  const servers: RTCIceServer[] = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-  ];
+const DEFAULT_STUN: RTCIceServer[] = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+];
+
+const getStaticIceServers = (): RTCIceServer[] => {
+  const servers: RTCIceServer[] = [...DEFAULT_STUN];
 
   const turnUrl = import.meta.env.VITE_TURN_SERVER_URL;
   const turnUser = import.meta.env.VITE_TURN_USERNAME;
@@ -39,6 +41,28 @@ const getIceServers = (): RTCIceServer[] => {
   }
 
   return servers;
+};
+
+// As credenciais TURN são efêmeras e vêm da Edge Function `turn-credentials`
+// (a chave do provedor fica no servidor). Sem TURN, redes com CGNAT — celular
+// em 4G/5G no Brasil — não conseguem conexão direta e a chamada não conecta.
+// Qualquer falha aqui NÃO pode impedir a chamada: cai nos servidores estáticos.
+const fetchIceServers = async (): Promise<RTCIceServer[]> => {
+  try {
+    const result = await Promise.race([
+      supabase.functions.invoke('turn-credentials', { body: {} }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('turn-credentials timeout')), 5000)
+      ),
+    ]);
+    const servers = (result.data?.iceServers ?? []) as RTCIceServer[];
+    if (Array.isArray(servers) && servers.length > 0) {
+      return [...DEFAULT_STUN, ...servers];
+    }
+  } catch (err) {
+    console.warn('[WebRTC] TURN indisponível, seguindo só com STUN:', err);
+  }
+  return getStaticIceServers();
 };
 
 export function useWebRTC({
@@ -180,7 +204,9 @@ export function useWebRTC({
       helloRepliedRef.current = false;
       makingOfferRef.current = false;
 
-      // 1. Get local media
+      // 1. Get local media (busca de credenciais TURN corre em paralelo
+      // com o prompt de permissão — não adiciona latência)
+      const iceServersPromise = fetchIceServers();
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: { echoCancellation: true, noiseSuppression: true },
@@ -189,7 +215,7 @@ export function useWebRTC({
       setLocalStream(stream);
 
       // 2. Create RTCPeerConnection
-      const pc = new RTCPeerConnection({ iceServers: getIceServers() });
+      const pc = new RTCPeerConnection({ iceServers: await iceServersPromise });
       pcRef.current = pc;
 
       // 3. Add local tracks
