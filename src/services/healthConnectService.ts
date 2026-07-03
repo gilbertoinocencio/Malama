@@ -34,7 +34,6 @@ const READ_TYPES: RecordType[] = [
   'TotalCaloriesBurned',
   'Distance',
   'HeartRateSeries',
-  'RestingHeartRate',
   'SleepSession',
   'Weight',
   'BodyFat',
@@ -49,7 +48,6 @@ const PERMISSION_BY_TYPE: Record<string, string> = {
   TotalCaloriesBurned: 'android.permission.health.READ_TOTAL_CALORIES_BURNED',
   Distance: 'android.permission.health.READ_DISTANCE',
   HeartRateSeries: 'android.permission.health.READ_HEART_RATE',
-  RestingHeartRate: 'android.permission.health.READ_RESTING_HEART_RATE',
   SleepSession: 'android.permission.health.READ_SLEEP',
   Weight: 'android.permission.health.READ_WEIGHT',
   BodyFat: 'android.permission.health.READ_BODY_FAT',
@@ -124,7 +122,6 @@ type DailyRow = {
   active_calories?: number;
   total_calories?: number;
   distance_meters?: number;
-  resting_heart_rate?: number;
   avg_heart_rate?: number;
   sleep_minutes?: number;
   body_fat_pct?: number;
@@ -261,11 +258,11 @@ export const HealthConnectService = {
 
     // Leituras em paralelo.
     const [
-      stepsR, sessionsR, activeCalR, totalCalR, distanceR, hrSeriesR, restingHrR, sleepR, weightR, bodyFatR,
+      stepsR, sessionsR, activeCalR, totalCalR, distanceR, hrSeriesR, sleepR, weightR, bodyFatR,
     ] = await Promise.all([
       read('Steps'), read('ExerciseSession'), read('ActiveCaloriesBurned'),
       read('TotalCaloriesBurned'), read('Distance'), read('HeartRateSeries'),
-      read('RestingHeartRate'), read('SleepSession'), read('Weight'), read('BodyFat'),
+      read('SleepSession'), read('Weight'), read('BodyFat'),
     ]);
 
     // ── 1. Sessões de exercício → activities ────────────────────────────────
@@ -339,17 +336,6 @@ export const HealthConnectService = {
       }
     }
     for (const [date, { sum, n }] of hrByDate) if (n > 0) row(date).avg_heart_rate = Math.round(sum / n);
-
-    // FC de repouso: média do dia.
-    const restByDate = new Map<string, { sum: number; n: number }>();
-    for (const r of restingHrR) {
-      if (r.type !== 'RestingHeartRate') continue;
-      const date = localDateStr(r.time);
-      const acc = restByDate.get(date) ?? { sum: 0, n: 0 };
-      acc.sum += r.beatsPerMinute; acc.n += 1;
-      restByDate.set(date, acc);
-    }
-    for (const [date, { sum, n }] of restByDate) if (n > 0) row(date).resting_heart_rate = Math.round(sum / n);
 
     // % gordura: valor mais recente do dia.
     const bfLatest = new Map<string, { t: number; v: number }>();

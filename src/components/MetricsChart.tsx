@@ -245,11 +245,6 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
     };
   }, [weightLogs, snapshots, daily]);
 
-  const latestResting = useMemo(() => {
-    const withResting = daily.filter(d => d.resting_heart_rate != null);
-    return withResting.length ? withResting[withResting.length - 1].resting_heart_rate! : null;
-  }, [daily]);
-
   const latestSnapshot = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
   const prevSnapshot = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
 
@@ -310,7 +305,6 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
               {latest && (
                 <p className="text-xs text-Malama-muted dark:text-slate-500 mt-2">
                   {toDate(latest.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
-                  {key === 'heart_rate' && latestResting != null && ` · repouso ${latestResting} bpm`}
                 </p>
               )}
             </div>

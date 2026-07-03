@@ -134,8 +134,6 @@ export const PatientActivitiesPanel: React.FC<Props> = ({ patientId }) => {
   const avgSteps      = stepsVals.length ? Math.round(stepsVals.reduce((a, b) => a + b, 0) / stepsVals.length) : null;
   const hrVals        = daily.filter(d => d.avg_heart_rate != null).map(d => d.avg_heart_rate!);
   const avgHR         = hrVals.length ? Math.round(hrVals.reduce((a, b) => a + b, 0) / hrVals.length) : null;
-  const restingRows   = daily.filter(d => d.resting_heart_rate != null);
-  const latestResting = restingRows.length ? restingRows[restingRows.length - 1].resting_heart_rate : null;
   const sleepVals     = daily.filter(d => d.sleep_minutes != null).map(d => d.sleep_minutes!);
   const avgSleepH     = sleepVals.length ? sleepVals.reduce((a, b) => a + b, 0) / sleepVals.length / 60 : null;
   const bfRows        = daily.filter(d => d.body_fat_pct != null);
@@ -221,7 +219,7 @@ export const PatientActivitiesPanel: React.FC<Props> = ({ patientId }) => {
                   icon={<HeartPulse className="w-5 h-5 text-red-500" />}
                   label="Batimentos"
                   value={avgHR != null ? `${avgHR} bpm` : '—'}
-                  sub={latestResting != null ? `repouso ${latestResting} bpm` : 'média no período'}
+                  sub="média no período"
                 />
                 <StatCard
                   icon={<Moon className="w-5 h-5 text-indigo-500" />}
