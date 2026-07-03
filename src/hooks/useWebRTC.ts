@@ -92,12 +92,14 @@ export function useWebRTC({
   // ICE candidates que chegam antes da descrição remota ser aplicada precisam
   // ser bufferizados — addIceCandidate falha se não houver remoteDescription.
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
-  // Handshake "hello": garante que a oferta seja (re)criada quando os DOIS
-  // lados estão no canal, independente de quem entrou primeiro. O broadcast
-  // do Supabase é efêmero, então uma oferta enviada antes do outro peer se
-  // inscrever é perdida — o hello resolve essa corrida.
-  const helloRepliedRef = useRef(false);
   const makingOfferRef = useRef(false);
+  // O médico reenvia a oferta em intervalo até a chamada conectar. Isso torna a
+  // conexão robusta a: (a) broadcast efêmero do Supabase perdido quando o peer
+  // ainda não estava inscrito, (b) ordem de entrada, (c) paciente com bundle
+  // antigo que não envia "hello" mas responde ofertas. O paciente é sempre o
+  // answerer, então reofertas não causam glare.
+  const offerRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const helloRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const sendSignal = useCallback(
     async (type: string, payload: object) => {
@@ -123,16 +125,20 @@ export function useWebRTC({
     }
   }, []);
 
-  // Só o médico (offerer) cria a oferta. Chamado sempre que o peer sinaliza
-  // presença — a guarda de signalingState evita glare / ofertas duplicadas.
+  // Só o médico (offerer) cria a oferta. Pode ser chamada repetidamente (retry):
+  // enquanto não conectou, reofertar é seguro — se já respondeu, o estado não é
+  // 'have-local-offer' problemático e o setLocalDescription apenas renova a
+  // oferta. makingOfferRef evita criação concorrente.
   const createAndSendOffer = useCallback(async () => {
     const pc = pcRef.current;
     if (!pc || role !== 'doctor') return;
-    if (makingOfferRef.current || pc.signalingState !== 'stable') return;
+    if (makingOfferRef.current) return;
+    if (pc.connectionState === 'connected') return;
+    // Só reofertar quando estável ou já com oferta local pendente (renovar).
+    if (pc.signalingState !== 'stable' && pc.signalingState !== 'have-local-offer') return;
     try {
       makingOfferRef.current = true;
       const offer = await pc.createOffer();
-      if (pc.signalingState !== 'stable') return;
       await pc.setLocalDescription(offer);
       await sendSignal('offer', { sdp: pc.localDescription?.sdp });
     } catch (err) {
@@ -141,6 +147,12 @@ export function useWebRTC({
       makingOfferRef.current = false;
     }
   }, [role, sendSignal]);
+
+  // Para os timers de retry (chamado ao conectar e ao encerrar).
+  const stopRetries = useCallback(() => {
+    if (offerRetryRef.current) { clearInterval(offerRetryRef.current); offerRetryRef.current = null; }
+    if (helloRetryRef.current) { clearInterval(helloRetryRef.current); helloRetryRef.current = null; }
+  }, []);
 
   const handleSignal = useCallback(
     async (signal: {
@@ -156,19 +168,20 @@ export function useWebRTC({
 
       try {
         if (signal.type === 'hello') {
-          // Responde ao hello uma única vez, para o peer que entrou antes
-          // descobrir que já estamos no canal (o hello dele pode ter se perdido).
-          if (!helloRepliedRef.current) {
-            helloRepliedRef.current = true;
-            await sendSignal('hello', {});
-          }
-          // Médico inicia (ou reinicia, em reconexão) a negociação agora que
-          // sabe que o paciente está presente.
+          // Presença do peer detectada — o médico oferta imediatamente (caminho
+          // rápido; a retry periódica é a rede de segurança).
           if (role === 'doctor') await createAndSendOffer();
           return;
         }
 
         if (signal.type === 'offer' && signal.sdp) {
+          // Paciente (answerer). Aceita a oferta em qualquer estado estável;
+          // reofertas do médico (retry) apenas renegociam — respondemos de novo.
+          if (pc.signalingState !== 'stable') {
+            // Glare improvável (paciente nunca oferta), mas por segurança
+            // volta ao estado estável antes de aplicar a oferta remota.
+            try { await pc.setLocalDescription({ type: 'rollback' } as RTCSessionDescriptionInit); } catch { /* ignore */ }
+          }
           await pc.setRemoteDescription({ type: 'offer', sdp: signal.sdp });
           await flushPendingCandidates(pc);
           const answer = await pc.createAnswer();
@@ -207,9 +220,17 @@ export function useWebRTC({
       setError(null);
       setConnectionState('connecting');
 
+      // Tear down de qualquer sessão anterior — evita DUAS inscrições no mesmo
+      // canal `webrtc:<room>` (o Supabase fecha a duplicada → o CLOSED que
+      // aparecia nos logs e engolia sinais). Idempotente e seguro.
+      stopRetries();
+      try { channelRef.current?.unsubscribe(); } catch { /* ignore */ }
+      try { pcRef.current?.close(); } catch { /* ignore */ }
+      channelRef.current = null;
+      pcRef.current = null;
+
       // Reset das guardas de handshake para esta nova sessão de chamada
       pendingCandidatesRef.current = [];
-      helloRepliedRef.current = false;
       makingOfferRef.current = false;
 
       // 1. Get local media (busca de credenciais TURN corre em paralelo
@@ -245,6 +266,7 @@ export function useWebRTC({
         console.log(`[WebRTC] connectionState: ${pc.connectionState}`);
         setConnectionState(pc.connectionState);
         if (pc.connectionState === 'connected') {
+          stopRetries(); // conectou — para de reofertar/repingar
           onConnected?.();
           // Loga o caminho da mídia (host/srflx = direto, relay = via TURN)
           pc.getStats().then((stats) => {
@@ -286,12 +308,37 @@ export function useWebRTC({
           handleSignal(payload);
         })
         .subscribe(async (status) => {
-          console.log(`[WebRTC] canal realtime: ${status}`);
+          console.log(`[WebRTC] canal realtime: ${status} (sala ${roomId})`);
           if (status === 'SUBSCRIBED') {
-            // 8. Anuncia presença. Quem já estiver no canal responde, e o
-            // médico só então cria a oferta — assim o handshake não depende
-            // de quem entrou primeiro (o broadcast do Supabase é efêmero).
+            // 8. Anuncia presença e liga a rede de segurança. O broadcast do
+            // Supabase é efêmero (sem replay): quem entra primeiro perde o
+            // hello/oferta do outro. Por isso repetimos:
+            //  - hello a cada 2s (ambos os lados) até conectar → presença
+            //  - oferta a cada 2s (médico) até conectar → renegocia mesmo se a
+            //    1ª oferta se perdeu ou se o paciente é bundle antigo (que só
+            //    responde ofertas, não envia hello).
             await sendSignal('hello', {});
+            if (role === 'doctor') await createAndSendOffer();
+
+            stopRetries();
+            helloRetryRef.current = setInterval(() => {
+              if (pcRef.current?.connectionState === 'connected') { stopRetries(); return; }
+              sendSignal('hello', {});
+            }, 2000);
+            if (role === 'doctor') {
+              offerRetryRef.current = setInterval(() => {
+                const rpc = pcRef.current;
+                if (!rpc || rpc.connectionState === 'connected') { stopRetries(); return; }
+                // Já temos oferta local pendente → apenas REENVIA o mesmo SDP
+                // (o paciente pode não tê-lo recebido). Não cria oferta nova
+                // para não reiniciar o ICE de uma conexão em andamento.
+                if (rpc.signalingState === 'have-local-offer' && rpc.localDescription) {
+                  sendSignal('offer', { sdp: rpc.localDescription.sdp });
+                } else if (rpc.signalingState === 'stable') {
+                  createAndSendOffer();
+                }
+              }, 2000);
+            }
           }
         });
     } catch (err) {
@@ -307,9 +354,10 @@ export function useWebRTC({
       setConnectionState('idle');
       console.error('[WebRTC] startCall error:', err);
     }
-  }, [roomId, role, onConnected, onDisconnected, sendSignal, handleSignal]);
+  }, [roomId, role, onConnected, onDisconnected, sendSignal, handleSignal, createAndSendOffer, stopRetries]);
 
   const endCall = useCallback(() => {
+    stopRetries();
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     pcRef.current?.close();
     channelRef.current?.unsubscribe();
@@ -321,7 +369,7 @@ export function useWebRTC({
     setConnectionState('idle');
     setIsMuted(false);
     setIsCameraOff(false);
-  }, []);
+  }, [stopRetries]);
 
   const toggleMute = useCallback(() => {
     const stream = localStreamRef.current;
