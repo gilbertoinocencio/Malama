@@ -262,7 +262,19 @@ export function useWebRTC({
       setLocalStream(stream);
 
       // 2. Create RTCPeerConnection
-      const pc = new RTCPeerConnection({ iceServers: await iceServersPromise });
+      const iceServers = await iceServersPromise;
+      // Em redes móveis (4G/5G) o NAT da operadora rotaciona o mapeamento de
+      // IP/porta e DERRUBA os pares host/srflx → a conexão cai e religa em loop
+      // (flapping visto nos logs: connected → failed → reconnect). Quando há
+      // TURN disponível, forçar 'relay' dá um caminho único e estável via
+      // Cloudflare, imune ao rebinding. Sem TURN, mantém 'all' (melhor esforço)
+      // para nunca ficar sem conexão alguma.
+      const hasTurn = iceServers.some((s) => String(s.urls).includes('turn'));
+      const pc = new RTCPeerConnection({
+        iceServers,
+        iceTransportPolicy: hasTurn ? 'relay' : 'all',
+      });
+      console.log(`[WebRTC] iceTransportPolicy: ${hasTurn ? 'relay (TURN estável)' : 'all (sem TURN)'}`);
       pcRef.current = pc;
 
       // 3. Add local tracks
