@@ -1052,9 +1052,6 @@ export const patientService = {
       console.error("Erro ao buscar quarterly_plans do paciente (RLS?):", planError);
     }
 
-    console.log("🔥 [DEBUG DOCTOR] Profile fetched:", profile);
-    console.log("🔥 [DEBUG DOCTOR] Active Plan fetched:", activePlan);
-
     let cal = profile?.target_calories || 2000;
     let prot = profile?.target_protein || 100;
     let carb = profile?.target_carbs || 250;

@@ -55,13 +55,19 @@ const fetchIceServers = async (): Promise<RTCIceServer[]> => {
         setTimeout(() => reject(new Error('turn-credentials timeout')), 5000)
       ),
     ]);
+    if (result.error) {
+      console.warn('[WebRTC] turn-credentials retornou erro:', result.error);
+    }
     const servers = (result.data?.iceServers ?? []) as RTCIceServer[];
     if (Array.isArray(servers) && servers.length > 0) {
+      const hasTurn = servers.some((s) => String(s.urls).includes('turn'));
+      console.log(`[WebRTC] ICE via função: ${servers.length} entradas (TURN: ${hasTurn ? 'sim' : 'NÃO'})`);
       return [...DEFAULT_STUN, ...servers];
     }
   } catch (err) {
     console.warn('[WebRTC] TURN indisponível, seguindo só com STUN:', err);
   }
+  console.warn('[WebRTC] Sem TURN — fallback para STUN estático');
   return getStaticIceServers();
 };
 
@@ -95,6 +101,7 @@ export function useWebRTC({
 
   const sendSignal = useCallback(
     async (type: string, payload: object) => {
+      if (type !== 'ice-candidate') console.log(`[WebRTC] → enviando ${type}`);
       channelRef.current?.send({
         type: 'broadcast',
         event: 'signal',
@@ -143,6 +150,7 @@ export function useWebRTC({
       candidate?: RTCIceCandidateInit;
     }) => {
       if (signal.from === role) return;
+      if (signal.type !== 'ice-candidate') console.log(`[WebRTC] ← recebido ${signal.type} de ${signal.from}`);
       const pc = pcRef.current;
       if (!pc) return;
 
@@ -234,16 +242,35 @@ export function useWebRTC({
 
       // 5. Monitor connection state
       pc.onconnectionstatechange = () => {
+        console.log(`[WebRTC] connectionState: ${pc.connectionState}`);
         setConnectionState(pc.connectionState);
-        if (pc.connectionState === 'connected') onConnected?.();
+        if (pc.connectionState === 'connected') {
+          onConnected?.();
+          // Loga o caminho da mídia (host/srflx = direto, relay = via TURN)
+          pc.getStats().then((stats) => {
+            stats.forEach((s: Record<string, unknown> & { type: string; state?: string }) => {
+              if (s.type === 'candidate-pair' && s.nominated && s.state === 'succeeded') {
+                const local = stats.get(s.localCandidateId as string) as
+                  | { candidateType?: string }
+                  | undefined;
+                console.log(`[WebRTC] Conectado via: ${local?.candidateType ?? '?'}`);
+              }
+            });
+          });
+        }
         if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
           onDisconnected?.();
         }
+      };
+      pc.oniceconnectionstatechange = () => {
+        console.log(`[WebRTC] iceConnectionState: ${pc.iceConnectionState}`);
       };
 
       // 6. Send ICE candidates via Supabase Realtime
       pc.onicecandidate = ({ candidate }) => {
         if (candidate) {
+          // relay = TURN funcionando; srflx = STUN; host = rede local
+          if (candidate.type) console.log(`[WebRTC] candidato local: ${candidate.type}`);
           sendSignal('ice-candidate', { candidate: candidate.toJSON() });
         }
       };
@@ -259,6 +286,7 @@ export function useWebRTC({
           handleSignal(payload);
         })
         .subscribe(async (status) => {
+          console.log(`[WebRTC] canal realtime: ${status}`);
           if (status === 'SUBSCRIBED') {
             // 8. Anuncia presença. Quem já estiver no canal responde, e o
             // médico só então cria a oferta — assim o handshake não depende

@@ -59,7 +59,17 @@ self.addEventListener('fetch', event => {
         }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(async () => {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        // Navegação offline sem cache exato: devolve o shell do SPA.
+        if (event.request.mode === 'navigate') {
+          const shell = await caches.match('/index.html');
+          if (shell) return shell;
+        }
+        // respondWith(undefined) lança TypeError — devolve um erro de rede válido.
+        return Response.error();
+      })
   );
 });
 
