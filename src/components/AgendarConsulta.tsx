@@ -409,10 +409,16 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                 </p>
               </div>
 
-              {/* Price */}
-              <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 mb-5 flex items-center justify-between border border-Malama-border dark:border-white/10">
-                <span className="text-sm text-Malama-muted dark:text-slate-400">{t.agendarConsulta.total}</span>
-                <span className="text-xl font-bold text-Malama-main dark:text-white">R$ {selectedDoctor.price}</span>
+              {/* Modelo B2B: o RH da empresa paga — o paciente NUNCA vê preço.
+                  A consulta usa o crédito do mês liberado pela empresa. */}
+              <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 mb-5 flex items-center gap-3 border border-Malama-border dark:border-white/10">
+                <div className="w-10 h-10 rounded-full bg-[#8c473e]/10 dark:bg-[#8c473e]/20 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-Malama-petrol">verified</span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-Malama-main dark:text-white">Consulta coberta pelo seu plano</p>
+                  <p className="text-xs text-Malama-muted dark:text-slate-400">Benefício oferecido pela sua empresa — sem custo para você.</p>
+                </div>
               </div>
 
               {bookError && (
