@@ -59,6 +59,16 @@ export function useWebRTC({
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream>(new MediaStream());
 
+  // ICE candidates que chegam antes da descrição remota ser aplicada precisam
+  // ser bufferizados — addIceCandidate falha se não houver remoteDescription.
+  const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+  // Handshake "hello": garante que a oferta seja (re)criada quando os DOIS
+  // lados estão no canal, independente de quem entrou primeiro. O broadcast
+  // do Supabase é efêmero, então uma oferta enviada antes do outro peer se
+  // inscrever é perdida — o hello resolve essa corrida.
+  const helloRepliedRef = useRef(false);
+  const makingOfferRef = useRef(false);
+
   const sendSignal = useCallback(
     async (type: string, payload: object) => {
       channelRef.current?.send({
@@ -69,6 +79,37 @@ export function useWebRTC({
     },
     [role]
   );
+
+  const flushPendingCandidates = useCallback(async (pc: RTCPeerConnection) => {
+    const pending = pendingCandidatesRef.current;
+    pendingCandidatesRef.current = [];
+    for (const c of pending) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(c));
+      } catch (err) {
+        console.error('[WebRTC] addIceCandidate (buffered) error:', err);
+      }
+    }
+  }, []);
+
+  // Só o médico (offerer) cria a oferta. Chamado sempre que o peer sinaliza
+  // presença — a guarda de signalingState evita glare / ofertas duplicadas.
+  const createAndSendOffer = useCallback(async () => {
+    const pc = pcRef.current;
+    if (!pc || role !== 'doctor') return;
+    if (makingOfferRef.current || pc.signalingState !== 'stable') return;
+    try {
+      makingOfferRef.current = true;
+      const offer = await pc.createOffer();
+      if (pc.signalingState !== 'stable') return;
+      await pc.setLocalDescription(offer);
+      await sendSignal('offer', { sdp: pc.localDescription?.sdp });
+    } catch (err) {
+      console.error('[WebRTC] createOffer error:', err);
+    } finally {
+      makingOfferRef.current = false;
+    }
+  }, [role, sendSignal]);
 
   const handleSignal = useCallback(
     async (signal: {
@@ -82,31 +123,62 @@ export function useWebRTC({
       if (!pc) return;
 
       try {
+        if (signal.type === 'hello') {
+          // Responde ao hello uma única vez, para o peer que entrou antes
+          // descobrir que já estamos no canal (o hello dele pode ter se perdido).
+          if (!helloRepliedRef.current) {
+            helloRepliedRef.current = true;
+            await sendSignal('hello', {});
+          }
+          // Médico inicia (ou reinicia, em reconexão) a negociação agora que
+          // sabe que o paciente está presente.
+          if (role === 'doctor') await createAndSendOffer();
+          return;
+        }
+
         if (signal.type === 'offer' && signal.sdp) {
           await pc.setRemoteDescription({ type: 'offer', sdp: signal.sdp });
+          await flushPendingCandidates(pc);
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          await sendSignal('answer', { sdp: answer.sdp });
+          await sendSignal('answer', { sdp: pc.localDescription?.sdp });
+          return;
         }
 
         if (signal.type === 'answer' && signal.sdp) {
-          await pc.setRemoteDescription({ type: 'answer', sdp: signal.sdp });
+          // Só aplica a resposta se realmente há uma oferta local pendente.
+          if (pc.signalingState === 'have-local-offer') {
+            await pc.setRemoteDescription({ type: 'answer', sdp: signal.sdp });
+            await flushPendingCandidates(pc);
+          }
+          return;
         }
 
         if (signal.type === 'ice-candidate' && signal.candidate) {
-          await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          if (pc.remoteDescription && pc.remoteDescription.type) {
+            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          } else {
+            // Chegou antes da descrição remota — buffer até estar pronto.
+            pendingCandidatesRef.current.push(signal.candidate);
+          }
+          return;
         }
       } catch (err) {
         console.error('[WebRTC] Signal handling error:', err);
       }
     },
-    [role, sendSignal]
+    [role, sendSignal, createAndSendOffer, flushPendingCandidates]
   );
 
   const startCall = useCallback(async () => {
     try {
       setError(null);
       setConnectionState('connecting');
+
+      // Reset das guardas de handshake para esta nova sessão de chamada
+      pendingCandidatesRef.current = [];
+      helloRepliedRef.current = false;
+      makingOfferRef.current = false;
 
       // 1. Get local media
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -162,12 +234,10 @@ export function useWebRTC({
         })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
-            // 8. Doctor creates offer, patient waits
-            if (role === 'doctor') {
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              await sendSignal('offer', { sdp: offer.sdp });
-            }
+            // 8. Anuncia presença. Quem já estiver no canal responde, e o
+            // médico só então cria a oferta — assim o handshake não depende
+            // de quem entrou primeiro (o broadcast do Supabase é efêmero).
+            await sendSignal('hello', {});
           }
         });
     } catch (err) {
