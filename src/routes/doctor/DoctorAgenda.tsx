@@ -20,7 +20,12 @@ import { ClinicalNoteModal } from '../../components/doctor/ClinicalNoteModal';
 const formatDateShort = (date: Date) =>
   `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
 
-const formatDateISO = (date: Date) => date.toISOString().split('T')[0];
+const formatDateISO = (date: Date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
 const getShortDayName = (date: Date) =>
   ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][date.getDay()];
