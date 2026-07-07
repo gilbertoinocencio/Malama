@@ -7,12 +7,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <!-- launchMode=singleTop (e NÃO singleTask): singleTask destaca a tela de
+             permissão do Health Connect da task e o startActivityForResult volta
+             como "cancelado" na hora (grantedPermissions=[] sem diálogo). singleTop
+             preserva instância única e devolve o resultado corretamente. Não há
+             deep-link custom na MainActivity, então isso não afeta OAuth/notificações. -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
-            android:launchMode="singleTask"
+            android:launchMode="singleTop"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
