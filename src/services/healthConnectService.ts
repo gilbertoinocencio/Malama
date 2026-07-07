@@ -86,7 +86,32 @@ export interface HealthConnectStatus {
   granted: string[];
 }
 
+/**
+ * Resultado do pedido de permissão. Quando falha, carrega o motivo para a UI
+ * dar orientação certa (e, em erros, o detalhe cru para diagnóstico).
+ */
+export type HCConnectResult =
+  | { ok: true; granted: string[] }
+  | {
+      ok: false;
+      reason: 'not_android' | 'not_supported' | 'provider_missing' | 'denied' | 'error';
+      /** Status bruto do checkAvailability e/ou mensagem de exceção. */
+      detail?: string;
+    };
+
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+/** Extrai texto legível de um erro (Error, string ou objeto do bridge nativo). */
+function errText(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'string') return e;
+  try {
+    const m = (e as { message?: string })?.message;
+    return m ?? JSON.stringify(e);
+  } catch {
+    return String(e);
+  }
+}
 
 const ts = (d: Date | string): number => new Date(d).getTime();
 
@@ -163,25 +188,45 @@ export const HealthConnectService = {
   },
 
   /**
-   * Abre o diálogo nativo de permissões. Retorna true se ao menos uma leitura
-   * foi concedida. Não há redirect OAuth — tudo acontece no aparelho.
+   * Abre o diálogo nativo de permissões. Não há redirect OAuth — tudo acontece
+   * no aparelho. Retorna o resultado detalhado para a UI orientar o usuário.
    */
-  async requestPermissions(): Promise<boolean> {
-    if (!(await this.isAvailable())) return false;
+  async requestPermissions(): Promise<HCConnectResult> {
+    if (Capacitor.getPlatform() !== 'android') return { ok: false, reason: 'not_android' };
+
+    // Checa o status real do provedor. No Android ≤13 o Health Connect é um app
+    // à parte; se estiver ausente ou desatualizado, o status vem 'NotInstalled'
+    // (SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED). NÃO abortamos nesse caso: o
+    // plugin abre a Play Store para instalar/atualizar e refaz o pedido ao voltar.
+    // Só 'NotSupported' (aparelho incompatível) é motivo para desistir.
+    let availability: 'Available' | 'NotInstalled' | 'NotSupported' = 'NotSupported';
+    try {
+      availability = (await HealthConnect.checkAvailability()).availability;
+    } catch (e) {
+      return { ok: false, reason: 'error', detail: `checkAvailability: ${errText(e)}` };
+    }
+    if (availability === 'NotSupported') {
+      return { ok: false, reason: 'not_supported', detail: 'checkAvailability=NotSupported' };
+    }
+
     try {
       const { grantedPermissions } = await HealthConnect.requestHealthPermissions({
         read: READ_TYPES,
         write: [],
       });
-      const granted = (grantedPermissions ?? []).length > 0;
-      if (granted) {
+      const granted = grantedPermissions ?? [];
+      if (granted.length > 0) {
         await this.markConnected();
         await this.sync(); // primeira carga
+        return { ok: true, granted };
       }
-      return granted;
+      // Nada concedido: provedor desatualizado (a Play Store foi aberta) ou o
+      // usuário negou / o diálogo foi suprimido por excesso de tentativas.
+      return availability === 'NotInstalled'
+        ? { ok: false, reason: 'provider_missing', detail: 'checkAvailability=NotInstalled' }
+        : { ok: false, reason: 'denied', detail: 'grantedPermissions=[] (availability=Available)' };
     } catch (e) {
-      console.warn('[HealthConnect] requestPermissions falhou', e);
-      return false;
+      return { ok: false, reason: 'error', detail: `requestHealthPermissions: ${errText(e)}` };
     }
   },
 

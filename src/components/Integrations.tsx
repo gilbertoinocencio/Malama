@@ -4,11 +4,26 @@ import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { IntegrationService } from '../services/integrationService';
 import { HealthConnectService } from '../services/healthConnectService';
+import type { HCConnectResult } from '../services/healthConnectService';
 import { AppleHealthService } from '../services/appleHealthService';
 import type { FitnessService, ConnectedIntegration } from '../types';
 
 interface IntegrationsProps {
   onBack: () => void;
+}
+
+type HCFailReason = Extract<HCConnectResult, { ok: false }>['reason'];
+
+/** Traduz o motivo da falha em orientação para o usuário (+ detalhe técnico). */
+function hcReasonMessage(reason: HCFailReason, detail?: string): string {
+  const base: Record<HCFailReason, string> = {
+    not_android: 'O Health Connect só está disponível no Android.',
+    not_supported: 'Este aparelho não é compatível com o Health Connect.',
+    provider_missing: 'Abra a Play Store e instale/atualize o app "Health Connect" (Google).',
+    denied: 'Permissão não concedida. Abra o app Health Connect › Permissões de apps › Malama e permita o acesso.',
+    error: 'Não foi possível abrir o Health Connect.',
+  };
+  return detail ? `${base[reason]}\n(${detail})` : base[reason];
 }
 
 interface IntegrationItem {
@@ -50,6 +65,8 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
   // conexão vem do aparelho em runtime, não de um flag no banco.
   const [hcConnected, setHcConnected] = useState(false);
   const [ahConnected, setAhConnected] = useState(false);
+  // Mensagem de falha ao conectar o Health Connect (orientação + diagnóstico).
+  const [hcMessage, setHcMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -95,8 +112,14 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
         await IntegrationService.disconnectService('health_connect', user.id);
         setHcConnected(false);
       } else {
-        const ok = await HealthConnectService.requestPermissions();
-        setHcConnected(ok);
+        setHcMessage(null);
+        const res = await HealthConnectService.requestPermissions();
+        if (res.ok) {
+          setHcConnected(true);
+        } else {
+          setHcConnected(false);
+          setHcMessage(hcReasonMessage(res.reason, res.detail));
+        }
       }
       setToggling(null);
       return;
@@ -240,6 +263,14 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
               </div>
             );
           })
+        )}
+
+        {/* Aviso de falha ao conectar o Health Connect */}
+        {hcMessage && (
+          <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 text-amber-800 dark:text-amber-300 text-xs font-medium px-4 py-3 rounded-xl">
+            <span className="material-symbols-outlined text-[18px] shrink-0">info</span>
+            <span className="whitespace-pre-line break-words">{hcMessage}</span>
+          </div>
         )}
       </div>
 
