@@ -7,17 +7,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <!-- launchMode=singleTop (e NÃO singleTask): singleTask destaca a tela de
-             permissão do Health Connect da task e o startActivityForResult volta
-             como "cancelado" na hora (grantedPermissions=[] sem diálogo). singleTop
-             preserva instância única e devolve o resultado corretamente. Não há
-             deep-link custom na MainActivity, então isso não afeta OAuth/notificações. -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -25,9 +20,13 @@
             </intent-filter>
 
             <!-- Health Connect (Android ≤13): tratador da tela de justificativa de
-                 privacidade, aberta quando o usuário toca no link de "política de
-                 privacidade" dentro do app Health Connect. -->
+                 privacidade. A action oficial é androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE
+                 — e no Android 13 o HC EXIGE que o app chamador responda a ela: sem isso
+                 ele cancela o pedido de permissão na hora, sem mostrar diálogo
+                 (grantedPermissions=[]). A action antiga (androidx.health.connect.action.*)
+                 fica declarada por compatibilidade, mas não é a consultada. -->
             <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
                 <action android:name="androidx.health.connect.action.SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
         </activity>
