@@ -62,7 +62,7 @@ export const NutritionKnowledgeService = {
   async searchEmpiricalCases(
     query: string,
     matchCount = 3,
-    matchThreshold = 0.6
+    matchThreshold = 0.65
   ): Promise<EmpiricalCaseMatch[]> {
     try {
       const { data, error } = await supabase.rpc('match_empirical_cases', {

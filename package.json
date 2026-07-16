@@ -11,6 +11,8 @@
     "build:ios": "vite build && npx cap sync ios",
     "open:android": "npx cap open android",
     "open:ios": "npx cap open ios",
+    "rag:curadoria": "node scripts/sync-curadoria.js",
+    "rag:casos": "node scripts/trigger-empirical-cases.js",
     "postinstall": "node scripts/fix-apple-signin-spm.cjs"
   },
   "dependencies": {

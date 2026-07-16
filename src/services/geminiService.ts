@@ -557,10 +557,21 @@ export const generatePlanContent = async (profile: any, onboardingData?: any, la
       `;
     }
 
-    const mainGoal = onboardingData?.mainGoal || profile.goal || '';
+    // Goal codes → natural-language labels (better semantic match in vector search).
+    // Must stay aligned with GOAL_LABELS in scripts/generate-empirical-cases.js.
+    const GOAL_QUERY_LABELS: Record<string, string> = {
+      aesthetic: 'emagrecimento / estética',
+      emagrecimento: 'emagrecimento / estética',
+      performance: 'performance / ganho de massa',
+      ganho_massa: 'performance / ganho de massa',
+      health: 'saúde metabólica',
+      saude: 'saúde metabólica',
+    };
+    const rawGoal = onboardingData?.mainGoal || profile.goal || '';
+    const mainGoal = GOAL_QUERY_LABELS[rawGoal] || rawGoal;
     const restrictions = onboardingData?.restrictions?.join(', ') || '';
     const knowledgeQuery = `Nutrição clínica para objetivo de ${mainGoal}, composição corporal e saúde metabólica. ${restrictions ? `Restrições: ${restrictions}.` : ''}`;
-    const sex = onboardingData?.biologicalSex === 'M' ? 'male' : onboardingData?.biologicalSex === 'F' ? 'female' : profile.gender || '';
+    const sex = onboardingData?.biologicalSex === 'M' ? 'masculino' : onboardingData?.biologicalSex === 'F' ? 'feminino' : profile.gender || '';
     const age = onboardingData?.age || profile.age || '';
     const empiricalQuery = `Caso empírico: objetivo ${mainGoal}, sexo ${sex}${age ? `, ${age} anos` : ''}.`;
 
