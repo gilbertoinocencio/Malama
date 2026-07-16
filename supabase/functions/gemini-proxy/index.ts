@@ -82,12 +82,18 @@ Deno.serve(async (req: Request) => {
     if (action === 'embedContent') {
       if (!content) return json({ error: 'content is required for embedContent' }, 400);
 
+      // gemini-embedding-001 defaults to 3072 dims; truncate to 768 to match
+      // the nutrition_guidelines.embedding column (vector(768)).
       const res = await fetch(
         `${GEMINI_BASE}/${model}:embedContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: { parts: [{ text: content }] } }),
+          body: JSON.stringify({
+            model: `models/${model}`,
+            content: { parts: [{ text: content }] },
+            outputDimensionality: 768,
+          }),
         }
       );
 

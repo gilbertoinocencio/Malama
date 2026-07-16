@@ -4,7 +4,6 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Load environment variables
 dotenv.config({ path: '.env.local' });
@@ -21,9 +20,31 @@ if (!supabaseUrl || !supabaseKey || !geminiApiKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
-const genAI = new GoogleGenerativeAI(geminiApiKey);
-// Using text-embedding-004 as it is standard and outputs 768 dimensions
-const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+
+// gemini-embedding-001 outputs 3072 dims by default; truncated to 768 to match
+// the nutrition_guidelines.embedding column (vector(768)).
+const EMBEDDING_MODEL = 'gemini-embedding-001';
+const EMBEDDING_DIMENSIONS = 768;
+
+async function embedText(text) {
+    const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent?key=${geminiApiKey}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: `models/${EMBEDDING_MODEL}`,
+                content: { parts: [{ text }] },
+                outputDimensionality: EMBEDDING_DIMENSIONS,
+            }),
+        }
+    );
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.error?.message || `HTTP ${res.status}`);
+    }
+    return data.embedding.values;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -83,8 +104,7 @@ async function processFile(filePath, category) {
         
         try {
             // Generate embedding
-            const result = await embeddingModel.embedContent(chunkContent);
-            const embedding = result.embedding.values;
+            const embedding = await embedText(chunkContent);
 
             // Upsert into Supabase
             const { error } = await supabase

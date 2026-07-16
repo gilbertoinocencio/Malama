@@ -3,6 +3,7 @@ import { GeminiProxy } from '../lib/geminiProxy';
 import { AIResponse, MealItem, MicroNutrients, Profile } from '../types';
 import { searchOpenFoodFacts, formatOFFBlock } from './openFoodFactsService';
 import { normalizeGender } from '../utils/bodyCompositionCalculators';
+import { NutritionKnowledgeService } from './nutritionKnowledgeService';
 
 /**
  * Deterministic meal-slot label from the device clock. Single source of truth for
@@ -556,10 +557,17 @@ export const generatePlanContent = async (profile: any, onboardingData?: any, la
       `;
     }
 
+    const mainGoal = onboardingData?.mainGoal || profile.goal || '';
+    const restrictions = onboardingData?.restrictions?.join(', ') || '';
+    const knowledgeQuery = `Nutrição clínica para objetivo de ${mainGoal}, composição corporal e saúde metabólica. ${restrictions ? `Restrições: ${restrictions}.` : ''}`;
+    const guidelineMatches = await NutritionKnowledgeService.search(knowledgeQuery, 5);
+    const knowledgeBlock = NutritionKnowledgeService.formatAsContextBlock(guidelineMatches);
+
     const prompt = `
       Você é Malama, uma nutricionista clínica experiente especializada em composição corporal e saúde metabólica.
 
       ${userDataSection}
+      ${knowledgeBlock}
 
       SUA TAREFA:
       Crie um plano alimentar DETALHADO e PERSONALIZADO de 3 meses, dividido em 3 fases:
@@ -579,6 +587,7 @@ export const generatePlanContent = async (profile: any, onboardingData?: any, la
       - Adapte às atividades físicas
       - Seja específico e prático
       - Tom motivador e empático
+      ${knowledgeBlock ? '- Fundamente as estratégias na BASE CIENTÍFICA CURADA acima quando ela for relevante ao caso' : ''}
 
       Retorne JSON ESTRITO (sem markdown):
       {
