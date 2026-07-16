@@ -38,7 +38,10 @@ export const NutritionKnowledgeService = {
   async search(
     query: string,
     matchCount = 5,
-    matchThreshold = 0.65
+    // Calibrado empiricamente: perguntas em tema coberto pela curadoria medem
+    // ~0.6-0.65 de similaridade (perguntas casuais do chat variam mais que
+    // queries estruturadas do plano); ruído sem relação fica ~0.55-0.58.
+    matchThreshold = 0.6
   ): Promise<GuidelineMatch[]> {
     try {
       const { data, error } = await supabase.rpc('match_guidelines', {

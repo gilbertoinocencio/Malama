@@ -687,6 +687,15 @@ export const generateDoctorBriefing = async (patient: any): Promise<string> => {
   try {
     const model = getGenAI().getGenerativeModel({ model: MODEL_NAME });
 
+    const knowledgeQuery = `Quadro clínico: IMC ${patient.imc || 'N/A'}, GLP-1 ${patient.is_glp1_active ? patient.glp1_medication || 'sim' : 'não'}, `
+      + `adesão ${patient.adherence?.registration_percentage || 0}%.`;
+    const [guidelineMatches, empiricalMatches] = await Promise.all([
+      NutritionKnowledgeService.search(knowledgeQuery, 3),
+      NutritionKnowledgeService.searchEmpiricalCases(knowledgeQuery, 2),
+    ]);
+    const knowledgeBlock = NutritionKnowledgeService.formatAsContextBlock(guidelineMatches)
+      + NutritionKnowledgeService.formatEmpiricalBlock(empiricalMatches);
+
     const prompt = `
       Você é um assistente clínico de IA (Malama Assistant) projetado para médicos endocrinologistas e nutricionistas.
       Seu papel é ler os dados do paciente abaixo e gerar um BRIEFING CLÍNICO EXECUTIVO para o médico ler ANTES da consulta.
@@ -716,6 +725,8 @@ export const generateDoctorBriefing = async (patient: any): Promise<string> => {
       (Gere 2 perguntas clínicas diretas que o médico DEVE fazer para este paciente logo no início da conversa).
       
       Seja profissional, analítico, conciso e use português do Brasil. O objetivo é ler rápido. Não use introduções genéricas como "Olá doutor", vá direto ao briefing.
+      Se a base de conhecimento abaixo for relevante, incorpore-a implicitamente na sugestão (sem criar seção extra para citá-la).
+      ${knowledgeBlock}
     `;
 
     const result = await model.generateContent(prompt);

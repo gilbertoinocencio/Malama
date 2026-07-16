@@ -1,6 +1,7 @@
 import { GeminiProxy } from './geminiProxy';
 import { supabase } from '../services/supabase';
 import { ClinicalLoopService } from '../services/clinicalLoopService';
+import { NutritionKnowledgeService } from '../services/nutritionKnowledgeService';
 
 const genAI = new GeminiProxy();
 const MODEL_NAME = 'gemini-2.5-flash';
@@ -435,6 +436,21 @@ ${diarySummary ?? 'Nenhuma nota registrada no período.'}
       input_window_end:   new Date().toISOString(),
     });
 
+  // 5c. Base de conhecimento da agente (teoria curada + experiência empírica),
+  // consultada com o quadro clínico do paciente — mesmas duas memórias usadas
+  // no chat e na geração do plano de 3 meses.
+  const knowledgeQuery = `Quadro clínico: objetivo ${patient.goal || patient.primary_goal || 'não definido'}, `
+    + `${patientAge ? `${patientAge} anos, ` : ''}IMC ${bmi}, adesão ${adherencePercent}%, `
+    + `restrições: ${dietaryRestrictionsList.join(', ') || 'nenhuma'}.`
+    + (topSymptoms.length > 0 ? ` Sintomas: ${topSymptoms.join(', ')}.` : '');
+
+  const [guidelineMatches, empiricalMatches] = await Promise.all([
+    NutritionKnowledgeService.search(knowledgeQuery, 3),
+    NutritionKnowledgeService.searchEmpiricalCases(knowledgeQuery, 2),
+  ]);
+  const knowledgeBlock = NutritionKnowledgeService.formatAsContextBlock(guidelineMatches)
+    + NutritionKnowledgeService.formatEmpiricalBlock(empiricalMatches);
+
   // 6. Gerar briefing via Gemini (mesmo padrão do chat do paciente)
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
@@ -460,6 +476,8 @@ Regras:
 - Se uma seção não tem dados, escreva uma linha só (ex: "Sem dados de treino — nenhuma integração ativa") em vez de especular
 - Não invente dados nem calcule estimativas não pedidas; use apenas o que está abaixo
 - Não use jargão de app ("logou", "trackeou"); escreva como colega médico
+- Ao usar a base de conhecimento abaixo, incorpore-a de forma implícita nas seções acima (ex: embase uma sugestão nela); NÃO crie uma seção separada para citá-la
+${knowledgeBlock}
 
 Dados do paciente:
 ${context}`

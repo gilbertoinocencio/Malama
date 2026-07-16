@@ -5,6 +5,7 @@ import { glp1Service } from './glp1Service';
 import { WeightLogService, MeasurementSnapshotService } from './weightLogService';
 import { userReportedWaterIntake, parseStatedMl, isPureWaterLog, mentionsQuantitySignal, mentionsFood, mentionsCalorieBeverage, WATER_MAX_ML } from '../utils/intakeDetection';
 import { normalizeGender } from '../utils/bodyCompositionCalculators';
+import { NutritionKnowledgeService } from './nutritionKnowledgeService';
 
 const genAI = new GeminiProxy();
 const MODEL_NAME = "gemini-2.5-flash";
@@ -520,31 +521,12 @@ Responda APENAS com o JSON, sem texto adicional.
     const ragIsWaterOrDose = userReportedWaterIntake(ragSourceText) || ragDoseTokens.some(t => ragSourceText.includes(t));
     const shouldRunRag = !ragIsWaterOrDose && (ragLooksLikeQuestion || ragWordCount >= 5);
 
-    const fetchGuidelines = async (): Promise<string> => {
-      try {
-        const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
-        const embedResult = await embeddingModel.embedContent(userMessage);
-        const embedding = embedResult.embedding.values;
-
-        const { data: guidelines } = await supabase.rpc('match_guidelines', {
-          query_embedding: embedding,
-          match_threshold: 0.7,
-          match_count: 3,
-        });
-
-        return guidelines && guidelines.length > 0
-          ? guidelines.map((g: any) => `- [${g.category}] ${g.title}: ${g.content}`).join('\n')
-          : '';
-      } catch (err) {
-        console.warn('RAG embedding lookup skipped:', err);
-        return '';
-      }
-    };
-
-    // Fetch user context and (conditionally) RAG guidelines concurrently.
-    const [context, guidelinesText] = await Promise.all([
+    // Fetch user context and (conditionally) the agent's two knowledge memories
+    // (curated theory + anonymized empirical cases) concurrently.
+    const [context, guidelineMatches, empiricalMatches] = await Promise.all([
       this.getContext(userId),
-      shouldRunRag ? fetchGuidelines() : Promise.resolve(''),
+      shouldRunRag ? NutritionKnowledgeService.search(userMessage, 3) : Promise.resolve([]),
+      shouldRunRag ? NutritionKnowledgeService.searchEmpiricalCases(userMessage, 2) : Promise.resolve([]),
     ]);
     const profile = context.profile;
 
@@ -661,10 +643,9 @@ Responda APENAS com o JSON, sem texto adicional.
       ? `\n## MEMÓRIA DE LONGO PRAZO\n${context.historicalSummary}`
       : '';
 
-    // RAG block
-    const ragBlock = guidelinesText
-      ? `\n## DIRETRIZES CLÍNICAS RELEVANTES (BASE DE CONHECIMENTO)\n${guidelinesText}\n*Use estas diretrizes para fundamentar sua resposta quando relevante.*`
-      : '';
+    // RAG blocks (theory + empirical), same two memories used in generatePlanContent
+    const ragBlock = NutritionKnowledgeService.formatAsContextBlock(guidelineMatches)
+      + NutritionKnowledgeService.formatEmpiricalBlock(empiricalMatches);
 
     // Reactive alerts
     const alertsBlock = context.dailyAlerts && context.dailyAlerts.length > 0
