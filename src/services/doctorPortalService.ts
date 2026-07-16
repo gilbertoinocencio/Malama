@@ -1888,6 +1888,21 @@ export type AdminColaboradorB2B = {
   avatar_url: string | null;
 };
 
+// Saúde do loop clínico (RLHF): quanto sinal de supervisão médica o modelo
+// está de fato recebendo. O gargalo do aprendizado é ai_report_feedback vazio.
+export type ClinicalLoopHealth = {
+  total_reports: number;          // relatórios de IA gerados (briefings + planos)
+  reports_with_feedback: number;  // quantos receberam veredito do médico
+  awaiting_feedback: number;      // total_reports - reports_with_feedback
+  supervision_rate: number;       // % de relatórios supervisionados
+  verdict_accept: number;
+  verdict_accept_with_edits: number;
+  verdict_reject: number;
+  active_reviewers: number;       // médicos distintos que já deram feedback
+  conducts_total: number;         // condutas registradas no ledger
+  conducts_with_outcome: number;  // condutas com desfecho já calculado
+};
+
 // =====================================================
 // ADMIN
 // =====================================================
@@ -1921,6 +1936,64 @@ export const adminService = {
       taxa_cancelamento:  consults.length > 0 ? Math.round(cancelled.length / consults.length * 100) : 0,
       pacientes_unicos_mes: new Set(completed.map(c => c.patient_id)).size,
       medicos_ativos_mes:   new Set(completed.map(c => c.doctor_id)).size,
+    };
+  },
+
+  // Saúde do loop clínico (RLHF): mede o sinal de supervisão médica que o
+  // modelo recebe. Usa head-count queries (head:true) para não puxar linhas.
+  async getClinicalLoopHealth(): Promise<ClinicalLoopHealth> {
+    const countOf = async (
+      table: string,
+      apply?: (q: any) => any
+    ): Promise<number> => {
+      let q = supabase.from(table).select('id', { count: 'exact', head: true });
+      if (apply) q = apply(q);
+      const { count } = await q;
+      return count ?? 0;
+    };
+
+    const [
+      total_reports,
+      conducts_total,
+      verdict_accept,
+      verdict_accept_with_edits,
+      verdict_reject,
+    ] = await Promise.all([
+      countOf('ai_clinical_reports'),
+      countOf('clinical_conduct_events'),
+      countOf('ai_report_feedback', q => q.eq('verdict', 'accept')),
+      countOf('ai_report_feedback', q => q.eq('verdict', 'accept_with_edits')),
+      countOf('ai_report_feedback', q => q.eq('verdict', 'reject')),
+    ]);
+
+    // Relatórios distintos com feedback e revisores distintos: precisam das linhas.
+    const { data: feedbackRows } = await supabase
+      .from('ai_report_feedback')
+      .select('report_id, doctor_id');
+
+    const reports_with_feedback = new Set((feedbackRows ?? []).map(r => r.report_id)).size;
+    const active_reviewers = new Set((feedbackRows ?? []).map(r => r.doctor_id).filter(Boolean)).size;
+
+    // clinical_outcomes tem N linhas por conduta (horizontes 7/30/90d); contamos
+    // condutas DISTINTAS que já têm ao menos um desfecho calculado.
+    const { data: outcomeRows } = await supabase
+      .from('clinical_outcomes')
+      .select('conduct_event_id');
+    const conducts_with_outcome = new Set((outcomeRows ?? []).map(r => r.conduct_event_id)).size;
+
+    return {
+      total_reports,
+      reports_with_feedback,
+      awaiting_feedback: Math.max(0, total_reports - reports_with_feedback),
+      supervision_rate: total_reports > 0
+        ? Math.round((reports_with_feedback / total_reports) * 100)
+        : 0,
+      verdict_accept,
+      verdict_accept_with_edits,
+      verdict_reject,
+      active_reviewers,
+      conducts_total,
+      conducts_with_outcome,
     };
   },
 

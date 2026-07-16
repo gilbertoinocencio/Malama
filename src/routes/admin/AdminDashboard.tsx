@@ -7,9 +7,10 @@ import { Link } from 'react-router-dom';
 import {
   Users, Calendar, DollarSign, Clock, CheckCircle, XCircle,
   CreditCard, TrendingUp, Building2, Armchair, AlertTriangle,
-  Lock, BarChart2, Leaf,
+  Lock, BarChart2, Leaf, Brain, ClipboardCheck, Activity,
 } from 'lucide-react';
 import { adminService, doctorService } from '../../services/doctorPortalService';
+import type { ClinicalLoopHealth } from '../../services/doctorPortalService';
 import { adminBillingService } from '../../services/billingService';
 import { empresaAdminService } from '../../services/empresaService';
 import type { AdminDashboardSummary } from '../../types/doctorPortal';
@@ -21,19 +22,22 @@ export const AdminDashboard: React.FC = () => {
   const [summary, setSummary] = useState<AdminDashboardSummary | null>(null);
   const [billingStats, setBillingStats] = useState<BillingStats | null>(null);
   const [b2bStats, setB2bStats] = useState<B2BDashboardStats | null>(null);
+  const [loopHealth, setLoopHealth] = useState<ClinicalLoopHealth | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadSummary = async () => {
       try {
-        const [data, billing, b2b] = await Promise.all([
+        const [data, billing, b2b, loop] = await Promise.all([
           adminService.getDashboardSummary(),
           adminBillingService.getBillingStats().catch(() => null),
           empresaAdminService.getDashboardStats().catch(() => null),
+          adminService.getClinicalLoopHealth().catch(() => null),
         ]);
         setSummary(data);
         setBillingStats(billing);
         setB2bStats(b2b);
+        setLoopHealth(loop);
       } catch (error) {
         console.error('Error loading admin dashboard:', error);
       } finally {
@@ -286,6 +290,78 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* ── Saúde do Loop Clínico (IA / RLHF) ────────────── */}
+      {loopHealth && (
+        <section>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Saúde do Loop Clínico — IA
+          </h2>
+
+          {/* Alerta: pouca supervisão médica trava o aprendizado do modelo */}
+          {loopHealth.total_reports > 0 && loopHealth.supervision_rate < 20 && (
+            <div className="mb-4 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>
+                Apenas <strong>{loopHealth.supervision_rate}%</strong> dos relatórios de IA foram
+                supervisionados por um médico. O loop de aprendizado precisa de mais feedback
+                clínico — {loopHealth.active_reviewers === 0 ? 'nenhum médico revisou até agora' : `só ${loopHealth.active_reviewers} médico(s) revisando`}.
+              </span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="bg-white rounded-xl shadow p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className="w-4 h-4 text-[#7d4a3c]" />
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Relatórios de IA</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{loopHealth.total_reports}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Briefings + planos gerados</p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className={`w-4 h-4 ${loopHealth.awaiting_feedback > 0 ? 'text-yellow-500' : 'text-gray-300'}`} />
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Aguardando feedback</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{loopHealth.awaiting_feedback}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Sem veredito médico</p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <ClipboardCheck className={`w-4 h-4 ${loopHealth.supervision_rate >= 20 ? 'text-green-500' : 'text-amber-500'}`} />
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Taxa de supervisão</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{loopHealth.supervision_rate}%</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {loopHealth.verdict_accept}✓ · {loopHealth.verdict_accept_with_edits}✎ · {loopHealth.verdict_reject}✗
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-4 h-4 text-blue-500" />
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Revisores ativos</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{loopHealth.active_reviewers}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Médicos dando feedback</p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Activity className="w-4 h-4 text-purple-500" />
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Condutas c/ desfecho</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">
+                {loopHealth.conducts_with_outcome}<span className="text-base font-normal text-gray-400">/{loopHealth.conducts_total}</span>
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">Resultado já medido (7/30/90d)</p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Cadastros pendentes de aprovação ─────────────── */}
       <div className="bg-white rounded-xl shadow">
