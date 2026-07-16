@@ -560,14 +560,23 @@ export const generatePlanContent = async (profile: any, onboardingData?: any, la
     const mainGoal = onboardingData?.mainGoal || profile.goal || '';
     const restrictions = onboardingData?.restrictions?.join(', ') || '';
     const knowledgeQuery = `Nutrição clínica para objetivo de ${mainGoal}, composição corporal e saúde metabólica. ${restrictions ? `Restrições: ${restrictions}.` : ''}`;
-    const guidelineMatches = await NutritionKnowledgeService.search(knowledgeQuery, 5);
+    const sex = onboardingData?.biologicalSex === 'M' ? 'male' : onboardingData?.biologicalSex === 'F' ? 'female' : profile.gender || '';
+    const age = onboardingData?.age || profile.age || '';
+    const empiricalQuery = `Caso empírico: objetivo ${mainGoal}, sexo ${sex}${age ? `, ${age} anos` : ''}.`;
+
+    const [guidelineMatches, empiricalMatches] = await Promise.all([
+      NutritionKnowledgeService.search(knowledgeQuery, 5),
+      NutritionKnowledgeService.searchEmpiricalCases(empiricalQuery, 3),
+    ]);
     const knowledgeBlock = NutritionKnowledgeService.formatAsContextBlock(guidelineMatches);
+    const empiricalBlock = NutritionKnowledgeService.formatEmpiricalBlock(empiricalMatches);
 
     const prompt = `
       Você é Malama, uma nutricionista clínica experiente especializada em composição corporal e saúde metabólica.
 
       ${userDataSection}
       ${knowledgeBlock}
+      ${empiricalBlock}
 
       SUA TAREFA:
       Crie um plano alimentar DETALHADO e PERSONALIZADO de 3 meses, dividido em 3 fases:
@@ -588,6 +597,7 @@ export const generatePlanContent = async (profile: any, onboardingData?: any, la
       - Seja específico e prático
       - Tom motivador e empático
       ${knowledgeBlock ? '- Fundamente as estratégias na BASE CIENTÍFICA CURADA acima quando ela for relevante ao caso' : ''}
+      ${empiricalBlock ? '- Use a EXPERIÊNCIA CLÍNICA ACUMULADA para calibrar estratégias e expectativas com o que funcionou em pacientes de perfil semelhante; a base científica prevalece em caso de conflito' : ''}
 
       Retorne JSON ESTRITO (sem markdown):
       {

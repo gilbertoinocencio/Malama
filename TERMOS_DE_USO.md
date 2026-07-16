@@ -113,6 +113,14 @@ Ao utilizar a funcionalidade de escaneamento corporal (body scan) no aplicativo,
 - **Uso para Aprimoramento Científico e Tecnológico:** Os dados corporais e silhuetas completamente anonimizados serão armazenados e utilizados de forma exclusiva pelo Malama para fins de pesquisa interna, testes estatísticos, treinamento de algoritmos de inteligência artificial e melhoria contínua da precisão e qualidade técnica da funcionalidade de escaneamento corporal.
 - **Conformidade Legal (LGPD):** Nos termos do Artigo 12 da Lei Geral de Proteção de Dados (Lei nº 13.709/2018), os dados submetidos a processo de anonimização irreversível não são considerados dados pessoais para fins legais. Consequentemente, o Usuário concorda que o Malama poderá reter e utilizar tais dados anonimizados por prazo indeterminado, de forma lícita, segura e isenta de ônus, royalties ou restrições de direitos autorais.
 
+### 8.2. Dados Agregados e Anonimizados para Aprimoramento da Assistente Nutricional
+Para que a assistente nutricional do Malama evolua continuamente e ofereça orientações cada vez mais eficazes, o Usuário compreende e concorda que:
+
+- **Agregação Estatística:** Informações sobre a evolução de saúde dos Usuários (como variação de peso, adesão ao plano alimentar e resultados alcançados) poderão ser combinadas em **estatísticas de grupo**, calculadas exclusivamente sobre conjuntos de múltiplos Usuários com perfis semelhantes. Nenhum registro individual é utilizado isoladamente.
+- **Anonimização Prévia:** Antes de qualquer agregação, todos os identificadores diretos e indiretos são removidos. Idades são convertidas em faixas etárias, medidas em variações percentuais, e nenhum texto livre escrito pelo Usuário (conversas, anotações, mensagens) é utilizado nesse processo — apenas dados estruturados e despersonalizados.
+- **Finalidade Exclusiva:** Os padrões agregados resultantes são utilizados unicamente para pesquisa interna, estudos estatísticos e aprimoramento da inteligência artificial da plataforma, permitindo que novos Usuários se beneficiem do conhecimento acumulado — de forma análoga à experiência clínica adquirida por um profissional de saúde ao longo da carreira. Esses dados não são vendidos, compartilhados com terceiros para fins comerciais, nem utilizados para decisões automatizadas sobre Usuários individuais.
+- **Conformidade Legal (LGPD):** Nos termos do Artigo 12 da Lei nº 13.709/2018, dados agregados e submetidos a anonimização irreversível não constituem dados pessoais. A exclusão da conta do Usuário remove seus dados pessoais, sem afetar estatísticas agregadas já constituídas, das quais é tecnicamente impossível extrair informações individuais.
+
 ## 9. Encerramento e exclusão de conta
 
 Você pode **excluir sua conta** a qualquer momento, diretamente no aplicativo
