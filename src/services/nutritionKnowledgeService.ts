@@ -40,10 +40,11 @@ export const NutritionKnowledgeService = {
   async search(
     query: string,
     matchCount = 5,
-    // Calibrado empiricamente: perguntas em tema coberto pela curadoria medem
-    // ~0.6-0.65 de similaridade (perguntas casuais do chat variam mais que
-    // queries estruturadas do plano); ruído sem relação fica ~0.55-0.58.
-    matchThreshold = 0.6
+    // Recalibrado em 21/07/2026 para o Qwen3-Embedding (a distribuição do
+    // Gemini era outra — com o valor antigo, 0.6, o RAG nunca retornaria nada).
+    // Medido na base real: perguntas do tema medem 0.42-0.50; ruído sem
+    // relação fica 0.29-0.36. 0.39 separa os dois com folga dos dois lados.
+    matchThreshold = 0.39
   ): Promise<GuidelineMatch[]> {
     try {
       const { data, error } = await supabase.rpc('match_guidelines', {
@@ -67,7 +68,11 @@ export const NutritionKnowledgeService = {
   async searchEmpiricalCases(
     query: string,
     matchCount = 3,
-    matchThreshold = 0.65
+    // Recalibrado junto com o de guidelines (ver acima). A tabela ainda está
+    // vazia, então não deu para medir na base real: mantida a mesma proporção
+    // do valor antigo (era 0.65 quando guidelines era 0.6 — um pouco mais
+    // restritivo). Revisar quando houver casos gerados.
+    matchThreshold = 0.42
   ): Promise<EmpiricalCaseMatch[]> {
     try {
       const { data, error } = await supabase.rpc('match_empirical_cases', {
