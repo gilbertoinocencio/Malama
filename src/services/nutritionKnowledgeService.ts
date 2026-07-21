@@ -42,9 +42,10 @@ export const NutritionKnowledgeService = {
     matchCount = 5,
     // Recalibrado em 21/07/2026 para o Qwen3-Embedding (a distribuição do
     // Gemini era outra — com o valor antigo, 0.6, o RAG nunca retornaria nada).
-    // Medido na base real: perguntas do tema medem 0.42-0.50; ruído sem
-    // relação fica 0.29-0.36. 0.39 separa os dois com folga dos dois lados.
-    matchThreshold = 0.39
+    // Medido na base real APÓS o chunking limpo (chunks ~830 chars): perguntas
+    // do tema medem 0.43-0.52 no top1; ruído chega a 0.40. 0.41 barra o ruído
+    // e mantém as relevantes (validado com queries reais + ruído).
+    matchThreshold = 0.41
   ): Promise<GuidelineMatch[]> {
     try {
       const { data, error } = await supabase.rpc('match_guidelines', {
@@ -72,7 +73,7 @@ export const NutritionKnowledgeService = {
     // vazia, então não deu para medir na base real: mantida a mesma proporção
     // do valor antigo (era 0.65 quando guidelines era 0.6 — um pouco mais
     // restritivo). Revisar quando houver casos gerados.
-    matchThreshold = 0.42
+    matchThreshold = 0.44
   ): Promise<EmpiricalCaseMatch[]> {
     try {
       const { data, error } = await supabase.rpc('match_empirical_cases', {
