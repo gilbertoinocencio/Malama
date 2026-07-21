@@ -1,7 +1,9 @@
 import { supabase } from './supabase';
 import { GeminiProxy } from '../lib/geminiProxy';
 
-const EMBEDDING_MODEL = 'gemini-embedding-001';
+// O gemini-proxy ignora este valor no embedContent e sempre usa o embedding
+// do Caramel (caramelo-embed / Qwen3-Embedding). Mantido só como rótulo.
+const EMBEDDING_MODEL = 'caramelo-embed';
 
 export interface GuidelineMatch {
   id: string;
