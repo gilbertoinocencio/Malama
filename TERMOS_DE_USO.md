@@ -1,152 +1,139 @@
 # Termos de Uso — Malama
 
-**Última atualização:** 23 de junho de 2026
+**Última atualização:** 21 de julho de 2026
 
-> ⚠️ **Aviso:** Este é um texto-base preparado para publicação em
-> `https://www.soumalama.com.br/termos`. Recomenda-se a revisão por um(a)
-> advogado(a) antes de entrar em vigor, especialmente os trechos sobre
-> telemedicina, pagamentos e responsabilidade.
+> ⚠️ **Aviso:** Este documento constitui o termo de adesão e contrato de uso da plataforma **Malama Saúde Digital**. Recomenda-se a leitura atenta de todas as cláusulas antes da utilização do Serviço.
 
-Bem-vindo(a) ao **Malama**. Estes Termos de Uso ("Termos") regem o acesso e o
-uso do aplicativo, site e serviços do Malama ("Serviço"), operados por
-**Malama Saúde Digital** ("Malama", "nós"). Ao criar uma conta ou utilizar o
-Serviço, você ("Usuário") declara que leu, entendeu e concorda com estes Termos
-e com a nossa [Política de Privacidade](https://www.soumalama.com.br/privacidade).
-Se não concordar, não utilize o Serviço.
+Bem-vindo(a) ao **Malama**. Estes Termos de Uso ("Termos") regem o acesso e o uso do aplicativo, site e serviços operados pela **Malama Saúde Digital Ltda.** ("Malama", "nós"). Ao criar uma conta ou utilizar qualquer funcionalidade do Serviço, você ("Usuário") declara expressamente que leu, compreendeu e concorda na íntegra com estes Termos e com a nossa [Política de Privacidade](https://www.soumalama.com.br/privacidade). Se não concordar com qualquer condição aqui estabelecida, não utilize o Serviço.
 
 ---
 
 ## 1. Descrição do Serviço
 
-O Malama é uma plataforma de bem-estar e nutrição que oferece, entre outros
-recursos: acompanhamento alimentar, planos e metas personalizados gerados com
-auxílio de **inteligência artificial (IA)**, registro de refeições e progresso,
-acompanhamento de tratamentos (incluindo, quando aplicável, GLP-1), uma
-**comunidade** para interação entre usuários e, em determinados casos, o
-agendamento e a realização de **consultas com profissionais de saúde**
-(telemedicina).
+O Malama é uma plataforma digital de saúde, nutrição e bem-estar que integra inteligência artificial e acompanhamento profissional para otimização da saúde individual. O Serviço abrange, entre outros recursos:
 
-## 2. Natureza informativa — não substitui aconselhamento médico
+- Acompanhamento alimentar personalizado e análise de refeições via visão computacional e inteligência artificial (**Malama AI**);
+- Planos e metas nutricionais dinâmicos adaptados ao perfil do Usuário;
+- Registro e monitoramento diário de sintomas, consumo hídrico, hábitos e indicadores metabólicos (*Daily Check-ins*);
+- Acompanhamento especializado para usuários em protocolos específicos, incluindo tratamento com medicamentos da classe dos **agonistas GLP-1** e correlatos;
+- Escaneamento corporal 3D (*Body Scan*) para acompanhamento visual e métrico da evolução física;
+- Comunidade interativa de suporte entre usuários;
+- Intermediação de agendamentos e atendimento via **telemedicina** com médicos e nutricionistas cadastrados na plataforma.
 
-O conteúdo do Malama, incluindo recomendações geradas por IA, tem **caráter
-informativo e educativo** e **não substitui** a consulta, o diagnóstico ou o
-tratamento de um profissional de saúde qualificado. Sempre consulte um médico ou
-nutricionista antes de tomar decisões sobre sua saúde, medicamentos ou
-tratamento. Em caso de emergência, procure atendimento médico imediatamente.
+---
 
-As consultas de telemedicina, quando oferecidas, são realizadas por
-profissionais independentes responsáveis por seus próprios atos profissionais; o
-Malama atua como plataforma de intermediação tecnológica.
+## 2. Natureza Informativa e Limites da Inteligência Artificial
 
-## 3. Elegibilidade e conta
+### 2.1. Ausência de Diagnóstico Médico Automático
+O conteúdo do Malama, incluindo análises de refeições, recomendações geradas por inteligência artificial e planos automatizados, possui caráter **exclusivamente informativo, educativo e de suporte ao estilo de vida**. As respostas e sugestões emitidas pela IA **não constituem diagnóstico médico, prescrição farmacológica ou tratamento clínico**.
 
-Você deve ter pelo menos **18 anos** (ou a maioridade legal na sua jurisdição)
-para usar o Serviço. Você é responsável por manter a confidencialidade das suas
-credenciais e por todas as atividades realizadas na sua conta. Comprometa-se a
-fornecer informações verdadeiras e a mantê-las atualizadas.
+### 2.2. Autonomia do Profissional de Saúde
+Sempre consulte um médico ou nutricionista qualificado antes de tomar decisões sobre sua saúde, iniciar, interromper ou alterar dosagens de medicamentos (incluindo tratamentos com GLP-1). As consultas de telemedicina oferecidas na plataforma são prestadas por profissionais de saúde autônomos e independentes, devidamente registrados em seus respectivos conselhos de classe (CRM/CRN), sendo estes integralmente responsáveis por seus atos médicos e condutas técnicas. O Malama atua estritamente como provedor de tecnologia e intermediação.
 
-## 4. Conteúdo gerado pelo usuário (Comunidade)
+### 2.3. Situações de Emergência
+Em caso de urgência ou emergência médica, o Usuário deve procurar imediatamente o pronto-socorro ou serviço público de saúde mais próximo.
 
-O Serviço permite que você publique textos, imagens, comentários e outros
-conteúdos ("Conteúdo do Usuário"). Você é o único responsável pelo Conteúdo que
-publica e garante ter os direitos necessários para fazê-lo. Ao publicar, você
-concede ao Malama uma licença não exclusiva, mundial e isenta de royalties para
-hospedar, exibir e distribuir esse Conteúdo dentro do Serviço.
+---
 
-### 4.1. Tolerância zero a conteúdo e comportamento abusivos
+## 3. Elegibilidade e Cadastro
 
-O Malama adota **política de tolerância zero** a conteúdo censurável e a
-comportamento abusivo. É **estritamente proibido** publicar, enviar ou
-compartilhar conteúdo que:
+Para se cadastrar e utilizar o Serviço, o Usuário deve ter no mínimo **18 (dezoito) anos de idade** (ou a maioridade legal aplicável em sua jurisdição). Ao se cadastrar, o Usuário garante que forneceu informações exatas, atuais e verdadeiras, responsabilizando-se pela guarda e confidencialidade de suas credenciais de acesso.
 
-- seja ilegal, difamatório, fraudulento, enganoso ou viole direitos de terceiros;
-- contenha discurso de ódio, assédio, ameaças, bullying ou incitação à violência;
-- seja sexualmente explícito, obsceno ou inadequado;
-- promova automutilação, transtornos alimentares ou práticas perigosas à saúde;
-- divulgue informação médica comprovadamente falsa ou perigosa;
-- constitua spam, publicidade não autorizada ou esquemas fraudulentos;
-- exponha dados pessoais de terceiros sem consentimento.
+---
 
-### 4.2. Moderação, denúncia e bloqueio
+## 4. Tratamento de Dados Pessoais e Clínicos — LGPD
 
-Para manter um ambiente seguro, o Malama oferece e você concorda em utilizar de
-boa-fé os seguintes mecanismos:
+O tratamento de dados pessoais no Malama é realizado em estrita observância à Lei Geral de Proteção de Dados (Lei nº 13.709/2018 — LGPD).
 
-- **Denunciar** publicações censuráveis diretamente no aplicativo;
-- **Bloquear** usuários abusivos, deixando de ver o conteúdo deles;
-- Nossa equipe **analisa as denúncias e age** sobre conteúdo e contas que violem
-  estes Termos, podendo **remover conteúdo** e **remover ou suspender o usuário
-  responsável** em até 24 horas após a denúncia.
+### 4.1. Coleta de Dados Sensíveis de Saúde
+Para prestar os serviços contratados, o Malama coleta e processa dados sensíveis de saúde fornecidos voluntariamente pelo Usuário, tais como peso, altura, histórico alimentar, sintomas relatados, uso de medicamentos, diários de refeições e registros de consultas.
 
-Reservamo-nos o direito, mas não a obrigação, de monitorar, moderar e remover
-qualquer Conteúdo do Usuário, a nosso critério, sem aviso prévio.
+### 4.2. Tratamento de Imagens e Escaneamento Corporal (*Body Scan*)
+Ao utilizar a funcionalidade de *Body Scan*, o Usuário autoriza o processamento em nuvem de suas imagens corporais sob as seguintes garantias de privacidade:
+- **Detecção e Remoção Facial Automática:** Toda imagem submetida passa por processamento automatizado imediato que identifica e exclui permanentemente a face do Usuário, eliminando qualquer viabilidade de identificação facial ou biometria visual.
+- **Anonimização de Silhuetas:** A imagem é convertida em um modelo vetorial/3D de silhueta desprovido de qualquer metadado identificável ou vínculo ao perfil do Usuário.
 
-## 5. Uso aceitável
+---
 
-Você concorda em não: (a) usar o Serviço para fins ilícitos; (b) tentar acessar
-sistemas ou dados sem autorização; (c) realizar engenharia reversa, copiar ou
-explorar comercialmente o Serviço sem permissão; (d) interferir no funcionamento
-da plataforma; ou (e) burlar mecanismos de segurança ou moderação.
+## 5. Uso de Dados Clínicos Anonimizados para Pesquisas, Estudos e Aprimoramento Científico
 
-## 6. Pagamentos
+Para viabilizar o avanço do conhecimento em saúde digital, otimizar protocolos nutricionais e aprimorar continuamente a precisão dos algoritmos da plataforma, o Usuário concede autorização expressa ao Malama para a utilização de seus **dados clínicos, metabólicos e comportamentais de forma irreversivelmente anonimizada**.
 
-Determinados recursos, planos ou consultas podem ser pagos. Os valores,
-condições e formas de pagamento são informados no momento da contratação.
-Consultas com profissionais de saúde constituem serviços prestados no mundo real.
+### 5.1. Escopo dos Dados Clínicos Anonimizados
+A anonimização abrange:
+- Dados de evolução física (variação de peso, composição corporal, percentual de gordura e silhuetas de *Body Scan*);
+- Histórico de adesão alimentar, macronutrientes consumidos e respostas a planos nutricionais;
+- Registros de sintomas, efeitos colaterais relatados e padrão de evolução em tratamentos (incluindo uso de GLP-1);
+- Indicadores de hábitos de vida, nível de atividade física e dados agregados de dispositivos integrados (ex: Strava).
 
-## 7. Propriedade intelectual
+### 5.2. Finalidade Científica, Tecnológica e Estatística
+Os dados anonimizados serão utilizados para:
+- Realização de **estudos estatísticos e pesquisas empíricas** sobre resposta metabólica e eficiência de protocolos de acompanhamento;
+- Publicação de **relatórios estatísticos agregados, benchmarks e artigos científicos**, sempre sem a exposição de qualquer dado individualizado;
+- Treinamento, validação e aperfeiçoamento de **modelos de inteligência artificial e visão computacional** da plataforma Malama;
+- Criação de inteligência preditiva para identificar padrões de platô, adesão e saciedade em coortes de usuários com perfis semelhantes.
 
-O Serviço, sua marca, design, código e conteúdos próprios são de titularidade do
-Malama e protegidos por lei. Estes Termos não transferem a você nenhum direito de
-propriedade intelectual além da licença limitada de uso do Serviço.
+### 5.3. Processo Irreversível de Anonimização e Conformidade Legal (Art. 12 da LGPD)
+- **Não Reidentificação:** O Malama adota padrões técnicos rigorosos para garantir que o processo de anonimização seja irreversível, sendo impossível reassociar os registros clínicos à identidade do Usuário por meios técnicos razoáveis.
+- **Natureza Jurídica:** Conforme estabelecido no **Artigo 12 da Lei nº 13.709/2018 (LGPD)**, *dados anonimizados não são considerados dados pessoais para os fins da lei*.
+- **Independência na Exclusão de Conta:** A solicitação de exclusão da conta pelo Usuário acarretará a eliminação permanente de todos os seus **dados pessoais identificáveis (PII)**. Contudo, as estatísticas agregadas e os dados irreversivelmente anonimizados já incorporados aos modelos estatísticos, pesquisas científicas e algoritmos da plataforma **permanecerão mantidos e utilizados por prazo indeterminado**, isentos de ônus, royalties ou qualquer obrigação de indenização.
 
-## 8. Privacidade e Tratamento de Imagens (Body Scan)
+---
 
-O tratamento de dados pessoais é regido pela nossa
-[Política de Privacidade](https://www.soumalama.com.br/privacidade), em
-conformidade com a Lei Geral de Proteção de Dados (LGPD).
+## 6. Conteúdo Gerado pelo Usuário e Regras da Comunidade
 
-### 8.1. Escaneamento Corporal (Body Scan) e Anonimização de Dados
-Ao utilizar a funcionalidade de escaneamento corporal (body scan) no aplicativo, o Usuário autoriza o envio seguro de suas imagens corporais para processamento em nuvem, compreendendo e concordando com os seguintes termos:
-- **Desidentificação e Eliminação Facial:** Para proteger a privacidade do Usuário, toda imagem enviada é submetida a um processo automático e imediato de desidentificação, com a detecção e exclusão ou descaracterização definitiva da face do Usuário, impedindo qualquer identificação visual.
-- **Anonimização Irreversível:** Todos os metadados identificáveis, vínculos de conta e informações pessoais são permanentemente removidos da imagem. O resultado armazenado é exclusivamente um modelo de silhueta corporal anonimizado, do qual é impossível restabelecer a identidade do Usuário através de meios técnicos razoáveis.
-- **Uso para Aprimoramento Científico e Tecnológico:** Os dados corporais e silhuetas completamente anonimizados serão armazenados e utilizados de forma exclusiva pelo Malama para fins de pesquisa interna, testes estatísticos, treinamento de algoritmos de inteligência artificial e melhoria contínua da precisão e qualidade técnica da funcionalidade de escaneamento corporal.
-- **Conformidade Legal (LGPD):** Nos termos do Artigo 12 da Lei Geral de Proteção de Dados (Lei nº 13.709/2018), os dados submetidos a processo de anonimização irreversível não são considerados dados pessoais para fins legais. Consequentemente, o Usuário concorda que o Malama poderá reter e utilizar tais dados anonimizados por prazo indeterminado, de forma lícita, segura e isenta de ônus, royalties ou restrições de direitos autorais.
+O Serviço permite a publicação de textos, fotos e comentários na comunidade interativa. O Usuário é o único responsável pelo conteúdo que publica.
 
-### 8.2. Dados Agregados e Anonimizados para Aprimoramento da Assistente Nutricional
-Para que a assistente nutricional do Malama evolua continuamente e ofereça orientações cada vez mais eficazes, o Usuário compreende e concorda que:
+### 6.1. Tolerância Zero a Comportamento Abusivo
+É estritamente proibido publicar ou transmitir conteúdo que:
+- Promova automutilação, distúrbios alimentares ou práticas perigosas à saúde;
+- Contenha discurso de ódio, assédio, discriminação, bullying ou violência;
+- Divulgue conselho médico não autorizado ou desinformação sanitária;
+- Exponha dados pessoais de terceiros sem consentimento.
 
-- **Agregação Estatística:** Informações sobre a evolução de saúde dos Usuários (como variação de peso, adesão ao plano alimentar e resultados alcançados) poderão ser combinadas em **estatísticas de grupo**, calculadas exclusivamente sobre conjuntos de múltiplos Usuários com perfis semelhantes. Nenhum registro individual é utilizado isoladamente.
-- **Anonimização Prévia:** Antes de qualquer agregação, todos os identificadores diretos e indiretos são removidos. Idades são convertidas em faixas etárias, medidas em variações percentuais, e nenhum texto livre escrito pelo Usuário (conversas, anotações, mensagens) é utilizado nesse processo — apenas dados estruturados e despersonalizados.
-- **Finalidade Exclusiva:** Os padrões agregados resultantes são utilizados unicamente para pesquisa interna, estudos estatísticos e aprimoramento da inteligência artificial da plataforma, permitindo que novos Usuários se beneficiem do conhecimento acumulado — de forma análoga à experiência clínica adquirida por um profissional de saúde ao longo da carreira. Esses dados não são vendidos, compartilhados com terceiros para fins comerciais, nem utilizados para decisões automatizadas sobre Usuários individuais.
-- **Conformidade Legal (LGPD):** Nos termos do Artigo 12 da Lei nº 13.709/2018, dados agregados e submetidos a anonimização irreversível não constituem dados pessoais. A exclusão da conta do Usuário remove seus dados pessoais, sem afetar estatísticas agregadas já constituídas, das quais é tecnicamente impossível extrair informações individuais.
+### 6.2. Moderação e Remoção
+O Malama oferece ferramentas para **denúncia de posts** e **bloqueio de usuários**. Denúncias de violações graves serão analisadas e tratadas em até **24 (vinte e quatro) horas**, podendo resultar na remoção imediata do conteúdo e suspensão definitiva da conta do infrator.
 
-## 9. Encerramento e exclusão de conta
+---
 
-Você pode **excluir sua conta** a qualquer momento, diretamente no aplicativo
-(nas configurações de perfil). A exclusão é permanente e remove seus dados
-pessoais, conforme descrito na Política de Privacidade. Podemos suspender ou
-encerrar contas que violem estes Termos.
+## 7. Propriedade Intelectual
 
-## 10. Isenções e limitação de responsabilidade
+Todos os direitos de propriedade intelectual sobre o aplicativo, marca Malama, código-fonte, arquitetura de inteligência artificial, design, interfaces e conteúdos institucionais pertencem exclusivamente à **Malama Saúde Digital Ltda.**. É vedada qualquer reprodução, engenharia reversa ou exploração comercial não autorizada.
 
-O Serviço é fornecido "no estado em que se encontra". Na máxima extensão
-permitida em lei, o Malama não se responsabiliza por decisões de saúde tomadas
-com base no conteúdo do Serviço, nem por danos indiretos decorrentes do uso ou da
-impossibilidade de uso da plataforma.
+---
+
+## 8. Pagamentos, Assinaturas e Cancelamento
+
+Determinados planos, funcionalidades avançadas e consultas de telemedicina podem ser sujeitos a cobrança. Os valores, prazos e condições de cancelamento/reembolso são apresentados claramente no momento da contratação.
+
+---
+
+## 9. Encerramento e Exclusão de Conta
+
+O Usuário pode solicitar a exclusão de sua conta a qualquer momento nas configurações do aplicativo ou pela rota `/deletar-conta`. O processo de encerramento observará os prazos de exclusão de dados pessoais descritos na Política de Privacidade, preservando-se apenas as retenções exigidas por lei (ex: prontuários médicos conforme resolução do CFM ou logs do Marco Civil da Internet) e os dados irreversivelmente anonimizados conforme a Seção 5 destes Termos.
+
+---
+
+## 10. Limitação de Responsabilidade
+
+Na máxima extensão permitida pela legislação aplicável, o Malama não responderá por danos indiretos, lucros cessantes ou decisões individuais de saúde adotadas pelo Usuário sem a devida orientação de um profissional habilitado.
+
+---
 
 ## 11. Alterações nos Termos
 
-Podemos atualizar estes Termos periodicamente. Mudanças relevantes serão
-comunicadas no aplicativo. O uso continuado após a atualização representa sua
-concordância com os novos Termos.
+Reservamo-nos o direito de modificar estes Termos a qualquer momento. Alterações relevantes serão notificadas via aplicativo ou e-mail cadastrado. O uso continuado da plataforma após a entrada em vigor dos novos termos implica aceitação integral das modificações.
 
-## 12. Lei aplicável e foro
+---
 
-Estes Termos são regidos pelas leis da **República Federativa do Brasil**. Fica
-eleito o foro do domicílio do Usuário para dirimir eventuais controvérsias.
+## 12. Lei Aplicável e Foro
 
-## 13. Contato
+Estes Termos são regidos e interpretados segundo as leis da **República Federativa do Brasil**. Fica eleito o foro do domicílio do Usuário para dirimir quaisquer controvérsias decorrentes deste contrato.
 
-Dúvidas sobre estes Termos podem ser enviadas para
-**privacidade@soumalama.com.br**.
+---
+
+## 13. Contato e Encarregado de Proteção de Dados (DPO)
+
+Dúvidas ou solicitações relacionadas a estes Termos e ao tratamento de dados podem ser encaminhadas para:
+- **E-mail de Privacidade/DPO:** `privacidade@soumalama.com.br`
+- **Endereço Web:** [www.soumalama.com.br](https://www.soumalama.com.br)
