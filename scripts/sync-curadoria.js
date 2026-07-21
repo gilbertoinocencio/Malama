@@ -12,38 +12,42 @@ dotenv.config({ path: '.env' });
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 // We need the SERVICE ROLE KEY ideally to bypass RLS, but ANON KEY might work if RLS is disabled on the table.
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-const geminiApiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
-if (!supabaseUrl || !supabaseKey || !geminiApiKey) {
-    console.error("Missing required environment variables. Please check .env or .env.local.");
+// Embeddings agora via API Caramel (Qwen3-Embedding). ATENÇÃO: os vetores do
+// Qwen NÃO são comparáveis com os do Gemini mesmo em 768 dims — esta é uma
+// re-embed COMPLETA. Rode com --reset para limpar a base antes (recomendado).
+const carameloApiUrl = process.env.CARAMELO_API_URL;
+const carameloApiKey = process.env.CARAMELO_API_KEY;
+const resetBase = process.argv.includes('--reset');
+
+if (!supabaseUrl || !supabaseKey || !carameloApiUrl || !carameloApiKey) {
+    console.error("Faltam variáveis: SUPABASE_* e CARAMELO_API_URL/CARAMELO_API_KEY. Cheque .env.local.");
     process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// gemini-embedding-001 outputs 3072 dims by default; truncated to 768 to match
-// the nutrition_guidelines.embedding column (vector(768)).
-const EMBEDDING_MODEL = 'gemini-embedding-001';
+const EMBEDDING_MODEL = 'caramelo-embed';
 const EMBEDDING_DIMENSIONS = 768;
 
 async function embedText(text) {
-    const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent?key=${geminiApiKey}`,
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: `models/${EMBEDDING_MODEL}`,
-                content: { parts: [{ text }] },
-                outputDimensionality: EMBEDDING_DIMENSIONS,
-            }),
-        }
-    );
+    const res = await fetch(`${carameloApiUrl}/v1/embeddings`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${carameloApiKey}`,
+        },
+        body: JSON.stringify({
+            model: EMBEDDING_MODEL,
+            input: text,
+            dimensions: EMBEDDING_DIMENSIONS,
+        }),
+    });
     const data = await res.json();
     if (!res.ok) {
         throw new Error(data.error?.message || `HTTP ${res.status}`);
     }
-    return data.embedding.values;
+    return data.data[0].embedding;
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -133,6 +137,23 @@ async function main() {
     if (!fs.existsSync(curadoriaDir)) {
         console.log("Curadoria directory not found.");
         return;
+    }
+
+    // Re-embed limpo: remove os vetores antigos (Gemini) antes de regravar com
+    // Qwen. Sem isso, os .insert abaixo DUPLICAM as linhas.
+    if (resetBase) {
+        console.log("🧹 --reset: limpando nutrition_guidelines...");
+        const { error } = await supabase
+            .from('nutrition_guidelines')
+            .delete()
+            .neq('id', '00000000-0000-0000-0000-000000000000'); // apaga tudo
+        if (error) {
+            console.error("Erro ao limpar a base:", error.message);
+            process.exit(1);
+        }
+        console.log("✅ Base limpa.");
+    } else {
+        console.warn("⚠️  Rodando SEM --reset: as linhas serão adicionadas (pode duplicar). Use --reset para re-embed limpo.");
     }
 
     const categories = fs.readdirSync(curadoriaDir);

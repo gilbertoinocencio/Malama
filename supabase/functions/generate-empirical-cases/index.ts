@@ -32,42 +32,61 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
+const CARAMELO_API_URL = Deno.env.get('CARAMELO_API_URL') ?? '';
+const CARAMELO_API_KEY = Deno.env.get('CARAMELO_API_KEY') ?? '';
+
 const MIN_COHORT_SIZE = 3;        // k-anonimato
 const MIN_WEIGHT_LOGS = 2;
 const MIN_TRACKING_DAYS = 30;
-const EMBEDDING_MODEL = 'gemini-embedding-001';
+const EMBEDDING_MODEL = 'caramelo-embed';
 const EMBEDDING_DIMENSIONS = 768; // deve casar com empirical_cases.embedding vector(768)
-const TEXT_MODEL = 'gemini-2.5-flash';
+const GEMINI_TEXT_MODEL = 'gemini-2.5-flash'; // usado só no fallback
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
-// ─── Gemini ───────────────────────────────────────────────────────────────────
+// ─── LLM (Caramel + fallback Gemini para texto; embeddings SEM fallback) ──────
 
 async function embedText(text: string): Promise<number[]> {
-  const res = await fetch(`${GEMINI_BASE}/${EMBEDDING_MODEL}:embedContent?key=${GEMINI_API_KEY}`, {
+  // SEM fallback Gemini: vetor Gemini contra base re-embeddada com Qwen seria
+  // incompatível. Falha fechada — melhor abortar o caso do que gravar lixo.
+  const res = await fetch(`${CARAMELO_API_URL}/v1/embeddings`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: `models/${EMBEDDING_MODEL}`,
-      content: { parts: [{ text }] },
-      outputDimensionality: EMBEDDING_DIMENSIONS,
-    }),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${CARAMELO_API_KEY}` },
+    body: JSON.stringify({ model: EMBEDDING_MODEL, input: text, dimensions: EMBEDDING_DIMENSIONS }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error?.message || `embed HTTP ${res.status}`);
-  return data.embedding.values;
+  return data.data[0].embedding;
 }
 
 async function generateText(prompt: string): Promise<string> {
-  const res = await fetch(`${GEMINI_BASE}/${TEXT_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || `generate HTTP ${res.status}`);
-  const parts: any[] = data.candidates?.[0]?.content?.parts || [];
-  return parts.filter((p) => !p.thought && typeof p.text === 'string').map((p) => p.text).join('');
+  // Primário: Caramel (caramelo-auto). Fallback: Gemini.
+  try {
+    const res = await fetch(`${CARAMELO_API_URL}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${CARAMELO_API_KEY}` },
+      body: JSON.stringify({
+        model: 'caramelo-auto',
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    if (!res.ok) throw new Error(`Caramel HTTP ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content;
+    if (!text) throw new Error('Caramel devolveu resposta vazia');
+    return text;
+  } catch (caramelErr) {
+    console.warn('⚠️ Caramel falhou, fallback Gemini:', String(caramelErr));
+    const res = await fetch(`${GEMINI_BASE}/${GEMINI_TEXT_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || `generate HTTP ${res.status}`);
+    const parts: any[] = data.candidates?.[0]?.content?.parts || [];
+    return parts.filter((p) => !p.thought && typeof p.text === 'string').map((p) => p.text).join('');
+  }
 }
 
 // ─── Anonimização ─────────────────────────────────────────────────────────────
