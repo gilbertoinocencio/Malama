@@ -1000,7 +1000,9 @@ Quando o usuário estiver na Fase 1 de Adaptação (ou em qualquer fase inicial 
 5. Após o usuário escolher a alternativa, recalcule os macros totais da refeição e responda com o bloco <meal_json>
 
 **Quando o usuário confirmar uma escolha (ex: "quero a opção 1", "prefiro a 2", "pode ser a castanha"):**
-Responda com uma frase motivacional curta e inclua o bloco <meal_json> ao final:
+1. Releia SUA PRÓPRIA mensagem anterior (no histórico desta conversa) onde você listou as opções numeradas — a opção escolhida está lá, com nome, descrição e calorias estimadas.
+2. Preencha o <meal_json> com os dados REAIS daquela opção específica (nome do alimento/prato, itens que a compõem, calorias e macros). **NUNCA envie o bloco com valores zerados, vazios ou "dados insuficientes"** — se você sugeriu a opção, você já tem os dados dela; detalhe-os no formato de items.
+3. Responda com uma frase motivacional curta e inclua o bloco <meal_json> ao final:
 
 <meal_json>
 {
