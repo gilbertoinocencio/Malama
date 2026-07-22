@@ -2,6 +2,7 @@
 import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog, generateMealFeedback, MealFeedbackContext, getMealSlotLabel } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
+import { enviarFeedback } from '../lib/geminiProxy';
 import { userReportedWaterIntake, isBareQuantityAnswer } from '../utils/intakeDetection';
 
 import { MalamaAiScan } from './MalamaAiScan';
@@ -366,6 +367,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   const [editMode, setEditMode] = useState(false);
   const [editItems, setEditItems] = useState<MealItem[]>([]);
+  // Sinal implícito de qualidade para o Telê: se o usuário precisou EDITAR a
+  // análise da IA antes de salvar, a estimativa estava errada (👎); se
+  // confirmou direto, acertou (👍). Ref (não state) porque não afeta render.
+  const analiseFoiEditadaRef = useRef(false);
 
   // Confirm-before-close dialog
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -778,6 +783,15 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     if (!user || isLoggingRef.current) return;
     isLoggingRef.current = true;
 
+    // Sinal implícito de qualidade para o Telê (fire-and-forget): confirmar
+    // sem editar = a análise acertou; ter precisado editar = errou.
+    enviarFeedback(
+      data.idRequisicao,
+      analiseFoiEditadaRef.current ? 'negativo' : 'positivo',
+      analiseFoiEditadaRef.current ? 'usuário editou a análise antes de salvar' : undefined,
+    );
+    analiseFoiEditadaRef.current = false;
+
     // Always clear any pending draft before logging to prevent double-registration
     setDraftMeal(null);
     setLoading(true);
@@ -904,6 +918,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   // Discard everything and close
   const handleDiscardAndClose = () => {
+    // Descartar a análise é o sinal negativo mais forte que existe: a IA
+    // errou a ponto de o registro não valer a pena.
+    enviarFeedback(
+      (draftMeal ?? scanResult)?.idRequisicao,
+      'negativo',
+      'usuário descartou a análise',
+    );
+    analiseFoiEditadaRef.current = false;
     if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
     setScanResult(null);
     setScannedImageUri(null);
@@ -927,6 +949,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   const handleOpenEdit = () => {
     if (!draftMeal) return;
+    // O usuário abriu a edição = a análise da IA não estava boa o suficiente.
+    analiseFoiEditadaRef.current = true;
     setEditItems(draftMeal.items ? draftMeal.items.map((i: MealItem) => ({ ...i })) : []);
     setEditMode(true);
   };

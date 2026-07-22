@@ -208,7 +208,9 @@ ALL text responses MUST be in ${langName}.`;
 
     if (!jsonStr) throw new Error("Empty response");
 
-    return JSON.parse(cleanJsonString(jsonStr)) as AIResponse;
+    const analise = JSON.parse(cleanJsonString(jsonStr)) as AIResponse;
+    analise.idRequisicao = (result as { idRequisicao?: string | null }).idRequisicao ?? null;
+    return analise;
   } catch (error) {
     console.error("Gemini Text Error:", error);
     throw error;
@@ -361,7 +363,11 @@ ${MICRO_PROMPT_INSTRUCTIONS}
 ALL text MUST be in ${langName}.`;
 
     const result = await model.generateContent([prompt, { inlineData: { mimeType, data } }]);
-    return JSON.parse(result.response.text()) as AIResponse;
+    const analise = JSON.parse(result.response.text()) as AIResponse;
+    // Carrega o id da requisição para o sinal de feedback implícito
+    // (confirmou = 👍 / editou = 👎) no MealLogger.
+    analise.idRequisicao = (result as { idRequisicao?: string | null }).idRequisicao ?? null;
+    return analise;
   } catch (error) {
     console.error("Image Analysis Error:", error);
     throw error;

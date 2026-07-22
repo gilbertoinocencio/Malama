@@ -39,10 +39,32 @@ class ProxyGenerateContentResponse {
 
 class ProxyGenerateContentResult {
   response: ProxyGenerateContentResponse;
+  /** Id da requisição no Caramel — use com `enviarFeedback` para casar o
+   *  sinal de qualidade com a decisão de roteamento do Telê. */
+  idRequisicao: string | null;
 
   constructor(data: any) {
     this.response = new ProxyGenerateContentResponse(data);
+    this.idRequisicao = data?.idRequisicao ?? null;
   }
+}
+
+/**
+ * Envia um sinal de qualidade (👍/👎) para a requisição correspondente.
+ * Fire-and-forget: nunca lança nem bloqueia a UI — feedback é telemetria,
+ * não função do produto. Vira dado de treino do Telê (roteador do Caramel).
+ */
+export function enviarFeedback(
+  idRequisicao: string | null | undefined,
+  avaliacao: 'positivo' | 'negativo',
+  comentario?: string,
+): void {
+  if (!idRequisicao) return;
+  void supabase.functions
+    .invoke('gemini-proxy', {
+      body: { action: 'feedback', id_requisicao: idRequisicao, avaliacao, comentario },
+    })
+    .catch(() => {});
 }
 
 // ── Chat session ──────────────────────────────────────────────────────────────

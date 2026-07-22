@@ -101,11 +101,17 @@ function aplicarGenerationConfig(
 }
 
 // Resposta OpenAI → shape Gemini que o adaptador espera ({ candidates, text }).
-function respostaOpenAIParaGemini(data: any): { candidates: any[]; text: string } {
+// `idRequisicao` volta junto para o app poder enviar feedback depois
+// (POST /v1/feedback casa o sinal de qualidade com a decisão do Telê).
+function respostaOpenAIParaGemini(
+  data: any,
+): { candidates: any[]; text: string; idRequisicao: string | null } {
   const text = data?.choices?.[0]?.message?.content ?? '';
+  const id: string = data?.id ?? '';
   return {
     candidates: [{ content: { parts: [{ text }] } }],
     text,
+    idRequisicao: id ? id.replace(/^chatcmpl-/, '') : null,
   };
 }
 
@@ -221,6 +227,32 @@ Deno.serve(async (req: Request) => {
         // produziria similaridades sem sentido. Os services degradam para [].
         console.error('❌ Caramel embeddings falhou (sem fallback):', String(embedErr));
         return json({ error: 'Embeddings indisponível' }, 502);
+      }
+    }
+
+    // ── feedback (sinal de qualidade → treino do Telê) ────────────────
+    // Fire-and-forget do lado do app: nunca bloqueia a UI. Sem fallback —
+    // o Gemini não tem endpoint equivalente; se o Caramel estiver fora,
+    // o sinal se perde (aceitável: é telemetria, não função do produto).
+    if (action === 'feedback') {
+      const { id_requisicao, avaliacao, nota, comentario } = body;
+      if (!id_requisicao || (!avaliacao && !nota)) {
+        return json({ error: 'id_requisicao e (avaliacao|nota) são obrigatórios' }, 400);
+      }
+      try {
+        const res = await fetch(`${CARAMELO_API_URL}/v1/feedback`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${CARAMELO_API_KEY}`,
+          },
+          body: JSON.stringify({ id_requisicao, avaliacao, nota, comentario }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return json({ status: 'ok' });
+      } catch (err) {
+        console.warn('feedback não registrado:', String(err));
+        return json({ status: 'ignorado' });
       }
     }
 
