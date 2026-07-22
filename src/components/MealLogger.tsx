@@ -2,7 +2,7 @@
 import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog, generateMealFeedback, MealFeedbackContext, getMealSlotLabel } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
-import { enviarFeedback } from '../lib/geminiProxy';
+import { enviarFeedback, enviarCorrecao } from '../lib/geminiProxy';
 import { userReportedWaterIntake, isBareQuantityAnswer } from '../utils/intakeDetection';
 
 import { MalamaAiScan } from './MalamaAiScan';
@@ -955,10 +955,65 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     setEditMode(true);
   };
 
+  /**
+   * Compara a análise da IA com o que o usuário editou e envia a diferença
+   * ao Caramel. Só envia se algo mudou de fato — abrir a edição e sair sem
+   * alterar nada não é correção, e poluiria o dataset com ruído.
+   */
+  const registrarCorrecaoDaAnalise = (
+    analiseIA: AIResponse | null,
+    itensCorrigidos: MealItem[]
+  ) => {
+    if (!analiseIA?.idRequisicao) return;
+
+    const resumir = (itens: MealItem[]) => ({
+      itens: itens.map((i: MealItem) => ({
+        name: i.name,
+        weightGrams: i.weightGrams ?? null,
+        calories: i.calories ?? null,
+        protein: i.protein ?? null,
+        carbs: i.carbs ?? null,
+        fats: i.fats ?? null,
+      })),
+      calories: itens.reduce((s, i) => s + (i.calories || 0), 0),
+      protein: itens.reduce((s, i) => s + (i.protein || 0), 0),
+      carbs: itens.reduce((s, i) => s + (i.carbs || 0), 0),
+      fats: itens.reduce((s, i) => s + (i.fats || 0), 0),
+    });
+
+    const original = resumir(analiseIA.items || []);
+    const corrigido = resumir(itensCorrigidos);
+
+    const campos: string[] = [];
+    if (original.itens.length !== corrigido.itens.length) campos.push('items');
+    for (const campo of ['calories', 'protein', 'carbs', 'fats'] as const) {
+      if (Math.round(original[campo]) !== Math.round(corrigido[campo])) campos.push(campo);
+    }
+    // nomes/pesos alterados sem mudar o total também são correção válida
+    const nomesMudaram = original.itens.some(
+      (it, idx) => corrigido.itens[idx] && it.name !== corrigido.itens[idx].name
+    );
+    if (nomesMudaram && !campos.includes('items')) campos.push('items');
+
+    if (campos.length === 0) return; // nada mudou de verdade
+
+    enviarCorrecao(
+      analiseIA.idRequisicao,
+      'analise_refeicao_foto',
+      original,
+      corrigido,
+      campos
+    );
+  };
+
   const handleRecalculate = async () => {
     if (!editItems.length) return;
     setLoading(true);
     try {
+      // Antes de recalcular: registra O QUE a IA errou e QUAL era o certo.
+      // É o dado que faz o scan melhorar — muito mais rico que um 👎.
+      registrarCorrecaoDaAnalise(draftMeal, editItems);
+
       const description = editItems
         .map((i: MealItem) => `${i.quantity ? i.quantity + ' de ' : ''}${i.name}${i.weightGrams ? ' ' + i.weightGrams + 'g' : ''}`)
         .join(', ');

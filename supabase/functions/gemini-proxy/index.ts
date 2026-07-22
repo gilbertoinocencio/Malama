@@ -256,6 +256,31 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // ── correcao (o sinal mais rico: o que a IA errou E o que era certo) ──
+    // Vira dataset de few-shot/avaliação no Caramel (tele/correcoes.py) —
+    // é o que faz o scan ficar mais preciso com o uso.
+    if (action === 'correcao') {
+      const { id_requisicao, tarefa, original, corrigido, campos_alterados } = body;
+      if (!id_requisicao || !tarefa || !original || !corrigido) {
+        return json({ error: 'id_requisicao, tarefa, original e corrigido são obrigatórios' }, 400);
+      }
+      try {
+        const res = await fetch(`${CARAMELO_API_URL}/v1/correcao`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${CARAMELO_API_KEY}`,
+          },
+          body: JSON.stringify({ id_requisicao, tarefa, original, corrigido, campos_alterados }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return json({ status: 'ok' });
+      } catch (err) {
+        console.warn('correção não registrada:', String(err));
+        return json({ status: 'ignorado' });
+      }
+    }
+
     return json({ error: `Unknown action: ${action}` }, 400);
   } catch (err) {
     console.error('gemini-proxy unhandled error:', err);

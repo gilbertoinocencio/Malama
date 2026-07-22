@@ -67,6 +67,34 @@ export function enviarFeedback(
     .catch(() => {});
 }
 
+/**
+ * Registra uma CORREÇÃO do usuário sobre uma saída da IA — o par
+ * (o que a IA respondeu, o que era certo). Sinal muito mais rico que o 👍/👎:
+ * permite medir o viés do modelo (ex.: superestima calorias em 18%) e virar
+ * exemplo few-shot para a tarefa acertar mais. Fire-and-forget.
+ */
+export function enviarCorrecao(
+  idRequisicao: string | null | undefined,
+  tarefa: string,
+  original: Record<string, unknown>,
+  corrigido: Record<string, unknown>,
+  camposAlterados?: string[],
+): void {
+  if (!idRequisicao) return;
+  void supabase.functions
+    .invoke('gemini-proxy', {
+      body: {
+        action: 'correcao',
+        id_requisicao: idRequisicao,
+        tarefa,
+        original,
+        corrigido,
+        campos_alterados: camposAlterados,
+      },
+    })
+    .catch(() => {});
+}
+
 // ── Chat session ──────────────────────────────────────────────────────────────
 
 class ProxyChat {
