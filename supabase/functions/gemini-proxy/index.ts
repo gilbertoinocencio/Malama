@@ -128,7 +128,13 @@ async function chamarCaramelo(contents: any[], generationConfig: any): Promise<a
       body: JSON.stringify({ model: 'caramelo-auto', messages, ...extra }),
     });
     if (!res.ok) throw new Error(`Caramel HTTP ${res.status}: ${await res.text()}`);
-    return respostaOpenAIParaGemini(await res.json());
+    const traduzida = respostaOpenAIParaGemini(await res.json());
+    // Resposta vazia = falha (ex.: content null do provedor) → deixa o
+    // fallback Gemini assumir em vez de devolver texto vazio ao app.
+    if (!traduzida.text || !traduzida.text.trim()) {
+      throw new Error('Caramel devolveu resposta vazia');
+    }
+    return traduzida;
   } finally {
     clearTimeout(timer);
   }
