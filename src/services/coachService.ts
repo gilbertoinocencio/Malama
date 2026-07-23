@@ -340,6 +340,27 @@ export const CoachService = {
   },
 
   /**
+   * Whether the user already submitted today's check-in.
+   * Server-side source of truth (survives reload / device switch),
+   * so we never re-prompt after a check-in already exists for the day.
+   */
+  async hasCheckinToday(userId: string): Promise<boolean> {
+    const today = getLocalDateString();
+    const { data, error } = await supabase
+      .from('daily_checkins')
+      .select('checkin_date')
+      .eq('user_id', userId)
+      .eq('checkin_date', today)
+      .maybeSingle();
+
+    if (error) {
+      console.error('hasCheckinToday:', error);
+      return true; // fail closed: on error, don't nag the user
+    }
+    return !!data;
+  },
+
+  /**
    * Generate personalized feedback for check-in using AI
    */
   async generateCheckinFeedback(userId: string, checkinData: Partial<DailyCheckin>): Promise<string> {

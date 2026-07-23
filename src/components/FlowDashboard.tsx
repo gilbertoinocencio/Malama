@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { EngagementCard } from './dashboard/EngagementCard';
 import { DailyCheckinModal } from './DailyCheckinModal';
+import { CoachService } from '../services/coachService';
 import { DailyMealsList } from './DailyMealsList';
 import { getLocalDateString } from '../utils/dateUtils';
 import { getTodayConsultation, getDoctorMessage, getLatestGoalAdjustment } from '../lib/scheduling';
@@ -114,6 +115,34 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     creditService.getAvailableForUser(user.id)
       .then(credits => setHasAvailableCredit(credits.length > 0))
       .catch(() => { });
+  }, [user]);
+
+  // Daily check-in prompt: open the modal once per day so the psychosocial
+  // pulse (mood/energy/sleep 1–10) is actually collected. Without this the
+  // daily_checkins table stays empty and the doctor's mood card / trend
+  // alerts have nothing to show.
+  useEffect(() => {
+    if (!user) return;
+    const today = getLocalDateString(new Date());
+    const dismissKey = `checkin-prompt-dismissed:${user.id}:${today}`;
+    // Skip if the user already dismissed or completed the prompt today on this
+    // device — avoids a DB round-trip on every mount.
+    if (localStorage.getItem(dismissKey)) return;
+
+    let cancelled = false;
+    CoachService.hasCheckinToday(user.id)
+      .then(done => {
+        if (cancelled) return;
+        if (done) {
+          // Already checked in (possibly on another device) — remember locally.
+          localStorage.setItem(dismissKey, '1');
+          return;
+        }
+        setShowCheckinModal(true);
+      })
+      .catch(() => { });
+
+    return () => { cancelled = true; };
   }, [user]);
 
   // Realtime goals sync
@@ -1922,8 +1951,13 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
       {
         showCheckinModal && (
           <DailyCheckinModal
-            onClose={() => setShowCheckinModal(false)}
+            onClose={() => {
+              // Skipped for today — don't re-prompt on next mount.
+              if (user) localStorage.setItem(`checkin-prompt-dismissed:${user.id}:${getLocalDateString(new Date())}`, '1');
+              setShowCheckinModal(false);
+            }}
             onComplete={() => {
+              if (user) localStorage.setItem(`checkin-prompt-dismissed:${user.id}:${getLocalDateString(new Date())}`, '1');
               setShowCheckinModal(false);
               loadGameStats();
             }}
