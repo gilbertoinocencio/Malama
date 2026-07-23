@@ -15,26 +15,34 @@ interface Who5ModalProps {
 
 type Step = 'intro' | number | 'result'; // number = índice da pergunta (0–4)
 
+// Tempo em que a opção clicada fica destacada antes de avançar — dá o
+// feedback visual de "cliquei aqui" e evita que o usuário, vendo opções
+// idênticas em toda pergunta, clique de novo sem perceber que já mudou
+// de pergunta.
+const SELECTION_FEEDBACK_MS = 350;
+
 export const Who5Modal: React.FC<Who5ModalProps> = ({ onClose, onComplete }) => {
   const { user } = useAuth();
   const [step, setStep] = useState<Step>('intro');
   const [answers, setAnswers] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  // Opção clicada nesta pergunta, ainda não confirmada (acende antes de avançar)
+  const [pendingValue, setPendingValue] = useState<number | null>(null);
 
   const handleSkip = () => {
     if (user) PsychosocialService.snoozeWho5(user.id);
     onClose();
   };
 
-  const handleAnswer = async (value: number) => {
-    if (typeof step !== 'number' || submitting) return;
+  const advance = async (currentStep: number, value: number) => {
     const next = [...answers];
-    next[step] = value;
+    next[currentStep] = value;
     setAnswers(next);
+    setPendingValue(null);
 
-    if (step < WHO5_QUESTIONS.length - 1) {
-      setStep(step + 1);
+    if (currentStep < WHO5_QUESTIONS.length - 1) {
+      setStep(currentStep + 1);
       return;
     }
 
@@ -51,6 +59,15 @@ export const Who5Modal: React.FC<Who5ModalProps> = ({ onClose, onComplete }) => 
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleAnswer = (value: number) => {
+    if (typeof step !== 'number' || submitting || pendingValue !== null) return;
+    // Acende a opção clicada imediatamente; só avança depois do delay,
+    // para o clique ficar visualmente confirmado antes da troca de pergunta.
+    setPendingValue(value);
+    const currentStep = step;
+    setTimeout(() => advance(currentStep, value), SELECTION_FEEDBACK_MS);
   };
 
   const resultMessage = (s: number): string => {
@@ -153,28 +170,40 @@ export const Who5Modal: React.FC<Who5ModalProps> = ({ onClose, onComplete }) => 
               </div>
 
               <div className="space-y-2">
-                {WHO5_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => handleAnswer(opt.value)}
-                    disabled={submitting}
-                    className={`w-full py-3 px-4 rounded-2xl border-2 text-left text-sm font-medium
-                      transition-all active:scale-[0.98] disabled:opacity-50
-                      ${answers[questionIndex] === opt.value
-                        ? 'border-Malama-petrol dark:border-primary bg-Malama-petrol/5 dark:bg-primary/10 text-Malama-main dark:text-white'
-                        : 'border-Malama-border dark:border-white/10 text-Malama-main dark:text-gray-200 hover:border-Malama-petrol/50 dark:hover:border-primary/50'
-                      }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+                {WHO5_OPTIONS.map(opt => {
+                  const isSelected = pendingValue === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleAnswer(opt.value)}
+                      disabled={submitting || pendingValue !== null}
+                      className={`w-full py-3 px-4 rounded-2xl border-2 text-left text-sm font-medium
+                        transition-all duration-150 active:scale-[0.98]
+                        ${isSelected
+                          ? 'border-Malama-petrol dark:border-primary bg-Malama-petrol/15 dark:bg-primary/20 text-Malama-main dark:text-white scale-[0.98]'
+                          : 'border-Malama-border dark:border-white/10 text-Malama-main dark:text-gray-200 hover:border-Malama-petrol/50 dark:hover:border-primary/50'
+                        }
+                        ${pendingValue !== null && !isSelected ? 'opacity-40' : ''}
+                      `}
+                    >
+                      <span className="flex items-center justify-between">
+                        {opt.label}
+                        {isSelected && (
+                          <span className="material-symbols-outlined text-Malama-petrol dark:text-primary text-[20px]">
+                            check_circle
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               {questionIndex > 0 && (
                 <button
-                  onClick={() => setStep(questionIndex - 1)}
-                  disabled={submitting}
-                  className="flex items-center gap-1 text-sm text-Malama-muted dark:text-gray-400 hover:text-Malama-main dark:hover:text-gray-200 transition-colors"
+                  onClick={() => { setPendingValue(null); setStep(questionIndex - 1); }}
+                  disabled={submitting || pendingValue !== null}
+                  className="flex items-center gap-1 text-sm text-Malama-muted dark:text-gray-400 hover:text-Malama-main dark:hover:text-gray-200 transition-colors disabled:opacity-40"
                 >
                   <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                   Voltar

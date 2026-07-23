@@ -267,15 +267,6 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 justify-center bg-yellow-100 dark:bg-yellow-900/30 px-4 py-2 rounded-full inline-flex mx-auto">
-                <span className="material-symbols-outlined text-yellow-600 dark:text-yellow-400 text-[20px]">
-                  stars
-                </span>
-                <span className="text-sm font-bold text-yellow-700 dark:text-yellow-300">
-                  +15 XP ganhos!
-                </span>
-              </div>
-
               <button
                 onClick={handleFinish}
                 className="w-full py-4 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold
