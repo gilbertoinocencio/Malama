@@ -4,6 +4,7 @@ import { AIResponse, MealItem, MicroNutrients, Profile } from '../types';
 import { searchOpenFoodFacts, formatOFFBlock } from './openFoodFactsService';
 import { normalizeGender } from '../utils/bodyCompositionCalculators';
 import { NutritionKnowledgeService } from './nutritionKnowledgeService';
+import { sanitizeAiText } from '../utils/sanitizeAiText';
 
 /**
  * Deterministic meal-slot label from the device clock. Single source of truth for
@@ -499,7 +500,9 @@ Return JSON: {"message": "feedback here"}`;
 
     const result = await model.generateContent(prompt);
     const parsed = JSON.parse(cleanJsonString(result.response.text()));
-    return parsed.message || '';
+    // Rede de segurança: remove tokens CJK/cirílicos que o modelo às vezes injeta no
+    // meio do texto (os idiomas suportados — pt/en/es — usam só alfabeto latino).
+    return sanitizeAiText(parsed.message || '');
   } catch (error) {
     console.error("Meal feedback generation error:", error);
     return '';

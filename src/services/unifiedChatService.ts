@@ -6,6 +6,7 @@ import { WeightLogService, MeasurementSnapshotService } from './weightLogService
 import { userReportedWaterIntake, parseStatedMl, isPureWaterLog, mentionsQuantitySignal, mentionsFood, mentionsCalorieBeverage, WATER_MAX_ML } from '../utils/intakeDetection';
 import { normalizeGender } from '../utils/bodyCompositionCalculators';
 import { NutritionKnowledgeService } from './nutritionKnowledgeService';
+import { sanitizeAiText } from '../utils/sanitizeAiText';
 
 const genAI = new GeminiProxy();
 const MODEL_NAME = "gemini-2.5-flash";
@@ -754,6 +755,7 @@ ${context.latestBodySnapshot.chest_cm ? `- **Peitoral:** ${context.latestBodySna
 3. **Registro = resposta curta** (1–2 frases); dúvida = ensino conciso. Nunca um bloco longo de texto corrido.
 4. **Você não executa mudanças no sistema** — não altera metas, perfil nem prescrição médica; orienta e encaminha (ver LIMITAÇÕES DE AÇÃO).
 5. **Contratos de dados:** emita <meal_json> / <water_json> / <dose_json> SOMENTE quando o usuário relatar ingestão/aplicação REAL e já ocorrida, no formato exato e uma única vez (ver regras de registro abaixo).
+6. **Idioma:** responda SEMPRE e EXCLUSIVAMENTE em **português do Brasil**. É TERMINANTEMENTE PROIBIDO usar qualquer caractere chinês, japonês, coreano ou cirílico — nem uma única palavra, nem no meio de uma frase. Use apenas o alfabeto latino, acentos do português, números e emojis. Se precisar de um termo técnico, escreva-o em português (ex.: "colesterol", nunca "胆固醇").
 
 ## PERFIL COMPLETO DO PACIENTE
 - **Gênero:** ${gender}
@@ -1209,6 +1211,11 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
         .replace(/\[thinking\][\s\S]*?\[\/thinking\]/gi, '')
         .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
         .trim();
+
+      // Rede de segurança: o gemini-2.5-flash às vezes injeta tokens em chinês/japonês/
+      // coreano/cirílico no meio do português (ex.: "o胆固醇 da gema"). A regra no prompt
+      // reduz, mas não zera; aqui removemos qualquer resquício antes de exibir ao usuário.
+      text = sanitizeAiText(text);
 
       // Re-append rescued blocks if they ended up only inside thinking
       if (savedMeal  && !text.includes('<meal_json>'))  text += `\n${savedMeal}`;
