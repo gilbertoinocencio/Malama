@@ -8,7 +8,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { EngagementCard } from './dashboard/EngagementCard';
 import { DailyCheckinModal } from './DailyCheckinModal';
+import { Who5Modal } from './Who5Modal';
 import { CoachService } from '../services/coachService';
+import { PsychosocialService } from '../services/psychosocialService';
 import { DailyMealsList } from './DailyMealsList';
 import { getLocalDateString } from '../utils/dateUtils';
 import { getTodayConsultation, getDoctorMessage, getLatestGoalAdjustment } from '../lib/scheduling';
@@ -60,6 +62,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const waterGoalState = stats.waterGoal ?? 0;
   const [weeklyScores, setWeeklyScores] = useState<{ date: string, score: number }[]>([]);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
+  const [showWho5Modal, setShowWho5Modal] = useState(false);
   const [showMicros, setShowMicros] = useState(false);
   const [weeklyMetrics, setWeeklyMetrics] = useState<{
     avgCalories: number;
@@ -121,7 +124,7 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   // pulse (mood/energy/sleep 1–10) is actually collected. Without this the
   // daily_checkins table stays empty and the doctor's mood card / trend
   // alerts have nothing to show.
-  useEffect(() => {
+  const maybePromptDailyCheckin = React.useCallback(async () => {
     if (!user) return;
     const today = getLocalDateString(new Date());
     const dismissKey = `checkin-prompt-dismissed:${user.id}:${today}`;
@@ -129,21 +132,32 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     // device — avoids a DB round-trip on every mount.
     if (localStorage.getItem(dismissKey)) return;
 
-    let cancelled = false;
-    CoachService.hasCheckinToday(user.id)
-      .then(done => {
-        if (cancelled) return;
-        if (done) {
-          // Already checked in (possibly on another device) — remember locally.
-          localStorage.setItem(dismissKey, '1');
-          return;
-        }
-        setShowCheckinModal(true);
-      })
-      .catch(() => { });
-
-    return () => { cancelled = true; };
+    const done = await CoachService.hasCheckinToday(user.id).catch(() => true);
+    if (done) {
+      // Already checked in (possibly on another device) — remember locally.
+      localStorage.setItem(dismissKey, '1');
+      return;
+    }
+    setShowCheckinModal(true);
   }, [user]);
+
+  // On app open, at most ONE prompt: the monthly WHO-5 has priority (rarer,
+  // feeds the aggregated psychosocial report); the daily check-in runs right
+  // after the WHO-5 closes, or immediately when WHO-5 isn't due.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const who5Due = await PsychosocialService.shouldPromptWho5(user.id);
+      if (cancelled) return;
+      if (who5Due) {
+        setShowWho5Modal(true);
+        return; // check-in diário roda no onClose/onComplete do WHO-5
+      }
+      maybePromptDailyCheckin();
+    })();
+    return () => { cancelled = true; };
+  }, [user, maybePromptDailyCheckin]);
 
   // Realtime goals sync
   useEffect(() => {
@@ -1946,6 +1960,23 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
           </button>
         </div>
       </main >
+
+      {/* WHO-5 mensal (prioridade sobre o check-in diário) */}
+      {
+        showWho5Modal && (
+          <Who5Modal
+            onClose={() => {
+              // Snooze de 7 dias já gravado pelo modal — segue pro check-in do dia
+              setShowWho5Modal(false);
+              maybePromptDailyCheckin();
+            }}
+            onComplete={() => {
+              setShowWho5Modal(false);
+              maybePromptDailyCheckin();
+            }}
+          />
+        )
+      }
 
       {/* Daily Check-in Modal */}
       {

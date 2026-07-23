@@ -36,6 +36,8 @@ export const RhDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
+  const [setor, setSetor] = useState('');
+  const [funcao, setFuncao] = useState('');
   const [adding, setAdding] = useState(false);
   const [resending, setResending] = useState<string | null>(null);
 
@@ -72,7 +74,7 @@ export const RhDashboard: React.FC = () => {
 
     setAdding(true);
     try {
-      const res = await rhService.inviteColaborador(value, nomeValue);
+      const res = await rhService.inviteColaborador(value, nomeValue, setor.trim(), funcao.trim());
       if (res.existing) {
         toast.success(
           res.emailed
@@ -88,6 +90,8 @@ export const RhDashboard: React.FC = () => {
       }
       setEmail('');
       setNome('');
+      setSetor('');
+      setFuncao('');
       await load();
     } catch (err: any) {
       toast.error(err?.message || 'Não foi possível adicionar o colaborador.');
@@ -124,9 +128,11 @@ export const RhDashboard: React.FC = () => {
   };
 
   const exportCsv = () => {
-    const header = ['email', 'status', 'data_adicao', 'data_ativacao'];
+    const header = ['email', 'setor', 'funcao', 'status', 'data_adicao', 'data_ativacao'];
     const rows = colaboradores.map(c => [
       c.email,
+      c.setor ?? '',
+      c.funcao ?? '',
       c.status,
       c.data_adicao ? new Date(c.data_adicao).toISOString().slice(0, 10) : '',
       c.data_ativacao ? new Date(c.data_ativacao).toISOString().slice(0, 10) : '',
@@ -257,34 +263,49 @@ export const RhDashboard: React.FC = () => {
           <UserPlus className="w-5 h-5 text-[#7d4a3c]" />
           <h2 className="font-semibold text-gray-800">Adicionar colaborador</h2>
         </div>
-        <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <form onSubmit={handleAdd} className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="relative">
+              <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text" value={nome} onChange={e => setNome(e.target.value)}
+                placeholder="Nome do colaborador"
+                disabled={cheio || empresa.status !== 'ativa'}
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
+              />
+            </div>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="email@colaborador.com"
+                disabled={cheio || empresa.status !== 'ativa'}
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
+              />
+            </div>
             <input
-              type="text" value={nome} onChange={e => setNome(e.target.value)}
-              placeholder="Nome do colaborador"
+              type="text" value={setor} onChange={e => setSetor(e.target.value)}
+              placeholder="Setor (ex.: Operações) — opcional"
               disabled={cheio || empresa.status !== 'ativa'}
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
             />
-          </div>
-          <div className="relative flex-1">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
-              type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="email@colaborador.com"
+              type="text" value={funcao} onChange={e => setFuncao(e.target.value)}
+              placeholder="Função (ex.: Analista) — opcional"
               disabled={cheio || empresa.status !== 'ativa'}
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
             />
           </div>
           <button
             type="submit" disabled={adding || cheio || empresa.status !== 'ativa'}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50 whitespace-nowrap"
+            className="self-start flex items-center justify-center gap-2 px-5 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50 whitespace-nowrap"
           >
             {adding ? 'Adicionando...' : 'Adicionar'}
           </button>
         </form>
         <p className="text-xs text-gray-500 mt-2">
           Se o colaborador já tem conta Malama, o acesso é vinculado na hora. Caso contrário, ele recebe um convite por e-mail.
+          Setor e função alimentam os relatórios agregados de bem-estar (nunca identificam respostas individuais).
         </p>
       </div>
 
@@ -318,6 +339,7 @@ export const RhDashboard: React.FC = () => {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">E-mail</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Setor</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Adicionado</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Ativado</th>
@@ -328,6 +350,9 @@ export const RhDashboard: React.FC = () => {
                 {colaboradores.map(c => (
                   <tr key={c.id} className="hover:bg-gray-50 transition">
                     <td className="px-4 py-3 text-sm text-gray-800">{c.email}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">
+                      {c.setor || '—'}{c.funcao ? ` · ${c.funcao}` : ''}
+                    </td>
                     <td className="px-4 py-3 text-center"><ColabStatusBadge status={c.status} /></td>
                     <td className="px-4 py-3 text-xs text-gray-500 hidden sm:table-cell">{fmtDate(c.data_adicao)}</td>
                     <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{fmtDate(c.data_ativacao)}</td>

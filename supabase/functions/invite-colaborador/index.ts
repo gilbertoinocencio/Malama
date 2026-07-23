@@ -33,11 +33,16 @@ Deno.serve(async (req: Request) => {
   if (!authHeader) return json({ error: 'Não autorizado' }, 401);
 
   try {
-    const { email, nome, redirect_to } = await req.json();
+    const { email, nome, setor, funcao, redirect_to } = await req.json();
     if (!email) return json({ error: 'E-mail é obrigatório' }, 400);
 
     const normalizedEmail = String(email).trim().toLowerCase();
     const displayName = nome ? String(nome).trim() : '';
+    // Setor/função alimentam os recortes k-anônimos do relatório psicossocial
+    // do RH (NR-1/PGR). Opcionais — sem eles o colaborador entra no agregado
+    // geral da empresa.
+    const setorValue = setor ? String(setor).trim() || null : null;
+    const funcaoValue = funcao ? String(funcao).trim() || null : null;
 
     // 1. Identificar o RH chamador e a empresa dele
     const { data: caller } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
@@ -100,6 +105,8 @@ Deno.serve(async (req: Request) => {
           user_id: existingUserId,
           email: normalizedEmail,
           status: 'convidado',
+          setor: setorValue,
+          funcao: funcaoValue,
         }]);
       if (insErr) return json({ error: insErr.message }, 400);
 
@@ -121,6 +128,8 @@ Deno.serve(async (req: Request) => {
         empresa_id: empresaId,
         email: normalizedEmail,
         status: 'convidado',
+        setor: setorValue,
+        funcao: funcaoValue,
       }]);
     if (insErr) return json({ error: insErr.message }, 400);
 
