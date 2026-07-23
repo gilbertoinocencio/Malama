@@ -7,7 +7,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Users, UserPlus, Trash2, Download, Mail, AlertCircle,
-  CheckCircle2, Clock, Building2, Calendar, Send,
+  CheckCircle2, Clock, Building2, Calendar, Send, Brain,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { rhService, type RhEmpresa, type EmpresaColaborador } from '../../services/empresaService';
@@ -40,13 +40,22 @@ export const RhDashboard: React.FC = () => {
   const [funcao, setFuncao] = useState('');
   const [adding, setAdding] = useState(false);
   const [resending, setResending] = useState<string | null>(null);
+  const [psi, setPsi] = useState<{ plano_ativo: boolean; max_assentos: number; assentos_em_uso: number } | null>(null);
+  const [togglingPsi, setTogglingPsi] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const emp = await rhService.getMyEmpresa();
       setEmpresa(emp);
-      if (emp) setColaboradores(await rhService.getColaboradores(emp.id));
+      if (emp) {
+        const [colabs, resumoPsi] = await Promise.all([
+          rhService.getColaboradores(emp.id),
+          rhService.getResumoPsicologico(),
+        ]);
+        setColaboradores(colabs);
+        setPsi(resumoPsi);
+      }
     } catch (err) {
       console.error('Erro ao carregar painel do RH:', err);
       toast.error('Erro ao carregar dados.');
@@ -97,6 +106,25 @@ export const RhDashboard: React.FC = () => {
       toast.error(err?.message || 'Não foi possível adicionar o colaborador.');
     } finally {
       setAdding(false);
+    }
+  };
+
+  const psiCheio = psi ? psi.assentos_em_uso >= psi.max_assentos : false;
+
+  const handleTogglePsi = async (c: EmpresaColaborador) => {
+    const ativar = !c.plano_psicologico;
+    if (ativar && psiCheio) { toast.error('Limite de assentos psicológicos atingido.'); return; }
+    setTogglingPsi(c.id);
+    try {
+      const res = await rhService.alocarPsicologo(c.id, ativar);
+      if (!res.ok) { toast.error(res.error || 'Não foi possível atualizar.'); return; }
+      setColaboradores(prev => prev.map(x => x.id === c.id ? { ...x, plano_psicologico: ativar } : x));
+      setPsi(prev => prev ? { ...prev, assentos_em_uso: prev.assentos_em_uso + (ativar ? 1 : -1) } : prev);
+      toast.success(ativar ? 'Acesso psicológico liberado.' : 'Acesso psicológico removido.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao atualizar acesso psicológico.');
+    } finally {
+      setTogglingPsi(null);
     }
   };
 
@@ -257,6 +285,27 @@ export const RhDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* ── Plano psicológico (se ativo) ── */}
+      {psi?.plano_ativo && (
+        <div className="bg-white rounded-xl shadow p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Brain className="w-5 h-5 text-[#7d4a3c]" />
+            <h2 className="font-semibold text-gray-800">Plano psicológico</h2>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">
+            Sua empresa contratou consultas com psicólogos. Escolha, na lista de colaboradores
+            abaixo, quem terá acesso a esse benefício adicional.
+          </p>
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-gray-600">
+              Assentos psicológicos: <strong className="text-[#7d4a3c]">{psi.assentos_em_uso}</strong>
+              {' / '}{psi.max_assentos}
+            </span>
+            {psiCheio && <span className="text-xs text-amber-600">Limite atingido</span>}
+          </div>
+        </div>
+      )}
+
       {/* ── Adicionar colaborador ── */}
       <div className="bg-white rounded-xl shadow p-5">
         <div className="flex items-center gap-2 mb-3">
@@ -343,6 +392,9 @@ export const RhDashboard: React.FC = () => {
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Adicionado</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Ativado</th>
+                  {psi?.plano_ativo && (
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Psi</th>
+                  )}
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
                 </tr>
               </thead>
@@ -356,6 +408,22 @@ export const RhDashboard: React.FC = () => {
                     <td className="px-4 py-3 text-center"><ColabStatusBadge status={c.status} /></td>
                     <td className="px-4 py-3 text-xs text-gray-500 hidden sm:table-cell">{fmtDate(c.data_adicao)}</td>
                     <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{fmtDate(c.data_ativacao)}</td>
+                    {psi?.plano_ativo && (
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => handleTogglePsi(c)}
+                          disabled={togglingPsi === c.id || (!c.plano_psicologico && psiCheio)}
+                          title={c.plano_psicologico ? 'Remover acesso psicológico' : 'Liberar acesso psicológico'}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition disabled:opacity-40 ${
+                            c.plano_psicologico ? 'bg-[#7d4a3c]' : 'bg-gray-300'
+                          }`}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition ${
+                            c.plano_psicologico ? 'translate-x-5' : 'translate-x-1'
+                          }`} />
+                        </button>
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         {c.status === 'convidado' && (

@@ -60,6 +60,9 @@ type EmpresaForm = {
   responsavel_telefone: string;
   valor_por_assento: string;
   max_assentos: string;
+  plano_psicologico: boolean;
+  valor_assento_psi: string;
+  max_assentos_psi: string;
   status: Empresa['status'];
   data_inicio: string;
   rh_password: string; // apenas na criação
@@ -68,6 +71,7 @@ type EmpresaForm = {
 const EMPTY_FORM: EmpresaForm = {
   nome: '', cnpj: '', responsavel_nome: '', responsavel_email: '',
   responsavel_telefone: '', valor_por_assento: '', max_assentos: '',
+  plano_psicologico: false, valor_assento_psi: '', max_assentos_psi: '',
   status: 'ativa', data_inicio: new Date().toISOString().slice(0, 10), rh_password: '',
 };
 
@@ -86,6 +90,9 @@ const EmpresaModal: React.FC<{
           responsavel_telefone: initial.responsavel_telefone ?? '',
           valor_por_assento: initial.valor_por_assento != null ? String(initial.valor_por_assento) : '',
           max_assentos: initial.max_assentos != null ? String(initial.max_assentos) : '',
+          plano_psicologico: initial.plano_psicologico ?? false,
+          valor_assento_psi: initial.valor_assento_psi != null ? String(initial.valor_assento_psi) : '',
+          max_assentos_psi: initial.max_assentos_psi != null ? String(initial.max_assentos_psi) : '',
           status: initial.status,
           data_inicio: initial.data_inicio ?? '',
           rh_password: '',
@@ -225,6 +232,43 @@ const EmpresaModal: React.FC<{
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
               />
             </div>
+
+            {/* ── Plano psicológico (upsell) ── */}
+            <div className="col-span-2 border-t border-gray-100 pt-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox" checked={form.plano_psicologico}
+                  onChange={e => set('plano_psicologico', e.target.checked)}
+                  className="w-4 h-4 rounded accent-[#7d4a3c]"
+                />
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Plano psicológico (upsell)
+                </span>
+              </label>
+            </div>
+
+            {form.plano_psicologico && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Valor por assento psi (R$)</label>
+                  <input
+                    type="number" min="0" step="0.01" value={form.valor_assento_psi}
+                    onChange={e => set('valor_assento_psi', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+                    placeholder="79.90"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Máx. de assentos psi</label>
+                  <input
+                    type="number" min="0" step="1" value={form.max_assentos_psi}
+                    onChange={e => set('max_assentos_psi', e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+                    placeholder="20"
+                  />
+                </div>
+              </>
+            )}
 
             {initial && (
               <div>
@@ -476,6 +520,10 @@ export const AdminEmpresas: React.FC = () => {
       responsavel_telefone: form.responsavel_telefone || null,
       valor_por_assento: form.valor_por_assento ? parseFloat(form.valor_por_assento) : null,
       max_assentos: form.max_assentos ? parseInt(form.max_assentos, 10) : null,
+      // Plano psicológico (upsell): ativado/editado aqui, não na criação da empresa
+      plano_psicologico: form.plano_psicologico,
+      valor_assento_psi: form.plano_psicologico && form.valor_assento_psi ? parseFloat(form.valor_assento_psi) : null,
+      max_assentos_psi: form.plano_psicologico && form.max_assentos_psi ? parseInt(form.max_assentos_psi, 10) : null,
       status: form.status,
       data_inicio: form.data_inicio || null,
     });

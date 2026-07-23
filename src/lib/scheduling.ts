@@ -38,7 +38,7 @@ export interface Consultation {
   rating: number | null;
   rating_comment: string | null;
   consent_at: string | null;
-  doctors?: { name: string; specialty: string; crm: string };
+  doctors?: { name: string; specialty: string; crm: string; tipo_profissional?: string };
   reschedule_proposals?: { date: string }[] | null;
   reschedule_message?: string | null;
   reschedule_status?: 'pending' | 'accepted' | 'rejected' | null;
@@ -77,8 +77,11 @@ function generateSlots(
   return slots;
 }
 
-export async function getAvailableDoctors(objective?: string): Promise<Doctor[]> {
-  console.log('🔍 [scheduling.ts] Buscando médicos disponíveis...', objective ? `objetivo: ${objective}` : '');
+export async function getAvailableDoctors(
+  objective?: string,
+  tipoProfissional?: 'medico' | 'psicologo',
+): Promise<Doctor[]> {
+  console.log('🔍 [scheduling.ts] Buscando profissionais disponíveis...', objective ? `objetivo: ${objective}` : '', tipoProfissional ?? '');
 
   let query = supabase
     .from('doctors')
@@ -86,7 +89,16 @@ export async function getAvailableDoctors(objective?: string): Promise<Doctor[]>
     .eq('status', 'approved')
     .order('rating', { ascending: false });
 
-  if (objective) {
+  // Filtro por tipo (upsell psicológico). Sem o filtro → todos (compat.).
+  // 'medico' inclui registros legados sem tipo_profissional (null = médico).
+  if (tipoProfissional === 'psicologo') {
+    query = query.eq('tipo_profissional', 'psicologo');
+  } else if (tipoProfissional === 'medico') {
+    query = query.or('tipo_profissional.eq.medico,tipo_profissional.is.null');
+  }
+
+  // Objetivo só se aplica ao fluxo médico (psicólogo não usa esses objetivos)
+  if (objective && tipoProfissional !== 'psicologo') {
     query = query.contains('objectives', [objective]);
   }
 
@@ -318,7 +330,7 @@ export async function bookConsultation(params: {
 export async function getPatientConsultations(patientId: string): Promise<Consultation[]> {
   const { data, error } = await supabase
     .from('consultations')
-    .select('*, doctors(name, specialty, crm)')
+    .select('*, doctors(name, specialty, crm, tipo_profissional)')
     .eq('patient_id', patientId)
     .order('scheduled_at', { ascending: false });
 

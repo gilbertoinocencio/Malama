@@ -428,7 +428,7 @@ export const MinhasConsultas: React.FC<MinhasConsultasProps> = ({ onBack, onEnte
                           </p>
                         )
                       )}
-                      {c.status === 'completed' && activeChats.has(c.id) && (() => {
+                      {c.status === 'completed' && (c.doctors as any)?.tipo_profissional !== 'psicologo' && activeChats.has(c.id) && (() => {
                         const ch = activeChats.get(c.id)!;
                         const days = Math.max(0, Math.ceil((new Date(ch.expires_at).getTime() - Date.now()) / 86_400_000));
                         return (

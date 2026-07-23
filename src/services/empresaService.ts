@@ -28,6 +28,10 @@ export type Empresa = {
   bloqueio_motivo?: string | null;
   cobranca_email?: string | null;
   cobranca_responsavel?: string | null;
+  // Plano psicológico — upsell B2B (migration 20260723)
+  plano_psicologico?: boolean;
+  valor_assento_psi?: number | null;
+  max_assentos_psi?: number | null;
 };
 
 export type EmpresaSummary = Empresa & {
@@ -74,6 +78,8 @@ export type EmpresaColaborador = {
   // Recortes do relatório psicossocial k-anônimo (NR-1/PGR). Opcionais.
   setor: string | null;
   funcao: string | null;
+  // Plano psicológico (upsell): RH alocou este colaborador?
+  plano_psicologico?: boolean;
 };
 
 export type EmpresaLead = {
@@ -462,6 +468,42 @@ export type ComplianceDoc = {
   created_at: string;
 };
 
+// ── Relatório psicossocial WHO-5 (agregado, k-anônimo) ──
+export type PsychosocialGeral =
+  | { n_respondentes: number; score_medio: number; faixa_reduzido: number; faixa_risco: number; suprimido?: false }
+  | { n_respondentes: number; suprimido: true };
+
+export type PsychosocialSetor = {
+  setor: string;
+  n_respondentes: number;
+  score_medio: number;
+  faixa_reduzido: number;
+  faixa_risco: number;
+};
+
+export type RhRelatorioPsicossocial = {
+  empresa_id: string;
+  empresa_nome: string;
+  empresa_cnpj: string | null;
+  periodo_inicio: string;
+  periodo_fim: string;
+  k_min: number;
+  geral: PsychosocialGeral;
+  setores: PsychosocialSetor[];
+  setores_suprimidos: number;
+};
+
+// Linha do certificado de disponibilização (sem dados de uso)
+export type CertificadoColaborador = {
+  colaborador_id: string;
+  nome: string;
+  setor: string | null;
+  funcao: string | null;
+  data_adicao: string;
+  data_ativacao: string | null;
+  status: ColaboradorStatus;
+};
+
 export type RhResumoFinanceiro = {
   empresa_id: string;
   nome: string;
@@ -603,6 +645,48 @@ export const rhService = {
     const { data, error } = await supabase.rpc('rh_evolucao_bemestar');
     if (error) { console.error('[rhService] evolução bem-estar:', error.message); return []; }
     return (data ?? []) as RhEvolucaoBemestar[];
+  },
+
+  // Relatório psicossocial WHO-5 agregado e k-anônimo (mín. 5 respondentes
+  // por recorte, corte feito no banco). Nunca traz dado individual.
+  // Tolerante a erro: a RPC só existe após a migration 20260723.
+  async getRelatorioPsicossocial(inicio: string, fim: string): Promise<RhRelatorioPsicossocial | null> {
+    const { data, error } = await supabase.rpc('rh_relatorio_psicossocial', {
+      p_inicio: inicio,
+      p_fim: fim,
+    });
+    if (error) { console.error('[rhService] relatório psicossocial:', error.message); return null; }
+    return (data ?? null) as RhRelatorioPsicossocial | null;
+  },
+
+  // Colaboradores para o certificado de disponibilização (nome + data de
+  // ativação; NUNCA dados de uso). Tolerante a erro: RPC só existe após a
+  // migration 20260723_certificado_disponibilizacao.
+  async getCertificadoColaboradores(): Promise<CertificadoColaborador[]> {
+    const { data, error } = await supabase.rpc('rh_certificado_colaboradores');
+    if (error) { console.error('[rhService] certificado colaboradores:', error.message); return []; }
+    return (data ?? []) as CertificadoColaborador[];
+  },
+
+  // ── Plano psicológico (upsell) ──────────────────────
+  // Resumo dos assentos psi da empresa (plano ativo, contratados, em uso).
+  // Tolerante a erro: RPC só existe após 20260723_rh_alocar_psicologo.
+  async getResumoPsicologico(): Promise<{ plano_ativo: boolean; max_assentos: number; assentos_em_uso: number } | null> {
+    const { data, error } = await supabase.rpc('rh_resumo_psicologico');
+    if (error) { console.error('[rhService] resumo psicológico:', error.message); return null; }
+    const row = Array.isArray(data) ? data[0] : data;
+    return row ?? null;
+  },
+
+  // Liga/desliga o acesso psicológico de um colaborador. A RPC valida
+  // empresa, plano ativo e limite de assentos.
+  async alocarPsicologo(colaboradorId: string, ativar: boolean): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_alocar_psicologo', {
+      p_colaborador_id: colaboradorId,
+      p_ativar: ativar,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
   },
 
   async getComplianceDocs(): Promise<ComplianceDoc[]> {

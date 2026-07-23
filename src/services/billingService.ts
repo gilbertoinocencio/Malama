@@ -10,6 +10,7 @@ import type {
   SubscriptionPlan,
   ConsultationCredit,
   CreditStatus,
+  CreditEspecialidade,
   CreditAdminLog,
   SubscriptionWithUser,
   CreditWithDetails,
@@ -142,10 +143,12 @@ export const subscriptionService = {
 // ─── creditService ────────────────────────────────────────────────────────────
 
 export const creditService = {
-  /** Cria um crédito disponível para o mês corrente */
+  /** Cria um crédito disponível para o mês corrente.
+   *  especialidade default 'medico' (plano base); 'psicologo' para o upsell. */
   async createForCurrentMonth(
     userId: string,
-    subscriptionId: string
+    subscriptionId: string,
+    especialidade: CreditEspecialidade = 'medico'
   ): Promise<ConsultationCredit> {
     const monthRef = currentMonthRef(); // apenas rótulo/relatório
     const expiresAt = rollingExpiry();  // 30 dias a partir de agora
@@ -156,6 +159,7 @@ export const creditService = {
         user_id: userId,
         subscription_id: subscriptionId,
         status: 'disponivel' as CreditStatus,
+        especialidade,
         month_reference: monthRef,
         expires_at: expiresAt,
       }])
@@ -169,16 +173,23 @@ export const creditService = {
   /** Retorna créditos ativos (disponivel/agendada) e ainda válidos do usuário.
    *  Sob janela rolante de 30 dias o filtro é por status + validade, não por
    *  mês-calendário (um crédito de 17/jan continua válido em 01/fev). */
-  async getAvailableForUser(userId: string): Promise<ConsultationCredit[]> {
+  async getAvailableForUser(
+    userId: string,
+    especialidade?: CreditEspecialidade
+  ): Promise<ConsultationCredit[]> {
     const now = new Date().toISOString();
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('consultation_credits')
       .select('*')
       .eq('user_id', userId)
       .in('status', ['disponivel', 'agendada'])
-      .gt('expires_at', now)
-      .order('created_at', { ascending: false });
+      .gt('expires_at', now);
+
+    // Sem especialidade → comportamento antigo (todos os créditos do usuário).
+    if (especialidade) query = query.eq('especialidade', especialidade);
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -232,7 +243,7 @@ export const creditService = {
   ): Promise<{ creditLost: boolean }> {
     const { data: credit, error: fetchError } = await supabase
       .from('consultation_credits')
-      .select('user_id, subscription_id, month_reference, expires_at, late_cancellations_count')
+      .select('user_id, subscription_id, especialidade, month_reference, expires_at, late_cancellations_count')
       .eq('id', creditId)
       .single();
 
@@ -259,6 +270,8 @@ export const creditService = {
       await supabase.from('consultation_credits').insert([{
         user_id: credit.user_id,
         subscription_id: credit.subscription_id,
+        // Preserva a especialidade: reagendar um crédito psi não pode rebaixá-lo a médico.
+        especialidade: credit.especialidade,
         status: 'disponivel' as CreditStatus,
         month_reference: credit.month_reference,
         expires_at: credit.expires_at,
@@ -304,6 +317,8 @@ export const creditService = {
       await supabase.from('consultation_credits').insert([{
         user_id: credit.user_id,
         subscription_id: credit.subscription_id,
+        // Preserva a especialidade também na remarcação única pós-falta.
+        especialidade: credit.especialidade,
         status: 'disponivel' as CreditStatus,
         month_reference: credit.month_reference,
         expires_at: newExpiry,

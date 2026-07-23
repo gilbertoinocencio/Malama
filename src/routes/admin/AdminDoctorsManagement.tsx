@@ -483,13 +483,27 @@ export const AdminDoctorsManagement: React.FC = () => {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-gray-800">{doctor.name}</p>
-                            <p className="text-xs text-gray-500 md:hidden">{doctor.crm}/{doctor.crm_state}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-gray-800">{doctor.name}</p>
+                              {doctor.tipo_profissional === 'psicologo' && (
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">
+                                  Psicólogo
+                                </span>
+                              )}
+                            </div>
+                            {doctor.tipo_profissional === 'psicologo' && (
+                              <p className={`text-[11px] mt-0.5 ${doctor.epsi_ativo ? 'text-green-600' : 'text-amber-600'}`}>
+                                {doctor.epsi_ativo ? '✓ e-Psi declarado' : '⚠ e-Psi não declarado'}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500 md:hidden">
+                              {doctor.conselho_tipo ?? 'CRM'} {doctor.conselho_numero ?? doctor.crm}/{doctor.conselho_uf ?? doctor.crm_state}
+                            </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
-                        {doctor.crm}/{doctor.crm_state}
+                        {doctor.conselho_tipo ?? 'CRM'} {doctor.conselho_numero ?? doctor.crm}/{doctor.conselho_uf ?? doctor.crm_state}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
                         {doctor.specialty}

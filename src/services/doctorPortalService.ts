@@ -2525,13 +2525,15 @@ export const clinicalNoteService = {
 // =====================================================
 
 export const appointmentChatService = {
-  async openChat(consultationId: string, slaHours = 48): Promise<string> {
+  // Retorna o id do chat, ou null quando o profissional é psicólogo
+  // (psicólogo não tem chat pós-consulta — regra aplicada na RPC).
+  async openChat(consultationId: string, slaHours = 48): Promise<string | null> {
     const { data, error } = await supabase.rpc('open_appointment_chat', {
       p_consultation_id: consultationId,
       p_sla_hours:       slaHours,
     });
     if (error) throw error;
-    return data as string;
+    return (data as string | null) ?? null;
   },
 
   // Busca todos os chats ativos do paciente (usado no app do paciente)

@@ -38,7 +38,11 @@ const generateNextDates = (count = 30, maxDate?: Date | null): Date[] => {
 export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBooked, onNavigate }) => {
   const { user, profile } = useAuth();
   const { t, language } = useLanguage();
-  const [step, setStep] = useState<Step>('objective');
+  // Especialidade escolhida no CTA do dashboard (upsell psicológico).
+  // Psicólogo pula a etapa de "objetivo" (própria do fluxo médico).
+  const especialidade = (sessionStorage.getItem('agendar_especialidade') as 'medico' | 'psicologo' | null) ?? 'medico';
+  const isPsi = especialidade === 'psicologo';
+  const [step, setStep] = useState<Step>(isPsi ? 'doctors' : 'objective');
   const [selectedObjective, setSelectedObjective] = useState<string>('');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
@@ -55,7 +59,7 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
 
   useEffect(() => {
     if (!user) return;
-    creditService.getAvailableForUser(user.id)
+    creditService.getAvailableForUser(user.id, especialidade)
       .then(credits => {
         const disponivel = credits.find(c => c.status === 'disponivel');
         if (disponivel?.expires_at) setCreditExpiresAt(new Date(disponivel.expires_at));
@@ -75,10 +79,9 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
     if (step === 'doctors' && doctors.length === 0) {
       console.log('📋 [AgendarConsulta] Step doctors ativado, buscando médicos...');
       setLoadingDoctors(true);
-      getAvailableDoctors(selectedObjective || undefined)
+      getAvailableDoctors(selectedObjective || undefined, especialidade)
         .then((result) => {
-          console.log('📋 [AgendarConsulta] Médicos recebidos:', result.length);
-          console.table(result);
+          console.log('📋 [AgendarConsulta] Profissionais recebidos:', result.length);
           setDoctors(result);
         })
         .catch((err) => {
@@ -131,6 +134,8 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
       });
       setBookedConsultation(consultation);
       setStep('confirmed');
+      // Fluxo concluído: a especialidade não deve vazar para navegações futuras.
+      sessionStorage.removeItem('agendar_especialidade');
       onBooked(consultation);
       // Agenda os lembretes locais no device (24h/3h/30min). Não bloqueia o fluxo.
       void consultationReminderService
@@ -157,13 +162,19 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
 
   const progressPct = { objective: 20, doctors: 40, schedule: 60, summary: 80, confirmed: 100 }[step];
 
+  const exitFlow = () => {
+    sessionStorage.removeItem('agendar_especialidade');
+    onBack();
+  };
+
   const goBack = () => {
     const map: Record<Step, Step | null> = {
-      objective: null, doctors: 'objective', schedule: 'doctors', summary: 'schedule', confirmed: null,
+      // No fluxo psicológico não há etapa "objetivo": voltar de "doctors" sai.
+      objective: null, doctors: isPsi ? null : 'objective', schedule: 'doctors', summary: 'schedule', confirmed: null,
     };
     const prev = map[step];
     if (prev) setStep(prev);
-    else onBack();
+    else exitFlow();
   };
 
   return (

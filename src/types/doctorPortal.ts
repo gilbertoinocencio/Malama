@@ -12,7 +12,14 @@ export enum DoctorSpecialty {
   ENDOCRINOLOGISTA = 'Endocrinologista',
   NUTROLOGO = 'Nutrólogo',
   CLINICO_GERAL = 'Clínico Geral',
+  PSICOLOGO = 'Psicólogo',
   OUTRO = 'Outro'
+}
+
+// Tipo do profissional: define o conselho (CRM vs CRP) e o fluxo de cadastro.
+export enum DoctorType {
+  MEDICO = 'medico',
+  PSICOLOGO = 'psicologo',
 }
 
 export enum ConsultationStatus {
@@ -69,8 +76,16 @@ export interface Doctor {
   email: string;
   cpf?: string | null;
   phone?: string | null;
+  // Tipo do profissional. Default 'medico' (retrocompatível).
+  tipo_profissional?: DoctorType | string;
   crm: string;
   crm_state: string;
+  // Conselho genérico (CRM p/ médico, CRP p/ psicólogo). Backfill dos médicos.
+  conselho_tipo?: string | null;
+  conselho_numero?: string | null;
+  conselho_uf?: string | null;
+  // Psicólogo: declaração de e-Psi ativo (CFP). NULL p/ médico.
+  epsi_ativo?: boolean | null;
   specialty: DoctorSpecialty | string;
   specialty_custom?: string | null;
   objectives?: ConsultationObjective[] | string[];
@@ -238,8 +253,10 @@ export interface DoctorRegistrationFormData {
   addressState: string;
 
   // Etapa 2: Dados profissionais
-  crm: string;
-  crmState: string;
+  tipoProfissional: DoctorType;   // define CRM+CFM (médico) vs CRP+e-Psi (psicólogo)
+  crm: string;                     // médico: número CRM | psicólogo: número CRP
+  crmState: string;                // UF do conselho
+  epsiAtivo: boolean;              // psicólogo: declara e-Psi ativo
   specialty: DoctorSpecialty | string;
   bio: string;
   photo: File | null;
@@ -466,6 +483,11 @@ export const SPECIALTY_OPTIONS = [
   { value: DoctorSpecialty.NUTROLOGO, label: 'Nutrólogo' },
   { value: DoctorSpecialty.CLINICO_GERAL, label: 'Clínico Geral' },
   { value: DoctorSpecialty.OUTRO, label: 'Outro' }
+];
+
+// Especialidades exibidas quando o profissional é psicólogo.
+export const SPECIALTY_OPTIONS_PSICOLOGO = [
+  { value: DoctorSpecialty.PSICOLOGO, label: 'Psicólogo(a)' },
 ];
 
 export const DAY_OF_WEEK_LABELS = [

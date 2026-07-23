@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '../../services/supabase';
 import { doctorService, storageService } from '../../services/doctorPortalService';
 import type { DoctorRegistrationFormData, DoctorSpecialty, ConsultationType, ConsultationObjective } from '../../types/doctorPortal';
-import { BRAZILIAN_STATES, SPECIALTY_OPTIONS, CONSULTATION_TYPE_OPTIONS, OBJECTIVE_OPTIONS, ConsultationType as CT } from '../../types/doctorPortal';
+import { BRAZILIAN_STATES, SPECIALTY_OPTIONS, SPECIALTY_OPTIONS_PSICOLOGO, CONSULTATION_TYPE_OPTIONS, OBJECTIVE_OPTIONS, ConsultationType as CT, DoctorType } from '../../types/doctorPortal';
 import { MalamaLogo } from '../../components/MalamaLogo';
 
 const MIN_CONSULTATION_PRICE = 80;
@@ -37,8 +37,10 @@ export const DoctorRegistration: React.FC = () => {
     addressNeighborhood: '',
     addressCity: '',
     addressState: '',
+    tipoProfissional: DoctorType.MEDICO,
     crm: '',
     crmState: '',
+    epsiAtivo: false,
     specialty: '',
     bio: '',
     photo: null,
@@ -158,9 +160,18 @@ export const DoctorRegistration: React.FC = () => {
     }
 
     if (currentStep === 2) {
-      if (!formData.crm.trim()) newErrors.crm = 'CRM é obrigatório';
-      if (!formData.crmState) newErrors.crmState = 'Estado do CRM é obrigatório';
-      if (!crmValidated) newErrors.crm = 'Verifique o CRM antes de continuar';
+      const isPsi = formData.tipoProfissional === DoctorType.PSICOLOGO;
+      if (isPsi) {
+        // Psicólogo: CRP + UF + declaração de e-Psi. Sem validação CFM
+        // (não há API pública do e-Psi); o gate é a aprovação do admin.
+        if (!formData.crm.trim()) newErrors.crm = 'CRP é obrigatório';
+        if (!formData.crmState) newErrors.crmState = 'Estado do CRP é obrigatório';
+        if (!formData.epsiAtivo) newErrors.epsiAtivo = 'É necessário declarar o cadastro e-Psi ativo';
+      } else {
+        if (!formData.crm.trim()) newErrors.crm = 'CRM é obrigatório';
+        if (!formData.crmState) newErrors.crmState = 'Estado do CRM é obrigatório';
+        if (!crmValidated) newErrors.crm = 'Verifique o CRM antes de continuar';
+      }
       if (!formData.specialty) newErrors.specialty = 'Especialidade é obrigatória';
       if (formData.bio.length > 300) newErrors.bio = 'Bio deve ter no máximo 300 caracteres';
     }
@@ -216,15 +227,24 @@ export const DoctorRegistration: React.FC = () => {
         certificateUrl = await storageService.uploadCertificate(formData.icpCertificate, authData.user.id);
       }
 
-      // Criar registro do médico
+      const isPsi = formData.tipoProfissional === DoctorType.PSICOLOGO;
+
+      // Criar registro do profissional. Médico usa CRM/CFM; psicólogo usa
+      // CRP + declaração de e-Psi. O conselho genérico guarda ambos os casos;
+      // crm/crm_state seguem preenchidos (compat. com o resto do portal).
       await doctorService.createDoctor({
         user_id: authData.user.id,
         name: formData.name,
         email: formData.email,
         cpf: formData.cpf,
         phone: formData.phone,
+        tipo_profissional: formData.tipoProfissional,
         crm: formData.crm,
         crm_state: formData.crmState,
+        conselho_tipo: isPsi ? 'CRP' : 'CRM',
+        conselho_numero: formData.crm,
+        conselho_uf: formData.crmState,
+        epsi_ativo: isPsi ? formData.epsiAtivo : null,
         specialty: formData.specialty,
         bio: formData.bio || null,
         photo_url: photoUrl,
@@ -429,13 +449,46 @@ export const DoctorRegistration: React.FC = () => {
     </div>
   );
 
-  const renderStep2 = () => (
+  const renderStep2 = () => {
+    const isPsi = formData.tipoProfissional === DoctorType.PSICOLOGO;
+    const conselhoLabel = isPsi ? 'CRP' : 'CRM';
+    return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-gray-800">Dados Profissionais</h2>
 
+      {/* Tipo de profissional */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de profissional *</label>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { v: DoctorType.MEDICO, label: 'Médico(a)', hint: 'CRM · validado no CFM' },
+            { v: DoctorType.PSICOLOGO, label: 'Psicólogo(a)', hint: 'CRP · e-Psi ativo' },
+          ].map(opt => (
+            <button
+              key={opt.v}
+              type="button"
+              onClick={() => {
+                updateField('tipoProfissional', opt.v);
+                // Trocar de tipo zera validações e especialidade (contextos distintos)
+                setCrmValidated(null); setCrmError(null);
+                updateField('specialty', opt.v === DoctorType.PSICOLOGO ? 'Psicólogo' : '');
+              }}
+              className={`p-3 rounded-lg border text-left transition ${
+                formData.tipoProfissional === opt.v
+                  ? 'border-[#7d4a3c] bg-[#7d4a3c]/5'
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <p className="text-sm font-semibold text-gray-800">{opt.label}</p>
+              <p className="text-xs text-gray-500">{opt.hint}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">CRM Número *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{conselhoLabel} Número *</label>
           <input
             type="text"
             value={formData.crm}
@@ -460,43 +513,77 @@ export const DoctorRegistration: React.FC = () => {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={handleValidateCRM}
-        disabled={crmValidating || !formData.crm || !formData.crmState}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#7d4a3c] text-[#7d4a3c] text-sm font-medium hover:bg-[#7d4a3c]/5 disabled:opacity-50 transition"
-      >
-        {crmValidating ? (
-          <span className="w-4 h-4 rounded-full border-2 border-[#7d4a3c] border-t-transparent animate-spin" />
-        ) : null}
-        {crmValidating ? 'Consultando CFM...' : 'Verificar CRM no CFM'}
-      </button>
+      {/* Médico: validação no CFM. Psicólogo: declaração de e-Psi. */}
+      {!isPsi ? (
+        <>
+          <button
+            type="button"
+            onClick={handleValidateCRM}
+            disabled={crmValidating || !formData.crm || !formData.crmState}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#7d4a3c] text-[#7d4a3c] text-sm font-medium hover:bg-[#7d4a3c]/5 disabled:opacity-50 transition"
+          >
+            {crmValidating ? (
+              <span className="w-4 h-4 rounded-full border-2 border-[#7d4a3c] border-t-transparent animate-spin" />
+            ) : null}
+            {crmValidating ? 'Consultando CFM...' : 'Verificar CRM no CFM'}
+          </button>
 
-      {crmValidated && (
-        <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-300 rounded-lg text-sm text-green-800">
-          <span className="text-green-600 font-bold mt-0.5">✓</span>
-          <div>
-            <p className="font-semibold">{crmValidated.name}</p>
-            <p className="text-xs text-green-700">Situação: {crmValidated.situation}{crmValidated.specialty ? ` · ${crmValidated.specialty}` : ''}</p>
-          </div>
+          {crmValidated && (
+            <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-300 rounded-lg text-sm text-green-800">
+              <span className="text-green-600 font-bold mt-0.5">✓</span>
+              <div>
+                <p className="font-semibold">{crmValidated.name}</p>
+                <p className="text-xs text-green-700">Situação: {crmValidated.situation}{crmValidated.specialty ? ` · ${crmValidated.specialty}` : ''}</p>
+              </div>
+            </div>
+          )}
+
+          {crmError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{crmError}</p>
+          )}
+        </>
+      ) : (
+        <div>
+          <label className="flex items-start gap-2 cursor-pointer p-3 rounded-lg border border-gray-300">
+            <input
+              type="checkbox"
+              checked={formData.epsiAtivo}
+              onChange={e => updateField('epsiAtivo', e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded accent-[#7d4a3c]"
+            />
+            <span className="text-sm text-gray-700">
+              Declaro que possuo cadastro <strong>e-Psi ativo</strong> no Conselho Federal de
+              Psicologia (CFP), habilitado para atendimento psicológico online, e que as
+              informações são verdadeiras. A Malama confirmará o cadastro antes da aprovação.
+            </span>
+          </label>
+          {errors.epsiAtivo && <p className="text-red-500 text-sm mt-1">{errors.epsiAtivo}</p>}
         </div>
-      )}
-
-      {crmError && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{crmError}</p>
       )}
 
       {errors.crm && !crmError && <p className="text-red-500 text-sm">{errors.crm}</p>}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Especialidade *</label>
-        <input
-          type="text"
-          value={formData.specialty}
-          onChange={e => updateField('specialty', e.target.value)}
-          placeholder="Ex: Endocrinologista, Nutrólogo para gestantes..."
-          className={`w-full px-4 py-3 rounded-lg border ${errors.specialty ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
-        />
+        {isPsi ? (
+          <select
+            value={formData.specialty}
+            onChange={e => updateField('specialty', e.target.value)}
+            className={`w-full px-4 py-3 rounded-lg border ${errors.specialty ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
+          >
+            {SPECIALTY_OPTIONS_PSICOLOGO.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type="text"
+            value={formData.specialty}
+            onChange={e => updateField('specialty', e.target.value)}
+            placeholder="Ex: Endocrinologista, Nutrólogo para gestantes..."
+            className={`w-full px-4 py-3 rounded-lg border ${errors.specialty ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
+          />
+        )}
         {errors.specialty && <p className="text-red-500 text-sm mt-1">{errors.specialty}</p>}
       </div>
 
@@ -566,7 +653,8 @@ export const DoctorRegistration: React.FC = () => {
         {errors.photo && <p className="text-red-500 text-sm mt-1">{errors.photo}</p>}
       </div>
     </div>
-  );
+    );
+  };
 
   const renderStep3 = () => (
     <div className="space-y-4">

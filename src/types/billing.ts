@@ -26,11 +26,15 @@ export interface Subscription {
   updated_at: string;
 }
 
+export type CreditEspecialidade = 'medico' | 'psicologo';
+
 export interface ConsultationCredit {
   id: string;
   user_id: string;
   subscription_id: string;
   doctor_id: string | null;
+  /** Separa saldo médico (endócrino/nutrólogo) do psicológico. Default 'medico'. */
+  especialidade: CreditEspecialidade;
   status: CreditStatus;
   /** Primeiro dia do mês de referência, ex: '2026-04-01' */
   month_reference: string;
