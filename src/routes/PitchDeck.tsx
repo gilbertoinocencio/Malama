@@ -10,7 +10,8 @@ import {
   Target, Eye, Heart, AlertTriangle, TrendingUp, DollarSign,
   Stethoscope, Syringe, Salad, BarChart2, Building2, UserPlus,
   Smartphone, ShieldCheck, Zap, Layers, Leaf, CheckCircle,
-  ShoppingBag, Star, Award, Circle,
+  ShoppingBag, Star, Award, Circle, ClipboardCheck, FileText,
+  Lock, Brain,
 } from 'lucide-react';
 
 const fadeInUp = {
@@ -274,13 +275,87 @@ export const PitchDeck: React.FC = () => {
       </section>
 
       {/* ================================================================
-          SLIDE 05 — A SOLUÇÃO
+          SLIDE 05 — CONFORMIDADE NR-1 / PGR
       ================================================================ */}
       <section className="min-h-screen flex items-center px-6 md:px-12 py-24">
         <div className="max-w-[1200px] mx-auto w-full">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
             <motion.div variants={fadeInUp}>
-              <SlideLabel n="05" label="A Solução" />
+              <SlideLabel n="05" label="Conformidade NR-1" />
+            </motion.div>
+
+            <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-6xl font-light leading-tight mb-4 max-w-3xl">
+              Não é só benefício —<br />
+              <span className="text-Malama-petrol italic">é infraestrutura de compliance.</span>
+            </motion.h2>
+            <motion.p variants={fadeInUp} className="text-Malama-muted mb-14 max-w-2xl leading-relaxed">
+              Desde maio de 2026, a NR-1 atualizada exige que toda empresa CLT identifique, avalie e
+              documente a gestão de riscos psicossociais no PGR. O Malama constrói essa trilha de
+              evidência de ponta a ponta — sempre como <strong className="text-Malama-main font-medium">subsídio complementar</strong>,
+              nunca em substituição ao PGR, ao PCMSO ou às avaliações do SESMT e do médico do trabalho.
+            </motion.p>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+              {[
+                {
+                  n: '01', icon: Brain, titulo: 'Medir',
+                  corpo: 'Rastreio mensal com o WHO-5 — Índice de Bem-Estar da OMS, validado e de domínio público. Cobertura universal: todo colaborador com assento responde.',
+                },
+                {
+                  n: '02', icon: FileText, titulo: 'Documentar',
+                  corpo: 'Relatório agregado pronto para anexar ao PGR — por mês, trimestre, semestre ou ano. Metodologia e disclaimer jurídico já inclusos no PDF.',
+                },
+                {
+                  n: '03', icon: ClipboardCheck, titulo: 'Comprovar',
+                  corpo: 'Certificado de disponibilização por colaborador — prova de diligência da empresa, emitido em lote, sem expor nenhum dado de uso.',
+                },
+                {
+                  n: '04', icon: Heart, titulo: 'Cuidar',
+                  corpo: 'Consulta com psicólogo como plano adicional, alocado pelo RH — fecha o ciclo entre identificar o risco e agir sobre ele.',
+                },
+              ].map(({ n, icon: Icon, titulo, corpo }) => (
+                <motion.div key={n} variants={fadeInUp}
+                  className="rounded-2xl border border-Malama-border/50 bg-white p-6 shadow-sm flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-Malama-petrol/8 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-Malama-petrol" />
+                    </div>
+                    <span className="font-serif text-2xl text-Malama-petrol/20">{n}</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-Malama-main mb-2 text-sm">{titulo}</p>
+                    <p className="text-Malama-muted text-sm leading-relaxed">{corpo}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div variants={fadeInUp}
+              className="rounded-2xl border border-Malama-petrol/20 bg-Malama-petrol/5 p-7 flex items-start gap-5">
+              <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <Lock className="w-5 h-5 text-Malama-petrol" />
+              </div>
+              <div>
+                <p className="font-semibold text-Malama-main mb-1.5">O empregador nunca vê o indivíduo</p>
+                <p className="text-Malama-muted text-sm leading-relaxed max-w-2xl">
+                  O RH acessa apenas dados agregados, com um piso mínimo de 5 colaboradores por recorte —
+                  calculado dentro do banco de dados, nunca exposto na tela. Dado de saúde é dado sensível
+                  pela LGPD; a privacidade individual é garantia estrutural, não uma política de acesso.
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ================================================================
+          SLIDE 06 — A SOLUÇÃO
+      ================================================================ */}
+      <section className="min-h-screen flex items-center px-6 md:px-12 py-24">
+        <div className="max-w-[1200px] mx-auto w-full">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
+            <motion.div variants={fadeInUp}>
+              <SlideLabel n="06" label="A Solução" />
             </motion.div>
 
             <div className="grid lg:grid-cols-2 gap-16 items-start">
@@ -327,13 +402,13 @@ export const PitchDeck: React.FC = () => {
       </section>
 
       {/* ================================================================
-          SLIDE 06 — POR QUE AGORA
+          SLIDE 07 — POR QUE AGORA
       ================================================================ */}
       <section className="min-h-screen flex items-center px-6 md:px-12 py-24 bg-Malama-main text-white">
         <div className="max-w-[1200px] mx-auto w-full">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
             <motion.div variants={fadeInUp}>
-              <SlideLabel n="06" label="Por Que Agora" light />
+              <SlideLabel n="07" label="Por Que Agora" light />
             </motion.div>
 
             <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-6xl font-light leading-tight mb-16 max-w-3xl">
@@ -380,13 +455,13 @@ export const PitchDeck: React.FC = () => {
       </section>
 
       {/* ================================================================
-          SLIDE 07 — COMO FUNCIONA
+          SLIDE 08 — COMO FUNCIONA
       ================================================================ */}
       <section className="min-h-screen flex items-center px-6 md:px-12 py-24">
         <div className="max-w-[1200px] mx-auto w-full">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
             <motion.div variants={fadeInUp}>
-              <SlideLabel n="07" label="Como Funciona" />
+              <SlideLabel n="08" label="Como Funciona" />
             </motion.div>
 
             <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-5xl font-light leading-tight mb-16 max-w-2xl">
@@ -421,13 +496,13 @@ export const PitchDeck: React.FC = () => {
       </section>
 
       {/* ================================================================
-          SLIDE 08 — O PRODUTO
+          SLIDE 09 — O PRODUTO
       ================================================================ */}
       <section className="min-h-screen flex items-center px-6 md:px-12 py-24 bg-[#f5f1ee]">
         <div className="max-w-[1200px] mx-auto w-full">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
             <motion.div variants={fadeInUp}>
-              <SlideLabel n="08" label="O Produto" />
+              <SlideLabel n="09" label="O Produto" />
             </motion.div>
 
             <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -485,13 +560,13 @@ export const PitchDeck: React.FC = () => {
       </section>
 
       {/* ================================================================
-          SLIDE 09 — MODELO DE NEGÓCIO
+          SLIDE 10 — MODELO DE NEGÓCIO
       ================================================================ */}
       <section className="min-h-screen flex items-center px-6 md:px-12 py-24 bg-Malama-main text-white">
         <div className="max-w-[1200px] mx-auto w-full">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
             <motion.div variants={fadeInUp}>
-              <SlideLabel n="09" label="Modelo de Negócio" light />
+              <SlideLabel n="10" label="Modelo de Negócio" light />
             </motion.div>
 
             <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-6xl font-light leading-tight mb-16 max-w-2xl">
@@ -557,13 +632,13 @@ export const PitchDeck: React.FC = () => {
       </section>
 
       {/* ================================================================
-          SLIDE 10 — TAMANHO DO MERCADO
+          SLIDE 11 — TAMANHO DO MERCADO
       ================================================================ */}
       <section className="min-h-screen flex items-center px-6 md:px-12 py-24">
         <div className="max-w-[1200px] mx-auto w-full">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
             <motion.div variants={fadeInUp}>
-              <SlideLabel n="10" label="Tamanho do Mercado" />
+              <SlideLabel n="11" label="Tamanho do Mercado" />
             </motion.div>
 
             <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-5xl font-light leading-tight mb-4 max-w-2xl">
@@ -628,13 +703,13 @@ export const PitchDeck: React.FC = () => {
       </section>
 
       {/* ================================================================
-          SLIDE 11 — TRAÇÃO
+          SLIDE 12 — TRAÇÃO
       ================================================================ */}
       <section className="min-h-screen flex items-center px-6 md:px-12 py-24 bg-[#f5f1ee]">
         <div className="max-w-[1200px] mx-auto w-full">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
             <motion.div variants={fadeInUp}>
-              <SlideLabel n="11" label="Tração" />
+              <SlideLabel n="12" label="Tração" />
             </motion.div>
 
             <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -686,13 +761,13 @@ export const PitchDeck: React.FC = () => {
       </section>
 
       {/* ================================================================
-          SLIDE 12 — O QUE BUSCAMOS
+          SLIDE 13 — O QUE BUSCAMOS
       ================================================================ */}
       <section className="min-h-screen flex items-center px-6 md:px-12 py-24 bg-Malama-main text-white">
         <div className="max-w-[1200px] mx-auto w-full">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
             <motion.div variants={fadeInUp}>
-              <SlideLabel n="12" label="O Que Buscamos" light />
+              <SlideLabel n="13" label="O Que Buscamos" light />
             </motion.div>
 
             <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-6xl font-light leading-tight mb-4 max-w-3xl">
