@@ -12,7 +12,7 @@
 // =====================================================
 
 import jsPDF from 'jspdf';
-import type { RhRelatorioPsicossocial } from '../services/empresaService';
+import type { RhRelatorioPsicossocial, PlanoAcao } from '../services/empresaService';
 
 const MAIN: [number, number, number] = [28, 25, 23];
 const PETROL: [number, number, number] = [140, 71, 62];
@@ -46,9 +46,28 @@ const fmtDate = (d: string | Date | null) => {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
+const NIVEL_LABEL: Record<string, string> = {
+  fonte: 'Na fonte',
+  organizacional: 'Organizacional',
+  individual: 'Individual',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  planejada: 'Planejada',
+  em_andamento: 'Em andamento',
+  concluida: 'Concluída',
+  cancelada: 'Cancelada',
+};
+
 export interface PsychosocialReportMeta {
   numeroDoc: string;
   emitidoEm: Date;
+  /**
+   * Itens do plano de ação. Diagnóstico sem medida de controle documenta
+   * que a empresa sabia do risco e não agiu — por isso o plano entra no
+   * mesmo documento, e a ausência dele é dita explicitamente.
+   */
+  planos?: PlanoAcao[];
 }
 
 export function generatePsychosocialReportPDF(
@@ -193,6 +212,86 @@ export function generatePsychosocialReportPDF(
     );
     doc.text(t, M, y);
     y += t.length * 4 + 4;
+  }
+
+  // ── Plano de ação (medidas de controle) ──
+  y = ensureSpace(30, y) + 10;
+  doc.setTextColor(...MAIN);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('MEDIDAS DE CONTROLE ADOTADAS', M, y);
+  y += 7;
+
+  const planos = meta.planos ?? [];
+  if (planos.length === 0) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...MUTED);
+    const t = doc.splitTextToSize(
+      'Nenhuma medida de controle foi registrada no plano de ação até a emissão deste ' +
+      'documento. A NR-1 requer que os riscos identificados sejam objeto de medidas de ' +
+      'prevenção e controle, com responsável e prazo definidos, priorizando a atuação sobre ' +
+      'a fonte do risco.',
+      pageW - M * 2,
+    );
+    doc.text(t, M, y);
+    y += t.length * 4 + 2;
+  } else {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...MUTED);
+    doc.text('Risco / medida', M, y);
+    doc.text('Nível', pageW - M - 62, y, { align: 'right' });
+    doc.text('Prazo', pageW - M - 30, y, { align: 'right' });
+    doc.text('Situação', pageW - M, y, { align: 'right' });
+    y += 3;
+    doc.setDrawColor(220, 220, 220);
+    doc.line(M, y, pageW - M, y);
+    y += 6;
+
+    for (const p of planos) {
+      y = ensureSpace(20, y);
+      const cabecalho = doc.splitTextToSize(
+        `${p.setor ?? 'Toda a empresa'} — ${p.risco_descricao}`, pageW - M * 2 - 74,
+      );
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...MAIN);
+      doc.text(cabecalho, M, y);
+
+      doc.setTextColor(...MUTED);
+      doc.text(NIVEL_LABEL[p.nivel_controle] ?? p.nivel_controle, pageW - M - 62, y, { align: 'right' });
+      doc.text(fmtDate(p.prazo), pageW - M - 30, y, { align: 'right' });
+      doc.text(STATUS_LABEL[p.status] ?? p.status, pageW - M, y, { align: 'right' });
+
+      y += cabecalho.length * 4 + 1;
+      const detalhe = doc.splitTextToSize(
+        `Medida: ${p.medida} · Responsável: ${p.responsavel}`
+        + (p.evidencia ? ` · Evidência: ${p.evidencia}` : ''),
+        pageW - M * 2 - 74,
+      );
+      y = ensureSpace(detalhe.length * 4 + 4, y);
+      doc.setTextColor(120, 120, 120);
+      doc.text(detalhe, M, y);
+      y += detalhe.length * 4 + 5;
+    }
+
+    // Registro explícito da hierarquia de controle: risco tratado apenas
+    // com medida individual não é omitido do documento.
+    const soIndividual = planos.every(p => p.nivel_controle === 'individual');
+    if (soIndividual) {
+      y = ensureSpace(16, y) + 2;
+      doc.setFontSize(8.5);
+      doc.setTextColor(...PETROL);
+      const aviso = doc.splitTextToSize(
+        'Observação: todas as medidas registradas são de nível individual. Na hierarquia de '
+        + 'controle da NR-1, o cuidado individual é a última camada e não substitui a atuação '
+        + 'sobre a fonte ou a organização do trabalho.',
+        pageW - M * 2,
+      );
+      doc.text(aviso, M, y);
+      y += aviso.length * 4 + 2;
+    }
   }
 
   // ── Blocos de texto jurídico ──

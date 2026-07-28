@@ -109,6 +109,11 @@ export const RhDashboard: React.FC = () => {
     }
   };
 
+  // No modo Mental o psicólogo é universal — o RH não aloca nominalmente,
+  // então o toggle por colaborador não deve nem existir na tela.
+  const modoMental = empresa?.modo_mental === true;
+  const psiToggleVisivel = !modoMental && psi?.plano_ativo === true;
+
   const psiCheio = psi ? psi.assentos_em_uso >= psi.max_assentos : false;
 
   const handleTogglePsi = async (c: EmpresaColaborador) => {
@@ -285,8 +290,27 @@ export const RhDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ── Plano psicológico (se ativo) ── */}
-      {psi?.plano_ativo && (
+      {/* ── Acompanhamento psicológico ──
+          Modo Mental: universal, todo colaborador com assento tem direito.
+          Legado (plano avulso): o RH aloca nominalmente. Os dois nunca
+          aparecem juntos — ver colaborador_tem_psicologo() no banco. */}
+      {modoMental ? (
+        <div className="bg-white rounded-xl shadow p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Brain className="w-5 h-5 text-[#7d4a3c]" />
+            <h2 className="font-semibold text-gray-800">Acompanhamento psicológico</h2>
+          </div>
+          <p className="text-sm text-gray-500">
+            Incluso para <strong>todos</strong> os {colaboradores.length} colaboradores com assento —
+            uma consulta por mês, sem custo adicional na ponta e sem necessidade de liberação
+            individual. O colaborador agenda direto pelo app.
+          </p>
+          <p className="text-xs text-gray-400 mt-2">
+            A disponibilização é universal de propósito: assim, marcar uma consulta não revela nada
+            sobre a resposta de ninguém aos questionários de bem-estar.
+          </p>
+        </div>
+      ) : psi?.plano_ativo && (
         <div className="bg-white rounded-xl shadow p-5">
           <div className="flex items-center gap-2 mb-1">
             <Brain className="w-5 h-5 text-[#7d4a3c]" />
@@ -392,7 +416,7 @@ export const RhDashboard: React.FC = () => {
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Adicionado</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Ativado</th>
-                  {psi?.plano_ativo && (
+                  {psiToggleVisivel && (
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Psi</th>
                   )}
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
@@ -408,7 +432,7 @@ export const RhDashboard: React.FC = () => {
                     <td className="px-4 py-3 text-center"><ColabStatusBadge status={c.status} /></td>
                     <td className="px-4 py-3 text-xs text-gray-500 hidden sm:table-cell">{fmtDate(c.data_adicao)}</td>
                     <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{fmtDate(c.data_ativacao)}</td>
-                    {psi?.plano_ativo && (
+                    {psiToggleVisivel && (
                       <td className="px-4 py-3 text-center">
                         <button
                           onClick={() => handleTogglePsi(c)}

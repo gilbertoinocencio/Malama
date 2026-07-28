@@ -6,7 +6,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link, Outlet } from 'react-router-dom';
-import { LogOut, Users, CreditCard, ShieldCheck, Leaf } from 'lucide-react';
+import {
+  LogOut, Users, CreditCard, ShieldCheck, Leaf, Brain, CalendarX2, ClipboardList,
+} from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { MalamaLogo } from '../../components/MalamaLogo';
 import { rhService } from '../../services/empresaService';
@@ -31,6 +33,9 @@ export const RhLayout: React.FC = () => {
 
   const tabs: Tab[] = [
     { to: '/rh/dashboard', label: 'Colaboradores', icon: <Users className="w-4 h-4" /> },
+    { to: '/rh/saude-mental', label: 'Saúde Mental', icon: <Brain className="w-4 h-4" /> },
+    { to: '/rh/absenteismo', label: 'Absenteísmo', icon: <CalendarX2 className="w-4 h-4" /> },
+    { to: '/rh/plano-acao', label: 'Plano de ação', icon: <ClipboardList className="w-4 h-4" /> },
     { to: '/rh/financeiro', label: 'Financeiro', icon: <CreditCard className="w-4 h-4" /> },
     { to: '/rh/compliance', label: 'Compliance', icon: <ShieldCheck className="w-4 h-4" /> },
     ...(temImpacto

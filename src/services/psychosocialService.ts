@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { WHO5, getInstrumento } from './psychosocialInstruments';
 
 // =====================================================
 // Módulo psicossocial (NR-1/PGR) — WHO-5 Índice de Bem-Estar
@@ -14,26 +15,12 @@ import { supabase } from './supabase';
 // aprofundado (referências do manual do instrumento).
 // =====================================================
 
-export const WHO5_INTRO =
-  'Nas últimas duas semanas, com que frequência você se sentiu assim?';
-
-export const WHO5_QUESTIONS: readonly string[] = [
-  'Eu me senti alegre e de bom humor',
-  'Eu me senti calmo(a) e relaxado(a)',
-  'Eu me senti ativo(a) e com energia',
-  'Acordei me sentindo revigorado(a) e descansado(a)',
-  'Meu dia a dia tem sido preenchido com coisas que me interessam',
-] as const;
-
-// Valor do item = índice na escala oficial (0 = pior, 5 = melhor)
-export const WHO5_OPTIONS: readonly { value: number; label: string }[] = [
-  { value: 5, label: 'O tempo todo' },
-  { value: 4, label: 'A maior parte do tempo' },
-  { value: 3, label: 'Mais da metade do tempo' },
-  { value: 2, label: 'Menos da metade do tempo' },
-  { value: 1, label: 'Algumas vezes' },
-  { value: 0, label: 'Em nenhum momento' },
-] as const;
+// A redação, as opções e a chave de correção do WHO-5 vivem no registro de
+// instrumentos (fonte única, junto com os demais). Re-exportadas aqui para
+// não quebrar quem já importa deste módulo.
+export {
+  WHO5_INTRO, WHO5_QUESTIONS, WHO5_OPTIONS,
+} from './psychosocialInstruments';
 
 export interface Who5Result {
   rawScore: number; // 0–25
@@ -43,12 +30,24 @@ export interface Who5Result {
 export interface PsychosocialAssessment {
   id: string;
   user_id: string;
-  instrument: 'who5';
-  reference_month: string; // 'YYYY-MM-01'
+  instrument: string;
+  campaign_id: string | null;
+  reference_month: string | null; // 'YYYY-MM-01' (só instrumentos mensais)
   answers: Record<string, number>;
   raw_score: number;
   score: number;
+  subscores: Record<string, number> | null;
   created_at: string;
+}
+
+/** Campanha aberta e ainda não respondida pelo usuário. */
+export interface CampanhaPendente {
+  campaign_id: string;
+  instrument: string;
+  instrument_nome: string;
+  janela_inicio: string;
+  janela_fim: string;
+  empresa_nome: string;
 }
 
 /** Primeiro dia do mês corrente, no fuso local: 'YYYY-MM-01'. */
@@ -60,14 +59,13 @@ export function getCurrentReferenceMonth(date = new Date()): string {
 
 /** Escore WHO-5 determinístico a partir das 5 respostas (0–5 cada). */
 export function computeWho5Score(answers: number[]): Who5Result {
-  if (answers.length !== WHO5_QUESTIONS.length) {
+  if (answers.length !== WHO5.blocks[0].items.length) {
     throw new Error('WHO-5 exige exatamente 5 respostas');
   }
-  if (answers.some(a => !Number.isInteger(a) || a < 0 || a > 5)) {
-    throw new Error('Resposta WHO-5 fora da escala 0–5');
-  }
-  const rawScore = answers.reduce((s, a) => s + a, 0);
-  return { rawScore, score: rawScore * 4 };
+  const porChave: Record<string, number> = {};
+  answers.forEach((a, i) => { porChave[`q${i + 1}`] = a; });
+  const { rawScore, score } = WHO5.score(porChave);
+  return { rawScore, score };
 }
 
 const snoozeKey = (userId: string, referenceMonth: string) =>
@@ -156,6 +154,58 @@ export const PsychosocialService = {
     }
 
     localStorage.setItem(snoozeKey(userId, referenceMonth), 'done');
+    return data as PsychosocialAssessment;
+  },
+
+  // ── Campanhas (motor genérico) ───────────────────────
+
+  /** Campanhas abertas dirigidas a este usuário e ainda não respondidas. */
+  async getCampanhasPendentes(): Promise<CampanhaPendente[]> {
+    const { data, error } = await supabase.rpc('minhas_campanhas_pendentes');
+    if (error) {
+      console.error('getCampanhasPendentes:', error.message);
+      return [];
+    }
+    return (data ?? []) as CampanhaPendente[];
+  },
+
+  /**
+   * Grava a resposta de uma campanha, para qualquer instrumento do registro.
+   * O escore é calculado aqui, de forma determinística, a partir da chave de
+   * correção do instrumento — nunca por IA e nunca no cliente sem validação:
+   * o banco ainda checa empresa, janela, status e público-alvo via trigger.
+   *
+   * `answers` usa as chaves declaradas no instrumento ('q1'..'q5' no WHO-5,
+   * 'a'..'q' na JSS) com o valor ORIGINAL da opção escolhida — é o que
+   * mantém a resposta auditável contra o instrumento publicado.
+   */
+  async submitCampanha(
+    userId: string,
+    campaignId: string,
+    instrumentCode: string,
+    answers: Record<string, number>,
+  ): Promise<PsychosocialAssessment> {
+    const def = getInstrumento(instrumentCode);
+    const { rawScore, score, subscores } = def.score(answers);
+
+    const { data, error } = await supabase
+      .from('psychosocial_assessments')
+      .insert([{
+        user_id: userId,
+        campaign_id: campaignId,
+        instrument: def.code,
+        // Instrumento mensal mantém o mês de referência; os demais gravam
+        // NULL e são chaveados pela campanha.
+        reference_month: def.cadenciaMeses === 1 ? getCurrentReferenceMonth() : null,
+        answers,
+        raw_score: rawScore,
+        score,
+        subscores,
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
     return data as PsychosocialAssessment;
   },
 };

@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const {
-      empresa, // { nome, cnpj, responsavel_nome, responsavel_email, responsavel_telefone, valor_por_assento, max_assentos, status, data_inicio }
+      empresa, // { nome, cnpj, responsavel_nome, responsavel_email, responsavel_telefone, valor_por_assento, max_assentos, modo_mental, modo_metabolico, status, data_inicio }
       rh,      // { email, password, nome }
     } = await req.json();
 
@@ -56,6 +56,10 @@ Deno.serve(async (req: Request) => {
         responsavel_telefone: empresa.responsavel_telefone || null,
         valor_por_assento: empresa.valor_por_assento ?? null,
         max_assentos: empresa.max_assentos ?? null,
+        // Modos do contrato (migration 20260727). Default preserva o
+        // comportamento antigo: metabólico ligado, mental desligado.
+        modo_mental: empresa.modo_mental ?? false,
+        modo_metabolico: empresa.modo_metabolico ?? true,
         status: empresa.status || 'ativa',
         data_inicio: empresa.data_inicio || null,
       }])

@@ -7,7 +7,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   ShieldCheck, FileDown, Download, AlertCircle, Info,
-  Droplet, Beef, Activity, Sparkles, Flame, TrendingUp, HeartPulse, Award,
+  Droplet, Beef, Activity, Sparkles, Flame, TrendingUp, Award,
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
@@ -19,58 +19,54 @@ import {
   type ComplianceDoc,
   type RhMetricasBemestar,
   type RhEvolucaoBemestar,
-  type RhRelatorioPsicossocial,
   type CertificadoColaborador,
+  type RhEmpresa,
 } from '../../services/empresaService';
 import { generateCompliancePDF } from '../../lib/complianceDoc';
-import { generatePsychosocialReportPDF } from '../../lib/psychosocialReportDoc';
 import {
   generateCertificadoPDF, generateCertificadosLotePDF, type CertificadoMeta,
 } from '../../lib/certificadoDisponibilizacao';
 
-// Serviços do plano base disponibilizados a todo colaborador com assento.
-// (O plano psicológico, quando ativado por empresa, entra aqui no passo 4.)
-const SERVICOS_BASE = [
+// Serviços disponibilizados a todo colaborador com assento, por modo
+// contratado. O certificado é documento de evidência — precisa listar o
+// que a empresa de fato contratou, nem a mais nem a menos.
+const SERVICOS_MENTAL = [
+  'Acompanhamento psicológico mensal por telemedicina (psicólogo com CRP e e-Psi ativo)',
+  'Rastreio periódico de bem-estar (WHO-5)',
+  'Avaliação de fatores de risco psicossocial no trabalho, com relatório agregado para o PGR',
+];
+
+const SERVICOS_METABOLICO = [
   'Acompanhamento nutricional contínuo com IA',
   'Telemedicina com endocrinologistas e nutrólogos',
   'Monitoramento metabólico e de composição corporal',
-  'Rastreio periódico de bem-estar (WHO-5)',
 ];
+
+function servicosDoContrato(empresa: RhEmpresa | null): string[] {
+  const servicos = [
+    ...(empresa?.modo_mental ? SERVICOS_MENTAL : []),
+    ...(empresa?.modo_metabolico ? SERVICOS_METABOLICO : []),
+  ];
+  // Empresa em contrato antigo (antes dos modos): mantém a lista metabólica
+  // + rastreio, que era o escopo entregue na época.
+  return servicos.length > 0
+    ? servicos
+    : [...SERVICOS_METABOLICO, 'Rastreio periódico de bem-estar (WHO-5)'];
+}
 
 const MIN_COORTE = 5; // piso de privacidade: oculta % abaixo de 5 colaboradores com dados
 
 const fmtDateTime = (d: string) =>
   new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
-
-// Presets de período do relatório psicossocial (fim = hoje)
-type PeriodoPreset = 'mes' | 'tri' | 'semestre' | 'ano';
-const PERIODO_MESES: Record<PeriodoPreset, number> = { mes: 1, tri: 3, semestre: 6, ano: 12 };
-const PERIODO_LABEL: Record<PeriodoPreset, string> = {
-  mes: 'Mês', tri: 'Trimestre', semestre: 'Semestre', ano: 'Ano',
-};
-
-function periodoRange(preset: PeriodoPreset): { inicio: string; fim: string } {
-  const fim = new Date();
-  const inicio = new Date();
-  inicio.setMonth(inicio.getMonth() - PERIODO_MESES[preset]);
-  return { inicio: iso(inicio), fim: iso(fim) };
-}
-
 export const RhCompliance: React.FC = () => {
   const [metricas, setMetricas] = useState<RhComplianceMetricas | null>(null);
+  const [empresa, setEmpresa] = useState<RhEmpresa | null>(null);
   const [docs, setDocs] = useState<ComplianceDoc[]>([]);
   const [bemestar, setBemestar] = useState<RhMetricasBemestar | null>(null);
   const [evolucao, setEvolucao] = useState<RhEvolucaoBemestar[]>([]);
   const [loading, setLoading] = useState(true);
   const [gerando, setGerando] = useState(false);
-
-  // Relatório psicossocial WHO-5
-  const [periodo, setPeriodo] = useState<PeriodoPreset>('tri');
-  const [psico, setPsico] = useState<RhRelatorioPsicossocial | null>(null);
-  const [psicoLoading, setPsicoLoading] = useState(false);
-  const [gerandoPsico, setGerandoPsico] = useState(false);
 
   // Certificados de disponibilização
   const [colabsCert, setColabsCert] = useState<CertificadoColaborador[]>([]);
@@ -78,14 +74,16 @@ export const RhCompliance: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [m, d, be, ev, cc] = await Promise.all([
+      const [m, d, be, ev, cc, emp] = await Promise.all([
         rhService.getComplianceMetricas(),
         rhService.getComplianceDocs(),
         rhService.getMetricasBemestar(),
         rhService.getEvolucaoBemestar(),
         rhService.getCertificadoColaboradores(),
+        rhService.getMyEmpresa(),
       ]);
       setMetricas(m);
+      setEmpresa(emp);
       setDocs(d);
       setColabsCert(cc);
       setBemestar(be);
@@ -100,41 +98,13 @@ export const RhCompliance: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  // Recarrega o relatório psicossocial quando o período muda
-  useEffect(() => {
-    let cancelled = false;
-    setPsicoLoading(true);
-    const { inicio, fim } = periodoRange(periodo);
-    rhService.getRelatorioPsicossocial(inicio, fim)
-      .then(r => { if (!cancelled) setPsico(r); })
-      .catch(() => { if (!cancelled) setPsico(null); })
-      .finally(() => { if (!cancelled) setPsicoLoading(false); });
-    return () => { cancelled = true; };
-  }, [periodo]);
-
-  const handleGerarPsico = () => {
-    if (!psico) return;
-    setGerandoPsico(true);
-    try {
-      const emitidoEm = new Date();
-      const ymd = `${emitidoEm.getFullYear()}${String(emitidoEm.getMonth() + 1).padStart(2, '0')}${String(emitidoEm.getDate()).padStart(2, '0')}`;
-      const numero = `MAL-PSICO-${ymd}-${PERIODO_LABEL[periodo].slice(0, 3).toUpperCase()}`;
-      generatePsychosocialReportPDF(psico, { numeroDoc: numero, emitidoEm });
-      toast.success('Relatório psicossocial gerado.');
-    } catch (err: any) {
-      toast.error(err?.message || 'Erro ao gerar relatório.');
-    } finally {
-      setGerandoPsico(false);
-    }
-  };
-
   const certMeta = (): CertificadoMeta => {
     const emitidoEm = new Date();
     const ymd = `${emitidoEm.getFullYear()}${String(emitidoEm.getMonth() + 1).padStart(2, '0')}${String(emitidoEm.getDate()).padStart(2, '0')}`;
     return {
       empresaNome: metricas?.nome ?? '',
       empresaCnpj: metricas?.cnpj ?? null,
-      servicos: SERVICOS_BASE,
+      servicos: servicosDoContrato(empresa),
       emitidoEm,
       numeroBase: `MAL-CERT-${ymd}`,
     };
@@ -328,118 +298,8 @@ export const RhCompliance: React.FC = () => {
         </div>
       )}
 
-      {/* ── Relatório psicossocial WHO-5 ── */}
-      <div className="bg-white rounded-xl shadow p-5">
-        <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
-          <div className="flex items-center gap-2">
-            <HeartPulse className="w-5 h-5 text-[#7d4a3c]" />
-            <h2 className="font-semibold text-gray-800">Bem-estar psicossocial (WHO-5)</h2>
-          </div>
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-            {(Object.keys(PERIODO_LABEL) as PeriodoPreset[]).map(p => (
-              <button
-                key={p}
-                onClick={() => setPeriodo(p)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition ${
-                  periodo === p ? 'bg-white text-[#7d4a3c] shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {PERIODO_LABEL[p]}
-              </button>
-            ))}
-          </div>
-        </div>
-        <p className="text-sm text-gray-500 mb-4">
-          Índice de bem-estar dos colaboradores no período, como subsídio à gestão de riscos
-          psicossociais (NR-1). Instrumento validado (WHO-5); dados agregados e anônimos.
-        </p>
-
-        {psicoLoading ? (
-          <div className="flex items-center justify-center h-24">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7d4a3c]" />
-          </div>
-        ) : !psico || 'suprimido' in psico.geral ? (
-          <div className="bg-gray-50 rounded-lg p-6 text-center">
-            <p className="text-sm text-gray-500 font-medium">Dados insuficientes neste período.</p>
-            <p className="text-xs text-gray-400 mt-1">
-              São necessários pelo menos {psico?.k_min ?? MIN_COORTE} colaboradores respondentes
-              para exibir resultados, preservando o anonimato.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-gray-800">{psico.geral.n_respondentes}</p>
-                <p className="text-xs text-gray-500 mt-1">Respondentes</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-[#7d4a3c]">{psico.geral.score_medio}</p>
-                <p className="text-xs text-gray-500 mt-1">Índice médio (0–100)</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-amber-600">{psico.geral.faixa_reduzido}</p>
-                <p className="text-xs text-gray-500 mt-1">Bem-estar reduzido</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-red-500">{psico.geral.faixa_risco}</p>
-                <p className="text-xs text-gray-500 mt-1">Faixa de atenção</p>
-              </div>
-            </div>
-
-            {/* Quebra por setor */}
-            {psico.setores.length > 0 && (
-              <div className="overflow-x-auto mb-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-gray-400 border-b border-gray-100">
-                      <th className="text-left font-medium py-2">Setor</th>
-                      <th className="text-right font-medium py-2">Resp.</th>
-                      <th className="text-right font-medium py-2">Índice</th>
-                      <th className="text-right font-medium py-2">Reduzido</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {psico.setores.map(s => (
-                      <tr key={s.setor}>
-                        <td className="py-2 text-gray-700">{s.setor}</td>
-                        <td className="py-2 text-right text-gray-500">{s.n_respondentes}</td>
-                        <td className="py-2 text-right font-semibold text-[#7d4a3c]">{s.score_medio}</td>
-                        <td className="py-2 text-right text-gray-500">{s.faixa_reduzido}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {psico.setores_suprimidos > 0 && (
-              <p className="text-xs text-gray-400 mb-3">
-                {psico.setores_suprimidos} setor(es) omitido(s) por não atingir(em) {psico.k_min}{' '}
-                respondentes.
-              </p>
-            )}
-
-            <button
-              onClick={handleGerarPsico}
-              disabled={gerandoPsico}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
-            >
-              <FileDown className="w-4 h-4" />
-              {gerandoPsico ? 'Gerando...' : 'Gerar relatório para PGR'}
-            </button>
-          </>
-        )}
-
-        <div className="mt-4 flex items-start gap-2 text-xs text-gray-400">
-          <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-          <span>
-            Subsídio à gestão de riscos psicossociais (NR-1). Não substitui o PGR, o PCMSO nem as
-            avaliações do SESMT/médico do trabalho. Índice = WHO-5 (0–100); recortes abaixo de{' '}
-            {psico?.k_min ?? MIN_COORTE} respondentes são suprimidos (LGPD).
-          </span>
-        </div>
-      </div>
+      {/* O índice de bem-estar (WHO-5) e as campanhas ficam na aba
+          Saúde Mental — esta aba trata só de documentos e evidências. */}
 
       {/* ── Certificados de disponibilização ── */}
       <div className="bg-white rounded-xl shadow p-5">

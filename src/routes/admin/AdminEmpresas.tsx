@@ -6,7 +6,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Plus, Search, X, Building2, Users, DollarSign, TrendingUp,
   Pause, Play, Ban, Inbox, ExternalLink, Lock, Unlock, Receipt, Bell, AlertTriangle,
-  Percent, CalendarDays, UserCheck,
+  Percent, CalendarDays, UserCheck, Brain, Activity,
 } from 'lucide-react';
 import {
   empresaAdminService,
@@ -60,6 +60,8 @@ type EmpresaForm = {
   responsavel_telefone: string;
   valor_por_assento: string;
   max_assentos: string;
+  modo_mental: boolean;
+  modo_metabolico: boolean;
   plano_psicologico: boolean;
   valor_assento_psi: string;
   max_assentos_psi: string;
@@ -71,6 +73,7 @@ type EmpresaForm = {
 const EMPTY_FORM: EmpresaForm = {
   nome: '', cnpj: '', responsavel_nome: '', responsavel_email: '',
   responsavel_telefone: '', valor_por_assento: '', max_assentos: '',
+  modo_mental: true, modo_metabolico: false,
   plano_psicologico: false, valor_assento_psi: '', max_assentos_psi: '',
   status: 'ativa', data_inicio: new Date().toISOString().slice(0, 10), rh_password: '',
 };
@@ -90,6 +93,8 @@ const EmpresaModal: React.FC<{
           responsavel_telefone: initial.responsavel_telefone ?? '',
           valor_por_assento: initial.valor_por_assento != null ? String(initial.valor_por_assento) : '',
           max_assentos: initial.max_assentos != null ? String(initial.max_assentos) : '',
+          modo_mental: initial.modo_mental ?? false,
+          modo_metabolico: initial.modo_metabolico ?? true,
           plano_psicologico: initial.plano_psicologico ?? false,
           valor_assento_psi: initial.valor_assento_psi != null ? String(initial.valor_assento_psi) : '',
           max_assentos_psi: initial.max_assentos_psi != null ? String(initial.max_assentos_psi) : '',
@@ -102,12 +107,16 @@ const EmpresaModal: React.FC<{
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
-  const set = (k: keyof EmpresaForm, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const set = <K extends keyof EmpresaForm>(k: K, v: EmpresaForm[K]) =>
+    setForm(f => ({ ...f, [k]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
     if (!form.nome.trim()) { setFormError('Informe o nome da empresa.'); return; }
+    if (!form.modo_mental && !form.modo_metabolico) {
+      setFormError('Selecione ao menos um modo de contrato.'); return;
+    }
     if (!initial) {
       if (!form.responsavel_email.trim()) { setFormError('Informe o e-mail do responsável de RH.'); return; }
       if (!form.rh_password || form.rh_password.length < 8) { setFormError('A senha do RH deve ter ao menos 8 caracteres.'); return; }
@@ -205,6 +214,61 @@ const EmpresaModal: React.FC<{
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contrato</p>
             </div>
 
+            {/* ── Modo(s) do contrato ── */}
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-2">
+                Modo contratado * <span className="font-normal text-gray-400">— define o que o assento entrega</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <label
+                  className={`flex gap-2.5 p-3 rounded-lg border cursor-pointer transition ${
+                    form.modo_mental ? 'border-[#7d4a3c] bg-[#7d4a3c]/5' : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox" checked={form.modo_mental}
+                    onChange={e => set('modo_mental', e.target.checked)}
+                    className="w-4 h-4 mt-0.5 rounded accent-[#7d4a3c] flex-shrink-0"
+                  />
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
+                      <Brain className="w-3.5 h-3.5 text-[#7d4a3c]" /> Saúde Mental
+                    </span>
+                    <span className="block text-xs text-gray-500 leading-snug mt-0.5">
+                      NR-1. Psicólogo mensal para <strong>todos</strong> os colaboradores + instrumentos
+                      psicossociais agregados.
+                    </span>
+                  </span>
+                </label>
+
+                <label
+                  className={`flex gap-2.5 p-3 rounded-lg border cursor-pointer transition ${
+                    form.modo_metabolico ? 'border-[#7d4a3c] bg-[#7d4a3c]/5' : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox" checked={form.modo_metabolico}
+                    onChange={e => set('modo_metabolico', e.target.checked)}
+                    className="w-4 h-4 mt-0.5 rounded accent-[#7d4a3c] flex-shrink-0"
+                  />
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
+                      <Activity className="w-3.5 h-3.5 text-[#7d4a3c]" /> Saúde Metabólica
+                    </span>
+                    <span className="block text-xs text-gray-500 leading-snug mt-0.5">
+                      Nutrição com IA, telemedicina, composição corporal e métricas de bem-estar.
+                    </span>
+                  </span>
+                </label>
+              </div>
+              {form.modo_mental && (
+                <p className="text-xs text-gray-500 mt-2">
+                  No modo Mental o acompanhamento psicológico é universal — o RH não escolhe quem recebe.
+                  Isso é o que impede que a alocação revele resultado de questionário.
+                </p>
+              )}
+            </div>
+
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Valor por assento (R$)</label>
               <input
@@ -233,40 +297,50 @@ const EmpresaModal: React.FC<{
               />
             </div>
 
-            {/* ── Plano psicológico (upsell) ── */}
-            <div className="col-span-2 border-t border-gray-100 pt-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox" checked={form.plano_psicologico}
-                  onChange={e => set('plano_psicologico', e.target.checked)}
-                  className="w-4 h-4 rounded accent-[#7d4a3c]"
-                />
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Plano psicológico (upsell)
-                </span>
-              </label>
-            </div>
-
-            {form.plano_psicologico && (
+            {/* ── Plano psicológico avulso — LEGADO ──
+                Modelo antigo, em que o RH alocava o psicólogo nominalmente.
+                Substituído pelo modo Mental (universal); some da tela quando
+                o modo Mental está ligado, para não existirem dois caminhos. */}
+            {!form.modo_mental && (
               <>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Valor por assento psi (R$)</label>
-                  <input
-                    type="number" min="0" step="0.01" value={form.valor_assento_psi}
-                    onChange={e => set('valor_assento_psi', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
-                    placeholder="79.90"
-                  />
+                <div className="col-span-2 border-t border-gray-100 pt-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox" checked={form.plano_psicologico}
+                      onChange={e => set('plano_psicologico', e.target.checked)}
+                      className="w-4 h-4 rounded accent-[#7d4a3c]"
+                    />
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Plano psicológico avulso (legado)
+                    </span>
+                  </label>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Alocação nominal pelo RH. Para contratos novos prefira o modo Saúde Mental.
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Máx. de assentos psi</label>
-                  <input
-                    type="number" min="0" step="1" value={form.max_assentos_psi}
-                    onChange={e => set('max_assentos_psi', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
-                    placeholder="20"
-                  />
-                </div>
+
+                {form.plano_psicologico && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Valor por assento psi (R$)</label>
+                      <input
+                        type="number" min="0" step="0.01" value={form.valor_assento_psi}
+                        onChange={e => set('valor_assento_psi', e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+                        placeholder="79.90"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Máx. de assentos psi</label>
+                      <input
+                        type="number" min="0" step="1" value={form.max_assentos_psi}
+                        onChange={e => set('max_assentos_psi', e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+                        placeholder="20"
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
 
@@ -498,6 +572,8 @@ export const AdminEmpresas: React.FC = () => {
         responsavel_telefone: form.responsavel_telefone || null,
         valor_por_assento: form.valor_por_assento ? parseFloat(form.valor_por_assento) : null,
         max_assentos: form.max_assentos ? parseInt(form.max_assentos, 10) : null,
+        modo_mental: form.modo_mental,
+        modo_metabolico: form.modo_metabolico,
         status: form.status,
         data_inicio: form.data_inicio || null,
       },
@@ -520,10 +596,13 @@ export const AdminEmpresas: React.FC = () => {
       responsavel_telefone: form.responsavel_telefone || null,
       valor_por_assento: form.valor_por_assento ? parseFloat(form.valor_por_assento) : null,
       max_assentos: form.max_assentos ? parseInt(form.max_assentos, 10) : null,
-      // Plano psicológico (upsell): ativado/editado aqui, não na criação da empresa
-      plano_psicologico: form.plano_psicologico,
-      valor_assento_psi: form.plano_psicologico && form.valor_assento_psi ? parseFloat(form.valor_assento_psi) : null,
-      max_assentos_psi: form.plano_psicologico && form.max_assentos_psi ? parseInt(form.max_assentos_psi, 10) : null,
+      modo_mental: form.modo_mental,
+      modo_metabolico: form.modo_metabolico,
+      // Plano psicológico avulso (legado). No modo Mental o psicólogo é universal,
+      // então o avulso é desligado para não coexistirem dois caminhos de acesso.
+      plano_psicologico: form.modo_mental ? false : form.plano_psicologico,
+      valor_assento_psi: !form.modo_mental && form.plano_psicologico && form.valor_assento_psi ? parseFloat(form.valor_assento_psi) : null,
+      max_assentos_psi: !form.modo_mental && form.plano_psicologico && form.max_assentos_psi ? parseInt(form.max_assentos_psi, 10) : null,
       status: form.status,
       data_inicio: form.data_inicio || null,
     });
@@ -664,6 +743,18 @@ export const AdminEmpresas: React.FC = () => {
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-800 text-sm">{e.nome}</p>
                       {e.cnpj && <p className="text-xs text-gray-400 mt-0.5">{e.cnpj}</p>}
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {e.modo_mental && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#7d4a3c]/10 text-[#7d4a3c]">
+                            <Brain className="w-2.5 h-2.5" /> Mental
+                          </span>
+                        )}
+                        {e.modo_metabolico && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                            <Activity className="w-2.5 h-2.5" /> Metabólico
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-center hidden sm:table-cell">
                       <span className="text-sm font-medium text-gray-700">

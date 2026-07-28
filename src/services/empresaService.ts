@@ -28,10 +28,14 @@ export type Empresa = {
   bloqueio_motivo?: string | null;
   cobranca_email?: string | null;
   cobranca_responsavel?: string | null;
-  // Plano psicológico — upsell B2B (migration 20260723)
+  // Plano psicológico — modelo antigo de adicional avulso (migration 20260723).
+  // Substituído por modo_mental; mantido para empresas que já usam.
   plano_psicologico?: boolean;
   valor_assento_psi?: number | null;
   max_assentos_psi?: number | null;
+  // Modos de contrato (migration 20260727). Definem o que o assento entrega.
+  modo_mental?: boolean;
+  modo_metabolico?: boolean;
 };
 
 export type EmpresaSummary = Empresa & {
@@ -423,6 +427,7 @@ export const empresaAdminService = {
 
 export type RhEmpresa = Pick<Empresa,
   'id' | 'nome' | 'cnpj' | 'responsavel_nome' | 'max_assentos' | 'status' | 'data_inicio'
+  | 'modo_mental' | 'modo_metabolico'
 >;
 
 export type RhComplianceMetricas = {
@@ -493,6 +498,212 @@ export type RhRelatorioPsicossocial = {
   setores_suprimidos: number;
 };
 
+// ── Motor de campanhas psicossociais (migration 20260728) ──
+// Atenção ao que cada tipo carrega:
+//   participação (convidados/respondentes/taxa) → não é dado de saúde,
+//     aparece sem piso de k, inclusive por setor.
+//   escore → só em RhRelatorioPsicossocial, agregado com k >= 5.
+export type PsychosocialEixo = 'bemestar' | 'exposicao';
+
+export type PsychosocialInstrumento = {
+  code: string;
+  nome: string;
+  versao: string | null;
+  descricao: string | null;
+  eixo: PsychosocialEixo;
+  cadencia_meses: number | null;
+  fonte: string | null;
+  licenca: string | null;
+  ativo: boolean;
+};
+
+export type CampanhaStatus = 'aberta' | 'encerrada' | 'cancelada';
+
+export type PsychosocialCampanha = {
+  id: string;
+  instrument: string;
+  instrument_nome: string;
+  eixo: PsychosocialEixo;
+  janela_inicio: string;
+  janela_fim: string;
+  setores: string[] | null;   // null = empresa inteira
+  status: CampanhaStatus;
+  encerrada_em: string | null;
+  created_at: string;
+  n_convidados: number;
+  n_respondentes: number;
+};
+
+export type CampanhaParticipacaoSetor = {
+  setor: string;
+  convidados: number;
+  respondentes: number;
+  taxa: number;               // 0–100
+};
+
+export type CampanhaParticipacao = {
+  campaign_id: string;
+  convidados: number;
+  respondentes: number;
+  taxa: number;
+  setores: CampanhaParticipacaoSetor[];
+};
+
+export type SetorEmpresa = { setor: string; n: number };
+
+// ── Matriz de risco psicossocial por setor (migration 20260730) ──
+// Cruza exposição ocupacional (JSS) com bem-estar (WHO-5).
+export type MatrizQuadrante =
+  | 'risco_ocupacional'  // alta exposição + baixo bem-estar → agir na fonte
+  | 'fator_externo'      // baixa exposição + baixo bem-estar → cuidado individual
+  | 'risco_latente'      // alta exposição + bem-estar ainda ok → agir antes de adoecer
+  | 'estavel';
+
+export type MatrizEixoBemestar = {
+  n_respondentes: number;
+  score_medio: number;
+  faixa_reduzido: number;
+  faixa_risco: number;
+};
+
+export type MatrizEixoExposicao = {
+  n_respondentes: number;
+  indice: number;    // 0–100, maior = mais exposição
+  demanda: number;
+  controle: number;
+  apoio: number;
+};
+
+export type MatrizSetor = {
+  setor: string;
+  // null = recorte suprimido por não atingir o piso de respondentes
+  bemestar: MatrizEixoBemestar | null;
+  exposicao: MatrizEixoExposicao | null;
+  quadrante: MatrizQuadrante | null;
+};
+
+export type RhMatrizPsicossocial = {
+  empresa_id: string;
+  empresa_nome: string;
+  empresa_cnpj: string | null;
+  periodo_inicio: string;
+  periodo_fim: string;
+  k_min: number;
+  min_setores: number;
+  setores_comparaveis: number;
+  // Cortes da classificação — medianas da própria empresa. null quando não
+  // há setores comparáveis suficientes para a mediana significar algo.
+  mediana_exposicao: number | null;
+  mediana_bemestar: number | null;
+  setores: MatrizSetor[];
+  setores_suprimidos: number;
+};
+
+// ── Absenteísmo e ambulatório (migration 20260731) ──
+// Registros NÃO apontam para pessoa: só setor, capítulo de CID e dias.
+export type AbsenteismoGrupo = {
+  grupo: string;      // letra do capítulo do CID-10
+  episodios: number;
+  dias: number;
+};
+
+export type AbsenteismoSetor = {
+  setor: string;
+  colaboradores: number;
+  episodios: number;
+  dias: number;
+  dias_f: number;         // dias por transtorno mental (capítulo F)
+  episodios_f: number;
+  dias_por_colaborador: number;
+};
+
+export type RhAbsenteismo = {
+  periodo_inicio: string;
+  periodo_fim: string;
+  k_min: number;
+  total_episodios: number;
+  total_dias: number;
+  grupos: AbsenteismoGrupo[];
+  setores: AbsenteismoSetor[];
+  setores_suprimidos: number;
+};
+
+// Lançamentos individuais — existem só para o RH conferir e desfazer o que
+// digitou errado. Não têm identificação de colaborador (ver migration).
+// Correção é apagar e relançar: a tabela não tem policy de UPDATE, porque
+// registro que vira evidência de PGR não deve ser editável em silêncio.
+export type AfastamentoLancamento = {
+  id: string;
+  setor: string | null;
+  cid_grupo: string;
+  dias: number;
+  data_inicio: string;
+  created_at: string;
+};
+
+export type AmbulatorioLancamento = {
+  id: string;
+  setor: string | null;
+  categoria: string;
+  data: string;
+  created_at: string;
+};
+
+export type AmbulatorioCategoria = { categoria: string; atendimentos: number };
+
+export type AmbulatorioSetor = {
+  setor: string;
+  colaboradores: number;
+  atendimentos: number;
+  ansiedade: number;
+  por_colaborador: number;
+};
+
+// ── Plano de ação (migration 20260801) ──
+export type PlanoOrigem = 'matriz' | 'absenteismo' | 'ambulatorio' | 'campanha' | 'manual';
+export type PlanoFator =
+  'demanda' | 'controle' | 'apoio' | 'assedio' | 'jornada' | 'reconhecimento' | 'outro';
+// Hierarquia de controle da NR-1: agir na fonte vem primeiro, cuidado
+// individual por último — e sozinho não encerra risco de fonte.
+export type PlanoNivel = 'fonte' | 'organizacional' | 'individual';
+export type PlanoStatus = 'planejada' | 'em_andamento' | 'concluida' | 'cancelada';
+
+export type PlanoAcao = {
+  id: string;
+  setor: string | null;
+  origem: PlanoOrigem;
+  fator: PlanoFator;
+  risco_descricao: string;
+  medida: string;
+  nivel_controle: PlanoNivel;
+  responsavel: string;
+  prazo: string;
+  status: PlanoStatus;
+  evidencia: string | null;
+  concluida_em: string | null;
+  atrasada: boolean;
+  created_at: string;
+};
+
+export type RhPlanosResumo = {
+  total: number;
+  abertas: number;
+  concluidas: number;
+  atrasadas: number;
+  /** Setores em risco ocupacional sem medida de fonte ou organizacional. */
+  setores_sem_acao_na_fonte: string[];
+};
+
+export type RhAmbulatorio = {
+  periodo_inicio: string;
+  periodo_fim: string;
+  k_min: number;
+  total: number;
+  categorias: AmbulatorioCategoria[];
+  setores: AmbulatorioSetor[];
+  setores_suprimidos: number;
+};
+
 // Linha do certificado de disponibilização (sem dados de uso)
 export type CertificadoColaborador = {
   colaborador_id: string;
@@ -533,7 +744,7 @@ export const rhService = {
 
     const { data: empresa, error } = await supabase
       .from('empresas')
-      .select('id, nome, cnpj, responsavel_nome, max_assentos, status, data_inicio')
+      .select('id, nome, cnpj, responsavel_nome, max_assentos, status, data_inicio, modo_mental, modo_metabolico')
       .eq('id', rh.empresa_id)
       .single();
     if (error) {
@@ -685,6 +896,198 @@ export const rhService = {
       p_colaborador_id: colaboradorId,
       p_ativar: ativar,
     });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  // ── Campanhas psicossociais ──────────────────────────
+  // Instrumentos do catálogo. Só os com ativo=true podem virar campanha:
+  // instrumento validado sem redação conferida gera escore inválido.
+  async getInstrumentos(): Promise<PsychosocialInstrumento[]> {
+    const { data, error } = await supabase
+      .from('psychosocial_instruments')
+      .select('*')
+      .order('eixo')
+      .order('nome');
+    if (error) { console.error('[rhService] instrumentos:', error.message); return []; }
+    return (data ?? []) as PsychosocialInstrumento[];
+  },
+
+  async getCampanhas(): Promise<PsychosocialCampanha[]> {
+    const { data, error } = await supabase.rpc('rh_listar_campanhas');
+    if (error) { console.error('[rhService] campanhas:', error.message); return []; }
+    return (data ?? []) as PsychosocialCampanha[];
+  },
+
+  async criarCampanha(
+    instrument: string,
+    janelaInicio: string,
+    janelaFim: string,
+    setores: string[] | null,
+  ): Promise<{ ok: boolean; campaign_id?: string; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_criar_campanha', {
+      p_instrument: instrument,
+      p_janela_inicio: janelaInicio,
+      p_janela_fim: janelaFim,
+      p_setores: setores && setores.length > 0 ? setores : null,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; campaign_id?: string; error?: string };
+  },
+
+  async encerrarCampanha(campaignId: string, cancelar = false): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_encerrar_campanha', {
+      p_campaign_id: campaignId,
+      p_cancelar: cancelar,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  async getCampanhaParticipacao(campaignId: string): Promise<CampanhaParticipacao | null> {
+    const { data, error } = await supabase.rpc('rh_campanha_participacao', { p_campaign_id: campaignId });
+    if (error) { console.error('[rhService] participação:', error.message); return null; }
+    return (data ?? null) as CampanhaParticipacao | null;
+  },
+
+  async getSetores(): Promise<SetorEmpresa[]> {
+    const { data, error } = await supabase.rpc('rh_setores');
+    if (error) { console.error('[rhService] setores:', error.message); return []; }
+    return (data ?? []) as SetorEmpresa[];
+  },
+
+  // Matriz exposição × bem-estar por setor. Escores já vêm agregados e
+  // k-anonimizados pelo banco.
+  async getMatrizPsicossocial(inicio: string, fim: string): Promise<RhMatrizPsicossocial | null> {
+    const { data, error } = await supabase.rpc('rh_matriz_psicossocial', {
+      p_inicio: inicio, p_fim: fim,
+    });
+    if (error) { console.error('[rhService] matriz psicossocial:', error.message); return null; }
+    return (data ?? null) as RhMatrizPsicossocial | null;
+  },
+
+  // ── Absenteísmo e ambulatório ────────────────────────
+  async lancarAfastamento(
+    setor: string, cidGrupo: string, dias: number, dataInicio: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_lancar_afastamento', {
+      p_setor: setor, p_cid_grupo: cidGrupo, p_dias: dias, p_data_inicio: dataInicio,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  async lancarAmbulatorio(
+    setor: string, categoria: string, data_: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_lancar_ambulatorio', {
+      p_setor: setor, p_categoria: categoria, p_data: data_,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  async getAbsenteismo(inicio: string, fim: string): Promise<RhAbsenteismo | null> {
+    const { data, error } = await supabase.rpc('rh_absenteismo_resumo', {
+      p_inicio: inicio, p_fim: fim,
+    });
+    if (error) { console.error('[rhService] absenteísmo:', error.message); return null; }
+    return (data ?? null) as RhAbsenteismo | null;
+  },
+
+  async getAmbulatorio(inicio: string, fim: string): Promise<RhAmbulatorio | null> {
+    const { data, error } = await supabase.rpc('rh_ambulatorio_resumo', {
+      p_inicio: inicio, p_fim: fim,
+    });
+    if (error) { console.error('[rhService] ambulatório:', error.message); return null; }
+    return (data ?? null) as RhAmbulatorio | null;
+  },
+
+  // Lançamentos individuais para conferência e exclusão. RLS já limita à
+  // empresa do RH — não precisa (nem deve) filtrar empresa_id no cliente.
+  async getLancamentosAfastamento(inicio: string, fim: string): Promise<AfastamentoLancamento[]> {
+    const { data, error } = await supabase
+      .from('empresa_afastamentos')
+      .select('id, setor, cid_grupo, dias, data_inicio, created_at')
+      .gte('data_inicio', inicio)
+      .lte('data_inicio', fim)
+      .order('data_inicio', { ascending: false })
+      .limit(200);
+    if (error) { console.error('[rhService] lançamentos de afastamento:', error.message); return []; }
+    return (data ?? []) as AfastamentoLancamento[];
+  },
+
+  async excluirAfastamento(id: string): Promise<{ ok: boolean; error?: string }> {
+    const { error } = await supabase.from('empresa_afastamentos').delete().eq('id', id);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  },
+
+  async getLancamentosAmbulatorio(inicio: string, fim: string): Promise<AmbulatorioLancamento[]> {
+    const { data, error } = await supabase
+      .from('empresa_ambulatorio')
+      .select('id, setor, categoria, data, created_at')
+      .gte('data', inicio)
+      .lte('data', fim)
+      .order('data', { ascending: false })
+      .limit(200);
+    if (error) { console.error('[rhService] lançamentos de ambulatório:', error.message); return []; }
+    return (data ?? []) as AmbulatorioLancamento[];
+  },
+
+  async excluirAmbulatorio(id: string): Promise<{ ok: boolean; error?: string }> {
+    const { error } = await supabase.from('empresa_ambulatorio').delete().eq('id', id);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  },
+
+  // ── Plano de ação ────────────────────────────────────
+  async getPlanosAcao(): Promise<PlanoAcao[]> {
+    const { data, error } = await supabase.rpc('rh_listar_planos_acao');
+    if (error) { console.error('[rhService] planos de ação:', error.message); return []; }
+    return (data ?? []) as PlanoAcao[];
+  },
+
+  async getPlanosResumo(inicio: string, fim: string): Promise<RhPlanosResumo | null> {
+    const { data, error } = await supabase.rpc('rh_planos_acao_resumo', {
+      p_inicio: inicio, p_fim: fim,
+    });
+    if (error) { console.error('[rhService] resumo de planos:', error.message); return null; }
+    return (data ?? null) as RhPlanosResumo | null;
+  },
+
+  async criarPlanoAcao(p: {
+    setor: string; origem: PlanoOrigem; fator: PlanoFator;
+    risco_descricao: string; medida: string; nivel_controle: PlanoNivel;
+    responsavel: string; prazo: string;
+  }): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_criar_plano_acao', {
+      p_setor: p.setor,
+      p_origem: p.origem,
+      p_fator: p.fator,
+      p_risco_descricao: p.risco_descricao,
+      p_medida: p.medida,
+      p_nivel_controle: p.nivel_controle,
+      p_responsavel: p.responsavel,
+      p_prazo: p.prazo,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  // Concluir exige evidência — validado no banco, não só na tela.
+  async atualizarPlanoAcao(
+    id: string, status: PlanoStatus, evidencia?: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_atualizar_plano_acao', {
+      p_id: id, p_status: status, p_evidencia: evidencia ?? null,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  async excluirPlanoAcao(id: string): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_excluir_plano_acao', { p_id: id });
     if (error) return { ok: false, error: error.message };
     return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
   },

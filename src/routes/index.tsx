@@ -21,6 +21,9 @@ import { RhLayout } from './rh/RhLayout';
 import { RhDashboard } from './rh/RhDashboard';
 import { RhFinanceiro } from './rh/RhFinanceiro';
 import { RhCompliance } from './rh/RhCompliance';
+import { RhSaudeMental } from './rh/RhSaudeMental';
+import { RhAbsenteismo } from './rh/RhAbsenteismo';
+import { RhPlanoAcao } from './rh/RhPlanoAcao';
 import { RhImpacto } from './rh/RhImpacto';
 
 // Doctor Pages
@@ -290,6 +293,9 @@ export const AppRoutes: React.FC = () => {
           >
             <Route path="dashboard" element={<RhDashboard />} />
             <Route path="financeiro" element={<RhFinanceiro />} />
+            <Route path="saude-mental" element={<RhSaudeMental />} />
+            <Route path="absenteismo" element={<RhAbsenteismo />} />
+            <Route path="plano-acao" element={<RhPlanoAcao />} />
             <Route path="compliance" element={<RhCompliance />} />
             <Route path="impacto" element={<RhImpacto />} />
           </Route>
