@@ -36,6 +36,11 @@ export type Empresa = {
   // Modos de contrato (migration 20260727). Definem o que o assento entrega.
   modo_mental?: boolean;
   modo_metabolico?: boolean;
+  // Preço por assento de cada modalidade (migration 20260807). A empresa que
+  // contrata as duas paga pelas duas. valor_por_assento vira o legado/fallback
+  // do metabólico.
+  valor_assento_mental?: number | null;
+  valor_assento_metabolico?: number | null;
 };
 
 export type EmpresaSummary = Empresa & {

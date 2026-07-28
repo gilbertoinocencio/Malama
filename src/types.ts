@@ -118,6 +118,8 @@ export enum AppView {
   COMMUNITY_PROFILE = 'COMMUNITY_PROFILE',
   COMMUNITY_SEARCH = 'COMMUNITY_SEARCH',
   NOTIFICATION_CENTER = 'NOTIFICATION_CENTER',
+  /** Início do modo Mental: questionários pendentes, próxima sessão, diário. */
+  MENTAL_HOME = 'MENTAL_HOME',
 }
 
 export type Theme = 'light' | 'dark';

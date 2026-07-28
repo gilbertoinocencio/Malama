@@ -22,11 +22,6 @@ export {
   WHO5_INTRO, WHO5_QUESTIONS, WHO5_OPTIONS,
 } from './psychosocialInstruments';
 
-export interface Who5Result {
-  rawScore: number; // 0–25
-  score: number;    // 0–100
-}
-
 export interface PsychosocialAssessment {
   id: string;
   user_id: string;
@@ -57,107 +52,34 @@ export function getCurrentReferenceMonth(date = new Date()): string {
   return `${y}-${m}-01`;
 }
 
-/** Escore WHO-5 determinístico a partir das 5 respostas (0–5 cada). */
-export function computeWho5Score(answers: number[]): Who5Result {
-  if (answers.length !== WHO5.blocks[0].items.length) {
-    throw new Error('WHO-5 exige exatamente 5 respostas');
-  }
-  const porChave: Record<string, number> = {};
-  answers.forEach((a, i) => { porChave[`q${i + 1}`] = a; });
-  const { rawScore, score } = WHO5.score(porChave);
-  return { rawScore, score };
-}
-
-const snoozeKey = (userId: string, referenceMonth: string) =>
-  `who5-snooze:${userId}:${referenceMonth.slice(0, 7)}`;
+// Adiamento por CAMPANHA (não mais por mês). O piso é a janela definida pelo
+// RH; o snooze só evita reabrir o modal a cada vez que o app abre.
+const ADIAR_DIAS = 3;
+const adiarKey = (campaignId: string) => `campanha-adiada:${campaignId}`;
 
 export const PsychosocialService = {
-  /** Resposta do mês corrente, se existir. */
-  async getCurrentMonthAssessment(userId: string): Promise<PsychosocialAssessment | null> {
-    const { data, error } = await supabase
-      .from('psychosocial_assessments')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('instrument', 'who5')
-      .eq('reference_month', getCurrentReferenceMonth())
-      .maybeSingle();
-    if (error) {
-      console.error('getCurrentMonthAssessment:', error);
-      return null;
-    }
-    return data as PsychosocialAssessment | null;
+  // ── Campanhas (motor genérico) ───────────────────────
+
+  /** Adia o modal desta campanha. A janela do RH continua valendo. */
+  adiarCampanha(campaignId: string): void {
+    const ate = new Date();
+    ate.setDate(ate.getDate() + ADIAR_DIAS);
+    localStorage.setItem(adiarKey(campaignId), ate.toISOString());
   },
 
   /**
-   * Decide se o modal WHO-5 deve abrir agora.
-   * Cadência acordada: pergunta desde o início do mês; se o usuário
-   * pular, volta a insistir a cada 7 dias até responder. Snooze fica
-   * em localStorage com chave por mês — mês novo zera a insistência.
-   * Fail closed: em erro de rede/consulta, não abre (não incomoda).
+   * Primeira campanha pendente que ainda não foi adiada — é a que o app abre
+   * sozinho. A LISTA continua mostrando todas: adiar silencia o modal, não
+   * esconde o questionário.
    */
-  async shouldPromptWho5(userId: string): Promise<boolean> {
-    const referenceMonth = getCurrentReferenceMonth();
-    const key = snoozeKey(userId, referenceMonth);
-
-    const snoozedUntil = localStorage.getItem(key);
-    if (snoozedUntil === 'done') return false;
-    if (snoozedUntil && new Date(snoozedUntil) > new Date()) return false;
-
-    try {
-      const existing = await this.getCurrentMonthAssessment(userId);
-      if (existing) {
-        localStorage.setItem(key, 'done');
-        return false;
-      }
-      return true;
-    } catch {
-      return false;
-    }
+  async proximaCampanhaParaAbrir(): Promise<CampanhaPendente | null> {
+    const pendentes = await this.getCampanhasPendentes();
+    const agora = Date.now();
+    return pendentes.find(c => {
+      const ate = localStorage.getItem(adiarKey(c.campaign_id));
+      return !ate || new Date(ate).getTime() <= agora;
+    }) ?? null;
   },
-
-  /** Usuário pulou o modal: silencia por 7 dias dentro do mês corrente. */
-  snoozeWho5(userId: string): void {
-    const until = new Date();
-    until.setDate(until.getDate() + 7);
-    localStorage.setItem(snoozeKey(userId, getCurrentReferenceMonth()), until.toISOString());
-  },
-
-  /** Grava a resposta do mês (imutável — sem update por design). */
-  async submitWho5(userId: string, answers: number[]): Promise<PsychosocialAssessment> {
-    const { rawScore, score } = computeWho5Score(answers);
-    const referenceMonth = getCurrentReferenceMonth();
-
-    const answersJson: Record<string, number> = {};
-    answers.forEach((a, i) => { answersJson[`q${i + 1}`] = a; });
-
-    const { data, error } = await supabase
-      .from('psychosocial_assessments')
-      .insert([{
-        user_id: userId,
-        instrument: 'who5',
-        reference_month: referenceMonth,
-        answers: answersJson,
-        raw_score: rawScore,
-        score,
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      // 23505 = já respondeu este mês (corrida entre devices) — trata como sucesso lógico
-      if ((error as { code?: string }).code === '23505') {
-        localStorage.setItem(snoozeKey(userId, referenceMonth), 'done');
-        const existing = await this.getCurrentMonthAssessment(userId);
-        if (existing) return existing;
-      }
-      throw error;
-    }
-
-    localStorage.setItem(snoozeKey(userId, referenceMonth), 'done');
-    return data as PsychosocialAssessment;
-  },
-
-  // ── Campanhas (motor genérico) ───────────────────────
 
   /** Campanhas abertas dirigidas a este usuário e ainda não respondidas. */
   async getCampanhasPendentes(): Promise<CampanhaPendente[]> {

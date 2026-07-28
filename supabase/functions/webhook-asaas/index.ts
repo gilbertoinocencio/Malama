@@ -128,7 +128,7 @@ async function handleEmpresaPaid(payment: any): Promise<void> {
 
   const { data: fatura } = await supabase
     .from('empresa_faturas')
-    .select('id, empresa_id, valor')
+    .select('id, empresa_id, valor, competencia')
     .eq('asaas_payment_id', paymentId)
     .maybeSingle();
   if (!fatura) return; // não é fatura B2B
@@ -137,6 +137,23 @@ async function handleEmpresaPaid(payment: any): Promise<void> {
     .from('empresa_faturas')
     .update({ status: 'pago', pago_em: new Date().toISOString() })
     .eq('id', fatura.id);
+
+  // Pagamento confirmado libera as consultas do mês: um crédito por
+  // colaborador com assento, para cada modalidade contratada (metabólico →
+  // 'medico', mental → 'psicologo'). A RPC é idempotente, então retry de
+  // webhook ou reenvio do Asaas não duplica crédito.
+  const { data: emissao, error: emissaoErr } = await supabase
+    .rpc('emitir_creditos_empresa', {
+      p_empresa_id: fatura.empresa_id,
+      p_competencia: fatura.competencia,
+    });
+  if (emissaoErr) {
+    // Não aborta: a fatura está paga e o acesso precisa ser reativado abaixo.
+    // Créditos podem ser reemitidos pelo admin (admin_emitir_creditos_empresa).
+    console.error(`[webhook-asaas] Falha ao emitir créditos da empresa ${fatura.empresa_id}:`, emissaoErr);
+  } else {
+    console.log(`[webhook-asaas] Créditos emitidos:`, JSON.stringify(emissao));
+  }
 
   const { data: empresa } = await supabase
     .from('empresas')

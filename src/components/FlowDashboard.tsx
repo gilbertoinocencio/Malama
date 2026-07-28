@@ -8,9 +8,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { EngagementCard } from './dashboard/EngagementCard';
 import { DailyCheckinModal } from './DailyCheckinModal';
-import { Who5Modal } from './Who5Modal';
+import { InstrumentoModal } from './InstrumentoModal';
 import { CoachService } from '../services/coachService';
-import { PsychosocialService } from '../services/psychosocialService';
+import { PsychosocialService, type CampanhaPendente } from '../services/psychosocialService';
 import { DailyMealsList } from './DailyMealsList';
 import { getLocalDateString } from '../utils/dateUtils';
 import { getTodayConsultation, getDoctorMessage, getLatestGoalAdjustment } from '../lib/scheduling';
@@ -62,7 +62,12 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   const waterGoalState = stats.waterGoal ?? 0;
   const [weeklyScores, setWeeklyScores] = useState<{ date: string, score: number }[]>([]);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
-  const [showWho5Modal, setShowWho5Modal] = useState(false);
+  // Campanha psicossocial pendente que o app abre sozinho. Antes o WHO-5 era
+  // disparado por regra de mês em localStorage, para TODO usuário — inclusive
+  // B2C, que não tem para onde a resposta ir. Agora só existe um caminho: a
+  // campanha aberta pelo RH.
+  const [campanhaAberta, setCampanhaAberta] = useState<CampanhaPendente | null>(null);
+  const [campanhasPendentes, setCampanhasPendentes] = useState<CampanhaPendente[]>([]);
   const [showMicros, setShowMicros] = useState(false);
   const [weeklyMetrics, setWeeklyMetrics] = useState<{
     avgCalories: number;
@@ -156,11 +161,15 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     if (!user) return;
     let cancelled = false;
     (async () => {
-      const who5Due = await PsychosocialService.shouldPromptWho5(user.id);
+      const pendentes = await PsychosocialService.getCampanhasPendentes();
       if (cancelled) return;
-      if (who5Due) {
-        setShowWho5Modal(true);
-        return; // check-in diário roda no onClose/onComplete do WHO-5
+      setCampanhasPendentes(pendentes);
+
+      const abrir = await PsychosocialService.proximaCampanhaParaAbrir();
+      if (cancelled) return;
+      if (abrir) {
+        setCampanhaAberta(abrir);
+        return; // check-in diário roda ao fechar o questionário
       }
       maybePromptDailyCheckin();
     })();
@@ -805,6 +814,37 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
         {period === 'day' ? (
           /* ——— DAY VIEW: Calorie Ring + Macros (original dashboard) ——— */
           <>
+            {/* Questionários pendentes — caminho de volta para quem adiou o
+                modal. Sem isto o questionário sumiria por 3 dias sem rastro. */}
+            {campanhasPendentes.length > 0 && (
+              <div className="px-6 space-y-2">
+                {campanhasPendentes.map(c => (
+                  <button
+                    key={c.campaign_id}
+                    onClick={() => setCampanhaAberta(c)}
+                    className="w-full text-left rounded-2xl p-4 border-2 border-[#7d4a3c]/25 bg-[#7d4a3c]/[0.06] active:scale-[0.99] transition-transform"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#7d4a3c]/15 flex items-center justify-center flex-shrink-0">
+                        <span className="material-symbols-outlined text-[#7d4a3c]">checklist</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-Malama-main dark:text-white">
+                          {c.instrument_nome}
+                        </p>
+                        <p className="text-xs text-Malama-muted dark:text-slate-400">
+                          Respostas sigilosas · leva poucos minutos
+                        </p>
+                      </div>
+                      <span className="material-symbols-outlined text-Malama-muted flex-shrink-0">
+                        chevron_right
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Telemedicine: CTAs de consulta por especialidade (médica / psicológica) */}
             {!todayConsultation && (hasMedicoCredit || hasPsicoCredit) && (
               <div className="px-6 space-y-3">
@@ -2000,22 +2040,20 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
         </div>
       </main >
 
-      {/* WHO-5 mensal (prioridade sobre o check-in diário) */}
-      {
-        showWho5Modal && (
-          <Who5Modal
-            onClose={() => {
-              // Snooze de 7 dias já gravado pelo modal — segue pro check-in do dia
-              setShowWho5Modal(false);
-              maybePromptDailyCheckin();
-            }}
-            onComplete={() => {
-              setShowWho5Modal(false);
-              maybePromptDailyCheckin();
-            }}
-          />
-        )
-      }
+      {/* Questionário de campanha (prioridade sobre o check-in diário) */}
+      {campanhaAberta && (
+        <InstrumentoModal
+          campanha={campanhaAberta}
+          onClose={() => {
+            setCampanhaAberta(null);
+            maybePromptDailyCheckin();
+          }}
+          onRespondida={() => {
+            setCampanhasPendentes(p => p.filter(c => c.campaign_id !== campanhaAberta.campaign_id));
+            maybePromptDailyCheckin();
+          }}
+        />
+      )}
 
       {/* Daily Check-in Modal */}
       {

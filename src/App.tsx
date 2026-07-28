@@ -4,6 +4,9 @@ import { Layout } from './components/Layout';
 import { FlowDashboard } from './components/FlowDashboard'; // Critical: Keep eager
 import { LoginView } from './components/LoginView'; // Critical: Keep eager
 import { OnboardingFlow } from './components/onboarding-stitch/OnboardingFlow';
+import { MentalOnboarding } from './components/MentalOnboarding';
+import { MentalHome } from './components/MentalHome';
+import { useModos } from './hooks/useModos';
 import { AppView, DailyStats, Meal } from './types';
 import { INITIAL_STATS } from './constants';
 import { useAuth } from './contexts/AuthContext';
@@ -57,8 +60,21 @@ const _supabaseStorageKey = (() => {
 
 const App: React.FC = () => {
   const { user, profile, loading, profileLoading } = useAuth();
+  // Modos contratados pela empresa do colaborador. Define onboarding e navegação.
+  const modos = useModos(user?.id);
+  // Só o modo Mental: app sem nutrição, refeição, peso ou feed.
+  const apenasMental = modos.mental && !modos.metabolico;
   useIdleLogout(!!user);
   const [view, setView] = useState<AppView>(AppView.HOME);
+
+  // A view inicial depende do modo, que chega de forma assíncrona. Só troca
+  // enquanto o usuário ainda está na home padrão — nunca por cima de uma
+  // navegação que ele já fez.
+  useEffect(() => {
+    if (modos.loading) return;
+    if (apenasMental && view === AppView.HOME) setView(AppView.MENTAL_HOME);
+    if (!apenasMental && view === AppView.MENTAL_HOME) setView(AppView.HOME);
+  }, [modos.loading, apenasMental, view]);
   const [communityProfileUserId, setCommunityProfileUserId] = useState<string | null>(null);
   const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
   const [notifPostId, setNotifPostId] = useState<string | null>(null);
@@ -485,9 +501,28 @@ const App: React.FC = () => {
     );
   }
 
-  // Profile loaded but onboarding not completed
-  if (!profile?.onboarding_completed && !onboardingDone) {
-    return <OnboardingFlow onComplete={() => { setOnboardingDone(true); loadStats(); }} />;
+  // Cadastro inicial. Cada modo tem o seu, com marcador independente:
+  //   metabólico → onboarding_completed (fluxo longo, com dieta e peso)
+  //   mental     → onboarding_mental_completed (curto: nome, nascimento,
+  //                contato de emergência, termo)
+  // Quem só tem o modo Mental nunca vê as 19 telas sobre dieta e peso — são
+  // perguntas sem sentido para quem veio buscar apoio psicológico.
+  const precisaOnboardingMetabolico = modos.metabolico && !profile?.onboarding_completed;
+  const precisaOnboardingMental =
+    modos.mental && !modos.metabolico && !(profile as any)?.onboarding_mental_completed;
+
+  if (!onboardingDone && (modos.loading || precisaOnboardingMetabolico || precisaOnboardingMental)) {
+    if (modos.loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-Malama-bg dark:bg-background-dark">
+          <div className="w-12 h-12 border-4 border-Malama-petrol dark:border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      );
+    }
+    if (precisaOnboardingMetabolico) {
+      return <OnboardingFlow onComplete={() => { setOnboardingDone(true); loadStats(); }} />;
+    }
+    return <MentalOnboarding onComplete={() => { setOnboardingDone(true); loadStats(); }} />;
   }
 
   return (
@@ -495,9 +530,11 @@ const App: React.FC = () => {
     <Layout
       activeView={view}
       onChangeView={setView}
+      apenasMental={apenasMental}
       onFabClick={() => view === AppView.FEED ? setCommunityComposerOpen(true) : setView(AppView.LOG)}
     >
       <Suspense fallback={<LoadingSpinner />}>
+        {view === AppView.MENTAL_HOME && <MentalHome onNavigate={setView} />}
         {view === AppView.HOME && (
           <FlowDashboard
             stats={stats}

@@ -25,8 +25,9 @@ import {
   psychologyService,
   type PsiContexto, type PsiAnamnese, type PsiEvolucao,
   type NotaEquipe, type NotaVisibilidade, type CriseEvento, type CriseNivel,
-  type PsiContatoEmergencia,
+  type PsiContatoEmergencia, type Srq20Aplicacao,
 } from '../../services/psychologyService';
+import { CORTE_REFERENCIA, CORTE_FAIXA, ITEM_RISCO } from '../../services/srq20';
 import type { Doctor } from '../../types/doctorPortal';
 
 const GRID = '#e1e0d9';
@@ -190,6 +191,7 @@ export const PsiPaciente: React.FC = () => {
   const [notas, setNotas] = useState<NotaEquipe[]>([]);
   const [evolucoes, setEvolucoes] = useState<PsiEvolucao[]>([]);
   const [crises, setCrises] = useState<CriseEvento[]>([]);
+  const [srq, setSrq] = useState<Srq20Aplicacao[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [contato, setContato] = useState<PsiContatoEmergencia | null>(null);
@@ -197,14 +199,15 @@ export const PsiPaciente: React.FC = () => {
 
   const load = useCallback(async () => {
     if (!id) return;
-    const [c, a, n, e, cr] = await Promise.all([
+    const [c, a, n, e, cr, s] = await Promise.all([
       psychologyService.getContexto(id),
       psychologyService.getAnamnese(id),
       psychologyService.getNotasEquipe(id),
       psychologyService.getEvolucoes(id),
       psychologyService.getCrises(id),
+      psychologyService.getSrq20(id),
     ]);
-    setCtx(c); setAnamnese(a); setNotas(n); setEvolucoes(e); setCrises(cr);
+    setCtx(c); setAnamnese(a); setNotas(n); setEvolucoes(e); setCrises(cr); setSrq(s);
     setLoading(false);
   }, [id]);
 
@@ -281,6 +284,7 @@ export const PsiPaciente: React.FC = () => {
         <AbaContexto
           ctx={ctx}
           crises={crises}
+          srq={srq}
           contato={contato}
           onRevelarContato={async () => {
             const c = await psychologyService.getContatoEmergencia(id!);
@@ -329,9 +333,10 @@ export const PsiPaciente: React.FC = () => {
 const AbaContexto: React.FC<{
   ctx: PsiContexto;
   crises: CriseEvento[];
+  srq: Srq20Aplicacao[];
   contato: PsiContatoEmergencia | null;
   onRevelarContato: () => void;
-}> = ({ ctx, crises, contato, onRevelarContato }) => {
+}> = ({ ctx, crises, srq, contato, onRevelarContato }) => {
   const checkins = ctx.checkins ?? [];
   const ultimos14 = checkins.slice(-14);
 
@@ -466,6 +471,51 @@ const AbaContexto: React.FC<{
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* SRQ-20 — histórico de aplicações, visível a quem assumir o caso */}
+      {srq.length > 0 && (
+        <div className="bg-white rounded-xl shadow p-5">
+          <h2 className="font-semibold text-gray-800 mb-1">SRQ-20 aplicado</h2>
+          <p className="text-sm text-gray-500 mb-3">
+            Rastreio de transtornos mentais comuns. Escore de 0 a 20.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-gray-400 border-b border-gray-100">
+                  <th className="text-left font-medium py-2">Data</th>
+                  <th className="text-right font-medium py-2">Escore</th>
+                  <th className="text-left font-medium py-2 pl-4">Item de ideação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {srq.map(a => (
+                  <tr key={a.id}>
+                    <td className="py-2 text-gray-500 text-xs">{fmtDateTime(a.created_at)}</td>
+                    <td className={`py-2 text-right font-bold tabular-nums ${
+                      a.score >= CORTE_REFERENCIA ? 'text-amber-600' : 'text-gray-800'
+                    }`}>
+                      {a.score}
+                    </td>
+                    <td className="py-2 pl-4">
+                      {a.item_risco
+                        ? <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
+                            <ShieldAlert className="w-3.5 h-3.5" /> Afirmativo
+                          </span>
+                        : <span className="text-xs text-gray-400">Negativo</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-gray-400 mt-3 leading-snug">
+            Rastreio, não diagnóstico. O ponto de corte varia na literatura brasileira
+            ({CORTE_FAIXA}); {CORTE_REFERENCIA} é o mais citado. "Item de ideação" refere-se a{' '}
+            <em>{ITEM_RISCO.texto}</em>
+          </p>
         </div>
       )}
 

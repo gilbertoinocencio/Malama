@@ -102,8 +102,18 @@ const DrumColumn: React.FC<ColumnProps> = ({ items, selectedIdx, onSelect, forma
 
 // ─── Main step ───────────────────────────────────────────────────────────────
 
-const DataNascimentoStep: React.FC<StepProps> = ({
-  data, updateData, onNext, onBack, currentStep, totalSteps
+// Textos parametrizáveis: o mesmo seletor serve o fluxo metabólico e o do
+// modo Mental, que não fala de cálculo metabólico com quem veio buscar apoio
+// psicológico. Defaults preservam o comportamento original.
+interface DataNascimentoProps extends StepProps {
+  subtitulo?: string;
+  ajuda?: string;
+}
+
+const DataNascimentoStep: React.FC<DataNascimentoProps> = ({
+  data, updateData, onNext, onBack, currentStep, totalSteps,
+  subtitulo = 'A idade influencia diretamente nas suas recomendações metabólicas.',
+  ajuda = 'Sua idade nos ajuda a ajustar os cálculos metabólicos com maior precisão e segurança.',
 }) => {
   const parseInitial = () => {
     if (data.dataNascimento) {
@@ -166,7 +176,7 @@ const DataNascimentoStep: React.FC<StepProps> = ({
           Qual é a sua data de nascimento?
         </h1>
         <p className="text-stone-400 text-base font-light max-w-md mx-auto leading-relaxed">
-          A idade influencia diretamente nas suas recomendações metabólicas.
+          {subtitulo}
         </p>
       </div>
 
@@ -210,7 +220,7 @@ const DataNascimentoStep: React.FC<StepProps> = ({
             <span className="material-symbols-outlined text-stone-400 text-lg">calendar_month</span>
           </div>
           <p className="text-sm font-light text-stone-500 leading-relaxed">
-            Sua idade nos ajuda a ajustar os cálculos metabólicos com maior precisão e segurança.
+            {ajuda}
           </p>
         </div>
       </div>

@@ -124,6 +124,50 @@ export async function getAvailableDoctors(
   return doctors;
 }
 
+/**
+ * Último profissional do tipo pedido que atendeu este paciente.
+ *
+ * Serve para SUGERIR quem já o acompanha — sugerir, não impor. Em
+ * acompanhamento continuado, cair num profissional diferente a cada mês faz
+ * a pessoa recontar a história toda; ao mesmo tempo, travar o vínculo tiraria
+ * dela a liberdade de trocar, que é justamente o que a passagem de bastão
+ * entre profissionais existe para amparar.
+ *
+ * Só considera consultas concluídas: uma agendada e não realizada não
+ * significa que houve vínculo.
+ */
+export async function getLastProfessionalId(
+  patientId: string,
+  tipoProfissional: 'medico' | 'psicologo' = 'medico',
+): Promise<string | null> {
+  // O tipo é filtrado em JS de propósito. Filtro em tabela estrangeira do
+  // PostgREST muda de sintaxe entre versões do supabase-js, e aqui um filtro
+  // que silenciosamente não pega devolveria o último profissional de QUALQUER
+  // tipo — sugerindo um médico para quem quer psicólogo. Buscar algumas
+  // consultas e escolher em memória é barato e não tem esse modo de falha.
+  const { data, error } = await supabase
+    .from('consultations')
+    .select('doctor_id, scheduled_at, doctors(tipo_profissional)')
+    .eq('patient_id', patientId)
+    .eq('status', 'completed')
+    .order('scheduled_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error('[scheduling.ts] Erro ao buscar último profissional:', error.message);
+    return null;
+  }
+
+  // Registro legado sem tipo_profissional é médico — mesma convenção do
+  // getAvailableDoctors acima e da migration 20260802.
+  const combina = (row: any) => {
+    const tipo = row?.doctors?.tipo_profissional ?? 'medico';
+    return tipo === tipoProfissional;
+  };
+
+  return (data ?? []).find(combina)?.doctor_id ?? null;
+}
+
 export async function getAvailableSlots(
   doctorId: string,
   date: Date

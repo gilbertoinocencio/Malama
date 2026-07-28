@@ -6,22 +6,34 @@ interface BottomNavigationProps {
   activeView: AppView;
   onNavigate: (view: AppView) => void;
   onFabClick: () => void;
+  /** Empresa contratou só o modo Mental: nada de nutrição, refeição ou feed. */
+  apenasMental?: boolean;
 }
 
 export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   activeView,
   onNavigate,
-  onFabClick
+  onFabClick,
+  apenasMental = false,
 }) => {
   const { t } = useLanguage();
 
-  const navItems = [
-    { view: AppView.HOME, icon: 'home', label: t.nav.home, filled: true },
-    { view: AppView.FOOD_GUIDE, icon: 'restaurant', label: t.nav.nutri, filled: true },
-    { view: 'FAB', icon: 'add', label: '' },
-    { view: AppView.FEED, icon: 'groups', label: t.social.community || 'Feed', filled: true },
-    { view: AppView.DAILY_JOURNAL, icon: 'book', label: t.nav.diary, filled: true },
-  ];
+  // No modo Mental não há FAB: o botão central registra refeição, que é do
+  // produto metabólico. A teleconsulta ocupa o lugar de destaque.
+  const navItems = apenasMental
+    ? [
+        { view: AppView.MENTAL_HOME, icon: 'home', label: t.nav.home, filled: true },
+        { view: AppView.DAILY_JOURNAL, icon: 'book', label: t.nav.diary, filled: true },
+        { view: AppView.AGENDAR_CONSULTA, icon: 'videocam', label: 'Teleconsulta', filled: true },
+        { view: AppView.MINHAS_CONSULTAS, icon: 'event', label: 'Consultas', filled: true },
+      ]
+    : [
+        { view: AppView.HOME, icon: 'home', label: t.nav.home, filled: true },
+        { view: AppView.FOOD_GUIDE, icon: 'restaurant', label: t.nav.nutri, filled: true },
+        { view: 'FAB', icon: 'add', label: '' },
+        { view: AppView.FEED, icon: 'groups', label: t.social.community || 'Feed', filled: true },
+        { view: AppView.DAILY_JOURNAL, icon: 'book', label: t.nav.diary, filled: true },
+      ];
 
   return (
     <nav className="fixed bottom-0 left-0 w-full bg-white/90 dark:bg-background-dark/90 backdrop-blur-md border-t border-Malama-border dark:border-white/5 pb-safe-nav pt-2 px-6 z-40 transition-colors duration-300 max-w-md mx-auto left-0 right-0">

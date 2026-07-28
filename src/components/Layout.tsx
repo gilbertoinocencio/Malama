@@ -7,13 +7,16 @@ interface LayoutProps {
   activeView: AppView;
   onChangeView: (view: AppView) => void;
   onFabClick?: () => void; // Optional, defaults to LOG view
+  /** Empresa contratou só o modo Mental — muda a navegação inferior. */
+  apenasMental?: boolean;
 }
 
 export const Layout: React.FC<LayoutProps> = ({
   children,
   activeView,
   onChangeView,
-  onFabClick
+  onFabClick,
+  apenasMental = false,
 }) => {
   const mainRef = useRef<HTMLElement>(null);
 
@@ -23,17 +26,27 @@ export const Layout: React.FC<LayoutProps> = ({
     }
   }, [activeView]);
 
-  // Define which views should show the bottom navigation
-  const showBottomNav = [
-    AppView.HOME,
-    AppView.FEED,
-    AppView.FOOD_GUIDE,
-    AppView.PLAN,
-    AppView.PROFILE,
-    AppView.COMMUNITY_SEARCH,
-    AppView.NOTIFICATION_CENTER,
-    AppView.COMMUNITY_PROFILE,
-  ].includes(activeView);
+  // Telas com navegação inferior. As do modo Mental são as quatro da própria
+  // navegação dele; no modo metabólico a lista é a de sempre — Diário e
+  // Consultas continuam SEM barra ali, como já era.
+  const viewsComNav = apenasMental
+    ? [
+        AppView.MENTAL_HOME,
+        AppView.DAILY_JOURNAL,
+        AppView.AGENDAR_CONSULTA,
+        AppView.MINHAS_CONSULTAS,
+      ]
+    : [
+        AppView.HOME,
+        AppView.FEED,
+        AppView.FOOD_GUIDE,
+        AppView.PLAN,
+        AppView.PROFILE,
+        AppView.COMMUNITY_SEARCH,
+        AppView.NOTIFICATION_CENTER,
+        AppView.COMMUNITY_PROFILE,
+      ];
+  const showBottomNav = viewsComNav.includes(activeView);
 
   const handleFabClick = () => {
     if (onFabClick) {
@@ -54,6 +67,7 @@ export const Layout: React.FC<LayoutProps> = ({
           activeView={activeView}
           onNavigate={onChangeView}
           onFabClick={handleFabClick}
+          apenasMental={apenasMental}
         />
       )}
     </div>

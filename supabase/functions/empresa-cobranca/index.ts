@@ -70,8 +70,18 @@ Deno.serve(async (req: Request) => {
       .eq('id', empresa_id)
       .single();
     if (empErr || !empresa) return json({ error: 'Empresa não encontrada' }, 404);
-    if (empresa.valor_por_assento == null) {
-      return json({ error: 'Defina o valor por assento da empresa antes de cobrar' }, 422);
+
+    // Valor por assento = soma das modalidades contratadas (mental e/ou
+    // metabólico). A RPC devolve NULL quando uma modalidade ativa está sem
+    // preço — de propósito, para a cobrança falhar alto em vez de emitir
+    // uma fatura silenciosamente menor do que o contratado.
+    const { data: valorAssento, error: valorErr } = await supabaseAdmin
+      .rpc('empresa_valor_assento', { p_empresa_id: empresa_id });
+    if (valorErr) return json({ error: valorErr.message }, 500);
+    if (valorAssento == null) {
+      return json({
+        error: 'Defina o valor por assento de cada modalidade contratada antes de cobrar',
+      }, 422);
     }
 
     // Competência = mês do vencimento

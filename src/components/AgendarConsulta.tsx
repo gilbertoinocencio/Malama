@@ -5,6 +5,7 @@ import {
   Doctor,
   TimeSlot,
   getAvailableDoctors,
+  getLastProfessionalId,
   getAvailableSlots,
   bookConsultation,
   Consultation,
@@ -45,6 +46,8 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
   const [step, setStep] = useState<Step>(isPsi ? 'doctors' : 'objective');
   const [selectedObjective, setSelectedObjective] = useState<string>('');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  // Último profissional que atendeu o paciente, se ainda estiver disponível.
+  const [ultimoProfissionalId, setUltimoProfissionalId] = useState<string | null>(null);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -79,10 +82,20 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
     if (step === 'doctors' && doctors.length === 0) {
       console.log('📋 [AgendarConsulta] Step doctors ativado, buscando médicos...');
       setLoadingDoctors(true);
-      getAvailableDoctors(selectedObjective || undefined, especialidade)
-        .then((result) => {
+      Promise.all([
+        getAvailableDoctors(selectedObjective || undefined, especialidade),
+        user?.id ? getLastProfessionalId(user.id, especialidade) : Promise.resolve(null),
+      ])
+        .then(([result, ultimoId]) => {
           console.log('📋 [AgendarConsulta] Profissionais recebidos:', result.length);
-          setDoctors(result);
+          // Quem já atendeu vem primeiro — a continuidade do acompanhamento
+          // é sugerida, nunca imposta: a lista completa continua ali.
+          const ordenados = ultimoId
+            ? [...result].sort((a, b) =>
+                (b.id === ultimoId ? 1 : 0) - (a.id === ultimoId ? 1 : 0))
+            : result;
+          setUltimoProfissionalId(result.some(d => d.id === ultimoId) ? ultimoId : null);
+          setDoctors(ordenados);
         })
         .catch((err) => {
           console.error('❌ [AgendarConsulta] Erro ao buscar médicos:', err);
@@ -242,8 +255,17 @@ export const AgendarConsulta: React.FC<AgendarConsultaProps> = ({ onBack, onBook
                     <button
                       key={doc.id}
                       onClick={() => { setSelectedDoctor(doc); setStep('schedule'); }}
-                      className="w-full text-left px-4 py-4 rounded-2xl bg-white dark:bg-surface-dark border-2 border-Malama-border dark:border-white/10 hover:border-Malama-petrol dark:hover:border-Malama-petrol transition-all shadow-sm dark:shadow-none"
+                      className={`w-full text-left px-4 py-4 rounded-2xl bg-white dark:bg-surface-dark border-2 transition-all shadow-sm dark:shadow-none ${
+                        doc.id === ultimoProfissionalId
+                          ? 'border-Malama-petrol'
+                          : 'border-Malama-border dark:border-white/10 hover:border-Malama-petrol dark:hover:border-Malama-petrol'
+                      }`}
                     >
+                      {doc.id === ultimoProfissionalId && (
+                        <p className="text-[11px] font-semibold text-Malama-petrol mb-2">
+                          Você já foi atendido por {doc.name.split(' ')[0]}
+                        </p>
+                      )}
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-full bg-Malama-border dark:bg-white/10 flex items-center justify-center text-Malama-muted dark:text-slate-400 flex-shrink-0">
                           {doc.avatar_url ? (

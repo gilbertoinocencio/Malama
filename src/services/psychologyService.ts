@@ -94,6 +94,18 @@ export type NotaEquipe = {
   created_at: string;
 };
 
+// ── SRQ-20 (clínico — nunca vai para o agregado da empresa) ──
+export type Srq20Aplicacao = {
+  id: string;
+  patient_id: string;
+  psychologist_id: string;
+  consultation_id: string | null;
+  answers: Record<string, boolean>;
+  score: number;
+  item_risco: boolean;
+  created_at: string;
+};
+
 // ── Crise ────────────────────────────────────────────
 export type CriseNivel = 'ideacao' | 'plano' | 'tentativa_recente' | 'outro';
 
@@ -224,6 +236,34 @@ export const psychologyService = {
   // conteúdo depois. Correção é nota nova; o autor pode apagar a errada.
   async excluirNotaEquipe(id: string): Promise<{ ok: boolean; error?: string }> {
     const { error } = await supabase.from('care_team_notes').delete().eq('id', id);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  },
+
+  // ── SRQ-20 ─────────────────────────────────────────
+  async getSrq20(patientId: string): Promise<Srq20Aplicacao[]> {
+    const { data, error } = await supabase
+      .from('psychology_srq20')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('created_at', { ascending: false });
+    if (error) { console.error('[psi] SRQ-20:', error.message); return []; }
+    return (data ?? []) as Srq20Aplicacao[];
+  },
+
+  /**
+   * Grava uma aplicação do SRQ-20. O escore vem calculado por computeSrq20 —
+   * determinístico, nunca por IA. Sem update: aplicou errado, aplica de novo.
+   */
+  async salvarSrq20(a: {
+    patient_id: string;
+    psychologist_id: string;
+    consultation_id: string | null;
+    answers: Record<string, boolean>;
+    score: number;
+    item_risco: boolean;
+  }): Promise<{ ok: boolean; error?: string }> {
+    const { error } = await supabase.from('psychology_srq20').insert(a);
     if (error) return { ok: false, error: error.message };
     return { ok: true };
   },

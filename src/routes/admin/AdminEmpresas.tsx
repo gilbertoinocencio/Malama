@@ -59,6 +59,8 @@ type EmpresaForm = {
   responsavel_email: string;
   responsavel_telefone: string;
   valor_por_assento: string;
+  valor_assento_mental: string;
+  valor_assento_metabolico: string;
   max_assentos: string;
   modo_mental: boolean;
   modo_metabolico: boolean;
@@ -72,7 +74,8 @@ type EmpresaForm = {
 
 const EMPTY_FORM: EmpresaForm = {
   nome: '', cnpj: '', responsavel_nome: '', responsavel_email: '',
-  responsavel_telefone: '', valor_por_assento: '', max_assentos: '',
+  responsavel_telefone: '', valor_por_assento: '',
+  valor_assento_mental: '', valor_assento_metabolico: '', max_assentos: '',
   modo_mental: true, modo_metabolico: false,
   plano_psicologico: false, valor_assento_psi: '', max_assentos_psi: '',
   status: 'ativa', data_inicio: new Date().toISOString().slice(0, 10), rh_password: '',
@@ -92,6 +95,11 @@ const EmpresaModal: React.FC<{
           responsavel_email: initial.responsavel_email ?? '',
           responsavel_telefone: initial.responsavel_telefone ?? '',
           valor_por_assento: initial.valor_por_assento != null ? String(initial.valor_por_assento) : '',
+          valor_assento_mental: initial.valor_assento_mental != null ? String(initial.valor_assento_mental) : '',
+          // Contrato antigo sem preço por modalidade cai no valor legado.
+          valor_assento_metabolico: initial.valor_assento_metabolico != null
+            ? String(initial.valor_assento_metabolico)
+            : (initial.valor_por_assento != null ? String(initial.valor_por_assento) : ''),
           max_assentos: initial.max_assentos != null ? String(initial.max_assentos) : '',
           modo_mental: initial.modo_mental ?? false,
           modo_metabolico: initial.modo_metabolico ?? true,
@@ -269,15 +277,35 @@ const EmpresaModal: React.FC<{
               )}
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Valor por assento (R$)</label>
-              <input
-                type="number" min="0" step="0.01" value={form.valor_por_assento}
-                onChange={e => set('valor_por_assento', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
-                placeholder="49.90"
-              />
-            </div>
+            {/* Preço por modalidade: quem contrata as duas paga pelas duas.
+                A fatura soma os modos ativos × assentos contratados. */}
+            {form.modo_metabolico && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Assento metabólico (R$)
+                </label>
+                <input
+                  type="number" min="0" step="0.01" value={form.valor_assento_metabolico}
+                  onChange={e => set('valor_assento_metabolico', e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+                  placeholder="49.90"
+                />
+              </div>
+            )}
+
+            {form.modo_mental && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Assento mental (R$)
+                </label>
+                <input
+                  type="number" min="0" step="0.01" value={form.valor_assento_mental}
+                  onChange={e => set('valor_assento_mental', e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+                  placeholder="130.00"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Máx. de assentos</label>
@@ -570,7 +598,12 @@ export const AdminEmpresas: React.FC = () => {
         responsavel_nome: form.responsavel_nome || null,
         responsavel_email: form.responsavel_email || null,
         responsavel_telefone: form.responsavel_telefone || null,
-        valor_por_assento: form.valor_por_assento ? parseFloat(form.valor_por_assento) : null,
+        valor_por_assento: form.valor_assento_metabolico
+          ? parseFloat(form.valor_assento_metabolico) : null,
+        valor_assento_metabolico: form.modo_metabolico && form.valor_assento_metabolico
+          ? parseFloat(form.valor_assento_metabolico) : null,
+        valor_assento_mental: form.modo_mental && form.valor_assento_mental
+          ? parseFloat(form.valor_assento_mental) : null,
         max_assentos: form.max_assentos ? parseInt(form.max_assentos, 10) : null,
         modo_mental: form.modo_mental,
         modo_metabolico: form.modo_metabolico,
@@ -594,7 +627,14 @@ export const AdminEmpresas: React.FC = () => {
       cnpj: form.cnpj || null,
       responsavel_nome: form.responsavel_nome || null,
       responsavel_telefone: form.responsavel_telefone || null,
-      valor_por_assento: form.valor_por_assento ? parseFloat(form.valor_por_assento) : null,
+      // valor_por_assento segue espelhando o metabólico: é o fallback legado
+      // que empresa_valor_assento() usa quando não há preço por modalidade.
+      valor_por_assento: form.valor_assento_metabolico
+        ? parseFloat(form.valor_assento_metabolico) : null,
+      valor_assento_metabolico: form.modo_metabolico && form.valor_assento_metabolico
+        ? parseFloat(form.valor_assento_metabolico) : null,
+      valor_assento_mental: form.modo_mental && form.valor_assento_mental
+        ? parseFloat(form.valor_assento_mental) : null,
       max_assentos: form.max_assentos ? parseInt(form.max_assentos, 10) : null,
       modo_mental: form.modo_mental,
       modo_metabolico: form.modo_metabolico,

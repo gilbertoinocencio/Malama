@@ -24,13 +24,18 @@ import toast from 'react-hot-toast';
 import {
   Minimize2, Maximize2, Mic, MicOff, Video, VideoOff, PhoneOff,
   NotebookPen, Users2, ShieldAlert, Activity, Save, CheckCircle,
-  Phone, AlertTriangle, Info,
+  Phone, AlertTriangle, Info, ListChecks,
 } from 'lucide-react';
 import {
   psychologyService,
   type PsiContexto, type NotaVisibilidade,
   type CriseNivel, type PsiContatoEmergencia,
 } from '../services/psychologyService';
+import {
+  ITENS_SRQ20, GRUPO_LABEL, ITEM_RISCO, CORTE_REFERENCIA, CORTE_FAIXA,
+  computeSrq20,
+} from '../services/srq20';
+import { gerarPsiBriefing, type PsiBriefing } from '../lib/psiBriefing';
 
 interface PsiConsultaPageProps {
   consultationId: string;
@@ -41,11 +46,12 @@ interface PsiConsultaPageProps {
   onEnd: () => void;
 }
 
-type TabKey = 'contexto' | 'evolucao' | 'notas' | 'risco';
+type TabKey = 'contexto' | 'evolucao' | 'srq20' | 'notas' | 'risco';
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'contexto', label: 'Contexto', icon: <Activity className="w-3.5 h-3.5" /> },
   { key: 'evolucao', label: 'Evolução', icon: <NotebookPen className="w-3.5 h-3.5" /> },
+  { key: 'srq20',    label: 'SRQ-20',   icon: <ListChecks className="w-3.5 h-3.5" /> },
   { key: 'notas',    label: 'Notas',    icon: <Users2 className="w-3.5 h-3.5" /> },
   { key: 'risco',    label: 'Risco',    icon: <ShieldAlert className="w-3.5 h-3.5" /> },
 ];
@@ -87,10 +93,17 @@ export const PsiConsultaPage: React.FC<PsiConsultaPageProps> = ({
 
   // Contexto
   const [ctx, setCtx] = useState<PsiContexto | null>(null);
+  const [briefing, setBriefing] = useState<PsiBriefing | null>(null);
+  const [briefingLoading, setBriefingLoading] = useState(false);
 
   // Notas interprofissionais
   const [notaVis, setNotaVis] = useState<NotaVisibilidade>('equipe_clinica');
   const [notaTexto, setNotaTexto] = useState('');
+
+  // SRQ-20
+  const [srqAnswers, setSrqAnswers] = useState<Record<string, boolean>>({});
+  const [srqSalvando, setSrqSalvando] = useState(false);
+  const [srqAplicado, setSrqAplicado] = useState(false);
 
   // Risco
   const [contato, setContato] = useState<PsiContatoEmergencia | null>(null);
@@ -217,6 +230,45 @@ export const PsiConsultaPage: React.FC<PsiConsultaPageProps> = ({
     if (!res.ok) { toast.error(res.error || 'Não foi possível salvar.'); return; }
     setNotaTexto('');
     toast.success('Nota compartilhada.');
+  };
+
+  const gerarBriefing = async () => {
+    if (!ctx) return;
+    setBriefingLoading(true);
+    try {
+      const srqHist = await psychologyService.getSrq20(patientId);
+      setBriefing(await gerarPsiBriefing(ctx, srqHist));
+    } finally {
+      setBriefingLoading(false);
+    }
+  };
+
+  const respondidas = ITENS_SRQ20.filter(i => typeof srqAnswers[i.key] === 'boolean').length;
+  const srqCompleto = respondidas === ITENS_SRQ20.length;
+  const srqParcial = srqCompleto ? computeSrq20(srqAnswers) : null;
+
+  const salvarSrq20 = async () => {
+    if (!srqCompleto) { toast.error('Responda todos os 20 itens.'); return; }
+    const r = computeSrq20(srqAnswers);
+    setSrqSalvando(true);
+    try {
+      const res = await psychologyService.salvarSrq20({
+        patient_id: patientId,
+        psychologist_id: doctorId,
+        consultation_id: consultationId,
+        answers: srqAnswers,
+        score: r.score,
+        item_risco: r.itemRisco,
+      });
+      if (!res.ok) { toast.error(res.error || 'Não foi possível salvar.'); return; }
+      setSrqAplicado(true);
+      toast.success('SRQ-20 registrado.');
+      // Item de ideação positivo leva direto ao protocolo. Não é automação de
+      // conduta — é levar o profissional à ferramenta na hora em que importa.
+      if (r.itemRisco) setTab('risco');
+    } finally {
+      setSrqSalvando(false);
+    }
   };
 
   const registrarCrise = async () => {
@@ -363,6 +415,53 @@ export const PsiConsultaPage: React.FC<PsiConsultaPageProps> = ({
                 ))}
               </div>
             )}
+
+            {/* ── Resumo pré-sessão ──
+                A prosa é conveniência; os FATOS são o conteúdo. Os dois
+                aparecem juntos para o profissional poder conferir a fonte de
+                cada afirmação — "extrativo" só vale se for verificável. */}
+            <div className="bg-stone-900 rounded-xl p-4">
+              <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                <p className="text-xs font-semibold text-stone-300">Resumo pré-sessão</p>
+                {!briefing && (
+                  <button
+                    onClick={gerarBriefing}
+                    disabled={briefingLoading || !ctx}
+                    className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium rounded-lg transition disabled:opacity-40"
+                  >
+                    {briefingLoading ? 'Gerando...' : 'Gerar'}
+                  </button>
+                )}
+              </div>
+
+              {briefing ? (
+                <>
+                  {briefing.resumo && (
+                    <p className="text-sm text-stone-200 leading-snug mb-3">{briefing.resumo}</p>
+                  )}
+                  <p className="text-[10px] font-semibold text-stone-500 uppercase tracking-wide mb-1">
+                    Fatos apurados
+                  </p>
+                  <ul className="space-y-1">
+                    {briefing.fatos.map((f, i) => (
+                      <li key={i} className="text-xs text-stone-400 leading-snug">• {f}</li>
+                    ))}
+                  </ul>
+                  <p className="text-[10px] text-stone-600 mt-3 leading-snug">
+                    {briefing.comIA
+                      ? 'Resumo montado por IA a partir dos fatos acima, sem acrescentar nada a eles. '
+                      : 'Resumo automático indisponível; os fatos apurados seguem completos. '}
+                    Não há hipótese diagnóstica nem sugestão de conduta — a leitura clínica é sua.
+                    Conteúdo de sessão não é usado aqui.
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-stone-500 leading-snug">
+                  Encadeia o que foi registrado desde a última sessão. Usa apenas dado
+                  estruturado — nunca o que você escreveu no prontuário.
+                </p>
+              )}
+            </div>
           </>
         )}
 
@@ -407,6 +506,99 @@ export const PsiConsultaPage: React.FC<PsiConsultaPageProps> = ({
                 <CheckCircle className="w-4 h-4" /> Finalizar atendimento
               </button>
               {salvoEm && <span className="text-[11px] text-stone-500">Salvo às {salvoEm}</span>}
+            </div>
+          </>
+        )}
+
+        {/* ── SRQ-20 ── */}
+        {tab === 'srq20' && (
+          <>
+            <div className="flex items-start gap-2 text-[11px] text-stone-500 bg-stone-900 rounded-lg p-2.5">
+              <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              <span>
+                Rastreio de transtornos mentais comuns, aplicado por você em sessão. O resultado
+                fica no prontuário e <strong>nunca</strong> entra no relatório da empresa.
+                Referem-se aos últimos 30 dias.
+              </span>
+            </div>
+
+            {(['humor', 'somaticos', 'energia', 'pensamentos'] as const).map(grupo => (
+              <div key={grupo}>
+                <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wide mb-2">
+                  {GRUPO_LABEL[grupo]}
+                </p>
+                <div className="space-y-1.5">
+                  {ITENS_SRQ20.filter(i => i.grupo === grupo).map(item => (
+                    <div
+                      key={item.key}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2 ${
+                        item.risco ? 'bg-red-950/20 border border-red-900/40' : 'bg-stone-900'
+                      }`}
+                    >
+                      <span className="text-sm text-stone-200 flex-1 leading-snug">
+                        {item.texto}
+                      </span>
+                      <div className="flex gap-1 flex-shrink-0">
+                        {([['Sim', true], ['Não', false]] as [string, boolean][]).map(([label, val]) => (
+                          <button
+                            key={label}
+                            onClick={() => setSrqAnswers(a => ({ ...a, [item.key]: val }))}
+                            className={`px-3 py-1 text-xs font-medium rounded-md transition ${
+                              srqAnswers[item.key] === val
+                                ? (val ? 'bg-green-600 text-white' : 'bg-stone-600 text-white')
+                                : 'bg-stone-800 text-stone-400 hover:bg-stone-700'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <div className="bg-stone-900 rounded-xl p-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="text-2xl font-bold text-stone-100 tabular-nums">
+                    {srqParcial ? srqParcial.score : respondidas} <span className="text-sm text-stone-500 font-normal">
+                      {srqParcial ? '/ 20' : `de ${ITENS_SRQ20.length} respondidos`}
+                    </span>
+                  </p>
+                  {srqParcial && (
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      {srqParcial.score >= CORTE_REFERENCIA
+                        ? `Acima do corte mais citado (${CORTE_REFERENCIA}).`
+                        : `Abaixo do corte mais citado (${CORTE_REFERENCIA}).`}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={salvarSrq20}
+                  disabled={!srqCompleto || srqSalvando || srqAplicado}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-lg transition disabled:opacity-40"
+                >
+                  {srqAplicado ? 'Registrado' : srqSalvando ? 'Salvando...' : 'Registrar aplicação'}
+                </button>
+              </div>
+
+              {srqParcial?.itemRisco && (
+                <div className="mt-3 flex items-start gap-2 bg-red-950/40 border border-red-900 rounded-lg p-2.5">
+                  <ShieldAlert className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-xs text-red-200 leading-snug">
+                    Resposta afirmativa em <strong>"{ITEM_RISCO.texto}"</strong>. Ao registrar, a
+                    aba Risco abre com o contato de emergência à mão.
+                  </span>
+                </div>
+              )}
+
+              <p className="text-[10px] text-stone-600 mt-3 leading-snug">
+                O escore é rastreio, não diagnóstico. O ponto de corte varia na literatura
+                brasileira ({CORTE_FAIXA}) — por isso mostramos o número e a referência, não um
+                veredito. A leitura clínica é sua.
+              </p>
             </div>
           </>
         )}
