@@ -259,18 +259,26 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       console.log('[ProfileView] Gamification stats received:', statsResult);
       if (statsResult) {
         const stats = statsResult.stats;
+        // O estado é GamificationStats inteiro: a tela usa xp na frase de
+        // progresso (getProgressPhrase). Antes só três campos eram
+        // preenchidos e xp chegava undefined nessa chamada.
         setGamification({
+          ...stats,
           currentStreak: stats.currentStreak || 0,
           totalFlowDays: stats.totalFlowDays || 0,
           level: stats.level || 'seed',
+          longestStreak: stats.longestStreak || 0,
+          xp: stats.xp || 0,
         });
       } else {
         // Initialize with empty stats if none exist
         console.log('[ProfileView] No gamification stats, using defaults');
         setGamification({
           currentStreak: 0,
+          longestStreak: 0,
           totalFlowDays: 0,
           level: 'seed',
+          xp: 0,
         });
       }
 
@@ -303,8 +311,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       // Set default values on error
       setGamification({
         currentStreak: 0,
+        longestStreak: 0,
         totalFlowDays: 0,
         level: 'seed',
+        xp: 0,
       });
       setTotalMeals(0);
       setHeatmapData([]);

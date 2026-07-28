@@ -26,6 +26,18 @@ export type OnboardingStage =
 
 // Onboarding Data Interface
 export interface OnboardingData {
+  // Campos vindos do onboarding-stitch que o serviço já consumia sem estarem
+  // declarados aqui. Adicionados como opcionais: é correção de declaração,
+  // não mudança de comportamento.
+  foodRestrictions?: string[];
+  foodRestrictionsDetail?: string;
+  dietType?: string;
+  mealsPerDay?: number;
+  eatingLocation?: string;
+  additionalGoals?: string[];
+  habitChanges?: string[];
+  drinksEnoughWater?: string;
+
   // Demographic
   fullName?: string;
   birthDate?: string;

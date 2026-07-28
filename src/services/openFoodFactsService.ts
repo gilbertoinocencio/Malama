@@ -15,6 +15,7 @@ export interface OFFPer100g {
   fiber?: number;
   sugar?: number;
   saturated_fat?: number;
+  cholesterol?: number; // mg
   sodium?: number;    // mg
   potassium?: number; // mg
   calcium?: number;   // mg

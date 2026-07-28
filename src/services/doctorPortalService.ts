@@ -1640,6 +1640,8 @@ export type InfluencerReferral = {
 };
 
 export type InfluencerSummary = Influencer & {
+  /** Token de acesso do influencer (migration add_influencer_access_token). */
+  access_token?: string | null;
   total_referrals: number;
   pending_referrals: number;
   total_earned: number;   // paid + pending

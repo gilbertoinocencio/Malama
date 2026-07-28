@@ -5,7 +5,8 @@ interface StepContainerProps {
   children: React.ReactNode;
   currentStep: number;
   totalSteps: number;
-  onNext: () => void;
+  /** Opcional: com hideNavigation não há botão que o chame. */
+  onNext?: () => void;
   onBack?: () => void;
   showBack?: boolean;
   nextLabel?: string;

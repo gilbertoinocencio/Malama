@@ -59,7 +59,15 @@ export const PatientNotificationCenter: React.FC<Props> = ({ onClose, onUnreadCh
           setNotifications(list.map(n => ({ ...n, is_read: true })));
           setLoading(false);
           onUnreadChange?.(0);
-          supabase.rpc('mark_patient_notifications_read').catch(console.error);
+          // O builder do PostgREST implementa apenas `then` — não tem `catch`.
+          // Encadear .catch lançava TypeError e, pior, a consulta é LAZY:
+          // sem chamar .then a requisição nunca era enviada, então as
+          // notificações jamais eram marcadas como lidas no servidor (o
+          // contador voltava a aparecer no próximo carregamento).
+          supabase.rpc('mark_patient_notifications_read').then(
+            ({ error }) => { if (error) console.error(error); },
+            (e) => console.error(e),
+          );
         },
         (e) => { console.error(e); setLoading(false); },
       );

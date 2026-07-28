@@ -44,9 +44,11 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
 
       // 2) Gamification: streak & flow days
       const gamification = await GamificationService.updateStats(user.id);
+      // updateStats devolve { stats, newUnlocks } — os números estão em .stats.
+      // Sem isso, streak e dias em flow chegavam undefined nesta tela.
       if (gamification) {
-        setStreak(gamification.currentStreak);
-        setTotalFlowDays(gamification.totalFlowDays);
+        setStreak(gamification.stats.currentStreak);
+        setTotalFlowDays(gamification.stats.totalFlowDays);
       }
 
       // 3) Heatmap: last 28 days of flow_stats

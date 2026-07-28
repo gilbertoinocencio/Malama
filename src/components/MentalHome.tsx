@@ -18,6 +18,7 @@ import { AppView } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { PsychosocialService, type CampanhaPendente } from '../services/psychosocialService';
 import { InstrumentoModal } from './InstrumentoModal';
+import { ContatoEmergenciaModal, faltaContatoEmergencia } from './ContatoEmergenciaModal';
 import { getPatientConsultations, type Consultation } from '../lib/scheduling';
 import { creditService } from '../services/billingService';
 
@@ -47,6 +48,7 @@ export const MentalHome: React.FC<Props> = ({ onNavigate }) => {
   const [proxima, setProxima] = useState<Consultation | null>(null);
   const [temCredito, setTemCredito] = useState(false);
   const [respondendo, setRespondendo] = useState<CampanhaPendente | null>(null);
+  const [editandoContato, setEditandoContato] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const carregar = useCallback(async () => {
@@ -185,6 +187,33 @@ export const MentalHome: React.FC<Props> = ({ onNavigate }) => {
             </button>
           )}
 
+          {/* ── Contato de emergência, quando falta ──
+              Quem criou conta antes do cadastro do modo Mental nunca passou
+              pela coleta; sem isto o psicólogo pede o contato e não tem. */}
+          {faltaContatoEmergencia(profile) && (
+            <button
+              onClick={() => setEditandoContato(true)}
+              className="w-full text-left bg-white dark:bg-surface-dark rounded-2xl p-4 border border-Malama-border dark:border-white/10"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-Malama-muted">contact_phone</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-Malama-main dark:text-white">
+                    Contato de emergência
+                  </p>
+                  <p className="text-xs text-Malama-muted dark:text-slate-400 mt-0.5">
+                    Leva 30 segundos e fica oculto
+                  </p>
+                </div>
+                <span className="material-symbols-outlined text-Malama-muted flex-shrink-0">
+                  chevron_right
+                </span>
+              </div>
+            </button>
+          )}
+
           {/* ── Diário ── */}
           <button
             onClick={() => onNavigate(AppView.DAILY_JOURNAL)}
@@ -221,6 +250,10 @@ export const MentalHome: React.FC<Props> = ({ onNavigate }) => {
             </p>
           </div>
         </div>
+      )}
+
+      {editandoContato && (
+        <ContatoEmergenciaModal onClose={() => setEditandoContato(false)} />
       )}
 
       {respondendo && (

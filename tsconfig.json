@@ -31,6 +31,18 @@
     "node_modules",
     "dist",
     "scripts",
-    "supabase/functions"
+    "supabase/functions",
+    "android",
+    "ios",
+    "playwright-report",
+    "exports",
+    "stitch_nura_onboarding",
+    "supabase-migrations",
+    "ADMIN_SUPPORT_TEMPLATE.tsx"
+  ],
+  "include": [
+    "src",
+    "vite.config.ts",
+    "capacitor.config.ts"
   ]
 }

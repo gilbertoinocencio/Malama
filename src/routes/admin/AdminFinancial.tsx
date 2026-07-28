@@ -163,7 +163,7 @@ export const AdminFinancial: React.FC = () => {
     .reduce((s, p) => s + p.net_amount, 0);
 
   const mrrTotal = (billingStats?.mrr_total ?? 0) + (b2bStats?.mrr_b2b ?? 0);
-  const margemEstimada = (financial?.platformRevenue ?? 0) + faturasPagesMes - repassesPagosMes;
+  const margemEstimada = (financial?.platformFee ?? 0) + faturasPagesMes - repassesPagosMes;
 
   // mini-extrato: últimas 8 movimentações
   const entradas: { tipo: 'entrada'; label: string; valor: number; data: string }[] = faturas
@@ -239,7 +239,7 @@ export const AdminFinancial: React.FC = () => {
                 <DollarSign className="w-4 h-4 text-purple-500" />
                 <p className="text-xs text-gray-500">Receita plataforma (mês)</p>
               </div>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrency(financial?.platformRevenue ?? 0)}</p>
+              <p className="text-2xl font-bold text-gray-800">{formatCurrency(financial?.platformFee ?? 0)}</p>
               <p className="text-xs text-gray-400 mt-0.5">25% das consultas</p>
             </div>
 
