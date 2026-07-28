@@ -694,7 +694,7 @@ export const payoutService = {
         .eq('doctor_id', doctorId)
         .eq('status', 'realizada')
         .order('realized_at', { ascending: false }),
-      supabase.from('doctors').select('nivel').eq('id', doctorId).single(),
+      supabase.from('doctors').select('nivel, tipo_profissional').eq('id', doctorId).single(),
       loadNivelValues(),
     ]);
 
@@ -710,7 +710,8 @@ export const payoutService = {
     }
 
     const nivel = ((doctorRes.data as any)?.nivel ?? 'nivel_2') as 'nivel_1' | 'nivel_2' | 'nivel_3';
-    const valuePerConsultation = valueForNivel(nivelValues, nivel);
+    const tipo = (doctorRes.data as any)?.tipo_profissional ?? null;
+    const valuePerConsultation = valueForNivel(nivelValues, nivel, tipo);
     const realizedCredits = credits.map((c: any) => ({
       id: c.id,
       realized_at: c.realized_at,

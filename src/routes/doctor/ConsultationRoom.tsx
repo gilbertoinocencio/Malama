@@ -3,6 +3,7 @@ import { useParams, useOutletContext, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, User } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { DoctorConsultaPage } from '../../components/DoctorConsultaPage';
+import { PsiConsultaPage } from '../../components/PsiConsultaPage';
 import type { Doctor } from '../../types/doctorPortal';
 
 // A sala da consulta abre 15 min antes do horário agendado.
@@ -190,6 +191,20 @@ export const ConsultationRoom: React.FC = () => {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // O gate de horário acima vale para os dois; só o painel lateral muda.
+  if (doctor.tipo_profissional === 'psicologo') {
+    return (
+      <PsiConsultaPage
+        consultationId={consultation.id}
+        roomId={consultation.room_id}
+        patientId={consultation.patient_id}
+        doctorId={consultation.doctor_id}
+        patientName={consultation.patient_name}
+        onEnd={() => navigate('/medico/agenda')}
+      />
     );
   }
 

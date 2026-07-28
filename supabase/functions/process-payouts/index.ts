@@ -21,25 +21,45 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
 // Valores-padrão por nível (fallback caso platform_settings não tenha as chaves)
 const DEFAULT_NIVEL_VALUES: Record<string, number> = { nivel_1: 90, nivel_2: 100, nivel_3: 120 };
+const DEFAULT_NIVEL_VALUES_PSI: Record<string, number> = { nivel_1: 80, nivel_2: 95, nivel_3: 110 };
 
-/** Carrega o mapa nível→valor por consulta a partir de platform_settings. */
-async function loadNivelValues(): Promise<Record<string, number>> {
-  const map = { ...DEFAULT_NIVEL_VALUES };
+interface NivelValues {
+  medico: Record<string, number>;
+  psicologo: Record<string, number>;
+}
+
+/**
+ * Carrega os mapas nível→valor por consulta a partir de platform_settings.
+ * Espelha src/services/billingService.ts — se mudar lá, mudar aqui.
+ */
+async function loadNivelValues(): Promise<NivelValues> {
+  const values: NivelValues = {
+    medico: { ...DEFAULT_NIVEL_VALUES },
+    psicologo: { ...DEFAULT_NIVEL_VALUES_PSI },
+  };
   const { data } = await supabase
     .from('platform_settings')
     .select('key, value')
-    .in('key', ['doctor_value_nivel1', 'doctor_value_nivel2', 'doctor_value_nivel3']);
+    .in('key', [
+      'doctor_value_nivel1', 'doctor_value_nivel2', 'doctor_value_nivel3',
+      'psi_value_nivel1', 'psi_value_nivel2', 'psi_value_nivel3',
+    ]);
   for (const row of data ?? []) {
-    if (row.key === 'doctor_value_nivel1') map.nivel_1 = parseFloat(row.value);
-    if (row.key === 'doctor_value_nivel2') map.nivel_2 = parseFloat(row.value);
-    if (row.key === 'doctor_value_nivel3') map.nivel_3 = parseFloat(row.value);
+    const m = /^(doctor|psi)_value_nivel([123])$/.exec(row.key);
+    if (!m) continue;
+    const alvo = m[1] === 'psi' ? values.psicologo : values.medico;
+    alvo[`nivel_${m[2]}`] = parseFloat(row.value);
   }
-  return map;
+  return values;
 }
 
-/** Valor por consulta de um médico conforme seu nível. */
-function valueForNivel(values: Record<string, number>, nivel: string | null): number {
-  return values[nivel ?? 'nivel_2'] ?? values.nivel_2 ?? DEFAULT_NIVEL_VALUES.nivel_2;
+/** Valor por consulta conforme nível e tipo. Tipo nulo = médico (legado). */
+function valueForNivel(values: NivelValues, nivel: string | null, tipo: string | null): number {
+  const tabela = tipo === 'psicologo' ? values.psicologo : values.medico;
+  const padrao = tipo === 'psicologo'
+    ? DEFAULT_NIVEL_VALUES_PSI.nivel_2
+    : DEFAULT_NIVEL_VALUES.nivel_2;
+  return tabela[nivel ?? 'nivel_2'] ?? tabela.nivel_2 ?? padrao;
 }
 
 // ─── Asaas API ────────────────────────────────────────────────────────────────
@@ -189,7 +209,7 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
     // Buscar dados do médico (incl. nivel, que define o valor por consulta)
     const { data: doctor } = await supabase
       .from('doctors')
-      .select('name, pix_key, nivel')
+      .select('name, pix_key, nivel, tipo_profissional')
       .eq('id', doctorId)
       .single();
 
@@ -198,7 +218,9 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
       continue;
     }
 
-    const valuePerConsultation = valueForNivel(nivelValues, doctor.nivel);
+    const valuePerConsultation = valueForNivel(
+      nivelValues, doctor.nivel, doctor.tipo_profissional ?? null,
+    );
     const totalAmount = doctorCredits.length * valuePerConsultation;
 
     // Criar registro de payout com status 'processing'

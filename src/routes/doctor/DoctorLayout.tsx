@@ -56,13 +56,40 @@ export const DoctorLayout: React.FC = () => {
     navigate('/medico');
   };
 
-  const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/medico/dashboard' },
-    { icon: Calendar, label: 'Agenda', path: '/medico/agenda' },
-    { icon: Users, label: 'Pacientes', path: '/medico/pacientes' },
-    { icon: DollarSign, label: 'Financeiro', path: '/medico/financeiro' },
-    { icon: Settings, label: 'Configurações', path: '/medico/configuracoes' }
-  ];
+  // Psicólogo tem escopo próprio: nada de dashboard de métricas metabólicas
+  // nem da lista de pacientes do médico (que abre peso, macros e exames).
+  // Registro legado sem tipo_profissional é médico — mesma convenção do
+  // scheduling.ts e da migration 20260802.
+  const isPsicologo = doctor?.tipo_profissional === 'psicologo';
+
+  const menuItems = isPsicologo
+    ? [
+        { icon: Calendar, label: 'Agenda', path: '/medico/agenda' },
+        { icon: Users, label: 'Pacientes', path: '/medico/psi/pacientes' },
+        { icon: DollarSign, label: 'Financeiro', path: '/medico/financeiro' },
+        { icon: Settings, label: 'Configurações', path: '/medico/configuracoes' },
+      ]
+    : [
+        { icon: LayoutDashboard, label: 'Dashboard', path: '/medico/dashboard' },
+        { icon: Calendar, label: 'Agenda', path: '/medico/agenda' },
+        { icon: Users, label: 'Pacientes', path: '/medico/pacientes' },
+        { icon: DollarSign, label: 'Financeiro', path: '/medico/financeiro' },
+        { icon: Settings, label: 'Configurações', path: '/medico/configuracoes' },
+      ];
+
+  // Gate de rota. O banco já barra o dado (20260802), mas sem isto o
+  // psicólogo cairia em telas médicas quebradas ao digitar a URL.
+  useEffect(() => {
+    if (!doctor) return;
+    const p = location.pathname;
+    const rotaMedica = p.startsWith('/medico/dashboard')
+      || p.startsWith('/medico/pacientes')
+      || p.startsWith('/medico/paciente/');
+    const rotaPsi = p.startsWith('/medico/psi');
+
+    if (isPsicologo && rotaMedica) navigate('/medico/psi/pacientes', { replace: true });
+    if (!isPsicologo && rotaPsi) navigate('/medico/pacientes', { replace: true });
+  }, [doctor, isPsicologo, location.pathname, navigate]);
 
   const isActive = (path: string) => location.pathname === path;
 

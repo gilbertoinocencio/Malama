@@ -34,25 +34,55 @@ function rollingExpiry(): string {
 
 /** Valores-padrão por nível (fallback se platform_settings não tiver as chaves). */
 export const DEFAULT_NIVEL_VALUES: Record<string, number> = { nivel_1: 90, nivel_2: 100, nivel_3: 120 };
+export const DEFAULT_NIVEL_VALUES_PSI: Record<string, number> = { nivel_1: 80, nivel_2: 95, nivel_3: 110 };
 
-/** Carrega o mapa nível→valor por consulta a partir de platform_settings. */
-export async function loadNivelValues(): Promise<Record<string, number>> {
-  const map = { ...DEFAULT_NIVEL_VALUES };
+/**
+ * Valor por consulta separado por tipo de profissional. Sessão de psicologia
+ * tem duração, custo e mercado diferentes de consulta médica — com uma chave
+ * só, um dos dois ficaria sempre errado.
+ */
+export type NivelValues = {
+  medico: Record<string, number>;
+  psicologo: Record<string, number>;
+};
+
+/** Carrega os mapas nível→valor por consulta a partir de platform_settings. */
+export async function loadNivelValues(): Promise<NivelValues> {
+  const values: NivelValues = {
+    medico: { ...DEFAULT_NIVEL_VALUES },
+    psicologo: { ...DEFAULT_NIVEL_VALUES_PSI },
+  };
   const { data } = await supabase
     .from('platform_settings')
     .select('key, value')
-    .in('key', ['doctor_value_nivel1', 'doctor_value_nivel2', 'doctor_value_nivel3']);
+    .in('key', [
+      'doctor_value_nivel1', 'doctor_value_nivel2', 'doctor_value_nivel3',
+      'psi_value_nivel1', 'psi_value_nivel2', 'psi_value_nivel3',
+    ]);
   for (const row of data ?? []) {
-    if (row.key === 'doctor_value_nivel1') map.nivel_1 = parseFloat(row.value);
-    if (row.key === 'doctor_value_nivel2') map.nivel_2 = parseFloat(row.value);
-    if (row.key === 'doctor_value_nivel3') map.nivel_3 = parseFloat(row.value);
+    const m = /^(doctor|psi)_value_nivel([123])$/.exec(row.key);
+    if (!m) continue;
+    const alvo = m[1] === 'psi' ? values.psicologo : values.medico;
+    alvo[`nivel_${m[2]}`] = parseFloat(row.value);
   }
-  return map;
+  return values;
 }
 
-/** Valor por consulta de um médico conforme seu nível. */
-export function valueForNivel(values: Record<string, number>, nivel: string | null | undefined): number {
-  return values[nivel ?? 'nivel_2'] ?? values.nivel_2 ?? DEFAULT_NIVEL_VALUES.nivel_2;
+/**
+ * Valor por consulta conforme nível e tipo de profissional.
+ * Registro legado sem tipo_profissional é médico — mesma convenção do
+ * scheduling.ts e da migration 20260802.
+ */
+export function valueForNivel(
+  values: NivelValues,
+  nivel: string | null | undefined,
+  tipo?: string | null,
+): number {
+  const tabela = tipo === 'psicologo' ? values.psicologo : values.medico;
+  const padrao = tipo === 'psicologo'
+    ? DEFAULT_NIVEL_VALUES_PSI.nivel_2
+    : DEFAULT_NIVEL_VALUES.nivel_2;
+  return tabela[nivel ?? 'nivel_2'] ?? tabela.nivel_2 ?? padrao;
 }
 
 // ─── subscriptionService ──────────────────────────────────────────────────────
@@ -505,20 +535,22 @@ export const adminBillingService = {
     const unpaid = data.filter((c: any) => !paidIds.has(c.id));
     if (unpaid.length === 0) return 0;
 
-    // Mapear doctor_id → nivel para valorizar cada crédito
+    // Mapear doctor_id → nivel + tipo para valorizar cada crédito
     const doctorIds = [...new Set(unpaid.map((c: any) => c.doctor_id).filter(Boolean))];
     const [nivelValues, doctorsRes] = await Promise.all([
       loadNivelValues(),
       doctorIds.length
-        ? supabase.from('doctors').select('id, nivel').in('id', doctorIds)
+        ? supabase.from('doctors').select('id, nivel, tipo_profissional').in('id', doctorIds)
         : Promise.resolve({ data: [] as any[] }),
     ]);
-    const nivelByDoctor: Record<string, string> = {};
-    for (const d of (doctorsRes as any).data ?? []) nivelByDoctor[d.id] = d.nivel;
+    const byDoctor: Record<string, { nivel: string; tipo: string | null }> = {};
+    for (const d of (doctorsRes as any).data ?? []) {
+      byDoctor[d.id] = { nivel: d.nivel, tipo: d.tipo_profissional ?? null };
+    }
 
     return unpaid.reduce((sum: number, c: any) => {
-      const nivel = c.doctor_id ? nivelByDoctor[c.doctor_id] : 'nivel_2';
-      return sum + valueForNivel(nivelValues, nivel);
+      const d = c.doctor_id ? byDoctor[c.doctor_id] : undefined;
+      return sum + valueForNivel(nivelValues, d?.nivel ?? 'nivel_2', d?.tipo);
     }, 0);
   },
 

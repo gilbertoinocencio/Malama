@@ -16,6 +16,9 @@ export const AdminSettings: React.FC = () => {
     doctor_value_nivel1: '90',
     doctor_value_nivel2: '100',
     doctor_value_nivel3: '120',
+    psi_value_nivel1: '80',
+    psi_value_nivel2: '95',
+    psi_value_nivel3: '110',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -116,9 +119,11 @@ export const AdminSettings: React.FC = () => {
             />
           </div>
 
-          {/* Valor por consulta por nível do médico */}
+          {/* Valor por consulta por nível — médico */}
           <div className="pt-4 border-t border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-1">Valor por consulta realizada (níveis)</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-1">
+              Valor por consulta realizada — médico
+            </h4>
             <p className="text-xs text-gray-400 mb-3">
               Valor do repasse por consulta realizada conforme o nível do médico. O nível é
               atribuído a cada médico na aba Médicos.
@@ -154,6 +159,36 @@ export const AdminSettings: React.FC = () => {
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Valor por consulta por nível — psicólogo.
+              Tabela própria: sessão de psicologia tem duração, custo e
+              mercado diferentes; com uma chave só, um dos dois ficaria errado. */}
+          <div className="pt-4 border-t border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-1">
+              Valor por sessão realizada — psicólogo
+            </h4>
+            <p className="text-xs text-gray-400 mb-3">
+              Tabela separada da do médico. Vale checar contra o mercado antes de credenciar:
+              abaixo do piso, a rede não se sustenta e a rotatividade quebra a continuidade do
+              acompanhamento.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {([1, 2, 3] as const).map(n => (
+                <div key={n}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nível {n} (R$)
+                  </label>
+                  <input
+                    type="number"
+                    value={settings[`psi_value_nivel${n}`] ?? ''}
+                    onChange={e => updateSetting(`psi_value_nivel${n}`, e.target.value)}
+                    min={0}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 

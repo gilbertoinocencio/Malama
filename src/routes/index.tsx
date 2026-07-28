@@ -32,6 +32,8 @@ import { DoctorRegistration } from './doctor/DoctorRegistration';
 import { RegistrationSuccess } from './doctor/RegistrationSuccess';
 import { DoctorPending, DoctorSuspended } from './doctor/DoctorStatusScreens';
 import { DoctorLayout } from './doctor/DoctorLayout';
+import { PsiPacientes } from './doctor/PsiPacientes';
+import { PsiPaciente } from './doctor/PsiPaciente';
 import { DoctorDashboard } from './doctor/DoctorDashboard';
 import { DoctorAgenda } from './doctor/DoctorAgenda';
 import { PatientsList } from './doctor/PatientsList';
@@ -142,6 +144,10 @@ export const AppRoutes: React.FC = () => {
             <Route path="agenda" element={<DoctorAgenda />} />
             <Route path="pacientes" element={<PatientsList />} />
             <Route path="paciente/:patientId" element={<PatientProfile />} />
+            {/* Escopo do psicólogo — o gate em DoctorLayout redireciona
+                quem entra pela URL errada; o dado já é barrado por RLS. */}
+            <Route path="psi/pacientes" element={<PsiPacientes />} />
+            <Route path="psi/paciente/:id" element={<PsiPaciente />} />
             <Route path="consulta/:id" element={<ConsultationRoom />} />
             <Route path="financeiro" element={<DoctorFinancial />} />
             <Route path="configuracoes" element={<DoctorSettings />} />
