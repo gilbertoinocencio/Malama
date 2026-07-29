@@ -818,7 +818,9 @@ export const AdminEmpresas: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-sm text-gray-700 hidden md:table-cell">
-                      {e.valor_por_assento != null ? fmtCurrency(e.valor_por_assento) : '—'}
+                      {/* Soma das modalidades: ler só valor_por_assento
+                          mostrava "—" para empresa do modo Mental. */}
+                      {valorAssentoEmpresa(e) > 0 ? fmtCurrency(valorAssentoEmpresa(e)) : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span className="text-sm font-semibold text-[#7d4a3c]">{fmtCurrency(e.mrr)}</span>

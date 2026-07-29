@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const {
-      empresa, // { nome, cnpj, responsavel_nome, responsavel_email, responsavel_telefone, valor_por_assento, max_assentos, modo_mental, modo_metabolico, status, data_inicio }
+      empresa, // { nome, cnpj, responsavel_nome, responsavel_email, responsavel_telefone, valor_por_assento, valor_assento_mental, valor_assento_metabolico, max_assentos, modo_mental, modo_metabolico, status, data_inicio }
       rh,      // { email, password, nome }
     } = await req.json();
 
@@ -55,6 +55,10 @@ Deno.serve(async (req: Request) => {
         responsavel_email: empresa.responsavel_email || rh.email,
         responsavel_telefone: empresa.responsavel_telefone || null,
         valor_por_assento: empresa.valor_por_assento ?? null,
+        // Preço por modalidade (migration 20260807). Sem estes campos a
+        // empresa nascia sem valor: MRR zero e "—" na coluna de valor.
+        valor_assento_mental: empresa.valor_assento_mental ?? null,
+        valor_assento_metabolico: empresa.valor_assento_metabolico ?? null,
         max_assentos: empresa.max_assentos ?? null,
         // Modos do contrato (migration 20260727). Default preserva o
         // comportamento antigo: metabólico ligado, mental desligado.
