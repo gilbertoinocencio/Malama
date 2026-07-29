@@ -2,6 +2,12 @@
 -- NURA — pg_cron Jobs para Billing
 -- Migration: 20260417_billing_cron.sql
 --
+-- ⚠️ SUPERSEDIDO por 20260812_service_key_para_vault.sql.
+-- Os jobs aqui liam a service role key de platform_settings. Ela saiu da
+-- tabela e foi para o Vault; rodar este arquivo de novo recriaria os jobs
+-- lendo uma chave que não existe mais — falha silenciosa com 401. Se
+-- precisar reagendar, use a migration 20260812.
+--
 -- ATENÇÃO: Este script deve ser executado APÓS a extensão
 -- pg_cron estar habilitada no Supabase Dashboard:
 -- Database → Extensions → pg_cron

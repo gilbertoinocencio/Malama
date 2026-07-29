@@ -2,6 +2,11 @@
 -- Malama — Novo calendário de repasses aos médicos
 -- Migration: 20260624_payout_schedule.sql
 --
+-- ⚠️ O AGENDAMENTO daqui foi supersedido por
+-- 20260812_service_key_para_vault.sql: a service role key saiu de
+-- platform_settings e foi para o Vault. As REGRAS de negócio abaixo
+-- continuam valendo; só não rode o cron.schedule deste arquivo de novo.
+--
 -- Regra de negócio:
 --   • Créditos realizados nos dias 1–14  → pagos no dia 30 do mesmo mês.
 --   • Créditos realizados nos dias 15–fim → pagos no dia 15 do mês seguinte.
