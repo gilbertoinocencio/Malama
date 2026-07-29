@@ -292,7 +292,7 @@ export const BodyCompositionDashboard: React.FC<Props> = ({ patientId, gender })
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="date" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} unit="%" domain={['auto', 'auto']} />
-              <Tooltip formatter={(v: number) => [`${v?.toFixed(1)}%`, '']} />
+              <Tooltip formatter={(v: number | undefined): [string, string] => [`${v?.toFixed(1) ?? '—'}%`, '']} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line
                 type="monotone"
@@ -321,7 +321,7 @@ export const BodyCompositionDashboard: React.FC<Props> = ({ patientId, gender })
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="date" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} unit=" cm" domain={['auto', 'auto']} />
-              <Tooltip formatter={(v: number) => [`${v?.toFixed(1)} cm`, '']} />
+              <Tooltip formatter={(v: number | undefined): [string, string] => [`${v?.toFixed(1) ?? '—'} cm`, '']} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey="Cintura"      stroke="#7d4a3c" strokeWidth={2} dot={{ r: 2 }} connectNulls />
               <Line type="monotone" dataKey="Quadril"      stroke="#c07a6a" strokeWidth={2} dot={{ r: 2 }} connectNulls />

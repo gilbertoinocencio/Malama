@@ -45,7 +45,7 @@ export type Empresa = {
 
 export type EmpresaSummary = Empresa & {
   assentos_ativos: number;   // colaboradores ativos + convidados (ocupam assento)
-  mrr: number;               // assentos_ativos * valor_por_assento
+  mrr: number;               // max_assentos × soma dos valores das modalidades
   inadimplente: boolean;     // tem ≥1 fatura 'atrasado'
 };
 
@@ -124,6 +124,20 @@ export type CertificadoEsg = {
   created_at: string;
 };
 
+/**
+ * Valor por assento de uma empresa: soma das modalidades contratadas.
+ * Espelha a função empresa_valor_assento() do banco (migration 20260807).
+ * valor_por_assento é o legado do metabólico e serve de fallback.
+ */
+export function valorAssentoEmpresa(e: Partial<Empresa>): number {
+  let total = 0;
+  if (e.modo_metabolico) total += e.valor_assento_metabolico ?? e.valor_por_assento ?? 0;
+  if (e.modo_mental) total += e.valor_assento_mental ?? 0;
+  // Contrato anterior aos modos: cai no valor legado.
+  if (!e.modo_metabolico && !e.modo_mental) total = e.valor_por_assento ?? 0;
+  return total;
+}
+
 export type B2BDashboard = {
   empresas_ativas: number;
   total_colaboradores: number; // colaboradores com acesso (ativos)
@@ -137,6 +151,13 @@ export type B2BDashboardStats = {
   total_assentos: number;
   total_colaboradores: number;
   mrr_b2b: number;
+  // Quebra por modalidade contratada. Uma empresa com os dois modos conta
+  // nos dois — são produtos independentes, não categorias exclusivas.
+  empresas_mental: number;
+  empresas_metabolico: number;
+  mrr_mental: number;
+  mrr_metabolico: number;
+  assentos_mental: number;
   bloqueadas: number;
   inadimplentes: number;
   reducoes_agendadas: number;
@@ -172,7 +193,9 @@ export const empresaAdminService = {
         ...e,
         assentos_ativos: ativos,
         // Receita = valor por assento × assentos CONTRATADOS (independe do uso).
-        mrr: (e.max_assentos ?? 0) * (e.valor_por_assento ?? 0),
+        // O valor por assento soma as modalidades contratadas — usar só
+        // valor_por_assento zerava o MRR de empresa apenas com modo Mental.
+        mrr: (e.max_assentos ?? 0) * valorAssentoEmpresa(e),
         inadimplente: inadimplentes.has(e.id),
       };
     });
@@ -209,7 +232,7 @@ export const empresaAdminService = {
     ] = await Promise.all([
       supabase
         .from('empresas')
-        .select('id, status, max_assentos, valor_por_assento, acesso_bloqueado, max_assentos_agendado, created_at'),
+        .select('id, status, max_assentos, valor_por_assento, valor_assento_mental, valor_assento_metabolico, modo_mental, modo_metabolico, acesso_bloqueado, max_assentos_agendado, created_at'),
       supabase
         .from('empresa_colaboradores')
         .select('*', { count: 'exact', head: true })
@@ -230,7 +253,20 @@ export const empresaAdminService = {
       novas_mes: ativas.filter(e => new Date(e.created_at) >= primeiroDiaDoMes).length,
       total_assentos: ativas.reduce((s, e) => s + (e.max_assentos ?? 0), 0),
       total_colaboradores: totalColabs ?? 0,
-      mrr_b2b: ativas.reduce((s, e) => s + (e.max_assentos ?? 0) * (e.valor_por_assento ?? 0), 0),
+      // Antes somava só valor_por_assento — empresa só com modo Mental
+      // aparecia com MRR zero desde a migração de preço por modalidade.
+      mrr_b2b: ativas.reduce((s, e) => s + (e.max_assentos ?? 0) * valorAssentoEmpresa(e), 0),
+      empresas_mental: ativas.filter(e => e.modo_mental).length,
+      empresas_metabolico: ativas.filter(e => e.modo_metabolico).length,
+      mrr_mental: ativas
+        .filter(e => e.modo_mental)
+        .reduce((s, e) => s + (e.max_assentos ?? 0) * (e.valor_assento_mental ?? 0), 0),
+      mrr_metabolico: ativas
+        .filter(e => e.modo_metabolico)
+        .reduce((s, e) => s + (e.max_assentos ?? 0) * (e.valor_assento_metabolico ?? e.valor_por_assento ?? 0), 0),
+      assentos_mental: ativas
+        .filter(e => e.modo_mental)
+        .reduce((s, e) => s + (e.max_assentos ?? 0), 0),
       bloqueadas: ativas.filter(e => e.acesso_bloqueado).length,
       inadimplentes: inadimplentes ?? 0,
       reducoes_agendadas: ativas.filter(e => e.max_assentos_agendado != null).length,

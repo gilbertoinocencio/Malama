@@ -129,6 +129,17 @@ export const AdminDashboard: React.FC = () => {
           <p className="text-2xl font-bold text-gray-800">{summary?.approvedDoctors ?? 0}</p>
           <p className="text-xs text-gray-400 mt-0.5">Na plataforma</p>
         </div>
+
+        {/* Psicólogos contam à parte: rede, conselho e valor de repasse
+            são distintos dos médicos. */}
+        <div className="bg-white rounded-xl shadow p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="w-4 h-4 text-[#7d4a3c]" />
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Psicólogos aprovados</p>
+          </div>
+          <p className="text-2xl font-bold text-gray-800">{summary?.approvedPsychologists ?? 0}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Modo Saúde Mental</p>
+        </div>
       </div>
 
       {/* ── B2C ──────────────────────────────────────────── */}

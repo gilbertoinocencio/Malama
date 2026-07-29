@@ -652,8 +652,8 @@ export const PatientProfile: React.FC = () => {
                             <YAxis yAxisId="prot" orientation="right" tick={{ fontSize: 11, fill: '#6b7280' }} width={35} />
                             <Tooltip
                               contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}
-                              formatter={(value: any, name: string) =>
-                                name === 'Calorias' ? [`${value} kcal`, name] : [`${value}g`, name]
+                              formatter={(value: any, name: string | undefined): [string, string] =>
+                                name === 'Calorias' ? [`${value} kcal`, name] : [`${value}g`, name ?? '']
                               }
                             />
                             <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />

@@ -16,6 +16,7 @@ import {
   type B2BDashboard,
   type EmpresaFatura,
   type BillingEvento,
+  valorAssentoEmpresa,
 } from '../../services/empresaService';
 import toast from 'react-hot-toast';
 
@@ -673,9 +674,11 @@ export const AdminEmpresas: React.FC = () => {
     ? Math.round(dashboard.total_colaboradores / dashboard.empresas_ativas)
     : 0;
 
-  const empresasComValor = empresas.filter(e => e.valor_por_assento != null && e.status === 'ativa');
+  // Ticket = valor por assento somando as modalidades contratadas. Antes só
+  // olhava valor_por_assento e ignorava empresas do modo Mental.
+  const empresasComValor = empresas.filter(e => e.status === 'ativa' && valorAssentoEmpresa(e) > 0);
   const ticketMedio = empresasComValor.length > 0
-    ? empresasComValor.reduce((s, e) => s + (e.valor_por_assento ?? 0), 0) / empresasComValor.length
+    ? empresasComValor.reduce((s, e) => s + valorAssentoEmpresa(e), 0) / empresasComValor.length
     : 0;
 
   const ativas = empresas.filter(e => e.status === 'ativa' && e.max_assentos != null);
@@ -687,6 +690,15 @@ export const AdminEmpresas: React.FC = () => {
 
   const arr = (dashboard?.mrr_total ?? 0) * 12;
 
+  // Uma empresa com os dois modos conta nos dois: são produtos
+  // independentes, não categorias exclusivas.
+  const empresasMental = ativas.filter(e => e.modo_mental);
+  const empresasMetabolico = ativas.filter(e => e.modo_metabolico);
+  const mrrMental = empresasMental.reduce(
+    (s, e) => s + (e.max_assentos ?? 0) * (e.valor_assento_mental ?? 0), 0);
+  const mrrMetabolico = empresasMetabolico.reduce(
+    (s, e) => s + (e.max_assentos ?? 0) * (e.valor_assento_metabolico ?? e.valor_por_assento ?? 0), 0);
+
   const cards = [
     { icon: <Building2 className="w-5 h-5 text-[#7d4a3c]" />, label: 'Empresas ativas',          value: String(dashboard?.empresas_ativas ?? 0) },
     { icon: <Users    className="w-5 h-5 text-[#7d4a3c]" />, label: 'Colaboradores com acesso',   value: String(dashboard?.total_colaboradores ?? 0) },
@@ -696,6 +708,10 @@ export const AdminEmpresas: React.FC = () => {
     { icon: <DollarSign className="w-5 h-5 text-[#7d4a3c]" />, label: 'Ticket médio (MRR)',      value: fmtCurrency(ticketMedio) },
     { icon: <Percent  className="w-5 h-5 text-[#7d4a3c]" />, label: 'Taxa de ocupação',          value: taxaOcupacao != null ? `${taxaOcupacao}%` : '—' },
     { icon: <CalendarDays className="w-5 h-5 text-[#7d4a3c]" />, label: 'ARR B2B',              value: fmtCurrency(arr) },
+    { icon: <Brain    className="w-5 h-5 text-[#7d4a3c]" />, label: 'Empresas · Saúde Mental',  value: String(empresasMental.length) },
+    { icon: <Activity className="w-5 h-5 text-[#7d4a3c]" />, label: 'Empresas · Metabólico',    value: String(empresasMetabolico.length) },
+    { icon: <Brain    className="w-5 h-5 text-[#7d4a3c]" />, label: 'MRR Saúde Mental',         value: fmtCurrency(mrrMental) },
+    { icon: <Activity className="w-5 h-5 text-[#7d4a3c]" />, label: 'MRR Metabólico',           value: fmtCurrency(mrrMetabolico) },
   ];
 
   return (

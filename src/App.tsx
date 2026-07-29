@@ -588,7 +588,7 @@ const App: React.FC = () => {
           <NotificationCenter
             onBack={() => setView(AppView.FEED)}
             onNavigate={setView}
-            onOpenPost={(postId) => { setNotifPostId(postId); setView(AppView.FEED); }}
+            onOpenPost={(postId: string) => { setNotifPostId(postId); setView(AppView.FEED); }}
           />
         )}
 

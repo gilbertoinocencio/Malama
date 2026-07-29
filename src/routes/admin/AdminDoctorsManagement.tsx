@@ -5,16 +5,21 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, CheckCircle, XCircle, Link2, X, Copy, Mail, Clock, Stethoscope, CalendarCheck, TrendingDown, Users } from 'lucide-react';
-import { doctorService, settingsService, adminService } from '../../services/doctorPortalService';
+import { doctorService, settingsService, adminService, storageService } from '../../services/doctorPortalService';
 import type { Doctor, DoctorStatus } from '../../types/doctorPortal';
 import type { AdminDoctorKpis } from '../../services/doctorPortalService';
-import { SPECIALTY_OPTIONS } from '../../types/doctorPortal';
+import { SPECIALTY_OPTIONS, SPECIALTY_OPTIONS_PSICOLOGO } from '../../types/doctorPortal';
 import { supabase } from '../../services/supabase';
 import toast from 'react-hot-toast';
 
 interface DoctorLead {
   id: string;
   nome: string;
+  /** 'medico' | 'psicologo'. Legado sem tipo é médico (default no banco). */
+  tipo_profissional?: string | null;
+  /** Psicólogo: declaração de e-Psi ativo (CFP). */
+  epsi_ativo?: boolean | null;
+  /** Registro do conselho: CRM para médico, CRP para psicólogo. */
   crm: string;
   crm_uf: string;
   especialidade: string;
@@ -31,6 +36,27 @@ export const AdminDoctorsManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<DoctorStatus | 'all'>('all');
   const [filterSpecialty, setFilterSpecialty] = useState('');
+  // Médico e psicólogo têm conselho, especialidades e exigências distintas —
+  // o admin analisa cada trilha separada.
+  const [filterTipo, setFilterTipo] = useState<'todos' | 'medico' | 'psicologo'>('todos');
+  const [abrindoDoc, setAbrindoDoc] = useState<string | null>(null);
+
+  /**
+   * Abre a comprovação do conselho numa aba nova. O link é assinado na hora
+   * (bucket privado, validade curta) em vez de guardado no banco.
+   */
+  const abrirDocumento = async (doctorId: string) => {
+    setAbrindoDoc(doctorId);
+    try {
+      const url = await storageService.getDocumentoConselhoUrl(doctorId);
+      if (!url) { toast.error('Documento indisponível.'); return; }
+      window.open(url, '_blank', 'noopener');
+    } catch {
+      toast.error('Não foi possível abrir o documento.');
+    } finally {
+      setAbrindoDoc(null);
+    }
+  };
   const [search, setSearch] = useState('');
   const [settings, setSettings] = useState<Record<string, string>>({});
 
@@ -39,6 +65,9 @@ export const AdminDoctorsManagement: React.FC = () => {
   const [leads, setLeads] = useState<DoctorLead[]>([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [leadSearch, setLeadSearch] = useState('');
+  // Fila separada por tipo: o admin analisa e libera médico e psicólogo em
+  // trilhas diferentes (conselho, especialidade e exigências distintas).
+  const [leadTipo, setLeadTipo] = useState<'todos' | 'medico' | 'psicologo'>('todos');
   const [invitingLeadId, setInvitingLeadId] = useState<string | null>(null);
 
   const [kpis, setKpis] = useState<AdminDoctorKpis | null>(null);
@@ -58,7 +87,7 @@ export const AdminDoctorsManagement: React.FC = () => {
   useEffect(() => {
     loadDoctors();
     loadSettings();
-  }, [filterStatus, filterSpecialty]);
+  }, [filterStatus, filterSpecialty, filterTipo]);
 
   useEffect(() => {
     adminService.getDoctorKpis().then(setKpis).catch(() => {});
@@ -89,7 +118,9 @@ export const AdminDoctorsManagement: React.FC = () => {
           email: lead.email,
           type: 'doctor',
           lead_id: lead.id,
-          redirect_to: `${window.location.origin}/medico/cadastro`,
+          // O cadastro abre já na trilha do profissional convidado (CRM x CRP,
+          // especialidades e e-Psi mudam conforme o tipo).
+          redirect_to: `${window.location.origin}/medico/cadastro?tipo=${lead.tipo_profissional ?? 'medico'}`,
         },
       });
       if (error) throw error;
@@ -118,7 +149,8 @@ export const AdminDoctorsManagement: React.FC = () => {
     try {
       const data = await doctorService.getAllDoctors({
         status: filterStatus,
-        specialty: filterSpecialty || undefined
+        specialty: filterSpecialty || undefined,
+        tipo: filterTipo === 'todos' ? undefined : filterTipo
       });
       setDoctors(data);
     } catch (error) {
@@ -251,9 +283,31 @@ export const AdminDoctorsManagement: React.FC = () => {
 
       {activeTab === 'fila' ? (
         <>
-          {/* Busca leads */}
-          <div className="bg-white rounded-xl shadow p-4">
-            <div className="relative max-w-sm">
+          {/* Busca + separação por tipo */}
+          <div className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1 flex-shrink-0">
+              {([
+                ['todos', 'Todos'],
+                ['medico', 'Médicos'],
+                ['psicologo', 'Psicólogos'],
+              ] as const).map(([v, rotulo]) => {
+                const n = v === 'todos'
+                  ? leads.length
+                  : leads.filter(l => (l.tipo_profissional ?? 'medico') === v).length;
+                return (
+                  <button
+                    key={v}
+                    onClick={() => setLeadTipo(v)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
+                      leadTipo === v ? 'bg-white text-[#7d4a3c] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {rotulo} <span className="opacity-60">{n}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
@@ -277,7 +331,7 @@ export const AdminDoctorsManagement: React.FC = () => {
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">CRM/UF</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Conselho</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Especialidade</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Horários</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Origem</th>
@@ -288,17 +342,34 @@ export const AdminDoctorsManagement: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {leads
+                      .filter(l => leadTipo === 'todos'
+                        || (l.tipo_profissional ?? 'medico') === leadTipo)
                       .filter(l => !leadSearch ||
                         l.nome.toLowerCase().includes(leadSearch.toLowerCase()) ||
                         l.email.toLowerCase().includes(leadSearch.toLowerCase()))
                       .map(lead => (
                         <tr key={lead.id} className="hover:bg-gray-50 transition">
                           <td className="px-4 py-3">
-                            <p className="font-medium text-gray-800">{lead.nome}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium text-gray-800">{lead.nome}</p>
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                (lead.tipo_profissional ?? 'medico') === 'psicologo'
+                                  ? 'bg-[#7d4a3c]/10 text-[#7d4a3c]'
+                                  : 'bg-blue-50 text-blue-700'
+                              }`}>
+                                {(lead.tipo_profissional ?? 'medico') === 'psicologo' ? 'Psicólogo' : 'Médico'}
+                              </span>
+                            </div>
                             <p className="text-xs text-gray-500">{lead.email}</p>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
+                            {(lead.tipo_profissional ?? 'medico') === 'psicologo' ? 'CRP' : 'CRM'}{' '}
                             {lead.crm}/{lead.crm_uf}
+                            {(lead.tipo_profissional ?? 'medico') === 'psicologo' && (
+                              <span className={`block text-[10px] mt-0.5 ${lead.epsi_ativo ? 'text-green-600' : 'text-amber-600'}`}>
+                                {lead.epsi_ativo ? 'e-Psi declarado' : 'sem e-Psi'}
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
                             {lead.especialidade}
@@ -436,12 +507,26 @@ export const AdminDoctorsManagement: React.FC = () => {
           </select>
 
           <select
+            value={filterTipo}
+            onChange={e => {
+              setFilterTipo(e.target.value as 'todos' | 'medico' | 'psicologo');
+              // As especialidades disponíveis mudam com o tipo.
+              setFilterSpecialty('');
+            }}
+            className="px-4 py-2 rounded-lg border border-gray-300"
+          >
+            <option value="todos">Todos os profissionais</option>
+            <option value="medico">Médicos</option>
+            <option value="psicologo">Psicólogos</option>
+          </select>
+
+          <select
             value={filterSpecialty}
             onChange={e => setFilterSpecialty(e.target.value)}
             className="px-4 py-2 rounded-lg border border-gray-300"
           >
             <option value="">Todas as especialidades</option>
-            {SPECIALTY_OPTIONS.map(opt => (
+            {(filterTipo === 'psicologo' ? SPECIALTY_OPTIONS_PSICOLOGO : SPECIALTY_OPTIONS).map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
@@ -492,9 +577,24 @@ export const AdminDoctorsManagement: React.FC = () => {
                               )}
                             </div>
                             {doctor.tipo_profissional === 'psicologo' && (
-                              <p className={`text-[11px] mt-0.5 ${doctor.epsi_ativo ? 'text-green-600' : 'text-amber-600'}`}>
-                                {doctor.epsi_ativo ? '✓ e-Psi declarado' : '⚠ e-Psi não declarado'}
-                              </p>
+                              <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+                                <p className={`text-[11px] ${doctor.epsi_ativo ? 'text-green-600' : 'text-amber-600'}`}>
+                                  {doctor.epsi_ativo ? '✓ e-Psi declarado' : '⚠ e-Psi não declarado'}
+                                </p>
+                                {/* A declaração é do profissional; o documento é o
+                                    que permite conferir antes de liberar. */}
+                                {doctor.documento_conselho_path ? (
+                                  <button
+                                    onClick={() => abrirDocumento(doctor.id)}
+                                    disabled={abrindoDoc === doctor.id}
+                                    className="text-[11px] font-medium text-[#7d4a3c] hover:underline disabled:opacity-50"
+                                  >
+                                    {abrindoDoc === doctor.id ? 'abrindo...' : 'ver comprovação'}
+                                  </button>
+                                ) : (
+                                  <span className="text-[11px] text-amber-600">sem comprovação anexada</span>
+                                )}
+                              </div>
                             )}
                             <p className="text-xs text-gray-500 md:hidden">
                               {doctor.conselho_tipo ?? 'CRM'} {doctor.conselho_numero ?? doctor.crm}/{doctor.conselho_uf ?? doctor.crm_state}

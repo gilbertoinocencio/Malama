@@ -213,8 +213,19 @@ export const UnifiedChatService = {
         onboarding_data: session.onboarding_data || {},
       })).catch(() => {});
 
-      // Generate AI response based on mode
-      let aiResponse;
+      // Generate AI response based on mode.
+      // As duas geradoras devolvem formatos diferentes: a de onboarding traz
+      // nextStage/updatedData, a de chat traz apenas context. Sem declarar a
+      // forma aqui, a análise de fluxo fixava o tipo no da conversa e todo
+      // acesso a nextStage acusava erro — embora o código já trate a ausência
+      // (`aiResponse.nextStage || session.current_stage`).
+      let aiResponse: {
+        content: string;
+        tokensUsed: number;
+        nextStage?: OnboardingStage;
+        updatedData?: any;
+        context?: any;
+      };
       if (session.session_type === 'onboarding' && !session.onboarding_completed) {
         aiResponse = await this.generateOnboardingResponse(userId, userMessage, session);
       } else {
@@ -685,7 +696,7 @@ Responda APENAS com o JSON, sem texto adicional.
         : null;
       const phaseDetail = currentPhase
         ? currentPhase.bullets?.length
-          ? `\n- **Foco:** ${currentPhase.focus || ''}\n- **Ações da fase:**\n${currentPhase.bullets.map(b => `  • ${b}`).join('\n')}`
+          ? `\n- **Foco:** ${currentPhase.focus || ''}\n- **Ações da fase:**\n${currentPhase.bullets.map((b: string) => `  • ${b}`).join('\n')}`
           : `\n- **Descrição:** ${(currentPhase.description ?? '').slice(0, 400)}`
         : '';
       planBlock = `\n## PLANO TRIMESTRAL ATIVO

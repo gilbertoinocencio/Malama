@@ -94,14 +94,21 @@ export const MedicosLandingPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
 
+  // crm/crm_uf guardam o registro do conselho de forma genérica:
+  // CRM/UF para médico, CRP/UF para psicólogo (ver migration 20260809).
   const [form, setForm] = useState({
     nome: '',
+    tipo_profissional: 'medico' as 'medico' | 'psicologo',
     crm: '',
     crm_uf: '',
     especialidade: '',
     email: '',
+    epsi_ativo: false,
     horarios: [] as string[],
   });
+
+  const isPsi = form.tipo_profissional === 'psicologo';
+  const conselho = isPsi ? 'CRP' : 'CRM';
 
   const toggleHorario = (value: string) => {
     setForm(prev => ({
@@ -146,6 +153,11 @@ export const MedicosLandingPage: React.FC = () => {
     e.preventDefault();
     if (!form.nome || !form.crm || !form.crm_uf || !form.especialidade || !form.email || form.horarios.length === 0) {
       setErro('Preencha todos os campos e selecione ao menos um horário.');
+      return;
+    }
+    // Atendimento online de psicologia exige cadastro e-Psi ativo no CFP.
+    if (isPsi && !form.epsi_ativo) {
+      setErro('Para atendimento online é necessário ter cadastro e-Psi ativo no CFP.');
       return;
     }
     setLoading(true);
@@ -405,6 +417,36 @@ export const MedicosLandingPage: React.FC = () => {
                     <div className="flex-1 h-px bg-Malama-border" />
                   </div>
 
+                  {/* Tipo de profissional — define conselho, especialidade e e-Psi */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Você é</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        ['medico', 'Médico(a)'],
+                        ['psicologo', 'Psicólogo(a)'],
+                      ] as const).map(([valor, rotulo]) => (
+                        <button
+                          key={valor}
+                          type="button"
+                          onClick={() => setForm(prev => ({
+                            ...prev,
+                            tipo_profissional: valor,
+                            // Conselho e especialidade mudam de significado.
+                            crm: '', crm_uf: '', especialidade: '',
+                            epsi_ativo: false,
+                          }))}
+                          className={`px-4 py-3.5 rounded-xl border text-sm font-medium transition-colors ${
+                            form.tipo_profissional === valor
+                              ? 'border-Malama-petrol bg-Malama-petrol/5 text-Malama-petrol'
+                              : 'border-Malama-border bg-white text-Malama-main hover:border-Malama-petrol/50'
+                          }`}
+                        >
+                          {rotulo}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Nome */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Nome completo</label>
@@ -421,7 +463,7 @@ export const MedicosLandingPage: React.FC = () => {
                   {/* CRM + UF */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">CRM</label>
+                      <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">{conselho}</label>
                       <input
                         type="text"
                         name="crm"
@@ -455,7 +497,9 @@ export const MedicosLandingPage: React.FC = () => {
                       name="especialidade"
                       value={form.especialidade}
                       onChange={handleChange}
-                      placeholder="Ex: Endocrinologia, Nutrologia, Clínica Médica"
+                      placeholder={isPsi
+                        ? 'Ex: Terapia Cognitivo-Comportamental, Psicologia Organizacional'
+                        : 'Ex: Endocrinologia, Nutrologia, Clínica Médica'}
                       className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-white text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm"
                     />
                   </div>
@@ -472,6 +516,24 @@ export const MedicosLandingPage: React.FC = () => {
                       className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-white text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm"
                     />
                   </div>
+
+                  {/* e-Psi — exigência do CFP para atendimento online.
+                      Não há API pública de validação como a do CFM, então é
+                      declaratório e a conferência acontece na aprovação. */}
+                  {isPsi && (
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.epsi_ativo}
+                        onChange={e => setForm(prev => ({ ...prev, epsi_ativo: e.target.checked }))}
+                        className="w-5 h-5 mt-0.5 rounded accent-Malama-petrol flex-shrink-0"
+                      />
+                      <span className="text-sm text-Malama-main leading-snug">
+                        Declaro ter cadastro <strong>e-Psi ativo</strong> no CFP para atendimento
+                        psicológico online.
+                      </span>
+                    </label>
+                  )}
 
                   {/* Horários disponíveis */}
                   <div className="flex flex-col gap-2.5">

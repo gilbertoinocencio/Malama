@@ -86,6 +86,10 @@ export interface Doctor {
   conselho_uf?: string | null;
   // Psicólogo: declaração de e-Psi ativo (CFP). NULL p/ médico.
   epsi_ativo?: boolean | null;
+  /** Caminho no bucket profissional-documentos (privado). Não é URL: link
+   *  assinado expira, então guardamos o path e assinamos no momento do uso. */
+  documento_conselho_path?: string | null;
+  documento_conselho_enviado_em?: string | null;
   specialty: DoctorSpecialty | string;
   specialty_custom?: string | null;
   objectives?: ConsultationObjective[] | string[];
@@ -263,6 +267,8 @@ export interface DoctorRegistrationFormData {
 
   // Etapa 3: Certificado digital
   icpCertificate: File | null;
+  /** Carteira do CRP e/ou comprovante e-Psi. */
+  documentoConselho?: File | null;
 
   // Etapa 4: Configurações
   consultationPrice: number;
@@ -422,6 +428,8 @@ export interface DiaryEntry {
 
 export interface AdminDashboardSummary {
   approvedDoctors: number;
+  /** Psicólogos aprovados — contados à parte dos médicos. */
+  approvedPsychologists: number;
   monthConsultations: number;
   platformRevenue: number;
   pendingPayouts: number;

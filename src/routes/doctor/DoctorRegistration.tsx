@@ -41,6 +41,7 @@ export const DoctorRegistration: React.FC = () => {
     crm: '',
     crmState: '',
     epsiAtivo: false,
+    documentoConselho: null as File | null,
     specialty: '',
     bio: '',
     photo: null,
@@ -54,6 +55,15 @@ export const DoctorRegistration: React.FC = () => {
 
   const [errors, setErrors] = useState<Partial<Record<keyof DoctorRegistrationFormData, string>>>({});
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  // Tipo vindo do convite do admin (?tipo=psicologo). Abre o cadastro já na
+  // trilha certa: conselho, especialidades e e-Psi mudam conforme o tipo.
+  useEffect(() => {
+    const tipo = searchParams.get('tipo');
+    if (tipo === DoctorType.PSICOLOGO || tipo === DoctorType.MEDICO) {
+      setFormData(prev => ({ ...prev, tipoProfissional: tipo as DoctorType }));
+    }
+  }, [searchParams]);
 
   // Verificar token de convite
   useEffect(() => {
@@ -167,6 +177,9 @@ export const DoctorRegistration: React.FC = () => {
         if (!formData.crm.trim()) newErrors.crm = 'CRP é obrigatório';
         if (!formData.crmState) newErrors.crmState = 'Estado do CRP é obrigatório';
         if (!formData.epsiAtivo) newErrors.epsiAtivo = 'É necessário declarar o cadastro e-Psi ativo';
+        // Sem API pública de validação do CRP/e-Psi, o anexo é o que permite
+        // ao admin conferir antes de liberar.
+        if (!formData.documentoConselho) newErrors.documentoConselho = 'Anexe o documento de comprovação';
       } else {
         if (!formData.crm.trim()) newErrors.crm = 'CRM é obrigatório';
         if (!formData.crmState) newErrors.crmState = 'Estado do CRM é obrigatório';
@@ -227,6 +240,15 @@ export const DoctorRegistration: React.FC = () => {
         certificateUrl = await storageService.uploadCertificate(formData.icpCertificate, authData.user.id);
       }
 
+      // Documento de comprovação do conselho (CRP / e-Psi). O CRM tem
+      // validação por API do CFM; para psicólogo a conferência é documental.
+      let documentoConselhoPath: string | null = null;
+      if (formData.documentoConselho) {
+        documentoConselhoPath = await storageService.uploadDocumentoConselho(
+          formData.documentoConselho, authData.user.id,
+        );
+      }
+
       const isPsi = formData.tipoProfissional === DoctorType.PSICOLOGO;
 
       // Criar registro do profissional. Médico usa CRM/CFM; psicólogo usa
@@ -245,6 +267,8 @@ export const DoctorRegistration: React.FC = () => {
         conselho_numero: formData.crm,
         conselho_uf: formData.crmState,
         epsi_ativo: isPsi ? formData.epsiAtivo : null,
+        documento_conselho_path: documentoConselhoPath,
+        documento_conselho_enviado_em: documentoConselhoPath ? new Date().toISOString() : null,
         specialty: formData.specialty,
         bio: formData.bio || null,
         photo_url: photoUrl,
@@ -558,6 +582,35 @@ export const DoctorRegistration: React.FC = () => {
             </span>
           </label>
           {errors.epsiAtivo && <p className="text-red-500 text-sm mt-1">{errors.epsiAtivo}</p>}
+
+          {/* Anexo de comprovação. O CRM tem validação por API do CFM; o CRP
+              e o e-Psi não têm equivalente público, então a conferência é
+              documental e acontece na aprovação. */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Documento de comprovação *
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              Carteira do CRP e/ou comprovante de cadastro e-Psi. PDF ou imagem, até 10 MB.
+              Fica visível apenas para você e para a equipe da Malama que faz a análise.
+            </p>
+            <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+              <p className="text-gray-500 text-sm text-center px-3">
+                {formData.documentoConselho
+                  ? formData.documentoConselho.name
+                  : 'Clique para selecionar'}
+              </p>
+              <input
+                type="file"
+                accept=".pdf,image/*"
+                onChange={e => updateField('documentoConselho', e.target.files?.[0] || null)}
+                className="hidden"
+              />
+            </label>
+            {errors.documentoConselho && (
+              <p className="text-red-500 text-sm mt-1">{errors.documentoConselho}</p>
+            )}
+          </div>
         </div>
       )}
 

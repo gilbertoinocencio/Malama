@@ -582,7 +582,7 @@ export const GLP1Section: React.FC<GLP1SectionProps> = ({ className }) => {
             )}
             {recentCheckins.length > 0 && (
               <div className="mt-3 pt-3 border-t border-Malama-border dark:border-white/10 space-y-2">
-                {recentCheckins.map((c: any, i) => (
+                {recentCheckins.map((c: any, i: number) => (
                   <div key={i} className="flex items-center gap-2 text-[10px]">
                     <span className="text-Malama-muted dark:text-slate-500 w-12 flex-shrink-0">{c.date?.slice(5)}</span>
                     <div className="flex flex-wrap gap-1">

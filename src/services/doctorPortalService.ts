@@ -136,6 +136,7 @@ export const doctorService = {
   async getAllDoctors(filters?: {
     status?: DoctorStatus | 'all';
     specialty?: string;
+    tipo?: 'medico' | 'psicologo';
   }): Promise<Doctor[]> {
     let query = supabase.from('doctors').select('*');
 
@@ -144,6 +145,13 @@ export const doctorService = {
     }
     if (filters?.specialty) {
       query = query.eq('specialty', filters.specialty);
+    }
+    // Registro legado sem tipo_profissional é médico — mesma convenção do
+    // scheduling.ts e da migration 20260802.
+    if (filters?.tipo === 'psicologo') {
+      query = query.eq('tipo_profissional', 'psicologo');
+    } else if (filters?.tipo === 'medico') {
+      query = query.or('tipo_profissional.eq.medico,tipo_profissional.is.null');
     }
 
     const { data, error } = await query.order('created_at', { ascending: false });
@@ -2224,10 +2232,11 @@ export const adminService = {
   },
 
   async getDashboardSummary(): Promise<AdminDashboardSummary> {
-    // Buscar contagem de médicos aprovados
+    // Profissionais aprovados, separados por tipo. Legado sem
+    // tipo_profissional é médico (mesma convenção do resto do sistema).
     const { data: approvedDoctors, error: doctorsError } = await supabase
       .from('doctors')
-      .select('id')
+      .select('id, tipo_profissional')
       .eq('status', 'approved');
 
     // Buscar contagem de consultas do mês
@@ -2251,9 +2260,12 @@ export const adminService = {
     const pendingPayoutsTotal = pendingPayouts?.reduce((sum, p) => sum + p.amount, 0) || 0;
 
     return {
-      approvedDoctors: approvedDoctors?.length || 0,
+      approvedDoctors: (approvedDoctors ?? []).filter(
+        (d: any) => (d.tipo_profissional ?? 'medico') === 'medico').length,
+      approvedPsychologists: (approvedDoctors ?? []).filter(
+        (d: any) => d.tipo_profissional === 'psicologo').length,
       monthConsultations: monthConsultations?.length || 0,
-      platformRevenue: monthConsultations?.reduce((sum, c) => sum + (c.price || 0), 0) * 0.25 || 0,
+      platformRevenue: (monthConsultations?.reduce((sum, c) => sum + (c.price || 0), 0) ?? 0) * 0.25,
       pendingPayouts: pendingPayoutsTotal,
       pendingDoctors
     };
@@ -2302,6 +2314,39 @@ export const storageService = {
       .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 ano
 
     if (!data) throw new Error('Failed to create signed URL');
+    return data.signedUrl;
+  },
+
+  /**
+   * Documento de comprovação do conselho (carteira do CRP, comprovante e-Psi).
+   * A pasta é o auth.uid() porque o upload acontece no cadastro, antes de
+   * existir linha em `doctors`.
+   *
+   * Devolve o PATH, não a URL: bucket é privado e link assinado expira —
+   * guardar URL no banco daria link morto depois de um ano.
+   */
+  async uploadDocumentoConselho(file: File, userId: string): Promise<string> {
+    const ext = file.name.split('.').pop();
+    const path = `${userId}/conselho.${ext}`;
+
+    const { error } = await supabase.storage
+      .from('profissional-documentos')
+      .upload(path, file, { upsert: true });
+
+    if (error) throw error;
+    return path;
+  },
+
+  /** URL assinada para o admin abrir o documento (10 min). */
+  async getDocumentoConselhoUrl(doctorId: string): Promise<string | null> {
+    const { data: path, error: rpcErr } = await supabase
+      .rpc('admin_documento_conselho_path', { p_doctor_id: doctorId });
+    if (rpcErr || !path) return null;
+
+    const { data, error } = await supabase.storage
+      .from('profissional-documentos')
+      .createSignedUrl(path as string, 600);
+    if (error || !data) return null;
     return data.signedUrl;
   },
 
