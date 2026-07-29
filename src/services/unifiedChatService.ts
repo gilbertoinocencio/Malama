@@ -1279,7 +1279,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
       .limit(10);
 
     // Get active quarterly plan (current phase + strategy)
-    let quarterlyPlan = null;
+    let quarterlyPlan: import('./planService').QuarterlyPlanData | null = null;
     try {
       const { PlanService } = await import('./planService');
       quarterlyPlan = await PlanService.getActivePlan(userId);

@@ -338,10 +338,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     const rows = 7;
     const totalCells = cols * rows;
     const today = new Date();
-    const grid = [];
+    const grid: React.ReactElement[] = [];
 
     for (let c = 0; c < cols; c++) {
-      const colCells = [];
+      const colCells: React.ReactElement[] = [];
       for (let r = 0; r < rows; r++) {
         const dayIndex = c * rows + r;
         const targetDate = new Date(today);

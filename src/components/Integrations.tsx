@@ -3,7 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { IntegrationService } from '../services/integrationService';
-import { HealthConnectService } from '../services/healthConnectService';
+import { HealthConnectService, isHCFailure } from '../services/healthConnectService';
 import type { HCConnectResult } from '../services/healthConnectService';
 import { AppleHealthService } from '../services/appleHealthService';
 import type { FitnessService, ConnectedIntegration } from '../types';
@@ -114,11 +114,11 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
       } else {
         setHcMessage(null);
         const res = await HealthConnectService.requestPermissions();
-        if (res.ok) {
-          setHcConnected(true);
-        } else {
+        if (isHCFailure(res)) {
           setHcConnected(false);
           setHcMessage(hcReasonMessage(res.reason, res.detail));
+        } else {
+          setHcConnected(true);
         }
       }
       setToggling(null);

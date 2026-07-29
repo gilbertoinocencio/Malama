@@ -55,7 +55,8 @@ export const InfluencerInvite: React.FC = () => {
   }, [token]);
 
   const handleStart = async () => {
-    if (!influencer) return;
+    // Sem token não há senha temporária para autenticar.
+    if (!influencer || !token) return;
     setProcessing(true);
     setError('');
 

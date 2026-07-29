@@ -216,13 +216,13 @@ export const DoctorRegistration: React.FC = () => {
       if (!authData.user) throw new Error('Falha ao criar conta');
 
       // Upload da foto
-      let photoUrl = null;
+      let photoUrl: string | null = null;
       if (formData.photo) {
         photoUrl = await storageService.uploadDoctorPhoto(formData.photo, authData.user.id);
       }
 
       // Upload do certificado
-      let certificateUrl = null;
+      let certificateUrl: string | null = null;
       if (formData.icpCertificate) {
         certificateUrl = await storageService.uploadCertificate(formData.icpCertificate, authData.user.id);
       }
@@ -259,7 +259,7 @@ export const DoctorRegistration: React.FC = () => {
         address_neighborhood: formData.addressNeighborhood || null,
         address_city: formData.addressCity || null,
         address_state: formData.addressState || null,
-        objectives: formData.objectives.length > 0 ? formData.objectives : null,
+        objectives: formData.objectives.length > 0 ? formData.objectives : undefined,
         invite_token: inviteData?.doctorId ? undefined : doctorService.generateInviteToken()
       });
 

@@ -113,7 +113,7 @@ export const DoctorSettings: React.FC = () => {
         specialty,
         phone: phone || null,
         photo_url: photoUrl,
-        objectives: objectives.length > 0 ? objectives : null,
+        objectives: objectives.length > 0 ? objectives : undefined,
         address_zip: addressZip || null,
         address_street: addressStreet || null,
         address_number: addressNumber || null,

@@ -42,6 +42,116 @@ interface FlowDashboardProps {
 
 type PeriodTab = 'day' | 'week' | 'month';
 
+
+/**
+ * Cartões de métricas da semana.
+ *
+ * Extraído de FlowDashboard porque o componente pai é grande demais para a
+ * análise de fluxo do TypeScript: dentro dele o estreitamento de
+ * `weeklyMetrics` por `&&` deixava de valer e todo acesso acusava
+ * "possibly null", mesmo guardado. Recebendo as métricas como prop
+ * não-nula, o problema deixa de existir — e o pai fica um pouco menor.
+ */
+/**
+ * Seção inteira de métricas: cabeçalho, contagem de dias e cartões (ou
+ * esqueleto enquanto carrega). Recebe `metrics` podendo ser null e decide
+ * aqui — assim o componente pai, grande demais para a análise de fluxo do
+ * TypeScript, não precisa estreitar nada.
+ */
+const SecaoMetricasSemana: React.FC<{
+  metrics: { avgCalories: number; avgProtein: number; avgWaterMl: number; daysLogged: number } | null;
+  waterGoal: number;
+  targetProtein: number;
+  targetCalories: number;
+  t: any;
+}> = ({ metrics, ...resto }) => (
+  <div className="px-6 flex flex-col gap-3">
+    <div className="flex items-center justify-between">
+      <h2 className="text-Malama-main dark:text-white text-lg font-bold">{resto.t.flowScore.metrics}</h2>
+      {metrics && (
+        <span className="text-xs text-Malama-muted dark:text-white/40 font-medium">
+          {metrics.daysLogged}/7 dias registrados
+        </span>
+      )}
+    </div>
+
+    {metrics ? (
+      <MetricasSemana metrics={metrics} {...resto} />
+    ) : (
+      <div className="grid grid-cols-3 gap-3">
+        {[0, 1, 2].map(i => (
+          <div key={i} className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/5 rounded-2xl p-4 h-32 animate-pulse" />
+        ))}
+      </div>
+    )}
+  </div>
+);
+
+const MetricasSemana: React.FC<{
+  metrics: { avgCalories: number; avgProtein: number; avgWaterMl: number; daysLogged: number };
+  waterGoal: number;
+  targetProtein: number;
+  targetCalories: number;
+  t: any;
+}> = ({ metrics: wm, waterGoal, targetProtein, targetCalories, t }) => {
+  const wTarget = waterGoal || 2500;
+  const pTarget = targetProtein || 1;
+  const cTarget = targetCalories || 1;
+  const cards = [
+    {
+      icon: 'water_drop',
+      color: 'text-blue-400',
+      bg: 'bg-blue-400',
+      label: t.flowScore.hydration,
+      value: (wm.avgWaterMl / 1000).toFixed(1),
+      unit: 'L/dia',
+      target: (wTarget / 1000).toFixed(1) + 'L',
+      pct: Math.min((wm.avgWaterMl / wTarget) * 100, 100),
+    },
+    {
+      icon: 'egg',
+      color: 'text-orange-400',
+      bg: 'bg-orange-400',
+      label: t.dashboard.protein,
+      value: wm.avgProtein,
+      unit: 'g/dia',
+      target: Math.round(pTarget) + 'g',
+      pct: Math.min((wm.avgProtein / pTarget) * 100, 100),
+    },
+    {
+      icon: 'local_fire_department',
+      color: 'text-yellow-500',
+      bg: 'bg-yellow-400',
+      label: t.flowScore.energy,
+      value: (wm.avgCalories / 1000).toFixed(1),
+      unit: 'k/dia',
+      target: (cTarget / 1000).toFixed(1) + 'k',
+      pct: Math.min((wm.avgCalories / cTarget) * 100, 100),
+    },
+  ];
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {cards.map(card => (
+        <div key={card.label} className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/5 rounded-2xl p-4 flex flex-col gap-3">
+          <span className={`material-symbols-outlined text-xl ${card.color}`}>{card.icon}</span>
+          <div>
+            <p className="text-[10px] font-semibold text-Malama-muted dark:text-white/40 uppercase tracking-wide mb-1">{card.label}</p>
+            <p className="text-xl font-bold text-Malama-main dark:text-white leading-none">
+              {card.value}<span className="text-xs font-medium text-Malama-muted dark:text-white/40 ml-0.5">{card.unit}</span>
+            </p>
+          </div>
+          <div className="flex flex-col gap-1">
+            <div className="w-full bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
+              <div className={`h-full ${card.bg} rounded-full transition-all duration-700`} style={{ width: `${card.pct}%` }} />
+            </div>
+            <p className="text-[10px] text-Malama-muted dark:text-white/30">meta {card.target}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   stats,
   meals,
@@ -561,6 +671,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   };
 
   const handleDayClick = async (date: string) => {
+    // Sem usuário não há refeição para carregar — e MealService.getMeals
+    // receberia um id indefinido.
+    if (!user) return;
+
     if (selectedDate === date) {
       // If clicking the same date, reset to weekly accumulated
       setIsDaySelected(false);
@@ -727,6 +841,10 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
       daysCount: logged.length,
     };
   }, [period, isDaySelected, selectedDayStats, selectedWeekIndex, monthWeeksData]);
+
+  // Cópia local: FlowDashboard é grande demais para a análise de fluxo do TS
+  // manter o estreitamento de `weeklyMetrics` até o bloco de métricas.
+  const wm = weeklyMetrics;
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-Malama-bg dark:bg-background-dark font-display text-Malama-main dark:text-white animate-fade-in transition-colors duration-300">
@@ -1977,81 +2095,14 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
                 </div>
 
                 {/* Weekly Metrics Grid */}
-                <div className="px-6 flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-Malama-main dark:text-white text-lg font-bold">{t.flowScore.metrics}</h2>
-                    {weeklyMetrics && (
-                      <span className="text-xs text-Malama-muted dark:text-white/40 font-medium">
-                        {weeklyMetrics.daysLogged}/7 dias registrados
-                      </span>
-                    )}
-                  </div>
+                <SecaoMetricasSemana
+                  metrics={weeklyMetrics}
+                  waterGoal={waterGoalState}
+                  targetProtein={stats.targetMacros.protein}
+                  targetCalories={stats.targetCalories}
+                  t={t}
+                />
 
-                  {weeklyMetrics ? (() => {
-                    const wTarget = waterGoalState || 2500;
-                    const pTarget = stats.targetMacros.protein || 1;
-                    const cTarget = stats.targetCalories || 1;
-                    const cards = [
-                      {
-                        icon: 'water_drop',
-                        color: 'text-blue-400',
-                        bg: 'bg-blue-400',
-                        label: t.flowScore.hydration,
-                        value: (weeklyMetrics.avgWaterMl / 1000).toFixed(1),
-                        unit: 'L/dia',
-                        target: (wTarget / 1000).toFixed(1) + 'L',
-                        pct: Math.min((weeklyMetrics.avgWaterMl / wTarget) * 100, 100),
-                      },
-                      {
-                        icon: 'egg',
-                        color: 'text-orange-400',
-                        bg: 'bg-orange-400',
-                        label: t.dashboard.protein,
-                        value: weeklyMetrics.avgProtein,
-                        unit: 'g/dia',
-                        target: Math.round(pTarget) + 'g',
-                        pct: Math.min((weeklyMetrics.avgProtein / pTarget) * 100, 100),
-                      },
-                      {
-                        icon: 'local_fire_department',
-                        color: 'text-yellow-500',
-                        bg: 'bg-yellow-400',
-                        label: t.flowScore.energy,
-                        value: (weeklyMetrics.avgCalories / 1000).toFixed(1),
-                        unit: 'k/dia',
-                        target: (cTarget / 1000).toFixed(1) + 'k',
-                        pct: Math.min((weeklyMetrics.avgCalories / cTarget) * 100, 100),
-                      },
-                    ];
-                    return (
-                      <div className="grid grid-cols-3 gap-3">
-                        {cards.map(card => (
-                          <div key={card.label} className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/5 rounded-2xl p-4 flex flex-col gap-3">
-                            <span className={`material-symbols-outlined text-xl ${card.color}`}>{card.icon}</span>
-                            <div>
-                              <p className="text-[10px] font-semibold text-Malama-muted dark:text-white/40 uppercase tracking-wide mb-1">{card.label}</p>
-                              <p className="text-xl font-bold text-Malama-main dark:text-white leading-none">
-                                {card.value}<span className="text-xs font-medium text-Malama-muted dark:text-white/40 ml-0.5">{card.unit}</span>
-                              </p>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <div className="w-full bg-gray-100 dark:bg-white/10 h-1 rounded-full overflow-hidden">
-                                <div className={`h-full ${card.bg} rounded-full transition-all duration-700`} style={{ width: `${card.pct}%` }} />
-                              </div>
-                              <p className="text-[10px] text-Malama-muted dark:text-white/30">meta {card.target}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })() : (
-                    <div className="grid grid-cols-3 gap-3">
-                      {[0, 1, 2].map(i => (
-                        <div key={i} className="bg-white dark:bg-surface-dark border border-Malama-border dark:border-white/5 rounded-2xl p-4 h-32 animate-pulse" />
-                      ))}
-                    </div>
-                  )}
-                </div>
                 </div>}
               </>
             )}

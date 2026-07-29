@@ -57,7 +57,7 @@ export const StatsService = {
             MealService.getMeals(userId, date),
             supabase
                 .from('profiles')
-                .select('target_calories, target_protein, target_carbs, target_fats, weight, activity_level, primary_goal')
+                .select('target_calories, target_protein, target_carbs, target_fats, weight, activity_level, goal, primary_goal')
                 .eq('id', userId)
                 .maybeSingle(),
             supabase
@@ -103,9 +103,15 @@ export const StatsService = {
 
         // Apenas manter_peso e ganhar_peso aumentam a meta calórica com a atividade.
         // perder_peso mantém a meta original — as calorias queimadas viram déficit extra.
-        // profile.goal: 'aesthetic'=perder, 'performance'=ganhar, 'health'=manter
-        const profileGoal = profile?.goal ?? 'aesthetic';
-        const applyActivityToTarget = profileGoal !== 'aesthetic' && activityCalories > 0;
+        // profile.goal: 'aesthetic'=perder, 'performance'=ganhar, 'health'=manter.
+        // O select não trazia a coluna `goal`, então isto caía sempre em
+        // 'aesthetic' e a atividade NUNCA era somada à meta de ninguém.
+        // primary_goal vem do onboarding com outro vocabulário
+        // ('perder_peso'/'ganhar_peso'/...); normalizado igual ao
+        // profileService, que já convive com os dois.
+        const profileGoal = String(profile?.goal ?? profile?.primary_goal ?? 'aesthetic');
+        const querPerderPeso = profileGoal === 'aesthetic' || profileGoal.includes('perder');
+        const applyActivityToTarget = !querPerderPeso && activityCalories > 0;
 
         const extraCarbs   = applyActivityToTarget ? Math.round(activityCalories * 0.55 / 4) : 0;
         const extraProtein = applyActivityToTarget ? Math.round(activityCalories * 0.20 / 4) : 0;
@@ -183,7 +189,7 @@ export const StatsService = {
         startOfWeek.setDate(today.getDate() - dayOfWeek);
         startOfWeek.setHours(0, 0, 0, 0);
 
-        const weekDays = [];
+        const weekDays: { date: string; stats: DailyStats; meals: any[] }[] = [];
 
         for (let i = 0; i < 7; i++) {
             const currentDate = new Date(startOfWeek);

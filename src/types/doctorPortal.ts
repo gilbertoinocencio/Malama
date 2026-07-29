@@ -387,14 +387,17 @@ export interface PatientAdherence {
 }
 
 export interface WeeklyNutritionHistory {
+  /** Rótulo de exibição da semana (ex.: "05/08"), não data ISO. */
   week_start: string;
-  week_end: string;
+  /** Nunca é produzido nem consumido hoje — mantido opcional. */
+  week_end?: string;
   avg_calories: number;
   avg_protein: number;
   avg_carbs: number;
   avg_fat: number;
   adherence_percent: number;
-  avg_weight: number;
+  /** String já formatada para a tabela do médico (ex.: "72kg" ou "-"). */
+  avg_weight: string;
 }
 
 export interface SymptomCheckin {

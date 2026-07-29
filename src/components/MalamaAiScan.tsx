@@ -176,7 +176,7 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
         if (confirming) return;
         setConfirming(true);
         try {
-            const finalData: AIResponse = { foodName, calories, macros, items, message: data.message };
+            const finalData: AIResponse = { foodName, calories, macros, items, message: data?.message ?? '' };
             onConfirm(finalData);
         } catch (e) {
             console.error('Confirm failed:', e);

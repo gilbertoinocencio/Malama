@@ -143,7 +143,8 @@ export const FlowAdaptation: React.FC<FlowAdaptationProps> = ({ onBack, onNaviga
   const monthName = currentMonth.toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', { month: 'long', year: 'numeric' });
 
   const totalCells = [...blanksArray.map(() => null), ...daysArray];
-  const weeks = [];
+  // Cada semana é uma fatia de totalCells: dias do mês (number) e vazios (null).
+  const weeks: (number | null)[][] = [];
   for (let i = 0; i < totalCells.length; i += 7) {
     weeks.push(totalCells.slice(i, i + 7));
   }

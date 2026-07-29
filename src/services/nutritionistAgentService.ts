@@ -254,7 +254,7 @@ export const NutritionistAgentService = {
     else initialStage = 'FOOD_ROUTINE';
 
     // Build a more descriptive welcome message
-    const facts = [];
+    const facts: string[] = [];
     if (initialData.fullName) facts.push(`seu nome (${initialData.fullName})`);
     if (initialData.age) facts.push(`sua idade (${initialData.age} anos)`);
     if (initialData.biologicalSex) facts.push(`seu sexo biológico`);

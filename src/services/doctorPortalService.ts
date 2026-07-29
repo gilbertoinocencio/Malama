@@ -771,7 +771,12 @@ export const payoutService = {
         fee_amount: feeAmount,
         net_amount: netAmount,
         pix_key: p.doctor?.pix_key || p.pix_key,
-        status: p.status
+        status: p.status,
+        // Vieram na migration 20260417 e ficaram de fora deste mapeamento:
+        // a tela de repasses não conseguia mostrar o motivo de uma falha de
+        // transferência porque o campo nunca chegava nela.
+        asaas_transfer_id: p.asaas_transfer_id ?? null,
+        processing_error: p.processing_error ?? null,
       };
     });
   },
@@ -1093,8 +1098,8 @@ export const patientService = {
     const water = latestLog?.water_goal || Math.round((profile?.weight || 70) * 35);
 
     // Calculate IMC
-    let imc = null;
-    let imc_classification = null;
+    let imc: number | null = null;
+    let imc_classification: string | null = null;
     if (profile?.weight && profile?.height) {
       imc = profile.weight / ((profile.height / 100) * (profile.height / 100));
       imc_classification = 'Normal'; // Can be adjusted by frontend calculation logic
@@ -1123,13 +1128,15 @@ export const patientService = {
       .gte('logged_at', ninetyDaysAgo.toISOString())
       .order('logged_at', { ascending: true });
 
-    let weight_history = (weightLogs || [])
+    // WeightEntry.target_weight é opcional (number). Antes o map fixava null,
+    // o que tipava a lista inteira como incompatível com WeightEntry[].
+    let weight_history: import('../types/doctorPortal').WeightEntry[] = (weightLogs || [])
       .filter((w: any) => w.weight_kg)
-      .map((w: any) => ({ date: w.logged_at.split('T')[0], weight: w.weight_kg, target_weight: null }));
+      .map((w: any) => ({ date: w.logged_at.split('T')[0], weight: w.weight_kg }));
 
     // Fallback: use current profile weight as a single data point
     if (weight_history.length === 0 && profile?.weight) {
-      weight_history = [{ date: new Date().toISOString().split('T')[0], weight: profile.weight, target_weight: null }];
+      weight_history = [{ date: new Date().toISOString().split('T')[0], weight: profile.weight }];
     }
 
     // Group meals by date dynamically (same structure as flow_stats)
@@ -1161,7 +1168,7 @@ export const patientService = {
     const avgProt = activeDays > 0 ? Math.round(thirtyDaysStats.reduce((acc, s) => acc + (s.protein_consumed || 0), 0) / activeDays) : 0;
 
     // Calculate Weekly History (8 weeks)
-    const weekly_history = [];
+    const weekly_history: import('../types/doctorPortal').WeeklyNutritionHistory[] = [];
     const now = new Date();
     // Move backwards conceptually from today, chunks of 7
     for (let i = 0; i < 8; i++) {

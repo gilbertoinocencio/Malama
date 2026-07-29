@@ -99,6 +99,21 @@ export type HCConnectResult =
       detail?: string;
     };
 
+/** Falha do pedido de permissão, com o motivo já disponível. */
+export type HCConnectFailure = Extract<HCConnectResult, { ok: false }>;
+
+/**
+ * Predicado explícito para a falha.
+ *
+ * Necessário porque este projeto compila sem `strictNullChecks`, e sem ele o
+ * TypeScript NÃO estreita união discriminada pelo ramo booleano falso — um
+ * `if (res.ok) {} else { res.reason }` perfeitamente correto acusa erro.
+ * O predicado dá o estreitamento independentemente do flag.
+ */
+export function isHCFailure(r: HCConnectResult): r is HCConnectFailure {
+  return r.ok === false;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 /** Extrai texto legível de um erro (Error, string ou objeto do bridge nativo). */

@@ -40,7 +40,7 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
     try {
       // 1) Today's flow score
       const stats = await StatsService.getDailyStats(user.id);
-      setFlowScore(stats.flowScore);
+      setFlowScore(stats.flowScore ?? 0);
 
       // 2) Gamification: streak & flow days
       const gamification = await GamificationService.updateStats(user.id);
@@ -99,7 +99,7 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
   // Build 28-day heatmap grid (4 weeks × 7 days)
   const renderHeatmapDots = () => {
     const totalDots = 28;
-    const dots = [];
+    const dots: React.ReactElement[] = [];
     const today = new Date();
 
     for (let i = 0; i < totalDots; i++) {

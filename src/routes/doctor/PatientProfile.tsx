@@ -1191,7 +1191,10 @@ export const PatientProfile: React.FC = () => {
                           <input
                             type="number"
                             min={0}
-                            value={(glp1Prescription as Record<string, unknown>)[key] as number ?? ''}
+                            // As quatro chaves acima são `as const` e existem em
+                            // GLP1DoctorPrescriptionInput: indexar direto mantém
+                            // a checagem, que o cast para Record anulava.
+                            value={glp1Prescription[key] ?? ''}
                             onChange={e => setGlp1Prescription(p => ({
                               ...p,
                               [key]: e.target.value ? Number(e.target.value) : undefined
