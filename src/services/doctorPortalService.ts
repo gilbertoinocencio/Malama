@@ -837,6 +837,17 @@ export const payoutService = {
 // CONFIGURAÇÕES DA PLATAFORMA
 // =====================================================
 
+/**
+ * Chaves que nunca devem chegar ao navegador, nem no painel admin.
+ *
+ * platform_settings guarda o 'service_role_key_for_cron' — a service role key,
+ * que ignora toda a RLS. A RLS já bloqueia a leitura para quem não é super
+ * admin (migration 20260811), mas o admin AINDA leria: cairia no estado do
+ * React, na aba de rede e no payload do "Salvar", que reescreveria a chave a
+ * cada save. Nada na tela de configurações precisa dela.
+ */
+const CHAVES_SENSIVEIS = /key|secret|token|password|senha|api/i;
+
 export const settingsService = {
   async getSetting(key: string): Promise<string | null> {
     const { data, error } = await supabase
@@ -849,13 +860,14 @@ export const settingsService = {
     return data?.value || null;
   },
 
+  /** Sem as chaves sensíveis — ver CHAVES_SENSIVEIS acima. */
   async getAllSettings(): Promise<PlatformSetting[]> {
     const { data, error } = await supabase
       .from('platform_settings')
       .select('*');
 
     if (error) throw error;
-    return data || [];
+    return (data || []).filter(s => !CHAVES_SENSIVEIS.test(s.key));
   },
 
   async updateSetting(key: string, value: string): Promise<void> {

@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { Save } from 'lucide-react';
 import { settingsService } from '../../services/doctorPortalService';
+import { IntegracaoAsaas } from '../../components/admin/IntegracaoAsaas';
 import toast from 'react-hot-toast';
 
 export const AdminSettings: React.FC = () => {
@@ -202,6 +203,8 @@ export const AdminSettings: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <IntegracaoAsaas />
     </div>
   );
 };

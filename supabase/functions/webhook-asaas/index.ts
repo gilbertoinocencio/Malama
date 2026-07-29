@@ -16,6 +16,36 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+/**
+ * Registra o evento em integracao_eventos para o painel admin.
+ *
+ * console.log só existe no log do Supabase, que ninguém abre por rotina — foi
+ * assim que a falha de emissão de créditos ficou invisível. Aqui o registro
+ * aparece na tela de Integrações.
+ *
+ * Best-effort de propósito: log quebrado nunca pode derrubar o processamento
+ * do pagamento.
+ */
+async function logEvento(
+  evento: string,
+  status: 'ok' | 'erro' | 'ignorado',
+  referencia?: string | null,
+  detalhe?: string | null,
+): Promise<void> {
+  try {
+    await supabase.from('integracao_eventos').insert([{
+      origem: 'asaas',
+      evento,
+      referencia: referencia ?? null,
+      status,
+      // Truncado e sem payload cru: o corpo do Asaas traz dado do cliente.
+      detalhe: detalhe ? detalhe.slice(0, 500) : null,
+    }]);
+  } catch (e) {
+    console.error('[webhook-asaas] Falha ao gravar integracao_eventos:', e);
+  }
+}
+
 function currentMonthRef(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
@@ -150,9 +180,42 @@ async function handleEmpresaPaid(payment: any): Promise<void> {
   if (emissaoErr) {
     // Não aborta: a fatura está paga e o acesso precisa ser reativado abaixo.
     // Créditos podem ser reemitidos pelo admin (admin_emitir_creditos_empresa).
+    //
+    // Este é o pior silêncio do fluxo: a empresa pagou, ficou ativa, e os
+    // colaboradores abrem o app sem consulta disponível. Vai para o log de
+    // integração como ERRO para aparecer no painel.
     console.error(`[webhook-asaas] Falha ao emitir créditos da empresa ${fatura.empresa_id}:`, emissaoErr);
+    await logEvento(
+      'CREDITOS_NAO_EMITIDOS',
+      'erro',
+      fatura.empresa_id,
+      `Fatura ${fatura.id} (${fatura.competencia}) paga, mas emitir_creditos_empresa falhou: ${emissaoErr.message}. Reemitir pelo painel da empresa.`,
+    );
+
+    if (ADMIN_ALERT_EMAIL) {
+      await sendEmail({
+        to: ADMIN_ALERT_EMAIL,
+        subject: 'URGENTE: créditos não emitidos após pagamento',
+        html: brandedEmailHtml({
+          eyebrow: 'Malama Admin',
+          heading: `Pagamento recebido, créditos <em style="font-style:italic;color:#8c473e;">não emitidos</em>.`,
+          bodyParagraphs: [
+            `A fatura da competência <strong>${fatura.competencia}</strong> foi paga, mas a emissão de créditos falhou.`,
+            `Os colaboradores estão sem consulta disponível até que os créditos sejam reemitidos no painel da empresa.`,
+            `Erro: ${emissaoErr.message}`,
+          ],
+        }),
+        text: `Fatura ${fatura.competencia} paga, mas emitir_creditos_empresa falhou: ${emissaoErr.message}. Reemita no painel da empresa ${fatura.empresa_id}.`,
+      }).catch((e) => console.error('[webhook-asaas] Falha ao alertar admin:', e));
+    }
   } else {
     console.log(`[webhook-asaas] Créditos emitidos:`, JSON.stringify(emissao));
+    await logEvento(
+      'CREDITOS_EMITIDOS',
+      'ok',
+      fatura.empresa_id,
+      `Competência ${fatura.competencia}: ${JSON.stringify(emissao)}`,
+    );
   }
 
   const { data: empresa } = await supabase
@@ -243,6 +306,32 @@ async function handleEmpresaOverdue(payment: any): Promise<void> {
 // ─── Handler principal ────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
+  // ── Health check para o painel admin ───────────────────────────────────
+  // Esta função roda com verify_jwt = false (o Asaas não manda JWT), então o
+  // gateway não filtra nada: a checagem de super admin é feita aqui, na mão.
+  //
+  // Responde se o segredo ESTÁ configurado — nunca o valor dele.
+  if (req.method === 'GET') {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) return jsonResponse({ error: 'Não autorizado' }, 401);
+
+    const { data: caller } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    if (caller?.user?.app_metadata?.role !== 'super_admin') {
+      return jsonResponse({ error: 'Acesso restrito ao super admin' }, 403);
+    }
+
+    return jsonResponse({
+      ok: true,
+      segredo_configurado: Boolean(ASAAS_WEBHOOK_SECRET),
+      alerta_admin_configurado: Boolean(ADMIN_ALERT_EMAIL),
+      eventos_tratados: [
+        'PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'PAYMENT_OVERDUE',
+        'PAYMENT_DELETED', 'PAYMENT_REFUNDED',
+        'SUBSCRIPTION_DELETED', 'SUBSCRIPTION_CANCELLED',
+      ],
+    });
+  }
+
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
@@ -251,6 +340,9 @@ Deno.serve(async (req: Request) => {
   const token = req.headers.get('asaas-access-token');
   if (!token || token !== ASAAS_WEBHOOK_SECRET) {
     console.warn('[webhook-asaas] Unauthorized request - invalid token');
+    // Vale registrar: token inválido em série é ou configuração errada no
+    // Asaas, ou alguém batendo na URL.
+    await logEvento('AUTENTICACAO_RECUSADA', 'erro', null, 'Requisição com asaas-access-token ausente ou inválido.');
     return new Response('Unauthorized', { status: 401 });
   }
 
@@ -289,11 +381,15 @@ Deno.serve(async (req: Request) => {
 
       default:
         console.log(`[webhook-asaas] Unhandled event: ${event}`);
+        await logEvento(event ?? 'DESCONHECIDO', 'ignorado', payment?.id ?? null, 'Evento sem tratamento nesta função.');
+        return jsonResponse({ ok: true, event });
     }
 
+    await logEvento(event, 'ok', payment?.id ?? null, null);
     return jsonResponse({ ok: true, event });
   } catch (err) {
     console.error(`[webhook-asaas] Error processing event ${event}:`, err);
+    await logEvento(event ?? 'DESCONHECIDO', 'erro', payment?.id ?? null, String(err));
     return jsonResponse({ error: String(err) }, 500);
   }
 });
