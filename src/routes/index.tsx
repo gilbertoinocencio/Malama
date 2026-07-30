@@ -24,6 +24,7 @@ import { RhCompliance } from './rh/RhCompliance';
 import { RhSaudeMental } from './rh/RhSaudeMental';
 import { RhAbsenteismo } from './rh/RhAbsenteismo';
 import { RhPlanoAcao } from './rh/RhPlanoAcao';
+import { RhImportar } from './rh/RhImportar';
 import { RhImpacto } from './rh/RhImpacto';
 
 // Doctor Pages
@@ -302,6 +303,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="saude-mental" element={<RhSaudeMental />} />
             <Route path="absenteismo" element={<RhAbsenteismo />} />
             <Route path="plano-acao" element={<RhPlanoAcao />} />
+            <Route path="importar" element={<RhImportar />} />
             <Route path="compliance" element={<RhCompliance />} />
             <Route path="impacto" element={<RhImpacto />} />
           </Route>

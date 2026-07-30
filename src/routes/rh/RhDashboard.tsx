@@ -38,6 +38,9 @@ export const RhDashboard: React.FC = () => {
   const [email, setEmail] = useState('');
   const [setor, setSetor] = useState('');
   const [funcao, setFuncao] = useState('');
+  // Chave de junção com os eventos do eSocial (migration 20260814). Opcional
+  // aqui: quem já tem cadastro pode vincular em lote na aba Importar.
+  const [cpf, setCpf] = useState('');
   const [adding, setAdding] = useState(false);
   const [resending, setResending] = useState<string | null>(null);
   const [psi, setPsi] = useState<{ plano_ativo: boolean; max_assentos: number; assentos_em_uso: number } | null>(null);
@@ -83,7 +86,7 @@ export const RhDashboard: React.FC = () => {
 
     setAdding(true);
     try {
-      const res = await rhService.inviteColaborador(value, nomeValue, setor.trim(), funcao.trim());
+      const res = await rhService.inviteColaborador(value, nomeValue, setor.trim(), funcao.trim(), cpf.trim());
       if (res.existing) {
         toast.success(
           res.emailed
@@ -101,6 +104,7 @@ export const RhDashboard: React.FC = () => {
       setNome('');
       setSetor('');
       setFuncao('');
+      setCpf('');
       await load();
     } catch (err: any) {
       toast.error(err?.message || 'Não foi possível adicionar o colaborador.');
@@ -365,6 +369,13 @@ export const RhDashboard: React.FC = () => {
             <input
               type="text" value={funcao} onChange={e => setFuncao(e.target.value)}
               placeholder="Função (ex.: Analista) — opcional"
+              disabled={cheio || empresa.status !== 'ativa'}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
+            />
+            <input
+              type="text" inputMode="numeric" value={cpf}
+              onChange={e => setCpf(e.target.value)}
+              placeholder="CPF — opcional, usado só para importar afastamentos"
               disabled={cheio || empresa.status !== 'ativa'}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
             />

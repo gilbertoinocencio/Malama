@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
   if (!authHeader) return json({ error: 'Não autorizado' }, 401);
 
   try {
-    const { email, nome, setor, funcao, redirect_to } = await req.json();
+    const { email, nome, setor, funcao, cpf, redirect_to } = await req.json();
     if (!email) return json({ error: 'E-mail é obrigatório' }, 400);
 
     const normalizedEmail = String(email).trim().toLowerCase();
@@ -43,6 +43,12 @@ Deno.serve(async (req: Request) => {
     // geral da empresa.
     const setorValue = setor ? String(setor).trim() || null : null;
     const funcaoValue = funcao ? String(funcao).trim() || null : null;
+    // CPF é a chave de junção com os eventos do eSocial (migration 20260814).
+    // Só dígitos: máscara vinda do formulário faria a junção falhar em
+    // silêncio depois. CPF fora do formato é ignorado, não rejeita o convite —
+    // o vínculo pode ser feito depois na aba Importar.
+    const cpfDigitos = cpf ? String(cpf).replace(/\D/g, '') : '';
+    const cpfValue = cpfDigitos.length === 11 ? cpfDigitos : null;
 
     // 1. Identificar o RH chamador e a empresa dele
     const { data: caller } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
@@ -130,6 +136,7 @@ Deno.serve(async (req: Request) => {
         status: 'convidado',
         setor: setorValue,
         funcao: funcaoValue,
+        cpf: cpfValue,
       }]);
     if (insErr) return json({ error: insErr.message }, 400);
 

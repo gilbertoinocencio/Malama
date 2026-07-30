@@ -87,7 +87,12 @@ export type EmpresaColaborador = {
   // Recortes do relatório psicossocial k-anônimo (NR-1/PGR). Opcionais.
   setor: string | null;
   funcao: string | null;
-  // Plano psicológico (upsell): RH alocou este colaborador?
+  // Chave de junção com os eventos do eSocial, que identificam por CPF
+  // (migration 20260814). Dado pessoal, não sensível: resolve o setor no
+  // momento da ingestão e nunca é gravado junto do evento de saúde.
+  cpf?: string | null;
+  // Plano psicológico adicional: RH alocou este colaborador? Só existe fora
+  // do modo Mental, onde o acompanhamento é universal.
   plano_psicologico?: boolean;
 };
 
@@ -807,13 +812,14 @@ export const rhService = {
   },
 
   // Adiciona colaborador por e-mail (via Edge Function: valida assentos, vincula ou convida)
-  async inviteColaborador(email: string, nome?: string, setor?: string, funcao?: string): Promise<{ status: ColaboradorStatus; linked?: boolean; invited?: boolean; existing?: boolean; emailed?: boolean; warning?: string }> {
+  async inviteColaborador(email: string, nome?: string, setor?: string, funcao?: string, cpf?: string): Promise<{ status: ColaboradorStatus; linked?: boolean; invited?: boolean; existing?: boolean; emailed?: boolean; warning?: string }> {
     const { data, error } = await supabase.functions.invoke('invite-colaborador', {
       body: {
         email,
         nome: nome?.trim() || undefined,
         setor: setor?.trim() || undefined,
         funcao: funcao?.trim() || undefined,
+        cpf: cpf?.replace(/\D/g, '') || undefined,
         redirect_to: `${window.location.origin}/acesso`,
       },
     });
