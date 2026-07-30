@@ -19,6 +19,7 @@ interface PatientNotification {
 
 const CHAT_TYPES = new Set(['chat_opened', 'chat_message']);
 const CONSULTA_TYPES = new Set(['consultation_reminder']);
+const SUPPORT_TYPES = new Set(['support_reply']);
 
 const TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
   chat_opened:                    { icon: <Stethoscope className="w-4 h-4" />,   color: 'text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-900/30' },
@@ -28,6 +29,7 @@ const TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
   exam_reviewed:                  { icon: <FileText className="w-4 h-4" />,      color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30' },
   prescription_issued:            { icon: <ClipboardList className="w-4 h-4" />, color: 'text-violet-600 bg-violet-50 dark:text-violet-400 dark:bg-violet-900/30' },
   appointment_reschedule_request: { icon: <RefreshCw className="w-4 h-4" />,     color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30' },
+  support_reply:                  { icon: <MessageSquare className="w-4 h-4" />, color: 'text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-900/30' },
 };
 
 function timeAgo(iso: string): string {
@@ -83,6 +85,13 @@ export const PatientNotificationCenter: React.FC<Props> = ({ onClose, onUnreadCh
       onOpenConsultas?.();
       return;
     }
+    if (SUPPORT_TYPES.has(n.type)) {
+      const fullResponse = n.data?.full_response as string;
+      if (fullResponse) {
+        alert(`Resposta do Suporte:\n\n${fullResponse}`);
+      }
+      return;
+    }
     if (!CHAT_TYPES.has(n.type)) return;
     const consultationId = n.data?.consultation_id as string | undefined;
     if (!consultationId) return;
@@ -125,7 +134,7 @@ export const PatientNotificationCenter: React.FC<Props> = ({ onClose, onUnreadCh
 
           {!loading && notifications.map(n => {
             const cfg = TYPE_CONFIG[n.type] ?? { icon: <Bell className="w-4 h-4" />, color: 'text-gray-600 bg-gray-100' };
-            const isClickable = CONSULTA_TYPES.has(n.type) || (CHAT_TYPES.has(n.type) && !!n.data?.consultation_id);
+            const isClickable = CONSULTA_TYPES.has(n.type) || SUPPORT_TYPES.has(n.type) || (CHAT_TYPES.has(n.type) && !!n.data?.consultation_id);
             return (
               <div
                 key={n.id}

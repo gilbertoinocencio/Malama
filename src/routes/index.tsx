@@ -71,6 +71,7 @@ import { AdminSubscriptions } from './admin/AdminSubscriptions';
 import { AdminCreditsLog } from './admin/AdminCreditsLog';
 import { AdminEmpresas } from './admin/AdminEmpresas';
 import { AdminImpacto } from './admin/AdminImpacto';
+import { AdminSupport } from './admin/AdminSupport';
 
 // Admin Layout
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -89,6 +90,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <a href="/admin/impacto" className="text-sm hover:text-[#2ECC71] transition">Impacto</a>
             <a href="/admin/financeiro" className="text-sm hover:text-[#2ECC71] transition">Financeiro</a>
             <a href="/admin/comunidade" className="text-sm hover:text-[#2ECC71] transition">Comunidade</a>
+            <a href="/admin/suporte" className="text-sm hover:text-[#2ECC71] transition">Suporte</a>
             <a href="/admin/configuracoes" className="text-sm hover:text-[#2ECC71] transition">Configurações</a>
           </nav>
         </div>
@@ -252,6 +254,17 @@ export const AppRoutes: React.FC = () => {
               <AdminGuard>
                 <AdminLayout>
                   <AdminCommunityModeration />
+                </AdminLayout>
+              </AdminGuard>
+            }
+          />
+
+          <Route
+            path="/admin/suporte"
+            element={
+              <AdminGuard>
+                <AdminLayout>
+                  <AdminSupport />
                 </AdminLayout>
               </AdminGuard>
             }

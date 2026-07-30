@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import {
   Users, Calendar, DollarSign, Clock, CheckCircle, XCircle,
   CreditCard, TrendingUp, Building2, Armchair, AlertTriangle,
-  Lock, BarChart2, Leaf, Brain, ClipboardCheck, Activity,
+  Lock, BarChart2, Leaf, Brain, ClipboardCheck, Activity, MessageSquare
 } from 'lucide-react';
 import { adminService, doctorService } from '../../services/doctorPortalService';
 import type { ClinicalLoopHealth } from '../../services/doctorPortalService';
@@ -444,6 +444,11 @@ export const AdminDashboard: React.FC = () => {
           <CreditCard className="w-7 h-7 text-blue-600 mb-2" />
           <h4 className="font-semibold text-gray-800 text-sm">Assinantes</h4>
           <p className="text-xs text-gray-500">Planos e cobrança</p>
+        </Link>
+        <Link to="/admin/suporte" className="bg-white rounded-xl shadow p-5 hover:shadow-lg transition">
+          <MessageSquare className="w-7 h-7 text-indigo-500 mb-2" />
+          <h4 className="font-semibold text-gray-800 text-sm">Suporte</h4>
+          <p className="text-xs text-gray-500">Chamados e tickets</p>
         </Link>
         <Link to="/admin/configuracoes" className="bg-white rounded-xl shadow p-5 hover:shadow-lg transition">
           <BarChart2 className="w-7 h-7 text-gray-500 mb-2" />

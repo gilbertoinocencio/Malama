@@ -175,6 +175,21 @@ export const supportService = {
       .single();
 
     if (error) throw error;
+
+    // Se o admin respondeu, envia notificação para o usuário
+    if (isAdmin && updates.response) {
+      const { error: notifError } = await supabase.from('notifications').insert({
+        user_id: existing.user_id,
+        type: 'support_reply',
+        title: 'Resposta do Suporte',
+        body: updates.response.length > 100 
+          ? updates.response.substring(0, 97) + '...'
+          : updates.response,
+        data: { ticket_id: ticketId, full_response: updates.response }
+      });
+      if (notifError) console.error('Erro ao enviar notificação de suporte:', notifError);
+    }
+
     return data;
   },
 
