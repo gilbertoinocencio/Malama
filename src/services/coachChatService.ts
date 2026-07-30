@@ -39,7 +39,7 @@ export const CoachChatService = {
   /**
    * Send a message and get AI response
    */
-  async sendMessage(userId: string, userMessage: string): Promise<CoachChatMessage> {
+  async sendMessage(userId: string, userMessage: string, language: string = 'pt'): Promise<CoachChatMessage> {
     // Save user message
     const { data: userMsg, error: userError } = await supabase
       .from('coach_chat_messages')
@@ -57,7 +57,7 @@ export const CoachChatService = {
     const context = await this.getContext(userId);
 
     // Generate AI response
-    const aiResponse = await this.generateAIResponse(userMessage, context);
+    const aiResponse = await this.generateAIResponse(userMessage, context, language);
 
     // Save AI message
     const { data: coachMsg, error: coachError } = await supabase
@@ -141,7 +141,8 @@ export const CoachChatService = {
    */
   async generateAIResponse(
     userMessage: string,
-    context: any
+    context: any,
+    language: string = 'pt'
   ): Promise<{ content: string; tokensUsed: number }> {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
@@ -181,10 +182,18 @@ export const CoachChatService = {
         .join('\n');
     }
 
+    const LANG_NAMES: Record<string, string> = {
+      pt: 'português do Brasil',
+      en: 'inglês',
+      es: 'espanhol'
+    };
+    const targetLanguage = LANG_NAMES[language] || 'português do Brasil';
+
     const systemPrompt = `
 Você é uma nutricionista clínica experiente e empática, especializada em composição corporal, saúde metabólica e alimentação baseada em evidências científicas.
 
 **PERFIL DO USUÁRIO:**
+- 👤 Nome: ${profile.display_name ? profile.display_name.split(' ')[0] : 'Usuário'}
 - 🎯 Objetivo: ${goal === 'aesthetic' ? 'Emagrecimento' : goal === 'performance' ? 'Performance/Ganho de Massa' : 'Saúde'}
 - 📊 Metas: ${targetCalories}kcal | ${targetProtein}g proteína
 - 🚫 Restrições: ${restrictions.length > 0 ? restrictions.join(', ') : 'Nenhuma'}
@@ -201,6 +210,8 @@ Você é uma nutricionista clínica experiente e empática, especializada em com
 6. Se o usuário pedir sugestões, seja específica e prática
 7. Se o usuário compartilhar algo, reconheça e valide antes de aconselhar
 8. SEMPRE respeite as restrições alimentares do usuário
+9. SEMPRE responda EXCLUSIVAMENTE em ${targetLanguage}.
+10. Chame o usuário pelo seu nome, NUNCA use "amigo", "amiga" ou vocativos genéricos.
 
 **TOM:**
 - Profissional mas calorosa

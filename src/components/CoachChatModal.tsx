@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../i18n';
 import { CoachChatService, CoachChatMessage } from '../services/coachChatService';
 
 interface CoachChatModalProps {
@@ -9,6 +10,7 @@ interface CoachChatModalProps {
 
 export const CoachChatModal: React.FC<CoachChatModalProps> = ({ onClose }) => {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const [messages, setMessages] = useState<CoachChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +71,7 @@ export const CoachChatModal: React.FC<CoachChatModalProps> = ({ onClose }) => {
       setMessages(prev => [...prev, tempUserMsg]);
 
       // Send to AI and get response
-      const coachResponse = await CoachChatService.sendMessage(user.id, userMessage);
+      const coachResponse = await CoachChatService.sendMessage(user.id, userMessage, language);
 
       // Replace temp message with real one and add coach response
       setMessages(prev => {

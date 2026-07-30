@@ -27,11 +27,34 @@ export type InstrumentItem = {
   alinhamento: ItemAlinhamento;
 };
 
+export type EscalaVisual =
+  // Carinhas (triste → alegre). SÓ é válido quando TODOS os itens do bloco
+  // têm o mesmo alinhamento — ou seja, quando o topo da escala significa a
+  // mesma coisa em todos eles. Num bloco de alinhamento misto a carinha
+  // contradiz metade dos itens e enviesa a resposta.
+  | 'valencia'
+  // Bolinhas preenchidas = quantidade, sem juízo de valor ("muito" ↔ "nada").
+  // Obrigatório quando o bloco mistura itens positivos e negativos.
+  | 'magnitude';
+
 export type InstrumentBlock = {
   /** Enunciado do bloco, quando o instrumento tem um. */
   intro?: string;
-  /** Opções na ordem impressa no instrumento, com o valor original. */
+  /**
+   * Opções na ordem impressa no instrumento, com o valor original.
+   *
+   * ORDEM É CONTRATO: a primeira opção é sempre o TOPO da escala — é o que
+   * `ItemAlinhamento` já assume na chave de correção, e é o que a ilustração
+   * de `escalaVisual` usa para saber qual ponta é "mais". Reordenar aqui
+   * inverte o desenho na tela sem inverter o escore.
+   */
   options: readonly { value: number; label: string }[];
+  /**
+   * Como as opções são ilustradas para quem lê pouco — ver `EscalaVisual`.
+   * Declarado por bloco, e não na tela, porque saber se a carinha mente é
+   * propriedade da chave de correção do instrumento, não de layout.
+   */
+  escalaVisual: EscalaVisual;
   items: readonly InstrumentItem[];
 };
 

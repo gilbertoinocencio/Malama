@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog, generateMealFeedback, MealFeedbackContext, getMealSlotLabel } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
@@ -642,7 +642,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         const agentResponse = await UnifiedChatService.sendMessage(
           user.id,
           mealContext + userText,
-          { interceptMeals: false, userDisplayContent: userText }
+          { interceptMeals: false, userDisplayContent: userText, language }
         );
 
         // Always extract meal_json if it exists (AI decided it's a meal)

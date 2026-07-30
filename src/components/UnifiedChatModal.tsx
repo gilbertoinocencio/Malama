@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../i18n';
 import { UnifiedChatService, ChatMessage, ChatSession } from '../services/unifiedChatService';
 
 interface UnifiedChatModalProps {
@@ -10,6 +11,7 @@ interface UnifiedChatModalProps {
 
 export const UnifiedChatModal: React.FC<UnifiedChatModalProps> = ({ onClose, onOnboardingComplete }) => {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [session, setSession] = useState<ChatSession | null>(null);
   const [inputValue, setInputValue] = useState('');
@@ -76,7 +78,7 @@ export const UnifiedChatModal: React.FC<UnifiedChatModalProps> = ({ onClose, onO
       setMessages(prev => [...prev, tempUserMsg]);
 
       // Send to AI and get response
-      const agentResponse = await UnifiedChatService.sendMessage(user.id, userMessage);
+      const agentResponse = await UnifiedChatService.sendMessage(user.id, userMessage, { language });
 
       // Reload session to check for updates
       const updatedSession = await UnifiedChatService.getOrCreateSession(user.id);

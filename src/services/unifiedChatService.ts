@@ -191,7 +191,7 @@ export const UnifiedChatService = {
   /**
    * Send message and get AI response (auto-detects mode)
    */
-  async sendMessage(userId: string, userMessage: string, options?: { interceptMeals?: boolean; userDisplayContent?: string }): Promise<ChatMessage> {
+  async sendMessage(userId: string, userMessage: string, options?: { interceptMeals?: boolean; userDisplayContent?: string; language?: string }): Promise<ChatMessage> {
     try {
       // Get current session
       const session = await this.getOrCreateSession(userId);
@@ -227,9 +227,9 @@ export const UnifiedChatService = {
         context?: any;
       };
       if (session.session_type === 'onboarding' && !session.onboarding_completed) {
-        aiResponse = await this.generateOnboardingResponse(userId, userMessage, session);
+        aiResponse = await this.generateOnboardingResponse(userId, userMessage, session, options?.language);
       } else {
-        aiResponse = await this.generateChatResponse(userId, userMessage, options?.userDisplayContent);
+        aiResponse = await this.generateChatResponse(userId, userMessage, options?.userDisplayContent, options?.language);
 
         // --- WATER INGESTION INTERCEPTOR ---
         const waterMatches = [...aiResponse.content.matchAll(/<water_json>([\s\S]*?)<\/water_json>/g)];
@@ -422,7 +422,8 @@ export const UnifiedChatService = {
   async generateOnboardingResponse(
     userId: string,
     userMessage: string,
-    session: ChatSession
+    session: ChatSession,
+    language: string = 'pt'
   ): Promise<{
     content: string;
     tokensUsed: number;
@@ -463,7 +464,7 @@ ESTÁGIOS DO ONBOARDING:
 INSTRUÇÕES:
 1. Baseado na mensagem do usuário e no estágio atual, extraia os dados relevantes
 2. Valide a resposta (ex: idade deve ser 10-100 anos)
-3. Responda de forma empática e avance para próximo estágio
+3. Responda de forma empática e avance para próximo estágio. IMPORTANTE: Sua resposta ("content") DEVE estar no idioma: ${language === 'en' ? 'Inglês' : language === 'es' ? 'Espanhol' : 'Português do Brasil'}.
 4. Se resposta inválida, peça esclarecimento sem avançar
 
 FORMATO DE RESPOSTA (JSON):
@@ -514,7 +515,8 @@ Responda APENAS com o JSON, sem texto adicional.
   async generateChatResponse(
     userId: string,
     userMessage: string,
-    userDisplayContent?: string
+    userDisplayContent?: string,
+    language: string = 'pt'
   ): Promise<{
     content: string;
     tokensUsed: number;
@@ -575,11 +577,12 @@ Responda APENAS com o JSON, sem texto adicional.
     const canonicalGender = profile.gender === 'non_binary' ? 'non_binary' : normalizeGender(profile.gender);
     const gender = genderMap[canonicalGender] || 'Não informado';
     // Explicit, imperative gender-agreement rule (the persona is female, but the USER is addressed by THEIR gender).
+    const userNameStr = profile.display_name ? profile.display_name.split(' ')[0] : 'o(a) usuário(a)';
     const genderAgreement = canonicalGender === 'non_binary'
-      ? 'Dirija-se ao usuário de forma NEUTRA em gênero (evite "amigo/amiga", adjetivos marcados).'
+      ? `Dirija-se ao usuário pelo nome (${userNameStr}) e de forma NEUTRA em gênero. Evite vocativos genéricos como "amigo/amiga" ou adjetivos marcados.`
       : canonicalGender === 'male'
-        ? 'O usuário é HOMEM. Trate-o no masculino — "amigo", adjetivos masculinos ("focado", "preparado", "animado"). NUNCA use "amiga" nem adjetivos femininos para ele.'
-        : 'A usuária é MULHER. Trate-a no feminino — "amiga", adjetivos femininos ("focada", "preparada", "animada").';
+        ? `O usuário é HOMEM. Chame-o pelo nome (${userNameStr}) e trate-o no masculino (adjetivos masculinos como "focado", "preparado"). NUNCA use "amigo" como vocativo, use sempre o nome dele.`
+        : `A usuária é MULHER. Chame-a pelo nome (${userNameStr}) e trate-a no feminino (adjetivos femininos como "focada", "preparada"). NUNCA use "amiga" como vocativo, use sempre o nome dela.`;
     const activityLevel = activityMap[profile.activity_level] || profile.activity_level || 'Não informado';
     const restrictionsList = Array.isArray(profile.dietary_restrictions) && profile.dietary_restrictions.length > 0
       ? profile.dietary_restrictions.join(', ')
@@ -750,6 +753,13 @@ ${context.latestBodySnapshot.chest_cm ? `- **Peitoral:** ${context.latestBodySna
 *Use estes dados de composição corporal para personalizar as orientações de nutrição e treino. Mencione progress nos scans quando for relevante e motivador.*`
       : '';
 
+    const LANG_NAMES: Record<string, string> = {
+      pt: 'português do Brasil',
+      en: 'inglês',
+      es: 'espanhol'
+    };
+    const targetLanguage = LANG_NAMES[language] || 'português do Brasil';
+
     const systemPrompt = `Você é a **Malama**, nutricionista clínica de verdade que virou assistente de bolso — uma amiga de longa data que estudou nutrição, tem anos de consultório e agora conversa pelo celular: natural, sem cerimônia, sem "prezado paciente", sem laudo. Você conhece este usuário de cor (peso, objetivo, gostos, treino, sono) e usa isso de forma leve, como quem lembra da história dele.
 
 ## 🩺 MÉTODO — COMO UMA NUTRI DE VERDADE INSTRUI (aplique em CADA resposta substantiva)
@@ -766,7 +776,7 @@ ${context.latestBodySnapshot.chest_cm ? `- **Peitoral:** ${context.latestBodySna
 3. **Registro = resposta curta** (1–2 frases); dúvida = ensino conciso. Nunca um bloco longo de texto corrido.
 4. **Você não executa mudanças no sistema** — não altera metas, perfil nem prescrição médica; orienta e encaminha (ver LIMITAÇÕES DE AÇÃO).
 5. **Contratos de dados:** emita <meal_json> / <water_json> / <dose_json> SOMENTE quando o usuário relatar ingestão/aplicação REAL e já ocorrida, no formato exato e uma única vez (ver regras de registro abaixo).
-6. **Idioma:** responda SEMPRE e EXCLUSIVAMENTE em **português do Brasil**. É TERMINANTEMENTE PROIBIDO usar qualquer caractere chinês, japonês, coreano ou cirílico — nem uma única palavra, nem no meio de uma frase. Use apenas o alfabeto latino, acentos do português, números e emojis. Se precisar de um termo técnico, escreva-o em português (ex.: "colesterol", nunca "胆固醇").
+6. **Idioma:** responda SEMPRE e EXCLUSIVAMENTE em **${targetLanguage}**. É TERMINANTEMENTE PROIBIDO usar qualquer caractere chinês, japonês, coreano ou cirílico — nem uma única palavra, nem no meio de uma frase. Use apenas o alfabeto latino, acentos, números e emojis. Se precisar de um termo técnico, escreva-o no idioma solicitado.
 
 ## PERFIL COMPLETO DO PACIENTE
 - **Gênero:** ${gender}
