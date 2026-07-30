@@ -181,7 +181,7 @@ export const AdminSupport: React.FC = () => {
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-1">{selectedTicket.subject}</h3>
                   <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span className="flex items-center gap-1"><User className="w-4 h-4" /> {selectedTicket.user_name} ({selectedTicket.user_email})</span>
+                    <span className="flex items-center gap-1"><User className="w-4 h-4" /> {selectedTicket.user_name} {selectedTicket.user_email ? `(${selectedTicket.user_email})` : ''}</span>
                     <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> {new Date(selectedTicket.created_at).toLocaleString('pt-BR')}</span>
                     <span className="flex items-center gap-1 uppercase tracking-wide text-xs font-semibold px-2 py-1 bg-gray-100 rounded-md">
                       Categoria: {selectedTicket.category}
@@ -191,10 +191,10 @@ export const AdminSupport: React.FC = () => {
                 {selectedTicket.status !== 'resolved' && (
                   <button
                     onClick={handleResolve}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-sm font-semibold transition"
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-semibold shadow-sm transition"
                   >
-                    <CheckCircle className="w-4 h-4" />
-                    Marcar Resolvido
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    Resolver Chamado
                   </button>
                 )}
               </div>

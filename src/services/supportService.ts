@@ -82,7 +82,7 @@ export const supportService = {
       const userIds = [...new Set(data.map(t => t.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, display_name, email')
+        .select('id, display_name')
         .in('id', userIds);
 
       return data.map(ticket => {
@@ -90,7 +90,7 @@ export const supportService = {
         return {
           ...ticket,
           user_name: profile?.display_name || 'Usuário',
-          user_email: profile?.email || '',
+          user_email: '', // email is not in profiles, keeping it blank to not break UI
         };
       });
     }
