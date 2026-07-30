@@ -178,7 +178,7 @@ export const supportService = {
 
     // Se o admin respondeu, envia notificação para o usuário
     if (isAdmin && updates.response) {
-      const { error: notifError } = await supabase.from('notifications').insert({
+      const { error: notifError } = await supabase.from('patient_notifications').insert({
         user_id: existing.user_id,
         type: 'support_reply',
         title: 'Resposta do Suporte',

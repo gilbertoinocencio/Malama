@@ -480,7 +480,7 @@ export const consultationService = {
         weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
       });
       const optionsList = proposals.map((p, i) => `Opção ${i + 1}: ${fmtDate(p)}`).join(' | ');
-      await supabase.from('notifications').insert({
+      await supabase.from('patient_notifications').insert({
         user_id: data.patient_id,
         type: 'appointment_reschedule_request',
         title: 'Seu médico quer reagendar',

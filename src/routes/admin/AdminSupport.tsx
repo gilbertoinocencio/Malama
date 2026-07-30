@@ -40,21 +40,19 @@ export const AdminSupport: React.FC = () => {
 
     setReplying(true);
     try {
-      await supportService.addResponse(selectedTicket.id, user.id, replyText, 'admin');
-      
-      // If the ticket was open, mark as in_progress automatically
+      // Combine response + status update in a single call to avoid duplicate requests
+      const updates: any = { response: replyText };
       if (selectedTicket.status === 'open') {
-        await supportService.updateTicket(selectedTicket.id, user.id, { status: 'in_progress' });
+        updates.status = 'in_progress';
       }
+      await supportService.updateTicket(selectedTicket.id, user.id, updates);
 
       toast.success('Resposta enviada com sucesso!');
       setReplyText('');
       
-      // Refresh tickets
-      await fetchTickets();
-      
-      // Update selected ticket in view
+      // Single refresh
       const updated = await supportService.getAllTickets();
+      setTickets(updated);
       setSelectedTicket(updated.find(t => t.id === selectedTicket.id) || null);
     } catch (error) {
       console.error('Erro ao responder ticket:', error);
@@ -71,10 +69,10 @@ export const AdminSupport: React.FC = () => {
       try {
         await supportService.resolveTicket(selectedTicket.id, user.id);
         toast.success('Chamado marcado como resolvido!');
-        await fetchTickets();
         
-        // Update selected ticket in view
+        // Single refresh
         const updated = await supportService.getAllTickets();
+        setTickets(updated);
         setSelectedTicket(updated.find(t => t.id === selectedTicket.id) || null);
       } catch (error) {
         console.error('Erro ao resolver:', error);
