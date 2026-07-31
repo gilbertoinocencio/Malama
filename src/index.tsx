@@ -47,12 +47,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-red-50 p-4 text-center text-red-900 font-sans">
-          <div className="max-w-md bg-white p-6 rounded-lg shadow-lg">
-            <h1 className="text-2xl font-bold text-red-600 mb-2">Something went wrong</h1>
-            <p className="text-red-800 mb-4 text-sm">{this.state.error?.message}</p>
-            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
-              Reload App
+        <div className="min-h-screen flex items-center justify-center bg-[#fdf8f6] p-4 text-center text-[#59372f] font-sans">
+          <div className="max-w-md bg-white p-6 rounded-2xl shadow-lg border border-[#eadbd6]">
+            <h1 className="text-2xl font-bold text-[#9b4f40] mb-2">Não foi possível carregar esta tela</h1>
+            <p className="text-[#76564e] mb-4 text-sm">
+              Seus dados continuam seguros. Recarregue o app para tentar novamente.
+            </p>
+            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-[#9b4f40] text-white rounded-xl hover:bg-[#873f32] transition-colors">
+              Recarregar app
             </button>
           </div>
         </div>

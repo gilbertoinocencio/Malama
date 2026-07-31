@@ -1,5 +1,6 @@
 import React from 'react';
 import { AIResponse, MealItem } from '../types';
+import { normalizeMealAnalysis } from '../utils/normalizeMealAnalysis';
 
 interface PhotoScanResultProps {
   data: AIResponse;
@@ -16,9 +17,10 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
   onEdit, 
   onBack 
 }) => {
-  
+  const safeData = normalizeMealAnalysis(data);
+
   // Calculate width percentages for macro bars
-  const totalMacros = data.macros.p + data.macros.c + data.macros.f;
+  const totalMacros = safeData.macros.p + safeData.macros.c + safeData.macros.f;
   const getPercent = (val: number) => totalMacros > 0 ? (val / totalMacros) * 100 : 0;
 
   return (
@@ -61,7 +63,7 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
               <div className="flex items-start justify-between">
                 <div>
                   <span className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Refeição</span>
-                  <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight line-clamp-2">{data.foodName}</h1>
+                  <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight line-clamp-2">{safeData.foodName}</h1>
                 </div>
                 <div className="bg-primary p-2 rounded-full shrink-0">
                   <span className="material-symbols-outlined text-white">check_circle</span>
@@ -77,7 +79,7 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
             <div className="flex flex-col">
               <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Energy</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-light text-slate-900 dark:text-white">{data.calories}</span>
+                <span className="text-4xl font-light text-slate-900 dark:text-white">{safeData.calories}</span>
                 <span className="text-base font-medium text-slate-400">kcal</span>
               </div>
             </div>
@@ -101,31 +103,31 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
           <div className="grid grid-cols-3 gap-4">
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Protein</span>
-              <span className="text-lg font-bold text-slate-900 dark:text-white">{data.macros.p}g</span>
+              <span className="text-lg font-bold text-slate-900 dark:text-white">{safeData.macros.p}g</span>
               <div className="h-1.5 w-full bg-gray-100 dark:bg-Malama-dark rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary rounded-full"
-                  style={{ width: `${getPercent(data.macros.p)}%` }}
+                  style={{ width: `${getPercent(safeData.macros.p)}%` }}
                 ></div>
               </div>
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Carbs</span>
-              <span className="text-lg font-bold text-slate-900 dark:text-white">{data.macros.c}g</span>
+              <span className="text-lg font-bold text-slate-900 dark:text-white">{safeData.macros.c}g</span>
               <div className="h-1.5 w-full bg-gray-100 dark:bg-Malama-dark rounded-full overflow-hidden">
                 <div
                   className="h-full bg-orange-400 rounded-full"
-                  style={{ width: `${getPercent(data.macros.c)}%` }}
+                  style={{ width: `${getPercent(safeData.macros.c)}%` }}
                 ></div>
               </div>
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Fat</span>
-              <span className="text-lg font-bold text-slate-900 dark:text-white">{data.macros.f}g</span>
+              <span className="text-lg font-bold text-slate-900 dark:text-white">{safeData.macros.f}g</span>
               <div className="h-1.5 w-full bg-gray-100 dark:bg-Malama-dark rounded-full overflow-hidden">
                 <div
                   className="h-full bg-purple-400 rounded-full"
-                  style={{ width: `${getPercent(data.macros.f)}%` }}
+                  style={{ width: `${getPercent(safeData.macros.f)}%` }}
                 ></div>
               </div>
             </div>
@@ -133,11 +135,11 @@ export const PhotoScanResult: React.FC<PhotoScanResultProps> = ({
         </div>
 
         {/* Items breakdown */}
-        {data.items && data.items.length > 0 && (
+        {safeData.items.length > 0 && (
           <div className="w-full mt-6 px-2 shrink-0">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Composição</span>
             <div className="mt-3 flex flex-col gap-3">
-              {data.items.map((item: MealItem, i: number) => (
+              {safeData.items.map((item: MealItem, i: number) => (
                 <div key={i} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-white/5 last:border-0">
                   <div className="flex flex-col gap-0.5 min-w-0 pr-3">
                     <span className="text-sm font-semibold text-slate-800 dark:text-white truncate">{item.name}</span>

@@ -6,6 +6,7 @@ import { normalizeGender } from '../utils/bodyCompositionCalculators';
 import { NutritionKnowledgeService } from './nutritionKnowledgeService';
 import { sanitizeAiText } from '../utils/sanitizeAiText';
 import { parseAiJson } from '../utils/parseAiJson';
+import { normalizeMealAnalysis } from '../utils/normalizeMealAnalysis';
 
 /**
  * Deterministic meal-slot label from the device clock. Single source of truth for
@@ -202,11 +203,14 @@ ALL text responses MUST be in ${langName}.`;
 
     if (!jsonStr) throw new Error("Empty response");
 
-    const analise = parseAiJson<AIResponse>(jsonStr);
+    const analise = normalizeMealAnalysis(parseAiJson<unknown>(jsonStr), {
+      fallbackName: getMealSlotLabel(),
+      strict: true,
+    });
     analise.idRequisicao = (result as { idRequisicao?: string | null }).idRequisicao ?? null;
     return analise;
   } catch (error) {
-    console.error("Gemini Text Error:", error);
+    console.error("Caramel Text Error:", error);
     throw error;
   }
 };
@@ -362,7 +366,10 @@ ${MICRO_PROMPT_INSTRUCTIONS}
 ALL text MUST be in ${langName}.`;
 
     const result = await model.generateContent([prompt, { inlineData: { mimeType, data } }]);
-    const analise = parseAiJson<AIResponse>(result.response.text());
+    const analise = normalizeMealAnalysis(parseAiJson<unknown>(result.response.text()), {
+      fallbackName: getMealSlotLabel(),
+      strict: true,
+    });
     // Carrega o id da requisição para o sinal de feedback implícito
     // (confirmou = 👍 / editou = 👎) no MealLogger.
     analise.idRequisicao = (result as { idRequisicao?: string | null }).idRequisicao ?? null;

@@ -5,6 +5,7 @@ import { UnifiedChatService } from '../services/unifiedChatService';
 import { enviarFeedback, enviarCorrecao } from '../lib/caramelAI';
 import { userReportedWaterIntake, isBareQuantityAnswer } from '../utils/intakeDetection';
 import { parseAiJson } from '../utils/parseAiJson';
+import { normalizeMealAnalysis } from '../utils/normalizeMealAnalysis';
 
 import { MalamaAiScan } from './MalamaAiScan';
 import { USER_AVATAR } from '../constants';
@@ -208,7 +209,7 @@ const historyToMessages = (history: any[]): Message[] => {
             .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
             .replace(/<image_uri>[\s\S]*?<\/image_uri>/g, '')
             .trim();
-          const parsedMeal = parseAiJson<AIResponse>(mealMatch[1]);
+          const parsedMeal = normalizeMealAnalysis(parseAiJson<unknown>(mealMatch[1]), { strict: true });
           result.push({ id: msg.id + '-card', type: 'ai-card', content: parsedMeal, imageUri: savedImageUri });
           if (cleanText) result.push({ id: msg.id + '-text', type: 'ai-text', content: cleanText });
         } catch {
@@ -333,7 +334,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         const { meal, source, ts } = JSON.parse(savedDraft);
         // Only restore if draft is less than 24 hours old
         if (Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) {
-          return meal;
+          return meal ? normalizeMealAnalysis(meal) : null;
         } else {
           localStorage.removeItem(draftKey);
         }
@@ -361,7 +362,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       const saved = localStorage.getItem(`Malama_draft_meal_${user.id}`);
       if (saved) {
         const { scanResult: sr, ts } = JSON.parse(saved);
-        if (sr && Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) return sr;
+        if (sr && Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) return normalizeMealAnalysis(sr);
       }
     } catch { }
     return null;
@@ -467,10 +468,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         if (Date.now() - (ts || 0) >= 24 * 60 * 60 * 1000) return;
         // Read current values from refs, not from stale closure state
         if (!draftMealRef.current && !scannedImageUriRef.current && meal) {
-          setDraftMeal(meal);
+          setDraftMeal(normalizeMealAnalysis(meal));
           setDraftSource(source || 'chat');
         }
-        if (!scanResultRef.current && sr) setScanResult(sr);
+        if (!scanResultRef.current && sr) setScanResult(normalizeMealAnalysis(sr));
         if (!scannedImageUriRef.current && imageUri) setScannedImageUri(imageUri);
       } catch {
         localStorage.removeItem(`Malama_draft_meal_${user.id}`);
@@ -637,7 +638,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
               .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
               .trim();
-            const parsedMeal = parseAiJson<AIResponse>(mealJsonMatch[1]);
+            const parsedMeal = normalizeMealAnalysis(parseAiJson<unknown>(mealJsonMatch[1]), { strict: true });
             setMessages(prev => [...prev,
             { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanText },
             { id: (Date.now() + 2).toString(), type: 'ai-card', content: parsedMeal }
@@ -765,11 +766,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const handleConfirmLog = async (data: AIResponse, type: 'ai-chat' | 'ai-photo' | 'ai-voice') => {
     if (!user || isLoggingRef.current) return;
     isLoggingRef.current = true;
+    const normalizedData = normalizeMealAnalysis(data);
 
     // Sinal implícito de qualidade para o Telê (fire-and-forget): confirmar
     // sem editar = a análise acertou; ter precisado editar = errou.
     enviarFeedback(
-      data.idRequisicao,
+      normalizedData.idRequisicao,
       analiseFoiEditadaRef.current ? 'negativo' : 'positivo',
       analiseFoiEditadaRef.current ? 'usuário editou a análise antes de salvar' : undefined,
     );
@@ -781,16 +783,16 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     try {
       const newMeal: Meal = {
         id: Date.now().toString(),
-        name: data.foodName,
+        name: normalizedData.foodName,
         timestamp: new Date(),
-        calories: data.calories,
+        calories: normalizedData.calories,
         macros: {
-          protein: data.macros.p,
-          carbs: data.macros.c,
-          fats: data.macros.f
+          protein: normalizedData.macros.p,
+          carbs: normalizedData.macros.c,
+          fats: normalizedData.macros.f
         },
         type: type,
-        items: data.items,
+        items: normalizedData.items,
         imageUri: type === 'ai-photo' && scannedImageUri ? scannedImageUri : undefined
       };
 
@@ -803,13 +805,13 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
       if (type === 'ai-photo') {
         // Add scan card + the feedback already produced with this analysis.
-        const feedback = data.message || `${data.foodName} registrado com sucesso!`;
+        const feedback = normalizedData.message || `${normalizedData.foodName} registrado com sucesso!`;
         const cardId = Date.now().toString();
         const textId = (Date.now() + 1).toString();
         const capturedImageUri = scannedImageUri ?? undefined;
         setMessages(prev => [
           ...prev,
-          { id: cardId, type: 'ai-card', content: data, imageUri: capturedImageUri },
+          { id: cardId, type: 'ai-card', content: normalizedData, imageUri: capturedImageUri },
           { id: textId, type: 'ai-text', content: feedback },
         ]);
         setLoading(false);
@@ -831,12 +833,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               imageTag = `\n<image_uri>${thumb}</image_uri>`;
             } catch { /* non-blocking */ }
           }
-          const agentContent = `${feedback}\n<meal_json>${JSON.stringify(data)}</meal_json>${imageTag}`;
-          await UnifiedChatService.saveDirectMessages(user.id, `[Foto: ${data.foodName}]`, agentContent);
+          const agentContent = `${feedback}\n<meal_json>${JSON.stringify(normalizedData)}</meal_json>${imageTag}`;
+          await UnifiedChatService.saveDirectMessages(user.id, `[Foto: ${normalizedData.foodName}]`, agentContent);
         })();
       } else {
         // ai-chat / ai-voice: show the analysis feedback and stay in chat.
-        const feedback = data.message || `${data.foodName} registrado com sucesso!`;
+        const feedback = normalizedData.message || `${normalizedData.foodName} registrado com sucesso!`;
         setMessages(prev => [
           ...prev,
           { id: Date.now().toString(), type: 'ai-text', content: feedback },
@@ -1079,8 +1081,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     }
 
     if (msg.type === 'ai-card') {
-      const data = msg.content as AIResponse;
-      const totalMacros = (data.macros.p || 0) + (data.macros.c || 0) + (data.macros.f || 0);
+      const data = normalizeMealAnalysis(msg.content);
+      const totalMacros = data.macros.p + data.macros.c + data.macros.f;
       const safeDivisor = totalMacros > 0 ? totalMacros : 1;
       const pPct = (data.macros.p / safeDivisor) * 100;
       const cPct = (data.macros.c / safeDivisor) * 100;

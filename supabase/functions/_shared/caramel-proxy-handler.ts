@@ -69,7 +69,10 @@ function applyGenerationConfig(messages: any[], generationConfig: any): Record<s
     extra.temperature = Math.min(Math.max(generationConfig.temperature, 0), 2);
   }
   if (generationConfig.maxOutputTokens !== undefined) {
-    extra.max_tokens = Math.min(Math.max(Number(generationConfig.maxOutputTokens) || 1, 1), 2048);
+    // Meal/photo analyses can legitimately exceed 2k tokens once item-level
+    // micronutrients are included. Respect the client's request up to a safe 4k cap;
+    // the old 2k cap was truncating JSON before the closing brace.
+    extra.max_tokens = Math.min(Math.max(Number(generationConfig.maxOutputTokens) || 1, 1), 4096);
   }
 
   // Os modelos de raciocínio do roteador podem gastar todo o limite em tokens

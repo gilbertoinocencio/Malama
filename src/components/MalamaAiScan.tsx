@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AIResponse, MealItem } from '../types';
 import { lookupSingleItem } from '../services/geminiService';
 import { useLanguage } from '../i18n';
+import { normalizeMealAnalysis } from '../utils/normalizeMealAnalysis';
 
 interface MalamaAiScanProps {
     data: AIResponse | null;
@@ -35,8 +36,10 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
     isLoading = false,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [items, setItems] = useState<MealItem[]>(() => data?.items.map((i: MealItem) => ({ ...i })) ?? []);
-    const [foodName, setFoodName] = useState(data?.foodName ?? '');
+    const [items, setItems] = useState<MealItem[]>(() =>
+        data ? normalizeMealAnalysis(data).items.map((i: MealItem) => ({ ...i })) : [],
+    );
+    const [foodName, setFoodName] = useState(data ? normalizeMealAnalysis(data).foodName : '');
     const [confirming, setConfirming] = useState(false);
     const [lookingUp, setLookingUp] = useState<number | null>(null);
     const [lookupError, setLookupError] = useState<number | null>(null);
@@ -45,14 +48,17 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
     const { language } = useLanguage();
 
     const { calories, macros } = recalcTotals(items);
-    const originalItems = useRef<MealItem[]>(data?.items.map((i: MealItem) => ({ ...i })) ?? []);
+    const originalItems = useRef<MealItem[]>(
+        data ? normalizeMealAnalysis(data).items.map((i: MealItem) => ({ ...i })) : [],
+    );
 
     // Sync state when data arrives after loading
     useEffect(() => {
         if (data && !isLoading) {
-            setItems(data.items.map((i: MealItem) => ({ ...i })));
-            setFoodName(data.foodName);
-            originalItems.current = data.items.map((i: MealItem) => ({ ...i }));
+            const safeData = normalizeMealAnalysis(data);
+            setItems(safeData.items.map((i: MealItem) => ({ ...i })));
+            setFoodName(safeData.foodName);
+            originalItems.current = safeData.items.map((i: MealItem) => ({ ...i }));
         }
     }, [data, isLoading]);
 
@@ -176,7 +182,14 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
         if (confirming) return;
         setConfirming(true);
         try {
-            const finalData: AIResponse = { foodName, calories, macros, items, message: data?.message ?? '' };
+            const finalData: AIResponse = {
+                foodName,
+                calories,
+                macros,
+                items,
+                message: data?.message ?? '',
+                idRequisicao: data?.idRequisicao ?? null,
+            };
             onConfirm(finalData);
         } catch (e) {
             console.error('Confirm failed:', e);

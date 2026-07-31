@@ -8,6 +8,7 @@ import { normalizeGender } from '../utils/bodyCompositionCalculators';
 import { NutritionKnowledgeService } from './nutritionKnowledgeService';
 import { sanitizeAiText } from '../utils/sanitizeAiText';
 import { parseAiJson } from '../utils/parseAiJson';
+import { normalizeMealAnalysis } from '../utils/normalizeMealAnalysis';
 
 const genAI = new CaramelAI();
 const MODEL_NAME = CARAMEL_AUTO_MODEL;
@@ -73,12 +74,21 @@ export const UnifiedChatService = {
     }
 
     // Try to get existing onboarding session
-    let { data: onboardingSession } = await supabase
-      .from('ai_chat_sessions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('session_type', 'onboarding')
-      .maybeSingle();
+    const [onboardingResult, profileResult] = await Promise.all([
+      supabase
+        .from('ai_chat_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('session_type', 'onboarding')
+        .maybeSingle(),
+      supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('id', userId)
+        .maybeSingle(),
+    ]);
+    let onboardingSession = onboardingResult.data;
+    const profile = profileResult.data;
 
     // Helper: get or create a chat session and return it
     const getOrCreateChatSession = async (): Promise<ChatSession> => {
@@ -109,19 +119,14 @@ export const UnifiedChatService = {
 
     // Fallback: check the profile directly — users who completed onboarding
     // via another flow (profile setup) may not have a chat_sessions record yet
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('onboarding_completed')
-      .eq('id', userId)
-      .maybeSingle();
-
     if (profile?.onboarding_completed) {
       // Mark onboarding session as completed if it exists, then return chat session
       if (onboardingSession) {
-        await supabase
+        void supabase
           .from('ai_chat_sessions')
           .update({ onboarding_completed: true })
-          .eq('id', onboardingSession.id);
+          .eq('id', onboardingSession.id)
+          .then(() => {}, () => {});
       }
       return getOrCreateChatSession();
     }
@@ -320,12 +325,14 @@ export const UnifiedChatService = {
             } else {
               const newWaterIntake = (newTotal as number) ?? totalMl;
               // Update hydration mission progress (gamification)
-              const { CoachService } = await import('./coachService');
-              const todayMissions = await CoachService.getTodayMissions(userId);
-              const hydrationMission = todayMissions.find(m => m.mission_type === 'hydration');
-              if (hydrationMission && hydrationMission.id) {
-                await CoachService.updateMissionProgress(userId, hydrationMission.id, newWaterIntake);
-              }
+              void (async () => {
+                const { CoachService } = await import('./coachService');
+                const todayMissions = await CoachService.getTodayMissions(userId);
+                const hydrationMission = todayMissions.find(m => m.mission_type === 'hydration');
+                if (hydrationMission?.id) {
+                  await CoachService.updateMissionProgress(userId, hydrationMission.id, newWaterIntake);
+                }
+              })().catch(() => {});
             }
           } catch (e) {
             console.error('Water log: unexpected error:', e);
@@ -352,9 +359,10 @@ export const UnifiedChatService = {
         if (options?.interceptMeals !== false) {
           const mealMatch = aiResponse.content.match(/<meal_json>([\s\S]*?)<\/meal_json>/);
           if (mealMatch) {
+            let mealWasLogged = false;
             try {
               const { MealService } = await import('./mealService');
-              const mealData = parseAiJson<any>(mealMatch[1]);
+              const mealData = normalizeMealAnalysis(parseAiJson<unknown>(mealMatch[1]), { strict: true });
               const newMeal = {
                 id: Date.now().toString(),
                 name: mealData.foodName,
@@ -370,14 +378,16 @@ export const UnifiedChatService = {
               };
               
               await MealService.logMeal(newMeal as any, userId);
-              
-              // Strip JSON from response
-              aiResponse.content = aiResponse.content.replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '').trim();
-              if (!aiResponse.content) {
-                 aiResponse.content = "Refeição registrada com sucesso! ✓";
-              }
+              mealWasLogged = true;
             } catch(e) {
               console.error('Failed to intercept meal json:', e);
+            }
+            // Never show an internal or malformed structured block to the user.
+            aiResponse.content = aiResponse.content.replace(/<meal_json>[\s\S]*?<\/meal_json>/g, '').trim();
+            if (!aiResponse.content) {
+              aiResponse.content = mealWasLogged
+                ? 'Refeição registrada com sucesso! ✓'
+                : 'Não consegui registrar essa refeição. Tente novamente em instantes.';
             }
           }
         }
@@ -495,18 +505,20 @@ Responda APENAS com o JSON, sem texto adicional.
       const response = await result.response;
       const text = response.text();
 
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('Invalid JSON response');
-
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = parseAiJson<{
+        content?: string;
+        extractedData?: Record<string, unknown>;
+        nextStage?: OnboardingStage;
+        isValid?: boolean;
+      }>(text);
 
       // Merge extracted data
       const updatedData = { ...currentData, ...parsed.extractedData };
 
       return {
-        content: parsed.content,
+        content: parsed.content?.trim() || 'Pode me contar um pouco mais?',
         tokensUsed: Math.ceil(systemPrompt.length / 4),
-        nextStage: parsed.isValid ? parsed.nextStage : currentStage,
+        nextStage: parsed.isValid && parsed.nextStage ? parsed.nextStage : currentStage,
         updatedData,
         context: { stage: currentStage },
       };
@@ -558,12 +570,7 @@ Responda APENAS com o JSON, sem texto adicional.
     const profile = context.profile;
 
     // ── GLP-1 dose history (only when mode is active) ──
-    let recentDoses: any[] = [];
-    if (profile?.glp1_mode) {
-      try {
-        recentDoses = await glp1Service.getDoseHistory(userId, 3);
-      } catch { /* non-blocking */ }
-    }
+    const recentDoses: any[] = profile?.glp1_mode ? context.recentDoses : [];
 
     // ── Build rich context from V2 profile ──
     const goalMap: Record<string, string> = {
@@ -1186,7 +1193,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
         rawHistory.splice(lastIdx, 1);
       }
 
-      // Gemini requires history to start with a 'user' turn. Our greeting opener already
+      // The Caramel chat format requires history to start with a 'user' turn. Our greeting opener already
       // satisfies that, so any leading 'agent' messages from the DB tail are fine to drop.
       while (rawHistory.length > 0 && rawHistory[0].role !== 'user') {
         rawHistory.shift();
@@ -1197,7 +1204,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
         { role: 'model', parts: [{ text: `Olá! Sou a Malama, sua nutricionista pessoal 💚 Estou aqui para te ajudar no seu objetivo de ${primaryGoal.toLowerCase()}. Como posso te ajudar?` }] },
       ];
 
-      // Strip JSON blocks from history messages before passing to Gemini.
+      // Strip JSON blocks from history messages before passing them to Caramel.
       // The model doesn't need to see raw <meal_json>/<water_json>/<dose_json> blocks —
       // they're system-level interceptors. Leaving them in causes the model to reproduce
       // stale meal data (e.g. a previous Coca Zero entry appearing as the response to a
@@ -1223,9 +1230,8 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
       const result = await chat.sendMessage(userMessage);
       const response = await result.response;
 
-      // Gemini 2.5 Flash uses extended thinking. The SDK's response.text() concatenates ALL
-      // candidate parts including thought parts (thought:true), so users would see the internal
-      // chain-of-thought. Filter to only non-thought parts for the actual response text.
+      // Some Caramel-routed models expose thinking parts. Filter them so internal
+      // reasoning is never shown to the user.
       const allParts: any[] = response.candidates?.[0]?.content?.parts ?? [];
       const responseParts = allParts.filter(p => !p.thought && typeof p.text === 'string');
       const responseText = responseParts.length > 0
@@ -1320,6 +1326,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
         .order('created_at', { ascending: false }).limit(3),
       WeightLogService.getWeightHistory(userId, 10),
       MeasurementSnapshotService.getLatestSnapshot(userId),
+      glp1Service.getDoseHistory(userId, 3),
     ]);
 
     const valueAt = (index: number): any => results[index].status === 'fulfilled'
@@ -1363,6 +1370,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
       activeInsights: valueAt(7)?.data || [],
       recentWeightLogs: valueAt(8) || [],
       latestBodySnapshot: valueAt(9) || null,
+      recentDoses: valueAt(10) || [],
     };
   },
 
