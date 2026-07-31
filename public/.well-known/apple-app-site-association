@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["4P83L4L578.com.malama.saude"],
+        "components": [
+          { "/": "/auth/callback", "comment": "OAuth PKCE callback" }
+        ]
+      }
+    ]
+  }
+}

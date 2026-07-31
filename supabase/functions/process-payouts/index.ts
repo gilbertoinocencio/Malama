@@ -72,7 +72,8 @@ interface AsaasTransferResponse {
 async function createAsaasTransfer(
   pixKey: string,
   amount: number,
-  description: string
+  description: string,
+  externalReference: string,
 ): Promise<AsaasTransferResponse> {
   const res = await fetch(`${ASAAS_BASE_URL}/transfers`, {
     method: 'POST',
@@ -85,6 +86,7 @@ async function createAsaasTransfer(
       pixAddressKey: pixKey,
       value: amount,
       description,
+      externalReference,
     }),
   });
 
@@ -121,11 +123,14 @@ function determinePeriod(): { start: Date; end: Date } {
 // ─── Processar um único payout (para reprocessamento de falha) ───────────────
 
 async function reprocessSinglePayout(payoutId: string): Promise<void> {
+  const attemptId = crypto.randomUUID();
   const { data: payout, error: payoutErr } = await supabase
     .from('payouts')
-    .select('*, doctors:doctor_id (name, pix_key)')
+    .update({ processing_error: `inflight:${attemptId}` })
     .eq('id', payoutId)
     .eq('status', 'processing')
+    .is('processing_error', null)
+    .select('*, doctors:doctor_id (name, pix_key)')
     .single();
 
   if (payoutErr || !payout) {
@@ -141,7 +146,8 @@ async function reprocessSinglePayout(payoutId: string): Promise<void> {
     const transfer = await createAsaasTransfer(
       doctor.pix_key,
       payout.amount,
-      `Repasse Nura — ${payout.period_start} a ${payout.period_end}`
+      `Repasse Nura — ${payout.period_start} a ${payout.period_end}`,
+      `malama-payout-${payout.id}`,
     );
 
     await supabase
@@ -265,7 +271,8 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
       const transfer = await createAsaasTransfer(
         doctor.pix_key,
         totalAmount,
-        `Repasse Nura — Dr(a). ${doctor.name} — ${period.start.toLocaleDateString('pt-BR')} a ${period.end.toLocaleDateString('pt-BR')}`
+        `Repasse Nura — Dr(a). ${doctor.name} — ${period.start.toLocaleDateString('pt-BR')} a ${period.end.toLocaleDateString('pt-BR')}`,
+        `malama-payout-${payout.id}`,
       );
 
       await supabase
@@ -300,6 +307,27 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
 // ─── Handler principal ────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
+  const responseHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json',
+  };
+  if (req.method === 'OPTIONS') return new Response(null, { headers: responseHeaders });
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: responseHeaders });
+  }
+
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  let authorized = token === SERVICE_KEY;
+  if (!authorized && token) {
+    const { data: caller } = await supabase.auth.getUser(token);
+    authorized = caller.user?.app_metadata?.role === 'super_admin';
+  }
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: 'Nao autorizado' }), { status: 403, headers: responseHeaders });
+  }
+
   try {
     let body: any = {};
     if (req.method === 'POST') {
@@ -308,10 +336,13 @@ Deno.serve(async (req: Request) => {
 
     // Modo de reprocessamento: admin passou um payout_id específico
     if (body.payout_id) {
+      if (typeof body.payout_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.payout_id)) {
+        return new Response(JSON.stringify({ error: 'payout_id invalido' }), { status: 400, headers: responseHeaders });
+      }
       await reprocessSinglePayout(body.payout_id);
       return new Response(
         JSON.stringify({ ok: true, reprocessed: body.payout_id }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
+        { status: 200, headers: responseHeaders }
       );
     }
 
@@ -326,13 +357,13 @@ Deno.serve(async (req: Request) => {
         period_start: period.start.toISOString(),
         period_end: period.end.toISOString(),
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: responseHeaders }
     );
   } catch (err) {
     console.error('[process-payouts] Fatal error:', err);
     return new Response(
       JSON.stringify({ error: String(err) }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: responseHeaders }
     );
   }
 });

@@ -47,10 +47,10 @@ const getStaticIceServers = (): RTCIceServer[] => {
 // (a chave do provedor fica no servidor). Sem TURN, redes com CGNAT — celular
 // em 4G/5G no Brasil — não conseguem conexão direta e a chamada não conecta.
 // Qualquer falha aqui NÃO pode impedir a chamada: cai nos servidores estáticos.
-const fetchIceServers = async (): Promise<RTCIceServer[]> => {
+const fetchIceServers = async (roomId: string): Promise<RTCIceServer[]> => {
   try {
     const result = await Promise.race([
-      supabase.functions.invoke('turn-credentials', { body: {} }),
+      supabase.functions.invoke('turn-credentials', { body: { room_id: roomId } }),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('turn-credentials timeout')), 5000)
       ),
@@ -254,7 +254,7 @@ export function useWebRTC({
     lastAnswerSdpRef.current = null;
 
     // Credenciais TURN em paralelo com o resto — nunca bloqueia a chamada.
-    const iceServersPromise = fetchIceServers();
+    const iceServersPromise = fetchIceServers(roomId);
 
     // 1. SINALIZAÇÃO PRIMEIRO — independente da câmera. No app nativo
     // (WKWebView/Capacitor) o getUserMedia pode falhar ou travar na permissão;

@@ -10,6 +10,8 @@
     content="Malama aligns your nutrition with your natural rhythm. AI-powered flow state optimization, meal tracking, and personalized wellness plans." />
   <meta name="keywords" content="nutrition, ai, flow state, wellness, meal tracker, health, malama, bio-rhythm" />
   <meta name="theme-color" content="#7d4a3c" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-src 'self' https:; upgrade-insecure-requests" />
  
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -214,13 +216,7 @@
   </style>
 
   <link rel="stylesheet" href="/src/index.css">
-  <script>
-    try {
-      if (localStorage.getItem('Malama_dark_mode') === 'true') {
-        document.documentElement.classList.add('dark');
-      }
-    } catch(e) {}
-  </script>
+  <script src="/theme-init.js"></script>
 </head>
 
 <body

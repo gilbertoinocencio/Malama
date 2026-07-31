@@ -10,6 +10,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SERVICE_KEY       = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 // Cloudflare Realtime TURN — https://developers.cloudflare.com/realtime/turn/
 const CF_TURN_KEY_ID    = Deno.env.get('CLOUDFLARE_TURN_KEY_ID');
@@ -43,9 +44,42 @@ Deno.serve(async (req: Request) => {
   const token = req.headers.get('authorization')?.replace('Bearer ', '');
   if (!token) return json({ error: 'Unauthorized' }, 401);
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return json({ error: 'Unauthorized' }, 401);
+
+  const [{ data: canAccess }, { data: withinQuota }] = await Promise.all([
+    supabase.rpc('can_access_mobile_app'),
+    supabase.rpc('consume_edge_quota', { p_scope: 'turn', p_limit: 10, p_window_seconds: 3600 }),
+  ]);
+  if (canAccess !== true) return json({ error: 'Acesso nao provisionado pelo RH' }, 403);
+  if (withinQuota !== true) return json({ error: 'Limite temporario de video atingido' }, 429);
+
+  let roomId = '';
+  try { roomId = String((await req.json())?.room_id ?? ''); } catch { /* invalido abaixo */ }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(roomId)) {
+    return json({ error: 'room_id invalido' }, 400);
+  }
+
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  const { data: consultation } = await admin
+    .from('consultations')
+    .select('patient_id, status, scheduled_at, duration_minutes, doctors:doctor_id(user_id)')
+    .eq('room_id', roomId)
+    .maybeSingle();
+  const doctorUserId = (consultation?.doctors as { user_id?: string } | null)?.user_id;
+  const scheduledAt = consultation ? new Date(consultation.scheduled_at).getTime() : 0;
+  const now = Date.now();
+  const inCallWindow = scheduledAt > 0
+    && now >= scheduledAt - 60 * 60 * 1000
+    && now <= scheduledAt + (Number(consultation?.duration_minutes ?? 30) + 120) * 60 * 1000;
+  if (!consultation || !['scheduled', 'in_progress'].includes(consultation.status)
+      || (consultation.patient_id !== user.id && doctorUserId !== user.id) || !inCallWindow) {
+    return json({ error: 'Consulta nao autorizada ou fora da janela' }, 403);
+  }
 
   // ── Cloudflare: credencial efêmera por chamada ─────
   if (CF_TURN_KEY_ID && CF_TURN_API_TOKEN) {

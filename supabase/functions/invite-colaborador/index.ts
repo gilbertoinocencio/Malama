@@ -19,6 +19,12 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
+// Destino fixo e verificado por Universal Links/App Links. Nunca aceite um
+// redirect enviado pelo navegador, pois isso transformaria o convite em um
+// vetor de phishing/open redirect.
+const MOBILE_AUTH_REDIRECT_URL = Deno.env.get('MOBILE_AUTH_REDIRECT_URL')
+  || 'https://www.soumalama.com.br/auth/callback';
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -33,7 +39,7 @@ Deno.serve(async (req: Request) => {
   if (!authHeader) return json({ error: 'Não autorizado' }, 401);
 
   try {
-    const { email, nome, setor, funcao, cpf, redirect_to } = await req.json();
+    const { email, nome, setor, funcao, cpf } = await req.json();
     if (!email) return json({ error: 'E-mail é obrigatório' }, 400);
 
     const normalizedEmail = String(email).trim().toLowerCase();
@@ -143,7 +149,7 @@ Deno.serve(async (req: Request) => {
     const { error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       normalizedEmail,
       {
-        redirectTo: redirect_to || undefined,
+        redirectTo: MOBILE_AUTH_REDIRECT_URL,
         // Guarda o nome no metadata para o app exibir o primeiro nome (não o e-mail).
         ...(displayName ? { data: { display_name: displayName } } : {}),
       }

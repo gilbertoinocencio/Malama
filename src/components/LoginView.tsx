@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
@@ -8,16 +8,12 @@ import { MalamaLogo } from './MalamaLogo';
 const isIOS = Capacitor.getPlatform() === 'ios';
 
 export const LoginView: React.FC = () => {
-    const { signInWithGoogle, signInWithApple, signInWithEmail, signUpWithEmail, loading, user } = useAuth();
+    const { signInWithGoogle, signInWithApple, signInWithEmail, loading } = useAuth();
     const { t, language, setLanguage } = useLanguage();
     const a = t.auth;
     const [error, setError] = useState<string | null>(null);
-    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [isSignUp, setIsSignUp] = useState(() =>
-        new URLSearchParams(window.location.search).get('signup') === 'true'
-    );
     const [authLoading, setAuthLoading] = useState(false);
 
     const handleGoogleLogin = async () => {
@@ -52,46 +48,16 @@ export const LoginView: React.FC = () => {
             setError(a.fillFields);
             return;
         }
-        if (isSignUp && !name.trim()) {
-            setError(a.fillFields);
-            return;
-        }
         setAuthLoading(true);
         setError(null);
         try {
-            if (isSignUp) {
-                await signUpWithEmail(email, password, name.trim());
-                // Se é signup de influencer, o onAuthStateChange vai detectar
-                // e redirecionar para o onboarding automaticamente
-                setError(a.accountCreated);
-            } else {
-                await signInWithEmail(email, password);
-            }
+            await signInWithEmail(email, password);
         } catch (err: any) {
             setError(err.message || a.authError);
         } finally {
             setAuthLoading(false);
         }
     };
-
-    // Se é signup de influencer e já está logado, redirecionar para onboarding
-    useEffect(() => {
-        const isSignup = new URLSearchParams(window.location.search).get('signup') === 'true';
-        const isInfluencerSignup = localStorage.getItem('Malama_is_influencer_signup') === 'true';
-
-        if (isSignup && isInfluencerSignup && user) {
-            // Usuário influencer acabou de fazer signup e está logado
-            // O App.tsx já deve mostrar o onboarding, mas vamos garantir
-            // que não fique preso na tela de login
-            const timer = setTimeout(() => {
-                // Se ainda está na tela de login após 2s, força navegação
-                if (user) {
-                    window.location.replace('/');
-                }
-            }, 2000);
-            return () => clearTimeout(timer);
-        }
-    }, [user]);
 
     if (loading) {
         return (
@@ -137,16 +103,6 @@ export const LoginView: React.FC = () => {
                 {/* Action */}
                 <div className="w-full flex flex-col gap-4">
                     <form onSubmit={handleEmailAuth} className="w-full flex flex-col gap-3">
-                        {isSignUp && (
-                            <input
-                                type="text"
-                                autoComplete="name"
-                                placeholder={language === 'pt' ? 'Nome' : language === 'es' ? 'Nombre' : 'Name'}
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full h-12 px-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-black/20 text-Malama-main dark:text-white placeholder-Malama-muted focus:outline-none focus:ring-2 focus:ring-Malama-petrol/20 transition-all"
-                            />
-                        )}
                         <input
                             type="email"
                             placeholder="Email"
@@ -166,22 +122,13 @@ export const LoginView: React.FC = () => {
                             disabled={authLoading}
                             className="w-full h-12 bg-Malama-petrol dark:bg-primary text-white rounded-xl font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {authLoading ? a.processing : (isSignUp ? a.signUp : a.signIn)}
+                            {authLoading ? a.processing : a.signIn}
                         </button>
                     </form>
 
-                    <div className="w-full flex items-center justify-between text-sm">
-                        <span className="text-Malama-muted">
-                            {isSignUp ? a.hasAccount : a.noAccount}
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => setIsSignUp(!isSignUp)}
-                            className="text-Malama-petrol dark:text-primary font-semibold hover:underline"
-                        >
-                            {isSignUp ? a.doLogin : a.createAccount}
-                        </button>
-                    </div>
+                    <p className="text-center text-sm text-Malama-muted">
+                        O acesso é liberado por convite do RH da sua empresa.
+                    </p>
 
                     <div className="relative w-full py-2">
                         <div className="absolute inset-0 flex items-center">

@@ -12,7 +12,14 @@ const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
-Deno.serve(async (_req: Request) => {
+Deno.serve(async (req: Request) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
+  }
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  if (token !== SERVICE_KEY) {
+    return new Response(JSON.stringify({ error: 'Nao autorizado' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+  }
   try {
     const now = new Date().toISOString();
 

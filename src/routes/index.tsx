@@ -53,6 +53,7 @@ import { DeleteAccount } from './DeleteAccount';
 // Influencer Portal
 import { InfluencerLogin } from './influencer/InfluencerLogin';
 import { InfluencerActivation } from './influencer/InfluencerActivation';
+import { InfluencerSetPassword } from './influencer/InfluencerSetPassword';
 import { InfluencerDashboard } from './influencer/InfluencerDashboard';
 import { InfluencerOnboarding } from './influencer/InfluencerOnboarding';
 import { InfluencerInvite } from './influencer/InfluencerInvite';
@@ -289,6 +290,7 @@ export const AppRoutes: React.FC = () => {
           {/* Portal do influenciador */}
           <Route path="/influencer/login" element={<InfluencerLogin />} />
           <Route path="/influencer/ativar/:token" element={<InfluencerActivation />} />
+          <Route path="/influencer/definir-senha" element={<InfluencerSetPassword />} />
           <Route path="/influencer/convite/:token" element={<InfluencerInvite />} />
           <Route path="/influencer/onboarding" element={<InfluencerOnboarding />} />
           <Route path="/influencer/dashboard" element={<InfluencerDashboard />} />

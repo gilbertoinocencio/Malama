@@ -17,6 +17,9 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
+const MOBILE_AUTH_REDIRECT_URL = Deno.env.get('MOBILE_AUTH_REDIRECT_URL')
+  || 'https://www.soumalama.com.br/auth/callback';
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -31,7 +34,7 @@ Deno.serve(async (req: Request) => {
   if (!authHeader) return json({ error: 'Não autorizado' }, 401);
 
   try {
-    const { colaborador_id, redirect_to } = await req.json();
+    const { colaborador_id } = await req.json();
     if (!colaborador_id) return json({ error: 'colaborador_id é obrigatório' }, 400);
 
     // 1. Identificar RH chamador
@@ -80,7 +83,7 @@ Deno.serve(async (req: Request) => {
     // Novo usuário → reenviar convite Supabase
     const { error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       colab.email,
-      { redirectTo: redirect_to || undefined }
+      { redirectTo: MOBILE_AUTH_REDIRECT_URL }
     );
     if (inviteErr) return json({ sent: false, warning: inviteErr.message });
     return json({ sent: true });

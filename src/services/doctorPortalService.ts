@@ -33,6 +33,43 @@ import type {
 } from '../types/doctorPortal';
 import { v4 as uuidv4 } from 'uuid';
 
+const SUPABASE_ORIGIN = (() => {
+  try { return new URL(import.meta.env.VITE_SUPABASE_URL).origin; } catch { return ''; }
+})();
+
+const safeLegacyStorageUrl = (value: string): string | null => {
+  if (!value.startsWith('https://')) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.origin === SUPABASE_ORIGIN && parsed.pathname.startsWith('/storage/v1/object/')
+      ? value
+      : null;
+  } catch { return null; }
+};
+
+async function signStoragePaths<T extends { file_url: string | null }>(
+  bucket: 'chat-files' | 'patient-exams',
+  rows: T[],
+): Promise<T[]> {
+  const paths = [...new Set(rows
+    .map(row => row.file_url)
+    .filter((path): path is string => !!path && !path.startsWith('http'))
+  )];
+  const signed = new Map<string, string>();
+  if (paths.length > 0) {
+    const { data } = await supabase.storage.from(bucket).createSignedUrls(paths, 60 * 60);
+    for (const item of data ?? []) {
+      if (item.path && item.signedUrl) signed.set(item.path, item.signedUrl);
+    }
+  }
+  return rows.map(row => ({
+    ...row,
+    file_url: row.file_url
+      ? (signed.get(row.file_url) ?? safeLegacyStorageUrl(row.file_url))
+      : null,
+  }));
+}
+
 // =====================================================
 // MÉDICOS
 // =====================================================
@@ -79,15 +116,13 @@ export const doctorService = {
   },
 
   // Buscar médico por token de convite
-  async getDoctorByInviteToken(token: string): Promise<Doctor | null> {
+  async getDoctorByInviteToken(token: string): Promise<Pick<Doctor, 'id' | 'email'> | null> {
     const { data, error } = await supabase
-      .from('doctors')
-      .select('*')
-      .eq('invite_token', token)
-      .single();
+      .rpc('get_doctor_invite_preview', { p_token: token })
+      .maybeSingle();
 
     if (error) return null;
-    return data;
+    return data as Pick<Doctor, 'id' | 'email'> | null;
   },
 
   // Gerar token de convite único (para médicos)
@@ -122,14 +157,11 @@ export const doctorService = {
   // Buscar médico por token de indicação de paciente
   async getDoctorByReferralToken(token: string): Promise<Pick<Doctor, 'id' | 'name' | 'specialty' | 'specialty_custom' | 'photo_url' | 'bio'> | null> {
     const { data, error } = await supabase
-      .from('doctors')
-      .select('id, name, specialty, specialty_custom, photo_url, bio')
-      .eq('patient_referral_token', token)
-      .eq('status', 'approved')
-      .single();
+      .rpc('get_doctor_referral_preview', { p_token: token })
+      .maybeSingle();
 
     if (error) return null;
-    return data;
+    return data as Pick<Doctor, 'id' | 'name' | 'specialty' | 'specialty_custom' | 'photo_url' | 'bio'> | null;
   },
 
   // Admin: Buscar todos os médicos
@@ -1667,8 +1699,6 @@ export type InfluencerReferral = {
 };
 
 export type InfluencerSummary = Influencer & {
-  /** Token de acesso do influencer (migration add_influencer_access_token). */
-  access_token?: string | null;
   total_referrals: number;
   pending_referrals: number;
   total_earned: number;   // paid + pending
@@ -1707,10 +1737,9 @@ export const influencerService = {
 
   // Criar influenciador com conta auth criada pelo admin (via Edge Function)
   // O admin define a senha — o influenciador faz login direto, sem fluxo de ativação
-  async createWithAuth(data: Partial<Influencer> & { password: string }): Promise<Influencer> {
-    const { password, ...infData } = data;
+  async createWithAuth(data: Partial<Influencer>): Promise<Influencer> {
     const { data: result, error } = await supabase.functions.invoke('create-influencer-user', {
-      body: { password, ...infData },
+      body: data,
     });
     if (error) throw new Error(error.message);
     if (result?.error) throw new Error(result.error);
@@ -1747,14 +1776,11 @@ export const influencerService = {
   // Buscar por token (landing page — não requer auth)
   async getByToken(token: string): Promise<Pick<Influencer, 'id' | 'name' | 'instagram_handle' | 'commission_per_referral'> | null> {
     const { data, error } = await supabase
-      .from('influencers')
-      .select('id, name, instagram_handle, commission_per_referral')
-      .eq('referral_token', token)
-      .eq('status', 'active')
-      .single();
+      .rpc('get_influencer_referral_preview', { p_token: token })
+      .maybeSingle();
 
     if (error) return null;
-    return data;
+    return data as Pick<Influencer, 'id' | 'name' | 'instagram_handle' | 'commission_per_referral'> | null;
   },
 
   // Buscar referrals de um influenciador
@@ -1770,18 +1796,10 @@ export const influencerService = {
   },
 
   // Registrar conversão (chamado em applyReferralData) — idempotente: ignora se já existe
-  async registerReferral(influencerId: string, userId: string, commissionAmount: number): Promise<void> {
-    const { data: existing } = await supabase
-      .from('influencer_referrals')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (existing) return;
-
-    const { error } = await supabase
-      .from('influencer_referrals')
-      .insert([{ influencer_id: influencerId, user_id: userId, commission_amount: commissionAmount }]);
+  async registerReferral(influencerId: string): Promise<void> {
+    const { error } = await supabase.rpc('register_influencer_referral', {
+      p_influencer_id: influencerId,
+    });
 
     if (error) throw error;
   },
@@ -1795,23 +1813,21 @@ export const influencerService = {
   // Buscar influenciador por setup_token (página de ativação)
   async getBySetupToken(token: string): Promise<Pick<Influencer, 'id' | 'name' | 'email'> | null> {
     const { data, error } = await supabase
-      .from('influencers')
-      .select('id, name, email')
-      .eq('setup_token', token)
-      .single();
+      .rpc('get_influencer_setup_preview', { p_token: token })
+      .maybeSingle();
 
     if (error) return null;
-    return data;
+    return data as Pick<Influencer, 'id' | 'name' | 'email'> | null;
   },
 
   // Vincular conta do app ao influenciador e invalidar setup_token
-  async activateAccount(setupToken: string, userId: string): Promise<void> {
-    const { error } = await supabase
-      .from('influencers')
-      .update({ user_id: userId, setup_token: null, updated_at: new Date().toISOString() })
-      .eq('setup_token', setupToken);
+  async activateAccount(setupToken: string): Promise<void> {
+    const { data, error } = await supabase.rpc('activate_influencer_account', {
+      p_setup_token: setupToken,
+    });
 
     if (error) throw error;
+    if (!data) throw new Error('Link invalido, expirado ou vinculado a outro e-mail.');
   },
 
   // Buscar influenciador pelo user_id (dashboard do influenciador)
@@ -2649,7 +2665,7 @@ export const appointmentChatService = {
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return signStoragePaths('chat-files', (data ?? []) as ChatMessage[]);
   },
 
   async sendMessage(chatId: string, content: string | null, file?: {
@@ -2683,7 +2699,7 @@ export const appointmentChatService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return (await signStoragePaths('chat-files', [data as ChatMessage]))[0];
   },
 
   async markRead(chatId: string, senderRole: 'doctor' | 'patient'): Promise<void> {
@@ -2714,7 +2730,10 @@ export const appointmentChatService = {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `chat_id=eq.${chatId}` },
-        (payload) => onMessage(payload.new as ChatMessage)
+        (payload) => {
+          void signStoragePaths('chat-files', [payload.new as ChatMessage])
+            .then(([message]) => onMessage(message));
+        }
       )
       .subscribe();
   },
@@ -2787,8 +2806,7 @@ export const patientExamService = {
 
     if (uploadErr) throw uploadErr;
 
-    const { data } = supabase.storage.from('patient-exams').getPublicUrl(path);
-    return data.publicUrl;
+    return path;
   },
 
   async createExam(exam: Omit<PatientExam, 'id' | 'created_at' | 'doctor_note' | 'reviewed_at' | 'reviewed_by'>): Promise<PatientExam> {
@@ -2813,7 +2831,7 @@ export const patientExamService = {
 
     const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+    return signStoragePaths('patient-exams', (data ?? []) as PatientExam[]);
   },
 
   async reviewExam(examId: string, doctorNote: string, doctorId: string): Promise<PatientExam> {

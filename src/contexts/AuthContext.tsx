@@ -9,7 +9,13 @@ import type { Influencer } from '../services/doctorPortalService';
 // para NÃO colidir com o scheme `malama` que o Capacitor usa para servir o app.
 // Registrado em CFBundleURLTypes no Info.plist.
 const NATIVE_OAUTH_SCHEME = 'com.malama.saude';
-const NATIVE_OAUTH_REDIRECT = `${NATIVE_OAUTH_SCHEME}://auth/callback`;
+const NATIVE_OAUTH_HOST = 'auth';
+const NATIVE_OAUTH_PATH = '/callback';
+const NATIVE_OAUTH_REDIRECT = 'https://www.soumalama.com.br/auth/callback';
+
+const isTrustedOAuthCallback = (url: URL): boolean =>
+    (url.protocol === 'https:' && url.hostname === 'www.soumalama.com.br' && url.pathname === '/auth/callback')
+    || (url.protocol === `${NATIVE_OAUTH_SCHEME}:` && url.hostname === NATIVE_OAUTH_HOST && url.pathname === NATIVE_OAUTH_PATH);
 
 // SHA-256 em hex — usado para o nonce do Sign in with Apple.
 // A Apple recebe o nonce já hasheado; o Supabase verifica contra o nonce cru.
@@ -144,7 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (inf) {
                     updates.referred_by_influencer_id = inf.id;
                     updates.acquisition_channel = 'influencer';
-                    await influencerService.registerReferral(inf.id, userId, inf.commission_per_referral);
+                    await influencerService.registerReferral(inf.id);
                 }
             } else if (doctorToken) {
                 const doctor = await doctorService.getDoctorByReferralToken(doctorToken);
@@ -228,33 +234,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) return;
         let cleanup: (() => void) | undefined;
+        const processedUrls = new Set<string>();
 
         (async () => {
             const { App } = await import('@capacitor/app');
-            const handle = await App.addListener('appUrlOpen', async ({ url }) => {
-                if (!url || !url.startsWith(`${NATIVE_OAUTH_SCHEME}://`)) return;
+            const processCallback = async (url?: string) => {
+                if (!url) return;
+                if (processedUrls.has(url)) return;
                 try {
+                    const parsed = new URL(url);
+                    if (!isTrustedOAuthCallback(parsed)) return;
+                    processedUrls.add(url);
+
                     const { Browser } = await import('@capacitor/browser');
                     await Browser.close().catch(() => {});
 
-                    // Suporta tanto PKCE (?code=...) quanto retorno por fragmento (#access_token=...)
-                    const parsed = new URL(url);
+                    // PKCE: o deep link carrega somente um codigo de uso unico.
+                    // Tokens de sessao nunca sao aceitos pelo fragmento da URL.
                     const code = parsed.searchParams.get('code');
                     if (code) {
-                        await supabase.auth.exchangeCodeForSession(code);
-                    } else if (parsed.hash.includes('access_token')) {
-                        const params = new URLSearchParams(parsed.hash.replace(/^#/, ''));
-                        const access_token = params.get('access_token');
-                        const refresh_token = params.get('refresh_token');
-                        if (access_token && refresh_token) {
-                            await supabase.auth.setSession({ access_token, refresh_token });
-                        }
+                        const { error } = await supabase.auth.exchangeCodeForSession(code);
+                        if (error) throw error;
                     }
                 } catch (err) {
                     console.error('Erro ao processar deep link de OAuth:', err);
                 }
-            });
+            };
+
+            const handle = await App.addListener('appUrlOpen', ({ url }) => processCallback(url));
             cleanup = () => { handle.remove(); };
+
+            // appUrlOpen pode nao disparar quando o processo nasceu pelo link.
+            const launch = await App.getLaunchUrl();
+            await processCallback(launch?.url);
         })();
 
         return () => { cleanup?.(); };

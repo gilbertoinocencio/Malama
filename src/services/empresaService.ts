@@ -820,7 +820,6 @@ export const rhService = {
         setor: setor?.trim() || undefined,
         funcao: funcao?.trim() || undefined,
         cpf: cpf?.replace(/\D/g, '') || undefined,
-        redirect_to: `${window.location.origin}/acesso`,
       },
     });
     if (error) {
@@ -1184,7 +1183,7 @@ export const rhService = {
   // Reenvia e-mail de convite/ativação para colaborador ainda 'convidado'
   async resendInvite(colaboradorId: string): Promise<{ sent: boolean; warning?: string }> {
     const { data, error } = await supabase.functions.invoke('resend-invite', {
-      body: { colaborador_id: colaboradorId, redirect_to: `${window.location.origin}/acesso` },
+      body: { colaborador_id: colaboradorId },
     });
     if (error) {
       let msg = error.message;

@@ -55,9 +55,9 @@ export const IntegrationService = {
   },
 
   // Envia o code para a edge function que faz o token exchange server-side (Strava)
-  async handleStravaCallback(code: string, userId: string): Promise<boolean> {
+  async handleStravaCallback(code: string, _userId: string): Promise<boolean> {
     const { error } = await supabase.functions.invoke('strava-oauth', {
-      body: { code, user_id: userId },
+      body: { code },
     });
     return !error;
   },

@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_FIT_CLIENT_ID')!;
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_FIT_CLIENT_SECRET')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const APP_URL = Deno.env.get('APP_URL') || 'https://soumalama.com.br';
 
@@ -28,12 +29,22 @@ function mapGoogleActivityType(typeCode: number): string {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: cors });
 
   try {
-    const { code, user_id } = await req.json();
-    if (!code || !user_id) {
-      return new Response(JSON.stringify({ error: 'Missing code or user_id' }), { status: 400, headers: cors });
+    const jwt = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${jwt}` } }, auth: { persistSession: false },
+    });
+    const { data: { user } } = await authClient.auth.getUser(jwt);
+    const { data: canAccess } = await authClient.rpc('can_access_mobile_app');
+    if (!user || canAccess !== true) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: cors });
+
+    const { code } = await req.json();
+    if (!code) {
+      return new Response(JSON.stringify({ error: 'Missing code' }), { status: 400, headers: cors });
     }
+    const user_id = user.id;
 
     const redirectUri = `${APP_URL}?google_code=1`;
 

@@ -135,6 +135,7 @@ export const WHO5: InstrumentDef = {
   blocks: [{
     intro: WHO5_INTRO,
     options: WHO5_OPTIONS,
+    escalaVisual: 'valencia',
     items: WHO5_QUESTIONS.map((texto, i) => ({
       key: `q${i + 1}`,
       texto,
@@ -255,8 +256,8 @@ export const JSS: InstrumentDef = {
     'Índice de exposição ocupacional. Maior = mais exposição a risco psicossocial '
     + '(alta demanda combinada com baixo controle e baixo apoio).',
   blocks: [
-    { options: JSS_OPCOES_FREQUENCIA,   items: JSS_ITENS_FREQUENCIA },
-    { options: JSS_OPCOES_CONCORDANCIA, items: JSS_ITENS_CONCORDANCIA },
+    { options: JSS_OPCOES_FREQUENCIA, escalaVisual: 'magnitude', items: JSS_ITENS_FREQUENCIA },
+    { options: JSS_OPCOES_CONCORDANCIA, escalaVisual: 'valencia', items: JSS_ITENS_CONCORDANCIA },
   ],
   score(answers) {
     for (const item of JSS_TODOS) {

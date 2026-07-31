@@ -151,13 +151,18 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !chat) return;
+    const allowedTypes = new Set([
+      'application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic',
+      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+    ]);
+    if (file.size === 0 || file.size > 10 * 1024 * 1024 || !allowedTypes.has(file.type)) return;
     const ext  = file.name.split('.').pop();
     const path = `chats/${chat.id}/${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from('chat-files').upload(path, file);
     if (upErr) return;
-    const { data: urlData } = supabase.storage.from('chat-files').getPublicUrl(path);
     const msg = await appointmentChatService.sendMessage(chat.id, null, {
-      url: urlData.publicUrl, name: file.name,
+      url: path, name: file.name,
       type: file.type, sizeKb: Math.round(file.size / 1024),
     });
     setMessages(prev => [...prev, msg]);
@@ -247,10 +252,12 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
                               src={msg.file_url}
                               alt={msg.file_name ?? 'imagem'}
                               className="max-w-full rounded-lg max-h-48 object-cover cursor-pointer"
-                              onClick={() => window.open(msg.file_url!, '_blank')}
+                              onClick={() => window.open(msg.file_url!, '_blank', 'noopener,noreferrer')}
                             />
                             <a
                               href={`${msg.file_url}?download=${encodeURIComponent(msg.file_name ?? 'imagem')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className={`flex items-center gap-1 mt-1 text-xs underline ${isMe ? 'text-white/70' : 'text-gray-500'}`}
                             >
                               <span className="material-symbols-outlined text-sm">download</span> Baixar
@@ -259,6 +266,8 @@ export const PatientChatModal: React.FC<Props> = ({ consultationId, doctorName, 
                         ) : (
                           <a
                             href={`${msg.file_url}?download=${encodeURIComponent(msg.file_name ?? 'arquivo')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className={`flex items-center gap-1.5 mt-1 text-xs underline ${isMe ? 'text-white/80' : 'text-gray-500'}`}
                           >
                             <span className="material-symbols-outlined text-sm">attach_file</span>

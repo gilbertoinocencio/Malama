@@ -22,6 +22,11 @@ const CARAMELO_API_KEY = Deno.env.get('CARAMELO_API_KEY') ?? '';
 // Free tier do Render dorme e acorda em ~50-60s; timeout curto viraria fallback
 // permanente no 1º request após ociosidade.
 const CARAMELO_TIMEOUT_MS = 60_000;
+const MAX_REQUEST_BYTES = 8 * 1024 * 1024;
+const ALLOWED_MODELS_BY_ACTION: Record<string, Set<string>> = {
+  generateContent: new Set(['gemini-2.5-flash']),
+  embedContent: new Set(['caramelo-embed']),
+};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -175,18 +180,44 @@ Deno.serve(async (req: Request) => {
   // ── Auth (inalterada: exige usuário logado do Malama) ─────────────
   const token = req.headers.get('authorization')?.replace('Bearer ', '');
   if (!token) return json({ error: 'Unauthorized' }, 401);
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return json({ error: 'Unauthorized' }, 401);
 
+  const [{ data: canAccess }, { data: withinQuota }] = await Promise.all([
+    supabase.rpc('can_access_mobile_app'),
+    supabase.rpc('consume_edge_quota', { p_scope: 'gemini', p_limit: 30, p_window_seconds: 600 }),
+  ]);
+  if (canAccess !== true) return json({ error: 'Acesso nao provisionado pelo RH' }, 403);
+  if (withinQuota !== true) return json({ error: 'Limite temporario de IA atingido' }, 429);
+
   try {
-    const body = await req.json();
+    const declaredSize = Number(req.headers.get('content-length') ?? 0);
+    if (declaredSize > MAX_REQUEST_BYTES) return json({ error: 'Request too large' }, 413);
+    const rawBody = await req.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BYTES) return json({ error: 'Request too large' }, 413);
+    const body = JSON.parse(rawBody);
     const { action, model, generationConfig, contents, content } = body;
     if (!model) return json({ error: 'model is required' }, 400);
+    if (!['generateContent', 'embedContent'].includes(action)) return json({ error: 'action not allowed' }, 400);
+    if (!ALLOWED_MODELS_BY_ACTION[action]?.has(model)) return json({ error: 'model not allowed' }, 400);
+
+    if (generationConfig) {
+      if (typeof generationConfig !== 'object' || Array.isArray(generationConfig)) return json({ error: 'generationConfig invalid' }, 400);
+      generationConfig.maxOutputTokens = Math.min(Math.max(Number(generationConfig.maxOutputTokens) || 1024, 1), 4096);
+      if (generationConfig.temperature !== undefined) {
+        generationConfig.temperature = Math.min(Math.max(Number(generationConfig.temperature) || 0, 0), 2);
+      }
+    }
 
     // ── generateContent (texto, chat, visão) ─────────
     if (action === 'generateContent') {
-      if (!contents) return json({ error: 'contents is required for generateContent' }, 400);
+      if (!Array.isArray(contents) || contents.length === 0 || contents.length > 100) {
+        return json({ error: 'contents is invalid for generateContent' }, 400);
+      }
 
       try {
         const data = await chamarCaramelo(contents, generationConfig);
@@ -205,7 +236,9 @@ Deno.serve(async (req: Request) => {
 
     // ── embedContent (SEM fallback Gemini: vetores incompatíveis) ────
     if (action === 'embedContent') {
-      if (!content) return json({ error: 'content is required for embedContent' }, 400);
+      if (typeof content !== 'string' || content.length === 0 || content.length > 32_000) {
+        return json({ error: 'content is invalid for embedContent' }, 400);
+      }
 
       try {
         const res = await fetch(`${CARAMELO_API_URL}/v1/embeddings`, {

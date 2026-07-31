@@ -244,7 +244,7 @@ export const PatientActivitiesPanel: React.FC<Props> = ({ patientId }) => {
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="week" tick={{ fontSize: 11 }} />
                         <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
-                        <Tooltip formatter={(v: number | undefined): [string, string] => [`${v?.toLocaleString('pt-BR') ?? '—'} passos`, 'Média/dia']} contentStyle={{ fontSize: 12 }} />
+                        <Tooltip formatter={(v): [string, string] => [`${typeof v === 'number' ? v.toLocaleString('pt-BR') : '—'} passos`, 'Média/dia']} contentStyle={{ fontSize: 12 }} />
                         <Bar dataKey="steps" fill="#7d4a3c" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -265,7 +265,7 @@ export const PatientActivitiesPanel: React.FC<Props> = ({ patientId }) => {
                     <XAxis dataKey="week" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip
-                      formatter={(v: number | undefined): [string, string] => [`${v ?? '—'} kcal`, 'Calorias']}
+                      formatter={(v): [string, string] => [`${typeof v === 'number' || typeof v === 'string' ? v : '—'} kcal`, 'Calorias']}
                       contentStyle={{ fontSize: 12 }}
                     />
                     <Bar dataKey="kcal" fill="#7d4a3c" radius={[4, 4, 0, 0]} />

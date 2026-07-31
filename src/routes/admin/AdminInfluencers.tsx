@@ -178,17 +178,10 @@ const ReferralsDrawer: React.FC<{ influencer: InfluencerSummary; onClose: () => 
           {/* Status da conta */}
           <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2 text-sm text-green-700 mb-3">
             <Check className="w-4 h-4 flex-shrink-0" />
-            Conta ativa — influenciador pode acessar com o link de convite.
+            Conta ativa — influenciador acessa com a senha definida no e-mail seguro.
           </div>
 
           {/* Link de convite */}
-          {influencer.access_token && (
-            <div className="mb-3">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Link de convite para o influencer</p>
-              <CopyLinkButton token={influencer.access_token} prefix="convite" />
-            </div>
-          )}
-
           {/* Link de indicação (para seguidores) */}
           {influencer.referral_token && (
             <div>
@@ -274,13 +267,11 @@ type InfluencerForm = {
   name: string; email: string; instagram_handle: string;
   pix_key: string; commission_per_referral: string; notes: string;
   status: Influencer['status'];
-  password?: string; // Senha para criar conta auth do influencer
 };
 
 const EMPTY_FORM: InfluencerForm = {
   name: '', email: '', instagram_handle: '', pix_key: '',
   commission_per_referral: '10', notes: '', status: 'active',
-  password: '',
 };
 
 const InfluencerModal: React.FC<{
@@ -362,23 +353,8 @@ const InfluencerModal: React.FC<{
                 <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-semibold mb-0.5">E-mail automático de boas-vindas</p>
-                  <p className="text-green-600">Ao criar, o influenciador recebe automaticamente no e-mail: login, senha e link de indicação. Ele só precisa baixar o app e entrar.</p>
+                  <p className="text-green-600">Ao criar, o influenciador recebe um link de uso único para definir a própria senha.</p>
                 </div>
-              </div>
-            )}
-
-            {/* Senha — apenas na criação */}
-            {!initial && (
-              <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Senha *</label>
-                <input
-                  required={!initial} type="password"
-                  value={form.password || ''} onChange={e => set('password', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
-                  placeholder="Senha para o influencer fazer login"
-                  minLength={8}
-                />
-                <p className="text-xs text-gray-500 mt-1">Mínimo 8 caracteres.</p>
               </div>
             )}
 
@@ -507,14 +483,9 @@ export const AdminInfluencers: React.FC = () => {
   const totalPaid = influencers.reduce((s, i) => s + (i.total_earned - i.pending_amount), 0);
 
   const handleCreate = async (form: InfluencerForm) => {
-    if (!form.password || form.password.length < 8) {
-      throw new Error('A senha deve ter pelo menos 8 caracteres.');
-    }
-
     await influencerService.createWithAuth({
       name: form.name,
       email: form.email,
-      password: form.password,
       instagram_handle: form.instagram_handle || null,
       pix_key: form.pix_key || null,
       commission_per_referral: parseFloat(form.commission_per_referral),

@@ -59,7 +59,7 @@ const _supabaseStorageKey = (() => {
 })();
 
 const App: React.FC = () => {
-  const { user, profile, loading, profileLoading } = useAuth();
+  const { user, profile, loading, profileLoading, signOut } = useAuth();
   // Modos contratados pela empresa do colaborador. Define onboarding e navegação.
   const modos = useModos(user?.id);
   // Só o modo Mental: app sem nutrição, refeição, peso ou feed.
@@ -88,6 +88,7 @@ const App: React.FC = () => {
   // Bloqueio de acesso por inadimplência da empresa (decisão manual do admin).
   // null = ainda checando; true/false = resultado. Reativação reflete no próximo load.
   const [accessBlocked, setAccessBlocked] = useState<boolean | null>(null);
+  const [accessAllowed, setAccessAllowed] = useState<boolean | null>(null);
 
   const [isPortalRoute, setIsPortalRoute] = useState(() => {
     // No app nativo (Android/iOS via Capacitor), nunca mostrar landing page —
@@ -333,6 +334,18 @@ const App: React.FC = () => {
     return () => { cancelled = true; };
   }, [user?.id]);
 
+  // O produto mobile e B2B: uma conta Auth isolada nao concede acesso. O
+  // backend exige convite ativo do RH (ou papel profissional/administrativo).
+  useEffect(() => {
+    if (!user) { setAccessAllowed(null); return; }
+    let cancelled = false;
+    setAccessAllowed(null);
+    supabase.rpc('can_access_mobile_app').then(({ data, error }) => {
+      if (!cancelled) setAccessAllowed(!error && data === true);
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   // Deep-link de notificações de consulta → abre "Minhas Consultas", e
   // re-sincroniza os lembretes locais do device no boot.
   useEffect(() => {
@@ -485,6 +498,30 @@ const App: React.FC = () => {
 
   if (!user) {
     return <LoginView />;
+  }
+
+  if (accessAllowed === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-Malama-bg dark:bg-background-dark">
+        <div className="w-12 h-12 border-4 border-Malama-petrol dark:border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!accessAllowed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-Malama-bg dark:bg-background-dark p-6">
+        <div className="w-full max-w-md rounded-2xl bg-white dark:bg-surface-dark p-7 text-center shadow-lg">
+          <h1 className="text-xl font-bold text-Malama-main dark:text-white">Acesso ainda não liberado</h1>
+          <p className="mt-3 text-sm text-Malama-muted">
+            Peça ao RH da sua empresa para adicionar este e-mail ao benefício Malama.
+          </p>
+          <button onClick={() => void signOut()} className="mt-6 w-full h-12 rounded-xl bg-Malama-petrol text-white font-semibold">
+            Sair
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // Acesso bloqueado por inadimplência da empresa → trava de render (nenhum dado é tocado).

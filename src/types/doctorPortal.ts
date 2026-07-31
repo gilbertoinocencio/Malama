@@ -607,7 +607,7 @@ export interface PatientExam {
   exam_name: string;
   exam_date: string | null;
   lab_name: string | null;
-  file_url: string;
+  file_url: string | null;
   file_name: string;
   file_type: string | null;
   file_size_kb: number | null;

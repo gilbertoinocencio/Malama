@@ -10,8 +10,9 @@
 #        VITE_TURN_CREDENTIAL, VITE_COMMUNITY_SYSTEM_USER_ID,
 #        VITE_STRAVA_CLIENT_ID, VITE_GOOGLE_FIT_CLIENT_ID  (os que o app usar)
 #   3. Variável  APP_APPLE_ID  = o "Apple ID" numérico do app no App Store Connect.
-#   4. Bundle ID  com.malama.saude  registrado no Apple Developer com a
-#      capability "Sign in with Apple" habilitada.
+#   4. Bundle ID  com.malama.saude  registrado no Apple Developer com as
+#      capabilities "Sign in with Apple" e "Associated Domains" habilitadas;
+#      o profile App Store precisa conter ambas.
 # ============================================================================
 
 workflows:
@@ -44,7 +45,7 @@ workflows:
       - name: Sincronizar Capacitor iOS
         script: npx cap sync ios
 
-      - name: Preparar assinatura (certificado + profile com Sign in with Apple)
+      - name: Preparar assinatura (profile com Apple + Associated Domains)
         script: |
           set -e
           keychain initialize

@@ -147,14 +147,14 @@ export const PatientExamPanel: React.FC<Props> = ({ doctorId, patientId }) => {
                 onClick={() => setPreview(exam)}
               >
                 <img
-                  src={exam.file_url}
+                  src={exam.file_url ?? undefined}
                   alt={exam.exam_name}
                   className="w-full h-full object-cover hover:scale-105 transition"
                 />
               </div>
             ) : (
               <div className="h-36 bg-gray-50 flex flex-col items-center justify-center gap-2 cursor-pointer"
-                   onClick={() => window.open(exam.file_url, '_blank')}>
+                   onClick={() => exam.file_url && window.open(exam.file_url, '_blank', 'noopener,noreferrer')}>
                 <FileText className="w-10 h-10 text-gray-300" />
                 <span className="text-xs text-gray-400">PDF / Documento</span>
               </div>
@@ -169,7 +169,7 @@ export const PatientExamPanel: React.FC<Props> = ({ doctorId, patientId }) => {
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <a
-                    href={exam.file_url}
+                    href={exam.file_url ?? undefined}
                     target="_blank"
                     rel="noreferrer"
                     className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"
@@ -178,7 +178,7 @@ export const PatientExamPanel: React.FC<Props> = ({ doctorId, patientId }) => {
                     <Eye className="w-4 h-4" />
                   </a>
                   <a
-                    href={exam.file_url}
+                    href={exam.file_url ?? undefined}
                     download={exam.file_name}
                     className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"
                     title="Download"
@@ -240,7 +240,7 @@ export const PatientExamPanel: React.FC<Props> = ({ doctorId, patientId }) => {
           onClick={() => setPreview(null)}
         >
           <img
-            src={preview.file_url}
+            src={preview.file_url ?? undefined}
             alt={preview.exam_name}
             className="max-w-full max-h-[90vh] rounded-xl object-contain"
             onClick={e => e.stopPropagation()}

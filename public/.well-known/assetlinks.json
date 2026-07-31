@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.malama.saude",
+      "sha256_cert_fingerprints": [
+        "C4:8C:06:3D:C4:43:A8:A7:38:0D:E8:1E:A3:B1:F7:B8:CE:0D:8F:0E:81:18:F2:E9:BA:22:F8:67:33:8D:AA:62"
+      ]
+    }
+  }
+]

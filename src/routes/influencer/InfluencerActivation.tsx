@@ -80,7 +80,7 @@ export const InfluencerActivation: React.FC = () => {
       if (!userId) throw new Error('Não foi possível obter o usuário.');
 
       // 2. Vincular user_id ao influenciador e invalidar setup_token
-      await influencerService.activateAccount(token, userId);
+      await influencerService.activateAccount(token);
 
       // 3. Atualizar influencerRecord no contexto (evita race condition com onAuthStateChange)
       await refreshInfluencerRecord();

@@ -44,6 +44,21 @@ export interface Consultation {
   reschedule_status?: 'pending' | 'accepted' | 'rejected' | null;
 }
 
+type RowWithDoctorId = { doctor_id: string; [key: string]: unknown };
+
+async function attachPublicDoctors<T extends RowWithDoctorId>(rows: T[]): Promise<Array<T & { doctors: any | null }>> {
+  const ids = [...new Set(rows.map(row => row.doctor_id).filter(Boolean))];
+  if (ids.length === 0) return rows.map(row => ({ ...row, doctors: null }));
+
+  const { data, error } = await supabase
+    .from('public_doctors')
+    .select('*')
+    .in('id', ids);
+  if (error) throw error;
+  const byId = new Map((data ?? []).map(doctor => [doctor.id, doctor]));
+  return rows.map(row => ({ ...row, doctors: byId.get(row.doctor_id) ?? null }));
+}
+
 function generateSlots(
   startTime: string,
   endTime: string,
@@ -84,9 +99,8 @@ export async function getAvailableDoctors(
   console.log('🔍 [scheduling.ts] Buscando profissionais disponíveis...', objective ? `objetivo: ${objective}` : '', tipoProfissional ?? '');
 
   let query = supabase
-    .from('doctors')
+    .from('public_doctors')
     .select('*')
-    .eq('status', 'approved')
     .order('rating', { ascending: false });
 
   // Filtro por tipo (upsell psicológico). Sem o filtro → todos (compat.).
@@ -147,7 +161,7 @@ export async function getLastProfessionalId(
   // consultas e escolher em memória é barato e não tem esse modo de falha.
   const { data, error } = await supabase
     .from('consultations')
-    .select('doctor_id, scheduled_at, doctors(tipo_profissional)')
+    .select('doctor_id, scheduled_at')
     .eq('patient_id', patientId)
     .eq('status', 'completed')
     .order('scheduled_at', { ascending: false })
@@ -160,12 +174,13 @@ export async function getLastProfessionalId(
 
   // Registro legado sem tipo_profissional é médico — mesma convenção do
   // getAvailableDoctors acima e da migration 20260802.
+  const hydrated = await attachPublicDoctors((data ?? []) as RowWithDoctorId[]);
   const combina = (row: any) => {
     const tipo = row?.doctors?.tipo_profissional ?? 'medico';
     return tipo === tipoProfissional;
   };
 
-  return (data ?? []).find(combina)?.doctor_id ?? null;
+  return hydrated.find(combina)?.doctor_id ?? null;
 }
 
 export async function getAvailableSlots(
@@ -201,7 +216,7 @@ export async function getAvailableSlots(
 
   // 2. Get doctor info for duration
   const { data: doctor } = await supabase
-    .from('doctors')
+    .from('public_doctors')
     .select('consultation_duration')
     .eq('id', doctorId)
     .single();
@@ -281,7 +296,7 @@ export async function bookConsultation(params: {
 
   // Get doctor price and duration
   const { data: doctor } = await supabase
-    .from('doctors')
+    .from('public_doctors')
     .select('consultation_price, consultation_duration')
     .eq('id', doctorId)
     .single();
@@ -374,12 +389,12 @@ export async function bookConsultation(params: {
 export async function getPatientConsultations(patientId: string): Promise<Consultation[]> {
   const { data, error } = await supabase
     .from('consultations')
-    .select('*, doctors(name, specialty, crm, tipo_profissional)')
+    .select('*')
     .eq('patient_id', patientId)
     .order('scheduled_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return attachPublicDoctors((data ?? []) as RowWithDoctorId[]) as unknown as Promise<Consultation[]>;
 }
 
 export async function getTodayConsultation(patientId: string): Promise<Consultation | null> {
@@ -393,7 +408,7 @@ export async function getTodayConsultation(patientId: string): Promise<Consultat
   // continuava mostrando "Entrar" para um horário que já passou).
   const { data } = await supabase
     .from('consultations')
-    .select('*, doctors(name, specialty, crm)')
+    .select('*')
     .eq('patient_id', patientId)
     .gte('scheduled_at', start.toISOString())
     .lte('scheduled_at', end.toISOString())
@@ -401,9 +416,10 @@ export async function getTodayConsultation(patientId: string): Promise<Consultat
     .order('scheduled_at', { ascending: true });
 
   if (!data || data.length === 0) return null;
+  const hydrated = await attachPublicDoctors(data as RowWithDoctorId[]);
   // Prioriza a consulta ainda válida; senão mostra a perdida mais recente.
-  const active = data.find(c => c.status === 'scheduled' || c.status === 'in_progress');
-  return active ?? data[data.length - 1];
+  const active = hydrated.find(c => c.status === 'scheduled' || c.status === 'in_progress');
+  return (active ?? hydrated[hydrated.length - 1]) as unknown as Consultation;
 }
 
 /**
@@ -534,18 +550,18 @@ export async function rateConsultation(
 export async function getPatientPrescriptions(patientId: string) {
   const { data, error } = await supabase
     .from('prescriptions')
-    .select('*, doctors(name, specialty)')
+    .select('*')
     .eq('patient_id', patientId)
     .order('issued_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return attachPublicDoctors((data ?? []) as RowWithDoctorId[]);
 }
 
 export async function getDoctorMessage(patientId: string) {
   const { data } = await supabase
     .from('doctor_messages')
-    .select('*, doctors(name)')
+    .select('*')
     .eq('patient_id', patientId)
     .gte('visible_until', new Date().toISOString())
     .order('created_at', { ascending: false })
@@ -559,17 +575,19 @@ export async function getDoctorMessage(patientId: string) {
       .eq('id', data.id);
   }
 
-  return data;
+  if (!data) return null;
+  return (await attachPublicDoctors([data as RowWithDoctorId]))[0];
 }
 
 export async function getLatestGoalAdjustment(patientId: string) {
   const { data } = await supabase
     .from('doctor_plan_adjustments')
-    .select('*, doctors(name)')
+    .select('*')
     .eq('patient_id', patientId)
     .order('applied_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  return data;
+  if (!data) return null;
+  return (await attachPublicDoctors([data as RowWithDoctorId]))[0];
 }

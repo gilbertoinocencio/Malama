@@ -102,10 +102,12 @@ const Bubble: React.FC<{ msg: ChatMessage; isDoctor: boolean }> = ({ msg, isDoct
               src={msg.file_url}
               alt={msg.file_name ?? 'imagem'}
               className="max-w-full rounded-lg max-h-48 object-cover cursor-pointer"
-              onClick={() => window.open(msg.file_url!, '_blank')}
+              onClick={() => window.open(msg.file_url!, '_blank', 'noopener,noreferrer')}
             />
             <a
               href={`${msg.file_url}?download=${encodeURIComponent(msg.file_name ?? 'imagem')}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`flex items-center gap-1 mt-1 text-xs underline ${isDoctor ? 'text-white/70' : 'text-[#7d4a3c]'}`}
             >
               <Download className="w-3 h-3" /> Baixar
@@ -114,6 +116,8 @@ const Bubble: React.FC<{ msg: ChatMessage; isDoctor: boolean }> = ({ msg, isDoct
         ) : (
           <a
             href={`${msg.file_url}?download=${encodeURIComponent(msg.file_name ?? 'arquivo')}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className={`flex items-center gap-2 mt-1 text-xs underline ${isDoctor ? 'text-white/80' : 'text-[#7d4a3c]'}`}
           >
             <FileText className="w-3.5 h-3.5" />
@@ -268,10 +272,9 @@ export const AppointmentChatPanel: React.FC<Props> = ({ doctorId, patientId, pat
       const path = `chats/${chat.id}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from('chat-files').upload(path, file);
       if (upErr) throw upErr;
-      const { data } = supabase.storage.from('chat-files').getPublicUrl(path);
 
       const msg = await appointmentChatService.sendMessage(chat.id, null, {
-        url:    data.publicUrl,
+        url:    path,
         name:   file.name,
         type:   file.type,
         sizeKb: Math.round(file.size / 1024),
