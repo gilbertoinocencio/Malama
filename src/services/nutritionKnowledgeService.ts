@@ -1,8 +1,7 @@
 import { supabase } from './supabase';
-import { GeminiProxy } from '../lib/geminiProxy';
+import { CaramelAI } from '../lib/caramelAI';
 
-// O gemini-proxy ignora este valor no embedContent e sempre usa o embedding
-// do Caramel (caramelo-embed / Qwen3-Embedding). Mantido só como rótulo.
+// Embedding nativo do Caramel (Qwen3-Embedding).
 const EMBEDDING_MODEL = 'caramelo-embed';
 
 export interface GuidelineMatch {
@@ -24,7 +23,7 @@ export interface EmpiricalCaseMatch {
 }
 
 async function embedQuery(query: string): Promise<number[]> {
-  const model = new GeminiProxy().getGenerativeModel({ model: EMBEDDING_MODEL });
+  const model = new CaramelAI().getGenerativeModel({ model: EMBEDDING_MODEL });
   const { embedding } = await model.embedContent(query);
   return embedding.values;
 }
@@ -37,6 +36,36 @@ async function embedQuery(query: string): Promise<number[]> {
  *              from real users (scripts/generate-empirical-cases.js)
  */
 export const NutritionKnowledgeService = {
+  /** Pesquisa as duas memórias com um único embedding da pergunta. */
+  async searchBoth(
+    query: string,
+    guidelineCount = 3,
+    empiricalCount = 2,
+  ): Promise<{ guidelines: GuidelineMatch[]; empiricalCases: EmpiricalCaseMatch[] }> {
+    try {
+      const queryEmbedding = await embedQuery(query);
+      const [guidelinesResult, empiricalResult] = await Promise.all([
+        supabase.rpc('match_guidelines', {
+          query_embedding: queryEmbedding,
+          match_threshold: 0.41,
+          match_count: guidelineCount,
+        }),
+        supabase.rpc('match_empirical_cases', {
+          query_embedding: queryEmbedding,
+          match_threshold: 0.44,
+          match_count: empiricalCount,
+        }),
+      ]);
+      return {
+        guidelines: guidelinesResult.error ? [] : ((guidelinesResult.data as GuidelineMatch[]) || []),
+        empiricalCases: empiricalResult.error ? [] : ((empiricalResult.data as EmpiricalCaseMatch[]) || []),
+      };
+    } catch (error) {
+      console.error('NutritionKnowledgeService.searchBoth failed:', error);
+      return { guidelines: [], empiricalCases: [] };
+    }
+  },
+
   async search(
     query: string,
     matchCount = 5,

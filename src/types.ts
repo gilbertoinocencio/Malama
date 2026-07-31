@@ -171,8 +171,7 @@ export interface AIResponse {
   confidence?: number;
   message?: string; // Mensagem motivacional do coach
   /** Id da requisição no Caramel — permite enviar feedback (👍/👎) casando
-   *  o sinal com a decisão de roteamento do Telê. Ausente se a análise veio
-   *  do fallback Gemini. */
+   *  o sinal com a decisão de roteamento do Telê. */
   idRequisicao?: string | null;
 }
 

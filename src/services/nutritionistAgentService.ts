@@ -1,8 +1,8 @@
 import { supabase } from './supabase';
-import { GeminiProxy } from '../lib/geminiProxy';
+import { CaramelAI, CARAMEL_AUTO_MODEL } from '../lib/caramelAI';
 
-const genAI = new GeminiProxy();
-const MODEL_NAME = "gemini-2.5-flash";
+const genAI = new CaramelAI();
+const MODEL_NAME = CARAMEL_AUTO_MODEL;
 
 // Onboarding Stages
 export type OnboardingStage =

@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { GeminiProxy } from '../lib/geminiProxy';
+import { CaramelAI, CARAMEL_AUTO_MODEL } from '../lib/caramelAI';
 import { getLocalDateString } from '../utils/dateUtils';
 import { glp1Service } from './glp1Service';
 import { WeightLogService, MeasurementSnapshotService } from './weightLogService';
@@ -7,13 +7,16 @@ import { userReportedWaterIntake, parseStatedMl, isPureWaterLog, mentionsQuantit
 import { normalizeGender } from '../utils/bodyCompositionCalculators';
 import { NutritionKnowledgeService } from './nutritionKnowledgeService';
 import { sanitizeAiText } from '../utils/sanitizeAiText';
+import { parseAiJson } from '../utils/parseAiJson';
 
-const genAI = new GeminiProxy();
-const MODEL_NAME = "gemini-2.5-flash";
+const genAI = new CaramelAI();
+const MODEL_NAME = CARAMEL_AUTO_MODEL;
 
 // Deduplication guard: userId → timestamp of last water log
 // Prevents double-registration if sendMessage is called twice within 10 s
 const recentWaterLogTs = new Map<string, number>();
+const chatSessionCache = new Map<string, { session: ChatSession; cachedAt: number }>();
+const CHAT_SESSION_CACHE_MS = 5 * 60 * 1000;
 
 // Onboarding Stages (mesma estrutura do nutritionistAgentService)
 export type OnboardingStage =
@@ -64,6 +67,11 @@ export const UnifiedChatService = {
    * Get or create session for user
    */
   async getOrCreateSession(userId: string): Promise<ChatSession> {
+    const cached = chatSessionCache.get(userId);
+    if (cached && Date.now() - cached.cachedAt < CHAT_SESSION_CACHE_MS) {
+      return cached.session;
+    }
+
     // Try to get existing onboarding session
     let { data: onboardingSession } = await supabase
       .from('ai_chat_sessions')
@@ -89,7 +97,9 @@ export const UnifiedChatService = {
           .single();
         chatSession = newChatSession;
       }
-      return chatSession as ChatSession;
+      const session = chatSession as ChatSession;
+      chatSessionCache.set(userId, { session, cachedAt: Date.now() });
+      return session;
     };
 
     // If onboarding session exists and is completed → chat mode
@@ -255,7 +265,7 @@ export const UnifiedChatService = {
         const aiWaterMl = (() => {
           if (waterMatches.length === 0) return 0;
           try {
-            const ml = Number(JSON.parse(waterMatches[0][1]).ml);
+            const ml = Number(parseAiJson<{ ml: number }>(waterMatches[0][1]).ml);
             return !isNaN(ml) && ml > 0 ? ml : 0;
           } catch { return 0; }
         })();
@@ -329,7 +339,7 @@ export const UnifiedChatService = {
         const doseMatch = aiResponse.content.match(/<dose_json>([\s\S]*?)<\/dose_json>/);
         if (doseMatch) {
           try {
-            const doseData = JSON.parse(doseMatch[1]);
+            const doseData = parseAiJson<any>(doseMatch[1]);
             await glp1Service.saveDose(userId, doseData);
           } catch (e) {
             console.error('Failed to parse or save dose JSON:', e);
@@ -344,7 +354,7 @@ export const UnifiedChatService = {
           if (mealMatch) {
             try {
               const { MealService } = await import('./mealService');
-              const mealData = JSON.parse(mealMatch[1]);
+              const mealData = parseAiJson<any>(mealMatch[1]);
               const newMeal = {
                 id: Date.now().toString(),
                 name: mealData.foodName,
@@ -537,11 +547,14 @@ Responda APENAS com o JSON, sem texto adicional.
 
     // Fetch user context and (conditionally) the agent's two knowledge memories
     // (curated theory + anonymized empirical cases) concurrently.
-    const [context, guidelineMatches, empiricalMatches] = await Promise.all([
-      this.getContext(userId),
-      shouldRunRag ? NutritionKnowledgeService.search(userMessage, 3) : Promise.resolve([]),
-      shouldRunRag ? NutritionKnowledgeService.searchEmpiricalCases(userMessage, 2) : Promise.resolve([]),
+    const [context, knowledgeMatches] = await Promise.all([
+      this.getContextFast(userId),
+      shouldRunRag
+        ? NutritionKnowledgeService.searchBoth(userMessage, 3, 2)
+        : Promise.resolve({ guidelines: [], empiricalCases: [] }),
     ]);
+    const guidelineMatches = knowledgeMatches.guidelines;
+    const empiricalMatches = knowledgeMatches.empiricalCases;
     const profile = context.profile;
 
     // ── GLP-1 dose history (only when mode is active) ──
@@ -577,12 +590,15 @@ Responda APENAS com o JSON, sem texto adicional.
     const canonicalGender = profile.gender === 'non_binary' ? 'non_binary' : normalizeGender(profile.gender);
     const gender = genderMap[canonicalGender] || 'Não informado';
     // Explicit, imperative gender-agreement rule (the persona is female, but the USER is addressed by THEIR gender).
-    const userNameStr = profile.display_name ? profile.display_name.split(' ')[0] : 'o(a) usuário(a)';
+    const userNameStr = profile.display_name?.trim().split(/\s+/)[0] || '';
+    const nameInstruction = userNameStr
+      ? `Chame a pessoa pelo primeiro nome (${userNameStr}) quando usar um vocativo.`
+      : 'O nome não está disponível; não use vocativos genéricos.';
     const genderAgreement = canonicalGender === 'non_binary'
-      ? `Dirija-se ao usuário pelo nome (${userNameStr}) e de forma NEUTRA em gênero. Evite vocativos genéricos como "amigo/amiga" ou adjetivos marcados.`
+      ? `${nameInstruction} Use linguagem NEUTRA em gênero e NUNCA use "amigo", "amiga" ou outro vocativo genérico.`
       : canonicalGender === 'male'
-        ? `O usuário é HOMEM. Chame-o pelo nome (${userNameStr}) e trate-o no masculino (adjetivos masculinos como "focado", "preparado"). NUNCA use "amigo" como vocativo, use sempre o nome dele.`
-        : `A usuária é MULHER. Chame-a pelo nome (${userNameStr}) e trate-a no feminino (adjetivos femininos como "focada", "preparada"). NUNCA use "amiga" como vocativo, use sempre o nome dela.`;
+        ? `O usuário é HOMEM. ${nameInstruction} Use adjetivos masculinos como "focado" e "preparado". NUNCA use "amigo".`
+        : `A usuária é MULHER. ${nameInstruction} Use adjetivos femininos como "focada" e "preparada". NUNCA use "amiga".`;
     const activityLevel = activityMap[profile.activity_level] || profile.activity_level || 'Não informado';
     const restrictionsList = Array.isArray(profile.dietary_restrictions) && profile.dietary_restrictions.length > 0
       ? profile.dietary_restrictions.join(', ')
@@ -1146,7 +1162,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
 
 
     // thinkingBudget:0 — disable extended thinking for chat responses.
-    // gemini-2.5-flash enables thinking by default, which adds latency and causes the model
+    // Desabilita raciocínio estendido para reduzir a latência das respostas de chat.
     // to emit explicit [thinking]...[/thinking] blocks that leak to the user.
     const model = genAI.getGenerativeModel({
       model: MODEL_NAME,
@@ -1233,7 +1249,7 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
         .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
         .trim();
 
-      // Rede de segurança: o gemini-2.5-flash às vezes injeta tokens em chinês/japonês/
+      // Rede de segurança para tokens espúrios em chinês/japonês/
       // coreano/cirílico no meio do português (ex.: "o胆固醇 da gema"). A regra no prompt
       // reduz, mas não zera; aqui removemos qualquer resquício antes de exibir ao usuário.
       text = sanitizeAiText(text);
@@ -1260,6 +1276,97 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
   /**
    * Get user context for personalization
    */
+  async getContextFast(userId: string): Promise<any> {
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const today = getLocalDateString();
+    const profileFields = [
+      'display_name', 'gender', 'date_of_birth', 'age', 'weight', 'height', 'bmi',
+      'body_fat', 'biotype', 'goal', 'primary_goal', 'additional_goals',
+      'target_weight_kg', 'goal_speed_kg_per_week', 'activity_level', 'diet_type',
+      'dietary_restrictions', 'dietary_restrictions_detail', 'habit_changes',
+      'eating_location', 'drinks_enough_water', 'eating_window_start',
+      'eating_window_end', 'meals_per_day', 'knows_intermittent_fasting',
+      'calorie_tracking_experience', 'target_calories', 'target_protein',
+      'target_carbs', 'target_fats', 'glp1_mode', 'glp1_medication', 'glp1_phase',
+      'glp1_main_concern', 'glp1_symptoms', 'current_streak', 'longest_streak', 'level',
+    ].join(',');
+
+    const results = await Promise.allSettled([
+      supabase.from('profiles').select(profileFields).eq('id', userId).maybeSingle(),
+      supabase.from('meals').select('name, calories, protein, carbs, fats, created_at')
+        .eq('user_id', userId).gte('created_at', threeDaysAgo.toISOString())
+        .order('created_at', { ascending: false }).limit(10),
+      supabase.from('historical_summaries').select('summary').eq('user_id', userId)
+        .order('created_at', { ascending: false }).limit(1),
+      supabase.from('ai_chat_messages').select('role, content').eq('user_id', userId)
+        .order('created_at', { ascending: false }).limit(10),
+      supabase.from('quarterly_plans').select('id, content, start_date, end_date')
+        .eq('user_id', userId).eq('status', 'active')
+        .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('daily_checkins')
+        .select('energy_level, hunger_level, mood, motivation, sleep_hours, sleep_quality, weight, notes, symptoms')
+        .eq('user_id', userId).eq('checkin_date', today)
+        .order('created_at', { ascending: false }).limit(1),
+      supabase.from('meal_suggestions').select('meal_name, ingredients').eq('user_id', userId)
+        .eq('accepted', false).gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: false }).limit(15),
+      supabase.from('coaching_insights')
+        .select('insight_type, priority, title, message, action_items, related_to')
+        .eq('user_id', userId).in('priority', ['high', 'urgent']).eq('dismissed', false)
+        .or(`valid_until.is.null,valid_until.gte.${today}`)
+        .order('created_at', { ascending: false }).limit(3),
+      WeightLogService.getWeightHistory(userId, 10),
+      MeasurementSnapshotService.getLatestSnapshot(userId),
+    ]);
+
+    const valueAt = (index: number): any => results[index].status === 'fulfilled'
+      ? (results[index] as PromiseFulfilledResult<any>).value
+      : null;
+    const profile = valueAt(0)?.data || {};
+    const recentMeals = valueAt(1)?.data || [];
+    const planRow = valueAt(4)?.data;
+    const quarterlyPlan = planRow
+      ? { id: planRow.id, ...(planRow.content || {}), start_date: planRow.start_date, end_date: planRow.end_date }
+      : null;
+
+    const todayMeals = recentMeals.filter((meal: any) =>
+      getLocalDateString(new Date(meal.created_at)) === today
+    );
+    const totals = todayMeals.reduce((acc: any, meal: any) => ({
+      calories: acc.calories + Number(meal.calories || 0),
+      protein: acc.protein + Number(meal.protein || 0),
+      carbs: acc.carbs + Number(meal.carbs || 0),
+    }), { calories: 0, protein: 0, carbs: 0 });
+    const dailyAlerts: string[] = [];
+    if (totals.calories > Number(profile.target_calories || 2000) * 1.1) {
+      dailyAlerts.push(`ALERTA DE SISTEMA: consumo de ${Math.round(totals.calories)}kcal acima da meta de ${profile.target_calories || 2000}kcal hoje.`);
+    }
+    if (totals.carbs > Number(profile.target_carbs || 200) * 1.1) {
+      dailyAlerts.push(`ALERTA DE SISTEMA: carboidratos acima da meta hoje (${Math.round(totals.carbs)}g).`);
+    }
+    if (totals.protein < Number(profile.target_protein || 150) * 0.3 && new Date().getHours() > 18) {
+      dailyAlerts.push(`ALERTA DE SISTEMA: proteína baixa no fim do dia (${Math.round(totals.protein)}g).`);
+    }
+
+    return {
+      profile,
+      recentMeals,
+      recentChatMessages: valueAt(3)?.data || [],
+      historicalSummary: valueAt(2)?.data?.[0]?.summary ?? null,
+      dailyAlerts,
+      quarterlyPlan,
+      latestCheckin: valueAt(5)?.data?.[0] ?? null,
+      rejectedSuggestions: valueAt(6)?.data || [],
+      activeInsights: valueAt(7)?.data || [],
+      recentWeightLogs: valueAt(8) || [],
+      latestBodySnapshot: valueAt(9) || null,
+    };
+  },
+
+  /** Compatibilidade para outros consumidores; o chat usa getContextFast. */
   async getContext(userId: string): Promise<any> {
     // Get V2 profile (the single source of truth for user data)
     const { data: profile } = await supabase

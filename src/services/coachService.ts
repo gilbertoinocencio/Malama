@@ -1,9 +1,9 @@
 import { supabase } from './supabase';
-import { GeminiProxy } from '../lib/geminiProxy';
+import { CaramelAI, CARAMEL_FAST_MODEL } from '../lib/caramelAI';
 import { getLocalDateString } from '../utils/dateUtils';
 
-const genAI = new GeminiProxy();
-const MODEL_NAME = "gemini-2.5-flash";
+const genAI = new CaramelAI();
+const MODEL_NAME = CARAMEL_FAST_MODEL;
 
 export interface DailyMission {
   id?: string;
@@ -310,8 +310,17 @@ export const CoachService = {
   async submitCheckin(userId: string, checkinData: Partial<DailyCheckin>): Promise<DailyCheckin> {
     const today = getLocalDateString();
 
-    // Generate AI coach feedback based on checkin
-    const coachFeedback = await this.generateCheckinFeedback(userId, checkinData);
+    // O registro não deve ficar esperando uma inferência. Esta resposta curta é
+    // útil e determinística; o Caramel enriquece o texto em background depois.
+    const coachFeedback = (() => {
+      if ((checkinData.sleep_hours ?? 8) < 6 || (checkinData.sleep_quality ?? 10) <= 4) {
+        return 'Seu sono parece ter pedido mais cuidado hoje. Priorize refeições simples, hidrate-se e tente desacelerar mais cedo à noite.';
+      }
+      if ((checkinData.energy_level ?? 10) <= 4 || (checkinData.mood ?? 10) <= 4) {
+        return 'Hoje vale ir com mais gentileza e constância. Faça uma refeição equilibrada e escolha uma ação pequena que caiba na sua energia.';
+      }
+      return 'Check-in registrado! Mantenha esse ritmo e use essa boa disposição em uma escolha prática a favor do seu objetivo hoje.';
+    })();
 
     const checkin = {
       user_id: userId,
@@ -328,13 +337,26 @@ export const CoachService = {
 
     if (error) throw error;
 
-    // Mark checkin mission as complete
-    await supabase
+    // Missão e enriquecimento são efeitos secundários: não seguram a interface.
+    void supabase
       .from('daily_missions')
       .update({ completed: true, current_value: 1, completed_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('mission_date', today)
-      .eq('mission_type', 'checkin');
+      .eq('mission_type', 'checkin')
+      .then(({ error }) => {
+        if (error) console.error('Erro ao concluir missão de check-in:', error);
+      });
+
+    void this.generateCheckinFeedback(userId, checkinData).then(async (enrichedFeedback) => {
+      if (!enrichedFeedback) return;
+      const { error: feedbackError } = await supabase
+        .from('daily_checkins')
+        .update({ coach_feedback: enrichedFeedback })
+        .eq('user_id', userId)
+        .eq('checkin_date', today);
+      if (feedbackError) console.error('Erro ao enriquecer feedback do check-in:', feedbackError);
+    }).catch(() => {});
 
     return data as DailyCheckin;
   },
@@ -365,10 +387,25 @@ export const CoachService = {
    */
   async generateCheckinFeedback(userId: string, checkinData: Partial<DailyCheckin>): Promise<string> {
     try {
-      const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+      const model = genAI.getGenerativeModel({
+        model: MODEL_NAME,
+        generationConfig: { thinkingConfig: { thinkingBudget: 0 }, maxOutputTokens: 300 },
+      });
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', userId)
+        .maybeSingle();
+      const firstName = profile?.display_name?.trim().split(/\s+/)[0] || '';
 
       const prompt = `
 Você é um coach nutricional empático e motivador.
+
+${firstName
+  ? `O nome da pessoa é ${firstName}. Se usar um vocativo, use somente esse primeiro nome.`
+  : 'O nome não está disponível; não use vocativo.'}
+NUNCA use "amigo", "amiga" ou outro vocativo genérico.
 
 O usuário fez o check-in diário com as seguintes informações:
 - Nível de energia: ${checkinData.energy_level}/10

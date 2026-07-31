@@ -1,10 +1,10 @@
-import { GeminiProxy } from './geminiProxy';
+import { CaramelAI, CARAMEL_DEEP_MODEL } from './caramelAI';
 import { supabase } from '../services/supabase';
 import { ClinicalLoopService } from '../services/clinicalLoopService';
 import { NutritionKnowledgeService } from '../services/nutritionKnowledgeService';
 
-const genAI = new GeminiProxy();
-const MODEL_NAME = 'gemini-2.5-flash';
+const genAI = new CaramelAI();
+const MODEL_NAME = CARAMEL_DEEP_MODEL;
 
 export interface ConsultationBriefingResult {
   text: string;

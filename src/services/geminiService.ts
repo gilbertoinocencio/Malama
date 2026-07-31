@@ -1,10 +1,11 @@
-import { SchemaType } from "@google/generative-ai";
-import { GeminiProxy } from '../lib/geminiProxy';
+import { SchemaType } from '../lib/aiSchema';
+import { CaramelAI, CARAMEL_AUTO_MODEL, CARAMEL_FAST_MODEL } from '../lib/caramelAI';
 import { AIResponse, MealItem, MicroNutrients, Profile } from '../types';
 import { searchOpenFoodFacts, formatOFFBlock } from './openFoodFactsService';
 import { normalizeGender } from '../utils/bodyCompositionCalculators';
 import { NutritionKnowledgeService } from './nutritionKnowledgeService';
 import { sanitizeAiText } from '../utils/sanitizeAiText';
+import { parseAiJson } from '../utils/parseAiJson';
 
 /**
  * Deterministic meal-slot label from the device clock. Single source of truth for
@@ -22,14 +23,18 @@ export const getMealSlotLabel = (date: Date = new Date()): string => {
 };
 
 /** Portuguese gender-agreement instruction for the user being addressed. */
-const genderAgreementRule = (raw?: string | null): string => {
+const genderAgreementRule = (raw?: string | null, displayName?: string | null): string => {
+  const firstName = displayName?.trim().split(/\s+/)[0];
+  const nameRule = firstName
+    ? `Chame a pessoa pelo primeiro nome (${firstName}) quando usar um vocativo.`
+    : 'Como o nome não está disponível, não use nenhum vocativo genérico.';
   if (raw === 'non_binary') {
-    return 'IMPORTANTE: dirija-se ao usuário de forma NEUTRA em gênero (evite "amigo/amiga", "focado/focada"). Use construções neutras.';
+    return `IMPORTANTE: dirija-se à pessoa de forma NEUTRA em gênero. ${nameRule} NUNCA use "amigo", "amiga" ou outro vocativo genérico.`;
   }
   const g = normalizeGender(raw);
   return g === 'male'
-    ? 'IMPORTANTE: o usuário é do gênero MASCULINO. Trate-o no masculino — "amigo", e todos os adjetivos no masculino ("focado", "encaminhado", "preparado"). NUNCA use "amiga" ou adjetivos femininos.'
-    : 'IMPORTANTE: a usuária é do gênero FEMININO. Trate-a no feminino — "amiga", e todos os adjetivos no feminino ("focada", "encaminhada", "preparada").';
+    ? `IMPORTANTE: o usuário é do gênero MASCULINO. Use adjetivos no masculino ("focado", "preparado"). ${nameRule} NUNCA use "amigo".`
+    : `IMPORTANTE: a usuária é do gênero FEMININO. Use adjetivos no feminino ("focada", "preparada"). ${nameRule} NUNCA use "amiga".`;
 };
 
 // Shared micronutrient schema properties (optional — not in required[])
@@ -62,14 +67,10 @@ Para cada item, inclua também os seguintes campos quando disponíveis nas bases
 - vitamin_b12 (Vitamina B12, mcg), vitamin_b6 (Vitamina B6, mg), folate (Folato, mcg)
 Use os valores por 100g da base de dados e escale proporcionalmente ao weightGrams do item. Omita campos que não constam na base para aquele alimento.`;
 
-const getGenAI = () => new GeminiProxy();
+const getGenAI = () => new CaramelAI();
 
-// Helper to clean JSON string if Markdown code blocks are present
-const cleanJsonString = (str: string) => {
-  return str.replace(/```json/g, '').replace(/```/g, '').trim();
-};
-
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = CARAMEL_AUTO_MODEL;
+const FAST_MODEL_NAME = CARAMEL_FAST_MODEL;
 const IMAGE_MODEL_NAME = MODEL_NAME;
 
 const LANG_NAMES: Record<string, string> = {
@@ -81,9 +82,10 @@ const LANG_NAMES: Record<string, string> = {
 export const analyzeTextLog = async (text: string, language: string = 'pt', profile?: Profile | null): Promise<AIResponse> => {
   try {
     const model = getGenAI().getGenerativeModel({
-      model: MODEL_NAME,
+      model: FAST_MODEL_NAME,
       generationConfig: {
         responseMimeType: "application/json",
+        maxOutputTokens: 3000,
         responseSchema: {
           type: SchemaType.OBJECT,
           properties: {
@@ -113,10 +115,9 @@ export const analyzeTextLog = async (text: string, language: string = 'pt', prof
                   micros: {
                     type: SchemaType.OBJECT,
                     properties: { ...MICRO_SCHEMA_PROPERTIES },
-                    required: Object.keys(MICRO_SCHEMA_PROPERTIES) as string[],
                   },
                 },
-                required: ["name", "weightGrams", "calories", "protein", "carbs", "fats", "micros"]
+                required: ["name", "weightGrams", "calories", "protein", "carbs", "fats"]
               }
             },
             message: { type: SchemaType.STRING }
@@ -128,19 +129,11 @@ export const analyzeTextLog = async (text: string, language: string = 'pt', prof
 
     const langName = LANG_NAMES[language] || LANG_NAMES.pt;
 
-    // Primary source: OpenFoodFacts (free, real data). Falls back to TACO/USDA via Gemini training.
-    // Only use the OFf result if the product name is relevant to what was typed — a full-sentence
-    // query like "Comi pão francês com tres ovos" can match a completely unrelated product
-    // (e.g. Coca-Cola Zero), which would then poison the Gemini prompt as "primary reference".
-    const offResult = await searchOpenFoodFacts(text);
-    const isOffRelevant = (result: typeof offResult): boolean => {
-      if (!result) return false;
-      const inputWords = text.toLowerCase().replace(/[^a-záéíóúâêôãõç\s]/g, ' ').split(/\s+/).filter(w => w.length > 3);
-      const resultName = result.name.toLowerCase();
-      // Accept only if at least one significant word from the input appears in the product name
-      return inputWords.some(word => resultName.includes(word));
-    };
-    const offBlock = isOffRelevant(offResult) ? formatOFFBlock(offResult!) : '';
+    // Logs em linguagem natural quase sempre descrevem vários alimentos. Consultar
+    // OpenFoodFacts aqui adicionava até 10 s e frequentemente retornava um produto
+    // comercial sem relação com a frase. A base continua sendo usada no lookup de
+    // item único e no leitor de código de barras, onde a busca é precisa.
+    const offBlock = '';
 
     // Build user context from profile
     const userContext = profile ? `
@@ -156,7 +149,7 @@ export const analyzeTextLog = async (text: string, language: string = 'pt', prof
 - **Daily Protein Target:** ${profile.target_protein ? profile.target_protein + 'g' : 'Not defined'}
 
 ## CONCORDÂNCIA DE GÊNERO NO CAMPO "message" (OBRIGATÓRIO)
-${genderAgreementRule(profile.gender)}
+${genderAgreementRule(profile.gender, profile.display_name)}
 ` : '';
 
     const prompt = `You are Malama, a clinical-grade nutrition analysis engine AND a strict, evidence-based nutritionist who cares about the user's health.
@@ -209,7 +202,7 @@ ALL text responses MUST be in ${langName}.`;
 
     if (!jsonStr) throw new Error("Empty response");
 
-    const analise = JSON.parse(cleanJsonString(jsonStr)) as AIResponse;
+    const analise = parseAiJson<AIResponse>(jsonStr);
     analise.idRequisicao = (result as { idRequisicao?: string | null }).idRequisicao ?? null;
     return analise;
   } catch (error) {
@@ -238,9 +231,10 @@ export const lookupSingleItem = async (
 ): Promise<SingleItemNutrition> => {
 
   const model = getGenAI().getGenerativeModel({
-    model: MODEL_NAME,
+    model: FAST_MODEL_NAME,
     generationConfig: {
       responseMimeType: "application/json",
+      maxOutputTokens: 1200,
       responseSchema: {
         type: SchemaType.OBJECT,
         properties: {
@@ -251,7 +245,6 @@ export const lookupSingleItem = async (
           micros: {
             type: SchemaType.OBJECT,
             properties: { ...MICRO_SCHEMA_PROPERTIES },
-            required: Object.keys(MICRO_SCHEMA_PROPERTIES) as string[],
           },
         },
         required: ["calories", "protein", "carbs", "fats", "micros"]
@@ -293,10 +286,14 @@ ${MICRO_PROMPT_INSTRUCTIONS}`;
   const jsonStr = response.text();
   if (!jsonStr) throw new Error("Empty response");
 
-  return JSON.parse(cleanJsonString(jsonStr)) as SingleItemNutrition;
+  return parseAiJson<SingleItemNutrition>(jsonStr);
 };
 
-export const analyzeImageLog = async (base64Image: string, language: string = 'pt'): Promise<AIResponse> => {
+export const analyzeImageLog = async (
+  base64Image: string,
+  language: string = 'pt',
+  profile?: Profile | null,
+): Promise<AIResponse> => {
 
   try {
     const mimeType = base64Image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/png';
@@ -306,6 +303,7 @@ export const analyzeImageLog = async (base64Image: string, language: string = 'p
       model: IMAGE_MODEL_NAME,
       generationConfig: {
         responseMimeType: "application/json",
+        maxOutputTokens: 3000,
         responseSchema: {
           type: SchemaType.OBJECT,
           properties: {
@@ -335,10 +333,9 @@ export const analyzeImageLog = async (base64Image: string, language: string = 'p
                   micros: {
                     type: SchemaType.OBJECT,
                     properties: { ...MICRO_SCHEMA_PROPERTIES },
-                    required: Object.keys(MICRO_SCHEMA_PROPERTIES) as string[],
                   },
                 },
-                required: ["name", "weightGrams", "calories", "protein", "carbs", "fats", "micros"]
+                required: ["name", "weightGrams", "calories", "protein", "carbs", "fats"]
               }
             },
             message: { type: SchemaType.STRING }
@@ -360,11 +357,12 @@ Rules:
 - Include a "quantity" field (e.g. "1 filé médio", "2 conchas").
 - Round all numbers to the nearest integer. Total calories/macros must equal the sum of items.
 - "message": short, honest feedback in ${langName}, written in the warm human voice of Malama (a real nutritionist friend), NOT as a clinical report. Natural and coloquial — never robotic phrasing like "Esta refeição forneceu X kcal e Yg de proteína, contribuindo para...".
+${genderAgreementRule(profile?.gender, profile?.display_name)}
 ${MICRO_PROMPT_INSTRUCTIONS}
 ALL text MUST be in ${langName}.`;
 
     const result = await model.generateContent([prompt, { inlineData: { mimeType, data } }]);
-    const analise = JSON.parse(result.response.text()) as AIResponse;
+    const analise = parseAiJson<AIResponse>(result.response.text());
     // Carrega o id da requisição para o sinal de feedback implícito
     // (confirmou = 👍 / editou = 👎) no MealLogger.
     analise.idRequisicao = (result as { idRequisicao?: string | null }).idRequisicao ?? null;
@@ -400,9 +398,10 @@ export const generateMealFeedback = async (
 ): Promise<string> => {
   try {
     const model = getGenAI().getGenerativeModel({
-      model: MODEL_NAME,
+      model: FAST_MODEL_NAME,
       generationConfig: {
         responseMimeType: "application/json",
+        maxOutputTokens: 800,
         thinkingConfig: { thinkingBudget: 0 } as any,
       },
     });
@@ -463,7 +462,7 @@ export const generateMealFeedback = async (
       activityBlock = `\n## ATIVIDADES FÍSICAS HOJE\n${acts}`;
     }
 
-    const genderRule = genderAgreementRule(ctx?.profile?.gender);
+    const genderRule = genderAgreementRule(ctx?.profile?.gender, ctx?.profile?.display_name);
 
     const prompt = `Você é a Malama — uma nutricionista de verdade, próxima do paciente. Você fala como gente, não como relatório clínico. O usuário acabou de registrar uma refeição e você dá uma reação rápida, como uma nutricionista de confiança comentaria olhando o prato dele. Responda em ${langName}.
 
@@ -499,7 +498,7 @@ Se houver atividade física hoje E for relevante, conecte em poucas palavras. Es
 Return JSON: {"message": "feedback here"}`;
 
     const result = await model.generateContent(prompt);
-    const parsed = JSON.parse(cleanJsonString(result.response.text()));
+    const parsed = parseAiJson<{ message?: string }>(result.response.text());
     // Rede de segurança: remove tokens CJK/cirílicos que o modelo às vezes injeta no
     // meio do texto (os idiomas suportados — pt/en/es — usam só alfabeto latino).
     return sanitizeAiText(parsed.message || '');
@@ -645,13 +644,13 @@ export const generatePlanContent = async (profile: any, onboardingData?: any, la
     const response = await result.response;
     const jsonStr = response.text() || "{}";
 
-    return JSON.parse(cleanJsonString(jsonStr));
+    return parseAiJson(jsonStr);
   } catch (error) {
-    console.error("Gemini Plan Error:", error);
+    console.error("Caramel Plan Error:", error);
     return {
       calories: 2200,
       macros: { protein: 160, carbs: 220, fats: 70 },
-      optimization_tag: "Otimizado: IA Fallback",
+      optimization_tag: "Plano padrão temporário",
       phases: [
         {
           title: "Adaptação", tag: "Fase 1",

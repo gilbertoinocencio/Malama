@@ -44,7 +44,7 @@ export interface OFFBarcodeResult {
   imageUrl?: string;
 }
 
-const TIMEOUT_MS = 5000;
+const TIMEOUT_MS = 2500;
 const FIELDS = 'product_name,nutriments';
 const PAGE_SIZE = 5;
 
@@ -135,9 +135,11 @@ async function fetchOFF(baseUrl: string, query: string): Promise<OFFResult | nul
  * Tries Brazilian DB first, then global DB.
  */
 export async function searchOpenFoodFacts(query: string): Promise<OFFResult | null> {
-  const brResult = await fetchOFF('https://br.openfoodfacts.org', query);
-  if (brResult) return brResult;
-  return fetchOFF('https://world.openfoodfacts.org', query);
+  const [brResult, worldResult] = await Promise.all([
+    fetchOFF('https://br.openfoodfacts.org', query),
+    fetchOFF('https://world.openfoodfacts.org', query),
+  ]);
+  return brResult || worldResult;
 }
 
 // ─── Lookup by barcode ───────────────────────────────────────────────
@@ -275,9 +277,8 @@ export async function enrichBarcodeWithAI(result: OFFBarcodeResult, language: st
   const n = result.per100g;
 
   try {
-    const { SchemaType } = await import('@google/generative-ai');
-    const { GeminiProxy } = await import('../lib/geminiProxy');
-    const model = new GeminiProxy().getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const { CaramelAI, CARAMEL_FAST_MODEL } = await import('../lib/caramelAI');
+    const model = new CaramelAI().getGenerativeModel({ model: CARAMEL_FAST_MODEL });
 
     const prompt = `Você é um nutricionista especialista em análise nutricional com acesso às bases TACO (Brasil) e USDA (EUA).
 

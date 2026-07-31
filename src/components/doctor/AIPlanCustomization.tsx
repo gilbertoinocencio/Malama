@@ -173,7 +173,7 @@ export const AIPlanCustomization: React.FC<Props> = ({ patientId, doctorId, doct
       patient_id:        patientId,
       doctor_id:         doctorId,
       report_type:       'plan_suggestion',
-      model:             'gemini-2.5-flash',
+      model:             'caramelo-fenomeno',
       content:           summary,
       structured_output: { ...c, plan_id: plan.id },
     });

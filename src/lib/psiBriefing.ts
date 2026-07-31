@@ -25,13 +25,13 @@
 // de cada afirmação. "Extrativo" precisa ser verificável, não prometido.
 // =====================================================
 
-import { GeminiProxy } from './geminiProxy';
+import { CaramelAI, CARAMEL_DEEP_MODEL } from './caramelAI';
 import type { PsiContexto } from '../services/psychologyService';
 import type { Srq20Aplicacao } from '../services/psychologyService';
 import { CORTE_REFERENCIA } from '../services/srq20';
 
-const genAI = new GeminiProxy();
-const MODEL_NAME = 'gemini-2.5-flash';
+const genAI = new CaramelAI();
+const MODEL_NAME = CARAMEL_DEEP_MODEL;
 
 export type PsiBriefing = {
   /** Prosa curta. Vazia se o modelo falhar — os fatos continuam de pé. */

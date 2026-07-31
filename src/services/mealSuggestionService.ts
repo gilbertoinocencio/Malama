@@ -1,10 +1,10 @@
 import { supabase } from './supabase';
-import { GeminiProxy } from '../lib/geminiProxy';
+import { CaramelAI, CARAMEL_AUTO_MODEL } from '../lib/caramelAI';
 import { MealSuggestion } from './coachService';
 import { getLocalDateString } from '../utils/dateUtils';
 
-const genAI = new GeminiProxy();
-const MODEL_NAME = "gemini-2.5-flash";
+const genAI = new CaramelAI();
+const MODEL_NAME = CARAMEL_AUTO_MODEL;
 
 export const MealSuggestionService = {
   /**

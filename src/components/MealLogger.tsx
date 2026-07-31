@@ -1,16 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse, MealItem } from '../types';
-import { analyzeTextLog, analyzeImageLog, generateMealFeedback, MealFeedbackContext, getMealSlotLabel } from '../services/geminiService';
+import { analyzeTextLog, analyzeImageLog, getMealSlotLabel } from '../services/geminiService';
 import { UnifiedChatService } from '../services/unifiedChatService';
-import { enviarFeedback, enviarCorrecao } from '../lib/geminiProxy';
+import { enviarFeedback, enviarCorrecao } from '../lib/caramelAI';
 import { userReportedWaterIntake, isBareQuantityAnswer } from '../utils/intakeDetection';
+import { parseAiJson } from '../utils/parseAiJson';
 
 import { MalamaAiScan } from './MalamaAiScan';
 import { USER_AVATAR } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { MealService } from '../services/mealService';
-import { StatsService } from '../services/statsService';
-import { IntegrationService } from '../services/integrationService';
 import { useLanguage } from '../i18n';
 
 
@@ -209,7 +208,7 @@ const historyToMessages = (history: any[]): Message[] => {
             .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
             .replace(/<image_uri>[\s\S]*?<\/image_uri>/g, '')
             .trim();
-          const parsedMeal: AIResponse = JSON.parse(mealMatch[1]);
+          const parsedMeal = parseAiJson<AIResponse>(mealMatch[1]);
           result.push({ id: msg.id + '-card', type: 'ai-card', content: parsedMeal, imageUri: savedImageUri });
           if (cleanText) result.push({ id: msg.id + '-text', type: 'ai-text', content: cleanText });
         } catch {
@@ -242,26 +241,6 @@ const getDateLabel = (isoDate: string): string => {
   if (d.toDateString() === today.toDateString()) return 'Hoje';
   if (d.toDateString() === yesterday.toDateString()) return 'Ontem';
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
-};
-
-const buildFeedbackContext = async (userId: string, profile: import('../types').Profile | null): Promise<MealFeedbackContext> => {
-  const [stats, latestActivity] = await Promise.allSettled([
-    StatsService.getDailyStats(userId, new Date()),
-    IntegrationService.getLatestActivity(userId),
-  ]);
-  const s = stats.status === 'fulfilled' ? stats.value : null;
-  const act = latestActivity.status === 'fulfilled' ? latestActivity.value : null;
-
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const isToday = act ? act.activity_date?.slice(0, 10) === todayStr : false;
-
-  return {
-    profile,
-    consumedToday: s ? { calories: s.consumedCalories, protein: s.macros.protein, carbs: s.macros.carbs, fats: s.macros.fats } : undefined,
-    targetToday:   s ? { calories: s.targetCalories,   protein: s.targetMacros.protein, carbs: s.targetMacros.carbs, fats: s.targetMacros.fats } : undefined,
-    activitiesToday: isToday && act ? [act] : [],
-    mealTime: new Date(),
-  };
 };
 
 // ── Routing indicator lists (module-scope so both isQuestion and isPureMealReport reuse them) ──
@@ -658,7 +637,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
               .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
               .trim();
-            const parsedMeal: AIResponse = JSON.parse(mealJsonMatch[1]);
+            const parsedMeal = parseAiJson<AIResponse>(mealJsonMatch[1]);
             setMessages(prev => [...prev,
             { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanText },
             { id: (Date.now() + 2).toString(), type: 'ai-card', content: parsedMeal }
@@ -684,7 +663,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'ai-text', content: cleanText }]);
 
             // Optionally log the water intake
-            const waterData = JSON.parse(waterJsonMatch[1]);
+            const waterData = parseAiJson<{ ml: number }>(waterJsonMatch[1]);
             console.log('[MealLogger] Water logged:', waterData.ml, 'ml');
           } catch {
             const cleanContent = agentResponse.content
@@ -738,8 +717,12 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         }
       }
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : t.general.error;
-      const errorMsg: Message = { id: Date.now().toString(), type: 'ai-text', content: `${t.general.error}: ${errorMessage}` };
+      console.error('[MealLogger] Falha ao responder:', e);
+      const errorMsg: Message = {
+        id: Date.now().toString(),
+        type: 'ai-text',
+        content: 'Não consegui analisar essa mensagem agora. Tente enviar novamente em instantes.',
+      };
       setMessages(prev => [...prev, errorMsg]);
     } finally {
       setLoading(false);
@@ -762,7 +745,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         base64 = await resizeImage(base64, 800);
         setScannedImageUri(base64);
 
-        const result = await analyzeImageLog(base64, language);
+        const result = await analyzeImageLog(base64, language, profile);
         setScanResult(result);
       } catch (err) {
         console.error("Scan failed", err);
@@ -818,17 +801,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
       if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
 
-      // Build rich context once, shared by photo and chat/voice paths
-      const feedbackCtx = user ? await buildFeedbackContext(user.id, profile ?? null).catch(() => ({})) : {};
-
       if (type === 'ai-photo') {
-        // Add scan card + nutritionist feedback to chat and return to chat view.
-        // Always regenerate feedback from the confirmed (possibly edited) items so the
-        // message never references ingredients the user removed during editing.
-        const freshFeedback = data.items?.length
-          ? await generateMealFeedback(data.items, data.foodName, language, feedbackCtx)
-          : '';
-        const feedback = freshFeedback || data.message || `${data.foodName} registrado com sucesso!`;
+        // Add scan card + the feedback already produced with this analysis.
+        const feedback = data.message || `${data.foodName} registrado com sucesso!`;
         const cardId = Date.now().toString();
         const textId = (Date.now() + 1).toString();
         const capturedImageUri = scannedImageUri ?? undefined;
@@ -837,18 +812,6 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           { id: cardId, type: 'ai-card', content: data, imageUri: capturedImageUri },
           { id: textId, type: 'ai-text', content: feedback },
         ]);
-        if (user) {
-          // Persist a small thumbnail (200px) so the photo survives chat reloads
-          let imageTag = '';
-          if (capturedImageUri) {
-            try {
-              const thumb = await resizeImage(capturedImageUri, 200);
-              imageTag = `\n<image_uri>${thumb}</image_uri>`;
-            } catch { /* non-blocking */ }
-          }
-          const agentContent = `${feedback}\n<meal_json>${JSON.stringify(data)}</meal_json>${imageTag}`;
-          UnifiedChatService.saveDirectMessages(user.id, `[Foto: ${data.foodName}]`, agentContent).catch(() => {});
-        }
         setLoading(false);
         setSuccess(true);
         setTimeout(() => {
@@ -858,12 +821,22 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           setDraftMeal(null);
           if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
         }, 900);
+
+        if (user) void (async () => {
+          // Persist a small thumbnail (200px) so the photo survives chat reloads
+          let imageTag = '';
+          if (capturedImageUri) {
+            try {
+              const thumb = await resizeImage(capturedImageUri, 200);
+              imageTag = `\n<image_uri>${thumb}</image_uri>`;
+            } catch { /* non-blocking */ }
+          }
+          const agentContent = `${feedback}\n<meal_json>${JSON.stringify(data)}</meal_json>${imageTag}`;
+          await UnifiedChatService.saveDirectMessages(user.id, `[Foto: ${data.foodName}]`, agentContent);
+        })();
       } else {
-        // ai-chat / ai-voice: generate and show personalized feedback, then stay in chat
-        const freshFeedback = data.items?.length
-          ? await generateMealFeedback(data.items, data.foodName, language, feedbackCtx)
-          : '';
-        const feedback = freshFeedback || data.message || `${data.foodName} registrado com sucesso!`;
+        // ai-chat / ai-voice: show the analysis feedback and stay in chat.
+        const feedback = data.message || `${data.foodName} registrado com sucesso!`;
         setMessages(prev => [
           ...prev,
           { id: Date.now().toString(), type: 'ai-text', content: feedback },

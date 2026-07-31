@@ -1,7 +1,7 @@
 /**
  * Sanitização de texto gerado pela IA — remove "vazamento" de scripts estrangeiros.
  *
- * Por que este arquivo existe: o gemini-2.5-flash ocasionalmente injeta tokens em
+ * Alguns modelos podem ocasionalmente injetar tokens em
  * chinês/japonês/coreano/cirílico no meio de um parágrafo em português (ex.:
  * "o胆固醇 da gema", "perde nutrientes重要的 se tirar", "meta é 170g —刻意 eliminar").
  * É uma falha de geração em nível de token: a instrução no prompt reduz, mas não

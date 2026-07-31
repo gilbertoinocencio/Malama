@@ -97,8 +97,9 @@ export const MealService = {
 
         console.log('[MealService.logMeal] Success! Meal ID:', data.id);
 
-        // Also sync daily stats for gamification
-        await this.syncDailyStats(userId);
+        // Estatísticas/gamificação são derivadas. A refeição já está salva e a
+        // interface não precisa esperar várias consultas adicionais.
+        void this.syncDailyStats(userId);
 
         return data.id as string;
     },
@@ -172,7 +173,7 @@ export const MealService = {
             .eq('user_id', userId);
 
         if (error) throw error;
-        await this.syncDailyStats(userId);
+        void this.syncDailyStats(userId);
     },
 
     async updateMeal(mealId: string, userId: string, updates: Partial<Meal>): Promise<void> {
@@ -193,6 +194,6 @@ export const MealService = {
             .eq('user_id', userId);
 
         if (error) throw error;
-        await this.syncDailyStats(userId);
+        void this.syncDailyStats(userId);
     }
 };

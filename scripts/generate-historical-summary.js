@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Load environment variables
 dotenv.config({ path: '.env.local' });
@@ -8,16 +7,32 @@ dotenv.config({ path: '.env' });
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-const geminiApiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+const caramelApiUrl = process.env.CARAMELO_API_URL;
+const caramelApiKey = process.env.CARAMELO_API_KEY;
 
-if (!supabaseUrl || !supabaseKey || !geminiApiKey) {
+if (!supabaseUrl || !supabaseKey || !caramelApiUrl || !caramelApiKey) {
     console.error("Missing required environment variables.");
     process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
-const genAI = new GoogleGenerativeAI(geminiApiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+
+async function generateWithCaramel(prompt) {
+    const response = await fetch(`${caramelApiUrl.replace(/\/$/, '')}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${caramelApiKey}` },
+        body: JSON.stringify({
+            model: 'caramelo-auto',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 500,
+        }),
+    });
+    if (!response.ok) throw new Error(`Caramel HTTP ${response.status}: ${await response.text()}`);
+    const data = await response.json();
+    const text = data?.choices?.[0]?.message?.content;
+    if (!text) throw new Error('Caramel devolveu resposta vazia');
+    return text;
+}
 
 async function generateSummary(userId) {
     console.log(`Processing user: ${userId}`);
@@ -78,8 +93,7 @@ O resumo deve ser escrito em terceira pessoa para que a Nutricionista leia e rap
   `;
 
   try {
-      const result = await model.generateContent(prompt);
-      const summaryText = result.response.text();
+      const summaryText = await generateWithCaramel(prompt);
 
       // Save to database
       const { error } = await supabase

@@ -1,9 +1,9 @@
-import { GeminiProxy } from '../lib/geminiProxy';
+import { CaramelAI, CARAMEL_AUTO_MODEL } from '../lib/caramelAI';
 import { supabase } from './supabase';
 
-const getGenAI = () => new GeminiProxy();
+const getGenAI = () => new CaramelAI();
 
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = CARAMEL_AUTO_MODEL;
 
 // ============================================
 // TypeScript Interfaces

@@ -231,6 +231,14 @@ const App: React.FC = () => {
     }
   }, [user]);
 
+  // O host do Caramel pode entrar em repouso após um período sem uso. Acordá-lo
+  // assim que a sessão autentica evita que o primeiro chat ou scan pague esse
+  // tempo de inicialização. A chamada é totalmente não bloqueante.
+  useEffect(() => {
+    if (!user || apenasMental) return;
+    void import('./lib/caramelAI').then(({ warmCaramel }) => warmCaramel());
+  }, [user?.id, apenasMental]);
+
   // Handle Theme Toggle — persisted in localStorage
   const [darkMode, setDarkMode] = useState(() => {
     // Initialize from localStorage, default to false (light mode)

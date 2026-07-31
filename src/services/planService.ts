@@ -110,7 +110,7 @@ export const PlanService = {
             reportId = await ClinicalLoopService.saveAiReport({
                 patient_id:        userId,
                 report_type:       'plan_suggestion',
-                model:             'gemini-2.5-flash',
+                model:             'caramelo-fenomeno',
                 content:           `Plano IA — ${planContent.calories} kcal | P ${planContent.macros.protein}g · C ${planContent.macros.carbs}g · G ${planContent.macros.fats}g`,
                 structured_output: { ...planContent, plan_id: newPlan.id },
                 input_snapshot:    { profile, onboarding: onboardingData },
