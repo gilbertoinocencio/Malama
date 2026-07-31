@@ -12,13 +12,32 @@
 // O escore é calculado pelo próprio instrumento (determinístico, nunca IA) e
 // gravado com o campaign_id — o que mantém a resposta dentro da campanha que
 // o RH abriu e fora de qualquer coisa nominal.
+//
+// BAIXA LITERACIA — a tela é desenhada para o chão de fábrica:
+//   · cada opção tem uma âncora visual ao lado do rótulo (ver EscalaVisual);
+//   · alvo de toque grande, uma pergunta por vez, sem rolagem para responder;
+//   · botão de ouvir a pergunta em voz alta, para quem lê com dificuldade.
+//
+// O que NÃO foi feito, de propósito: reescrever as perguntas em linguagem
+// simples. A redação do WHO-5 e da JSS é o que faz o escore valer alguma
+// coisa perante fiscal ou perito; trocar "meu dia a dia tem sido preenchido
+// com coisas que me interessam" por algo mais fácil transforma o instrumento
+// validado numa pesquisa caseira. O caminho para quem lê pouco é o áudio e a
+// âncora visual, que apoiam a leitura sem alterar o estímulo.
 // =====================================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../contexts/AuthContext';
 import { PsychosocialService, type CampanhaPendente } from '../services/psychosocialService';
 import { getInstrumento, itensDe, opcoesDoItem } from '../services/psychosocialInstruments';
+import { EscalaVisual } from './EscalaVisual';
+// Primitivas de fala do Body Scan: são genéricas apesar da pasta, e carregam
+// a descoberta de que a Web Speech API não funciona dentro da WebView do
+// Android (precisa do TTS nativo). Reescrever isso aqui daria um leitor mudo
+// justamente no aparelho mais comum do público-alvo.
+import { announce, primeVoice, stopSpeaking } from '../services/bodyscan/voiceGuide';
 import toast from 'react-hot-toast';
 
 const PETROL = '#7d4a3c';
@@ -43,6 +62,19 @@ export const InstrumentoModal: React.FC<Props> = ({ campanha, onClose, onRespond
   const [pendente, setPendente] = useState<number | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [concluido, setConcluido] = useState(false);
+  const [falando, setFalando] = useState(false);
+
+  // Só oferece o áudio onde existe motor de fala. No nativo sempre existe;
+  // no navegador, depende.
+  const temVoz = useMemo(
+    () => Capacitor.isNativePlatform() || typeof window !== 'undefined' && 'speechSynthesis' in window,
+    [],
+  );
+
+  // Nada toca sozinho: o questionário é respondido no trabalho, e uma voz
+  // dizendo "eu me senti calmo e relaxado" na frente dos colegas quebra o
+  // sigilo que a tela inteira promete. Só fala quando a pessoa pede.
+  useEffect(() => () => { stopSpeaking(); }, []);
 
   if (!def) {
     return (
@@ -64,7 +96,30 @@ export const InstrumentoModal: React.FC<Props> = ({ campanha, onClose, onRespond
   const bloco = def.blocks.find(b => b.items.some(i => i.key === item?.key));
   const progresso = Math.round((idx / itens.length) * 100);
 
+  /**
+   * Lê a pergunta em voz alta, com as opções depois — quem depende do áudio
+   * precisa saber entre o que está escolhendo, não só o enunciado.
+   */
+  const ouvir = async () => {
+    if (falando) { await stopSpeaking(); setFalando(false); return; }
+    setFalando(true);
+    try {
+      await primeVoice();
+      const texto = [
+        bloco?.intro,
+        item.texto,
+        'Opções: ' + opcoes.map(o => o.label).join('. '),
+      ].filter(Boolean).join('. ');
+      await announce(texto);
+    } finally {
+      setFalando(false);
+    }
+  };
+
   const escolher = async (valor: number) => {
+    // Responder interrompe a leitura: senão a voz continua descrevendo a
+    // pergunta anterior enquanto a próxima já está na tela.
+    if (falando) { stopSpeaking(); setFalando(false); }
     setPendente(valor);
     const proximas = { ...respostas, [item.key]: valor };
 
