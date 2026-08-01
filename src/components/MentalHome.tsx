@@ -133,9 +133,11 @@ export const MentalHome: React.FC<Props> = ({ onNavigate }) => {
                   </div>
                 </motion.button>
               ))}
-              <p className="text-[11px] text-Malama-muted dark:text-slate-500 leading-snug px-1">
-                Suas respostas são sigilosas. A empresa recebe apenas números agregados de grupos
-                com no mínimo cinco pessoas — nunca a sua resposta.
+              {/* Sem termo técnico: quem lê pouco precisa entender a promessa
+                  de sigilo, senão ela não vale nada na hora de responder. */}
+              <p className="text-xs text-Malama-muted dark:text-slate-500 leading-snug px-1">
+                Ninguém da sua empresa vê a sua resposta. Ela recebe só um resumo por grupo, e
+                apenas quando o grupo tem cinco pessoas ou mais.
               </p>
             </div>
           )}

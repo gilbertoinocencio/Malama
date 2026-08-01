@@ -52,12 +52,15 @@ const Carinha: React.FC<{ nivel: number }> = ({ nivel }) => {
   // Controle da quadrática: abaixo da linha da boca = sorriso (em SVG o y
   // cresce para baixo), acima = boca virada para baixo.
   const cy = 14.5;
-  const controle = cy + (nivel - 0.5) * 7.4;
+  // Amplitude alta de propósito: numa escala de seis pontos (WHO-5) as
+  // carinhas vizinhas ficam parecidas, e carinha que não se distingue da
+  // seguinte não ajuda ninguém a escolher.
+  const controle = cy + (nivel - 0.5) * 8.5;
 
-  // Nas duas pontas a sobrancelha faz o rosto ser lido de relance, sem
-  // precisar comparar a curvatura da boca com a da opção vizinha.
-  const sobrancelha = nivel >= 0.8 || nivel <= 0.2;
-  const inclinacao = nivel >= 0.8 ? -0.9 : 0.9;
+  // Só nas duas pontas: a sobrancelha faz os extremos serem lidos de relance,
+  // sem precisar comparar a curvatura da boca com a da opção vizinha.
+  const sobrancelha = nivel >= 0.85 || nivel <= 0.15;
+  const inclinacao = nivel >= 0.85 ? -0.9 : 0.9;
 
   return (
     <svg viewBox="0 0 24 24" className="w-8 h-8" aria-hidden="true">

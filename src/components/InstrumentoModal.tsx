@@ -162,9 +162,11 @@ export const InstrumentoModal: React.FC<Props> = ({ campanha, onClose, onRespond
               <span className="material-symbols-outlined text-3xl" style={{ color: PETROL }}>check</span>
             </div>
             <h2 className="text-xl font-bold text-Malama-main dark:text-white mb-2">Respostas enviadas</h2>
+            {/* Frase curta e sem termo técnico ("agregado", "no mínimo"):
+                a promessa de sigilo só serve se a pessoa entender. */}
             <p className="text-sm text-Malama-muted dark:text-slate-400 leading-snug mb-6">
-              Obrigado. Suas respostas são individuais e sigilosas — a sua empresa recebe apenas
-              números agregados de grupos com no mínimo cinco pessoas.
+              Obrigado. Ninguém da sua empresa vê a sua resposta. Ela recebe só um resumo por
+              grupo, e apenas quando o grupo tem cinco pessoas ou mais.
             </p>
             <button
               onClick={onClose}
@@ -201,9 +203,30 @@ export const InstrumentoModal: React.FC<Props> = ({ campanha, onClose, onRespond
                   Depois
                 </button>
               </div>
-              <p className="text-xs text-Malama-muted dark:text-slate-500 mb-6">
-                {idx + 1} de {itens.length}
-              </p>
+              <div className="flex items-center justify-between gap-3 mb-5">
+                <p className="text-xs text-Malama-muted dark:text-slate-500">
+                  Pergunta {idx + 1} de {itens.length}
+                </p>
+
+                {temVoz && (
+                  <button
+                    onClick={ouvir}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-colors"
+                    style={{
+                      borderColor: falando ? PETROL : 'rgba(120,113,108,0.25)',
+                      color: falando ? PETROL : undefined,
+                    }}
+                    aria-label={falando ? 'Parar a leitura' : 'Ouvir a pergunta em voz alta'}
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {falando ? 'stop_circle' : 'volume_up'}
+                    </span>
+                    <span className="text-xs font-medium">
+                      {falando ? 'Parar' : 'Ouvir'}
+                    </span>
+                  </button>
+                )}
+              </div>
 
               {bloco?.intro && (
                 <p className="text-sm text-Malama-muted dark:text-slate-400 mb-3 leading-snug">
@@ -217,34 +240,49 @@ export const InstrumentoModal: React.FC<Props> = ({ campanha, onClose, onRespond
                   initial={{ opacity: 0, x: 12 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -12 }}
-                  className="text-lg font-semibold text-Malama-main dark:text-white leading-snug mb-6"
+                  className="text-xl font-semibold text-Malama-main dark:text-white leading-snug mb-6"
                 >
                   {item.texto}
                 </motion.h2>
               </AnimatePresence>
 
               <div className="space-y-2">
-                {opcoes.map(op => {
+                {opcoes.map((op, i) => {
                   const ativo = pendente === op.value;
                   return (
                     <button
                       key={op.value}
                       onClick={() => escolher(op.value)}
                       disabled={enviando}
-                      className="w-full text-left px-4 py-3.5 rounded-2xl border-2 transition-all disabled:opacity-50"
+                      // min-h de 60px: alvo de toque para mão grande, com luva
+                      // ou aparelho pequeno — errar a opção aqui é resposta
+                      // errada gravada, não só um incômodo.
+                      className="w-full flex items-center gap-3 text-left px-3 py-3 min-h-[60px] rounded-2xl border-2 transition-all disabled:opacity-50"
                       style={{
                         borderColor: ativo ? PETROL : 'rgba(120,113,108,0.2)',
                         background: ativo ? `${PETROL}10` : 'transparent',
+                        color: ativo ? PETROL : 'rgba(120,113,108,0.85)',
                       }}
+                      aria-label={op.label}
                     >
-                      <span className="text-sm text-Malama-main dark:text-white">{op.label}</span>
+                      {bloco && (
+                        <EscalaVisual
+                          tipo={bloco.escalaVisual}
+                          indice={i}
+                          total={opcoes.length}
+                          ativo={ativo}
+                        />
+                      )}
+                      <span className="text-base font-medium text-Malama-main dark:text-white">
+                        {op.label}
+                      </span>
                     </button>
                   );
                 })}
               </div>
 
-              <p className="text-[11px] text-Malama-muted dark:text-slate-500 mt-5 leading-snug">
-                Suas respostas não são vistas individualmente pela sua empresa nem pelo seu gestor.
+              <p className="text-xs text-Malama-muted dark:text-slate-500 mt-5 leading-snug">
+                Ninguém da sua empresa vê o que você respondeu.
               </p>
             </div>
           </>
