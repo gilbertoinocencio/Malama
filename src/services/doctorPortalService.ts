@@ -707,8 +707,11 @@ export interface DoctorEarnings {
   realizedCount: number;        // total de consultas realizadas (créditos 'realizada')
   unpaidCount: number;          // realizadas ainda não incluídas em um repasse
   nivel: 'nivel_1' | 'nivel_2' | 'nivel_3';
-  valuePerConsultation: number; // valor do nível
-  pendingReceivable: number;    // unpaidCount * valor
+  valuePerConsultation: number; // valor bruto do nível, por consulta
+  transactionFeePercent: number;// taxa de transação do gateway, em %
+  netPerConsultation: number;   // o que cai na conta por consulta (bruto - taxa)
+  pendingReceivable: number;    // unpaidCount * líquido por consulta
+  pendingFee: number;           // taxa estimada sobre o que está a receber
   realizedCredits: { id: string; realized_at: string | null; paid: boolean }[];
 }
 
@@ -726,8 +729,10 @@ export const payoutService = {
 
   /** Ganhos do médico no modelo de créditos: realizadas, a receber e valor por nível. */
   async getDoctorEarnings(doctorId: string): Promise<DoctorEarnings> {
-    const { loadNivelValues, valueForNivel } = await import('./billingService');
-    const [creditsRes, doctorRes, nivelValues] = await Promise.all([
+    const {
+      loadNivelValues, valueForNivel, loadTransactionFeePercent, applyTransactionFee,
+    } = await import('./billingService');
+    const [creditsRes, doctorRes, nivelValues, transactionFeePercent] = await Promise.all([
       supabase
         .from('consultation_credits')
         .select('id, realized_at')
@@ -736,6 +741,7 @@ export const payoutService = {
         .order('realized_at', { ascending: false }),
       supabase.from('doctors').select('nivel, tipo_profissional').eq('id', doctorId).single(),
       loadNivelValues(),
+      loadTransactionFeePercent(),
     ]);
 
     const credits = creditsRes.data ?? [];
@@ -759,28 +765,41 @@ export const payoutService = {
     }));
     const unpaidCount = realizedCredits.filter((c) => !c.paid).length;
 
+    // O repasse chega com a taxa de transação já descontada. A projeção do
+    // "a receber" aplica a taxa sobre o total do período, como o
+    // process-payouts faz — não consulta a consulta, que arredondaria
+    // diferente e mostraria um valor que não bate com o PIX.
+    const grossPending = unpaidCount * valuePerConsultation;
+    const { fee: pendingFee, net: pendingReceivable } =
+      applyTransactionFee(grossPending, transactionFeePercent);
+    const { net: netPerConsultation } =
+      applyTransactionFee(valuePerConsultation, transactionFeePercent);
+
     return {
       realizedCount: credits.length,
       unpaidCount,
       nivel,
       valuePerConsultation,
-      pendingReceivable: unpaidCount * valuePerConsultation,
+      transactionFeePercent,
+      netPerConsultation,
+      pendingReceivable,
+      pendingFee,
       realizedCredits,
     };
   },
 
-  // Admin: Buscar repasses pendentes
-  async getPendingPayouts(): Promise<PendingPayout[]> {
-    // Buscar taxa global
-    const { data: feeSetting } = await supabase
-      .from('platform_settings')
-      .select('value')
-      .eq('key', 'default_platform_fee')
-      .single();
-
-    const globalFee = feeSetting ? parseFloat(feeSetting.value) : 25;
-
-    const { data, error } = await supabase
+  /**
+   * Admin: repasses. Sem filtro, traz TODOS os status.
+   *
+   * Antes esta função filtrava `status = 'pending'` mas a tela usava o
+   * resultado como se fosse a lista completa: filtrava 'paid' para somar
+   * repasses do mês (sempre 0), 'paid' para o extrato (sempre vazio) e
+   * 'failed' para o alerta de falha — que por isso nunca aparecia. Com
+   * repasses falhados no banco, o admin não tinha como vê-los nem
+   * reprocessá-los.
+   */
+  async getPayouts(status?: PayoutStatus): Promise<PendingPayout[]> {
+    let query = supabase
       .from('payouts')
       .select(`
         *,
@@ -789,15 +808,29 @@ export const payoutService = {
           pix_key
         )
       `)
-      .eq('status', 'pending')
       .order('created_at', { ascending: false });
+
+    if (status) query = query.eq('status', status);
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
     return (data || []).map((p: any) => {
-      const grossAmount = p.amount;
-      const feeAmount = grossAmount * (globalFee / 100);
-      const netAmount = grossAmount - feeAmount;
+      // payouts.amount é o LÍQUIDO — exatamente o que sai por PIX. Bruto e
+      // taxa são gravados pelo process-payouts no momento do split
+      // (migration 20260816) e apenas lidos aqui.
+      //
+      // Antes esta tela tratava amount como bruto e descontava 25%
+      // (default_platform_fee, que é comissão de suplemento e não tem nada
+      // a ver com repasse): o admin via R$75 num repasse de R$100 real.
+      //
+      // Repasses anteriores à migration foram transferidos pelo valor cheio
+      // e ficam com taxa zero — o fallback preserva isso.
+      const netAmount   = Number(p.amount) || 0;
+      const grossAmount = p.gross_amount != null ? Number(p.gross_amount) : netAmount;
+      const feeAmount   = p.fee_amount   != null ? Number(p.fee_amount)   : 0;
+      const feePercent  = p.fee_percent  != null ? Number(p.fee_percent)  : 0;
 
       return {
         id: p.id,
@@ -807,11 +840,12 @@ export const payoutService = {
         period_end: p.period_end,
         consultations_count: p.consultations_count,
         gross_amount: grossAmount,
-        fee_percent: globalFee,
+        fee_percent: feePercent,
         fee_amount: feeAmount,
         net_amount: netAmount,
         pix_key: p.doctor?.pix_key || p.pix_key,
         status: p.status,
+        paid_at: p.paid_at ?? null,
         // Vieram na migration 20260417 e ficaram de fora deste mapeamento:
         // a tela de repasses não conseguia mostrar o motivo de uma falha de
         // transferência porque o campo nunca chegava nela.
@@ -834,33 +868,53 @@ export const payoutService = {
     return data;
   },
 
-  // Admin: Resumo financeiro
-  async getFinancialSummary(): Promise<FinancialSummary> {
-    // Buscar todas as consultas concluídas
-    const { data: consultations, error } = await supabase
-      .from('consultations')
-      .select('price, platform_fee, doctor_payout, payment_status')
-      .eq('status', 'completed');
+  /**
+   * Admin: resumo financeiro. Ver MODELO_FINANCEIRO.md.
+   *
+   * A receita vem das faturas B2B (empresa paga por assento) e a saída vem
+   * dos repasses efetivamente transferidos. Antes esta função somava
+   * consultations.price / platform_fee / doctor_payout — resquícios do
+   * modelo B2C extinto, em que o paciente pagava por consulta e a
+   * plataforma tirava comissão. Hoje o paciente não paga nada: usa crédito
+   * do assento. Aqueles campos descreviam dinheiro que não existe, e o
+   * "total repassado" que produziam contradizia o repasse real por nível.
+   *
+   * `opts.since` limita a janela; sem ele, é o acumulado.
+   */
+  async getFinancialSummary(opts?: { since?: string }): Promise<FinancialSummary> {
+    let faturasQuery = supabase
+      .from('empresa_faturas')
+      .select('valor, pago_em')
+      .eq('status', 'pago');
+    if (opts?.since) faturasQuery = faturasQuery.gte('pago_em', opts.since);
 
-    if (error) throw error;
-
-    const grossRevenue = consultations?.reduce((sum, c) => sum + (c.price || 0), 0) || 0;
-    const platformFee = consultations?.reduce((sum, c) => sum + (c.platform_fee || 0), 0) || 0;
-    const totalPaid = consultations?.reduce((sum, c) => sum + (c.doctor_payout || 0), 0) || 0;
-
-    // Buscar repasses pendentes
-    const { data: pendingPayouts } = await supabase
+    let paidQuery = supabase
       .from('payouts')
-      .select('amount')
-      .eq('status', 'pending');
+      .select('amount, paid_at')
+      .eq('status', 'paid');
+    if (opts?.since) paidQuery = paidQuery.gte('paid_at', opts.since);
 
-    const pendingPayoutsTotal = pendingPayouts?.reduce((sum, p) => sum + p.amount, 0) || 0;
+    const [faturasRes, paidRes, pendingRes] = await Promise.all([
+      faturasQuery,
+      paidQuery,
+      supabase.from('payouts').select('amount').eq('status', 'pending'),
+    ]);
+
+    if (faturasRes.error) throw faturasRes.error;
+
+    const soma = (rows: any[] | null, campo: string) =>
+      (rows ?? []).reduce((s: number, r: any) => s + (Number(r[campo]) || 0), 0);
+
+    const grossRevenue = soma(faturasRes.data, 'valor');
+    const totalPaid    = soma(paidRes.data, 'amount');
 
     return {
       grossRevenue,
-      platformFee,
+      // Margem realizada: o que entrou menos o que saiu no mesmo recorte.
+      // Não é comissão — não existe comissão por consulta neste modelo.
+      platformFee: grossRevenue - totalPaid,
       totalPaid,
-      pendingPayouts: pendingPayoutsTotal
+      pendingPayouts: soma(pendingRes.data, 'amount'),
     };
   }
 };
@@ -2063,15 +2117,18 @@ export const adminService = {
     if (error) throw error;
     if (!profiles?.length) return [];
 
-    // Excluir gestores de empresa e médicos: cada um tem sua própria aba
+    // Excluir gestores de empresa e médicos: cada um tem sua própria aba.
+    // O vínculo com auth.users (= profiles.id) é doctors.user_id, não
+    // doctors.id, que é PK própria da tabela — comparar pelo id nunca
+    // casava e todo médico aparecia aqui como se fosse paciente.
     const [{ data: rhRows }, { data: doctorRows }] = await Promise.all([
       supabase.from('rh_usuarios').select('user_id'),
-      supabase.from('doctors').select('id'),
+      supabase.from('doctors').select('user_id'),
     ]);
     const excludedIds = new Set([
       ...(rhRows ?? []).map((r: any) => r.user_id),
-      ...(doctorRows ?? []).map((d: any) => d.id),
-    ]);
+      ...(doctorRows ?? []).map((d: any) => d.user_id),
+    ].filter(Boolean));
     const patientProfiles = profiles.filter(p => !excludedIds.has(p.id));
     if (!patientProfiles.length) return [];
 
@@ -2086,17 +2143,33 @@ export const adminService = {
     }
 
     const patientIds = patientProfiles.map(p => p.id);
-    const { data: consultations } = await supabase
-      .from('consultations')
-      .select('patient_id, price, status')
-      .in('patient_id', patientIds);
+    const { loadNivelValues, valueForNivel } = await import('./billingService');
+    const [{ data: consultations }, { data: todosProfissionais }, nivelValues] = await Promise.all([
+      supabase
+        .from('consultations')
+        .select('patient_id, doctor_id, status')
+        .in('patient_id', patientIds),
+      supabase.from('doctors').select('id, nivel, tipo_profissional'),
+      loadNivelValues(),
+    ]);
+
+    // Custo de atendimento, não receita: no modelo B2B quem paga é a
+    // empresa (por assento), então somar preço de consulta por paciente
+    // media dinheiro que ninguém desembolsou. O número útil por
+    // colaborador é quanto custou atendê-lo — consultas realizadas ×
+    // valor do nível do profissional. Ver MODELO_FINANCEIRO.md.
+    const nivelPorMedico: Record<string, { nivel: string; tipo: string | null }> = {};
+    for (const d of (todosProfissionais ?? []) as any[]) {
+      nivelPorMedico[d.id] = { nivel: d.nivel, tipo: d.tipo_profissional ?? null };
+    }
 
     const consultMap: Record<string, { count: number; ltv: number }> = {};
-    consultations?.forEach(c => {
+    consultations?.forEach((c: any) => {
       if (!consultMap[c.patient_id]) consultMap[c.patient_id] = { count: 0, ltv: 0 };
       consultMap[c.patient_id].count++;
-      if (c.status === 'completed' && c.price) {
-        consultMap[c.patient_id].ltv += c.price;
+      if (c.status === 'completed') {
+        const prof = c.doctor_id ? nivelPorMedico[c.doctor_id] : undefined;
+        consultMap[c.patient_id].ltv += valueForNivel(nivelValues, prof?.nivel, prof?.tipo);
       }
     });
 
@@ -2164,23 +2237,33 @@ export const adminService = {
     // Consultas detalhadas
     const { data: consults } = await supabase
       .from('consultations')
-      .select('id, scheduled_at, doctor_id, status, price, type')
+      .select('id, scheduled_at, doctor_id, status, type')
       .eq('patient_id', userId)
       .order('scheduled_at', { ascending: false });
 
     const doctorIds = [...new Set(consults?.map(c => c.doctor_id).filter(Boolean) ?? [])];
     let docNameMap: Record<string, string> = {};
+    let docNivelMap: Record<string, { nivel: string; tipo: string | null }> = {};
     if (doctorIds.length) {
       const { data: docs } = await supabase
         .from('doctors')
-        .select('id, name')
+        .select('id, name, nivel, tipo_profissional')
         .in('id', doctorIds);
-      docs?.forEach(d => { docNameMap[d.id] = d.name; });
+      docs?.forEach((d: any) => {
+        docNameMap[d.id] = d.name;
+        docNivelMap[d.id] = { nivel: d.nivel, tipo: d.tipo_profissional ?? null };
+      });
     }
 
-    const totalLtv = consults
-      ?.filter(c => c.status === 'completed')
-      .reduce((sum, c) => sum + (c.price ?? 0), 0) ?? 0;
+    // Custo de atendimento (não receita) — ver getAllUsers e MODELO_FINANCEIRO.md
+    const { loadNivelValues, valueForNivel } = await import('./billingService');
+    const nivelValues = await loadNivelValues();
+    const totalLtv = (consults ?? [])
+      .filter((c: any) => c.status === 'completed')
+      .reduce((sum: number, c: any) => {
+        const prof = c.doctor_id ? docNivelMap[c.doctor_id] : undefined;
+        return sum + valueForNivel(nivelValues, prof?.nivel, prof?.tipo);
+      }, 0);
 
     return {
       id: profile.id,
@@ -2201,12 +2284,20 @@ export const adminService = {
       level: profile.level ?? 1,
       total_xp: profile.total_xp ?? 0,
       current_streak: profile.current_streak ?? 0,
-      consultations: consults?.map(c => ({
+      consultations: consults?.map((c: any) => ({
         id: c.id,
         scheduled_at: c.scheduled_at,
         doctor_name: docNameMap[c.doctor_id] ?? null,
         status: c.status,
-        price: c.price,
+        // Custo da consulta pelo nível do profissional. `consultations.price`
+        // é o preço do modelo B2C extinto e não é exibido em lugar nenhum.
+        price: c.status === 'completed'
+          ? valueForNivel(
+              nivelValues,
+              c.doctor_id ? docNivelMap[c.doctor_id]?.nivel : undefined,
+              c.doctor_id ? docNivelMap[c.doctor_id]?.tipo : undefined,
+            )
+          : null,
         type: c.type,
       })) ?? [],
     };
@@ -2267,23 +2358,33 @@ export const adminService = {
       .select('id, tipo_profissional')
       .eq('status', 'approved');
 
-    // Buscar contagem de consultas do mês
+    // Consultas do mês que de fato aconteceram. Sem o filtro de status, o
+    // card contava cancelada, no-show e até as ainda agendadas para os
+    // próximos dias — e a receita da plataforma era calculada em cima disso.
+    // Mesmo critério do getDoctorKpis.
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const { data: monthConsultations, error: consultError } = await supabase
       .from('consultations')
-      .select('price')
+      .select('id')
+      .eq('status', 'completed')
       .gte('scheduled_at', startOfMonth.toISOString());
 
     // Buscar médicos pendentes
     const pendingDoctors = await doctorService.getPendingDoctors();
 
-    // Buscar repasses pendentes
-    const { data: pendingPayouts } = await supabase
-      .from('payouts')
-      .select('amount')
-      .eq('status', 'pending');
+    // Receita do mês = faturas B2B pagas no mês. Antes era
+    // `soma(consultations.price) * 0.25` — a comissão do modelo B2C extinto
+    // sobre um preço que ninguém paga. Ver MODELO_FINANCEIRO.md.
+    const [{ data: pendingPayouts }, { data: faturasMes }] = await Promise.all([
+      supabase.from('payouts').select('amount').eq('status', 'pending'),
+      supabase
+        .from('empresa_faturas')
+        .select('valor')
+        .eq('status', 'pago')
+        .gte('pago_em', startOfMonth.toISOString()),
+    ]);
 
     const pendingPayoutsTotal = pendingPayouts?.reduce((sum, p) => sum + p.amount, 0) || 0;
 
@@ -2293,7 +2394,8 @@ export const adminService = {
       approvedPsychologists: (approvedDoctors ?? []).filter(
         (d: any) => d.tipo_profissional === 'psicologo').length,
       monthConsultations: monthConsultations?.length || 0,
-      platformRevenue: (monthConsultations?.reduce((sum, c) => sum + (c.price || 0), 0) ?? 0) * 0.25,
+      platformRevenue: (faturasMes ?? []).reduce(
+        (sum: number, f: any) => sum + (Number(f.valor) || 0), 0),
       pendingPayouts: pendingPayoutsTotal,
       pendingDoctors
     };

@@ -143,6 +143,11 @@ export const RhDashboard: React.FC = () => {
       await rhService.removeColaborador(c.id);
       toast.success('Colaborador removido.');
       setColaboradores(prev => prev.filter(x => x.id !== c.id));
+      // Remover quem tinha plano psicológico libera o assento — sem isto o
+      // contador só se corrigia no reload e o RH batia no limite à toa.
+      if (c.plano_psicologico) {
+        setPsi(prev => prev ? { ...prev, assentos_em_uso: Math.max(0, prev.assentos_em_uso - 1) } : prev);
+      }
     } catch {
       toast.error('Erro ao remover colaborador.');
     }

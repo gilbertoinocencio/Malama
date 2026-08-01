@@ -62,6 +62,30 @@ function valueForNivel(values: NivelValues, nivel: string | null, tipo: string |
   return tabela[nivel ?? 'nivel_2'] ?? tabela.nivel_2 ?? padrao;
 }
 
+/** Taxa de transação do gateway, em % sobre o bruto. Espelha billingService.ts. */
+const DEFAULT_TRANSACTION_FEE_PERCENT = 5;
+
+async function loadTransactionFeePercent(): Promise<number> {
+  const { data } = await supabase
+    .from('platform_settings')
+    .select('value')
+    .eq('key', 'transaction_fee_percent')
+    .maybeSingle();
+  const parsed = parseFloat(data?.value ?? '');
+  // Taxa inválida ou fora de faixa cairia como desconto absurdo no repasse
+  // de todo mundo — melhor voltar pro padrão do que pagar errado.
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed >= 100) {
+    return DEFAULT_TRANSACTION_FEE_PERCENT;
+  }
+  return parsed;
+}
+
+/** Decompõe o bruto em taxa + líquido, arredondando em centavos. */
+function splitFee(gross: number, feePercent: number): { fee: number; net: number } {
+  const fee = Math.round(gross * (feePercent / 100) * 100) / 100;
+  return { fee, net: Math.round((gross - fee) * 100) / 100 };
+}
+
 // ─── Asaas API ────────────────────────────────────────────────────────────────
 
 interface AsaasTransferResponse {
@@ -143,6 +167,7 @@ async function reprocessSinglePayout(payoutId: string): Promise<void> {
   }
 
   try {
+    // payout.amount já é o LÍQUIDO (taxa descontada na criação do payout).
     const transfer = await createAsaasTransfer(
       doctor.pix_key,
       payout.amount,
@@ -197,8 +222,13 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
 
   console.log(`[process-payouts] Found ${credits.length} credits to pay`);
 
-  // Mapa nível→valor por consulta (configurável em platform_settings)
-  const nivelValues = await loadNivelValues();
+  // Mapa nível→valor por consulta e taxa de transação (platform_settings).
+  // Lidos uma vez por rodada: todo o split usa a mesma taxa.
+  const [nivelValues, transactionFeePercent] = await Promise.all([
+    loadNivelValues(),
+    loadTransactionFeePercent(),
+  ]);
+  console.log(`[process-payouts] Transaction fee: ${transactionFeePercent}%`);
 
   // Agrupar por doctor_id
   const byDoctor = new Map<string, typeof credits>();
@@ -227,14 +257,22 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
     const valuePerConsultation = valueForNivel(
       nivelValues, doctor.nivel, doctor.tipo_profissional ?? null,
     );
-    const totalAmount = doctorCredits.length * valuePerConsultation;
+    // O profissional recebe o valor da consulta menos a taxa de transação
+    // do gateway. Ex.: R$100 de consulta com taxa 5% => R$95 transferidos.
+    const grossAmount = doctorCredits.length * valuePerConsultation;
+    const { fee: feeAmount, net: netAmount } = splitFee(grossAmount, transactionFeePercent);
 
-    // Criar registro de payout com status 'processing'
+    // Criar registro de payout com status 'processing'.
+    // amount = líquido (é o que vai pro PIX); bruto e taxa ficam gravados
+    // ao lado para a tela de repasses do admin apenas ler, sem recalcular.
     const { data: payout, error: payoutErr } = await supabase
       .from('payouts')
       .insert([{
         doctor_id: doctorId,
-        amount: totalAmount,
+        amount: netAmount,
+        gross_amount: grossAmount,
+        fee_percent: transactionFeePercent,
+        fee_amount: feeAmount,
         period_start: period.start.toISOString().split('T')[0],
         period_end: period.end.toISOString().split('T')[0],
         consultations_count: doctorCredits.length,
@@ -249,7 +287,8 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
       continue;
     }
 
-    // Criar payout_items
+    // Criar payout_items. O item guarda o valor CHEIO da consulta — a taxa
+    // incide sobre a transferência como um todo, não por consulta.
     const { error: itemsErr } = await supabase
       .from('payout_items')
       .insert(
@@ -266,11 +305,11 @@ async function processPeriodPayouts(period: { start: Date; end: Date }): Promise
       continue;
     }
 
-    // Chamar Asaas para transferência PIX
+    // Chamar Asaas para transferência PIX — sempre o LÍQUIDO
     try {
       const transfer = await createAsaasTransfer(
         doctor.pix_key,
-        totalAmount,
+        netAmount,
         `Repasse Nura — Dr(a). ${doctor.name} — ${period.start.toLocaleDateString('pt-BR')} a ${period.end.toLocaleDateString('pt-BR')}`,
         `malama-payout-${payout.id}`,
       );

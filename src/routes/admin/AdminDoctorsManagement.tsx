@@ -722,10 +722,13 @@ export const AdminDoctorsManagement: React.FC = () => {
               </div>
             )}
 
+            {/* Não há comissão por consulta: o profissional recebe o valor do
+                nível dele menos a taxa de transação. Ver MODELO_FINANCEIRO.md */}
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
               <p className="text-sm text-green-800">
-                <strong>ℹ️ Taxa de comissão:</strong> Será utilizada a taxa global configurada em
-                <strong> Configurações</strong> ({settings?.default_platform_fee || 25}%).
+                <strong>ℹ️ Repasse:</strong> O profissional recebe, por consulta realizada, o valor
+                do nível dele (configurável em <strong>Configurações</strong>), menos a taxa de
+                transação de {settings?.transaction_fee_percent || 5}%.
               </p>
             </div>
 

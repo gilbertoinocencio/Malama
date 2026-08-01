@@ -294,27 +294,21 @@ export async function bookConsultation(params: {
 }): Promise<Consultation> {
   const { patientId, doctorId, date, time, consultationType, consentGiven } = params;
 
-  // Get doctor price and duration
   const { data: doctor } = await supabase
     .from('public_doctors')
-    .select('consultation_price, consultation_duration')
+    .select('consultation_duration')
     .eq('id', doctorId)
     .single();
 
   if (!doctor) throw new Error('Médico não encontrado');
 
-  // Get global platform fee
-  const { data: feeSetting } = await supabase
-    .from('platform_settings')
-    .select('value')
-    .eq('key', 'default_platform_fee')
-    .single();
-
-  const globalFee = feeSetting ? parseFloat(feeSetting.value) : 25;
-
-  const price = doctor.consultation_price || 249;
-  const platformFee = price * (globalFee / 100);
-  const doctorPayout = price - platformFee;
+  // A consulta não tem preço ao paciente: ele agenda com um crédito do
+  // assento que a empresa contratou. price / platform_fee / doctor_payout
+  // são do modelo B2C extinto (paciente pagava, plataforma tirava comissão)
+  // e ficavam gravados divergindo do repasse real por nível — a tela de
+  // financeiro somava esses campos e mostrava dinheiro que não existe.
+  // Deixam de ser preenchidos; as linhas antigas seguem intactas para
+  // histórico. Ver MODELO_FINANCEIRO.md.
   const roomId = crypto.randomUUID();
 
   // Fix timezone: construir a data com offset local para evitar shift de UTC
@@ -366,9 +360,6 @@ export async function bookConsultation(params: {
       type: consultationType,
       status: 'scheduled',
       room_id: roomId,
-      price,
-      platform_fee: platformFee,
-      doctor_payout: doctorPayout,
       consent_at: consentGiven ? new Date().toISOString() : null,
     })
     .select()

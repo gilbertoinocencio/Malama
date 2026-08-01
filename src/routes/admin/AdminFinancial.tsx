@@ -83,7 +83,7 @@ export const AdminFinancial: React.FC = () => {
         adminBillingService.getBillingStats().catch(() => null),
         empresaAdminService.getDashboardStats().catch(() => null),
         empresaAdminService.getAllFaturas().catch(() => [] as FaturaComEmpresa[]),
-        payoutService.getPendingPayouts(),
+        payoutService.getPayouts(),
       ]);
       setFinancial(fin);
       setBillingStats(billing);
@@ -103,7 +103,7 @@ export const AdminFinancial: React.FC = () => {
     try {
       await payoutService.markAsPaid(payoutId);
       toast.success('Repasse marcado como pago');
-      const pays = await payoutService.getPendingPayouts();
+      const pays = await payoutService.getPayouts();
       setPayouts(pays);
     } catch {
       toast.error('Erro ao marcar como pago');
@@ -124,13 +124,14 @@ export const AdminFinancial: React.FC = () => {
   };
 
   const exportCSV = () => {
-    const headers = ['Médico', 'Período', 'Consultas', 'Valor Bruto', 'Taxa', 'Líquido', 'PIX', 'Status', 'Transfer Asaas'];
+    const headers = ['Médico', 'Período', 'Consultas', 'Valor Bruto', 'Taxa %', 'Taxa R$', 'Líquido (PIX)', 'PIX', 'Status', 'Transfer Asaas'];
     const rows = payouts.map(p => [
       p.doctor_name,
       `${formatDate(p.period_start)} - ${formatDate(p.period_end)}`,
       p.consultations_count,
       p.gross_amount,
-      `${p.fee_percent}%`,
+      p.fee_percent,
+      p.fee_amount,
       p.net_amount,
       p.pix_key ?? '',
       p.status,
@@ -153,17 +154,23 @@ export const AdminFinancial: React.FC = () => {
   }
 
   // ── Cálculos para Visão Geral ─────────────────────────────────────────────
+  // Entradas e saídas do MESMO mês. A margem antes somava a "comissão"
+  // acumulada de todos os tempos com as faturas só do mês e subtraía
+  // repasses que nunca chegavam a ser contados — três janelas de tempo
+  // diferentes na mesma conta. Ver MODELO_FINANCEIRO.md.
   const mesAtual = new Date().toISOString().slice(0, 7);
+  const noMesAtual = (d: string | null | undefined) => !!d && d.slice(0, 7) === mesAtual;
+
   const faturasPagesMes = faturas
-    .filter(f => f.status === 'pago' && f.competencia.slice(0, 7) === mesAtual)
+    .filter(f => f.status === 'pago' && noMesAtual(f.pago_em ?? f.competencia))
     .reduce((s, f) => s + Number(f.valor), 0);
 
   const repassesPagosMes = payouts
-    .filter(p => p.status === 'paid')
+    .filter(p => p.status === 'paid' && noMesAtual(p.paid_at))
     .reduce((s, p) => s + p.net_amount, 0);
 
   const mrrTotal = (billingStats?.mrr_total ?? 0) + (b2bStats?.mrr_b2b ?? 0);
-  const margemEstimada = (financial?.platformFee ?? 0) + faturasPagesMes - repassesPagosMes;
+  const margemEstimada = faturasPagesMes - repassesPagosMes;
 
   // mini-extrato: últimas 8 movimentações
   const entradas: { tipo: 'entrada'; label: string; valor: number; data: string }[] = faturas
@@ -258,7 +265,7 @@ export const AdminFinancial: React.FC = () => {
                 <p className="text-xs text-gray-500">Repasses pagos</p>
               </div>
               <p className="text-2xl font-bold text-gray-800">{formatCurrency(repassesPagosMes)}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Acumulado histórico</p>
+              <p className="text-xs text-gray-400 mt-0.5">{mesAtual.replace('-', '/')}</p>
             </div>
 
             <div className={`bg-white rounded-xl shadow p-5 ${margemEstimada < 0 ? 'border border-red-200' : ''}`}>
@@ -269,7 +276,7 @@ export const AdminFinancial: React.FC = () => {
               <p className={`text-2xl font-bold ${margemEstimada >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                 {formatCurrency(margemEstimada)}
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">Receitas − repasses</p>
+              <p className="text-xs text-gray-400 mt-0.5">Faturas pagas − repasses, no mês</p>
             </div>
           </div>
 
@@ -429,17 +436,24 @@ export const AdminFinancial: React.FC = () => {
         <div className="space-y-4">
           {/* Cards de contexto */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Fontes reais: faturas B2B pagas e repasses transferidos.
+                Ver MODELO_FINANCEIRO.md — não somar consultations.price. */}
             <div className="bg-white rounded-xl shadow p-5">
-              <p className="text-xs text-gray-500 mb-1">Receita bruta total</p>
+              <p className="text-xs text-gray-500 mb-1">Receita B2B acumulada</p>
               <p className="text-xl font-bold text-gray-800">{formatCurrency(financial?.grossRevenue ?? 0)}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Faturas pagas</p>
             </div>
             <div className="bg-white rounded-xl shadow p-5">
-              <p className="text-xs text-gray-500 mb-1">Taxa retida (plataforma)</p>
-              <p className="text-xl font-bold text-gray-800">{formatCurrency(financial?.platformFee ?? 0)}</p>
+              <p className="text-xs text-gray-500 mb-1">Margem acumulada</p>
+              <p className={`text-xl font-bold ${(financial?.platformFee ?? 0) >= 0 ? 'text-gray-800' : 'text-red-700'}`}>
+                {formatCurrency(financial?.platformFee ?? 0)}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">Receita − repasses</p>
             </div>
             <div className="bg-white rounded-xl shadow p-5">
               <p className="text-xs text-gray-500 mb-1">Total repassado</p>
               <p className="text-xl font-bold text-gray-800">{formatCurrency(financial?.totalPaid ?? 0)}</p>
+              <p className="text-xs text-gray-400 mt-0.5">PIX efetivados</p>
             </div>
             <div className="bg-white rounded-xl shadow p-5">
               <p className="text-xs text-gray-500 mb-1">Pendente de repasse</p>
@@ -489,8 +503,8 @@ export const AdminFinancial: React.FC = () => {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Período</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Consultas</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Bruto</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Taxa</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Líquido</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Taxa transação</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Líquido (PIX)</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">PIX</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden xl:table-cell">Transfer ID</th>
@@ -508,7 +522,11 @@ export const AdminFinancial: React.FC = () => {
                           </td>
                           <td className="px-4 py-3 text-sm">{p.consultations_count}</td>
                           <td className="px-4 py-3 text-sm hidden lg:table-cell">{formatCurrency(p.gross_amount)}</td>
-                          <td className="px-4 py-3 text-sm hidden lg:table-cell">{p.fee_percent}%</td>
+                          <td className="px-4 py-3 text-sm hidden lg:table-cell">
+                            {p.fee_amount > 0
+                              ? <>−{formatCurrency(p.fee_amount)} <span className="text-gray-400">({p.fee_percent}%)</span></>
+                              : <span className="text-gray-400">—</span>}
+                          </td>
                           <td className="px-4 py-3 font-medium text-[#7d4a3c]">{formatCurrency(p.net_amount)}</td>
                           <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell truncate max-w-[150px]">
                             {p.pix_key || '—'}

@@ -81,8 +81,8 @@ export const PostService = {
       return null;
     }
 
-    // Atualizar contador de posts do usuário
-    await supabase.rpc('increment_posts_count', { user_id: userId });
+    // profiles.posts_count é mantido pelo trigger trg_sync_posts_count
+    // (migration 20260817) — cobre criação e exclusão sem depender do cliente.
 
     return post?.id || null;
   },

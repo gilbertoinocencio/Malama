@@ -69,6 +69,36 @@ export async function loadNivelValues(): Promise<NivelValues> {
 }
 
 /**
+ * Taxa de transação cobrada pelo gateway (Asaas) sobre o repasse.
+ * O profissional recebe o valor da consulta MENOS esta taxa:
+ * consulta R$100 com taxa 5% => R$95 líquidos no PIX.
+ *
+ * Espelha supabase/functions/process-payouts/index.ts — se mudar aqui,
+ * mudar lá. A edge function é a fonte da verdade no momento do split;
+ * aqui serve para projetar o "a receber" antes do repasse acontecer.
+ */
+export const DEFAULT_TRANSACTION_FEE_PERCENT = 5;
+
+export async function loadTransactionFeePercent(): Promise<number> {
+  const { data } = await supabase
+    .from('platform_settings')
+    .select('value')
+    .eq('key', 'transaction_fee_percent')
+    .maybeSingle();
+  const parsed = parseFloat(data?.value ?? '');
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed >= 100) {
+    return DEFAULT_TRANSACTION_FEE_PERCENT;
+  }
+  return parsed;
+}
+
+/** Desconta a taxa de transação de um bruto, arredondando em centavos. */
+export function applyTransactionFee(gross: number, feePercent: number): { fee: number; net: number } {
+  const fee = Math.round(gross * (feePercent / 100) * 100) / 100;
+  return { fee, net: Math.round((gross - fee) * 100) / 100 };
+}
+
+/**
  * Valor por consulta conforme nível e tipo de profissional.
  * Registro legado sem tipo_profissional é médico — mesma convenção do
  * scheduling.ts e da migration 20260802.
@@ -513,7 +543,8 @@ export const adminBillingService = {
   },
 
   /** Estimativa do próximo split (créditos realizados ainda não incluídos em payout).
-   *  Soma por médico conforme o valor do nível de cada um. */
+   *  Soma por médico conforme o valor do nível de cada um, já descontada a
+   *  taxa de transação — é o valor que de fato vai sair da conta. */
   async getNextSplitEstimate(): Promise<number> {
     const { data, error } = await supabase
       .from('consultation_credits')
@@ -537,21 +568,33 @@ export const adminBillingService = {
 
     // Mapear doctor_id → nivel + tipo para valorizar cada crédito
     const doctorIds = [...new Set(unpaid.map((c: any) => c.doctor_id).filter(Boolean))];
-    const [nivelValues, doctorsRes] = await Promise.all([
+    const [nivelValues, doctorsRes, feePercent] = await Promise.all([
       loadNivelValues(),
       doctorIds.length
         ? supabase.from('doctors').select('id, nivel, tipo_profissional').in('id', doctorIds)
         : Promise.resolve({ data: [] as any[] }),
+      loadTransactionFeePercent(),
     ]);
     const byDoctor: Record<string, { nivel: string; tipo: string | null }> = {};
     for (const d of (doctorsRes as any).data ?? []) {
       byDoctor[d.id] = { nivel: d.nivel, tipo: d.tipo_profissional ?? null };
     }
 
-    return unpaid.reduce((sum: number, c: any) => {
+    // A taxa é aplicada por médico, não sobre o total geral: o split gera um
+    // payout por profissional e arredonda em cada um. Somar tudo e descontar
+    // no fim daria alguns centavos de diferença contra o que sai de verdade.
+    const grossByDoctor: Record<string, number> = {};
+    for (const c of unpaid as any[]) {
+      const key = c.doctor_id ?? '__sem_medico__';
       const d = c.doctor_id ? byDoctor[c.doctor_id] : undefined;
-      return sum + valueForNivel(nivelValues, d?.nivel ?? 'nivel_2', d?.tipo);
-    }, 0);
+      grossByDoctor[key] = (grossByDoctor[key] ?? 0)
+        + valueForNivel(nivelValues, d?.nivel ?? 'nivel_2', d?.tipo);
+    }
+
+    return Object.values(grossByDoctor).reduce(
+      (sum, gross) => sum + applyTransactionFee(gross, feePercent).net,
+      0,
+    );
   },
 
   /** Calcula data estimada do próximo split (dias 15 e 30) */

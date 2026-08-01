@@ -109,6 +109,10 @@ export const DoctorFinancial: React.FC = () => {
 
   const nivel = earnings?.nivel ?? 'nivel_2';
   const valuePerConsultation = earnings?.valuePerConsultation ?? 0;
+  // O que efetivamente cai na conta: o repasse sai com a taxa de
+  // transação do gateway já descontada.
+  const feePercent = earnings?.transactionFeePercent ?? 0;
+  const netPerConsultation = earnings?.netPerConsultation ?? valuePerConsultation;
 
   if (loading) {
     return (
@@ -180,8 +184,13 @@ export const DoctorFinancial: React.FC = () => {
               {NIVEL_CONFIG[nivel]?.label}
             </span>
           </div>
-          <div className="text-2xl font-bold text-gray-800">{formatCurrency(valuePerConsultation)}</div>
-          <div className="text-xs text-gray-500 mt-1">por consulta realizada</div>
+          <div className="text-2xl font-bold text-gray-800">{formatCurrency(netPerConsultation)}</div>
+          <div className="text-xs text-gray-500 mt-1">
+            líquido por consulta
+            {feePercent > 0 && (
+              <> · {formatCurrency(valuePerConsultation)} − {feePercent}% de taxa</>
+            )}
+          </div>
         </div>
 
         {/* A receber */}
@@ -195,6 +204,9 @@ export const DoctorFinancial: React.FC = () => {
           <div className="text-2xl font-bold text-gray-800">{formatCurrency(earnings?.pendingReceivable ?? 0)}</div>
           <div className="text-xs text-gray-500 mt-1">
             {earnings?.unpaidCount ?? 0} aguardando repasse
+            {feePercent > 0 && (earnings?.pendingFee ?? 0) > 0 && (
+              <> · líquido de {formatCurrency(earnings!.pendingFee)} de taxa</>
+            )}
           </div>
         </div>
 
@@ -294,7 +306,10 @@ export const DoctorFinancial: React.FC = () => {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-800">Consultas realizadas</h3>
-            <p className="text-sm text-gray-500">Cada consulta realizada gera {formatCurrency(valuePerConsultation)} de repasse</p>
+            <p className="text-sm text-gray-500">
+              Cada consulta realizada gera {formatCurrency(valuePerConsultation)}
+              {feePercent > 0 && <> — {formatCurrency(netPerConsultation)} após a taxa de transação</>}
+            </p>
           </div>
         </div>
 
@@ -352,8 +367,9 @@ export const DoctorFinancial: React.FC = () => {
           <div>
             <h4 className="text-sm font-semibold text-blue-800">Como funcionam os repasses</h4>
             <p className="text-sm text-blue-700 mt-1">
-              Você recebe {formatCurrency(valuePerConsultation)} por consulta realizada ({NIVEL_CONFIG[nivel]?.label}).
-              Os repasses são processados via PIX duas vezes por mês:
+              Cada consulta realizada vale {formatCurrency(valuePerConsultation)} ({NIVEL_CONFIG[nivel]?.label}).
+              {feePercent > 0 && <> Sobre o total do repasse incide a taxa de transação de {feePercent}% cobrada pelo banco, então você recebe {formatCurrency(netPerConsultation)} líquidos por consulta.</>}
+              {' '}Os repasses são processados via PIX duas vezes por mês:
               consultas realizadas nos dias 1–14 são pagas no dia 30; as dos dias 15–fim, no dia 15 do mês seguinte.
             </p>
           </div>

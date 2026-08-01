@@ -302,12 +302,20 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
   const [credits, setCredits] = useState<CreditWithDetails[]>([]);
 
   useEffect(() => {
+    // Os créditos não podem derrubar a ficha: sem o catch, uma falha ao
+    // listar créditos rejeitava o Promise.all inteiro e o drawer exibia
+    // "Usuário não encontrado" mesmo com o perfil tendo carregado.
     Promise.all([
       adminService.getUserDetail(userId),
-      adminBillingService.listCredits({ user_id: userId }),
+      adminBillingService.listCredits({ user_id: userId }).catch(err => {
+        console.error('Erro ao carregar créditos do usuário:', err);
+        return [] as CreditWithDetails[];
+      }),
     ]).then(([u, c]) => {
       setUser(u);
       setCredits(c);
+    }).catch(err => {
+      console.error('Erro ao carregar ficha do usuário:', err);
     }).finally(() => setLoading(false));
   }, [userId]);
 
@@ -354,11 +362,12 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
               </div>
             )}
 
-            {/* LTV Cards */}
+            {/* Custo de atendimento — no B2B quem paga é a empresa, então o
+                colaborador não gera receita individual. Ver MODELO_FINANCEIRO.md */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-[#FDFBF9] rounded-xl p-4 text-center">
                 <p className="text-2xl font-bold text-[#7d4a3c]">{fmtCurrency(user.ltv)}</p>
-                <p className="text-xs text-gray-500 mt-1">LTV total</p>
+                <p className="text-xs text-gray-500 mt-1">Custo de atendimento</p>
               </div>
               <div className="bg-[#FDFBF9] rounded-xl p-4 text-center">
                 <p className="text-2xl font-bold text-gray-800">{user.consultations_count}</p>
@@ -368,7 +377,7 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
                 <p className="text-2xl font-bold text-gray-800">
                   {user.consultations_count > 0 ? fmtCurrency(user.ltv / user.consultations_count) : '—'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Ticket médio</p>
+                <p className="text-xs text-gray-500 mt-1">Custo médio</p>
               </div>
             </div>
 
@@ -943,7 +952,7 @@ export const AdminUsersManagement: React.FC = () => {
           { icon: <User className="w-5 h-5 text-[#7d4a3c]" />,        label: 'Total de usuários',     value: users.length.toString(),     accent: false },
           { icon: <User className="w-5 h-5 text-blue-600" />,          label: 'B2B (empresas)',         value: b2bCount.toString(),          accent: false, color: 'bg-blue-50 text-blue-600' },
           { icon: <User className="w-5 h-5 text-green-600" />,         label: 'B2C (direto)',           value: b2cCount.toString(),          accent: false, color: 'bg-green-50 text-green-600' },
-          { icon: <DollarSign className="w-5 h-5 text-[#7d4a3c]" />,  label: 'LTV acumulado',         value: fmtCurrency(totalLtv),        accent: false },
+          { icon: <DollarSign className="w-5 h-5 text-[#7d4a3c]" />,  label: 'Custo de atendimento',  value: fmtCurrency(totalLtv),        accent: false },
           { icon: <Calendar className="w-5 h-5 text-[#7d4a3c]" />,    label: 'Consultas realizadas',  value: totalConsults.toString(),      accent: false },
           { icon: <Stethoscope className="w-5 h-5 text-[#7d4a3c]" />, label: 'Via indicação médica',  value: referralCount.toString(),      accent: false },
         ].map(({ icon, label, value, color }) => (
@@ -1032,7 +1041,7 @@ export const AdminUsersManagement: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Indicado por</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Cadastro</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Consultas</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">LTV</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Custo</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ficha</th>
                 </tr>
               </thead>

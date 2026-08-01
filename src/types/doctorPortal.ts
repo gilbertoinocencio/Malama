@@ -136,8 +136,13 @@ export interface Consultation {
   duration_minutes: number;
   status: ConsultationStatus;
   type: ConsultationType;
+  /** @deprecated Modelo B2C extinto — o paciente agenda com crédito do assento.
+   *  Preenchido só em consultas antigas; não somar em nenhuma tela.
+   *  Ver MODELO_FINANCEIRO.md. */
   price: number;
+  /** @deprecated Comissão do modelo B2C extinto. Não existe comissão por consulta. */
   platform_fee: number;
+  /** @deprecated Contradiz o repasse real por nível — usar `payouts.amount`. */
   doctor_payout: number;
   payment_status: PaymentStatus;
   payment_method: string | null;
@@ -456,6 +461,10 @@ export interface PendingPayout {
   net_amount: number;
   pix_key: string | null;
   status: PayoutStatus;
+  // Data do pagamento — necessária para recortar repasses por período na
+  // tela de financeiro (sem ela a margem do mês somava repasse de qualquer
+  // época). Ver MODELO_FINANCEIRO.md.
+  paid_at: string | null;
   // Campos Asaas (adicionados na migration 20260417)
   asaas_transfer_id: string | null;
   processing_error: string | null;

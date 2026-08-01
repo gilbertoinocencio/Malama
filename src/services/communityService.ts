@@ -471,10 +471,8 @@ export async function createCommunityPost(
 
   if (error || !post) return null;
 
-  // Atualiza contador de posts no perfil (best-effort)
-  try {
-    await supabase.rpc('increment_posts_count' as string, { p_user_id: userId });
-  } catch { /* ignora se RPC não existir */ }
+  // profiles.posts_count é mantido pelo trigger trg_sync_posts_count
+  // (migration 20260817) — cobre criação e exclusão sem depender do cliente.
 
   return post.id;
 }

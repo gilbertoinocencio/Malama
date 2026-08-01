@@ -106,10 +106,10 @@ export const AdminDashboard: React.FC = () => {
         <div className="bg-white rounded-xl shadow p-5">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="w-4 h-4 text-purple-500" />
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Receita plataforma</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Receita do mês</p>
           </div>
           <p className="text-2xl font-bold text-gray-800">{formatCurrency(summary?.platformRevenue ?? 0)}</p>
-          <p className="text-xs text-gray-400 mt-0.5">25% das consultas do mês</p>
+          <p className="text-xs text-gray-400 mt-0.5">Faturas B2B pagas</p>
         </div>
 
         <div className="bg-white rounded-xl shadow p-5">

@@ -8,19 +8,26 @@ import { settingsService } from '../../services/doctorPortalService';
 import { IntegracaoAsaas } from '../../components/admin/IntegracaoAsaas';
 import toast from 'react-hot-toast';
 
+// Defaults de cada chave. Ficam fora do componente para servirem de base
+// do merge no load — sem isso, chave ausente no banco vira `undefined` e o
+// input controlado quebra (vira não-controlado, com warning do React e o
+// campo aparecendo vazio na tela).
+const DEFAULT_SETTINGS: Record<string, string> = {
+  default_platform_fee: '25',
+  transaction_fee_percent: '5',
+  min_consultation_duration: '20',
+  min_consultation_price: '80',
+  support_email: 'suporte@malama.app',
+  doctor_value_nivel1: '90',
+  doctor_value_nivel2: '100',
+  doctor_value_nivel3: '120',
+  psi_value_nivel1: '80',
+  psi_value_nivel2: '95',
+  psi_value_nivel3: '110',
+};
+
 export const AdminSettings: React.FC = () => {
-  const [settings, setSettings] = useState<Record<string, string>>({
-    default_platform_fee: '25',
-    min_consultation_duration: '20',
-    min_consultation_price: '80',
-    support_email: 'suporte@Malama.app',
-    doctor_value_nivel1: '90',
-    doctor_value_nivel2: '100',
-    doctor_value_nivel3: '120',
-    psi_value_nivel1: '80',
-    psi_value_nivel2: '95',
-    psi_value_nivel3: '110',
-  });
+  const [settings, setSettings] = useState<Record<string, string>>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -30,7 +37,8 @@ export const AdminSettings: React.FC = () => {
         const data = await settingsService.getAllSettings();
         const settingsMap: Record<string, string> = {};
         data.forEach(s => { settingsMap[s.key] = s.value; });
-        setSettings(settingsMap);
+        // Merge, não substituição: o que o banco não tem mantém o default.
+        setSettings({ ...DEFAULT_SETTINGS, ...settingsMap });
       } catch (error) {
         console.error('Error loading settings:', error);
       } finally {
@@ -118,6 +126,27 @@ export const AdminSettings: React.FC = () => {
               onChange={e => updateSetting('support_email', e.target.value)}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
             />
+          </div>
+
+          {/* Taxa de transação do gateway — incide sobre o repasse */}
+          <div className="pt-4 border-t border-gray-100">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Taxa de transação do gateway (%)
+            </label>
+            <input
+              type="number"
+              value={settings.transaction_fee_percent}
+              onChange={e => updateSetting('transaction_fee_percent', e.target.value)}
+              min={0}
+              max={99}
+              step="0.01"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c]"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Descontada do repasse ao profissional: uma consulta de R$100 com taxa de 5%
+              transfere R$95 líquidos por PIX. Vale para médicos e psicólogos. Alterar aqui
+              não muda repasse já processado — cada repasse guarda a taxa que foi aplicada.
+            </p>
           </div>
 
           {/* Valor por consulta por nível — médico */}
