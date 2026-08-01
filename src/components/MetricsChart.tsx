@@ -13,7 +13,7 @@ import { WeightLogModal } from './WeightLogModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type LineTab = 'weight' | 'body_fat' | 'muscle' | 'steps' | 'heart_rate' | 'sleep';
-type MetricTab = LineTab | 'measurements';
+type MetricTab = LineTab;
 type ChartPeriod = '30d' | '90d' | '180d';
 
 interface MetricsChartProps {
@@ -47,7 +47,7 @@ const METRICS: Record<LineTab, {
 }> = {
   weight:     { label: 'Peso',       icon: 'monitor_weight', color: '#8c473e', unit: 'kg',  good: 'down',    fmtValue: v => v.toFixed(1), emptyIcon: 'monitor_weight', emptyText: 'Nenhum registro de peso ainda.' },
   body_fat:   { label: 'Gordura',    icon: 'opacity',        color: '#d47311', unit: '%',   good: 'down',    fmtValue: v => v.toFixed(1), emptyIcon: 'opacity',        emptyText: 'Faça um Body Scan ou conecte o Health Connect.' },
-  muscle:     { label: 'Músculo',    icon: 'fitness_center', color: '#7E9B5B', unit: 'kg',  good: 'up',      fmtValue: v => v.toFixed(1), emptyIcon: 'fitness_center', emptyText: 'Faça seu primeiro Body Scan para ver a evolução.' },
+  muscle:     { label: 'Massa magra', icon: 'fitness_center', color: '#7E9B5B', unit: 'kg',  good: 'up',      fmtValue: v => v.toFixed(1), emptyIcon: 'fitness_center', emptyText: 'Faça seu primeiro Body Scan para ver a evolução.' },
   steps:      { label: 'Passos',     icon: 'directions_walk',color: '#C4856A', unit: '',    good: 'up',      fmtValue: v => Math.round(v).toLocaleString('pt-BR'), fmtAxis: v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toFixed(0), emptyIcon: 'directions_walk', emptyText: 'Conecte o Health Connect (em Integrações) para ver seus passos.' },
   heart_rate: { label: 'Batimentos', icon: 'cardiology',     color: '#C0392B', unit: 'bpm', good: 'neutral', fmtValue: v => v.toFixed(0), emptyIcon: 'cardiology',     emptyText: 'Conecte o Health Connect para acompanhar sua frequência cardíaca.' },
   sleep:      { label: 'Sono',       icon: 'bedtime',        color: '#7C6BA6', unit: 'h',   good: 'neutral', fmtValue: v => v.toFixed(1), emptyIcon: 'bedtime',        emptyText: 'Conecte o Health Connect para ver seu histórico de sono.' },
@@ -245,10 +245,10 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
     };
   }, [weightLogs, snapshots, daily]);
 
-  const latestSnapshot = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
-  const prevSnapshot = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
-
-  const tabs: MetricTab[] = ['weight', 'body_fat', 'muscle', 'steps', 'heart_rate', 'sleep', 'measurements'];
+  // Circumferences inferred from the camera are model inputs, not measurements.
+  // Keep the legacy renderer for manually sourced historical data, but do not
+  // expose a BodyScan "Medidas" tab to users.
+  const tabs: MetricTab[] = ['weight', 'body_fat', 'muscle', 'steps', 'heart_rate', 'sleep'];
 
   // Métricas primárias usadas no grid-resumo (cards h-36 estilo "Análise Trimestral")
   const PRIMARY: LineTab[] = ['weight', 'body_fat', 'muscle'];
@@ -504,9 +504,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
       {/* Tabs */}
       <div className="flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar">
         {tabs.map(id => {
-          const cfg = id === 'measurements'
-            ? { label: 'Medidas', icon: 'straighten', color: '#8b5cf6' }
-            : METRICS[id];
+          const cfg = METRICS[id];
           const active = activeTab === id;
           return (
             <button
@@ -541,67 +539,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ onClose }) => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              {activeTab !== 'measurements' ? (
-                renderLineTab(activeTab)
-              ) : (
-                <div className="space-y-4">
-                  {!latestSnapshot ? (
-                    <div className="flex flex-col items-center py-12 text-center gap-3">
-                      <span className="material-symbols-outlined text-4xl text-Malama-muted/30 dark:text-white/20">straighten</span>
-                      <p className="text-sm text-Malama-muted dark:text-white/50">Nenhum scan realizado ainda.</p>
-                      <p className="text-xs text-Malama-muted/70 dark:text-white/30">Complete um Body Scan para ver suas medidas aqui.</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className={`${CARD} p-4`}>
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="text-sm font-bold text-Malama-main dark:text-white">Medidas atuais</h3>
-                          <span className="text-xs text-Malama-muted/70 dark:text-white/40">
-                            {toDate(latestSnapshot.snapped_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                          </span>
-                        </div>
-                        {[
-                          { label: 'Cintura',       key: 'waist_cm' as const,       color: '#d47311' },
-                          { label: 'Quadril',        key: 'hip_cm' as const,         color: '#8b5cf6' },
-                          { label: 'Peitoral',       key: 'chest_cm' as const,       color: '#8c473e' },
-                          { label: 'Braço E.',       key: 'arm_left_cm' as const,    color: '#7E9B5B' },
-                          { label: 'Braço D.',       key: 'arm_right_cm' as const,   color: '#7E9B5B' },
-                          { label: 'Coxa E.',        key: 'thigh_left_cm' as const,  color: '#C4856A' },
-                          { label: 'Coxa D.',        key: 'thigh_right_cm' as const, color: '#C4856A' },
-                          { label: 'Panturrilha E.', key: 'calf_left_cm' as const,   color: '#9C6644' },
-                          { label: 'Panturrilha D.', key: 'calf_right_cm' as const,  color: '#9C6644' },
-                        ].map(m => (
-                          <MeasurementBar
-                            key={m.key}
-                            label={m.label}
-                            current={latestSnapshot[m.key] ?? undefined}
-                            previous={prevSnapshot?.[m.key] ?? undefined}
-                            color={m.color}
-                          />
-                        ))}
-                      </div>
-
-                      {latestSnapshot.bmi && (
-                        <div className={`${CARD} p-4`}>
-                          <h3 className="text-sm font-bold text-Malama-main dark:text-white mb-3">IMC & dados físicos</h3>
-                          <div className="grid grid-cols-3 gap-3">
-                            {[
-                              { label: 'IMC',    value: latestSnapshot.bmi?.toFixed(1),       unit: ''   },
-                              { label: 'Peso',   value: latestSnapshot.weight_kg?.toFixed(1), unit: 'kg' },
-                              { label: 'Altura', value: latestSnapshot.height_cm?.toFixed(0), unit: 'cm' },
-                            ].map(item => (
-                              <div key={item.label} className="text-center rounded-xl py-3 bg-Malama-bg dark:bg-white/[0.04]">
-                                <p className="text-lg font-bold text-Malama-main dark:text-white">{item.value}{item.unit}</p>
-                                <p className="text-[10px] text-Malama-muted/70 dark:text-white/40 mt-0.5">{item.label}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
+              {renderLineTab(activeTab)}
             </motion.div>
           </AnimatePresence>
         )}

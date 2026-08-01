@@ -278,7 +278,7 @@ export const BodyProgressTimeline: React.FC<BodyProgressTimelineProps> = ({
                             </p>
                           </div>
                           <div className="bg-black/20 rounded-lg px-2 py-1.5">
-                            <p className="text-white/50 text-[10px] mb-0.5">Músculo</p>
+                            <p className="text-white/50 text-[10px] mb-0.5">Massa magra</p>
                             <p className="text-white font-bold text-sm">
                               {scan.muscle_mass_kg.toFixed(1)} kg
                             </p>
@@ -455,10 +455,10 @@ export const BodyProgressTimeline: React.FC<BodyProgressTimelineProps> = ({
                         </div>
                       </div>
 
-                      {/* Muscle Mass */}
+                      {/* Lean mass (legacy database field: muscle_mass_kg) */}
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-white/60 text-xs">Massa Muscular</span>
+                          <span className="text-white/60 text-xs">Massa Magra Estimada</span>
                           {selectedScan.muscle_mass_kg !== compareWithScan.muscle_mass_kg && (
                             <span className={`text-xs font-bold ${
                               selectedScan.muscle_mass_kg > compareWithScan.muscle_mass_kg
@@ -523,7 +523,7 @@ export const BodyProgressTimeline: React.FC<BodyProgressTimelineProps> = ({
                       }`}>
                         {progress.muscleChange > 0 ? '+' : ''}{progress.muscleChange.toFixed(1)}
                       </span>
-                      <span className="text-white/60 text-[10px]">Músculo (kg)</span>
+                      <span className="text-white/60 text-[10px]">Massa magra (kg)</span>
                     </div>
                     <div className="bg-black/20 rounded-lg p-3 text-center">
                       <span className="text-white text-2xl font-bold block mb-1">
@@ -554,7 +554,7 @@ export const BodyProgressTimeline: React.FC<BodyProgressTimelineProps> = ({
                             {formatDate(scan.created_at)}
                           </p>
                           <p className="text-white/50 text-[10px]">
-                            {scan.body_fat_percentage.toFixed(1)}% BF • {scan.muscle_mass_kg.toFixed(1)}kg MM
+                            {scan.body_fat_percentage.toFixed(1)}% gordura • {scan.muscle_mass_kg.toFixed(1)}kg massa magra
                           </p>
                         </div>
                       </div>

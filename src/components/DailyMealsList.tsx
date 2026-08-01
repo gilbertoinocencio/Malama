@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Meal, MealItem, MicroNutrients } from '../types';
-import { lookupSingleItem } from '../services/geminiService';
+import { lookupSingleItem } from '../services/caramelService';
 
 interface DailyMealsListProps {
   meals: Meal[];

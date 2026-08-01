@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { AnthroMeasurements } from '../services/bodyscan';
-import { estimateLimbCircumferences, bodyComposition } from '../utils/bodyCompositionCalculators';
+import { bodyComposition } from '../utils/bodyCompositionCalculators';
 
 // ─── Database row type ─────────────────────────────────────────────────────────
 
@@ -82,8 +82,6 @@ export function useBodyScan() {
         measurements,
         heightCmUsed,
         weightKg = 70,
-        age = 30,
-        gender = 'female',
         notes,
       } = input;
 
@@ -113,42 +111,26 @@ export function useBodyScan() {
       const record = data as BodyScanRecord;
       setHistory(prev => [record, ...prev]);
 
-      // 2. Extended snapshot for MetricsChart + doctor portal
+      // 2. Composition snapshot for MetricsChart + doctor portal.
+      // The database column keeps its legacy name (`avg_muscle_mass_kg`) for
+      // compatibility, but the value is fat-free/lean mass — not skeletal muscle.
+      // Camera-inferred circumferences intentionally stay only in the raw scan
+      // record above; they are model inputs and must not become user-facing
+      // measurements or clinical observations.
       try {
         const heightM      = heightCmUsed / 100;
         const bmi          = heightM > 0 ? +(weightKg / (heightM * heightM)).toFixed(2) : undefined;
         // Single source of truth — same lean-mass formula the result screen uses.
-        const muscleMassKg = bodyComposition({
+        const leanMassKg = bodyComposition({
           weight_kg: weightKg,
           bf_percentage: measurements.bf_percentage,
           height_cm: heightCmUsed,
         }).lean_mass_kg;
 
-        // Limb estimates from regression (population-based, ±4 cm)
-        const limbs = estimateLimbCircumferences({
-          weight_kg: weightKg,
-          height_cm: heightCmUsed,
-          hip_cm:    measurements.hip_cm,
-          waist_cm:  measurements.waist_cm,
-          age,
-          gender,
-        });
-
         const { error: snapErr } = await supabase.from('body_measurement_snapshots').insert({
           user_id:            user.id,
           avg_body_fat_pct:   measurements.bf_percentage,
-          avg_muscle_mass_kg: muscleMassKg,
-          waist_cm:           measurements.waist_cm,
-          hip_cm:             measurements.hip_cm,
-          chest_cm:           measurements.bust_cm,
-          neck_cm:            measurements.neck_cm ?? null,
-          // Same regression value for left and right (no laterality from camera)
-          arm_left_cm:        limbs.arm_cm,
-          arm_right_cm:       limbs.arm_cm,
-          thigh_left_cm:      limbs.thigh_cm,
-          thigh_right_cm:     limbs.thigh_cm,
-          calf_left_cm:       limbs.calf_cm,
-          calf_right_cm:      limbs.calf_cm,
+          avg_muscle_mass_kg: leanMassKg,
           weight_kg:          weightKg,
           height_cm:          heightCmUsed,
           bmi,
@@ -182,9 +164,7 @@ export function useBodyScan() {
 
   const progress = cur && prev
     ? {
-        waist_delta: fieldDelta(cur.waist_cm, prev.waist_cm),
-        hip_delta:   fieldDelta(cur.hip_cm, prev.hip_cm),
-        bf_delta:    fieldDelta(cur.bf_percentage, prev.bf_percentage),
+        bf_delta: fieldDelta(cur.bf_percentage, prev.bf_percentage),
       }
     : null;
 

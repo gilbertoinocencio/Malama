@@ -137,7 +137,7 @@ export const CoachChatService = {
   },
 
   /**
-   * Generate AI response using Gemini
+   * Generate AI response using Caramel
    */
   async generateAIResponse(
     userMessage: string,

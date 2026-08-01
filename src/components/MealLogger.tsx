@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse, MealItem } from '../types';
-import { analyzeTextLog, analyzeImageLog, getMealSlotLabel } from '../services/geminiService';
+import { analyzeTextLog, analyzeImageLog, getMealSlotLabel } from '../services/caramelService';
 import { UnifiedChatService } from '../services/unifiedChatService';
 import { enviarFeedback, enviarCorrecao } from '../lib/caramelAI';
 import { userReportedWaterIntake, isBareQuantityAnswer } from '../utils/intakeDetection';

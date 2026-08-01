@@ -261,3 +261,7 @@ To reset your local development database:
 **Ready to Flow!** 🌊
 
 If you've completed all steps, you should have a fully functional NURA instance running locally and/or deployed to production.
+# Documento histórico
+
+> Este guia descreve a integração antiga. Não configure Gemini no frontend.
+> A configuração atual usa Caramel pelas Edge Functions; consulte o `README.md`.

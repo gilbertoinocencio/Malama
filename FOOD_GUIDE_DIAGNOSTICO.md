@@ -337,3 +337,6 @@ Se após executar o SQL o problema persistir:
 **Status dos Dados:** ⚠️ REQUER SETUP NO SUPABASE  
 **Build:** ✅ Compilado com sucesso (vite v6.4.1)  
 **Última Modificação:** Melhorias de error handling e UX
+# Documento histórico
+
+> As menções a Gemini neste diagnóstico são antigas. As sugestões atuais usam Caramel.

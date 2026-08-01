@@ -1,16 +1,14 @@
 // =====================================================
 // NURA — Edge Function: generate-patient-ai-report
-// Gera relatório clínico de IA com Claude para o médico
+// Gera relatório clínico com Caramel e fallback Claude para o médico
 // POST { patient_id, doctor_id }
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { generateClinicalText } from '../_shared/clinical-ai.ts';
 
 const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY      = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const ANTHROPIC_KEY    = Deno.env.get('ANTHROPIC_API_KEY')!;
-const CLAUDE_MODEL     = 'claude-sonnet-4-6';
-
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
 const corsHeaders = {
@@ -240,34 +238,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 4. Chamar Claude API
+    // 4. Caramel é o cérebro principal; Claude entra apenas em falha técnica.
     const prompt = buildPrompt(data, doctor.name);
-
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type':      'application/json',
-        'x-api-key':         ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model:      CLAUDE_MODEL,
-        max_tokens: 2048,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
-    if (!anthropicRes.ok) {
-      const err = await anthropicRes.text();
-      console.error('Claude API error:', err);
-      return new Response(JSON.stringify({ error: 'Erro na API de IA' }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    const claudeData = await anthropicRes.json();
-    const report     = claudeData.content?.[0]?.text ?? '';
-    const usage      = claudeData.usage ?? {};
+    const generation = await generateClinicalText(prompt, 2048);
+    const report = generation.text;
 
     // 5. Persistir relatório em ai_clinical_reports (loop fechado p/ Fine-Tuning + RLHF).
     //    input_snapshot = as features dadas ao modelo, SEM identificadores diretos
@@ -290,13 +264,13 @@ Deno.serve(async (req: Request) => {
         patient_id:         patient_id,
         doctor_id:          doctor.id,
         report_type:        'clinical_report',
-        model:              CLAUDE_MODEL,
+        model:              generation.model,
         input_snapshot:     inputSnapshot,
         input_window_start: new Date(Date.now() - 30 * 86_400_000).toISOString(),
         input_window_end:   new Date().toISOString(),
         content:            report,
-        tokens_input:       usage.input_tokens  ?? null,
-        tokens_output:      usage.output_tokens ?? null,
+        tokens_input:       generation.usage.inputTokens,
+        tokens_output:      generation.usage.outputTokens,
       })
       .select('id')
       .single();
@@ -317,7 +291,13 @@ Deno.serve(async (req: Request) => {
       p_data:       { patient_id },
     });
 
-    return new Response(JSON.stringify({ report, report_id: reportId }), {
+    return new Response(JSON.stringify({
+      report,
+      report_id: reportId,
+      provider: generation.provider,
+      model: generation.model,
+      fallback_used: generation.fallbackUsed,
+    }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

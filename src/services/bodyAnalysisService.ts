@@ -23,6 +23,7 @@ export interface BodyMeasurements {
 
 export interface BodyAnalysisResult {
   bodyFatPercentage: number; // e.g., 18.5
+  /** Legacy API name; contains estimated lean mass, not skeletal muscle mass. */
   muscleMassKg: number; // e.g., 62.35
   measurements: BodyMeasurements;
   aiScore: number; // 0-100, photo quality
@@ -127,36 +128,15 @@ Use MULTI-EVIDENCE approach:
 - Some definition but soft: typically 15-20% (male), 22-28% (female)
 - No visible definition: typically 20%+ (male), 28%+ (female)
 
-### 3. MUSCLE MASS CALCULATION
-Formula: muscle_mass_kg = weight_kg × (1 - body_fat_percentage/100)
-Calculate precisely and round to 1 decimal place.
+### 3. LEAN MASS ESTIMATE
+Formula: lean_mass_kg = weight_kg × (1 - body_fat_percentage/100)
+This is fat-free/lean mass, NOT skeletal muscle mass. The legacy JSON field remains
+"muscleMassKg" only for backwards compatibility. Round to 1 decimal place.
 
-### 4. CIRCUMFERENCE MEASUREMENTS (cm)
-Use height as reference scale. Estimate based on visible proportions:
+Do not estimate or report body circumferences from the photo. Return an empty
+"measurements" object.
 
-${poseType === 'front' || poseType === 'back' ? `**FULL MEASUREMENTS (visible from this pose):**
-- waist: Narrowest point (typically above navel)
-- hip: Widest point of glutes
-- chest: At nipple line (males) / under bust (females)
-- arm_left: Mid-bicep circumference
-- arm_right: Mid-bicep circumference
-- thigh_left: Mid-thigh circumference
-- thigh_right: Mid-thigh circumference
-- calf_left: Widest point of calf
-- calf_right: Widest point of calf` : `**SIDE PROFILE MEASUREMENTS (visible from side):**
-- waist: Anterior-posterior depth at narrowest point
-- hip: Gluteal protrusion from side
-- chest: Thoracic depth from side
-
-Note: For side pose, provide reasonable estimates for all measurements based on visible proportions and typical body symmetry.`}
-
-**Estimation technique:**
-- Use height as known reference (${heightCm} cm)
-- Compare body part ratios to height
-- Consider typical proportions for detected body fat level
-- Be conservative - better to underestimate than overestimate
-
-### 5. BIOTYPE CLASSIFICATION
+### 4. BIOTYPE CLASSIFICATION
 Analyze skeletal frame and fat distribution:
 - **ECTO**: Narrow shoulders, lean build, fast metabolism appearance, difficulty gaining mass
 - **MESO**: Broad shoulders, athletic frame, balanced proportions, muscular tendency
@@ -164,10 +144,10 @@ Analyze skeletal frame and fat distribution:
 
 Consider: shoulder width vs hip width, limb length, joint size, natural fat storage pattern.
 
-### 6. FEEDBACK MESSAGE (in Portuguese - Brazilian)
+### 5. FEEDBACK MESSAGE (in Portuguese - Brazilian)
 Provide constructive, science-based feedback:
 - Acknowledge photo quality objectively
-- Mention key observations (muscle development areas, fat distribution pattern)
+- Mention only broad, non-diagnostic composition observations
 - Give actionable tip for progress tracking
 - Be encouraging but REALISTIC - avoid false praise
 
@@ -189,17 +169,7 @@ Return ONLY a valid JSON object, no markdown, no explanations:
 {
   "bodyFatPercentage": <number with 1 decimal, e.g., 18.5>,
   "muscleMassKg": <number with 1 decimal, e.g., 58.3>,
-  "measurements": {
-    "waist": <number with 1 decimal>,
-    "hip": <number with 1 decimal>,
-    "chest": <number with 1 decimal>,
-    "arm_left": <number with 1 decimal>,
-    "arm_right": <number with 1 decimal>,
-    "thigh_left": <number with 1 decimal>,
-    "thigh_right": <number with 1 decimal>,
-    "calf_left": <number with 1 decimal>,
-    "calf_right": <number with 1 decimal>
-  },
+  "measurements": {},
   "aiScore": <integer 0-100>,
   "detectedBiotype": <"ecto" | "meso" | "endo">,
   "message": "<string in Brazilian Portuguese>"
@@ -264,7 +234,7 @@ Return ONLY a valid JSON object, no markdown, no explanations:
 
     console.log('✅ Body analysis complete:', {
       bodyFat: parsed.bodyFatPercentage + '%',
-      muscle: parsed.muscleMassKg + 'kg',
+      leanMass: parsed.muscleMassKg + 'kg',
       score: parsed.aiScore,
       biotype: parsed.detectedBiotype
     });

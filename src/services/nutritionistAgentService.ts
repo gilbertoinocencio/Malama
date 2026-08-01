@@ -321,7 +321,7 @@ export const NutritionistAgentService = {
 
     session.messages.push(userChatMessage);
 
-    // Generate agent response using Gemini
+    // Generate agent response using Caramel
     const agentResponse = await this.generateAgentResponse(session, userMessage);
 
     const agentChatMessage: ChatMessage = {
@@ -365,7 +365,7 @@ export const NutritionistAgentService = {
   },
 
   /**
-   * Generate agent response using Gemini AI
+   * Generate agent response using Caramel
    */
   async generateAgentResponse(
     session: OnboardingSession,
@@ -449,7 +449,7 @@ IMPORTANTE:
   },
 
   /**
-   * Get fallback response when Gemini API fails
+   * Get fallback response when Caramel fails
    */
   getFallbackResponse(
     stage: OnboardingStage,

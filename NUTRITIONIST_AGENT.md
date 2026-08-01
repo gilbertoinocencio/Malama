@@ -300,3 +300,7 @@ Para dúvidas ou problemas:
 
 Versão: 1.0.0
 Última atualização: 2026-03-14
+# Documento histórico
+
+> As referências a Gemini abaixo pertencem à implementação antiga. A agente
+> atual usa exclusivamente Caramel; consulte `README.md` e `src/lib/caramelAI.ts`.

@@ -451,7 +451,7 @@ ${diarySummary ?? 'Nenhuma nota registrada no período.'}
   const knowledgeBlock = NutritionKnowledgeService.formatAsContextBlock(guidelineMatches)
     + NutritionKnowledgeService.formatEmpiricalBlock(empiricalMatches);
 
-  // 6. Gerar briefing via Gemini (mesmo padrão do chat do paciente)
+  // 6. Gerar briefing via Caramel (mesmo padrão do chat do paciente)
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const result = await model.generateContent(

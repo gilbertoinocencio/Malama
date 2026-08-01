@@ -2,7 +2,7 @@
  * OpenFoodFacts Service
  * Free, no API key required. Prioritizes Brazilian products (br.openfoodfacts.org),
  * falls back to global database (world.openfoodfacts.org).
- * Used as primary nutritional data source before Gemini (TACO/USDA fallback).
+ * Used as primary nutritional data source before Caramel (TACO/USDA fallback).
  */
 
 import { AIResponse, MicroNutrients } from '../types';
@@ -253,8 +253,8 @@ export function barcodeResultToAIResponse(result: OFFBarcodeResult): AIResponse 
 // ─── Format for Gemini prompt injection ──────────────────────────────
 
 /**
- * Formats an OFFResult into a prompt block to inject into Gemini.
- * Gemini uses this as primary reference and scales by weight.
+ * Formats an OFFResult into a prompt block to inject into Caramel.
+ * Caramel uses this as primary reference and scales by weight.
  */
 export function formatOFFBlock(result: OFFResult): string {
   const n = result.per100g;
@@ -270,7 +270,7 @@ Escale proporcionalmente ao peso informado ou 100g se não houver informação d
 }
 
 /**
- * Enriches barcode data by searching TACO/USDA via Gemini using the product name.
+ * Enriches barcode data by searching TACO/USDA via Caramel using the product name.
  * Uses OFF macros as anchor and fills in complete micronutrients from nutritional databases.
  */
 export async function enrichBarcodeWithAI(result: OFFBarcodeResult, language: string = 'pt'): Promise<OFFBarcodeResult> {

@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { generatePlanContent } from './geminiService';
+import { generatePlanContent } from './caramelService';
 import { ClinicalLoopService } from './clinicalLoopService';
 
 export interface QuarterlyPlanPhase {
@@ -47,7 +47,7 @@ export const PlanService = {
         };
     },
 
-    // Generate a new plan using Gemini and save it
+    // Generate a new plan using Caramel and save it
     async generatePlan(userId: string, onboardingId?: string): Promise<QuarterlyPlanData> {
         // 1. Fetch User Profile
         const { data: profile, error: profileError } = await supabase

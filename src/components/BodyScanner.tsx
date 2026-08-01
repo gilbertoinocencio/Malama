@@ -38,19 +38,11 @@ import {
   aggregateScans,
 } from '../services/bodyscan/scanAggregator';
 import {
-  computeClinicalIndices,
-  whrRisk,
-  rceRisk,
-  bmiRisk,
   bfRisk,
-  fmiRisk,
-  ffmiRisk,
   bodyComposition,
-  restingMetabolicRate,
   metricBand,
   normalizeGender,
   type RiskLevel,
-  type MetricKind,
 } from '../utils/bodyCompositionCalculators';
 
 interface BodyScannerProps {
@@ -138,81 +130,6 @@ const StatCard: React.FC<{
     </div>
     {delta !== undefined && <DeltaLabel delta={delta} goodDirection={goodDirection} />}
     {note && <span className="text-[10px] text-stone-400 font-light leading-tight">{note}</span>}
-  </div>
-);
-
-/**
- * Metric shown with a Low│Healthy│High band and a marker at the value.
- * The green zone is derived from metricBand() so it always agrees with the chip colour.
- */
-const CompositionBar: React.FC<{
-  label: string;
-  value: number;
-  unit: string;
-  kind: MetricKind;
-  gender: 'male' | 'female';
-  risk: RiskLevel;
-  delta?: number;
-  goodDirection?: 'up' | 'down';
-  deltaUnit?: string;
-}> = ({ label, value, unit, kind, gender, risk, delta, goodDirection = 'down', deltaUnit = '' }) => {
-  const band = metricBand(kind, gender);
-  const span = band.max - band.min || 1;
-  const pct = (v: number) => Math.max(0, Math.min(100, ((v - band.min) / span) * 100));
-  const markerPct = pct(value);
-  const healthyLeft = pct(band.healthyLow);
-  const healthyWidth = pct(band.healthyHigh) - healthyLeft;
-
-  return (
-    <div className="bg-white rounded-2xl p-3.5 shadow-sm">
-      <div className="flex items-baseline justify-between mb-2.5">
-        <span className="text-[10px] font-light tracking-widest uppercase text-stone-400">{label}</span>
-        <div className="flex items-end gap-1">
-          <span
-            className="text-xl text-stone-800 leading-none"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
-            {value.toFixed(1)}
-          </span>
-          <span className="text-stone-400 text-xs">{unit}</span>
-        </div>
-      </div>
-
-      {/* Track */}
-      <div className="relative h-1.5 rounded-full bg-stone-100">
-        <div
-          className="absolute inset-y-0 rounded-full bg-emerald-200"
-          style={{ left: `${healthyLeft}%`, width: `${Math.max(0, healthyWidth)}%` }}
-        />
-        <div
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full ring-2 ring-white shadow ${RISK_DOT[risk]}`}
-          style={{ left: `${markerPct}%` }}
-        />
-      </div>
-
-      <div className="flex justify-between mt-1.5 text-[9px] text-stone-400 font-light tracking-wide">
-        <span>Baixo</span>
-        <span className="text-emerald-600">Saudável</span>
-        <span>Alto</span>
-      </div>
-
-      {delta !== undefined && (
-        <div className="mt-1.5">
-          <DeltaLabel delta={delta} goodDirection={goodDirection} unit={deltaUnit} />
-        </div>
-      )}
-    </div>
-  );
-};
-
-const IndexChip: React.FC<{
-  label: string;
-  value: string;
-  risk: RiskLevel;
-}> = ({ label, value, risk }) => (
-  <div className={`flex flex-col items-center px-3 py-2 rounded-xl border text-center ${RISK_COLORS[risk]}`}>
-    <span className="text-[9px] font-light tracking-widest uppercase opacity-70">{label}</span>
-    <span className="text-base font-medium leading-tight">{value}</span>
   </div>
 );
 
@@ -430,42 +347,47 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
     );
   }
 
-  // ── Clinical indices (computed from final measurements for result screen) ───
+  // ── User-facing estimate ranges ────────────────────────────────────────────
 
-  const indices = finalMeasurements
-    ? computeClinicalIndices({
-        waist_cm: finalMeasurements.waist_cm,
-        hip_cm: finalMeasurements.hip_cm,
-        height_cm: heightCm,
-        weight_kg: weightKg,
-        bf_percentage: finalMeasurements.bf_percentage,
-        gender,
-      })
+  // Body-fat percentage is an estimate, not a direct measurement. This range is
+  // deliberately visible so the UI does not imply decimal-level precision.
+  // `estimation_confidence` describes capture quality, not a clinical interval.
+  const bodyFatMargin = 4;
+  const bodyFatRange = finalMeasurements
+    ? {
+        low: Math.max(2, Math.round(finalMeasurements.bf_percentage - bodyFatMargin)),
+        high: Math.min(60, Math.round(finalMeasurements.bf_percentage + bodyFatMargin)),
+      }
+    : null;
+  const captureQuality = finalMeasurements
+    ? finalMeasurements.estimation_confidence >= 85
+      ? 'Alta'
+      : finalMeasurements.estimation_confidence >= 75
+        ? 'Boa'
+        : 'Limitada'
     : null;
 
-  // ── Body composition panel (Spren-style: mass + indices + RMR) ──────────────
-  // RMR depends only on weight/height/age/sex (camera-independent) — the most
-  // trustworthy number here. Mass/FMI/FFMI flow from BF% so their *trend* (delta)
-  // is more reliable than the absolute value; we derive the mass delta from the
-  // already-computed bf_delta applied to the current weight (body_scans stores no
-  // historical weight), which isolates the composition change.
+  // Fat and lean mass are derived from estimated BF%; lean mass is not skeletal
+  // muscle mass. Their ranges propagate the same BF uncertainty.
   const composition = React.useMemo(() => {
     if (!finalMeasurements) return null;
     const bf = finalMeasurements.bf_percentage;
     const comp = bodyComposition({ weight_kg: weightKg, bf_percentage: bf, height_cm: heightCm });
-    const rmr = restingMetabolicRate({ weight_kg: weightKg, height_cm: heightCm, age, gender });
 
     const bfDelta = progress?.bf_delta;
     const fatDelta = bfDelta !== undefined ? Math.round(weightKg * (bfDelta / 100) * 10) / 10 : undefined;
     const leanDelta = fatDelta !== undefined ? Math.round(-fatDelta * 10) / 10 : undefined;
-    const heightM = heightCm / 100;
-    const fmiDelta =
-      fatDelta !== undefined && heightM > 0 ? Math.round((fatDelta / (heightM * heightM)) * 10) / 10 : undefined;
-    const ffmiDelta =
-      leanDelta !== undefined && heightM > 0 ? Math.round((leanDelta / (heightM * heightM)) * 10) / 10 : undefined;
+    const lowBf = Math.max(2, bf - bodyFatMargin) / 100;
+    const highBf = Math.min(60, bf + bodyFatMargin) / 100;
 
-    return { ...comp, rmr, fatDelta, leanDelta, fmiDelta, ffmiDelta };
-  }, [finalMeasurements, weightKg, heightCm, age, gender, progress]);
+    return {
+      ...comp,
+      fatDelta,
+      leanDelta,
+      fatRange: [Math.round(weightKg * lowBf), Math.round(weightKg * highBf)] as const,
+      leanRange: [Math.round(weightKg * (1 - highBf)), Math.round(weightKg * (1 - lowBf))] as const,
+    };
+  }, [finalMeasurements, weightKg, heightCm, progress]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#FDFBF9]">
@@ -517,10 +439,10 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   className="text-stone-800 text-2xl text-center mb-2"
                   style={{ fontFamily: "'Playfair Display', serif" }}
                 >
-                  Medição Digital
+                  Estimativa de Composição
                 </h2>
                 <p className="text-stone-400 text-sm text-center font-light mb-8 leading-relaxed">
-                  A IA fará até {TARGET_VALID} capturas para aumentar a precisão.<br />
+                  O BodyScan fará até {TARGET_VALID} capturas para melhorar a consistência.<br />
                   Nenhuma imagem sai do seu dispositivo.
                 </p>
 
@@ -552,8 +474,8 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
 
                 <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-8">
                   <p className="text-amber-700 text-xs text-center font-light leading-relaxed">
-                    Estimativa com margem ±2–4 cm para circunferências e ±4% para gordura corporal.
-                    Não substitui avaliação profissional.
+                    Estimativa orientativa de gordura e massa magra, com margem aproximada de ±4 pontos percentuais.
+                    Não mede circunferências nem substitui avaliação profissional.
                   </p>
                 </div>
 
@@ -695,7 +617,7 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                         : 'border-amber-300/50 text-amber-600 bg-amber-50'
                     }`}
                   >
-                    Confiança {finalMeasurements.estimation_confidence.toFixed(0)}%
+                    Qualidade da captura: {captureQuality}
                   </div>
 
                   {validCaptures.length > 1 && (
@@ -720,20 +642,25 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                   return (
                     <div className="text-center mb-6">
                       <p className="text-stone-400 text-xs tracking-widest uppercase font-light mb-1">
-                        Gordura Corporal
+                        Gordura Corporal Estimada
                       </p>
                       <div className="flex items-end justify-center gap-1">
                         <span
                           className="text-6xl text-stone-800 leading-none"
                           style={{ fontFamily: "'Playfair Display', serif" }}
                         >
-                          {bf.toFixed(1)}
+                          ≈{bf.toFixed(0)}
                         </span>
                         <span className="text-stone-400 text-lg mb-1.5 font-light">%</span>
                       </div>
                       <p className={`text-xs font-light tracking-widest uppercase mt-1 ${RISK_COLORS[risk].split(' ')[0]}`}>
                         {RISK_LABEL[risk]}
                       </p>
+                      {bodyFatRange && (
+                        <p className="text-xs text-stone-500 font-light mt-1">
+                          Faixa orientativa: {bodyFatRange.low}–{bodyFatRange.high}%
+                        </p>
+                      )}
                       {progress?.bf_delta !== undefined && (
                         <div className="mt-1">
                           <DeltaLabel delta={progress.bf_delta} goodDirection="down" unit="%" />
@@ -768,96 +695,35 @@ export const BodyScanner: React.FC<BodyScannerProps> = ({ onClose, onScanComplet
                     </p>
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       <StatCard
-                        label="Massa Gorda"
+                        label="Massa Gorda Estimada"
                         value={composition.fat_mass_kg}
                         unit="kg"
+                        decimals={0}
                         delta={composition.fatDelta}
                         goodDirection="down"
+                        note={`Faixa orientativa: ${composition.fatRange[0]}–${composition.fatRange[1]} kg`}
                       />
                       <StatCard
-                        label="Massa Magra"
+                        label="Massa Magra Estimada"
                         value={composition.lean_mass_kg}
                         unit="kg"
+                        decimals={0}
                         delta={composition.leanDelta}
                         goodDirection="up"
+                        note={`Faixa orientativa: ${composition.leanRange[0]}–${composition.leanRange[1]} kg`}
                       />
                     </div>
 
-                    {/* Composition: normalized indices with health bands */}
-                    <div className="space-y-2 mb-3">
-                      <CompositionBar
-                        label="Índice de Massa Gorda (FMI)"
-                        value={composition.fmi}
-                        unit="kg/m²"
-                        kind="fmi"
-                        gender={gender}
-                        risk={fmiRisk(composition.fmi, gender)}
-                        delta={composition.fmiDelta}
-                        goodDirection="down"
-                      />
-                      <CompositionBar
-                        label="Índice de Massa Magra (FFMI)"
-                        value={composition.ffmi}
-                        unit="kg/m²"
-                        kind="ffmi"
-                        gender={gender}
-                        risk={ffmiRisk(composition.ffmi, gender)}
-                        delta={composition.ffmiDelta}
-                        goodDirection="up"
-                      />
-                    </div>
-
-                    {/* RMR — camera-independent, no band */}
-                    <div className="mb-3">
-                      <StatCard
-                        label="Taxa Metabólica (RMR)"
-                        value={composition.rmr}
-                        unit="kcal/dia"
-                        decimals={0}
-                        note="Energia em repouso (Mifflin-St Jeor)"
-                      />
-                    </div>
                   </>
-                )}
-
-                {/* Clinical indices (ratios — kept as compact chips) */}
-                {indices && (
-                  <div className="mb-5">
-                    <p className="text-stone-400 text-[10px] tracking-widest uppercase font-light mb-2 text-center">
-                      Índices Clínicos
-                    </p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {indices.whr !== null && (
-                        <IndexChip
-                          label="RCQ"
-                          value={indices.whr.toFixed(2)}
-                          risk={whrRisk(indices.whr, gender)}
-                        />
-                      )}
-                      {indices.rce !== null && (
-                        <IndexChip
-                          label="RCE"
-                          value={indices.rce.toFixed(2)}
-                          risk={rceRisk(indices.rce)}
-                        />
-                      )}
-                      {indices.bmi !== null && (
-                        <IndexChip
-                          label="IMC"
-                          value={indices.bmi.toFixed(1)}
-                          risk={bmiRisk(indices.bmi)}
-                        />
-                      )}
-                    </div>
-                  </div>
                 )}
 
                 {/* Disclaimer */}
                 <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-5">
                   <p className="text-amber-700 text-xs text-center font-light leading-relaxed">
-                    Estimativas de composição corporal (margem ±4%). Acompanhe a
-                    tendência ao longo do tempo, não o valor absoluto. Não substitui
-                    avaliação clínica (ex.: bioimpedância, DEXA).
+                    Gordura, massa gorda e massa magra são estimativas — não medições.
+                    A qualidade acima avalia a captura, não a precisão clínica. Compare
+                    tendências entre scans feitos nas mesmas condições. Não substitui
+                    avaliação clínica (ex.: bioimpedância ou DXA).
                   </p>
                 </div>
 

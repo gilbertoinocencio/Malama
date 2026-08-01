@@ -2,9 +2,8 @@
  * BodyCompositionDashboard — longitudinal body composition view for doctors.
  *
  * Displays:
- *   - Clinical indices from the latest scan (WHR, RCE, FFMI, BAI) with risk colours
+ *   - Composition indicators from the latest scan (FFMI and BMI)
  *   - BF% timeline with source labels (camera, BIA, skinfolds — empty states for future)
- *   - Circumferences timeline (waist, hip, neck, arm, thigh, calf)
  *
  * Data source: body_measurement_snapshots (populated by useBodyScan after each scan)
  */
@@ -23,8 +22,6 @@ import {
 import { supabase } from '../../services/supabase';
 import {
   computeClinicalIndices,
-  whrRisk,
-  rceRisk,
   ffmiRisk,
   type RiskLevel,
 } from '../../utils/bodyCompositionCalculators';
@@ -74,13 +71,6 @@ const RISK_LABEL: Record<RiskLevel, string> = {
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-}
-
-function avg(a: number | null, b: number | null): number | null {
-  if (a == null && b == null) return null;
-  if (a == null) return b;
-  if (b == null) return a;
-  return Math.round(((a + b) / 2) * 10) / 10;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -162,10 +152,11 @@ export const BodyCompositionDashboard: React.FC<Props> = ({ patientId, gender })
 
   const latest = snapshots[snapshots.length - 1];
 
-  // Clinical indices from latest snapshot
+  // Composition indices only. Camera-inferred circumferences are internal model
+  // features, not clinical measurements.
   const indices = computeClinicalIndices({
-    waist_cm:      latest.waist_cm ?? 0,
-    hip_cm:        latest.hip_cm ?? 0,
+    waist_cm:      0,
+    hip_cm:        0,
     height_cm:     latest.height_cm ?? 170,
     weight_kg:     latest.weight_kg ?? 70,
     bf_percentage: latest.avg_body_fat_pct ?? undefined,
@@ -176,17 +167,6 @@ export const BodyCompositionDashboard: React.FC<Props> = ({ patientId, gender })
   const bfChartData = snapshots.map(s => ({
     date: fmtDate(s.snapped_at),
     'Câmera': s.avg_body_fat_pct,
-  }));
-
-  // Chart data — circumferences timeline
-  const circumChartData = snapshots.map(s => ({
-    date:        fmtDate(s.snapped_at),
-    'Cintura':   s.waist_cm,
-    'Quadril':   s.hip_cm,
-    'Pescoço':   s.neck_cm,
-    'Braço':     avg(s.arm_left_cm, s.arm_right_cm),
-    'Coxa':      avg(s.thigh_left_cm, s.thigh_right_cm),
-    'Panturrilha': avg(s.calf_left_cm, s.calf_right_cm),
   }));
 
   return (
@@ -214,43 +194,15 @@ export const BodyCompositionDashboard: React.FC<Props> = ({ patientId, gender })
       {/* ── Clinical indices ───────────────────────────────────────────────── */}
       <div>
         <p className="text-xs font-semibold text-stone-500 uppercase tracking-widest mb-3">
-          Índices Clínicos — Último Scan
+          Indicadores de Composição — Último Scan
         </p>
         <div className="grid grid-cols-2 gap-3">
-          {indices.whr !== null && (
-            <IndexCard
-              label="RCQ"
-              description="Relação Cintura-Quadril"
-              value={indices.whr.toFixed(2)}
-              risk={whrRisk(indices.whr, resolvedGender)}
-            />
-          )}
-          {indices.rce !== null && (
-            <IndexCard
-              label="RCE"
-              description="Relação Cintura-Estatura"
-              value={indices.rce.toFixed(2)}
-              risk={rceRisk(indices.rce)}
-            />
-          )}
           {indices.ffmi !== null && (
             <IndexCard
               label="FFMI"
               description="Índice Massa Livre de Gordura"
               value={indices.ffmi.toFixed(1)}
               risk={ffmiRisk(indices.ffmi, resolvedGender)}
-            />
-          )}
-          {indices.bai !== null && (
-            <IndexCard
-              label="BAI"
-              description="Body Adiposity Index"
-              value={indices.bai.toFixed(1)}
-              risk={
-                resolvedGender === 'female'
-                  ? indices.bai < 21 ? 'moderate' : indices.bai < 33 ? 'low' : indices.bai < 39 ? 'moderate' : 'high'
-                  : indices.bai < 8  ? 'moderate' : indices.bai < 21 ? 'low' : indices.bai < 26 ? 'moderate' : 'high'
-              }
             />
           )}
           {indices.bmi !== null && (
@@ -267,17 +219,9 @@ export const BodyCompositionDashboard: React.FC<Props> = ({ patientId, gender })
               }
             />
           )}
-          {indices.absi !== null && (
-            <IndexCard
-              label="ABSI"
-              description="A Body Shape Index"
-              value={indices.absi.toFixed(4)}
-              risk="moderate"
-            />
-          )}
         </div>
         <p className="text-[10px] text-stone-400 mt-2 text-center">
-          Referências: RCQ mulher &lt;0.80 / homem &lt;0.90 · RCE &lt;0.50 · FFMI mulher ≥15 / homem ≥19
+          O FFMI usa massa magra estimada pelo BodyScan; interprete tendências, não precisão clínica.
         </p>
       </div>
 
@@ -310,33 +254,6 @@ export const BodyCompositionDashboard: React.FC<Props> = ({ patientId, gender })
         </p>
       </div>
 
-      {/* ── Circumferences timeline ────────────────────────────────────────── */}
-      <div>
-        <p className="text-xs font-semibold text-stone-500 uppercase tracking-widest mb-3">
-          Circunferências — Evolução (cm)
-        </p>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={circumChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} unit=" cm" domain={['auto', 'auto']} />
-              <Tooltip formatter={(v): [string, string] => [`${typeof v === 'number' ? v.toFixed(1) : '—'} cm`, '']} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="Cintura"      stroke="#7d4a3c" strokeWidth={2} dot={{ r: 2 }} connectNulls />
-              <Line type="monotone" dataKey="Quadril"      stroke="#c07a6a" strokeWidth={2} dot={{ r: 2 }} connectNulls />
-              <Line type="monotone" dataKey="Pescoço"      stroke="#86a88d" strokeWidth={1.5} dot={{ r: 2 }} connectNulls strokeDasharray="4 2" />
-              <Line type="monotone" dataKey="Braço"        stroke="#b5a0d4" strokeWidth={1.5} dot={{ r: 2 }} connectNulls strokeDasharray="4 2" />
-              <Line type="monotone" dataKey="Coxa"         stroke="#f0b87a" strokeWidth={1.5} dot={{ r: 2 }} connectNulls strokeDasharray="4 2" />
-              <Line type="monotone" dataKey="Panturrilha"  stroke="#88c4d8" strokeWidth={1.5} dot={{ r: 2 }} connectNulls strokeDasharray="4 2" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <p className="text-[10px] text-stone-400 mt-1 text-center">
-          Sólido = câmera-derivado ±2 cm · Tracejado = estimativa estatística ±4 cm
-        </p>
-      </div>
-
       {/* ── Latest values table ────────────────────────────────────────────── */}
       <div>
         <p className="text-xs font-semibold text-stone-500 uppercase tracking-widest mb-3">
@@ -344,32 +261,25 @@ export const BodyCompositionDashboard: React.FC<Props> = ({ patientId, gender })
         </p>
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: 'Cintura',      value: latest.waist_cm,                        badge: '📷' },
-            { label: 'Quadril',      value: latest.hip_cm,                          badge: '📷' },
-            { label: 'Busto',        value: latest.chest_cm,                        badge: '📷' },
-            { label: 'Pescoço',      value: latest.neck_cm,                         badge: '📷' },
-            { label: 'Braço',        value: avg(latest.arm_left_cm, latest.arm_right_cm),     badge: '📊' },
-            { label: 'Coxa',         value: avg(latest.thigh_left_cm, latest.thigh_right_cm), badge: '📊' },
-            { label: 'Panturrilha',  value: avg(latest.calf_left_cm, latest.calf_right_cm),   badge: '📊' },
-            { label: '% Gordura',    value: latest.avg_body_fat_pct,                badge: '📷' },
-            { label: 'Massa Magra',  value: latest.avg_muscle_mass_kg ? +(latest.avg_muscle_mass_kg).toFixed(1) : null, badge: null, unit: 'kg' },
+            { label: 'Gordura estimada', value: latest.avg_body_fat_pct, unit: '%' },
+            { label: 'Massa magra estimada', value: latest.avg_muscle_mass_kg ? +(latest.avg_muscle_mass_kg).toFixed(1) : null, unit: 'kg' },
+            { label: 'Peso', value: latest.weight_kg, unit: 'kg' },
+            { label: 'IMC', value: latest.bmi, unit: '' },
           ].map(item => item.value != null ? (
             <div key={item.label} className="bg-stone-50 rounded-xl p-3 border border-stone-100">
               <div className="flex items-center gap-1 mb-1">
                 <span className="text-[10px] text-stone-400 font-light tracking-wide flex-1">{item.label}</span>
-                {item.badge && <span className="text-[9px]">{item.badge}</span>}
               </div>
               <span className="text-lg font-semibold text-stone-800">
                 {typeof item.value === 'number' ? item.value.toFixed(1) : item.value}
               </span>
-              <span className="text-[11px] text-stone-400 ml-1">{item.unit ?? 'cm'}</span>
+              <span className="text-[11px] text-stone-400 ml-1">{item.unit}</span>
             </div>
           ) : null)}
         </div>
-        <div className="flex gap-4 mt-3 text-[10px] text-stone-400">
-          <span>📷 Câmera-derivado</span>
-          <span>📊 Estimativa estatística</span>
-        </div>
+        <p className="text-[10px] text-stone-400 mt-3">
+          Valores do BodyScan são estimativas de composição corporal; não representam circunferências ou massa muscular esquelética.
+        </p>
       </div>
 
     </div>

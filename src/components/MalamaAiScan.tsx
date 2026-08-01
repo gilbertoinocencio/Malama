@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIResponse, MealItem } from '../types';
-import { lookupSingleItem } from '../services/geminiService';
+import { lookupSingleItem } from '../services/caramelService';
 import { useLanguage } from '../i18n';
 import { normalizeMealAnalysis } from '../utils/normalizeMealAnalysis';
 

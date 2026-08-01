@@ -45,10 +45,6 @@ export const BodyScanResult: React.FC<BodyScanResultProps> = ({
   const bfCategory = getBodyFatCategory(result.bodyFatPercentage, result.detectedBiotype);
   const biotypeInfo = getBiotypeInfo(result.detectedBiotype);
 
-  // Extract measurements
-  const measurements = result.measurements || {};
-  const hasMeasurements = Object.keys(measurements).length > 0;
-
   return (
     <div className="space-y-4">
       {/* Photo Preview */}
@@ -119,24 +115,27 @@ export const BodyScanResult: React.FC<BodyScanResultProps> = ({
             <span className="text-white/60 text-xs font-medium">Gordura Corporal</span>
           </div>
           <p className="text-2xl font-bold text-white mb-1">
-            {result.bodyFatPercentage.toFixed(1)}%
+            ≈{result.bodyFatPercentage.toFixed(0)}%
           </p>
           <p className={`text-xs font-medium ${bfCategory.color}`}>
             {bfCategory.label}
           </p>
+          <p className="text-[10px] text-white/50 mt-1">
+            Faixa orientativa: {Math.max(2, Math.round(result.bodyFatPercentage - 4))}–{Math.min(60, Math.round(result.bodyFatPercentage + 4))}%
+          </p>
         </div>
 
-        {/* Muscle Mass */}
+        {/* Lean mass — legacy result field is named muscleMassKg */}
         <div className="bg-surface-dark rounded-xl p-4 border border-white/5">
           <div className="flex items-center gap-2 mb-2">
             <span className="material-symbols-outlined text-blue-400 text-lg">fitness_center</span>
-            <span className="text-white/60 text-xs font-medium">Massa Muscular</span>
+            <span className="text-white/60 text-xs font-medium">Massa Magra Estimada</span>
           </div>
           <p className="text-2xl font-bold text-white mb-1">
-            {result.muscleMassKg.toFixed(1)}
+            ≈{result.muscleMassKg.toFixed(0)}
             <span className="text-base text-white/60 ml-1">kg</span>
           </p>
-          <p className="text-xs text-white/50">Massa magra</p>
+          <p className="text-xs text-white/50">Não equivale à massa muscular esquelética</p>
         </div>
       </motion.div>
 
@@ -159,84 +158,6 @@ export const BodyScanResult: React.FC<BodyScanResultProps> = ({
           </div>
         </div>
       </motion.div>
-
-      {/* Circumference Measurements */}
-      {hasMeasurements && (
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="bg-surface-dark rounded-xl p-4 border border-white/5"
-        >
-          <h3 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
-            <span className="material-symbols-outlined text-sm">straighten</span>
-            Circunferências Estimadas
-          </h3>
-
-          <div className="grid grid-cols-2 gap-3">
-            {measurements.waist && (
-              <div className="flex items-center justify-between py-2 border-b border-white/5">
-                <span className="text-white/60 text-xs">Cintura</span>
-                <span className="text-white font-semibold text-sm">{measurements.waist.toFixed(1)} cm</span>
-              </div>
-            )}
-            {measurements.hip && (
-              <div className="flex items-center justify-between py-2 border-b border-white/5">
-                <span className="text-white/60 text-xs">Quadril</span>
-                <span className="text-white font-semibold text-sm">{measurements.hip.toFixed(1)} cm</span>
-              </div>
-            )}
-            {measurements.chest && (
-              <div className="flex items-center justify-between py-2 border-b border-white/5">
-                <span className="text-white/60 text-xs">Peito</span>
-                <span className="text-white font-semibold text-sm">{measurements.chest.toFixed(1)} cm</span>
-              </div>
-            )}
-            {measurements.arm_left && (
-              <div className="flex items-center justify-between py-2 border-b border-white/5">
-                <span className="text-white/60 text-xs">Braço E</span>
-                <span className="text-white font-semibold text-sm">{measurements.arm_left.toFixed(1)} cm</span>
-              </div>
-            )}
-            {measurements.arm_right && (
-              <div className="flex items-center justify-between py-2 border-b border-white/5">
-                <span className="text-white/60 text-xs">Braço D</span>
-                <span className="text-white font-semibold text-sm">{measurements.arm_right.toFixed(1)} cm</span>
-              </div>
-            )}
-            {measurements.thigh_left && (
-              <div className="flex items-center justify-between py-2 border-b border-white/5">
-                <span className="text-white/60 text-xs">Coxa E</span>
-                <span className="text-white font-semibold text-sm">{measurements.thigh_left.toFixed(1)} cm</span>
-              </div>
-            )}
-            {measurements.thigh_right && (
-              <div className="flex items-center justify-between py-2 border-b border-white/5">
-                <span className="text-white/60 text-xs">Coxa D</span>
-                <span className="text-white font-semibold text-sm">{measurements.thigh_right.toFixed(1)} cm</span>
-              </div>
-            )}
-            {measurements.calf_left && (
-              <div className="flex items-center justify-between py-2">
-                <span className="text-white/60 text-xs">Panturrilha E</span>
-                <span className="text-white font-semibold text-sm">{measurements.calf_left.toFixed(1)} cm</span>
-              </div>
-            )}
-            {measurements.calf_right && (
-              <div className="flex items-center justify-between py-2">
-                <span className="text-white/60 text-xs">Panturrilha D</span>
-                <span className="text-white font-semibold text-sm">{measurements.calf_right.toFixed(1)} cm</span>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-3 pt-3 border-t border-white/5">
-            <p className="text-white/50 text-[10px] text-center">
-              ℹ️ Estimativas baseadas em análise visual. Use para tracking de tendências.
-            </p>
-          </div>
-        </motion.div>
-      )}
 
       {/* Tips Section */}
       <motion.div

@@ -767,13 +767,10 @@ ${context.recentWeightLogs.slice(0, 5).map((l: any) => {
     const snapshotBlock = context.latestBodySnapshot
       ? `\n## 📷 Último BODY SCAN (${new Date(context.latestBodySnapshot.snapped_at).toLocaleDateString('pt-BR')})
 - **Gordura corporal:** ${context.latestBodySnapshot.avg_body_fat_pct?.toFixed(1) ?? '?'}%
-- **Massa muscular magra:** ${context.latestBodySnapshot.avg_muscle_mass_kg?.toFixed(1) ?? '?'} kg
+- **Massa magra estimada:** ${context.latestBodySnapshot.avg_muscle_mass_kg?.toFixed(1) ?? '?'} kg
 ${context.latestBodySnapshot.bmi ? `- **IMC:** ${context.latestBodySnapshot.bmi.toFixed(1)}` : ''}
 ${context.latestBodySnapshot.detected_biotype ? `- **Biótipo detectado:** ${context.latestBodySnapshot.detected_biotype}` : ''}
-${context.latestBodySnapshot.waist_cm ? `- **Cintura:** ${context.latestBodySnapshot.waist_cm} cm` : ''}
-${context.latestBodySnapshot.hip_cm ? `- **Quadril:** ${context.latestBodySnapshot.hip_cm} cm` : ''}
-${context.latestBodySnapshot.chest_cm ? `- **Peitoral:** ${context.latestBodySnapshot.chest_cm} cm` : ''}
-*Use estes dados de composição corporal para personalizar as orientações de nutrição e treino. Mencione progress nos scans quando for relevante e motivador.*`
+*São estimativas de composição corporal, não medidas clínicas nem massa muscular esquelética. Use principalmente a tendência entre scans feitos em condições semelhantes.*`
       : '';
 
     const LANG_NAMES: Record<string, string> = {
@@ -1179,12 +1176,12 @@ Use o histórico de refeições e o horário atual para antecipar necessidades:
     try {
       // Build conversation history from DB.
       // context.recentChatMessages comes from the DB in DESCENDING order (newest first),
-      // so we reverse it to chronological order (oldest first), which is what Gemini expects.
+      // so we reverse it to chronological order (oldest first), which is what Caramel expects.
       const rawHistory = (context.recentChatMessages || []).slice().reverse();
 
       // Drop the most-recent user message if it matches the message we're about to send.
       // sendMessage() saves the user message to the DB fire-and-forget BEFORE this runs,
-      // so it can race into the history fetch — if we don't strip it, Gemini sees the same
+      // so it can race into the history fetch — if we don't strip it, Caramel sees the same
       // message twice (once in history, once via chat.sendMessage) and treats it as two events
       // (e.g. "you drank 500ml twice").
       const normalize = (s: string) => (s || '').trim().toLowerCase();

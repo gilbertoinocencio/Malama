@@ -6,12 +6,10 @@
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { generateClinicalText } from '../_shared/clinical-ai.ts';
 
 const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY      = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const ANTHROPIC_KEY    = Deno.env.get('ANTHROPIC_API_KEY')!;
-const CLAUDE_MODEL     = 'claude-sonnet-4-6';
-
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
 const corsHeaders = {
@@ -49,6 +47,19 @@ Deno.serve(async (req: Request) => {
     if (!patient_id) {
       return new Response(JSON.stringify({ error: 'patient_id obrigatório' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Acesso clínico exige vínculo real entre o médico autenticado e o paciente.
+    const [{ data: hasConsult }, { data: isReferred }] = await Promise.all([
+      supabase.from('consultations').select('id')
+        .eq('doctor_id', doctor.id).eq('patient_id', patient_id).limit(1).maybeSingle(),
+      supabase.from('profiles').select('id')
+        .eq('id', patient_id).eq('referred_by_doctor_id', doctor.id).maybeSingle(),
+    ]);
+    if (!hasConsult && !isReferred) {
+      return new Response(JSON.stringify({ error: 'Paciente não vinculado a este médico' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -192,32 +203,14 @@ ${hasDaily
 
 Seja conciso e direto. Máximo de 450 palavras no total.`;
 
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type':      'application/json',
-        'x-api-key':         ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model:      CLAUDE_MODEL,
-        max_tokens: 1536,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+    const generation = await generateClinicalText(prompt, 1536);
 
-    if (!anthropicRes.ok) {
-      const err = await anthropicRes.text();
-      console.error('Claude API error:', err);
-      return new Response(JSON.stringify({ error: 'Erro na API de IA' }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const claudeData = await anthropicRes.json();
-    const insights   = claudeData.content?.[0]?.text ?? '';
-
-    return new Response(JSON.stringify({ insights }), {
+    return new Response(JSON.stringify({
+      insights: generation.text,
+      provider: generation.provider,
+      model: generation.model,
+      fallback_used: generation.fallbackUsed,
+    }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

@@ -9,7 +9,7 @@ import {
   Activity, RefreshCw, ChevronDown, ChevronRight,
   Zap, CheckCircle, Minus
 } from 'lucide-react';
-import { generateDoctorBriefing } from '../../services/geminiService';
+import { generateDoctorBriefing } from '../../services/caramelService';
 import type { PatientFullProfile } from '../../types/doctorPortal';
 
 interface Props {
@@ -210,27 +210,27 @@ const AIBlock: React.FC<{
 export const AIInsightsSidebar: React.FC<Props> = ({ patient, patientId }) => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
 
-  // Gemini quick briefing state
-  const [geminiText, setGeminiText]     = useState<string | null>(null);
-  const [geminiLoading, setGeminiLoading] = useState(false);
-  const [geminiOpen, setGeminiOpen]     = useState(false);
+  // Caramel quick briefing state
+  const [caramelText, setCaramelText] = useState<string | null>(null);
+  const [caramelLoading, setCaramelLoading] = useState(false);
+  const [caramelOpen, setCaramelOpen] = useState(false);
 
 
   useEffect(() => {
     setAlerts(deriveAlerts(patient));
   }, [patient]);
 
-  const generateGemini = async () => {
-    setGeminiLoading(true);
+  const generateCaramelBriefing = async () => {
+    setCaramelLoading(true);
     try {
       const text = await generateDoctorBriefing(patient);
-      setGeminiText(text);
-      setGeminiOpen(true);
+      setCaramelText(text);
+      setCaramelOpen(true);
     } catch {
-      setGeminiText('Erro ao gerar resumo. Verifique a chave Gemini.');
-      setGeminiOpen(true);
+      setCaramelText('Não foi possível gerar o resumo agora. Tente novamente em instantes.');
+      setCaramelOpen(true);
     } finally {
-      setGeminiLoading(false);
+      setCaramelLoading(false);
     }
   };
 
@@ -282,11 +282,11 @@ export const AIInsightsSidebar: React.FC<Props> = ({ patient, patientId }) => {
         title="Resumo Rápido"
         icon={<Brain className="w-4 h-4 text-[#7d4a3c]" />}
         accentClass="from-[#7d4a3c]/5 to-transparent"
-        loading={geminiLoading}
-        content={geminiText}
-        open={geminiOpen}
-        onToggle={() => geminiText ? setGeminiOpen(o => !o) : generateGemini()}
-        onRegenerate={generateGemini}
+        loading={caramelLoading}
+        content={caramelText}
+        open={caramelOpen}
+        onToggle={() => caramelText ? setCaramelOpen(o => !o) : generateCaramelBriefing()}
+        onRegenerate={generateCaramelBriefing}
         cta="Análise rápida dos dados nutricionais e check-ins."
       />
 

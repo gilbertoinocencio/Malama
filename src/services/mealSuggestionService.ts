@@ -63,7 +63,7 @@ export const MealSuggestionService = {
   },
 
   /**
-   * Generate meal suggestions using Gemini AI
+   * Generate meal suggestions using Caramel
    */
   async generateWithAI(profile: any, onboardingData: any): Promise<Partial<MealSuggestion>[]> {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
