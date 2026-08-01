@@ -65,9 +65,13 @@ workflows:
           # inválidos em vez de atualizá-los, e o fetch baixa todos os App Store que
           # existirem — se sobrar um obsoleto, o use-profiles pode escolher justamente
           # ele e o archive quebra lá na frente com um exit 65 sem explicação.
-          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
-          for p in "$PROFILE_DIR"/*.mobileprovision; do
-            [ -e "$p" ] || continue
+          # Duas pastas: o Xcode moderno usa UserData, o antigo usa MobileDevice.
+          # O fetch-signing-files grava na primeira; procurar só na segunda faz o
+          # check passar batido e acusar ausência de profile que na verdade existe.
+          FOUND_ANY=0
+          FOUND_VALID=0
+          while IFS= read -r p; do
+            FOUND_ANY=1
             security cms -D -i "$p" > /tmp/pp.plist
             NAME="$(/usr/libexec/PlistBuddy -c 'Print :Name' /tmp/pp.plist 2>/dev/null || echo '?')"
             echo "--- profile encontrado: $NAME"
@@ -75,13 +79,22 @@ workflows:
               | grep -E 'associated-domains|applesignin|healthkit|application-identifier' || true
             if /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.associated-domains' /tmp/pp.plist >/dev/null 2>&1; then
               echo "    OK — tem Associated Domains"
+              FOUND_VALID=1
             else
               echo "    DESCARTADO — sem Associated Domains"
               rm -f "$p"
             fi
-          done
+          done < <(find "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+                        "$HOME/Library/MobileDevice/Provisioning Profiles" \
+                        -name '*.mobileprovision' 2>/dev/null)
 
-          if ! ls "$PROFILE_DIR"/*.mobileprovision >/dev/null 2>&1; then
+          if [ "$FOUND_ANY" -eq 0 ]; then
+            echo "ERRO: o fetch-signing-files nao baixou nenhum profile — verifique a"
+            echo "integracao App Store Connect e se existe profile App Store ATIVO para $BUNDLE_ID."
+            exit 1
+          fi
+
+          if [ "$FOUND_VALID" -eq 0 ]; then
             echo "ERRO: nenhum profile App Store de $BUNDLE_ID tem a capability Associated Domains."
             echo "No portal da Apple (developer.apple.com):"
             echo "  1. Identifiers -> $BUNDLE_ID -> marcar Associated Domains -> Save"
