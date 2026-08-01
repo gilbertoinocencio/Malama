@@ -92,8 +92,13 @@ export function isPureWaterLog(text: string): boolean {
  * a agente NÃO registra: confirma com o usuário, aconselha e sugere correção (um
  * único copo/garrafa raramente passa de alguns litros). Mantido como constante
  * única para que prompt e interceptor concordem. Ajustável em um só lugar.
+ *
+ * O valor ESPELHA o CHECK do RPC `log_water_intake` (`p_ml BETWEEN 1 AND 2000`,
+ * ver 20260815_security_hardening.sql). Quando o cliente permitia mais que o
+ * banco, o excedente era rejeitado pelo RPC e o erro só ia para o console — a
+ * agente dizia "registrei!" e nada entrava na hidratação. Se mudar aqui, mude lá.
  */
-export const WATER_MAX_ML = 4000;
+export const WATER_MAX_ML = 2000;
 
 /**
  * A mensagem traz um SINAL DE QUANTIDADE de bebida (número em ml/l, ou recipiente

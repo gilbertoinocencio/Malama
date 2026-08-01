@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog, getMealSlotLabel } from '../services/caramelService';
+import type { HydrationAnalysis } from '../services/caramelService';
 import { UnifiedChatService } from '../services/unifiedChatService';
+import { HydrationService } from '../services/hydrationService';
 import { enviarFeedback, enviarCorrecao } from '../lib/caramelAI';
 import { userReportedWaterIntake, isBareQuantityAnswer } from '../utils/intakeDetection';
 import { parseAiJson } from '../utils/parseAiJson';
 import { normalizeMealAnalysis } from '../utils/normalizeMealAnalysis';
 
 import { MalamaAiScan } from './MalamaAiScan';
+import { MalamaWaterScan } from './MalamaWaterScan';
 import { USER_AVATAR } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { MealService } from '../services/mealService';
@@ -225,6 +228,7 @@ const historyToMessages = (history: any[]): Message[] => {
         const cleanContent = msg.content
           .replace(/<water_json>[\s\S]*?<\/water_json>/g, '')
           .replace(/<dose_json>[\s\S]*?<\/dose_json>/g, '')
+          .replace(/<image_uri>[\s\S]*?<\/image_uri>/g, '')
           .trim();
         result.push({ id: msg.id, type: 'ai-text', content: cleanContent || msg.content });
       }
@@ -320,6 +324,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const draftMealRef = useRef<AIResponse | null>(null);
   const scanResultRef = useRef<AIResponse | null>(null);
   const scannedImageUriRef = useRef<string | null>(null);
+  const waterScanRef = useRef<HydrationAnalysis | null>(null);
 
   const { t, speechLang, language } = useLanguage();
   const { user, profile } = useAuth();
@@ -378,6 +383,22 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     } catch { }
     return null;
   });
+  // Foto de água pura: não é refeição, vai para a hidratação depois que o usuário
+  // confirma a quantidade. Persiste no mesmo rascunho para sobreviver ao app ir
+  // para segundo plano no meio da confirmação (iOS/Capacitor).
+  const [waterScan, setWaterScan] = useState<HydrationAnalysis | null>(() => {
+    if (!user) return null;
+    try {
+      const saved = localStorage.getItem(`Malama_draft_meal_${user.id}`);
+      if (saved) {
+        const { water, imageUri, ts } = JSON.parse(saved);
+        // Só restaura junto com a foto: sem ela a tela de confirmação não faz
+        // sentido (fotos grandes são descartadas na persistência).
+        if (water && imageUri && Date.now() - (ts || 0) < 24 * 60 * 60 * 1000) return water as HydrationAnalysis;
+      }
+    } catch { }
+    return null;
+  });
 
   // Voice Recognition State
   const [isListening, setIsListening] = useState(false);
@@ -404,6 +425,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   useEffect(() => { draftMealRef.current = draftMeal; }, [draftMeal]);
   useEffect(() => { scanResultRef.current = scanResult; }, [scanResult]);
   useEffect(() => { scannedImageUriRef.current = scannedImageUri; }, [scannedImageUri]);
+  useEffect(() => { waterScanRef.current = waterScan; }, [waterScan]);
 
   // Restore persistent chat history on mount (without re-setting draftMeal)
   useEffect(() => {
@@ -432,13 +454,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   useEffect(() => {
     if (!user || !draftPersistedRef.current) return;
     const key = `Malama_draft_meal_${user.id}`;
-    if (draftMeal || scanResult) {
+    if (draftMeal || scanResult || waterScan) {
       const draft: Record<string, any> = {
         meal: draftMeal ?? scanResult,
         source: draftSource,
         ts: Date.now(),
       };
       if (scanResult) draft.scanResult = scanResult;
+      if (waterScan) draft.water = waterScan;
       if (scannedImageUri && scannedImageUri.length < 1.5 * 1024 * 1024) draft.imageUri = scannedImageUri;
       try {
         localStorage.setItem(key, JSON.stringify(draft));
@@ -450,7 +473,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       }
     }
     // Clearing is done explicitly in confirm/cancel/discard to avoid race with unmount
-  }, [draftMeal, scanResult, scannedImageUri, draftSource, user]);
+  }, [draftMeal, scanResult, waterScan, scannedImageUri, draftSource, user]);
 
   // Restore draftMeal/scanResult/imageUri from localStorage when tab becomes visible again.
   // Uses refs (not state) as dependencies so the listener is only registered once per user
@@ -464,7 +487,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         const draftKey = `Malama_draft_meal_${user.id}`;
         const savedDraft = localStorage.getItem(draftKey);
         if (!savedDraft) return;
-        const { meal, source, ts, scanResult: sr, imageUri } = JSON.parse(savedDraft);
+        const { meal, source, ts, scanResult: sr, water, imageUri } = JSON.parse(savedDraft);
         if (Date.now() - (ts || 0) >= 24 * 60 * 60 * 1000) return;
         // Read current values from refs, not from stale closure state
         if (!draftMealRef.current && !scannedImageUriRef.current && meal) {
@@ -472,6 +495,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           setDraftSource(source || 'chat');
         }
         if (!scanResultRef.current && sr) setScanResult(normalizeMealAnalysis(sr));
+        if (!waterScanRef.current && water && imageUri) setWaterScan(water as HydrationAnalysis);
         if (!scannedImageUriRef.current && imageUri) setScannedImageUri(imageUri);
       } catch {
         localStorage.removeItem(`Malama_draft_meal_${user.id}`);
@@ -746,8 +770,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         base64 = await resizeImage(base64, 800);
         setScannedImageUri(base64);
 
+        // Foto de água pura tem caminho próprio: cair no analisador de refeição
+        // registrava um "prato de 0 kcal" e a ingestão nunca entrava na hidratação.
         const result = await analyzeImageLog(base64, language, profile);
-        setScanResult(result);
+        if (result.kind === 'water') {
+          setWaterScan(result.hydration);
+        } else {
+          setScanResult(result.meal);
+        }
       } catch (err) {
         console.error("Scan failed", err);
         alert(t.mealLogger.errorLogging);
@@ -762,6 +792,88 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
 
   const isLoggingRef = useRef(false);
+
+  /**
+   * Registra a água da foto na hidratação (nunca em refeição/calorias).
+   * A quantidade é a que o usuário confirmou na tela — a estimativa da IA sozinha
+   * nunca grava nada, mesma regra do interceptor de texto.
+   */
+  const handleConfirmWater = async (ml: number, edited: boolean) => {
+    if (!user || isLoggingRef.current) return;
+    isLoggingRef.current = true;
+
+    const analysis = waterScan;
+    // Ajustar a estimativa do recipiente é correção da leitura da IA (👎).
+    enviarFeedback(
+      analysis?.idRequisicao,
+      edited ? 'negativo' : 'positivo',
+      edited ? 'usuário corrigiu a quantidade de água estimada na foto' : undefined,
+    );
+
+    setLoading(true);
+    try {
+      const { logged, totalMl } = await HydrationService.logWater(user.id, ml, 'photo');
+      // Duplicata (toque repetido): o registro do toque anterior já valeu — não
+      // repete a confirmação no chat nem soma de novo.
+      if (!logged) { setLoading(false); return; }
+
+      const amountLine = `Registrei ${ml} ml de água na sua hidratação 💧`;
+      const totalLine = totalMl ? ` Total de hoje: ${totalMl} ml.` : '';
+      // O texto da IA é só a frase de incentivo (o prompt proíbe números nela) —
+      // a quantidade exibida vem sempre do que o usuário confirmou.
+      const encouragement = analysis?.message ? `\n\n${analysis.message}` : '';
+      const feedback = `${amountLine}${totalLine}${encouragement}`;
+
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now().toString(), type: 'ai-text', content: feedback },
+      ]);
+      setLoading(false);
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        setWaterScan(null);
+        setScannedImageUri(null);
+        if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
+      }, 900);
+
+      // Sem <image_uri> aqui: a bolha de água é texto puro (só o card de refeição
+      // renderiza miniatura), então guardar o base64 seria peso morto no histórico.
+      UnifiedChatService.saveDirectMessages(
+        user.id,
+        `[Foto: ${analysis?.label || 'Água'}]`,
+        feedback,
+      ).catch(() => {});
+    } catch (error) {
+      console.error('Failed to log water:', error);
+      alert('Não consegui registrar sua hidratação agora. Tente novamente.');
+      setLoading(false);
+    } finally {
+      isLoggingRef.current = false;
+    }
+  };
+
+  /** "Não é água": reanalisa a MESMA foto como alimento/bebida calórica. */
+  const handleWaterFalsePositive = async () => {
+    if (!scannedImageUri) return;
+    enviarFeedback(
+      waterScan?.idRequisicao,
+      'negativo',
+      'scan classificou como água mas não era',
+    );
+    setWaterScan(null);
+    setLoading(true);
+    try {
+      const result = await analyzeImageLog(scannedImageUri, language, profile, { forceMeal: true });
+      if (result.kind === 'meal') setScanResult(result.meal);
+    } catch (err) {
+      console.error('Scan failed', err);
+      alert(t.mealLogger.errorLogging);
+      setScannedImageUri(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleConfirmLog = async (data: AIResponse, type: 'ai-chat' | 'ai-photo' | 'ai-voice') => {
     if (!user || isLoggingRef.current) return;
@@ -884,7 +996,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   // Show confirm dialog if there is unsaved data, otherwise close immediately
   const handleClose = () => {
-    if (draftMeal || scanResult) {
+    if (draftMeal || scanResult || waterScan) {
       setShowDiscardConfirm(true);
     } else {
       onClose();
@@ -904,6 +1016,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
     setScanResult(null);
     setScannedImageUri(null);
+    setWaterScan(null);
     setDraftMeal(null);
     setShowDiscardConfirm(false);
     onClose();
@@ -1020,6 +1133,22 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   // Show scan screen as soon as image is selected — analysis runs in background
   if (scannedImageUri) {
+    // Água pura: confirmação de quantidade → hidratação (não vira refeição)
+    if (waterScan) {
+      return (
+        <MalamaWaterScan
+          hydration={waterScan}
+          imageUri={scannedImageUri}
+          onConfirm={handleConfirmWater}
+          onNotWater={handleWaterFalsePositive}
+          onBack={() => {
+            setWaterScan(null);
+            setScannedImageUri(null);
+            if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
+          }}
+        />
+      );
+    }
     return (
       <MalamaAiScan
         data={scanResult}

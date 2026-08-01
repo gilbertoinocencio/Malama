@@ -9,13 +9,11 @@ import { NutritionKnowledgeService } from './nutritionKnowledgeService';
 import { sanitizeAiText } from '../utils/sanitizeAiText';
 import { parseAiJson } from '../utils/parseAiJson';
 import { normalizeMealAnalysis } from '../utils/normalizeMealAnalysis';
+import { HydrationService } from './hydrationService';
 
 const genAI = new CaramelAI();
 const MODEL_NAME = CARAMEL_AUTO_MODEL;
 
-// Deduplication guard: userId → timestamp of last water log
-// Prevents double-registration if sendMessage is called twice within 10 s
-const recentWaterLogTs = new Map<string, number>();
 const chatSessionCache = new Map<string, { session: ChatSession; cachedAt: number }>();
 const CHAT_SESSION_CACHE_MS = 5 * 60 * 1000;
 
@@ -306,36 +304,12 @@ export const UnifiedChatService = {
         }
 
         if (totalMl > 0) {
-          const now = Date.now();
-          const lastLog = recentWaterLogTs.get(userId) ?? 0;
-          const isDuplicate = now - lastLog < 10_000;
-
-          if (isDuplicate) {
-            console.warn('Water log: duplicate within 10s, skipping');
-          } else try {
-            recentWaterLogTs.set(userId, now);
-            const today = getLocalDateString();
-            const { data: newTotal, error: rpcError } = await supabase.rpc('log_water_intake', {
-              p_user_id: userId,
-              p_date:    today,
-              p_ml:      Math.round(totalMl),
-            });
-            if (rpcError) {
-              console.error('Water log: rpc failed:', rpcError);
-            } else {
-              const newWaterIntake = (newTotal as number) ?? totalMl;
-              // Update hydration mission progress (gamification)
-              void (async () => {
-                const { CoachService } = await import('./coachService');
-                const todayMissions = await CoachService.getTodayMissions(userId);
-                const hydrationMission = todayMissions.find(m => m.mission_type === 'hydration');
-                if (hydrationMission?.id) {
-                  await CoachService.updateMissionProgress(userId, hydrationMission.id, newWaterIntake);
-                }
-              })().catch(() => {});
-            }
+          // Gravação (dedupe + missão de hidratação) fica no HydrationService, que é
+          // o mesmo caminho usado pelo scan de foto de água.
+          try {
+            await HydrationService.logWater(userId, totalMl, 'chat');
           } catch (e) {
-            console.error('Water log: unexpected error:', e);
+            console.error('Water log: rpc failed:', e);
           }
         }
 

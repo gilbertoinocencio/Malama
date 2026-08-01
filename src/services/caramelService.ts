@@ -3,6 +3,7 @@ import { CaramelAI, CARAMEL_AUTO_MODEL, CARAMEL_DEEP_MODEL, CARAMEL_FAST_MODEL }
 import { AIResponse, MealItem, MicroNutrients, Profile } from '../types';
 import { searchOpenFoodFacts, formatOFFBlock } from './openFoodFactsService';
 import { normalizeGender } from '../utils/bodyCompositionCalculators';
+import { WATER_MAX_ML, userMentionsWater, mentionsCalorieBeverage, mentionsFood } from '../utils/intakeDetection';
 import { NutritionKnowledgeService } from './nutritionKnowledgeService';
 import { sanitizeAiText } from '../utils/sanitizeAiText';
 import { parseAiJson } from '../utils/parseAiJson';
@@ -294,11 +295,36 @@ ${MICRO_PROMPT_INSTRUCTIONS}`;
   return parseAiJson<SingleItemNutrition>(jsonStr);
 };
 
+/**
+ * Foto de ÁGUA PURA identificada pelo scan. Não é refeição: nada disso entra em
+ * calorias/macros — vai para a contabilidade de hidratação (`log_water_intake`).
+ */
+export interface HydrationAnalysis {
+  /** Volume estimado pela IA a partir do recipiente (ml). 0 = não deu para estimar. */
+  ml: number;
+  /** Rótulo curto do recipiente ("Copo de água", "Garrafa de água"). */
+  label: string;
+  /** Frase curta da agente sobre hidratação — SEM números (a quantidade é do usuário). */
+  message?: string;
+  idRequisicao?: string | null;
+}
+
+/**
+ * Resultado do scan por foto. A foto pode ser uma refeição OU um registro de água —
+ * água pura não tem macro nenhum, então forçá-la no formato de refeição gravava um
+ * "prato de 0 kcal" e a ingestão nunca chegava na hidratação.
+ */
+export type ImageLogResult =
+  | { kind: 'meal'; meal: AIResponse }
+  | { kind: 'water'; hydration: HydrationAnalysis };
+
 export const analyzeImageLog = async (
   base64Image: string,
   language: string = 'pt',
   profile?: Profile | null,
-): Promise<AIResponse> => {
+  /** `forceMeal`: o usuário corrigiu o scan ("não é água") — reanalisa como alimento. */
+  options?: { forceMeal?: boolean },
+): Promise<ImageLogResult> => {
 
   try {
     const mimeType = base64Image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1] || 'image/png';
@@ -343,15 +369,37 @@ export const analyzeImageLog = async (
                 required: ["name", "weightGrams", "calories", "protein", "carbs", "fats"]
               }
             },
-            message: { type: SchemaType.STRING }
+            message: { type: SchemaType.STRING },
+            isPlainWaterOnly: { type: SchemaType.BOOLEAN },
+            waterMl: { type: SchemaType.NUMBER }
           },
-          required: ["foodName", "calories", "macros", "items", "message"]
+          required: ["foodName", "calories", "macros", "items", "message", "isPlainWaterOnly", "waterMl"]
         }
       }
     });
 
     const langName = LANG_NAMES[language] || LANG_NAMES.pt;
+    const waterRules = options?.forceMeal
+      ? `## ÁGUA — DESATIVADO NESTA ANÁLISE
+O usuário já indicou que esta foto NÃO é água pura. Analise como alimento/bebida com as calorias reais.
+SEMPRE retorne isPlainWaterOnly = false e waterMl = 0.`
+      : `## ÁGUA (HIDRATAÇÃO) — DECIDA ISTO ANTES DE QUALQUER COISA
+Água pura não é refeição: ela é contabilizada na hidratação, não em calorias.
+
+- Se a imagem mostra APENAS água pura (copo, taça, garrafa, squeeze, jarra, caneca ou galão com água — inclusive com gelo, gás ou rodela de limão, sem açúcar) e NENHUM alimento:
+  - isPlainWaterOnly = true
+  - waterMl = volume de água que está DENTRO do recipiente (estime pelo nível de preenchimento, não pela capacidade total)
+  - foodName = rótulo curto do recipiente em ${langName} (ex: "Copo de água", "Garrafa de água")
+  - calories = 0, macros zerados, items = []
+  - message = UMA frase curta e calorosa sobre hidratação, SEM citar quantidade, número, ml ou litros (a quantidade é confirmada pelo usuário, nunca por você)
+- Se houver QUALQUER alimento na foto, ou a bebida for calórica/adoçada (suco, refrigerante, café com leite ou açúcar, chá adoçado, leite, cerveja, drink, isotônico, energético, whey, kombucha, vitamina): isPlainWaterOnly = false, waterMl = 0 e faça a análise normal de refeição.
+- Na dúvida entre água e outra bebida transparente, escolha isPlainWaterOnly = false (o usuário pode corrigir).
+
+Referências de volume (use só para estimar o que está visível): copo americano ~200 ml, copo de vidro comum ~250 ml, copo longo/long drink ~350 ml, caneca ~300 ml, copo descartável ~180 ml, garrafinha ~300–500 ml, garrafa PET ~500–600 ml, squeeze/garrafa térmica ~750 ml–1 L, galão ~2 L.`;
+
     const prompt = `You are Malama, a clinical-grade nutrition analysis engine. Identify ALL food items visible in this image.
+
+${waterRules}
 
 Use TACO (Brazilian foods), USDA FoodData Central, or IBGE POF as nutritional references, in that order.
 
@@ -367,14 +415,46 @@ ${MICRO_PROMPT_INSTRUCTIONS}
 ALL text MUST be in ${langName}.`;
 
     const result = await model.generateContent([prompt, { inlineData: { mimeType, data } }]);
-    const analise = normalizeMealAnalysis(parseAiJson<unknown>(result.response.text()), {
+    const raw = parseAiJson<Record<string, unknown>>(result.response.text());
+    // Carrega o id da requisição para o sinal de feedback implícito
+    // (confirmou = 👍 / editou = 👎) no MealLogger.
+    const idRequisicao = (result as { idRequisicao?: string | null }).idRequisicao ?? null;
+
+    // Água pura sai por outra porta: vira hidratação, nunca refeição de 0 kcal.
+    const flaggedWater = raw?.isPlainWaterOnly === true || raw?.isPlainWaterOnly === 'true';
+    // Rede de segurança para quando o modelo ignora o campo novo e mesmo assim
+    // descreve água pura: um "prato" de 0 kcal chamado água nunca é refeição.
+    const describedWater = (() => {
+      if (!raw || Number(raw.calories) > 0) return false;
+      const itemNames = Array.isArray(raw.items)
+        ? raw.items.map(i => (i && typeof i === 'object' ? String((i as { name?: unknown }).name ?? '') : '')).join(' ')
+        : '';
+      const text = `${typeof raw.foodName === 'string' ? raw.foodName : ''} ${itemNames}`;
+      return userMentionsWater(text) && !mentionsCalorieBeverage(text) && !mentionsFood(text);
+    })();
+
+    if (!options?.forceMeal && (flaggedWater || describedWater)) {
+      const parsedMl = Number(raw.waterMl);
+      // A estimativa da IA é só um ponto de partida — quem confirma o número é o
+      // usuário, na tela de confirmação. 0 = não deu para estimar.
+      const ml = Number.isFinite(parsedMl) && parsedMl > 0
+        ? Math.min(Math.round(parsedMl), WATER_MAX_ML)
+        : 0;
+      const label = typeof raw.foodName === 'string' && raw.foodName.trim()
+        ? raw.foodName.trim()
+        : 'Água';
+      const message = typeof raw.message === 'string' && raw.message.trim()
+        ? sanitizeAiText(raw.message.trim())
+        : undefined;
+      return { kind: 'water', hydration: { ml, label, message, idRequisicao } };
+    }
+
+    const analise = normalizeMealAnalysis(raw, {
       fallbackName: getMealSlotLabel(),
       strict: true,
     });
-    // Carrega o id da requisição para o sinal de feedback implícito
-    // (confirmou = 👍 / editou = 👎) no MealLogger.
-    analise.idRequisicao = (result as { idRequisicao?: string | null }).idRequisicao ?? null;
-    return analise;
+    analise.idRequisicao = idRequisicao;
+    return { kind: 'meal', meal: analise };
   } catch (error) {
     console.error("Image Analysis Error:", error);
     throw error;
