@@ -59,6 +59,38 @@ workflows:
             --platform IOS \
             --certificate-key @env:CERTIFICATE_PRIVATE_KEY
           keychain add-certificates
+
+          # Descarta profiles que não têm TODAS as capabilities do App.entitlements.
+          # Motivo: habilitar uma capability no App ID deixa os profiles antigos
+          # inválidos em vez de atualizá-los, e o fetch baixa todos os App Store que
+          # existirem — se sobrar um obsoleto, o use-profiles pode escolher justamente
+          # ele e o archive quebra lá na frente com um exit 65 sem explicação.
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          for p in "$PROFILE_DIR"/*.mobileprovision; do
+            [ -e "$p" ] || continue
+            security cms -D -i "$p" > /tmp/pp.plist
+            NAME="$(/usr/libexec/PlistBuddy -c 'Print :Name' /tmp/pp.plist 2>/dev/null || echo '?')"
+            echo "--- profile encontrado: $NAME"
+            /usr/libexec/PlistBuddy -c 'Print :Entitlements' /tmp/pp.plist 2>/dev/null \
+              | grep -E 'associated-domains|applesignin|healthkit|application-identifier' || true
+            if /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.associated-domains' /tmp/pp.plist >/dev/null 2>&1; then
+              echo "    OK — tem Associated Domains"
+            else
+              echo "    DESCARTADO — sem Associated Domains"
+              rm -f "$p"
+            fi
+          done
+
+          if ! ls "$PROFILE_DIR"/*.mobileprovision >/dev/null 2>&1; then
+            echo "ERRO: nenhum profile App Store de $BUNDLE_ID tem a capability Associated Domains."
+            echo "No portal da Apple (developer.apple.com):"
+            echo "  1. Identifiers -> $BUNDLE_ID -> marcar Associated Domains -> Save"
+            echo "  2. Profiles -> o profile App Store fica 'Invalid' -> Edit -> Generate"
+            echo "     (habilitar a capability NAO atualiza o profile sozinho)"
+            echo "  3. Apagar profiles App Store antigos, para sobrar so o novo."
+            exit 1
+          fi
+
           # Aplica o profile baixado no projeto (assinatura MANUAL).
           xcode-project use-profiles
 
