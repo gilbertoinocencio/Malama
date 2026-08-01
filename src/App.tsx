@@ -108,6 +108,9 @@ const App: React.FC = () => {
       path.startsWith('/rh') ||
       path.startsWith('/convite') ||
       path.startsWith('/i/') ||
+      // Link do questionário psicossocial: precisa abrir sem login, então
+      // nunca pode cair no fluxo de autenticação do app.
+      path.startsWith('/q/') ||
       path.startsWith('/listamedicos') ||
       path.startsWith('/listausuarios') ||
       path.startsWith('/listausu%C3%A1rios') ||
@@ -143,6 +146,9 @@ const App: React.FC = () => {
       path.startsWith('/rh') ||
       path.startsWith('/convite') ||
       path.startsWith('/i/') ||
+      // Link do questionário psicossocial: precisa abrir sem login, então
+      // nunca pode cair no fluxo de autenticação do app.
+      path.startsWith('/q/') ||
       path.startsWith('/listamedicos') ||
       path.startsWith('/listausuarios') ||
       path.startsWith('/listausu%C3%A1rios') ||

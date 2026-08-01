@@ -45,6 +45,7 @@ import { DoctorFinancial } from './doctor/DoctorFinancial';
 
 // Referral
 import { PatientReferral } from './PatientReferral';
+import { ResponderQuestionario } from './ResponderQuestionario';
 import { InfluencerReferral } from './InfluencerReferral';
 import { PrivacyPolicy } from './PrivacyPolicy';
 import { TermsOfUse } from './TermsOfUse';
@@ -286,6 +287,10 @@ export const AppRoutes: React.FC = () => {
 
           {/* Indicação de influenciador */}
           <Route path="/i/:token" element={<InfluencerReferral />} />
+
+          {/* Questionário psicossocial pelo link enviado pelo RH (sem login).
+              Caminho curto de propósito: o link vai por WhatsApp e mural. */}
+          <Route path="/q/:token" element={<ResponderQuestionario />} />
 
           {/* Portal do influenciador */}
           <Route path="/influencer/login" element={<InfluencerLogin />} />

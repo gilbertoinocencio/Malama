@@ -585,14 +585,43 @@ export type CampanhaParticipacaoSetor = {
   convidados: number;
   respondentes: number;
   taxa: number;               // 0–100
+  /** Linha "Demais setores": junção dos setores pequenos demais para sair
+   *  detalhados. Ver `CampanhaParticipacao.min_coorte`. */
+  agrupado: boolean;
 };
 
 export type CampanhaParticipacao = {
   campaign_id: string;
+  // Total da empresa — sem piso, de propósito: é o agregado contratado, e o
+  // roster inteiro já é conhecido do RH.
   convidados: number;
   respondentes: number;
   taxa: number;
   setores: CampanhaParticipacaoSetor[];
+  /** Piso de coorte aplicado no detalhamento por setor (k). */
+  min_coorte: number;
+  // Quantos setores/pessoas ficaram fora do detalhamento por coorte pequena.
+  // A UI usa para explicar a diferença entre o total e a soma das linhas.
+  ocultos_setores: number;
+  ocultos_convidados: number;
+};
+
+/** Uma linha da lista de links da campanha. Sem status de resposta — ver
+ *  `rhService.getCampanhaLinks`. */
+export type CampanhaLink = {
+  nome: string;
+  email: string;
+  setor: string;
+  token: string;
+};
+
+export type CampanhaLinks = {
+  ok: boolean;
+  error?: string;
+  janela_fim: string;
+  /** Alvos ainda sem conta criada — não é possível emitir link para eles. */
+  sem_conta: number;
+  links: CampanhaLink[];
 };
 
 export type SetorEmpresa = { setor: string; n: number };
@@ -994,6 +1023,21 @@ export const rhService = {
     const { data, error } = await supabase.rpc('rh_campanha_participacao', { p_campaign_id: campaignId });
     if (error) { console.error('[rhService] participação:', error.message); return null; }
     return (data ?? null) as CampanhaParticipacao | null;
+  },
+
+  /**
+   * Emite (idempotente) e devolve os links individuais da campanha, para o RH
+   * distribuir por WhatsApp, e-mail interno ou mural.
+   *
+   * NÃO devolve quem já respondeu, e não deve passar a devolver: saber quem
+   * falta é o complemento de saber quem respondeu, que é justamente o que o
+   * módulo promete não entregar ao empregador. Adesão continua vindo agregada
+   * por setor, de `getCampanhaParticipacao`.
+   */
+  async getCampanhaLinks(campaignId: string): Promise<CampanhaLinks | null> {
+    const { data, error } = await supabase.rpc('rh_campanha_links', { p_campaign_id: campaignId });
+    if (error) { console.error('[rhService] links:', error.message); return null; }
+    return (data ?? null) as CampanhaLinks | null;
   },
 
   async getSetores(): Promise<SetorEmpresa[]> {

@@ -40,7 +40,7 @@ self.addEventListener('fetch', event => {
   ) return;
 
   const url = new URL(event.request.url);
-  // Let Supabase and Gemini API calls go network-only
+  // Let Supabase and Caramel API calls go network-only
   if (
     url.hostname.includes('supabase.co') ||
     url.hostname.includes('googleapis.com') ||

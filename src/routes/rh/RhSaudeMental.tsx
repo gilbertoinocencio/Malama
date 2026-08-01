@@ -15,7 +15,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Brain, Plus, Play, X, Users, BarChart3, Info, AlertCircle, FileDown,
-  ChevronDown, ChevronUp, HeartPulse, CalendarRange,
+  ChevronDown, ChevronUp, HeartPulse, CalendarRange, Link as LinkIcon,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -23,6 +23,7 @@ import {
   type PsychosocialCampanha,
   type PsychosocialInstrumento,
   type CampanhaParticipacao,
+  type CampanhaLinks,
   type SetorEmpresa,
   type RhRelatorioPsicossocial,
   type RhMatrizPsicossocial,
@@ -97,29 +98,211 @@ const ParticipacaoSetores: React.FC<{ campaignId: string }> = ({ campaignId }) =
   if (loading) {
     return <div className="py-4 text-center text-xs text-gray-400">Carregando participação...</div>;
   }
-  if (!dados || dados.setores.length === 0) {
+  if (!dados || dados.convidados === 0) {
     return <div className="py-4 text-center text-xs text-gray-400">Sem colaboradores no público-alvo.</div>;
   }
 
   return (
     <div className="bg-gray-50 rounded-lg p-3 mt-2">
-      <p className="text-xs font-medium text-gray-500 mb-2">Adesão por setor</p>
-      <table className="w-full text-sm">
-        <tbody className="divide-y divide-gray-100">
-          {dados.setores.map(s => (
-            <tr key={s.setor}>
-              <td className="py-1.5 pr-3 text-gray-700 whitespace-nowrap">{s.setor}</td>
-              <td className="py-1.5 pr-3 text-xs text-gray-400 whitespace-nowrap tabular-nums">
-                {s.respondentes}/{s.convidados}
-              </td>
-              <td className="py-1.5 w-full"><BarraAdesao taxa={s.taxa} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <p className="text-xs font-medium text-gray-500">Adesão por setor</p>
+        <p className="text-[11px] text-gray-400 tabular-nums">
+          Empresa: {dados.respondentes}/{dados.convidados}
+        </p>
+      </div>
+
+      {dados.setores.length > 0 && (
+        <table className="w-full text-sm">
+          <tbody className="divide-y divide-gray-100">
+            {dados.setores.map(s => (
+              <tr key={s.setor}>
+                <td className="py-1.5 pr-3 whitespace-nowrap">
+                  <span className={s.agrupado ? 'text-gray-500 italic' : 'text-gray-700'}>
+                    {s.setor}
+                  </span>
+                </td>
+                <td className="py-1.5 pr-3 text-xs text-gray-400 whitespace-nowrap tabular-nums">
+                  {s.respondentes}/{s.convidados}
+                </td>
+                <td className="py-1.5 w-full"><BarraAdesao taxa={s.taxa} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {/* Sem esta linha o RH acha que sumiu gente: o total da empresa não
+          fecha com a soma das linhas quando há setor abaixo do piso. */}
+      {dados.ocultos_setores > 0 && (
+        <p className="text-[11px] text-gray-500 bg-white border border-gray-200 rounded-lg p-2 mt-2 leading-snug">
+          {dados.ocultos_setores === 1
+            ? `1 setor com menos de ${dados.min_coorte} pessoas não aparece detalhado`
+            : `${dados.ocultos_setores} setores com menos de ${dados.min_coorte} pessoas não aparecem detalhados`}
+          {` (${dados.ocultos_convidados} colaborador(es)). `}
+          Eles continuam somados no total da empresa.
+        </p>
+      )}
+
       <p className="text-[11px] text-gray-400 mt-2 leading-snug">
-        Adesão é participação, não resultado — por isso aparece sem piso de anonimato.
-        Setor com adesão muito baixa merece atenção: costuma indicar receio, não desinteresse.
+        Setor com menos de {dados.min_coorte} pessoas não é detalhado: num grupo pequeno, a taxa
+        de adesão diria quem respondeu. Setor com adesão muito baixa merece atenção — costuma
+        indicar receio, não desinteresse.
+      </p>
+    </div>
+  );
+};
+
+// ─── Links individuais para distribuir ─────────────────
+//
+// Existe para resolver adesão: esperar o colaborador abrir o app sozinho no
+// começo do mês entrega participação baixa. Com o link, o RH manda no grupo
+// de WhatsApp, no e-mail interno ou imprime no mural.
+//
+// Um link POR PESSOA, e não um link da empresa: sem saber quem é quem não há
+// como impedir resposta dupla nem como saber o setor de quem respondeu — e é
+// o recorte por setor que sustenta o relatório de PGR.
+//
+// A lista NÃO mostra quem já respondeu, e não deve passar a mostrar: saber
+// quem falta é o complemento de saber quem respondeu.
+const LinksCampanha: React.FC<{ campaignId: string }> = ({ campaignId }) => {
+  const [dados, setDados] = useState<CampanhaLinks | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [filtro, setFiltro] = useState('');
+
+  useEffect(() => {
+    let cancelado = false;
+    setLoading(true);
+    rhService.getCampanhaLinks(campaignId)
+      .then(d => { if (!cancelado) setDados(d); })
+      .finally(() => { if (!cancelado) setLoading(false); });
+    return () => { cancelado = true; };
+  }, [campaignId]);
+
+  const urlDe = (token: string) => `${window.location.origin}/q/${token}`;
+
+  const copiar = async (texto: string, aviso: string) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast.success(aviso);
+    } catch {
+      toast.error('Não foi possível copiar. Selecione o texto manualmente.');
+    }
+  };
+
+  const baixarCsv = () => {
+    if (!dados) return;
+    // Ponto e vírgula e BOM: é o que faz o Excel em pt-BR abrir o arquivo em
+    // colunas e com acento certo, sem a pessoa ter que importar na mão.
+    const linhas = [
+      ['Nome', 'E-mail', 'Setor', 'Link'],
+      ...dados.links.map(l => [l.nome, l.email, l.setor, urlDe(l.token)]),
+    ];
+    const csv = '﻿' + linhas
+      .map(cols => cols.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';'))
+      .join('\r\n');
+
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `links-questionario-${campaignId.slice(0, 8)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (loading) {
+    return <div className="py-4 text-center text-xs text-gray-400">Gerando links...</div>;
+  }
+  if (!dados?.ok) {
+    return (
+      <div className="py-4 text-center text-xs text-gray-400">
+        {dados?.error ?? 'Não foi possível gerar os links.'}
+      </div>
+    );
+  }
+
+  const termo = filtro.trim().toLowerCase();
+  const visiveis = termo
+    ? dados.links.filter(l =>
+        l.nome.toLowerCase().includes(termo) ||
+        l.email.toLowerCase().includes(termo) ||
+        l.setor.toLowerCase().includes(termo))
+    : dados.links;
+
+  return (
+    <div className="bg-gray-50 rounded-lg p-3 mt-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+        <p className="text-xs font-medium text-gray-500">
+          Links individuais · {dados.links.length}
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => copiar(
+              dados.links.map(l => `${l.nome}: ${urlDe(l.token)}`).join('\n'),
+              `${dados.links.length} links copiados`,
+            )}
+            disabled={dados.links.length === 0}
+            className="px-2.5 py-1 text-xs font-medium border border-gray-200 bg-white rounded-lg text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
+          >
+            Copiar todos
+          </button>
+          <button
+            onClick={baixarCsv}
+            disabled={dados.links.length === 0}
+            className="px-2.5 py-1 text-xs font-medium border border-gray-200 bg-white rounded-lg text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
+          >
+            Baixar CSV
+          </button>
+        </div>
+      </div>
+
+      {dados.links.length > 8 && (
+        <input
+          value={filtro}
+          onChange={e => setFiltro(e.target.value)}
+          placeholder="Buscar por nome, e-mail ou setor"
+          className="w-full mb-2 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7d4a3c]"
+        />
+      )}
+
+      {dados.links.length === 0 ? (
+        <p className="py-3 text-center text-xs text-gray-400">
+          Nenhum colaborador do público-alvo tem conta criada ainda.
+        </p>
+      ) : (
+        <div className="max-h-72 overflow-y-auto">
+          <table className="w-full text-sm">
+            <tbody className="divide-y divide-gray-100">
+              {visiveis.map(l => (
+                <tr key={l.token}>
+                  <td className="py-1.5 pr-3">
+                    <p className="text-gray-700 leading-tight">{l.nome}</p>
+                    <p className="text-[11px] text-gray-400 leading-tight">{l.setor}</p>
+                  </td>
+                  <td className="py-1.5 text-right whitespace-nowrap">
+                    <button
+                      onClick={() => copiar(urlDe(l.token), 'Link copiado')}
+                      className="px-2.5 py-1 text-xs font-medium border border-gray-200 bg-white rounded-lg text-gray-600 hover:bg-gray-50 transition"
+                    >
+                      Copiar link
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {dados.sem_conta > 0 && (
+        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2 mt-2 leading-snug">
+          {dados.sem_conta} colaborador(es) do público-alvo ainda não criaram conta e por isso não
+          têm link. Eles entram assim que ativarem o convite.
+        </p>
+      )}
+
+      <p className="text-[11px] text-gray-400 mt-2 leading-snug">
+        Cada link é pessoal e vale uma resposta só, até {fmtDate(dados.janela_fim)}. Esta lista não
+        mostra quem já respondeu — a adesão aparece agregada por setor, acima.
       </p>
     </div>
   );
@@ -301,6 +484,9 @@ export const RhSaudeMental: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [criando, setCriando] = useState(false);
   const [expandida, setExpandida] = useState<string | null>(null);
+  // Separado da adesão de propósito: o RH costuma querer os links (para
+  // reenviar) enquanto olha a adesão, e fechar um para ver o outro atrapalha.
+  const [linksAbertos, setLinksAbertos] = useState<string | null>(null);
 
   // Período: um filtro só, acima de tudo que ele escopa (matriz + WHO-5)
   const [periodo, setPeriodo] = useState<PeriodoPreset>('tri');
@@ -473,6 +659,16 @@ export const RhSaudeMental: React.FC = () => {
                       </button>
                       {c.status === 'aberta' && (
                         <button
+                          onClick={() => setLinksAbertos(linksAbertos === c.id ? null : c.id)}
+                          title="Links para enviar aos colaboradores"
+                          className="px-2.5 py-1 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition whitespace-nowrap flex items-center gap-1"
+                        >
+                          <LinkIcon className="w-3 h-3" />
+                          Links
+                        </button>
+                      )}
+                      {c.status === 'aberta' && (
+                        <button
                           onClick={() => encerrar(c)}
                           className="px-2.5 py-1 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition whitespace-nowrap"
                         >
@@ -483,6 +679,7 @@ export const RhSaudeMental: React.FC = () => {
                   </div>
 
                   {aberta && <ParticipacaoSetores campaignId={c.id} />}
+                  {linksAbertos === c.id && <LinksCampanha campaignId={c.id} />}
                 </div>
               );
             })}

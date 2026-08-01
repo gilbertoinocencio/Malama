@@ -35,6 +35,24 @@ export interface PsychosocialAssessment {
   created_at: string;
 }
 
+/**
+ * Resposta de `campanha_por_token` — o link só serve num caso, e nos outros
+ * a tela precisa dizer POR QUE não serve, senão vira "link quebrado".
+ */
+export type CampanhaPorToken =
+  | {
+      estado: 'ok';
+      instrument: string;
+      instrument_nome: string;
+      empresa_nome: string;
+      janela_fim: string;
+    }
+  | { estado: 'ja_respondeu' }
+  | { estado: 'encerrada' }
+  | { estado: 'fora_da_janela'; janela_fim: string }
+  | { estado: 'invalido' }
+  | { estado: 'erro' };
+
 /** Campanha aberta e ainda não respondida pelo usuário. */
 export interface CampanhaPendente {
   campaign_id: string;
@@ -129,5 +147,49 @@ export const PsychosocialService = {
 
     if (error) throw error;
     return data as PsychosocialAssessment;
+  },
+
+  // ── Link enviado pelo RH (sem login) ─────────────────
+  //
+  // Mesmo instrumento, mesma chave de correção, mesma tela — muda só quem
+  // resolve QUEM está respondendo: dentro do app é a sessão, aqui é o token.
+
+  /** O que a tela do link precisa saber, incluindo o motivo de não servir. */
+  async getCampanhaPorToken(token: string): Promise<CampanhaPorToken> {
+    const { data, error } = await supabase.rpc('campanha_por_token', { p_token: token });
+    if (error) {
+      console.error('getCampanhaPorToken:', error.message);
+      return { estado: 'erro' };
+    }
+    return (data ?? { estado: 'invalido' }) as CampanhaPorToken;
+  },
+
+  /**
+   * Grava a resposta vinda do link. O escore é calculado aqui pelo mesmo
+   * registro de instrumentos usado dentro do app — o banco não recalcula,
+   * mas o trigger da campanha continua validando janela, status,
+   * instrumento e público-alvo.
+   */
+  async submitPorToken(
+    token: string,
+    instrumentCode: string,
+    answers: Record<string, number>,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const def = getInstrumento(instrumentCode);
+    const { rawScore, score, subscores } = def.score(answers);
+
+    const { data, error } = await supabase.rpc('responder_por_token', {
+      p_token: token,
+      p_answers: answers,
+      p_raw_score: rawScore,
+      p_score: score,
+      p_subscores: subscores,
+    });
+
+    if (error) {
+      console.error('submitPorToken:', error.message);
+      return { ok: false, error: 'Não foi possível enviar agora.' };
+    }
+    return (data ?? { ok: false }) as { ok: boolean; error?: string };
   },
 };
