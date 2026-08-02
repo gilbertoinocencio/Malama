@@ -5,20 +5,25 @@ import { StatsService } from './statsService';
 import { GamificationService } from './gamificationService';
 import { getLocalDateString } from '../utils/dateUtils';
 
-// Map frontend meal types to database-compatible types
-// Frontend uses: 'manual' | 'ai-chat' | 'ai-photo' | 'ai-voice' | 'ai-barcode'
-// Database accepts: 'meal', 'streak', 'hydration', 'plan', 'visual'
-const mapMealTypeToDb = (type: string): string => {
-    console.log('[MealService.mapMealTypeToDb] Mapping type:', type);
-    // All AI and manual meal entries map to 'meal' in the database
-    // The specific type is used only for UI icons/display
-    if (type === 'ai-photo') {
-        console.log('[MealService.mapMealTypeToDb] Returning: visual');
-        return 'visual'; // Photo-based meal
-    }
-    // All other types (manual, ai-chat, ai-voice, ai-barcode) map to 'meal'
-    console.log('[MealService.mapMealTypeToDb] Returning: meal');
-    return 'meal';
+/**
+ * Vocabulário LEGADO de `type`. Cuidado: 'meal'/'visual' são os valores da CHECK da
+ * tabela `posts`, não da `meals` — a `meals` aceita 'manual'|'ai-chat'|'ai-photo'|
+ * 'ai-voice' (ver supabase-schema.sql). Gravar 'visual' numa base com a CHECK certa
+ * viola a constraint e derruba TODO registro por foto ("erro ao registrar refeição").
+ *
+ * Por isso o insert usa o tipo real do app e só cai neste mapa se o banco recusar —
+ * assim funciona nas duas versões de schema que existem por aí.
+ */
+const mapMealTypeToDbLegacy = (type: string): string => (type === 'ai-photo' ? 'visual' : 'meal');
+
+/** Violação de CHECK constraint no Postgres. */
+const CHECK_VIOLATION = '23514';
+
+/** Linhas antigas gravadas com o vocabulário errado — só para o ícone da lista. */
+const mapDbTypeToApp = (type: string): Meal['type'] => {
+    if (type === 'visual') return 'ai-photo';
+    if (type === 'manual' || type === 'ai-chat' || type === 'ai-photo' || type === 'ai-voice') return type;
+    return 'ai-chat'; // 'meal' legado e qualquer valor desconhecido
 };
 
 export const MealService = {
@@ -35,7 +40,7 @@ export const MealService = {
 
             const { error: uploadError } = await supabase.storage
                 .from('meal-photos')
-                .upload(filePath, blob);
+                .upload(filePath, blob, { contentType: blob.type || 'image/jpeg' });
 
             if (uploadError) {
                 console.error('Error uploading image:', uploadError);
@@ -66,15 +71,17 @@ export const MealService = {
         // If it's a base64 data URI (new photo), upload it
         if (meal.imageUri && meal.imageUri.startsWith('data:')) {
             const uploadedUrl = await this.uploadMealImage(meal.imageUri, userId);
-            if (uploadedUrl) {
-                imageUrl = uploadedUrl;
+            // Upload falhou → grava SEM imagem. Nunca mandar o data URI para a coluna:
+            // são centenas de KB de base64 num INSERT, o que derruba a gravação inteira
+            // (tamanho de payload/coluna) e transforma um problema de storage — que a
+            // foto no chat já compensa — em "erro ao registrar refeição".
+            imageUrl = uploadedUrl ?? undefined;
+            if (!uploadedUrl) {
+                console.warn('[MealService.logMeal] Foto não subiu; refeição será salva sem imagem.');
             }
         }
 
-        const dbType = mapMealTypeToDb(meal.type);
-        console.log('[MealService.logMeal] Inserting with type:', dbType);
-
-        const { data, error } = await supabase
+        const insertWithType = (dbType: string) => supabase
             .from('meals')
             .insert({
                 user_id: userId,
@@ -90,9 +97,19 @@ export const MealService = {
             .select('id')
             .single();
 
-        if (error) {
+        // Tenta com o tipo real do app (o que a CHECK da tabela `meals` espera).
+        let { data, error } = await insertWithType(meal.type);
+
+        // Base antiga com o vocabulário de `posts` na coluna: repete com o legado.
+        if (error?.code === CHECK_VIOLATION) {
+            const legacyType = mapMealTypeToDbLegacy(meal.type);
+            console.warn(`[MealService.logMeal] meals.type recusou "${meal.type}"; repetindo como "${legacyType}"`);
+            ({ data, error } = await insertWithType(legacyType));
+        }
+
+        if (error || !data) {
             console.error('[MealService.logMeal] Error:', error);
-            throw error;
+            throw error ?? new Error('Insert da refeição não retornou id');
         }
 
         console.log('[MealService.logMeal] Success! Meal ID:', data.id);
@@ -132,7 +149,7 @@ export const MealService = {
                 carbs: item.carbs,
                 fats: item.fats
             },
-            type: item.type,
+            type: mapDbTypeToApp(item.type),
             items: item.items,
             imageUri: item.image_url
         }));

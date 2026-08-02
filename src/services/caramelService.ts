@@ -318,7 +318,12 @@ export interface HydrationAnalysis {
  */
 export type ImageLogResult =
   | { kind: 'meal'; meal: AIResponse }
-  | { kind: 'water'; hydration: HydrationAnalysis };
+  /**
+   * `mealFallback` é a análise nutricional da MESMA resposta: se o scan errar e o
+   * usuário disser "não é água", trocamos de tela na hora, sem nova chamada.
+   * null quando o modelo não devolveu nada aproveitável como refeição.
+   */
+  | { kind: 'water'; hydration: HydrationAnalysis; mealFallback: AIResponse | null };
 
 export const analyzeImageLog = async (
   base64Image: string,
@@ -385,19 +390,18 @@ export const analyzeImageLog = async (
       ? `## ÁGUA — DESATIVADO NESTA ANÁLISE
 O usuário já indicou que esta foto NÃO é água pura. Analise como alimento/bebida com as calorias reais.
 SEMPRE retorne isPlainWaterOnly = false e waterMl = 0.`
-      : `## ÁGUA (HIDRATAÇÃO) — DECIDA ISTO ANTES DE QUALQUER COISA
-Água pura não é refeição: ela é contabilizada na hidratação, não em calorias.
+      : `## ÁGUA (HIDRATAÇÃO) — DOIS CAMPOS EXTRAS
+Água pura é contabilizada na hidratação, não em calorias. Por isso, ALÉM da análise
+nutricional normal, responda sempre estes dois campos:
 
-- Se a imagem mostra APENAS água pura (copo, taça, garrafa, squeeze, jarra, caneca ou galão com água — inclusive com gelo, gás ou rodela de limão, sem açúcar) e NENHUM alimento:
-  - isPlainWaterOnly = true
-  - waterMl = volume de água que está DENTRO do recipiente (estime pelo nível de preenchimento, não pela capacidade total)
-  - foodName = rótulo curto do recipiente em ${langName} (ex: "Copo de água", "Garrafa de água")
-  - calories = 0, macros zerados, items = []
-  - message = UMA frase curta e calorosa sobre hidratação, SEM citar quantidade, número, ml ou litros (a quantidade é confirmada pelo usuário, nunca por você)
-- Se houver QUALQUER alimento na foto, ou a bebida for calórica/adoçada (suco, refrigerante, café com leite ou açúcar, chá adoçado, leite, cerveja, drink, isotônico, energético, whey, kombucha, vitamina): isPlainWaterOnly = false, waterMl = 0 e faça a análise normal de refeição.
+- \`isPlainWaterOnly\` = true SOMENTE quando a imagem mostra apenas água pura (copo, taça, garrafa, squeeze, jarra, caneca ou galão com água — inclusive com gelo, gás ou rodela de limão, sem açúcar) e NENHUM alimento.
+- \`waterMl\` = volume de água DENTRO do recipiente (estime pelo nível de preenchimento, não pela capacidade total). Quando isPlainWaterOnly = false, waterMl = 0.
+- Se houver QUALQUER alimento na foto, ou a bebida for calórica/adoçada (suco, refrigerante, café com leite ou açúcar, chá adoçado, leite, cerveja, drink, isotônico, energético, whey, kombucha, vitamina): isPlainWaterOnly = false.
 - Na dúvida entre água e outra bebida transparente, escolha isPlainWaterOnly = false (o usuário pode corrigir).
 
-Referências de volume (use só para estimar o que está visível): copo americano ~200 ml, copo de vidro comum ~250 ml, copo longo/long drink ~350 ml, caneca ~300 ml, copo descartável ~180 ml, garrafinha ~300–500 ml, garrafa PET ~500–600 ml, squeeze/garrafa térmica ~750 ml–1 L, galão ~2 L.`;
+Referências de volume (use só para estimar o que está visível): copo americano ~200 ml, copo de vidro comum ~250 ml, copo longo/long drink ~350 ml, caneca ~300 ml, copo descartável ~180 ml, garrafinha ~300–500 ml, garrafa PET ~500–600 ml, squeeze/garrafa térmica ~750 ml–1 L, galão ~2 L.
+
+**A análise nutricional (foodName, calories, macros, items, message) é SEMPRE obrigatória, inclusive quando isPlainWaterOnly = true** — nesse caso descreva o recipiente ("Copo de água") com valores 0 e uma "message" curta sobre hidratação, sem citar quantidade nem números (a quantidade quem confirma é o usuário). NUNCA devolva items vazio nem zere a análise de uma foto que tenha comida.`;
 
     const prompt = `You are Malama, a clinical-grade nutrition analysis engine. Identify ALL food items visible in this image.
 
@@ -448,7 +452,14 @@ ALL text MUST be in ${langName}.`;
       const message = typeof raw.message === 'string' && raw.message.trim()
         ? sanitizeAiText(raw.message.trim())
         : undefined;
-      return { kind: 'water', hydration: { ml, label, message, idRequisicao } };
+      // Sem `strict`: aqui a análise de refeição é só o plano B da troca de tela —
+      // uma foto de água legitimamente vem com tudo zerado e isso não é erro.
+      let mealFallback: AIResponse | null = null;
+      try {
+        const parsed = normalizeMealAnalysis(raw, { fallbackName: getMealSlotLabel() });
+        mealFallback = parsed.calories > 0 || parsed.items.length > 0 ? parsed : null;
+      } catch { /* plano B é opcional */ }
+      return { kind: 'water', hydration: { ml, label, message, idRequisicao }, mealFallback };
     }
 
     const analise = normalizeMealAnalysis(raw, {

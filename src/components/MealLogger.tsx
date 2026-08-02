@@ -327,6 +327,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const scanResultRef = useRef<AIResponse | null>(null);
   const scannedImageUriRef = useRef<string | null>(null);
   const waterScanRef = useRef<HydrationAnalysis | null>(null);
+  // Análise de refeição que veio junto do scan de água — permite trocar de tela
+  // ("não é água") sem uma segunda chamada à IA.
+  const waterMealFallbackRef = useRef<AIResponse | null>(null);
 
   const { t, speechLang, language } = useLanguage();
   const { user, profile } = useAuth();
@@ -361,6 +364,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   // Confirm-before-close dialog
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  // Erro da análise/registro da foto, mostrado DENTRO da tela de scan.
+  const [scanError, setScanError] = useState<string | null>(null);
 
   // Photo Mode State — initialized from localStorage so they survive app switches
   const [scanResult, setScanResult] = useState<AIResponse | null>(() => {
@@ -757,6 +762,33 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     }
   };
 
+  /**
+   * Analisa a foto já otimizada. Erro NÃO fecha a tela nem dispara alerta cego:
+   * vira estado de erro com a mensagem real e botão de tentar de novo (antes, a
+   * tela ficava presa em "Identificando..." para sempre).
+   */
+  const runImageAnalysis = async (base64: string) => {
+    setScanError(null);
+    setLoading(true);
+    try {
+      // Foto de água pura tem caminho próprio: cair no analisador de refeição
+      // registrava um "prato de 0 kcal" e a ingestão nunca entrava na hidratação.
+      const result = await analyzeImageLog(base64, language, profile);
+      if (result.kind === 'water') {
+        setWaterScan(result.hydration);
+        waterMealFallbackRef.current = result.mealFallback;
+      } else {
+        setScanResult(result.meal);
+        waterMealFallbackRef.current = null;
+      }
+    } catch (err) {
+      console.error('Scan failed', err);
+      setScanError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -766,25 +798,16 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     reader.onloadend = async () => {
       let base64 = reader.result as string;
 
-      // Optimize image before sending to AI
       try {
         // Enforce max dimension of 1200px (well below the 2000px limit)
         base64 = await resizeImage(base64, 800);
         setScannedImageUri(base64);
-
-        // Foto de água pura tem caminho próprio: cair no analisador de refeição
-        // registrava um "prato de 0 kcal" e a ingestão nunca entrava na hidratação.
-        const result = await analyzeImageLog(base64, language, profile);
-        if (result.kind === 'water') {
-          setWaterScan(result.hydration);
-        } else {
-          setScanResult(result.meal);
-        }
+        await runImageAnalysis(base64);
       } catch (err) {
-        console.error("Scan failed", err);
-        alert(t.mealLogger.errorLogging);
-      } finally {
+        console.error('Scan failed', err);
+        setScanError(err instanceof Error ? err.message : String(err));
         setLoading(false);
+      } finally {
         // Clear input value to allow re-selection
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
@@ -903,7 +926,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     }
   };
 
-  /** "Não é água": reanalisa a MESMA foto como alimento/bebida calórica. */
+  /** "Não é água": usa a análise que já veio junto; só reanalisa se ela não servir. */
   const handleWaterFalsePositive = async () => {
     if (!scannedImageUri) return;
     enviarFeedback(
@@ -911,15 +934,20 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       'negativo',
       'scan classificou como água mas não era',
     );
+    const fallback = waterMealFallbackRef.current;
     setWaterScan(null);
+    if (fallback) {
+      setScanResult(fallback);
+      return;
+    }
+    setScanError(null);
     setLoading(true);
     try {
       const result = await analyzeImageLog(scannedImageUri, language, profile, { forceMeal: true });
       if (result.kind === 'meal') setScanResult(result.meal);
     } catch (err) {
       console.error('Scan failed', err);
-      alert(t.mealLogger.errorLogging);
-      setScannedImageUri(null);
+      setScanError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -941,6 +969,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
     // Always clear any pending draft before logging to prevent double-registration
     setDraftMeal(null);
+    setScanError(null); // nova tentativa limpa o erro anterior
     setLoading(true);
     try {
       const newMeal: Meal = {
@@ -983,7 +1012,9 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           setSuccess(false);
           setScanResult(null);
           setScannedImageUri(null);
+          setScanError(null);
           setDraftMeal(null);
+          waterMealFallbackRef.current = null;
           if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
         }, 900);
 
@@ -1019,7 +1050,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       }
     } catch (error) {
       console.error('Failed to log meal:', error);
-      alert(t.mealLogger.errorLogging);
+      const detail = error instanceof Error ? error.message : String(error);
+      if (type === 'ai-photo') {
+        // Na tela de scan o erro aparece no lugar do alerta, com a causa real e
+        // botão de tentar de novo — o registro não pode virar beco sem saída.
+        setScanError(detail);
+      } else {
+        alert(`${t.mealLogger.errorLogging}\n\n${detail}`);
+      }
       setLoading(false);
     } finally {
       isLoggingRef.current = false;
@@ -1195,6 +1233,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           onBack={() => {
             setWaterScan(null);
             setScannedImageUri(null);
+            waterMealFallbackRef.current = null;
             if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
           }}
         />
@@ -1204,11 +1243,16 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       <MalamaAiScan
         data={scanResult}
         imageUri={scannedImageUri}
-        isLoading={!scanResult}
+        isLoading={!scanResult && !scanError}
+        error={scanError}
+        onRetry={() => { void runImageAnalysis(scannedImageUri); }}
         onConfirm={(finalData) => handleConfirmLog(finalData, 'ai-photo')}
         onBack={() => {
           setScanResult(null);
           setScannedImageUri(null);
+          setScanError(null);
+          waterMealFallbackRef.current = null;
+          if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
         }}
       />
     );

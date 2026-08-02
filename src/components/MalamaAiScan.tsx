@@ -8,9 +8,17 @@ import { normalizeMealAnalysis } from '../utils/normalizeMealAnalysis';
 interface MalamaAiScanProps {
     data: AIResponse | null;
     imageUri: string;
-    onConfirm: (finalData: AIResponse) => void;
+    /** Awaitable: enquanto não resolve o botão fica em carregamento; se falhar, ele volta. */
+    onConfirm: (finalData: AIResponse) => void | Promise<void>;
     onBack: () => void;
     isLoading?: boolean;
+    /**
+     * Mensagem de erro da análise/registro. Sem isto a tela ficava presa em
+     * "Identificando..." para sempre quando o scan falhava — o usuário via um
+     * alerta genérico e não tinha como tentar de novo.
+     */
+    error?: string | null;
+    onRetry?: () => void;
 }
 
 const Shimmer = ({ className }: { className: string }) => (
@@ -34,6 +42,8 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
     onConfirm,
     onBack,
     isLoading = false,
+    error = null,
+    onRetry,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [items, setItems] = useState<MealItem[]>(() =>
@@ -190,9 +200,12 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
                 message: data?.message ?? '',
                 idRequisicao: data?.idRequisicao ?? null,
             };
-            onConfirm(finalData);
+            await onConfirm(finalData);
         } catch (e) {
             console.error('Confirm failed:', e);
+        } finally {
+            // Sempre libera o botão: sem isto, um erro no registro deixava o
+            // spinner girando para sempre e não dava para tentar de novo.
             setConfirming(false);
         }
     };
@@ -239,16 +252,23 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
                                 <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
                                 {/* Loading overlay on image */}
-                                {isLoading && (
+                                {isLoading && !error && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[2px]">
                                         <div className="w-10 h-10 border-[3px] border-white/30 border-t-white rounded-full animate-spin mb-2" />
                                         <p className="text-white text-xs font-light tracking-widest uppercase animate-pulse">Identificando...</p>
                                     </div>
                                 )}
 
+                                {error && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 backdrop-blur-[2px] px-6 text-center">
+                                        <span className="material-symbols-outlined text-white text-3xl mb-1">error_outline</span>
+                                        <p className="text-white text-xs font-light tracking-widest uppercase">Não consegui analisar</p>
+                                    </div>
+                                )}
+
                                 {/* Compact overlay strip at bottom of image */}
                                 <div className="absolute bottom-0 inset-x-0 px-4 pb-3 pt-6">
-                                    {isLoading ? (
+                                    {isLoading && !error ? (
                                         <Shimmer className="h-6 w-36" />
                                     ) : (
                                         <h1
@@ -261,8 +281,19 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
                                 </div>
                             </div>
 
+                            {error && (
+                                <div className="mt-3 bg-white rounded-2xl border border-red-100 shadow-sm px-4 py-3.5">
+                                    <p className="text-sm text-stone-700 font-light leading-relaxed">
+                                        {data
+                                            ? 'Não consegui salvar essa refeição agora.'
+                                            : 'Não consegui ler essa foto agora.'}
+                                    </p>
+                                    <p className="mt-1 text-[11px] text-stone-400 font-light break-words">{error}</p>
+                                </div>
+                            )}
+
                             {/* Compact stats bar */}
-                            <div className="mt-3 bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+                            <div className={`mt-3 bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden ${error && !data ? 'hidden' : ''}`}>
                                 <div className="flex items-stretch divide-x divide-stone-100">
                                     {/* Calories */}
                                     <div className="flex-[1.4] flex flex-col justify-center px-4 py-3">
@@ -448,7 +479,31 @@ export const MalamaAiScan: React.FC<MalamaAiScanProps> = ({
             {/* Bottom Controls */}
             <div className="fixed bottom-0 left-0 w-full bg-gradient-to-t from-[#FDFBF9] via-[#FDFBF9]/95 to-transparent px-4 pb-8 pt-6 z-40">
                 <div className="flex gap-3 max-w-md mx-auto">
-                    {!isEditing ? (
+                    {error ? (
+                        <>
+                            <button
+                                onClick={onBack}
+                                className="flex-1 py-3.5 rounded-2xl bg-white border border-stone-200 text-stone-600 text-base font-light hover:bg-stone-50 transition-all active:scale-[0.98] shadow-sm"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={() => (data ? handleConfirm() : onRetry?.())}
+                                disabled={confirming || (!data && !onRetry)}
+                                className="flex-[2] py-3.5 rounded-2xl text-white text-base font-light tracking-wider flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50"
+                                style={{ background: MALAMA_RED }}
+                            >
+                                {confirming ? (
+                                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <span className="material-symbols-outlined text-xl">refresh</span>
+                                        Tentar de novo
+                                    </>
+                                )}
+                            </button>
+                        </>
+                    ) : !isEditing ? (
                         <>
                             <button
                                 onClick={() => setIsEditing(true)}
