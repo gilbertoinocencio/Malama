@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Meal, AIResponse, MealItem } from '../types';
-import { analyzeTextLog, analyzeImageLog, getMealSlotLabel } from '../services/caramelService';
+import { analyzeTextLog, analyzeImageLog, getMealSlotLabel, generateMealFeedback } from '../services/caramelService';
+import { StatsService } from '../services/statsService';
+import { PlanService } from '../services/planService';
 import type { HydrationAnalysis } from '../services/caramelService';
 import { UnifiedChatService } from '../services/unifiedChatService';
 import { HydrationService } from '../services/hydrationService';
@@ -128,12 +130,12 @@ const renderMarkdown = (text: string): React.ReactNode[] => {
       return;
     }
 
-    // Bullet list: "- " or "â€¢ "
-    const bulletMatch = trimmed.match(/^[-â€¢]\s+(.+)/);
+    // Bullet list: "- ", "* " ou "• "
+    const bulletMatch = trimmed.match(/^[-*•]\s+(.+)/);
     if (bulletMatch) {
       elements.push(
         <div key={`bl-${i}`} className="flex gap-2 mt-1">
-          <span className="text-Malama-petrol dark:text-primary shrink-0">â€¢</span>
+          <span className="text-Malama-petrol dark:text-primary shrink-0">•</span>
           <span>{formatInline(bulletMatch[1], `bl-${i}`)}</span>
         </div>
       );
@@ -360,7 +362,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   // Confirm-before-close dialog
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
-  // Photo Mode State â€" initialized from localStorage so they survive app switches
+  // Photo Mode State — initialized from localStorage so they survive app switches
   const [scanResult, setScanResult] = useState<AIResponse | null>(() => {
     if (!user) return null;
     try {
@@ -794,6 +796,49 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const isLoggingRef = useRef(false);
 
   /**
+   * Feedback da refeição já registrada, cruzando prato + plano ativo + metas do dia
+   * + aderência da semana. Roda DEPOIS do logMeal para o balanço do dia já incluir
+   * esta refeição. Se qualquer coisa falhar, cai na mensagem da própria análise.
+   */
+  const buildMealFeedback = async (data: AIResponse): Promise<string> => {
+    const fallback = data.message || `${data.foodName} registrado com sucesso!`;
+    if (!user) return fallback;
+    try {
+      const [stats, weekly, plan] = await Promise.all([
+        StatsService.getDailyStats(user.id),
+        StatsService.getWeeklySummary(user.id).catch(() => null),
+        PlanService.getActivePlan(user.id).catch(() => null),
+      ]);
+      const feedback = await generateMealFeedback(data.items, data.foodName, language, {
+        profile,
+        consumedToday: {
+          calories: stats.consumedCalories,
+          protein: stats.macros.protein,
+          carbs: stats.macros.carbs,
+          fats: stats.macros.fats,
+        },
+        targetToday: {
+          calories: stats.targetCalories,
+          protein: stats.targetMacros.protein,
+          carbs: stats.targetMacros.carbs,
+          fats: stats.targetMacros.fats,
+        },
+        hydration: { ml: stats.waterIntake ?? 0, goalMl: stats.waterGoal ?? 0 },
+        activitiesToday: stats.activityCalories
+          ? [{ name: 'Atividades de hoje', calories_burned: stats.activityCalories }]
+          : undefined,
+        weekly,
+        plan,
+        mealTime: new Date(),
+      });
+      return feedback || fallback;
+    } catch (e) {
+      console.error('[MealLogger] feedback contextualizado falhou, usando o da análise:', e);
+      return fallback;
+    }
+  };
+
+  /**
    * Registra a água da foto na hidratação (nunca em refeição/calorias).
    * A quantidade é a que o usuário confirmou na tela — a estimativa da IA sozinha
    * nunca grava nada, mesma regra do interceptor de texto.
@@ -817,8 +862,13 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       // repete a confirmação no chat nem soma de novo.
       if (!logged) { setLoading(false); return; }
 
+      const goalMl = await HydrationService.getTodayGoalMl(user.id).catch(() => null);
       const amountLine = `Registrei ${ml} ml de água na sua hidratação 💧`;
-      const totalLine = totalMl ? ` Total de hoje: ${totalMl} ml.` : '';
+      const totalLine = totalMl
+        ? goalMl
+          ? ` Total de hoje: ${totalMl} ml de ${goalMl} ml da sua meta (${Math.round((totalMl / goalMl) * 100)}%).`
+          : ` Total de hoje: ${totalMl} ml.`
+        : '';
       // O texto da IA é só a frase de incentivo (o prompt proíbe números nela) —
       // a quantidade exibida vem sempre do que o usuário confirmou.
       const encouragement = analysis?.message ? `\n\n${analysis.message}` : '';
@@ -916,16 +966,17 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       if (user) localStorage.removeItem(`Malama_draft_meal_${user.id}`);
 
       if (type === 'ai-photo') {
-        // Add scan card + the feedback already produced with this analysis.
-        const feedback = normalizedData.message || `${normalizedData.foodName} registrado com sucesso!`;
+        // Card entra na hora; o texto espera o feedback que cruza plano + metas do
+        // dia + semana (a mensagem crua da análise é só o fallback).
         const cardId = Date.now().toString();
-        const textId = (Date.now() + 1).toString();
         const capturedImageUri = scannedImageUri ?? undefined;
         setMessages(prev => [
           ...prev,
           { id: cardId, type: 'ai-card', content: normalizedData, imageUri: capturedImageUri },
-          { id: textId, type: 'ai-text', content: feedback },
         ]);
+        const feedback = await buildMealFeedback(normalizedData);
+        const textId = (Date.now() + 1).toString();
+        setMessages(prev => [...prev, { id: textId, type: 'ai-text', content: feedback }]);
         setLoading(false);
         setSuccess(true);
         setTimeout(() => {
@@ -949,8 +1000,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           await UnifiedChatService.saveDirectMessages(user.id, `[Foto: ${normalizedData.foodName}]`, agentContent);
         })();
       } else {
-        // ai-chat / ai-voice: show the analysis feedback and stay in chat.
-        const feedback = normalizedData.message || `${normalizedData.foodName} registrado com sucesso!`;
+        // ai-chat / ai-voice: mesmo feedback contextualizado, sem sair do chat.
+        const feedback = await buildMealFeedback(normalizedData);
         setMessages(prev => [
           ...prev,
           { id: Date.now().toString(), type: 'ai-text', content: feedback },
@@ -1495,7 +1546,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
           <div className="h-1"></div>
         </div>
       </div>
-      {/* Edit Panel â€" full-screen slide-in sheet */}
+      {/* Edit Panel — full-screen slide-in sheet */}
       {editMode && (
         <div className="absolute inset-0 z-30 bg-Malama-bg dark:bg-background-dark flex flex-col animate-fade-in">
           {/* Header */}

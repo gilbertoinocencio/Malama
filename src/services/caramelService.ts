@@ -4,6 +4,8 @@ import { AIResponse, MealItem, MicroNutrients, Profile } from '../types';
 import { searchOpenFoodFacts, formatOFFBlock } from './openFoodFactsService';
 import { normalizeGender } from '../utils/bodyCompositionCalculators';
 import { WATER_MAX_ML, userMentionsWater, mentionsCalorieBeverage, mentionsFood } from '../utils/intakeDetection';
+import { getCurrentPlanPhase, type PlanLike } from '../utils/planPhase';
+import type { WeeklySummary } from './statsService';
 import { NutritionKnowledgeService } from './nutritionKnowledgeService';
 import { sanitizeAiText } from '../utils/sanitizeAiText';
 import { parseAiJson } from '../utils/parseAiJson';
@@ -466,6 +468,12 @@ export interface MealFeedbackContext {
   consumedToday?: { calories: number; protein: number; carbs: number; fats: number };
   targetToday?: { calories: number; protein: number; carbs: number; fats: number };
   activitiesToday?: { name: string; calories_burned: number; duration_seconds?: number; activity_type?: string }[];
+  /** Hidratação do dia — a agente precisa enxergar o dia inteiro, não só o prato. */
+  hydration?: { ml: number; goalMl: number };
+  /** Aderência dos últimos 7 dias (StatsService.getWeeklySummary). */
+  weekly?: WeeklySummary | null;
+  /** Plano trimestral ativo — a fase atual sai de utils/planPhase. */
+  plan?: PlanLike | null;
   mealTime?: Date;
 }
 
@@ -550,6 +558,38 @@ export const generateMealFeedback = async (
       activityBlock = `\n## ATIVIDADES FÍSICAS HOJE\n${acts}`;
     }
 
+    // ── Hidratação do dia ─────────────────────────────────────────────────────
+    let hydrationBlock = '';
+    if (ctx?.hydration && ctx.hydration.goalMl > 0) {
+      const { ml, goalMl } = ctx.hydration;
+      const pct = Math.round((ml / goalMl) * 100);
+      hydrationBlock = `\n## HIDRATAÇÃO DE HOJE\n- ${ml}ml de ${goalMl}ml (${pct}% da meta)`;
+    }
+
+    // ── Plano ativo: fase atual manda no tipo de orientação ───────────────────
+    let planBlock = '';
+    if (ctx?.plan) {
+      const { phase, weeksSinceStart } = getCurrentPlanPhase(ctx.plan);
+      const bullets = phase?.bullets?.length
+        ? `\n- Ações da fase: ${phase.bullets.slice(0, 4).join('; ')}`
+        : phase?.description
+          ? `\n- Descrição: ${phase.description.slice(0, 300)}`
+          : '';
+      planBlock = `\n## PLANO ATIVO DO USUÁRIO
+- Estratégia: ${ctx.plan.optimization_tag || 'Personalizada'}${weeksSinceStart ? ` (semana ${weeksSinceStart} do plano)` : ''}
+- Fase atual: ${phase?.title || 'não definida'}${phase?.tag ? ` — ${phase.tag}` : ''}${phase?.focus ? `\n- Foco da fase: ${phase.focus}` : ''}${bullets}`;
+    }
+
+    // ── Últimos 7 dias: a orientação muda se a semana está indo bem ou mal ────
+    let weeklyBlock = '';
+    if (ctx?.weekly && ctx.weekly.daysLogged > 0) {
+      const w = ctx.weekly;
+      weeklyBlock = `\n## ÚLTIMOS 7 DIAS
+- Dias com registro: ${w.daysLogged} de 7
+- Média diária: ${w.avgCalories}kcal (meta ${w.targetCalories}kcal) | proteína ${w.avgProtein}g (meta ${w.targetProtein}g)
+- Dias dentro da meta calórica: ${w.daysOnTarget} de ${w.daysLogged}${w.avgWaterMl > 0 ? `\n- Média de água: ${w.avgWaterMl}ml/dia` : ''}`;
+    }
+
     const genderRule = genderAgreementRule(ctx?.profile?.gender, ctx?.profile?.display_name);
 
     const prompt = `Você é a Malama — uma nutricionista de verdade, próxima do paciente. Você fala como gente, não como relatório clínico. O usuário acabou de registrar uma refeição e você dá uma reação rápida, como uma nutricionista de confiança comentaria olhando o prato dele. Responda em ${langName}.
@@ -564,7 +604,10 @@ ${genderRule}
 - Itens:
 ${itemsList}
 ${profileBlock}
+${planBlock}
 ${dailyBalanceBlock}
+${hydrationBlock}
+${weeklyBlock}
 ${activityBlock}
 
 ## INSTRUÇÕES DE FEEDBACK
@@ -574,6 +617,13 @@ Seu papel é EDUCAR para uma alimentação mais consciente, não só registrar. 
 2. UM "porquê" educativo — explique de forma simples o efeito real no corpo/objetivo do usuário (ex.: por que aquela proteína sacia mais, por que o carbo simples dá pico de energia curto, por que ultraprocessado pesa no plano). Ensine algo aproveitável.
 3. UMA orientação prática e específica para a próxima refeição ou para o resto do dia (o que acrescentar/reduzir/equilibrar), ancorada no objetivo e no balanço do dia.
 Se houver atividade física hoje E for relevante, conecte em poucas palavras. Escolha o ângulo mais útil — não tente cobrir tudo de uma vez.
+
+## OLHE O CONJUNTO, NÃO SÓ O PRATO (OBRIGATÓRIO)
+A orientação SEMPRE sai do cruzamento desta refeição com o plano e as metas — nunca de um comentário solto sobre o alimento:
+- **Fase do plano:** ajuste o tipo de conselho à fase atual (fase de adaptação pede simplicidade; fase de manutenção/autonomia pede autogestão, não regra nova). Cite a fase só quando ajudar a motivar.
+- **Metas do dia:** ancore no que FALTA ou no que já passou hoje (calorias, proteína e hidratação). Se a hidratação está atrasada, vale uma frase — mas NUNCA afirme que a pessoa bebeu algo que não registrou.
+- **Semana:** se a semana está consistente, reconheça; se há dias fora da meta ou poucos registros, aponte a tendência com leveza e sugira o ajuste da próxima refeição. Não repita números da semana como planilha.
+- Use APENAS os dados dos blocos acima. Se um bloco não veio, não invente nem chute o que "provavelmente" aconteceu.
 
 ## TOM — FALE COMO UMA PESSOA, NÃO COMO UM SISTEMA
 - Soe como uma nutricionista de confiança conversando, não como um laudo. Calorosa, leve, encorajadora, sem julgamento, mas com substância — ensina sem dar aula.

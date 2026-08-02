@@ -66,6 +66,20 @@ export const HydrationService = {
     }
   },
 
+  /**
+   * Meta de água de hoje (definida pelo RPC ao criar a linha do dia). Usada para
+   * mostrar o progresso junto da confirmação — nunca para decidir registro.
+   */
+  async getTodayGoalMl(userId: string): Promise<number | null> {
+    const { data } = await supabase
+      .from('daily_logs')
+      .select('water_goal')
+      .eq('user_id', userId)
+      .eq('date', getLocalDateString())
+      .maybeSingle();
+    return data?.water_goal ?? null;
+  },
+
   /** Atualiza o progresso da missão de hidratação (gamificação). Nunca bloqueia. */
   async syncHydrationMission(userId: string, totalMl: number): Promise<void> {
     try {

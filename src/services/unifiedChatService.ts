@@ -10,6 +10,7 @@ import { sanitizeAiText } from '../utils/sanitizeAiText';
 import { parseAiJson } from '../utils/parseAiJson';
 import { normalizeMealAnalysis } from '../utils/normalizeMealAnalysis';
 import { HydrationService } from './hydrationService';
+import { getCurrentPlanPhase } from '../utils/planPhase';
 
 const genAI = new CaramelAI();
 const MODEL_NAME = CARAMEL_AUTO_MODEL;
@@ -682,18 +683,9 @@ Responda APENAS com o JSON, sem texto adicional.
     if (plan) {
       const planStart = plan.start_date ? new Date(plan.start_date) : null;
       const planEnd   = plan.end_date   ? new Date(plan.end_date)   : null;
-      const now = new Date();
-      // Determine current phase (each phase spans 1/3 of the plan duration)
-      let currentPhase = plan.phases?.[0];
-      if (planStart && planEnd && plan.phases?.length === 3) {
-        const totalMs = planEnd.getTime() - planStart.getTime();
-        const elapsedMs = now.getTime() - planStart.getTime();
-        const phaseFraction = Math.min(Math.floor((elapsedMs / totalMs) * 3), 2);
-        currentPhase = plan.phases[phaseFraction];
-      }
-      const weeksSinceStart = planStart
-        ? Math.floor((now.getTime() - planStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1
-        : null;
+      // Fase atual e semana do plano: regra única em utils/planPhase (o feedback de
+      // refeição usa exatamente a mesma), para os dois nunca divergirem.
+      const { phase: currentPhase, weeksSinceStart } = getCurrentPlanPhase(plan);
       const phaseDetail = currentPhase
         ? currentPhase.bullets?.length
           ? `\n- **Foco:** ${currentPhase.focus || ''}\n- **Ações da fase:**\n${currentPhase.bullets.map((b: string) => `  • ${b}`).join('\n')}`

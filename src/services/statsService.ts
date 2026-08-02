@@ -5,6 +5,19 @@ import { MealService } from './mealService';
 import { getLocalDateString } from '../utils/dateUtils';
 import { IntegrationService } from './integrationService';
 
+/** Aderência dos últimos 7 dias — contexto semanal do feedback da agente. */
+export interface WeeklySummary {
+    /** Dias com pelo menos uma refeição registrada nos últimos 7. */
+    daysLogged: number;
+    avgCalories: number;
+    avgProtein: number;
+    avgWaterMl: number;
+    /** Dias dentro de 85%–115% da meta calórica. */
+    daysOnTarget: number;
+    targetCalories: number;
+    targetProtein: number;
+}
+
 // Shared helper: returns true if all macro + hydration goals are ≥ 85%
 export const checkDayGoalMet = (stats: DailyStats | null): boolean => {
   if (!stats) return false;
@@ -178,6 +191,69 @@ export const StatsService = {
             waterGoal,
             activityCalories: activityCalories > 0 ? activityCalories : undefined,
             activityCaloriesApplied: activityCalories > 0 ? applyActivityToTarget : undefined,
+        };
+    },
+
+    /**
+     * Resumo leve dos últimos 7 dias (2 consultas) para dar contexto SEMANAL ao
+     * feedback da agente. Não usa getWeekStats de propósito: aquele roda
+     * getDailyStats 7x (dezenas de consultas + integrações) e travaria a resposta
+     * logo depois de registrar uma refeição.
+     */
+    async getWeeklySummary(userId: string): Promise<WeeklySummary> {
+        const since = new Date();
+        since.setDate(since.getDate() - 6);
+        since.setHours(0, 0, 0, 0);
+
+        const [{ data: meals }, { data: logs }, { data: profile }, { data: activePlan }] = await Promise.all([
+            supabase.from('meals').select('calories, protein, created_at')
+                .eq('user_id', userId).gte('created_at', since.toISOString()),
+            supabase.from('daily_logs').select('water_intake, date')
+                .eq('user_id', userId).gte('date', getLocalDateString(since)),
+            supabase.from('profiles').select('target_calories, target_protein')
+                .eq('id', userId).maybeSingle(),
+            supabase.from('quarterly_plans').select('content')
+                .eq('user_id', userId).eq('status', 'active')
+                .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        ]);
+
+        // Plano ativo manda na meta, igual getDailyStats.
+        const targetCalories = activePlan?.content?.calories || profile?.target_calories || 2000;
+        const targetProtein = activePlan?.content?.macros?.protein || profile?.target_protein || 150;
+
+        const byDay = new Map<string, { calories: number; protein: number }>();
+        for (const meal of meals ?? []) {
+            const day = getLocalDateString(new Date(meal.created_at));
+            const acc = byDay.get(day) ?? { calories: 0, protein: 0 };
+            acc.calories += Number(meal.calories || 0);
+            acc.protein += Number(meal.protein || 0);
+            byDay.set(day, acc);
+        }
+
+        const daysLogged = byDay.size;
+        const totals = [...byDay.values()].reduce(
+            (acc, d) => ({ calories: acc.calories + d.calories, protein: acc.protein + d.protein }),
+            { calories: 0, protein: 0 },
+        );
+        // "Dia na meta" = mesma faixa de aderência do flow score (85%–115%).
+        const daysOnTarget = [...byDay.values()].filter(d => {
+            const ratio = d.calories / (targetCalories || 1);
+            return ratio >= 0.85 && ratio <= 1.15;
+        }).length;
+
+        const waterDays = (logs ?? []).filter(l => Number(l.water_intake || 0) > 0);
+        const avgWaterMl = waterDays.length > 0
+            ? Math.round(waterDays.reduce((s, l) => s + Number(l.water_intake || 0), 0) / waterDays.length)
+            : 0;
+
+        return {
+            daysLogged,
+            avgCalories: daysLogged > 0 ? Math.round(totals.calories / daysLogged) : 0,
+            avgProtein: daysLogged > 0 ? Math.round(totals.protein / daysLogged) : 0,
+            avgWaterMl,
+            daysOnTarget,
+            targetCalories,
+            targetProtein,
         };
     },
 
