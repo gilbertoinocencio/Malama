@@ -905,7 +905,11 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         ? await Camera.takePhoto(opcoes)
         : (await Camera.chooseFromGallery({ ...opcoes, limit: 1 })).results[0];
 
-      const origemArquivo = media?.webPath ?? media?.uri;
+      // `uri` é caminho de arquivo nativo (file://), que o WebView se recusa a
+      // carregar por fetch — o scan morria aqui, em silêncio. convertFileSrc
+      // traduz para um endereço que o WebView aceita; `webPath` já vem pronto.
+      const origemArquivo = media?.webPath
+        ?? (media?.uri ? Capacitor.convertFileSrc(media.uri) : null);
       if (!origemArquivo) return;
 
       setLoading(true);
@@ -919,8 +923,16 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       const detalhe = err instanceof Error ? err.message : String(err);
       if (/cancel/i.test(detalhe)) return;
       console.error('Scan failed', err);
-      setScanError(detalhe);
       setLoading(false);
+      // A tela de scan só existe depois que há imagem (`if (scannedImageUri)`),
+      // e `runImageAnalysis` trata os próprios erros — então tudo que cai aqui
+      // aconteceu ANTES de haver tela onde mostrar. Usar `scanError` deixaria o
+      // usuário de volta no chat sem sinal nenhum, que foi o que aconteceu.
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        type: 'ai-text',
+        content: `Não consegui abrir essa foto. Tente novamente. (${detalhe})`,
+      }]);
     }
   };
 
