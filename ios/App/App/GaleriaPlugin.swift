@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import Capacitor
 import PhotosUI
 
@@ -27,7 +28,7 @@ public class GaleriaPlugin: CAPPlugin, CAPBridgedPlugin {
     private var chamadaPendente: CAPPluginCall?
     private var ladoMaximo: CGFloat = 1600
 
-    @objc func escolherImagem(_ call: CAPPluginCall) {
+    @objc public func escolherImagem(_ call: CAPPluginCall) {
         chamadaPendente = call
         ladoMaximo = CGFloat(call.getInt("ladoMaximo") ?? 1600)
 
