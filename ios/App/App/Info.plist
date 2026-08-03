@@ -5,12 +5,13 @@
     <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>pt-BR</string>
-	<!-- Sem esta lista o iOS assume que o app só fala a região de desenvolvimento
-	     e desenha a PRÓPRIA interface dele em inglês — é por isso que o seletor de
-	     fotos do WebView aparecia como "Photo Library / Take Photo / Choose File"
-	     num aparelho em português. Declarando os idiomas, essa folha passa a sair
-	     traduzida pelo sistema. Efeito colateral: estes passam a ser os idiomas
+	<string>en</string>
+	<!-- O iOS escolhe o idioma da interface DELE (seletor de fotos do WebView,
+	     diálogos de permissão) cruzando os idiomas do aparelho com esta lista.
+	     Sem ela a interseção era vazia e tudo caía em CFBundleDevelopmentRegion,
+	     por isso um aparelho em português via "Photo Library / Take Photo".
+	     Só a região de desenvolvimento continua sendo o fallback para idiomas
+	     fora desta lista. Efeito colateral: estes passam a ser os idiomas
 	     listados na ficha da App Store. -->
 	<key>CFBundleLocalizations</key>
 	<array>
