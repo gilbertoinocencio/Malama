@@ -1046,6 +1046,20 @@ export const rhService = {
     return (data ?? []) as SetorEmpresa[];
   },
 
+  /**
+   * Colaboradores ativos/convidados da empresa — o público-alvo real de uma
+   * campanha "toda a empresa".
+   *
+   * Não dá para somar `getSetores()` para chegar neste número: aquela função
+   * só devolve quem tem SETOR PREENCHIDO, então numa empresa que ainda não
+   * classificou o quadro o total sai muito menor do que é.
+   */
+  async getAlvoTotal(): Promise<number> {
+    const { data, error } = await supabase.rpc('rh_alvo_total');
+    if (error) { console.error('[rhService] alvo total:', error.message); return 0; }
+    return (data ?? 0) as number;
+  },
+
   // Matriz exposição × bem-estar por setor. Escores já vêm agregados e
   // k-anonimizados pelo banco.
   async getMatrizPsicossocial(inicio: string, fim: string): Promise<RhMatrizPsicossocial | null> {

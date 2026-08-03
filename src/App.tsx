@@ -58,6 +58,42 @@ const _supabaseStorageKey = (() => {
   } catch { return ''; }
 })();
 
+/**
+ * Prefixos de caminho que renderizam AppRoutes (portais, landings e páginas
+ * públicas) em vez do app do paciente.
+ *
+ * FONTE ÚNICA — e é por isso que existe. Esta lista já esteve copiada em três
+ * lugares e as cópias divergiram: `/q/` (o link do questionário psicossocial)
+ * foi adicionado em duas e esquecido na terceira, a que roda quando o usuário
+ * está autenticado. Resultado: quem abria o link do RH com sessão ativa caía
+ * no onboarding do app em vez do questionário — e o link era justamente para
+ * quem não deveria precisar de conta.
+ *
+ * Rota pública nova entra AQUI, e só aqui.
+ */
+const PORTAL_PATH_PREFIXES = [
+  '/medico',
+  '/admin',
+  '/influencer',
+  '/empresas',
+  '/rh',
+  '/convite',
+  '/i/',
+  '/q/',                    // questionário psicossocial por link, sem login
+  '/listamedicos',
+  '/listausuarios',
+  '/listausu%C3%A1rios',
+  '/listausuários',
+  '/privacidade',
+  '/privacy-policy',
+  '/deletar-conta',
+  '/delete-account',
+  '/pitchdeck',
+] as const;
+
+const isPortalPath = (path: string) =>
+  PORTAL_PATH_PREFIXES.some(prefixo => path.startsWith(prefixo));
+
 const App: React.FC = () => {
   const { user, profile, loading, profileLoading, signOut } = useAuth();
   // Modos contratados pela empresa do colaborador. Define onboarding e navegação.
@@ -100,27 +136,7 @@ const App: React.FC = () => {
     // /entrar is not a real route — never a portal
     if (path === '/entrar') return false;
 
-    if (
-      path.startsWith('/medico') ||
-      path.startsWith('/admin') ||
-      path.startsWith('/influencer') ||
-      path.startsWith('/empresas') ||
-      path.startsWith('/rh') ||
-      path.startsWith('/convite') ||
-      path.startsWith('/i/') ||
-      // Link do questionário psicossocial: precisa abrir sem login, então
-      // nunca pode cair no fluxo de autenticação do app.
-      path.startsWith('/q/') ||
-      path.startsWith('/listamedicos') ||
-      path.startsWith('/listausuarios') ||
-      path.startsWith('/listausu%C3%A1rios') ||
-      path.startsWith('/listausuários') ||
-      path.startsWith('/privacidade') ||
-      path.startsWith('/privacy-policy') ||
-      path.startsWith('/deletar-conta') ||
-      path.startsWith('/delete-account') ||
-      path.startsWith('/pitchdeck')
-    ) return true;
+    if (isPortalPath(path)) return true;
 
     // For root path, show landing if no session OR if user came from waitlist Google OAuth
     if (path === '/' || path === '') {
@@ -138,27 +154,6 @@ const App: React.FC = () => {
 
   // Check if current path is a portal route (/medico/* or /admin/*) or landing page
   useEffect(() => {
-    const isPortalPath = (path: string) =>
-      path.startsWith('/medico') ||
-      path.startsWith('/admin') ||
-      path.startsWith('/influencer') ||
-      path.startsWith('/empresas') ||
-      path.startsWith('/rh') ||
-      path.startsWith('/convite') ||
-      path.startsWith('/i/') ||
-      // Link do questionário psicossocial: precisa abrir sem login, então
-      // nunca pode cair no fluxo de autenticação do app.
-      path.startsWith('/q/') ||
-      path.startsWith('/listamedicos') ||
-      path.startsWith('/listausuarios') ||
-      path.startsWith('/listausu%C3%A1rios') ||
-      path.startsWith('/listausuários') ||
-      path.startsWith('/privacidade') ||
-      path.startsWith('/privacy-policy') ||
-      path.startsWith('/deletar-conta') ||
-      path.startsWith('/delete-account') ||
-      path.startsWith('/pitchdeck');
-
     const checkPath = () => {
       // No app nativo, nunca redirecionar para landing page
       if (Capacitor.isNativePlatform()) {
@@ -207,26 +202,8 @@ const App: React.FC = () => {
 
   // When user authenticates, ensure we're not stuck showing the portal/landing
   useEffect(() => {
-    if (user && isPortalRoute) {
-      const path = window.location.pathname;
-      const isPortalPath =
-        path.startsWith('/medico') ||
-        path.startsWith('/admin') ||
-        path.startsWith('/influencer') ||
-        path.startsWith('/empresas') ||
-        path.startsWith('/rh') ||
-        path.startsWith('/convite') ||
-        path.startsWith('/i/') ||
-        path.startsWith('/listamedicos') ||
-        path.startsWith('/listausuarios') ||
-        path.startsWith('/listausu%C3%A1rios') ||
-        path.startsWith('/listausuários') ||
-        path.startsWith('/privacidade') ||
-        path.startsWith('/privacy-policy') ||
-        path.startsWith('/pitchdeck');
-      if (!isPortalPath) {
-        setIsPortalRoute(false);
-      }
+    if (user && isPortalRoute && !isPortalPath(window.location.pathname)) {
+      setIsPortalRoute(false);
     }
   }, [user, isPortalRoute]);
 

@@ -312,9 +312,11 @@ const LinksCampanha: React.FC<{ campaignId: string }> = ({ campaignId }) => {
 const NovaCampanha: React.FC<{
   instrumentos: PsychosocialInstrumento[];
   setores: SetorEmpresa[];
+  /** Total real de colaboradores ativos/convidados — ver `alvoCount`. */
+  alvoTotal: number;
   onCriada: () => void;
   onCancelar: () => void;
-}> = ({ instrumentos, setores, onCriada, onCancelar }) => {
+}> = ({ instrumentos, setores, alvoTotal, onCriada, onCancelar }) => {
   const disponiveis = instrumentos.filter(i => i.ativo);
   const [code, setCode] = useState(disponiveis[0]?.code ?? '');
   const inicial = janelaSugerida(disponiveis[0]?.cadencia_meses ?? null);
@@ -336,8 +338,13 @@ const NovaCampanha: React.FC<{
   const toggleSetor = (s: string) =>
     setSelecionados(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
+  // "Toda a empresa" NÃO pode ser a soma dos setores: `rh_setores` só devolve
+  // quem tem setor preenchido, então numa empresa que ainda não classificou o
+  // quadro o número saía muito menor que o público real (1 em vez de 3, no
+  // caso que apareceu) — e o RH abria a campanha achando que ela não cobria
+  // quase ninguém. Por setor a soma vale, porque ali só entra quem tem setor.
   const alvoCount = alvo === 'todos'
-    ? setores.reduce((acc, s) => acc + s.n, 0)
+    ? alvoTotal
     : setores.filter(s => selecionados.includes(s.setor)).reduce((acc, s) => acc + s.n, 0);
 
   const submeter = async (e: React.FormEvent) => {
@@ -481,6 +488,7 @@ export const RhSaudeMental: React.FC = () => {
   const [campanhas, setCampanhas] = useState<PsychosocialCampanha[]>([]);
   const [instrumentos, setInstrumentos] = useState<PsychosocialInstrumento[]>([]);
   const [setores, setSetores] = useState<SetorEmpresa[]>([]);
+  const [alvoTotal, setAlvoTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [criando, setCriando] = useState(false);
   const [expandida, setExpandida] = useState<string | null>(null);
@@ -499,14 +507,16 @@ export const RhSaudeMental: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [c, i, s] = await Promise.all([
+      const [c, i, s, total] = await Promise.all([
         rhService.getCampanhas(),
         rhService.getInstrumentos(),
         rhService.getSetores(),
+        rhService.getAlvoTotal(),
       ]);
       setCampanhas(c);
       setInstrumentos(i);
       setSetores(s);
+      setAlvoTotal(total);
     } catch (err) {
       console.error('Erro ao carregar saúde mental:', err);
       toast.error('Erro ao carregar dados.');
@@ -602,6 +612,7 @@ export const RhSaudeMental: React.FC = () => {
             <NovaCampanha
               instrumentos={instrumentos}
               setores={setores}
+              alvoTotal={alvoTotal}
               onCriada={() => { setCriando(false); load(); }}
               onCancelar={() => setCriando(false)}
             />
