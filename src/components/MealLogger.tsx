@@ -149,6 +149,68 @@ const renderMarkdown = (text: string): React.ReactNode[] => {
   return elements;
 };
 
+/** Maior redução que cabe em `maxDim`, sem ampliar imagem que já é pequena. */
+const fitWithin = (width: number, height: number, maxDim: number) => {
+  const factor = Math.min(1, maxDim / Math.max(width, height));
+  return { width: Math.round(width * factor), height: Math.round(height * factor) };
+};
+
+const drawToJpeg = (source: CanvasImageSource, width: number, height: number): string => {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Não consegui preparar a imagem neste dispositivo.');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(source, 0, 0, width, height);
+  // 0.72 quality: ~30% smaller than 0.8 with no visible loss for food recognition
+  return canvas.toDataURL('image/jpeg', 0.72);
+};
+
+/**
+ * Reduz a foto direto do arquivo, sem materializar a imagem cheia em base64.
+ *
+ * "Take Photo" entrega a captura nativa (12MP); "Photo Library" costuma vir já
+ * reduzida pelo sistema — é essa diferença que o usuário sentia como "análise
+ * mais lenta". A espera acontece ANTES da tela de scan abrir (a foto só aparece
+ * depois desta função), então ela é lida como lentidão do scan.
+ * O caminho antigo lia o arquivo inteiro com FileReader (string de vários MB),
+ * decodificava a imagem cheia e só então reduzia. Pior: se a decodificação
+ * falhasse por memória, ele seguia com a imagem ORIGINAL — justamente o caso
+ * que trava, porque payload grande demais é rejeitado antes de chegar na IA.
+ */
+const fileToResizedDataUrl = async (file: File, maxDim = 800): Promise<string> => {
+  if (typeof createImageBitmap === 'function') {
+    let bitmap: ImageBitmap | null = null;
+    try {
+      bitmap = await createImageBitmap(file);
+      const { width, height } = fitWithin(bitmap.width, bitmap.height, maxDim);
+      return drawToJpeg(bitmap, width, height);
+    } catch (e) {
+      console.error('createImageBitmap falhou, tentando via object URL:', e);
+    } finally {
+      bitmap?.close();
+    }
+  }
+
+  // Fallback ainda parte do Blob, não de data URL: o custo que queremos evitar
+  // é a string gigante, não o elemento <img>.
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('Não consegui abrir essa foto.'));
+      el.src = objectUrl;
+    });
+    const { width, height } = fitWithin(img.naturalWidth, img.naturalHeight, maxDim);
+    return drawToJpeg(img, width, height);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+};
+
 // Helper for image resizing to stay within AI limits (usually 2000px)
 const resizeImage = (base64Str: string, maxDim = 1200): Promise<string> => {
   return new Promise((resolve) => {
@@ -789,30 +851,23 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setLoading(true);
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      let base64 = reader.result as string;
-
-      try {
-        // Enforce max dimension of 1200px (well below the 2000px limit)
-        base64 = await resizeImage(base64, 800);
-        setScannedImageUri(base64);
-        await runImageAnalysis(base64);
-      } catch (err) {
-        console.error('Scan failed', err);
-        setScanError(err instanceof Error ? err.message : String(err));
-        setLoading(false);
-      } finally {
-        // Clear input value to allow re-selection
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const base64 = await fileToResizedDataUrl(file, 800);
+      setScannedImageUri(base64);
+      await runImageAnalysis(base64);
+    } catch (err) {
+      console.error('Scan failed', err);
+      setScanError(err instanceof Error ? err.message : String(err));
+      setLoading(false);
+    } finally {
+      // Clear input value to allow re-selection
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
 
