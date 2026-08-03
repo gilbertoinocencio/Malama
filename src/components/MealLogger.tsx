@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { GaleriaNativa } from '../lib/galeriaNativa';
 import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog, getMealSlotLabel, generateMealFeedback } from '../services/caramelService';
 import { StatsService } from '../services/statsService';
@@ -895,6 +897,38 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
    * o picker à autorização do app) e a câmera não retornava imagem. O input do
    * WebView não depende de permissão de galeria nenhuma.
    */
+  /**
+   * Galeria no iOS vai pelo plugin nativo, que abre a biblioteca DIRETO.
+   * O `<input type="file">` sempre passa pela folha "Fototeca / Tirar Foto /
+   * Escolher Arquivo" e não há atributo HTML que a pule — `capture` só resolve
+   * o lado da câmera. Nas outras plataformas o input já abre a galeria direto,
+   * então não há motivo para código nativo.
+   *
+   * Se o plugin não estiver registrado no projeto Xcode, cai no input: melhor
+   * um passo a mais do que o botão não fazer nada.
+   */
+  const abrirGaleria = async () => {
+    if (Capacitor.getPlatform() !== 'ios') {
+      abrirSeletor(false);
+      return;
+    }
+    setPhotoSheet(false);
+    try {
+      const { dataUrl, cancelado } = await GaleriaNativa.escolherImagem({ ladoMaximo: 1600 });
+      if (cancelado || !dataUrl) return;
+
+      setLoading(true);
+      const blob = await (await fetch(dataUrl)).blob();
+      const base64 = await fileToResizedDataUrl(blob, 800);
+      setScannedImageUri(base64);
+      await runImageAnalysis(base64);
+    } catch (err) {
+      console.error('Galeria nativa indisponível, usando o seletor do WebView:', err);
+      setLoading(false);
+      abrirSeletor(false);
+    }
+  };
+
   const abrirSeletor = (usarCamera: boolean) => {
     setPhotoSheet(false);
     const input = fileInputRef.current;
@@ -1808,7 +1842,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                   {t.mealLogger.photoTakePicture}
                 </button>
                 <button
-                  onClick={() => abrirSeletor(false)}
+                  onClick={abrirGaleria}
                   className="w-full h-14 rounded-2xl border border-Malama-border dark:border-white/10 text-Malama-main dark:text-white font-semibold flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-base">photo_library</span>
