@@ -17,7 +17,7 @@ export const PrivacyPolicy: React.FC = () => {
 
       <main className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold mb-2 text-[#1a3a2e]">Política de Privacidade</h1>
-        <p className="text-sm text-gray-500 mb-10">Última atualização: 21 de julho de 2026</p>
+        <p className="text-sm text-gray-500 mb-10">Última atualização: 2 de agosto de 2026</p>
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-[#2d6a4f]">1. Quem somos</h2>
@@ -72,7 +72,20 @@ export const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3 text-[#2d6a4f]">6. Seus Direitos (LGPD)</h2>
+          <h2 className="text-xl font-semibold mb-3 text-[#2d6a4f]">6. Retenção de dados</h2>
+          <p className="text-gray-700 leading-relaxed mb-3">
+            Mantemos seus dados pessoais apenas pelo tempo necessário para as finalidades descritas nesta Política, enquanto sua conta estiver ativa. Após o encerramento da conta ou solicitação de exclusão:
+          </p>
+          <ul className="list-disc list-inside space-y-2 text-gray-700 leading-relaxed">
+            <li>Dados pessoais identificáveis (PII) são permanentemente excluídos dos nossos servidores ativos;</li>
+            <li>Registros de atendimento e prontuários médicos podem ser mantidos pelo prazo regulatório exigido pelo Conselho Federal de Medicina (CFM);</li>
+            <li>Logs de acesso e segurança são mantidos por até 6 meses, conforme exigido pelo Marco Civil da Internet (Lei nº 12.965/2014);</li>
+            <li>Dados irreversivelmente anonimizados e estatísticas de pesquisa são mantidos indefinidamente para fins científicos e de aprimoramento de IA, não sendo mais considerados dados pessoais nos termos do Art. 12 da LGPD.</li>
+          </ul>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-[#2d6a4f]">7. Seus Direitos (LGPD)</h2>
           <p className="text-gray-700 leading-relaxed mb-3">
             Você possui pleno direito de acessar, corrigir, portar ou solicitar a exclusão de seus dados pessoais identificáveis a qualquer momento.
           </p>
@@ -82,7 +95,7 @@ export const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3 text-[#2d6a4f]">7. Contato</h2>
+          <h2 className="text-xl font-semibold mb-3 text-[#2d6a4f]">8. Contato</h2>
           <p className="text-gray-700">
             E-mail: <a href="mailto:privacidade@soumalama.com.br" className="text-[#2d6a4f] underline font-medium">privacidade@soumalama.com.br</a><br />
             Website: <a href="https://www.soumalama.com.br" className="text-[#2d6a4f] underline font-medium">www.soumalama.com.br</a>
