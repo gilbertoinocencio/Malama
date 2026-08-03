@@ -606,21 +606,19 @@ export type CampanhaParticipacao = {
   ocultos_convidados: number;
 };
 
-/** Uma linha da lista de links da campanha. Sem status de resposta — ver
- *  `rhService.getCampanhaLinks`. */
+/** Um link de campanha, válido para um SETOR inteiro. Ninguém se identifica
+ *  ao responder — ver `rhService.getCampanhaLinks`. */
 export type CampanhaLink = {
-  nome: string;
-  email: string;
   setor: string;
   token: string;
+  /** Quantas pessoas aquele link precisa alcançar. */
+  colaboradores: number;
 };
 
 export type CampanhaLinks = {
   ok: boolean;
   error?: string;
   janela_fim: string;
-  /** Alvos ainda sem conta criada — não é possível emitir link para eles. */
-  sem_conta: number;
   links: CampanhaLink[];
 };
 
@@ -1026,16 +1024,18 @@ export const rhService = {
   },
 
   /**
-   * Emite (idempotente) e devolve os links individuais da campanha, para o RH
-   * distribuir por WhatsApp, e-mail interno ou mural.
+   * Emite (idempotente) e devolve UM link por setor da campanha, para o RH
+   * distribuir por WhatsApp, e-mail interno ou cartaz com QR.
    *
-   * NÃO devolve quem já respondeu, e não deve passar a devolver: saber quem
-   * falta é o complemento de saber quem respondeu, que é justamente o que o
-   * módulo promete não entregar ao empregador. Adesão continua vindo agregada
-   * por setor, de `getCampanhaParticipacao`.
+   * Um link por setor, e não por pessoa: empresa de mil colaboradores geraria
+   * mil links, e o RH ficaria com o link de cada um — o que derruba a
+   * confiança na pesquisa mesmo que ninguém abuse. Aqui ninguém se
+   * identifica; o setor vem embutido no link e é o único recorte gravado.
    */
   async getCampanhaLinks(campaignId: string): Promise<CampanhaLinks | null> {
-    const { data, error } = await supabase.rpc('rh_campanha_links', { p_campaign_id: campaignId });
+    const { data, error } = await supabase.rpc('rh_campanha_links_setor', {
+      p_campaign_id: campaignId,
+    });
     if (error) { console.error('[rhService] links:', error.message); return null; }
     return (data ?? null) as CampanhaLinks | null;
   },

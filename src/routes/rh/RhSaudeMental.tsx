@@ -152,22 +152,24 @@ const ParticipacaoSetores: React.FC<{ campaignId: string }> = ({ campaignId }) =
   );
 };
 
-// ─── Links individuais para distribuir ─────────────────
+// ─── Links por setor para distribuir ───────────────────
 //
 // Existe para resolver adesão: esperar o colaborador abrir o app sozinho no
 // começo do mês entrega participação baixa. Com o link, o RH manda no grupo
-// de WhatsApp, no e-mail interno ou imprime no mural.
+// de WhatsApp, no e-mail interno ou imprime um cartaz com QR na área.
 //
-// Um link POR PESSOA, e não um link da empresa: sem saber quem é quem não há
-// como impedir resposta dupla nem como saber o setor de quem respondeu — e é
-// o recorte por setor que sustenta o relatório de PGR.
+// UM LINK POR SETOR, não por pessoa. O modelo anterior era por pessoa e caiu
+// por dois motivos: empresa de mil colaboradores precisaria de mil links, e o
+// RH ficava com o link de cada um — o que derruba a confiança na pesquisa
+// mesmo que ninguém abuse. Numa pesquisa de saúde mental, desconfiança custa
+// adesão, e adesão é o produto.
 //
-// A lista NÃO mostra quem já respondeu, e não deve passar a mostrar: saber
-// quem falta é o complemento de saber quem respondeu.
+// Ninguém se identifica ao responder. O setor vem embutido no link, então o
+// recorte que sustenta o PGR e a matriz de risco continua exato — é a única
+// coisa que a resposta carrega.
 const LinksCampanha: React.FC<{ campaignId: string }> = ({ campaignId }) => {
   const [dados, setDados] = useState<CampanhaLinks | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState('');
 
   useEffect(() => {
     let cancelado = false;
@@ -194,8 +196,8 @@ const LinksCampanha: React.FC<{ campaignId: string }> = ({ campaignId }) => {
     // Ponto e vírgula e BOM: é o que faz o Excel em pt-BR abrir o arquivo em
     // colunas e com acento certo, sem a pessoa ter que importar na mão.
     const linhas = [
-      ['Nome', 'E-mail', 'Setor', 'Link'],
-      ...dados.links.map(l => [l.nome, l.email, l.setor, urlDe(l.token)]),
+      ['Setor', 'Colaboradores', 'Link'],
+      ...dados.links.map(l => [l.setor, String(l.colaboradores), urlDe(l.token)]),
     ];
     const csv = '﻿' + linhas
       .map(cols => cols.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';'))
@@ -220,24 +222,16 @@ const LinksCampanha: React.FC<{ campaignId: string }> = ({ campaignId }) => {
     );
   }
 
-  const termo = filtro.trim().toLowerCase();
-  const visiveis = termo
-    ? dados.links.filter(l =>
-        l.nome.toLowerCase().includes(termo) ||
-        l.email.toLowerCase().includes(termo) ||
-        l.setor.toLowerCase().includes(termo))
-    : dados.links;
-
   return (
     <div className="bg-gray-50 rounded-lg p-3 mt-2">
       <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
         <p className="text-xs font-medium text-gray-500">
-          Links individuais · {dados.links.length}
+          Links por setor · {dados.links.length}
         </p>
         <div className="flex items-center gap-2">
           <button
             onClick={() => copiar(
-              dados.links.map(l => `${l.nome}: ${urlDe(l.token)}`).join('\n'),
+              dados.links.map(l => `${l.setor}: ${urlDe(l.token)}`).join('\n'),
               `${dados.links.length} links copiados`,
             )}
             disabled={dados.links.length === 0}
@@ -255,54 +249,39 @@ const LinksCampanha: React.FC<{ campaignId: string }> = ({ campaignId }) => {
         </div>
       </div>
 
-      {dados.links.length > 8 && (
-        <input
-          value={filtro}
-          onChange={e => setFiltro(e.target.value)}
-          placeholder="Buscar por nome, e-mail ou setor"
-          className="w-full mb-2 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#7d4a3c]"
-        />
-      )}
-
       {dados.links.length === 0 ? (
         <p className="py-3 text-center text-xs text-gray-400">
-          Nenhum colaborador do público-alvo tem conta criada ainda.
+          Nenhum colaborador no público-alvo desta campanha.
         </p>
       ) : (
-        <div className="max-h-72 overflow-y-auto">
-          <table className="w-full text-sm">
-            <tbody className="divide-y divide-gray-100">
-              {visiveis.map(l => (
-                <tr key={l.token}>
-                  <td className="py-1.5 pr-3">
-                    <p className="text-gray-700 leading-tight">{l.nome}</p>
-                    <p className="text-[11px] text-gray-400 leading-tight">{l.setor}</p>
-                  </td>
-                  <td className="py-1.5 text-right whitespace-nowrap">
-                    <button
-                      onClick={() => copiar(urlDe(l.token), 'Link copiado')}
-                      className="px-2.5 py-1 text-xs font-medium border border-gray-200 bg-white rounded-lg text-gray-600 hover:bg-gray-50 transition"
-                    >
-                      Copiar link
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {dados.sem_conta > 0 && (
-        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2 mt-2 leading-snug">
-          {dados.sem_conta} colaborador(es) do público-alvo ainda não criaram conta e por isso não
-          têm link. Eles entram assim que ativarem o convite.
-        </p>
+        <table className="w-full text-sm">
+          <tbody className="divide-y divide-gray-100">
+            {dados.links.map(l => (
+              <tr key={l.token}>
+                <td className="py-1.5 pr-3">
+                  <p className="text-gray-700 leading-tight">{l.setor}</p>
+                  <p className="text-[11px] text-gray-400 leading-tight">
+                    {l.colaboradores} colaborador(es)
+                  </p>
+                </td>
+                <td className="py-1.5 text-right whitespace-nowrap">
+                  <button
+                    onClick={() => copiar(urlDe(l.token), 'Link copiado')}
+                    className="px-2.5 py-1 text-xs font-medium border border-gray-200 bg-white rounded-lg text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    Copiar link
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
       <p className="text-[11px] text-gray-400 mt-2 leading-snug">
-        Cada link é pessoal e vale uma resposta só, até {fmtDate(dados.janela_fim)}. Esta lista não
-        mostra quem já respondeu — a adesão aparece agregada por setor, acima.
+        Cada link vale para todo o setor e pode ser divulgado no grupo ou no mural, até{' '}
+        {fmtDate(dados.janela_fim)}. A pesquisa é anônima: quem responde não se identifica, então
+        nem a Malama nem você conseguem saber quem respondeu — só quantos, por setor.
       </p>
     </div>
   );

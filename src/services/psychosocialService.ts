@@ -45,9 +45,10 @@ export type CampanhaPorToken =
       instrument: string;
       instrument_nome: string;
       empresa_nome: string;
+      /** Setor embutido no link — é o recorte que o relatório de PGR usa. */
+      setor: string;
       janela_fim: string;
     }
-  | { estado: 'ja_respondeu' }
   | { estado: 'encerrada' }
   | { estado: 'fora_da_janela'; janela_fim: string }
   | { estado: 'invalido' }
@@ -149,14 +150,20 @@ export const PsychosocialService = {
     return data as PsychosocialAssessment;
   },
 
-  // ── Link enviado pelo RH (sem login) ─────────────────
+  // ── Link do setor, distribuído pelo RH (sem login) ───
   //
-  // Mesmo instrumento, mesma chave de correção, mesma tela — muda só quem
-  // resolve QUEM está respondendo: dentro do app é a sessão, aqui é o token.
+  // Mesmo instrumento, mesma chave de correção, mesma tela do app. A
+  // diferença é que aqui NINGUÉM é identificado: o token diz apenas de qual
+  // setor a resposta veio, que é o recorte de que o relatório precisa.
+  //
+  // Como não há identidade, também não há como saber que a mesma pessoa
+  // respondeu duas vezes. O marcador abaixo é um freio de cortesia — avisa,
+  // nunca bloqueia, porque em aparelho compartilhado do chão de fábrica
+  // bloquear significaria impedir o segundo respondente legítimo.
 
   /** O que a tela do link precisa saber, incluindo o motivo de não servir. */
   async getCampanhaPorToken(token: string): Promise<CampanhaPorToken> {
-    const { data, error } = await supabase.rpc('campanha_por_token', { p_token: token });
+    const { data, error } = await supabase.rpc('campanha_por_link_setor', { p_token: token });
     if (error) {
       console.error('getCampanhaPorToken:', error.message);
       return { estado: 'erro' };
@@ -164,11 +171,22 @@ export const PsychosocialService = {
     return (data ?? { estado: 'invalido' }) as CampanhaPorToken;
   },
 
+  /** Este aparelho já enviou resposta para este link? Só um aviso. */
+  jaRespondeuNesteAparelho(token: string): boolean {
+    try { return !!localStorage.getItem(`questionario-respondido:${token}`); }
+    catch { return false; }
+  },
+
+  marcarRespondidoNesteAparelho(token: string): void {
+    try { localStorage.setItem(`questionario-respondido:${token}`, new Date().toISOString()); }
+    catch { /* navegador sem storage — o freio some, o envio continua */ }
+  },
+
   /**
-   * Grava a resposta vinda do link. O escore é calculado aqui pelo mesmo
-   * registro de instrumentos usado dentro do app — o banco não recalcula,
-   * mas o trigger da campanha continua validando janela, status,
-   * instrumento e público-alvo.
+   * Grava a resposta anônima. O escore é calculado aqui pelo mesmo registro
+   * de instrumentos usado dentro do app; o banco valida janela e status do
+   * lado dele — o trigger de psychosocial_assessments não vale nesta rota,
+   * porque a resposta não vai para a tabela clínica.
    */
   async submitPorToken(
     token: string,
@@ -178,7 +196,7 @@ export const PsychosocialService = {
     const def = getInstrumento(instrumentCode);
     const { rawScore, score, subscores } = def.score(answers);
 
-    const { data, error } = await supabase.rpc('responder_por_token', {
+    const { data, error } = await supabase.rpc('responder_por_link_setor', {
       p_token: token,
       p_answers: answers,
       p_raw_score: rawScore,
@@ -190,6 +208,8 @@ export const PsychosocialService = {
       console.error('submitPorToken:', error.message);
       return { ok: false, error: 'Não foi possível enviar agora.' };
     }
-    return (data ?? { ok: false }) as { ok: boolean; error?: string };
+    const r = (data ?? { ok: false }) as { ok: boolean; error?: string };
+    if (r.ok) this.marcarRespondidoNesteAparelho(token);
+    return r;
   },
 };

@@ -9,10 +9,15 @@
 // (InstrumentoQuestionario) — carinhas, áudio e alvo de toque grande vêm de
 // graça e não podem divergir entre os dois caminhos.
 //
-// Quem identifica a pessoa é o token, não uma sessão. Por isso a tela nunca
-// mostra nome, e-mail ou qualquer dado de quem está respondendo: se o
-// aparelho for compartilhado (o que é comum no chão de fábrica), nada do
-// vínculo fica visível para o próximo que abrir.
+// NINGUÉM é identificado aqui. O token diz apenas de qual SETOR a resposta
+// veio — é o recorte de que o relatório de PGR precisa, e é tudo. A tela não
+// pede nem mostra nome, e-mail ou matrícula, o que também a torna segura em
+// aparelho compartilhado, comum no chão de fábrica.
+//
+// Sem identidade não há como impedir a mesma pessoa de responder duas vezes.
+// O marcador de navegador é um freio de cortesia: AVISA e deixa continuar.
+// Bloquear seria pior — no tablet compartilhado impediria o segundo
+// respondente de verdade.
 // =====================================================
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -54,6 +59,12 @@ export const ResponderQuestionario: React.FC = () => {
   const [concluido, setConcluido] = useState(false);
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
 
+  // Lido uma vez no mount: se lesse depois do envio, o aviso apareceria para
+  // quem acabou de responder.
+  const [jaRespondeuAqui] = useState(
+    () => !!token && PsychosocialService.jaRespondeuNesteAparelho(token),
+  );
+
   useEffect(() => {
     if (!token) { setCampanha({ estado: 'invalido' }); return; }
     PsychosocialService.getCampanhaPorToken(token).then(setCampanha);
@@ -92,19 +103,13 @@ export const ResponderQuestionario: React.FC = () => {
     if (concluido) {
       return (
         <Aviso icone="check" titulo="Respostas enviadas">
-          Obrigado. Ninguém da sua empresa vê a sua resposta. Ela recebe só um resumo por grupo,
-          e apenas quando o grupo tem cinco pessoas ou mais.
+          Obrigado. Sua resposta é anônima — a empresa recebe só um resumo do setor, e apenas
+          quando ele tem cinco pessoas ou mais.
         </Aviso>
       );
     }
 
     switch (campanha.estado) {
-      case 'ja_respondeu':
-        return (
-          <Aviso icone="task_alt" titulo="Você já respondeu">
-            Este questionário já foi respondido. Não é preciso responder de novo.
-          </Aviso>
-        );
       case 'encerrada':
         return (
           <Aviso icone="event_busy" titulo="Questionário encerrado">
@@ -147,7 +152,7 @@ export const ResponderQuestionario: React.FC = () => {
       return (
         <div className="p-8">
           <p className="text-xs font-medium text-Malama-muted dark:text-slate-400 mb-1">
-            {campanha.empresa_nome}
+            {campanha.empresa_nome} · {campanha.setor}
           </p>
           <h1 className="text-2xl font-bold text-Malama-main dark:text-white leading-tight mb-3">
             {campanha.instrument_nome}
@@ -157,8 +162,10 @@ export const ResponderQuestionario: React.FC = () => {
             tocando em <strong>Ouvir</strong>. Prazo para responder: {fmtData(campanha.janela_fim)}.
           </p>
 
+          {/* A promessa mais forte que este produto pode fazer, e agora ela é
+              literal: não existe campo de nome nem login nesta tela. */}
           <div
-            className="rounded-2xl p-4 mb-6 border"
+            className="rounded-2xl p-4 mb-4 border"
             style={{ borderColor: `${PETROL}25`, background: `${PETROL}08` }}
           >
             <div className="flex items-start gap-3">
@@ -166,11 +173,22 @@ export const ResponderQuestionario: React.FC = () => {
                 lock
               </span>
               <p className="text-sm text-Malama-main dark:text-white leading-snug">
-                Ninguém da sua empresa vê a sua resposta. Ela recebe só um resumo por grupo, e
-                apenas quando o grupo tem cinco pessoas ou mais.
+                Esta pesquisa é anônima. Você não precisa se identificar e não pedimos seu nome.
+                A empresa recebe só um resumo do seu setor, e apenas quando ele tem cinco pessoas
+                ou mais.
               </p>
             </div>
           </div>
+
+          {/* Freio suave: avisa e deixa passar. Ver cabeçalho do arquivo. */}
+          {jaRespondeuAqui && (
+            <div className="rounded-2xl p-4 mb-4 border border-amber-200 bg-amber-50 dark:bg-amber-900/10">
+              <p className="text-sm text-amber-800 dark:text-amber-300 leading-snug">
+                Já foi enviada uma resposta neste aparelho. Se não foi você, pode responder
+                normalmente.
+              </p>
+            </div>
+          )}
 
           <button
             onClick={() => setIniciado(true)}
