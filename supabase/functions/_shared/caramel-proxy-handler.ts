@@ -249,7 +249,15 @@ export async function handleCaramelProxy(req: Request): Promise<Response> {
         return json(await generateContent(body.model, body.contents, body.generationConfig));
       } catch (error) {
         console.error('Caramel generateContent failed:', error);
-        return json({ error: 'O Caramel está temporariamente indisponível', code: 'CARAMEL_UNAVAILABLE' }, 502);
+        // `detail` existe para diagnóstico: sem ele, uma falha só do provedor de
+        // visão (texto ok, toda imagem 502) ficava indistinguível de instabilidade
+        // genérica, e a causa só aparecia no log da função. O cliente continua
+        // mostrando a mensagem amigável — ele decide pelo `code`, não pelo detalhe.
+        return json({
+          error: 'O Caramel está temporariamente indisponível',
+          code: 'CARAMEL_UNAVAILABLE',
+          detail: (error instanceof Error ? error.message : String(error)).slice(0, 300),
+        }, 502);
       }
     }
 
