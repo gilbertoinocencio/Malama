@@ -123,6 +123,15 @@ export interface Translations {
         voiceNotSupported: string;
         analysisIntro: string;
         errorLogging: string;
+        /**
+         * Rótulos do seletor nativo de foto. Ficam aqui, e não no sistema, porque
+         * a folha nativa do iOS se localiza pelo idioma do APARELHO — quem escolheu
+         * português dentro do app num celular em inglês via "Take Photo".
+         */
+        photoSourceTitle: string;
+        photoFromGallery: string;
+        photoTakePicture: string;
+        photoCancel: string;
     };
 
     // Profile
@@ -638,6 +647,10 @@ export const translations: Record<Language, Translations> = {
             voiceNotSupported: 'Your browser does not support voice recognition. Use Chrome for better experience.',
             analysisIntro: 'Got it. Here is the nutritional analysis of your flow:',
             errorLogging: 'Error logging meal. Please try again.',
+            photoSourceTitle: 'Add a photo',
+            photoFromGallery: 'Photo Library',
+            photoTakePicture: 'Take Photo',
+            photoCancel: 'Cancel',
         },
         profile: {
             title: 'Profile',
@@ -1118,6 +1131,10 @@ export const translations: Record<Language, Translations> = {
             voiceNotSupported: 'Seu navegador não suporta reconhecimento de voz. Use Chrome para melhor experiência.',
             analysisIntro: 'Entendido. Aqui está a análise nutricional do seu flow:',
             errorLogging: 'Erro ao registrar refeição. Tente novamente.',
+            photoSourceTitle: 'Adicionar uma foto',
+            photoFromGallery: 'Escolher da galeria',
+            photoTakePicture: 'Tirar foto',
+            photoCancel: 'Cancelar',
         },
         profile: {
             title: 'Perfil',
@@ -1598,6 +1615,10 @@ export const translations: Record<Language, Translations> = {
             voiceNotSupported: 'Tu navegador no soporta reconocimiento de voz. Usa Chrome para mejor experiencia.',
             analysisIntro: 'Entendido. Aquí está el análisis nutricional de tu flow:',
             errorLogging: 'Error al registrar comida. Intenta de nuevo.',
+            photoSourceTitle: 'Añadir una foto',
+            photoFromGallery: 'Elegir de la galería',
+            photoTakePicture: 'Tomar foto',
+            photoCancel: 'Cancelar',
         },
         profile: {
             title: 'Perfil',

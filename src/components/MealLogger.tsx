@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Camera } from '@capacitor/camera';
 import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog, getMealSlotLabel, generateMealFeedback } from '../services/caramelService';
 import { StatsService } from '../services/statsService';
@@ -180,7 +182,7 @@ const drawToJpeg = (source: CanvasImageSource, width: number, height: number): s
  * falhasse por memória, ele seguia com a imagem ORIGINAL — justamente o caso
  * que trava, porque payload grande demais é rejeitado antes de chegar na IA.
  */
-const fileToResizedDataUrl = async (file: File, maxDim = 800): Promise<string> => {
+const fileToResizedDataUrl = async (file: Blob, maxDim = 800): Promise<string> => {
   if (typeof createImageBitmap === 'function') {
     let bitmap: ImageBitmap | null = null;
     try {
@@ -426,6 +428,8 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
 
   // Confirm-before-close dialog
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  // Seletor de origem da foto (câmera x galeria) — só no app nativo.
+  const [photoSheet, setPhotoSheet] = useState(false);
   // Erro da análise/registro da foto, mostrado DENTRO da tela de scan.
   const [scanError, setScanError] = useState<string | null>(null);
 
@@ -867,6 +871,56 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
     } finally {
       // Clear input value to allow re-selection
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  /**
+   * Abre o seletor de foto. No app nativo é o nosso próprio menu (estado
+   * `photoSheet`) chamando o plugin de câmera; na web continua no
+   * <input type="file">, porque `takePhoto` na web dependeria do pacote
+   * @ionic/pwa-elements para desenhar a UI de câmera.
+   *
+   * O menu é nosso de propósito: a folha nativa do iOS se localiza pelo idioma
+   * do APARELHO, então quem escolhia português dentro do app num celular em
+   * inglês via "Take Photo". Aqui os rótulos seguem o seletor do próprio app.
+   */
+  const handlePickPhoto = () => {
+    if (Capacitor.isNativePlatform()) setPhotoSheet(true);
+    else fileInputRef.current?.click();
+  };
+
+  /**
+   * `targetWidth/Height` fazem a redução na camada NATIVA. Era esse o custo que
+   * fazia "tirar foto" demorar muito mais que "escolher da galeria": a captura
+   * vinha em 12MP e era lida e redimensionada inteira dentro do WebView.
+   * Ainda passamos por `fileToResizedDataUrl` porque o plugin devolve um
+   * caminho de arquivo, não data URL — e é lá que garantimos o teto de 800px
+   * e o JPEG que a análise espera.
+   */
+  const capturarFoto = async (origem: 'camera' | 'galeria') => {
+    setPhotoSheet(false);
+    const opcoes = { quality: 72, targetWidth: 1600, targetHeight: 1600, correctOrientation: true };
+    try {
+      const media = origem === 'camera'
+        ? await Camera.takePhoto(opcoes)
+        : (await Camera.chooseFromGallery({ ...opcoes, limit: 1 })).results[0];
+
+      const origemArquivo = media?.webPath ?? media?.uri;
+      if (!origemArquivo) return;
+
+      setLoading(true);
+      const blob = await (await fetch(origemArquivo)).blob();
+      const base64 = await fileToResizedDataUrl(blob, 800);
+      setScannedImageUri(base64);
+      await runImageAnalysis(base64);
+    } catch (err) {
+      // Fechar o seletor sem escolher chega aqui como erro do plugin — é fluxo
+      // normal do usuário e não pode virar mensagem de erro na tela.
+      const detalhe = err instanceof Error ? err.message : String(err);
+      if (/cancel/i.test(detalhe)) return;
+      console.error('Scan failed', err);
+      setScanError(detalhe);
+      setLoading(false);
     }
   };
 
@@ -1626,7 +1680,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                   if (input) {
                     handleSend();
                   } else {
-                    fileInputRef.current?.click();
+                    handlePickPhoto();
                   }
                 }}
                 disabled={loading || isListening}
@@ -1754,6 +1808,42 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       )}
 
       {/* Confirm-before-close dialog */}
+      {photoSheet && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPhotoSheet(false)} />
+          <div className="relative w-full max-w-md bg-Malama-bg dark:bg-background-dark rounded-t-3xl">
+            <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-4 bg-Malama-border dark:bg-white/20" />
+            <div className="px-6 pb-10">
+              <h3 className="text-Malama-main dark:text-white text-lg font-bold text-center mb-6">
+                {t.mealLogger.photoSourceTitle}
+              </h3>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => capturarFoto('camera')}
+                  className="w-full h-14 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base">photo_camera</span>
+                  {t.mealLogger.photoTakePicture}
+                </button>
+                <button
+                  onClick={() => capturarFoto('galeria')}
+                  className="w-full h-14 rounded-2xl border border-Malama-border dark:border-white/10 text-Malama-main dark:text-white font-semibold flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base">photo_library</span>
+                  {t.mealLogger.photoFromGallery}
+                </button>
+                <button
+                  onClick={() => setPhotoSheet(false)}
+                  className="w-full h-12 rounded-xl text-Malama-muted dark:text-slate-400 font-semibold text-sm flex items-center justify-center"
+                >
+                  {t.mealLogger.photoCancel}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showDiscardConfirm && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDiscardConfirm(false)} />
