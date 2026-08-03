@@ -890,24 +890,41 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   };
 
   /**
-   * `targetWidth/Height` fazem a redução na camada NATIVA. Era esse o custo que
-   * fazia "tirar foto" demorar muito mais que "escolher da galeria": a captura
-   * vinha em 12MP e era lida e redimensionada inteira dentro do WebView.
-   * Ainda passamos por `fileToResizedDataUrl` porque o plugin devolve um
-   * caminho de arquivo, não data URL — e é lá que garantimos o teto de 800px
-   * e o JPEG que a análise espera.
+   * Galeria segue no <input type="file">, de propósito.
+   *
+   * O `chooseFromGallery` do plugin monta o picker com
+   * `PHPickerConfiguration(photoLibrary:)`, o que o amarra à autorização de
+   * fotos do app: em modo "Limited" sem nada selecionado, a galeria abre VAZIA
+   * ("Malama doesn't have access to any media"). O WebKit usa a variante sem
+   * `photoLibrary`, que roda fora do processo, mostra a biblioteca inteira e
+   * não pede permissão nenhuma — melhor para o usuário e uma permissão a menos
+   * para justificar na revisão da App Store.
    */
-  const capturarFoto = async (origem: 'camera' | 'galeria') => {
+  const escolherDaGaleria = () => {
     setPhotoSheet(false);
-    const opcoes = { quality: 72, targetWidth: 1600, targetHeight: 1600, correctOrientation: true };
+    fileInputRef.current?.click();
+  };
+
+  /**
+   * Câmera pelo plugin: `targetWidth/Height` reduzem a foto na camada NATIVA.
+   * Era esse o custo que fazia "tirar foto" demorar muito mais que a galeria —
+   * a captura vinha em 12MP e era lida e redimensionada inteira no WebView.
+   * Ainda passa por `fileToResizedDataUrl` porque o plugin devolve caminho de
+   * arquivo, não data URL: é lá que garantimos o teto de 800px e o JPEG.
+   */
+  const tirarFoto = async () => {
+    setPhotoSheet(false);
     try {
-      const media = origem === 'camera'
-        ? await Camera.takePhoto(opcoes)
-        : (await Camera.chooseFromGallery({ ...opcoes, limit: 1 })).results[0];
+      const media = await Camera.takePhoto({
+        quality: 72,
+        targetWidth: 1600,
+        targetHeight: 1600,
+        correctOrientation: true,
+      });
 
       // `uri` é caminho de arquivo nativo (file://), que o WebView se recusa a
-      // carregar por fetch — o scan morria aqui, em silêncio. convertFileSrc
-      // traduz para um endereço que o WebView aceita; `webPath` já vem pronto.
+      // carregar por fetch. convertFileSrc traduz para um endereço que ele
+      // aceita; `webPath` já vem pronto.
       const origemArquivo = media?.webPath
         ?? (media?.uri ? Capacitor.convertFileSrc(media.uri) : null);
       if (!origemArquivo) return;
@@ -1831,14 +1848,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               </h3>
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => capturarFoto('camera')}
+                  onClick={tirarFoto}
                   className="w-full h-14 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-base">photo_camera</span>
                   {t.mealLogger.photoTakePicture}
                 </button>
                 <button
-                  onClick={() => capturarFoto('galeria')}
+                  onClick={escolherDaGaleria}
                   className="w-full h-14 rounded-2xl border border-Malama-border dark:border-white/10 text-Malama-main dark:text-white font-semibold flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-base">photo_library</span>
