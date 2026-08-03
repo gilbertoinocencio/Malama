@@ -5,7 +5,19 @@
     <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>pt-BR</string>
+	<!-- Sem esta lista o iOS assume que o app só fala a região de desenvolvimento
+	     e desenha a PRÓPRIA interface dele em inglês — é por isso que o seletor de
+	     fotos do WebView aparecia como "Photo Library / Take Photo / Choose File"
+	     num aparelho em português. Declarando os idiomas, essa folha passa a sair
+	     traduzida pelo sistema. Efeito colateral: estes passam a ser os idiomas
+	     listados na ficha da App Store. -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>pt-BR</string>
+		<string>en</string>
+		<string>es</string>
+	</array>
 	<key>CFBundleDisplayName</key>
         <string>Malama</string>
 	<key>CFBundleExecutable</key>

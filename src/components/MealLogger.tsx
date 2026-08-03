@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Capacitor } from '@capacitor/core';
-import { Camera } from '@capacitor/camera';
 import { Meal, AIResponse, MealItem } from '../types';
 import { analyzeTextLog, analyzeImageLog, getMealSlotLabel, generateMealFeedback } from '../services/caramelService';
 import { StatsService } from '../services/statsService';
@@ -866,91 +864,46 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
       await runImageAnalysis(base64);
     } catch (err) {
       console.error('Scan failed', err);
-      setScanError(err instanceof Error ? err.message : String(err));
       setLoading(false);
+      // Não usar `scanError` aqui: a tela de scan só é renderizada quando existe
+      // `scannedImageUri`, e nesta altura ainda não existe. Gravar o erro ali
+      // deixava o usuário de volta no chat sem sinal nenhum de que algo falhou.
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        type: 'ai-text',
+        content: `Não consegui abrir essa foto. Tente novamente. (${err instanceof Error ? err.message : String(err)})`,
+      }]);
     } finally {
       // Clear input value to allow re-selection
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
+  const handlePickPhoto = () => setPhotoSheet(true);
+
   /**
-   * Abre o seletor de foto. No app nativo é o nosso próprio menu (estado
-   * `photoSheet`) chamando o plugin de câmera; na web continua no
-   * <input type="file">, porque `takePhoto` na web dependeria do pacote
-   * @ionic/pwa-elements para desenhar a UI de câmera.
+   * Tudo passa pelo mesmo <input type="file">, alternando só o atributo
+   * `capture` — nenhum plugin envolvido.
    *
-   * O menu é nosso de propósito: a folha nativa do iOS se localiza pelo idioma
-   * do APARELHO, então quem escolhia português dentro do app num celular em
-   * inglês via "Take Photo". Aqui os rótulos seguem o seletor do próprio app.
-   */
-  const handlePickPhoto = () => {
-    if (Capacitor.isNativePlatform()) setPhotoSheet(true);
-    else fileInputRef.current?.click();
-  };
-
-  /**
-   * Galeria segue no <input type="file">, de propósito.
+   * Com `capture`, o WebView abre a câmera DIRETO, sem a folha de opções do
+   * sistema; sem ele, abre o seletor de fotos. Assim os rótulos que o usuário lê
+   * são os nossos (idioma do app, não do aparelho) e o caminho de arquivo é o
+   * mesmo que sempre funcionou aqui.
    *
-   * O `chooseFromGallery` do plugin monta o picker com
-   * `PHPickerConfiguration(photoLibrary:)`, o que o amarra à autorização de
-   * fotos do app: em modo "Limited" sem nada selecionado, a galeria abre VAZIA
-   * ("Malama doesn't have access to any media"). O WebKit usa a variante sem
-   * `photoLibrary`, que roda fora do processo, mostra a biblioteca inteira e
-   * não pede permissão nenhuma — melhor para o usuário e uma permissão a menos
-   * para justificar na revisão da App Store.
+   * A tentativa anterior via @capacitor/camera falhou nos dois lados: a galeria
+   * abria vazia quando a permissão de fotos estava em "Limited" (o plugin amarra
+   * o picker à autorização do app) e a câmera não retornava imagem. O input do
+   * WebView não depende de permissão de galeria nenhuma.
    */
-  const escolherDaGaleria = () => {
+  const abrirSeletor = (usarCamera: boolean) => {
     setPhotoSheet(false);
-    fileInputRef.current?.click();
-  };
-
-  /**
-   * Câmera pelo plugin: `targetWidth/Height` reduzem a foto na camada NATIVA.
-   * Era esse o custo que fazia "tirar foto" demorar muito mais que a galeria —
-   * a captura vinha em 12MP e era lida e redimensionada inteira no WebView.
-   * Ainda passa por `fileToResizedDataUrl` porque o plugin devolve caminho de
-   * arquivo, não data URL: é lá que garantimos o teto de 800px e o JPEG.
-   */
-  const tirarFoto = async () => {
-    setPhotoSheet(false);
-    try {
-      const media = await Camera.takePhoto({
-        quality: 72,
-        targetWidth: 1600,
-        targetHeight: 1600,
-        correctOrientation: true,
-      });
-
-      // `uri` é caminho de arquivo nativo (file://), que o WebView se recusa a
-      // carregar por fetch. convertFileSrc traduz para um endereço que ele
-      // aceita; `webPath` já vem pronto.
-      const origemArquivo = media?.webPath
-        ?? (media?.uri ? Capacitor.convertFileSrc(media.uri) : null);
-      if (!origemArquivo) return;
-
-      setLoading(true);
-      const blob = await (await fetch(origemArquivo)).blob();
-      const base64 = await fileToResizedDataUrl(blob, 800);
-      setScannedImageUri(base64);
-      await runImageAnalysis(base64);
-    } catch (err) {
-      // Fechar o seletor sem escolher chega aqui como erro do plugin — é fluxo
-      // normal do usuário e não pode virar mensagem de erro na tela.
-      const detalhe = err instanceof Error ? err.message : String(err);
-      if (/cancel/i.test(detalhe)) return;
-      console.error('Scan failed', err);
-      setLoading(false);
-      // A tela de scan só existe depois que há imagem (`if (scannedImageUri)`),
-      // e `runImageAnalysis` trata os próprios erros — então tudo que cai aqui
-      // aconteceu ANTES de haver tela onde mostrar. Usar `scanError` deixaria o
-      // usuário de volta no chat sem sinal nenhum, que foi o que aconteceu.
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        type: 'ai-text',
-        content: `Não consegui abrir essa foto. Tente novamente. (${detalhe})`,
-      }]);
-    }
+    const input = fileInputRef.current;
+    if (!input) return;
+    // Imperativo e síncrono de propósito: o clique precisa acontecer ainda
+    // dentro do gesto do usuário, senão o WebView ignora.
+    if (usarCamera) input.setAttribute('capture', 'environment');
+    else input.removeAttribute('capture');
+    input.click();
   };
 
 
@@ -1848,14 +1801,14 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
               </h3>
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={tirarFoto}
+                  onClick={() => abrirSeletor(true)}
                   className="w-full h-14 rounded-2xl bg-Malama-petrol dark:bg-primary text-white font-bold flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-base">photo_camera</span>
                   {t.mealLogger.photoTakePicture}
                 </button>
                 <button
-                  onClick={escolherDaGaleria}
+                  onClick={() => abrirSeletor(false)}
                   className="w-full h-14 rounded-2xl border border-Malama-border dark:border-white/10 text-Malama-main dark:text-white font-semibold flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-base">photo_library</span>
