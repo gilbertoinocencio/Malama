@@ -13,11 +13,33 @@ export const CARAMEL_EMBED_MODEL = 'caramelo-embed';
 const FRIENDLY_UNAVAILABLE_MESSAGE =
   'A Malama está demorando mais que o normal para responder. Tente novamente em instantes.';
 
+/**
+ * O supabase-js converte qualquer status != 2xx em `error` e não expõe o corpo:
+ * sem ler o `context`, cota estourada, acesso não liberado pelo RH e Caramel fora
+ * do ar viravam todos a mesma mensagem de "demorando mais que o normal".
+ */
+async function readServerError(error: unknown): Promise<{ message?: string; code?: string }> {
+  const response = (error as { context?: unknown })?.context;
+  if (!(response instanceof Response)) return {};
+  try {
+    const body = await response.json() as { error?: unknown; code?: unknown };
+    return {
+      message: typeof body?.error === 'string' ? body.error : undefined,
+      code: typeof body?.code === 'string' ? body.code : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 async function callCaramel(body: object): Promise<any> {
   const { data, error } = await supabase.functions.invoke('caramel-proxy', { body });
   if (error) {
-    console.error('[Caramel] Edge Function error:', error);
-    throw new Error(FRIENDLY_UNAVAILABLE_MESSAGE);
+    const { message, code } = await readServerError(error);
+    console.error('[Caramel] Edge Function error:', code || message || error);
+    throw new Error(
+      !message || code === 'CARAMEL_UNAVAILABLE' ? FRIENDLY_UNAVAILABLE_MESSAGE : message,
+    );
   }
   if (data?.error) {
     console.error('[Caramel] API error:', data.code || data.error);

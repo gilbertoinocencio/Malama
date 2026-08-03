@@ -5,7 +5,11 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const CARAMELO_API_URL = (Deno.env.get('CARAMELO_API_URL') ?? '').replace(/\/$/, '');
 const CARAMELO_API_KEY = Deno.env.get('CARAMELO_API_KEY') ?? '';
 
-const CARAMELO_TIMEOUT_MS = 45_000;
+// O host do Caramel hiberna quando fica ocioso: a primeira chamada depois de um
+// período parado gasta ~40 s apenas subindo o container, antes de processar
+// qualquer coisa. Com 45 s o scan de foto (visão, mais lenta que texto) abortava
+// justamente nessa primeira chamada e o app dizia "não consegui ler essa foto".
+const CARAMELO_TIMEOUT_MS = 90_000;
 const MAX_REQUEST_BYTES = 8 * 1024 * 1024;
 
 const TEXT_MODELS = new Set([
