@@ -41,6 +41,7 @@ Deno.serve(async (req: Request) => {
   try {
     const { email, nome, setor, funcao, cpf, whatsapp } = await req.json();
     if (!email) return json({ error: 'E-mail é obrigatório' }, 400);
+    if (!whatsapp || !String(whatsapp).trim()) return json({ error: 'WhatsApp é obrigatório' }, 400);
 
     const normalizedEmail = String(email).trim().toLowerCase();
     const displayName = nome ? String(nome).trim() : '';
@@ -49,7 +50,7 @@ Deno.serve(async (req: Request) => {
     // geral da empresa.
     const setorValue = setor ? String(setor).trim() || null : null;
     const funcaoValue = funcao ? String(funcao).trim() || null : null;
-    const whatsappValue = whatsapp ? String(whatsapp).trim() || null : null;
+    const whatsappValue = String(whatsapp).trim();
     // CPF é a chave de junção com os eventos do eSocial (migration 20260814).
     // Só dígitos: máscara vinda do formulário faria a junção falhar em
     // silêncio depois. CPF fora do formato é ignorado, não rejeita o convite —

@@ -67,7 +67,7 @@ const LandingPage: React.FC = () => {
 
   const handlePatientSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!patientForm.nome || !patientForm.email || !patientForm.objetivo) {
+    if (!patientForm.nome || !patientForm.email || !patientForm.whatsapp || !patientForm.objetivo) {
       setPatientErro('Preencha todos os campos.');
       return;
     }
@@ -499,7 +499,7 @@ const LandingPage: React.FC = () => {
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">WhatsApp (opcional)</label>
+                    <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">WhatsApp</label>
                     <input
                       type="tel"
                       inputMode="tel"

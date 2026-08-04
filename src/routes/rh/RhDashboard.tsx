@@ -81,13 +81,15 @@ export const RhDashboard: React.FC = () => {
     e.preventDefault();
     const value = email.trim().toLowerCase();
     const nomeValue = nome.trim();
+    const whatsappValue = whatsapp.trim();
     if (!value) return;
     if (!nomeValue) { toast.error('Informe o nome do colaborador.'); return; }
+    if (!whatsappValue) { toast.error('Informe o WhatsApp do colaborador.'); return; }
     if (cheio) { toast.error('Limite de assentos atingido.'); return; }
 
     setAdding(true);
     try {
-      const res = await rhService.inviteColaborador(value, nomeValue, setor.trim(), funcao.trim(), cpf.trim(), whatsapp.trim());
+      const res = await rhService.inviteColaborador(value, nomeValue, setor.trim(), funcao.trim(), cpf.trim(), whatsappValue);
       if (res.existing) {
         toast.success(
           res.emailed
@@ -373,7 +375,7 @@ export const RhDashboard: React.FC = () => {
               <input
                 type="tel" inputMode="tel" value={whatsapp}
                 onChange={e => setWhatsapp(e.target.value)}
-                placeholder="WhatsApp — opcional"
+                placeholder="WhatsApp do colaborador"
                 disabled={cheio || empresa.status !== 'ativa'}
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
               />
