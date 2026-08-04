@@ -545,6 +545,35 @@ export type RhRelatorioPsicossocial = {
   setores_suprimidos: number;
 };
 
+// ── Relatório de exposição ocupacional JSS (agregado, k-anônimo) ──
+// Documenta O QUE NO TRABALHO expõe a risco (demanda/controle/apoio),
+// separado do WHO-5 porque são evidências de natureza diferente para o
+// PGR e raramente compartilham o mesmo período (JSS é semestral).
+export type JssGeral =
+  | { n_respondentes: number; indice_medio: number; demanda_medio: number; controle_medio: number; apoio_medio: number; suprimido?: false }
+  | { n_respondentes: number; suprimido: true };
+
+export type JssSetor = {
+  setor: string;
+  n_respondentes: number;
+  indice: number;
+  demanda: number;
+  controle: number;
+  apoio: number;
+};
+
+export type RhRelatorioJss = {
+  empresa_id: string;
+  empresa_nome: string;
+  empresa_cnpj: string | null;
+  periodo_inicio: string;
+  periodo_fim: string;
+  k_min: number;
+  geral: JssGeral;
+  setores: JssSetor[];
+  setores_suprimidos: number;
+};
+
 // ── Motor de campanhas psicossociais (migration 20260728) ──
 // Atenção ao que cada tipo carrega:
 //   participação (convidados/respondentes/taxa) → não é dado de saúde,
@@ -943,6 +972,18 @@ export const rhService = {
     });
     if (error) { console.error('[rhService] relatório psicossocial:', error.message); return null; }
     return (data ?? null) as RhRelatorioPsicossocial | null;
+  },
+
+  // Relatório de exposição ocupacional JSS agregado e k-anônimo (mesmo piso
+  // e mesmo padrão de rh_relatorio_psicossocial, eixo diferente). Tolerante
+  // a erro: a RPC só existe após a migration 20260803_rh_relatorio_jss.
+  async getRelatorioJss(inicio: string, fim: string): Promise<RhRelatorioJss | null> {
+    const { data, error } = await supabase.rpc('rh_relatorio_jss', {
+      p_inicio: inicio,
+      p_fim: fim,
+    });
+    if (error) { console.error('[rhService] relatório JSS:', error.message); return null; }
+    return (data ?? null) as RhRelatorioJss | null;
   },
 
   // Colaboradores para o certificado de disponibilização (nome + data de

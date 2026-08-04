@@ -15,7 +15,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Brain, Plus, Play, X, Users, BarChart3, Info, AlertCircle, FileDown,
-  ChevronDown, ChevronUp, HeartPulse, CalendarRange, Link as LinkIcon,
+  ChevronDown, ChevronUp, HeartPulse, Activity, CalendarRange, Link as LinkIcon,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -26,9 +26,11 @@ import {
   type CampanhaLinks,
   type SetorEmpresa,
   type RhRelatorioPsicossocial,
+  type RhRelatorioJss,
   type RhMatrizPsicossocial,
 } from '../../services/empresaService';
 import { generatePsychosocialReportPDF } from '../../lib/psychosocialReportDoc';
+import { generateJssReportPDF } from '../../lib/jssReportDoc';
 import { MatrizPsicossocial } from '../../components/rh/MatrizPsicossocial';
 
 const MIN_COORTE = 5;
@@ -480,6 +482,9 @@ export const RhSaudeMental: React.FC = () => {
   const [psico, setPsico] = useState<RhRelatorioPsicossocial | null>(null);
   const [psicoLoading, setPsicoLoading] = useState(false);
   const [gerandoPsico, setGerandoPsico] = useState(false);
+  const [jss, setJss] = useState<RhRelatorioJss | null>(null);
+  const [jssLoading, setJssLoading] = useState(false);
+  const [gerandoJss, setGerandoJss] = useState(false);
   const [matriz, setMatriz] = useState<RhMatrizPsicossocial | null>(null);
   const [matrizLoading, setMatrizLoading] = useState(false);
 
@@ -512,10 +517,17 @@ export const RhSaudeMental: React.FC = () => {
     setMatrizLoading(true);
     const { inicio, fim } = periodoRange(periodo);
 
+    setJssLoading(true);
+
     rhService.getRelatorioPsicossocial(inicio, fim)
       .then(r => { if (!cancelado) setPsico(r); })
       .catch(() => { if (!cancelado) setPsico(null); })
       .finally(() => { if (!cancelado) setPsicoLoading(false); });
+
+    rhService.getRelatorioJss(inicio, fim)
+      .then(r => { if (!cancelado) setJss(r); })
+      .catch(() => { if (!cancelado) setJss(null); })
+      .finally(() => { if (!cancelado) setJssLoading(false); });
 
     rhService.getMatrizPsicossocial(inicio, fim)
       .then(m => { if (!cancelado) setMatriz(m); })
@@ -549,6 +561,25 @@ export const RhSaudeMental: React.FC = () => {
       toast.error(err?.message || 'Erro ao gerar relatório.');
     } finally {
       setGerandoPsico(false);
+    }
+  };
+
+  const handleGerarJss = async () => {
+    if (!jss) return;
+    setGerandoJss(true);
+    try {
+      // Mesmo plano de ação do relatório WHO-5: é o mesmo registro de
+      // medidas de controle da empresa, só o diagnóstico que muda de eixo.
+      const planos = await rhService.getPlanosAcao();
+      const emitidoEm = new Date();
+      const ymd = `${emitidoEm.getFullYear()}${String(emitidoEm.getMonth() + 1).padStart(2, '0')}${String(emitidoEm.getDate()).padStart(2, '0')}`;
+      const numero = `MAL-JSS-${ymd}-${PERIODO_LABEL[periodo].slice(0, 3).toUpperCase()}`;
+      generateJssReportPDF(jss, { numeroDoc: numero, emitidoEm, planos });
+      toast.success('Relatório de exposição ocupacional gerado.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao gerar relatório.');
+    } finally {
+      setGerandoJss(false);
     }
   };
 
@@ -804,6 +835,111 @@ export const RhSaudeMental: React.FC = () => {
             Subsídio à gestão de riscos psicossociais (NR-1). Não substitui o PGR, o PCMSO nem as
             avaliações do SESMT/médico do trabalho. Índice = WHO-5 (0–100); recortes abaixo de{' '}
             {psico?.k_min ?? MIN_COORTE} respondentes são suprimidos (LGPD).
+          </span>
+        </div>
+      </div>
+
+      {/* ── Exposição ocupacional (resultado — dado de saúde) ── */}
+      <div className="bg-white rounded-xl shadow p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <Activity className="w-5 h-5 text-[#7d4a3c]" />
+          <h2 className="font-semibold text-gray-800">Exposição ocupacional (JSS)</h2>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          O que no trabalho expõe a risco — demanda, controle e apoio (modelo Karasek/Theorell).
+          Documento separado do WHO-5: eixos diferentes, cadência diferente (semestral).
+        </p>
+
+        {jssLoading ? (
+          <div className="flex items-center justify-center h-24">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#7d4a3c]" />
+          </div>
+        ) : !jss || 'suprimido' in jss.geral ? (
+          <div className="bg-gray-50 rounded-lg p-6 text-center">
+            <p className="text-sm text-gray-500 font-medium">Dados insuficientes neste período.</p>
+            <p className="text-xs text-gray-400 mt-1">
+              São necessários pelo menos {jss?.k_min ?? MIN_COORTE} colaboradores respondentes
+              para exibir resultados, preservando o anonimato.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-5">
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-gray-800">{jss.geral.n_respondentes}</p>
+                <p className="text-xs text-gray-500 mt-1">Respondentes</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-[#7d4a3c]">{jss.geral.indice_medio}</p>
+                <p className="text-xs text-gray-500 mt-1">Índice de exposição</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-gray-800">{jss.geral.demanda_medio}</p>
+                <p className="text-xs text-gray-500 mt-1">Demanda</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-gray-800">{jss.geral.controle_medio}</p>
+                <p className="text-xs text-gray-500 mt-1">Controle</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-gray-800">{jss.geral.apoio_medio}</p>
+                <p className="text-xs text-gray-500 mt-1">Apoio</p>
+              </div>
+            </div>
+
+            {jss.setores.length > 0 && (
+              <div className="overflow-x-auto mb-4">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-gray-400 border-b border-gray-100">
+                      <th className="text-left font-medium py-2">Setor</th>
+                      <th className="text-right font-medium py-2">Resp.</th>
+                      <th className="text-right font-medium py-2">Índice</th>
+                      <th className="text-right font-medium py-2">Demanda</th>
+                      <th className="text-right font-medium py-2">Controle</th>
+                      <th className="text-right font-medium py-2">Apoio</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {jss.setores.map(s => (
+                      <tr key={s.setor}>
+                        <td className="py-2 text-gray-700">{s.setor}</td>
+                        <td className="py-2 text-right text-gray-500">{s.n_respondentes}</td>
+                        <td className="py-2 text-right font-semibold text-[#7d4a3c]">{s.indice}</td>
+                        <td className="py-2 text-right text-gray-500">{s.demanda}</td>
+                        <td className="py-2 text-right text-gray-500">{s.controle}</td>
+                        <td className="py-2 text-right text-gray-500">{s.apoio}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {jss.setores_suprimidos > 0 && (
+              <p className="text-xs text-gray-400 mb-3">
+                {jss.setores_suprimidos} setor(es) omitido(s) por não atingir(em) {jss.k_min}{' '}
+                respondentes.
+              </p>
+            )}
+
+            <button
+              onClick={handleGerarJss}
+              disabled={gerandoJss}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
+            >
+              <FileDown className="w-4 h-4" />
+              {gerandoJss ? 'Gerando...' : 'Gerar relatório JSS para PGR'}
+            </button>
+          </>
+        )}
+
+        <div className="mt-4 flex items-start gap-2 text-xs text-gray-400">
+          <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <span>
+            Subsídio à gestão de riscos psicossociais (NR-1). Não substitui o PGR, o PCMSO nem as
+            avaliações do SESMT/médico do trabalho. Índice = JSS (0–100, maior = mais exposição);
+            recortes abaixo de {jss?.k_min ?? MIN_COORTE} respondentes são suprimidos (LGPD).
           </span>
         </div>
       </div>
