@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
   if (!authHeader) return json({ error: 'Não autorizado' }, 401);
 
   try {
-    const { email, nome, setor, funcao, cpf } = await req.json();
+    const { email, nome, setor, funcao, cpf, whatsapp } = await req.json();
     if (!email) return json({ error: 'E-mail é obrigatório' }, 400);
 
     const normalizedEmail = String(email).trim().toLowerCase();
@@ -49,6 +49,7 @@ Deno.serve(async (req: Request) => {
     // geral da empresa.
     const setorValue = setor ? String(setor).trim() || null : null;
     const funcaoValue = funcao ? String(funcao).trim() || null : null;
+    const whatsappValue = whatsapp ? String(whatsapp).trim() || null : null;
     // CPF é a chave de junção com os eventos do eSocial (migration 20260814).
     // Só dígitos: máscara vinda do formulário faria a junção falhar em
     // silêncio depois. CPF fora do formato é ignorado, não rejeita o convite —
@@ -119,6 +120,7 @@ Deno.serve(async (req: Request) => {
           status: 'convidado',
           setor: setorValue,
           funcao: funcaoValue,
+          whatsapp: whatsappValue,
         }]);
       if (insErr) return json({ error: insErr.message }, 400);
 
@@ -143,6 +145,7 @@ Deno.serve(async (req: Request) => {
         setor: setorValue,
         funcao: funcaoValue,
         cpf: cpfValue,
+        whatsapp: whatsappValue,
       }]);
     if (insErr) return json({ error: insErr.message }, 400);
 

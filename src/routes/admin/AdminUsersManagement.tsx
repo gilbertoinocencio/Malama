@@ -25,6 +25,7 @@ interface PatientLead {
   id: string;
   nome: string;
   email: string;
+  whatsapp: string | null;
   objetivo: string;
   origem: string | null;
   status: 'pendente' | 'convidado';
@@ -343,10 +344,12 @@ const UserDrawer: React.FC<{ userId: string; onClose: () => void }> = ({ userId,
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Identidade */}
             <div className="flex items-center gap-4">
-              <Avatar name={user.display_name} url={user.avatar_url} size="lg" />
+              <Avatar name={user.display_name ?? user.email} url={user.avatar_url} size="lg" />
               <div>
                 <p className="text-gray-800 font-semibold text-xl">{user.display_name ?? 'Sem nome'}</p>
-                <p className="text-gray-500 text-sm mt-0.5">Desde {fmtDate(user.created_at)}</p>
+                {user.email && <p className="text-gray-500 text-sm">{user.email}</p>}
+                {user.whatsapp && <p className="text-gray-500 text-sm">{user.whatsapp}</p>}
+                <p className="text-gray-400 text-xs mt-0.5">Desde {fmtDate(user.created_at)}</p>
                 <div className="mt-1"><ChannelBadge channel={user.acquisition_channel} /></div>
               </div>
             </div>
@@ -787,6 +790,7 @@ export const AdminUsersManagement: React.FC = () => {
                         return (
                           c.email.toLowerCase().includes(q) ||
                           (c.display_name ?? '').toLowerCase().includes(q) ||
+                          (c.whatsapp ?? '').toLowerCase().includes(q) ||
                           c.empresa_nome.toLowerCase().includes(q)
                         );
                       })
@@ -799,7 +803,10 @@ export const AdminUsersManagement: React.FC = () => {
                                 <p className="font-medium text-gray-800 text-sm">
                                   {c.display_name ?? <span className="text-gray-400 italic">Sem nome</span>}
                                 </p>
-                                <p className="text-xs text-gray-400">{c.email}</p>
+                                <p className="text-xs text-gray-400">
+                                  {c.email}
+                                  {c.whatsapp && ` · ${c.whatsapp}`}
+                                </p>
                               </div>
                             </div>
                           </td>
@@ -870,6 +877,7 @@ export const AdminUsersManagement: React.FC = () => {
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">WhatsApp</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Objetivo</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Origem</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -889,6 +897,9 @@ export const AdminUsersManagement: React.FC = () => {
                             <p className="text-xs text-gray-500 md:hidden">{lead.email}</p>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{lead.email}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">
+                            {lead.whatsapp || <span className="text-gray-300">—</span>}
+                          </td>
                           <td className="px-4 py-3 text-sm text-gray-600 hidden lg:table-cell">
                             {OBJETIVO_LABELS[lead.objetivo] ?? lead.objetivo}
                           </td>
@@ -928,7 +939,7 @@ export const AdminUsersManagement: React.FC = () => {
                       ))}
                     {patientLeads.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm">
+                        <td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">
                           Nenhum paciente na fila de espera ainda.
                         </td>
                       </tr>
@@ -1050,11 +1061,15 @@ export const AdminUsersManagement: React.FC = () => {
                   <tr key={user.id} className="hover:bg-gray-50 transition">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <Avatar name={user.display_name} url={user.avatar_url} size="sm" />
+                        <Avatar name={user.display_name ?? user.email} url={user.avatar_url} size="sm" />
                         <div>
                           <span className="font-medium text-gray-800 text-sm">
                             {user.display_name ?? <span className="text-gray-400 italic">Sem nome</span>}
                           </span>
+                          <p className="text-xs text-gray-400">
+                            {user.email}
+                            {user.whatsapp && ` · ${user.whatsapp}`}
+                          </p>
                           {vinculos[user.id] && (
                             <p className="text-xs text-blue-600 flex items-center gap-1 mt-0.5">
                               <Building2 className="w-3 h-3 flex-shrink-0" />

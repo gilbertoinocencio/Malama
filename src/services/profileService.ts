@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 
 export interface ProfileUpdates {
     display_name?: string;
+    whatsapp?: string;
     biotype?: 'ecto' | 'meso' | 'endo';
     goal?: 'aesthetic' | 'health' | 'performance';
     activity_level?: 'sedentary' | 'moderate' | 'intense';

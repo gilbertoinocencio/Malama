@@ -7,7 +7,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Users, UserPlus, Trash2, Download, Mail, AlertCircle,
-  CheckCircle2, Clock, Building2, Calendar, Send, Brain,
+  CheckCircle2, Clock, Building2, Calendar, Send, Brain, Phone,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { rhService, type RhEmpresa, type EmpresaColaborador } from '../../services/empresaService';
@@ -41,6 +41,7 @@ export const RhDashboard: React.FC = () => {
   // Chave de junção com os eventos do eSocial (migration 20260814). Opcional
   // aqui: quem já tem cadastro pode vincular em lote na aba Importar.
   const [cpf, setCpf] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [adding, setAdding] = useState(false);
   const [resending, setResending] = useState<string | null>(null);
   const [psi, setPsi] = useState<{ plano_ativo: boolean; max_assentos: number; assentos_em_uso: number } | null>(null);
@@ -86,7 +87,7 @@ export const RhDashboard: React.FC = () => {
 
     setAdding(true);
     try {
-      const res = await rhService.inviteColaborador(value, nomeValue, setor.trim(), funcao.trim(), cpf.trim());
+      const res = await rhService.inviteColaborador(value, nomeValue, setor.trim(), funcao.trim(), cpf.trim(), whatsapp.trim());
       if (res.existing) {
         toast.success(
           res.emailed
@@ -105,6 +106,7 @@ export const RhDashboard: React.FC = () => {
       setSetor('');
       setFuncao('');
       setCpf('');
+      setWhatsapp('');
       await load();
     } catch (err: any) {
       toast.error(err?.message || 'Não foi possível adicionar o colaborador.');
@@ -170,9 +172,10 @@ export const RhDashboard: React.FC = () => {
   };
 
   const exportCsv = () => {
-    const header = ['email', 'setor', 'funcao', 'status', 'data_adicao', 'data_ativacao'];
+    const header = ['email', 'whatsapp', 'setor', 'funcao', 'status', 'data_adicao', 'data_ativacao'];
     const rows = colaboradores.map(c => [
       c.email,
+      c.whatsapp ?? '',
       c.setor ?? '',
       c.funcao ?? '',
       c.status,
@@ -365,6 +368,16 @@ export const RhDashboard: React.FC = () => {
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
               />
             </div>
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="tel" inputMode="tel" value={whatsapp}
+                onChange={e => setWhatsapp(e.target.value)}
+                placeholder="WhatsApp — opcional"
+                disabled={cheio || empresa.status !== 'ativa'}
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
+              />
+            </div>
             <input
               type="text" value={setor} onChange={e => setSetor(e.target.value)}
               placeholder="Setor (ex.: Operações) — opcional"
@@ -428,6 +441,7 @@ export const RhDashboard: React.FC = () => {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">E-mail</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">WhatsApp</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Setor</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Adicionado</th>
@@ -442,6 +456,9 @@ export const RhDashboard: React.FC = () => {
                 {colaboradores.map(c => (
                   <tr key={c.id} className="hover:bg-gray-50 transition">
                     <td className="px-4 py-3 text-sm text-gray-800">{c.email}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">
+                      {c.whatsapp || '—'}
+                    </td>
                     <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">
                       {c.setor || '—'}{c.funcao ? ` · ${c.funcao}` : ''}
                     </td>

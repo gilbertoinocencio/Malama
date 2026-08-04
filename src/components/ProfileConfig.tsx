@@ -44,6 +44,7 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
   const [age, setAge] = useState<string>('');
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [displayName, setDisplayName] = useState<string>('');
+  const [whatsapp, setWhatsapp] = useState<string>('');
 
   const pc = t.profileConfig;
   const common = t.general;
@@ -63,6 +64,7 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
       if (profile.age) setAge(profile.age.toString());
       if (profile.gender) setGender(profile.gender as 'male' | 'female');
       if (profile.display_name) setDisplayName(profile.display_name);
+      if (profile.whatsapp) setWhatsapp(profile.whatsapp);
     }
   }, [profile]);
 
@@ -86,6 +88,7 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
 
       const updates: ProfileUpdates = {
         display_name: displayName,
+        whatsapp: whatsapp.trim(),
         biotype,
         goal,
         activity_level: selectedActivity,
@@ -159,6 +162,18 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
                 value={displayName}
                 onChange={e => setDisplayName(e.target.value)}
                 placeholder="Seu nome"
+                className="w-full p-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-surface-dark focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary outline-none transition-all shadow-sm"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-Malama-muted uppercase tracking-wider">WhatsApp</label>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={whatsapp}
+                onChange={e => setWhatsapp(e.target.value)}
+                placeholder="(00) 00000-0000"
                 className="w-full p-4 rounded-xl border border-Malama-border dark:border-white/10 bg-white dark:bg-surface-dark focus:ring-2 focus:ring-Malama-petrol dark:focus:ring-primary outline-none transition-all shadow-sm"
               />
             </div>

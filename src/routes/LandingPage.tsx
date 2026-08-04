@@ -39,7 +39,7 @@ const LandingPage: React.FC = () => {
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
 
-  const [patientForm, setPatientForm] = useState({ nome: '', email: '', objetivo: '' });
+  const [patientForm, setPatientForm] = useState({ nome: '', email: '', whatsapp: '', objetivo: '' });
   const [patientSubmitted, setPatientSubmitted] = useState(false);
   const [patientLoading, setPatientLoading] = useState(false);
   const [patientErro, setPatientErro] = useState('');
@@ -494,6 +494,18 @@ const LandingPage: React.FC = () => {
                       value={patientForm.email}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPatientForm({ ...patientForm, email: e.target.value })}
                       placeholder="seu@email.com"
+                      className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-Malama-bg text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">WhatsApp (opcional)</label>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      value={patientForm.whatsapp}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPatientForm({ ...patientForm, whatsapp: e.target.value })}
+                      placeholder="(00) 00000-0000"
                       className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-Malama-bg text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm"
                     />
                   </div>

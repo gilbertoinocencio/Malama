@@ -1933,6 +1933,7 @@ export type AdminUserSummary = {
   display_name: string | null;
   avatar_url: string | null;
   email: string | null;
+  whatsapp: string | null;
   created_at: string;
   acquisition_channel: string | null;
   referred_by_doctor_id: string | null;
@@ -1981,6 +1982,7 @@ export type AdminColaboradorB2B = {
   empresa_nome: string;
   user_id: string | null;
   email: string;
+  whatsapp: string | null;
   status: 'convidado' | 'ativo' | 'removido';
   data_adicao: string;
   data_ativacao: string | null;
@@ -2105,6 +2107,7 @@ export const adminService = {
         id,
         display_name,
         avatar_url,
+        whatsapp,
         created_at,
         acquisition_channel,
         referred_by_doctor_id,
@@ -2185,6 +2188,7 @@ export const adminService = {
       display_name: p.display_name,
       avatar_url: p.avatar_url,
       email: emailMap[p.id] ?? null,
+      whatsapp: p.whatsapp ?? null,
       created_at: p.created_at,
       acquisition_channel: p.acquisition_channel,
       referred_by_doctor_id: p.referred_by_doctor_id,
@@ -2201,6 +2205,7 @@ export const adminService = {
       return result.filter(u =>
         u.display_name?.toLowerCase().includes(q) ||
         u.email?.toLowerCase().includes(q) ||
+        u.whatsapp?.toLowerCase().includes(q) ||
         u.referred_by_doctor_name?.toLowerCase().includes(q)
       );
     }
@@ -2213,7 +2218,7 @@ export const adminService = {
     const { data: profile, error } = await supabase
       .from('profiles')
       .select(`
-        id, display_name, avatar_url, created_at,
+        id, display_name, avatar_url, whatsapp, created_at,
         acquisition_channel, referred_by_doctor_id,
         age, gender, weight, height, goal,
         level, total_xp, current_streak
@@ -2265,11 +2270,17 @@ export const adminService = {
         return sum + valueForNivel(nivelValues, prof?.nivel, prof?.tipo);
       }, 0);
 
+    // E-mail via RPC (acessa auth.users com SECURITY DEFINER) — mesma fonte
+    // usada em getAllUsers.
+    const { data: emailRows } = await supabase.rpc('admin_get_all_users');
+    const email = (emailRows as any[] | null)?.find(r => r.id === userId)?.email ?? null;
+
     return {
       id: profile.id,
       display_name: profile.display_name,
       avatar_url: profile.avatar_url,
-      email: null,
+      email,
+      whatsapp: profile.whatsapp,
       created_at: profile.created_at,
       acquisition_channel: profile.acquisition_channel,
       referred_by_doctor_id: profile.referred_by_doctor_id,
@@ -2342,6 +2353,7 @@ export const adminService = {
       empresa_nome: c.empresas?.nome ?? '—',
       user_id: c.user_id,
       email: c.email,
+      whatsapp: c.whatsapp ?? null,
       status: c.status,
       data_adicao: c.data_adicao,
       data_ativacao: c.data_ativacao,

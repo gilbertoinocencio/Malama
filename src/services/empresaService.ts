@@ -91,6 +91,7 @@ export type EmpresaColaborador = {
   // (migration 20260814). Dado pessoal, não sensível: resolve o setor no
   // momento da ingestão e nunca é gravado junto do evento de saúde.
   cpf?: string | null;
+  whatsapp?: string | null;
   // Plano psicológico adicional: RH alocou este colaborador? Só existe fora
   // do modo Mental, onde o acompanhamento é universal.
   plano_psicologico?: boolean;
@@ -839,7 +840,7 @@ export const rhService = {
   },
 
   // Adiciona colaborador por e-mail (via Edge Function: valida assentos, vincula ou convida)
-  async inviteColaborador(email: string, nome?: string, setor?: string, funcao?: string, cpf?: string): Promise<{ status: ColaboradorStatus; linked?: boolean; invited?: boolean; existing?: boolean; emailed?: boolean; warning?: string }> {
+  async inviteColaborador(email: string, nome?: string, setor?: string, funcao?: string, cpf?: string, whatsapp?: string): Promise<{ status: ColaboradorStatus; linked?: boolean; invited?: boolean; existing?: boolean; emailed?: boolean; warning?: string }> {
     const { data, error } = await supabase.functions.invoke('invite-colaborador', {
       body: {
         email,
@@ -847,6 +848,7 @@ export const rhService = {
         setor: setor?.trim() || undefined,
         funcao: funcao?.trim() || undefined,
         cpf: cpf?.replace(/\D/g, '') || undefined,
+        whatsapp: whatsapp?.trim() || undefined,
       },
     });
     if (error) {

@@ -179,6 +179,7 @@ export interface Profile {
   id: string;
   display_name?: string;
   avatar_url?: string;
+  whatsapp?: string;
   level?: UserLevel;
   current_streak?: number;
   longest_streak?: number;
