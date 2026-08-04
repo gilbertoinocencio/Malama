@@ -38,6 +38,11 @@ export const InstrumentoModal: React.FC<Props> = ({ campanha, onClose, onRespond
 
   const [enviando, setEnviando] = useState(false);
   const [concluido, setConcluido] = useState(false);
+  // Falha de gravação tem que virar TELA, não só toast: sem isso a pessoa
+  // termina a última pergunta e fica parada nela, sem entender por que nada
+  // aconteceu e sem saída além do "Depois" — que só adia.
+  const [erro, setErro] = useState<string | null>(null);
+  const [ultimasRespostas, setUltimasRespostas] = useState<Record<string, number> | null>(null);
 
   if (!def) {
     return (
@@ -55,8 +60,13 @@ export const InstrumentoModal: React.FC<Props> = ({ campanha, onClose, onRespond
   }
 
   const concluir = async (answers: Record<string, number>) => {
-    if (!user) return;
+    if (!user) {
+      setErro('Sua sessão expirou. Entre de novo e responda em seguida.');
+      return;
+    }
     setEnviando(true);
+    setErro(null);
+    setUltimasRespostas(answers);
     try {
       await PsychosocialService.submitCampanha(
         user.id, campanha.campaign_id, def.code, answers,
@@ -65,7 +75,16 @@ export const InstrumentoModal: React.FC<Props> = ({ campanha, onClose, onRespond
       onRespondida();
     } catch (err: any) {
       console.error('[InstrumentoModal]', err);
-      toast.error('Não foi possível enviar agora. Tente novamente mais tarde.');
+      // 23505 = chave duplicada. Com a migração 20260822 a unicidade do
+      // instrumento passou a ser por campanha, então isto só sobra para
+      // envio repetido da MESMA campanha — a resposta já está gravada.
+      if (err?.code === '23505') {
+        setConcluido(true);
+        onRespondida();
+      } else {
+        setErro('Não foi possível enviar agora. Suas respostas continuam aqui.');
+        toast.error('Não foi possível enviar agora.');
+      }
     } finally {
       setEnviando(false);
     }
@@ -78,7 +97,40 @@ export const InstrumentoModal: React.FC<Props> = ({ campanha, onClose, onRespond
         animate={{ y: 0, opacity: 1 }}
         className="bg-white dark:bg-surface-dark rounded-t-3xl sm:rounded-3xl w-full max-w-md max-h-[92vh] overflow-y-auto"
       >
-        {concluido ? (
+        {erro ? (
+          <div className="p-8 text-center">
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ background: 'rgba(180,83,9,0.10)' }}
+            >
+              <span className="material-symbols-outlined text-3xl" style={{ color: '#b45309' }}>
+                cloud_off
+              </span>
+            </div>
+            <h2 className="text-xl font-bold text-Malama-main dark:text-white mb-2">
+              Não deu para enviar
+            </h2>
+            <p className="text-sm text-Malama-muted dark:text-slate-400 leading-snug mb-6">
+              {erro}
+            </p>
+            {ultimasRespostas && (
+              <button
+                onClick={() => concluir(ultimasRespostas)}
+                disabled={enviando}
+                className="w-full py-3.5 rounded-2xl text-white font-semibold mb-2 disabled:opacity-60"
+                style={{ background: PETROL }}
+              >
+                {enviando ? 'Enviando…' : 'Tentar de novo'}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="w-full py-3 text-sm font-semibold text-Malama-muted dark:text-slate-400"
+            >
+              Fechar
+            </button>
+          </div>
+        ) : concluido ? (
           <div className="p-8 text-center">
             <div
               className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
