@@ -125,6 +125,21 @@ Deno.serve(async (req: Request) => {
         }]);
       if (insErr) return json({ error: insErr.message }, 400);
 
+      // Leva o WhatsApp coletado pelo RH para o perfil do paciente, sem
+      // sobrescrever se ele já tiver preenchido o próprio (dado dele tem
+      // prioridade sobre o que o RH informou no cadastro).
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('whatsapp')
+        .eq('id', existingUserId)
+        .maybeSingle();
+      if (existingProfile && !existingProfile.whatsapp) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({ whatsapp: whatsappValue })
+          .eq('id', existingUserId);
+      }
+
       // Usuário existente loga normalmente na raiz do app; a RPC ativa o vínculo no acesso.
       const appUrl = `${(Deno.env.get('SITE_URL') || 'https://soumalama.com.br').replace(/\/$/, '')}/`;
       const { sent, warning } = await sendEmail({

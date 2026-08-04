@@ -156,6 +156,16 @@ export const ProfileConfig: React.FC<ProfileConfigProps> = ({ onBack, onFinish }
           
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-Malama-muted uppercase tracking-wider">E-mail</label>
+              <input
+                type="email"
+                value={user?.email ?? ''}
+                disabled
+                className="w-full p-4 rounded-xl border border-Malama-border dark:border-white/10 bg-black/5 dark:bg-white/5 text-Malama-muted outline-none cursor-not-allowed"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-Malama-muted uppercase tracking-wider">Nome de Exibição</label>
               <input
                 type="text"
