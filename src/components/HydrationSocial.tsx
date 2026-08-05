@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { StatsService } from '../services/statsService';
 import { useShareCard } from '../hooks/useShareCard';
 import { getLocalDateString } from '../utils/dateUtils';
+import { ShareBrand } from './share/ShareCardShell';
 
 interface HydrationSocialProps {
   onBack: () => void;
@@ -59,7 +60,7 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
       {
         filename: `Malama-hydration-${getLocalDateString()}`,
         title: hy.shareGoalCta,
-        text: `${currentL}L / ${goalL}L — ${hy.quoteText}`,
+        text: `${hy.todayGoal}: ${currentL}L / ${goalL}L`,
       },
       { type: 'hydration', headline: hy.todayGoal, subline: `${currentL}L / ${goalL}L` }
     );
@@ -181,19 +182,12 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
                 ))}
               </div>
 
-              {(viewOption === 'quote' || viewOption === 'goal') && (
-                <div className="mt-4 text-center">
-                  <p className={`font-display text-xl italic font-light tracking-wide opacity-90 drop-shadow-sm ${currentStyles.text}`}>
-                    "{hy.quoteText}"
-                  </p>
-                </div>
-              )}
             </div>
 
             <div className="flex-1"></div>
 
             <div className="w-full flex justify-center items-end pb-2">
-              <span className={`text-[10px] font-bold tracking-[0.25em] uppercase ${currentStyles.subtext} opacity-60`}>Malama — Feed the Flow</span>
+              <ShareBrand />
             </div>
           </div>
         </div>

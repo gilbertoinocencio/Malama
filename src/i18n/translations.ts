@@ -288,7 +288,18 @@ export interface Translations {
         imageSaved: string;
         shareError: string;
         sharing: string;
-        quoteDay: string;
+        background: string;
+        backgrounds: {
+            photo: string;
+            transparent: string;
+            cream: string;
+            forest: string;
+            sunset: string;
+            ink: string;
+        };
+        changePhoto: string;
+        transparentHint: string;
+        ofTarget: string;
     };
 
     // Hydration
@@ -303,7 +314,6 @@ export interface Translations {
         goal: string;
         quote: string;
         shareGoalCta: string;
-        quoteText: string;
     };
 
     // Compartilhamento de refeição
@@ -838,7 +848,18 @@ export const translations: Record<Language, Translations> = {
             imageSaved: 'Image saved!',
             shareError: "Couldn't share. Please try again.",
             sharing: 'Preparing...',
-            quoteDay: 'Consistent, not perfect.',
+            background: 'Background',
+            backgrounds: {
+                photo: 'Your photo',
+                transparent: 'No background',
+                cream: 'Cream',
+                forest: 'Forest',
+                sunset: 'Sunset',
+                ink: 'Ink',
+            },
+            changePhoto: 'Change photo',
+            transparentHint: 'Exports as a transparent PNG — drop it over your own photo in Stories.',
+            ofTarget: 'of goal',
         },
         hydration: {
             title: 'Social Hydration',
@@ -851,7 +872,6 @@ export const translations: Record<Language, Translations> = {
             goal: 'Goal',
             quote: 'Quote',
             shareGoalCta: 'Share Goal',
-            quoteText: 'Stay fluid. Keep the flow.',
         },
         mealShare: {
             title: 'Share meal',
@@ -1359,7 +1379,18 @@ export const translations: Record<Language, Translations> = {
             imageSaved: 'Imagem salva!',
             shareError: 'Não foi possível compartilhar. Tente de novo.',
             sharing: 'Preparando...',
-            quoteDay: 'Constante, não perfeito.',
+            background: 'Fundo',
+            backgrounds: {
+                photo: 'Sua foto',
+                transparent: 'Sem fundo',
+                cream: 'Creme',
+                forest: 'Floresta',
+                sunset: 'Pôr do sol',
+                ink: 'Tinta',
+            },
+            changePhoto: 'Trocar foto',
+            transparentHint: 'Sai como PNG transparente — é só soltar por cima da sua foto no Stories.',
+            ofTarget: 'da meta',
         },
         hydration: {
             title: 'Hidratação Social',
@@ -1372,7 +1403,6 @@ export const translations: Record<Language, Translations> = {
             goal: 'Meta',
             quote: 'Frase',
             shareGoalCta: 'Compartilhar Meta',
-            quoteText: 'Flua. Mantenha o ritmo.',
         },
         mealShare: {
             title: 'Compartilhar refeição',
@@ -1880,7 +1910,18 @@ export const translations: Record<Language, Translations> = {
             imageSaved: '¡Imagen guardada!',
             shareError: 'No se pudo compartir. Inténtalo de nuevo.',
             sharing: 'Preparando...',
-            quoteDay: 'Constante, no perfecto.',
+            background: 'Fondo',
+            backgrounds: {
+                photo: 'Tu foto',
+                transparent: 'Sin fondo',
+                cream: 'Crema',
+                forest: 'Bosque',
+                sunset: 'Atardecer',
+                ink: 'Tinta',
+            },
+            changePhoto: 'Cambiar foto',
+            transparentHint: 'Se exporta como PNG transparente — colócalo sobre tu propia foto en Stories.',
+            ofTarget: 'de la meta',
         },
         hydration: {
             title: 'Hidratación Social',
@@ -1893,7 +1934,6 @@ export const translations: Record<Language, Translations> = {
             goal: 'Meta',
             quote: 'Frase',
             shareGoalCta: 'Compartir Meta',
-            quoteText: 'Fluye. Mantén el ritmo.',
         },
         mealShare: {
             title: 'Compartir comida',

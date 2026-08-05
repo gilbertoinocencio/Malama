@@ -8,6 +8,7 @@ import { supabase } from '../services/supabase';
 import { useShareCard } from '../hooks/useShareCard';
 import { SHARE_HIDE_ATTR } from '../services/shareService';
 import { getLocalDateString } from '../utils/dateUtils';
+import { ShareBrand } from './share/ShareCardShell';
 
 interface PlanProgressShareProps {
   onBack: () => void;
@@ -226,15 +227,9 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
             </>
           )}
 
-          {/* Footer Brand */}
-          <div className="mt-auto pb-8 pt-4 flex flex-col items-center justify-center gap-2 opacity-60">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full"></div>
-              </div>
-              <span className="text-white font-bold tracking-widest text-sm">Malama</span>
-            </div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400">{qp.feedTheFlow}</p>
+          {/* Footer Brand — mesma assinatura de todos os cards */}
+          <div className="mt-auto flex justify-center pb-8 pt-4">
+            <ShareBrand />
           </div>
 
         </div>

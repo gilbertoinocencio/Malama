@@ -1,6 +1,7 @@
 import React, { forwardRef, useEffect, useState } from 'react';
 import { Meal } from '../types';
 import { useLanguage } from '../i18n';
+import { ShareBrand } from './share/ShareCardShell';
 
 interface MealShareCardProps {
   meal: Meal;
@@ -85,10 +86,12 @@ export const MealShareCard = forwardRef<HTMLDivElement, MealShareCardProps>(
         {/* Legibilidade do texto sobre a foto */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/35" />
 
-        <div className="absolute inset-0 flex flex-col justify-between p-8 text-white">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-80">Malama</span>
-            <span className="text-[10px] font-semibold tracking-[0.15em] uppercase opacity-70">{time}</span>
+        <div
+          className="absolute inset-0 flex flex-col justify-between p-8 text-white"
+          style={{ textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}
+        >
+          <div className="flex items-center justify-end">
+            <span className="text-[10px] font-semibold tracking-[0.15em] uppercase opacity-75">{time}</span>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -105,23 +108,27 @@ export const MealShareCard = forwardRef<HTMLDivElement, MealShareCardProps>(
                   <span className="text-sm font-bold tracking-[0.2em] uppercase opacity-80">kcal</span>
                 </div>
 
-                <div className="flex items-center gap-5 pt-1">
+                <div className="flex items-stretch pt-1">
                   {[
                     { l: ts.protein, v: meal.macros.protein },
                     { l: ts.carbs, v: meal.macros.carbs },
                     { l: ts.fat, v: meal.macros.fats },
-                  ].map(m => (
-                    <div key={m.l} className="flex flex-col">
-                      <span className="text-lg font-bold leading-none">{Math.round(m.v)}g</span>
-                      <span className="text-[9px] uppercase tracking-[0.2em] opacity-70 mt-1">{m.l}</span>
-                    </div>
+                  ].map((m, i) => (
+                    <React.Fragment key={m.l}>
+                      {i > 0 && <div className="mx-5 h-7 w-px self-center bg-white opacity-25" />}
+                      <div className="flex flex-col">
+                        <span className="text-lg font-bold leading-none">{Math.round(m.v)}g</span>
+                        <span className="mt-2 text-[9px] uppercase tracking-[0.2em] opacity-70">{m.l}</span>
+                      </div>
+                    </React.Fragment>
                   ))}
                 </div>
               </>
             )}
 
-            <div className="h-px w-full bg-white/25 mt-2" />
-            <p className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-70">Feed the Flow</p>
+            <div className="mt-3 flex">
+              <ShareBrand />
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
 import { useLanguage } from '../i18n';
+import { ShareBrand } from './share/ShareCardShell';
 import type { ShareMoment } from '../services/shareMomentsService';
 
 interface MomentShareCardProps {
@@ -73,10 +74,11 @@ export const MomentShareCard = forwardRef<HTMLDivElement, MomentShareCardProps>(
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" />
 
-        <div className="absolute inset-0 flex flex-col justify-between p-8">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-80">Malama</span>
-          </div>
+        <div
+          className="absolute inset-0 flex flex-col justify-between p-8"
+          style={{ textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}
+        >
+          <div className="h-6" />
 
           <div className="flex flex-col items-center text-center gap-5">
             <span
@@ -103,9 +105,8 @@ export const MomentShareCard = forwardRef<HTMLDivElement, MomentShareCardProps>(
             </h2>
           </div>
 
-          <div className="flex flex-col items-center gap-2">
-            <div className="h-px w-16 bg-white/30" />
-            <p className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-70">Feed the Flow</p>
+          <div className="flex justify-center">
+            <ShareBrand />
           </div>
         </div>
       </div>
