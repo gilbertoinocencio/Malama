@@ -161,6 +161,33 @@ async function shareWeb(canvas: HTMLCanvasElement, o: ShareCardOptions): Promise
 }
 
 /**
+ * Renderiza o card e devolve o canvas. Exportado para que o mesmo desenho sirva
+ * ao arquivo publicado e ao compartilhamento, sem renderizar duas vezes — o
+ * html2canvas é a parte cara do fluxo.
+ */
+export async function renderCard(
+  node: HTMLElement | null,
+  options: Pick<ShareCardOptions, 'backgroundColor' | 'targetWidth'> = {}
+): Promise<HTMLCanvasElement | null> {
+  if (!node) return null;
+  try {
+    return await renderNodeToCanvas(
+      node,
+      options.backgroundColor ?? null,
+      options.targetWidth ?? DEFAULT_TARGET_WIDTH
+    );
+  } catch (err) {
+    console.error('[shareService] falha ao renderizar o card:', err);
+    return null;
+  }
+}
+
+export async function canvasToFile(canvas: HTMLCanvasElement, filename: string): Promise<File> {
+  const blob = await canvasToBlob(canvas);
+  return new File([blob], `${filename}.png`, { type: 'image/png' });
+}
+
+/**
  * Gera o PNG do card como arquivo, sem abrir compartilhamento nenhum.
  * Usado para publicar o card direto na comunidade.
  */
@@ -168,15 +195,10 @@ export async function renderCardToFile(
   node: HTMLElement | null,
   options: Pick<ShareCardOptions, 'filename' | 'backgroundColor' | 'targetWidth'>
 ): Promise<File | null> {
-  if (!node) return null;
+  const canvas = await renderCard(node, options);
+  if (!canvas) return null;
   try {
-    const canvas = await renderNodeToCanvas(
-      node,
-      options.backgroundColor ?? null,
-      options.targetWidth ?? DEFAULT_TARGET_WIDTH
-    );
-    const blob = await canvasToBlob(canvas);
-    return new File([blob], `${options.filename}.png`, { type: 'image/png' });
+    return await canvasToFile(canvas, options.filename);
   } catch (err) {
     console.error('[shareService] falha ao gerar arquivo do card:', err);
     return null;
@@ -184,24 +206,15 @@ export async function renderCardToFile(
 }
 
 /**
- * Gera o PNG do card e abre o compartilhamento nativo (ou Web Share / download).
+ * Abre o compartilhamento a partir de um card já renderizado.
  * Nunca lança: devolve 'failed' para quem chamou decidir a mensagem.
  */
-export async function shareCard(
-  node: HTMLElement | null,
+export async function shareRenderedCard(
+  canvas: HTMLCanvasElement,
   options: ShareCardOptions
 ): Promise<ShareResult> {
-  if (!node) return 'failed';
-
   try {
     await Haptics.impact({ style: ImpactStyle.Light }).catch(() => undefined);
-
-    const canvas = await renderNodeToCanvas(
-      node,
-      options.backgroundColor ?? null,
-      options.targetWidth ?? DEFAULT_TARGET_WIDTH
-    );
-
     return Capacitor.isNativePlatform()
       ? await shareNative(canvas, options)
       : await shareWeb(canvas, options);
@@ -209,4 +222,14 @@ export async function shareCard(
     console.error('[shareService] falha ao compartilhar:', err);
     return 'failed';
   }
+}
+
+/** Renderiza e compartilha em uma chamada só. */
+export async function shareCard(
+  node: HTMLElement | null,
+  options: ShareCardOptions
+): Promise<ShareResult> {
+  const canvas = await renderCard(node, options);
+  if (!canvas) return 'failed';
+  return shareRenderedCard(canvas, options);
 }

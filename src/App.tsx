@@ -89,6 +89,11 @@ const PORTAL_PATH_PREFIXES = [
   '/deletar-conta',
   '/delete-account',
   '/pitchdeck',
+  // Página pública de compartilhamento. Em produção o Vercel serve /s/:id pela
+  // função em api/share.ts (o preview precisa de meta tags no servidor) e a rota
+  // nunca chega aqui — o prefixo existe para o app não sequestrar o link caso
+  // chegue, com ou sem sessão.
+  '/s/',
 ] as const;
 
 const isPortalPath = (path: string) =>

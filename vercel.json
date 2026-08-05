@@ -29,6 +29,11 @@
     ],
     "rewrites": [
         {
+            "_comment": "Precisa vir ANTES do catch-all: a página de compartilhamento é servida pelo servidor para que o preview do WhatsApp/Instagram leia as meta tags. Servida pela SPA, todo link mostraria a imagem genérica do app.",
+            "source": "/s/:id",
+            "destination": "/api/share?id=:id"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }

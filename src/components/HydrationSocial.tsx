@@ -54,11 +54,15 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
     goalMl > 0 ? Math.min(Math.round((currentMl / goalMl) * TOTAL_GLASSES), TOTAL_GLASSES) : 0;
 
   const handleShare = () =>
-    share(cardRef.current, {
-      filename: `Malama-hydration-${getLocalDateString()}`,
-      title: hy.shareGoalCta,
-      text: `${currentL}L / ${goalL}L — ${hy.quoteText}`,
-    });
+    share(
+      cardRef.current,
+      {
+        filename: `Malama-hydration-${getLocalDateString()}`,
+        title: hy.shareGoalCta,
+        text: `${currentL}L / ${goalL}L — ${hy.quoteText}`,
+      },
+      { type: 'hydration', headline: hy.todayGoal, subline: `${currentL}L / ${goalL}L` }
+    );
 
   // Todos os fundos são CSS puro. Antes vinham de URLs de protótipo
   // (lh3.googleusercontent.com, transparenttextures.com): quebravam offline,

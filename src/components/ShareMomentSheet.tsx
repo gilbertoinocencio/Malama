@@ -35,11 +35,19 @@ export const ShareMomentSheet: React.FC<ShareMomentSheetProps> = ({ userId, mome
   }, [userId, moment]);
 
   const handleShare = async () => {
-    const result = await share(cardRef.current, {
-      filename: `Malama-${moment.type}-${getLocalDateString()}`,
-      title: sm.offerTitle,
-      text: sm.offerTitle,
-    });
+    const result = await share(
+      cardRef.current,
+      {
+        filename: `Malama-${moment.type}-${getLocalDateString()}`,
+        title: sm.offerTitle,
+        text: sm.offerTitle,
+      },
+      {
+        type: 'moment',
+        headline: sm.offerTitle,
+        subline: moment.label ?? (moment.value ? String(moment.value) : undefined),
+      }
+    );
     if (result === 'shared' || result === 'downloaded') onClose();
   };
 

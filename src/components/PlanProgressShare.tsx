@@ -88,12 +88,16 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
   };
 
   const handleShare = () =>
-    share(cardRef.current, {
-      filename: `Malama-progress-${getLocalDateString()}`,
-      title: qp.shareProgress,
-      text: `${qp.myFlow} — ${flowScore}% · ${streak} ${qp.streak}`,
-      backgroundColor: '#101e22',
-    });
+    share(
+      cardRef.current,
+      {
+        filename: `Malama-progress-${getLocalDateString()}`,
+        title: qp.shareProgress,
+        text: `${qp.myFlow} — ${flowScore}% · ${streak} ${qp.streak}`,
+        backgroundColor: '#101e22',
+      },
+      { type: 'plan', headline: qp.myFlow, subline: `${flowScore}% · ${streak} ${qp.streak}` }
+    );
 
   // Build 28-day heatmap grid (4 weeks × 7 days)
   const renderHeatmapDots = () => {

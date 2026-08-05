@@ -41,11 +41,15 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
   const customizeCardRef = useRef<HTMLDivElement>(null);
 
   const handleShare = (ref: React.RefObject<HTMLDivElement | null>) =>
-    share(ref.current, {
-      filename: `Malama-share-${getLocalDateString()}`,
-      title: ts.shareTitle,
-      text: `${stats.consumedCalories ?? 0} ${ts.calories} — ${ts.quoteDay}`,
-    });
+    share(
+      ref.current,
+      {
+        filename: `Malama-share-${getLocalDateString()}`,
+        title: ts.shareTitle,
+        text: `${stats.consumedCalories ?? 0} ${ts.calories} — ${ts.quoteDay}`,
+      },
+      { type: 'day', headline: ts.dailyFlow, subline: `${stats.consumedCalories ?? 0} ${ts.calories}` }
+    );
 
   // --- RENDERERS ---
 

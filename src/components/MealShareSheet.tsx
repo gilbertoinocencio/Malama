@@ -27,12 +27,21 @@ export const MealShareSheet: React.FC<MealShareSheetProps> = ({ meal, onClose })
   const filename = `Malama-${(meal.name || 'refeicao').replace(/\s+/g, '-').toLowerCase()}-${getLocalDateString()}`;
 
   const handleShare = () =>
-    share(cardRef.current, {
-      filename,
-      title: ms.title,
-      text: `${meal.name} — ${Math.round(meal.calories)} kcal`,
-      backgroundColor: '#221910',
-    });
+    share(
+      cardRef.current,
+      {
+        filename,
+        title: ms.title,
+        text: `${meal.name} — ${Math.round(meal.calories)} kcal`,
+        backgroundColor: '#221910',
+      },
+      {
+        type: 'meal',
+        headline: meal.name,
+        // Com os números ocultos, o preview do link também não os mostra.
+        subline: showMacros ? `${Math.round(meal.calories)} kcal` : undefined,
+      }
+    );
 
   const handlePost = async () => {
     if (!user) return;
