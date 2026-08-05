@@ -59,6 +59,8 @@ export const PostComposerV2: React.FC<PostComposerV2Props> = ({ userId, onClose,
         setPublishError('O vídeo não pode ter mais de 60 segundos.');
       } else if (message === 'video_too_large') {
         setPublishError('O vídeo não pode ter mais de 50MB.');
+      } else if (message === 'upload_failed') {
+        setPublishError('Não foi possível enviar a mídia. Verifique sua conexão e tente novamente.');
       } else {
         setPublishError('Erro ao publicar. Verifique sua conexão e tente novamente.');
         console.error('[PostComposerV2] publish error:', err);

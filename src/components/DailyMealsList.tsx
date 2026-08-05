@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Meal, MealItem, MicroNutrients } from '../types';
 import { lookupSingleItem } from '../services/caramelService';
+import { MealShareSheet } from './MealShareSheet';
 
 interface DailyMealsListProps {
   meals: Meal[];
@@ -11,6 +12,7 @@ interface DailyMealsListProps {
 export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteMeal, onEditMeal }) => {
   const [expandedMeals, setExpandedMeals] = useState<Record<string, boolean>>({});
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
+  const [sharingMeal, setSharingMeal] = useState<Meal | null>(null);
   const [lookingUp, setLookingUp] = useState<number | null>(null);
   const nameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingLookupRef = useRef<{ idx: number; name: string } | null>(null);
@@ -221,9 +223,9 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteM
             </div>
 
             {/* Listagem colapsável de Itens (Estilo Compacto) */}
-            {expandedMeals[meal.id] && meal.items && meal.items.length > 0 && (
+            {expandedMeals[meal.id] && (
               <div className="ml-[56px] flex flex-col gap-1.5 relative z-10 animate-fade-in-up">
-                {meal.items.map((item, idx) => (
+                {meal.items?.map((item, idx) => (
                   <div key={idx} className="bg-Malama-bg dark:bg-surface-dark rounded-md p-2 border border-transparent hover:border-Malama-petrol/10 dark:hover:border-primary/10 transition-colors text-xs text-Malama-muted dark:text-slate-400">
                     <span className="font-semibold text-Malama-main dark:text-white">
                       {item.weightGrams ? `${item.weightGrams}g` : item.quantity ? item.quantity : '1x'} {item.name}
@@ -233,11 +235,26 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ meals, onDeleteM
                     </span>
                   </div>
                 ))}
+
+                {/* Fica aqui, e não na barra de ações do cabeçalho, porque aquela
+                    barra é `group-hover` — no celular não existe hover e ela
+                    nunca aparece. */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSharingMeal(meal); }}
+                  className="mt-1 self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-Malama-petrol/10 dark:bg-primary/15 text-Malama-petrol dark:text-primary text-xs font-bold active:scale-95 transition-transform"
+                >
+                  <span className="material-symbols-outlined text-[16px]">ios_share</span>
+                  Compartilhar
+                </button>
               </div>
             )}
           </div>
         ))}
       </div>
+
+      {sharingMeal && (
+        <MealShareSheet meal={sharingMeal} onClose={() => setSharingMeal(null)} />
+      )}
 
       {/* Modal de Edição (Manual Simple Layout) */}
       {editingMeal && (

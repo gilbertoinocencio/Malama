@@ -399,10 +399,15 @@ export async function uploadMediaFiles(
     const resized = await resizeImage(file);
     const path = `community/${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
     const { error } = await supabase.storage.from('community-media').upload(path, resized);
-    if (!error) {
-      const { data } = supabase.storage.from('community-media').getPublicUrl(path);
-      imageUrls.push(data.publicUrl);
+    // Engolir o erro aqui publicava o post SEM a mídia e ainda devolvia sucesso:
+    // enquanto faltaram as policies do bucket, o usuário via "Publicado!" e um
+    // post vazio. Falhar alto é melhor que publicar errado.
+    if (error) {
+      console.error('[uploadMediaFiles] falha no upload da imagem:', error);
+      throw new Error('upload_failed');
     }
+    const { data } = supabase.storage.from('community-media').getPublicUrl(path);
+    imageUrls.push(data.publicUrl);
   }
 
   let videoUrl: string | null = null;
@@ -413,10 +418,12 @@ export async function uploadMediaFiles(
     if (duration > 60) throw new Error('video_too_long');
     const path = `community/${userId}/${Date.now()}_video.${video.name.split('.').pop()}`;
     const { error } = await supabase.storage.from('community-media').upload(path, video);
-    if (!error) {
-      const { data } = supabase.storage.from('community-media').getPublicUrl(path);
-      videoUrl = data.publicUrl;
+    if (error) {
+      console.error('[uploadMediaFiles] falha no upload do vídeo:', error);
+      throw new Error('upload_failed');
     }
+    const { data } = supabase.storage.from('community-media').getPublicUrl(path);
+    videoUrl = data.publicUrl;
   }
 
   return { imageUrls, videoUrl };

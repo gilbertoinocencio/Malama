@@ -1,70 +1,75 @@
 import React, { useRef, useState, useEffect } from 'react';
-import html2canvas from 'html2canvas';
 import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../services/supabase';
+import { StatsService } from '../services/statsService';
+import { useShareCard } from '../hooks/useShareCard';
+import { getLocalDateString } from '../utils/dateUtils';
 
 interface HydrationSocialProps {
   onBack: () => void;
 }
 
-type TemplateStyle = 'Photo' | 'Gradient' | 'Minimal' | 'Dark';
+type TemplateStyle = 'Aqua' | 'Gradient' | 'Minimal' | 'Dark';
 type ViewOption = 'goal' | 'quote';
 
 export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { share, sharing } = useShareCard();
   const [template, setTemplate] = useState<TemplateStyle>('Gradient');
   const [viewOption, setViewOption] = useState<ViewOption>('goal');
   const cardRef = useRef<HTMLDivElement>(null);
 
   const [currentMl, setCurrentMl] = useState(0);
-  const [goalMl, setGoalMl] = useState(3000);
+  const [goalMl, setGoalMl] = useState(0);
+
+  const hy = t.hydration;
 
   useEffect(() => {
     if (user) loadHydration();
   }, [user]);
 
+  // Passa pelo StatsService em vez de consultar daily_logs direto: é ele que
+  // conhece a meta real (a do log do dia, ou a derivada de peso/atividade) e que
+  // resolve a data no fuso local. A consulta direta que existia aqui usava data
+  // em UTC — depois das 21h em Brasília o card saía zerado — e a meta ficava
+  // presa em 3000 ml, divergindo da meta mostrada no dashboard.
   const loadHydration = async () => {
     if (!user) return;
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const { data } = await supabase
-        .from('daily_logs')
-        .select('water_intake')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .maybeSingle();
-      if (data?.water_intake) setCurrentMl(data.water_intake);
+      const stats = await StatsService.getDailyStats(user.id);
+      setCurrentMl(stats.waterIntake ?? 0);
+      setGoalMl(stats.waterGoal ?? 0);
     } catch (e) {
-      // no log for today yet
+      console.error('[HydrationSocial] falha ao carregar hidratação:', e);
     }
   };
 
+  const TOTAL_GLASSES = 6;
   const currentL = (currentMl / 1000).toFixed(1);
   const goalL = (goalMl / 1000).toFixed(1);
-  const filledGlasses = Math.min(Math.floor(currentMl / 500), 6);
+  // Os copos representam a fração da meta, não uma dose fixa de 500 ml — a meta
+  // varia por usuário.
+  const filledGlasses =
+    goalMl > 0 ? Math.min(Math.round((currentMl / goalMl) * TOTAL_GLASSES), TOTAL_GLASSES) : 0;
 
-  const handleShare = async () => {
-    if (cardRef.current) {
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: null
-      });
-      const link = document.createElement('a');
-      link.download = `Malama-hydration-${new Date().toISOString().split('T')[0]}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    }
-  };
+  const handleShare = () =>
+    share(cardRef.current, {
+      filename: `Malama-hydration-${getLocalDateString()}`,
+      title: hy.shareGoalCta,
+      text: `${currentL}L / ${goalL}L — ${hy.quoteText}`,
+    });
 
+  // Todos os fundos são CSS puro. Antes vinham de URLs de protótipo
+  // (lh3.googleusercontent.com, transparenttextures.com): quebravam offline,
+  // podiam expirar sem aviso e, quando o CORS falhava, o html2canvas exportava o
+  // card sem fundo nenhum.
   const getTemplateStyles = (type: TemplateStyle) => {
     switch (type) {
-      case 'Photo':
+      case 'Aqua':
         return {
-          bg: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuChM2tXonuf-O9q5XBChK6E-si0BUZmrZy06Bv40sCpK_ttBtqEm2xrSKVxdrR4na08ye1CY29Sq5K6y9B9lUVYUNvqKSR2_I1-ZTCwov4gJPFH9REtUZoORr4km3DYK38qqQLmebKLdKLmfNa1T1XGUFiFqzHzoJI9gNUuhgZhC00ncrmngemBabk7pt3qw3dBWxchcVy9KV6dI0ggrZT1FaKIVe1byFI6GGZTQDQ41D2dvtpvvZxTKCe9Prnb4z96xR6VeTKM6gA')",
-          overlay: "bg-black/40",
+          bg: "radial-gradient(circle at 30% 15%, #2b8ba3 0%, #10485c 45%, #061e2b 100%)",
+          overlay: "bg-gradient-to-t from-black/40 via-transparent to-white/10",
           text: "text-white",
           subtext: "text-white/80",
           accent: "text-white",
@@ -74,7 +79,7 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
       case 'Gradient':
         return {
           bg: "linear-gradient(135deg, #103e4a 0%, #487380 50%, #eaddcf 100%)",
-          overlay: "bg-[url('https://www.transparenttextures.com/patterns/noise.png')] opacity-10 mix-blend-overlay",
+          overlay: "bg-gradient-to-tr from-white/10 via-transparent to-white/20",
           text: "text-white",
           subtext: "text-white/80",
           accent: "text-white",
@@ -117,8 +122,6 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
       />
     </svg>
   );
-
-  const hy = t.hydration;
 
   return (
     <div className="fixed inset-0 z-50 bg-Malama-bg dark:bg-background-dark text-Malama-main dark:text-white flex flex-col font-display animate-fade-in pt-safe">
@@ -177,7 +180,7 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
               {(viewOption === 'quote' || viewOption === 'goal') && (
                 <div className="mt-4 text-center">
                   <p className={`font-display text-xl italic font-light tracking-wide opacity-90 drop-shadow-sm ${currentStyles.text}`}>
-                    "Stay fluid. Keep the flow."
+                    "{hy.quoteText}"
                   </p>
                 </div>
               )}
@@ -220,17 +223,15 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
           </div>
 
           <div className="flex gap-4 overflow-x-auto pb-4 pt-1 px-1 snap-x no-scrollbar">
-            {(['Photo', 'Gradient', 'Minimal', 'Dark'] as TemplateStyle[]).map((style) => (
+            {(['Aqua', 'Gradient', 'Minimal', 'Dark'] as TemplateStyle[]).map((style) => (
               <div key={style} onClick={() => setTemplate(style)} className="snap-center shrink-0 flex flex-col items-center gap-2 group cursor-pointer">
                 <div className={`relative w-20 h-32 rounded-xl border overflow-hidden transition-all active:scale-95 ${style === 'Minimal' ? 'bg-white' : style === 'Dark' ? 'bg-[#103e4a]' : ''
                   } ${template === style ? 'border-2 border-Malama-petrol dark:border-primary' : 'border-Malama-border dark:border-white/10 opacity-80 hover:opacity-100'}`}>
-                  {style === 'Photo' && (
-                    <div className="absolute inset-0 bg-cover bg-center grayscale opacity-50" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuChM2tXonuf-O9q5XBChK6E-si0BUZmrZy06Bv40sCpK_ttBtqEm2xrSKVxdrR4na08ye1CY29Sq5K6y9B9lUVYUNvqKSR2_I1-ZTCwov4gJPFH9REtUZoORr4km3DYK38qqQLmebKLdKLmfNa1T1XGUFiFqzHzoJI9gNUuhgZhC00ncrmngemBabk7pt3qw3dBWxchcVy9KV6dI0ggrZT1FaKIVe1byFI6GGZTQDQ41D2dvtpvvZxTKCe9Prnb4z96xR6VeTKM6gA')" }}></div>
-                  )}
+                  {style === 'Aqua' && <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 30% 15%, #2b8ba3 0%, #10485c 45%, #061e2b 100%)' }}></div>}
                   {style === 'Gradient' && <div className="absolute inset-0 bg-gradient-to-br from-[#103e4a] to-[#eaddcf]"></div>}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className={`material-symbols-outlined text-2xl ${style === 'Minimal' ? 'text-black/50' : 'text-white/80'}`}>
-                      {style === 'Photo' ? 'image' : style === 'Gradient' ? 'water_full' : style === 'Dark' ? 'dark_mode' : 'crop_portrait'}
+                      {style === 'Aqua' ? 'waves' : style === 'Gradient' ? 'water_full' : style === 'Dark' ? 'dark_mode' : 'crop_portrait'}
                     </span>
                   </div>
                   {template === style && <div className="absolute top-1 right-1 bg-Malama-petrol dark:bg-primary rounded-full p-0.5"><span className="material-symbols-outlined text-white text-[12px] block">check</span></div>}
@@ -247,9 +248,10 @@ export const HydrationSocial: React.FC<HydrationSocialProps> = ({ onBack }) => {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-Malama-bg via-Malama-bg/95 to-transparent dark:from-background-dark dark:via-background-dark/95 pt-8 pointer-events-none z-30">
         <button
           onClick={handleShare}
-          className="pointer-events-auto w-full bg-Malama-petrol hover:brightness-110 dark:bg-primary dark:hover:brightness-110 text-white text-lg font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+          disabled={sharing || goalMl === 0}
+          className="pointer-events-auto w-full bg-Malama-petrol hover:brightness-110 dark:bg-primary dark:hover:brightness-110 text-white text-lg font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-60"
         >
-          <span>{hy.shareGoalCta}</span>
+          <span>{sharing ? t.social.sharing : hy.shareGoalCta}</span>
           <span className="material-symbols-outlined">ios_share</span>
         </button>
       </div>

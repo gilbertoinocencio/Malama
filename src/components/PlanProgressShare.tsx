@@ -1,11 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
-import html2canvas from 'html2canvas';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
 import { GamificationService } from '../services/gamificationService';
 import { StatsService } from '../services/statsService';
 import { PlanService, QuarterlyPlanData } from '../services/planService';
 import { supabase } from '../services/supabase';
+import { useShareCard } from '../hooks/useShareCard';
+import { SHARE_HIDE_ATTR } from '../services/shareService';
+import { getLocalDateString } from '../utils/dateUtils';
 
 interface PlanProgressShareProps {
   onBack: () => void;
@@ -16,10 +18,14 @@ interface HeatmapDay {
   score: number;
 }
 
+/** 4 semanas × 7 dias — o grid do heatmap é `grid-cols-7`. */
+const HEATMAP_DAYS = 28;
+
 export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { share, sharing } = useShareCard();
 
   const [flowScore, setFlowScore] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -53,12 +59,12 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
 
       // 3) Heatmap: last 28 days of flow_stats
       const since = new Date();
-      since.setDate(since.getDate() - 28);
+      since.setDate(since.getDate() - HEATMAP_DAYS);
       const { data: flowData } = await supabase
         .from('flow_stats')
         .select('date, flow_score')
         .eq('user_id', user.id)
-        .gte('date', since.toISOString().split('T')[0])
+        .gte('date', getLocalDateString(since))
         .order('date', { ascending: true });
 
       setHeatmapData(
@@ -81,31 +87,23 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
     }
   };
 
-  const handleShare = async () => {
-    if (cardRef.current) {
-      await new Promise(r => setTimeout(r, 100));
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: '#101e22'
-      });
-      const link = document.createElement('a');
-      link.download = `Malama-progress-${new Date().toISOString().split('T')[0]}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    }
-  };
+  const handleShare = () =>
+    share(cardRef.current, {
+      filename: `Malama-progress-${getLocalDateString()}`,
+      title: qp.shareProgress,
+      text: `${qp.myFlow} — ${flowScore}% · ${streak} ${qp.streak}`,
+      backgroundColor: '#101e22',
+    });
 
   // Build 28-day heatmap grid (4 weeks × 7 days)
   const renderHeatmapDots = () => {
-    const totalDots = 28;
     const dots: React.ReactElement[] = [];
     const today = new Date();
 
-    for (let i = 0; i < totalDots; i++) {
+    for (let i = 0; i < HEATMAP_DAYS; i++) {
       const targetDate = new Date(today);
-      targetDate.setDate(today.getDate() - (totalDots - 1 - i));
-      const dateStr = targetDate.toISOString().split('T')[0];
+      targetDate.setDate(today.getDate() - (HEATMAP_DAYS - 1 - i));
+      const dateStr = getLocalDateString(targetDate);
       const entry = heatmapData.find(d => d.date === dateStr);
       const score = entry?.score || 0;
 
@@ -135,8 +133,8 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
         {/* Ambient Glow */}
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 0%, rgba(10, 144, 189, 0.15) 0%, rgba(16, 30, 34, 0) 70%)' }}></div>
 
-        {/* Back Button */}
-        <div className="absolute top-4 left-4 z-50">
+        {/* Back Button — fica dentro do card, então precisa sumir da captura */}
+        <div className="absolute top-4 left-4 z-50" {...{ [SHARE_HIDE_ATTR]: '' }}>
           <button
             onClick={onBack}
             className="flex items-center justify-center size-10 rounded-full bg-black/20 text-white backdrop-blur-md hover:bg-white/10 transition-colors"
@@ -170,7 +168,7 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
                 <div className="flex flex-col gap-3">
                   <div className="flex justify-between items-end px-1">
                     <span className="text-gray-400 text-xs font-medium">{qp.flowConsistency}</span>
-                    <span className="text-white text-xs font-bold bg-primary/20 px-2 py-0.5 rounded-full text-primary">30 {qp.days}</span>
+                    <span className="text-white text-xs font-bold bg-primary/20 px-2 py-0.5 rounded-full text-primary">{HEATMAP_DAYS} {qp.days}</span>
                   </div>
                   <div className="bg-[#1a2c32]/60 backdrop-blur-md border border-white/5 p-4 rounded-xl">
                     <div className="grid grid-cols-7 gap-x-2 gap-y-3 justify-items-center">
@@ -243,10 +241,11 @@ export const PlanProgressShare: React.FC<PlanProgressShareProps> = ({ onBack }) 
         <div className="w-full max-w-[430px] pointer-events-auto">
           <button
             onClick={handleShare}
-            className="w-full bg-white text-[#101e22] font-bold text-base py-4 rounded-xl shadow-[0_4px_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 group"
+            disabled={sharing || loading}
+            className="w-full bg-white text-[#101e22] font-bold text-base py-4 rounded-xl shadow-[0_4px_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2 group disabled:opacity-60"
           >
             <span className="material-symbols-outlined group-hover:-translate-y-0.5 transition-transform">ios_share</span>
-            {qp.shareProgress}
+            {sharing ? t.social.sharing : qp.shareProgress}
           </button>
         </div>
       </div>

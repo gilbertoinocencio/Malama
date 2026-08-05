@@ -285,6 +285,10 @@ export interface Translations {
         fat: string;
         carbs: string;
         dailyFlow: string;
+        imageSaved: string;
+        shareError: string;
+        sharing: string;
+        quoteDay: string;
     };
 
     // Hydration
@@ -299,6 +303,43 @@ export interface Translations {
         goal: string;
         quote: string;
         shareGoalCta: string;
+        quoteText: string;
+    };
+
+    // Compartilhamento de refeição
+    mealShare: {
+        title: string;
+        share: string;
+        postToCommunity: string;
+        posting: string;
+        posted: string;
+        postError: string;
+        uploadError: string;
+        dailyLimit: string;
+        hideNumbers: string;
+        showNumbers: string;
+    };
+
+    // Momentos de compartilhamento (oferta automática)
+    shareMoments: {
+        offerTitle: string;
+        offerSubtitle: string;
+        cta: string;
+        notNow: string;
+        dontShowAgain: string;
+        kickerAchievement: string;
+        kickerLevelUp: string;
+        kickerStreak: string;
+        kickerFlowDay: string;
+        streakDays: string;
+        flowDay: string;
+        levels: {
+            seed: string;
+            root: string;
+            stem: string;
+            flower: string;
+            fruit: string;
+        };
     };
 
     // Journal
@@ -794,6 +835,10 @@ export const translations: Record<Language, Translations> = {
             fat: 'Fat',
             carbs: 'Carbs',
             dailyFlow: 'Daily Flow',
+            imageSaved: 'Image saved!',
+            shareError: "Couldn't share. Please try again.",
+            sharing: 'Preparing...',
+            quoteDay: 'Consistent, not perfect.',
         },
         hydration: {
             title: 'Social Hydration',
@@ -806,6 +851,39 @@ export const translations: Record<Language, Translations> = {
             goal: 'Goal',
             quote: 'Quote',
             shareGoalCta: 'Share Goal',
+            quoteText: 'Stay fluid. Keep the flow.',
+        },
+        mealShare: {
+            title: 'Share meal',
+            share: 'Share',
+            postToCommunity: 'Post to community',
+            posting: 'Posting...',
+            posted: 'Posted to the community!',
+            postError: "Couldn't post. Please try again.",
+            uploadError: "Couldn't upload the image. Check your connection and try again.",
+            dailyLimit: 'You reached the daily post limit.',
+            hideNumbers: 'Hide numbers',
+            showNumbers: 'Show numbers',
+        },
+        shareMoments: {
+            offerTitle: 'Worth sharing',
+            offerSubtitle: 'Your card is ready.',
+            cta: 'Share',
+            notNow: 'Not now',
+            dontShowAgain: "Don't offer this again",
+            kickerAchievement: 'Achievement unlocked',
+            kickerLevelUp: 'New level',
+            kickerStreak: 'Streak',
+            kickerFlowDay: 'Day in flow',
+            streakDays: 'days in a row',
+            flowDay: 'flow today',
+            levels: {
+                seed: 'Seed',
+                root: 'Root',
+                stem: 'Stem',
+                flower: 'Flower',
+                fruit: 'Fruit',
+            },
         },
         journal: {
             title: 'Malama Journal',
@@ -1278,6 +1356,10 @@ export const translations: Record<Language, Translations> = {
             fat: 'Gorduras',
             carbs: 'Carboidratos',
             dailyFlow: 'Flow do Dia',
+            imageSaved: 'Imagem salva!',
+            shareError: 'Não foi possível compartilhar. Tente de novo.',
+            sharing: 'Preparando...',
+            quoteDay: 'Constante, não perfeito.',
         },
         hydration: {
             title: 'Hidratação Social',
@@ -1290,6 +1372,39 @@ export const translations: Record<Language, Translations> = {
             goal: 'Meta',
             quote: 'Frase',
             shareGoalCta: 'Compartilhar Meta',
+            quoteText: 'Flua. Mantenha o ritmo.',
+        },
+        mealShare: {
+            title: 'Compartilhar refeição',
+            share: 'Compartilhar',
+            postToCommunity: 'Postar na comunidade',
+            posting: 'Publicando...',
+            posted: 'Publicado na comunidade!',
+            postError: 'Não foi possível publicar. Tente de novo.',
+            uploadError: 'Não foi possível enviar a imagem. Verifique sua conexão e tente de novo.',
+            dailyLimit: 'Você atingiu o limite de posts do dia.',
+            hideNumbers: 'Ocultar números',
+            showNumbers: 'Mostrar números',
+        },
+        shareMoments: {
+            offerTitle: 'Isso merece ser compartilhado',
+            offerSubtitle: 'Seu card já está pronto.',
+            cta: 'Compartilhar',
+            notNow: 'Agora não',
+            dontShowAgain: 'Não oferecer mais',
+            kickerAchievement: 'Conquista desbloqueada',
+            kickerLevelUp: 'Novo nível',
+            kickerStreak: 'Sequência',
+            kickerFlowDay: 'Dia em flow',
+            streakDays: 'dias seguidos',
+            flowDay: 'de flow hoje',
+            levels: {
+                seed: 'Semente',
+                root: 'Raiz',
+                stem: 'Caule',
+                flower: 'Flor',
+                fruit: 'Fruto',
+            },
         },
         journal: {
             title: 'Diário Malama',
@@ -1762,6 +1877,10 @@ export const translations: Record<Language, Translations> = {
             fat: 'Grasas',
             carbs: 'Carbohidratos',
             dailyFlow: 'Flow del Día',
+            imageSaved: '¡Imagen guardada!',
+            shareError: 'No se pudo compartir. Inténtalo de nuevo.',
+            sharing: 'Preparando...',
+            quoteDay: 'Constante, no perfecto.',
         },
         hydration: {
             title: 'Hidratación Social',
@@ -1774,6 +1893,39 @@ export const translations: Record<Language, Translations> = {
             goal: 'Meta',
             quote: 'Frase',
             shareGoalCta: 'Compartir Meta',
+            quoteText: 'Fluye. Mantén el ritmo.',
+        },
+        mealShare: {
+            title: 'Compartir comida',
+            share: 'Compartir',
+            postToCommunity: 'Publicar en la comunidad',
+            posting: 'Publicando...',
+            posted: '¡Publicado en la comunidad!',
+            postError: 'No se pudo publicar. Inténtalo de nuevo.',
+            uploadError: 'No se pudo subir la imagen. Revisa tu conexión e inténtalo de nuevo.',
+            dailyLimit: 'Alcanzaste el límite de publicaciones del día.',
+            hideNumbers: 'Ocultar números',
+            showNumbers: 'Mostrar números',
+        },
+        shareMoments: {
+            offerTitle: 'Esto merece compartirse',
+            offerSubtitle: 'Tu tarjeta ya está lista.',
+            cta: 'Compartir',
+            notNow: 'Ahora no',
+            dontShowAgain: 'No ofrecer más',
+            kickerAchievement: 'Logro desbloqueado',
+            kickerLevelUp: 'Nuevo nivel',
+            kickerStreak: 'Racha',
+            kickerFlowDay: 'Día en flow',
+            streakDays: 'días seguidos',
+            flowDay: 'de flow hoy',
+            levels: {
+                seed: 'Semilla',
+                root: 'Raíz',
+                stem: 'Tallo',
+                flower: 'Flor',
+                fruit: 'Fruto',
+            },
         },
         journal: {
             title: 'Diario Malama',

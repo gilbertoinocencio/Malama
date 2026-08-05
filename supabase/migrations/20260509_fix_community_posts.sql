@@ -47,6 +47,13 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit    = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
+-- Postgres não tem CREATE POLICY IF NOT EXISTS: sem o DROP antes, rerodar esta
+-- migração aborta em "policy already exists" e, como o SQL Editor para tudo no
+-- primeiro erro, os passos seguintes nunca chegam a rodar.
+DROP POLICY IF EXISTS "community_media_upload" ON storage.objects;
+DROP POLICY IF EXISTS "community_media_read"   ON storage.objects;
+DROP POLICY IF EXISTS "community_media_delete" ON storage.objects;
+
 -- 5. Política: usuário autenticado pode fazer upload na própria pasta
 CREATE POLICY "community_media_upload"
   ON storage.objects FOR INSERT TO authenticated

@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { DailyStats } from '../types';
-import html2canvas from 'html2canvas';
 import { useLanguage } from '../i18n';
+import { useShareCard } from '../hooks/useShareCard';
+import { getLocalDateString } from '../utils/dateUtils';
 
 interface SocialShareProps {
   stats: DailyStats;
@@ -9,15 +10,28 @@ interface SocialShareProps {
 }
 
 type ShareView = 'LANDING' | 'CUSTOMIZE';
-type TemplateStyle = 'Gallery' | 'Glass' | 'Photo' | 'Gradient' | 'Data';
-type ViewOption = 'Data' | 'Hide';
+type TemplateStyle = 'Gallery' | 'Glass' | 'Sunset' | 'Gradient' | 'Data';
+
+const TEMPLATE_CHIPS: {
+  id: TemplateStyle;
+  icon: string;
+  swatch: string;
+  accent: string;
+  iconColor: string;
+}[] = [
+  { id: 'Gallery',  icon: 'image',      swatch: '#ffffff',                                              accent: '#8c473e', iconColor: '#9ca3af' },
+  { id: 'Glass',    icon: 'eco',        swatch: 'radial-gradient(circle at 30% 20%, #d8ecd6, #3f7a53)', accent: '#11d421', iconColor: '#ffffff' },
+  { id: 'Sunset',   icon: 'wb_twilight', swatch: 'linear-gradient(160deg, #f6a45c, #7d4a3c)',           accent: '#d47311', iconColor: '#ffffff' },
+  { id: 'Gradient', icon: 'gradient',   swatch: 'linear-gradient(135deg, #d47311, #f8f7f6)',            accent: '#d47311', iconColor: '#ffffff' },
+  { id: 'Data',     icon: 'bar_chart',  swatch: '#f8f7f6',                                              accent: '#8c473e', iconColor: '#181411' },
+];
 
 export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
   const { t, language } = useLanguage();
   const ts = t.social;
+  const { share, sharing } = useShareCard();
   const [view, setView] = useState<ShareView>('LANDING');
   const [template, setTemplate] = useState<TemplateStyle>('Gallery');
-  const [viewOption, setViewOption] = useState<ViewOption>('Data');
 
   const localeMap: Record<string, string> = { en: 'en-US', pt: 'pt-BR', es: 'es-ES' };
   const locale = localeMap[language] || 'en-US';
@@ -26,30 +40,19 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
   const previewCardRef = useRef<HTMLDivElement>(null);
   const customizeCardRef = useRef<HTMLDivElement>(null);
 
-  const handleDownload = async (ref: React.RefObject<HTMLDivElement | null>) => {
-    if (ref.current) {
-      // Wait for font/image stability
-      await new Promise(r => setTimeout(r, 100));
-      const canvas = await html2canvas(ref.current, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: null
-      });
-      const link = document.createElement('a');
-      link.download = `Malama-share-${new Date().toISOString().split('T')[0]}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    }
-  };
-
-  const handleCopyLink = () => {
-    alert(ts.linkCopied);
-  };
+  const handleShare = (ref: React.RefObject<HTMLDivElement | null>) =>
+    share(ref.current, {
+      filename: `Malama-share-${getLocalDateString()}`,
+      title: ts.shareTitle,
+      text: `${stats.consumedCalories ?? 0} ${ts.calories} — ${ts.quoteDay}`,
+    });
 
   // --- RENDERERS ---
 
+  // O wrapper não tem padding de propósito: ele é o alvo da captura, e a margem
+  // transparente virava barra preta ao postar no Instagram.
   const renderGalleryCard = () => (
-    <div className="w-full relative px-2 sm:px-4">
+    <div className="w-full relative">
       <div className="group relative w-full aspect-square bg-[#FDFBF9] shadow-2xl shadow-gray-200/50 dark:shadow-black/30 rounded-none flex flex-col justify-between p-8 sm:p-10 border-[12px] border-white overflow-hidden transition-transform duration-500 ease-out hover:scale-[1.01]">
         {/* Top: Date */}
         <div className="flex justify-center w-full opacity-60">
@@ -90,7 +93,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
           {/* Hero Quote */}
           <div className="mt-4 max-w-[80%] text-center">
             <p className="font-libre italic text-xl sm:text-2xl text-[#1a1a1a] leading-tight">
-                "Consistent, not perfect."
+                "{ts.quoteDay}"
             </p>
           </div>
         </div>
@@ -122,8 +125,8 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
 
     return (
       <div className="relative w-full aspect-[9/16] bg-[#f6f8f6] overflow-hidden shadow-2xl rounded-xl font-epilogue">
-        {/* Background Layer */}
-        <div className="absolute inset-0 w-full h-full bg-cover bg-center z-0 scale-110 blur-md" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuA__4wYFphMV1nQBvjJI0_nV_9VNcU3xEuyKiWIGyjrihJuADCSIj52cjHUAjrF-C0o077Y__bIwzPTr3RI9Lj9adwN-vEu_6aEXLEyLiE9v6ZiGrIrunLPKBGTHPeJBhInRzYEXmYBt4DB1s6-alOQwdXuRhxfQlBOY1yTHjYKMraQ0yE4mrxlT98B__X6aDoBZaZQwLCn7PisLaHjRb1Cc5m0R_TdBT5eO_dTqbGaCPWUXx8CrtfqpGKCPn6uFTNOs86YwYN1XEU")'}}></div>
+        {/* Background Layer — CSS puro: sem dependência de rede nem de CORS */}
+        <div className="absolute inset-0 w-full h-full z-0" style={{ background: 'radial-gradient(circle at 25% 20%, #d8ecd6 0%, #9dc9a4 40%, #3f7a53 100%)' }}></div>
         <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/10 to-black/10 z-0"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-[#102212]/30 to-transparent z-0"></div>
         
@@ -188,34 +191,37 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
     );
   }
 
-  // Helper for other templates (Photo, Gradient, etc - reused from previous step)
+  // Templates simples (Sunset, Gradient, Data). Fundos em CSS puro pelo mesmo
+  // motivo do Glass: as URLs de protótipo quebravam offline e no CORS.
   const renderStandardTemplate = () => {
-     // Reusing logic from previous implementation for 'Photo', 'Gradient', 'Data'
-     // This is a simplified version for the customize view when not in Glass mode
      const config = {
-        Photo: { bg: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAjuQJ8PCRBggfRaN5-fnejVbiNzeH5BESKFJxOt0_KPmYCOD-P1f2FGk533c5myAYN_uf_DQIWzTodtHTy6xgAdnpBfx-oncituMAGGeKx8IiJEgLDFKGBgPm0effxsPNPEhO8_E3JNNfDFeZ-9Y4O0rcqS9AYzDbVQP8zDwy3Do0YyRamqJ1_CFXSWbDpTxXix2LwhM89V1l8sMtbBmDx5fFeNfNGUZ3Zta5dCmQJwhMsf2bLZCDOxAOYmJFY9fo0GpAHD40zRK8')", text: 'text-white' },
-        Gradient: { bg: "linear-gradient(135deg, #d47311 0%, #f8f7f6 100%)", text: 'text-[#221910]' },
-        Data: { bg: "#f8f7f6", text: 'text-[#181411]' }
-     }[template as string] || { bg: '#fff', text: 'text-black' };
-     
+        Sunset: { bg: 'linear-gradient(160deg, #f6a45c 0%, #d47311 45%, #7d4a3c 100%)', text: 'text-white', sub: 'text-white/75' },
+        Gradient: { bg: 'linear-gradient(135deg, #d47311 0%, #f8f7f6 100%)', text: 'text-[#221910]', sub: 'text-[#221910]/60' },
+        Data: { bg: '#f8f7f6', text: 'text-[#181411]', sub: 'text-[#181411]/60' }
+     }[template as string] || { bg: '#fff', text: 'text-black', sub: 'text-black/60' };
+
      if (template === 'Glass') return renderGlassCard();
      if (template === 'Gallery') return renderGalleryCard();
 
      return (
       <div className="w-full relative aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/10 group mb-6 transition-all duration-300">
-         <div className="absolute inset-0 bg-cover bg-center" style={{ background: config.bg }}></div>
+         <div className="absolute inset-0" style={{ background: config.bg }}></div>
          <div className={`absolute inset-0 flex flex-col justify-between p-6 ${config.text}`}>
             <div className="flex justify-between items-start pt-2">
-               <span className="font-bold">Malama</span>
-               <span>{new Date().toLocaleTimeString()}</span>
+               <span className="font-bold tracking-[0.2em] text-xs uppercase">Malama</span>
+               <span className={`text-xs ${config.sub}`}>
+                  {new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+               </span>
             </div>
             <div className="mb-4">
-              <h3 className="text-5xl font-bold">{stats.consumedCalories} kcal</h3>
-              <div className="flex gap-2 mt-4">
-                 <span>P: {stats.macros.protein}g</span>
-                 <span>C: {stats.macros.carbs}g</span>
-                 <span>F: {stats.macros.fats}g</span>
+              <h3 className="text-6xl font-bold tracking-tighter leading-none">{stats.consumedCalories ?? 0}</h3>
+              <p className={`text-xs font-bold tracking-[0.3em] uppercase mt-2 ${config.sub}`}>{ts.calories}</p>
+              <div className="flex gap-4 mt-6 text-sm font-semibold">
+                 <span>{ts.protein} {Math.round(stats.macros.protein)}g</span>
+                 <span>{ts.carbs} {Math.round(stats.macros.carbs)}g</span>
+                 <span>{ts.fat} {Math.round(stats.macros.fats)}g</span>
               </div>
+              <p className={`mt-6 text-[10px] font-bold tracking-[0.25em] uppercase ${config.sub}`}>Feed the Flow</p>
             </div>
          </div>
       </div>
@@ -246,44 +252,33 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
           </div>
 
           <div ref={previewCardRef} className="w-full">
-            {renderGalleryCard()}
+            {renderStandardTemplate()}
           </div>
 
           <div className="h-8"></div>
 
-          {/* ActionsBar */}
-          <div className="w-full">
-            <div className="grid grid-cols-3 gap-4 px-2">
-              <button onClick={() => handleDownload(previewCardRef)} className="flex flex-col items-center gap-3 group/btn focus:outline-none">
-                <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-Malama-dark shadow-sm border border-gray-100 dark:border-white/10 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
-                  <span className="material-symbols-outlined text-gray-700 dark:text-gray-200 group-hover/btn:text-primary transition-colors">download</span>
-                </div>
-                <span className="text-xs font-medium leading-normal">{ts.saveImage}</span>
-              </button>
-              <button onClick={() => handleDownload(previewCardRef)} className="flex flex-col items-center gap-3 group/btn focus:outline-none">
-                <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-Malama-dark shadow-sm border border-gray-100 dark:border-white/10 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
-                  <span className="material-symbols-outlined text-gray-700 dark:text-gray-200 group-hover/btn:text-primary transition-colors">auto_awesome_motion</span>
-                </div>
-                <span className="text-xs font-medium leading-normal">{ts.stories}</span>
-              </button>
-              <button onClick={handleCopyLink} className="flex flex-col items-center gap-3 group/btn focus:outline-none">
-                <div className="flex items-center justify-center size-14 rounded-full bg-white dark:bg-Malama-dark shadow-sm border border-gray-100 dark:border-white/10 transition-all duration-200 group-hover/btn:scale-110 group-active/btn:scale-95 group-hover/btn:shadow-md group-hover/btn:border-primary/20">
-                  <span className="material-symbols-outlined text-gray-700 dark:text-gray-200 group-hover/btn:text-primary transition-colors">content_copy</span>
-                </div>
-                <span className="text-xs font-medium leading-normal">{ts.copyLink}</span>
-              </button>
-            </div>
+          {/* Ação principal. Um botão só: a folha nativa já oferece salvar na
+              galeria, stories e enviar para qualquer app — os três ícones que
+              existiam aqui chamavam todos o mesmo download. */}
+          <div className="w-full px-2">
+            <button
+              onClick={() => handleShare(previewCardRef)}
+              disabled={sharing}
+              className="flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl h-14 px-6 bg-primary text-white font-bold transition-all duration-200 active:scale-[0.98] disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-[20px]">ios_share</span>
+              <span className="text-base leading-normal tracking-[0.015em] truncate">
+                {sharing ? ts.sharing : ts.shareStory}
+              </span>
+            </button>
           </div>
 
-          <div className="h-8"></div>
+          <div className="h-4"></div>
 
           {/* Customize Button */}
           <div className="w-full px-2">
-            <button 
-              onClick={() => {
-                setTemplate('Gallery'); // Default to gallery when entering customize from here
-                setView('CUSTOMIZE');
-              }}
+            <button
+              onClick={() => setView('CUSTOMIZE')}
               className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-12 px-6 bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30 active:bg-primary/30 text-primary transition-all duration-200"
             >
               <span className="material-symbols-outlined mr-2 text-[20px]">tune</span>
@@ -318,40 +313,38 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
             <div className="flex justify-between items-end px-1">
                <span className="text-sm font-semibold">{ts.templates}</span>
             </div>
+            {/* Todos os templates do tipo aparecem aqui. Gradient e Data existiam
+                no código mas não tinham chip — eram inalcançáveis. */}
             <div className="flex gap-4 overflow-x-auto pb-4 pt-1 px-1 snap-x no-scrollbar">
-               {/* Gallery Option */}
-               <div onClick={() => setTemplate('Gallery')} className="snap-center shrink-0 flex flex-col items-center gap-2 group cursor-pointer">
-                  <div className={`w-20 h-32 rounded-xl border bg-white flex items-center justify-center transition-all ${template === 'Gallery' ? 'border-2 border-primary' : 'border-gray-200'}`}>
-                     <span className="material-symbols-outlined text-gray-400">image</span>
-                  </div>
-                  <span className={`text-xs font-bold ${template === 'Gallery' ? 'text-primary' : 'text-gray-500'}`}>Gallery</span>
-               </div>
-
-               {/* Glass Option */}
-               <div onClick={() => setTemplate('Glass')} className="snap-center shrink-0 flex flex-col items-center gap-2 group cursor-pointer">
-                  <div className={`w-20 h-32 rounded-xl border bg-[#f6f8f6] flex items-center justify-center transition-all ${template === 'Glass' ? 'border-2 border-[#11d421]' : 'border-gray-200'}`}>
-                     <span className="material-symbols-outlined text-[#11d421]">eco</span>
-                  </div>
-                  <span className={`text-xs font-bold ${template === 'Glass' ? 'text-[#11d421]' : 'text-gray-500'}`}>Glass</span>
-               </div>
-               
-               {/* Existing options like Photo, Gradient... */}
-               <div onClick={() => setTemplate('Photo')} className="snap-center shrink-0 flex flex-col items-center gap-2 group cursor-pointer">
-                  <div className={`w-20 h-32 rounded-xl border bg-gray-800 flex items-center justify-center transition-all ${template === 'Photo' ? 'border-2 border-[#d47311]' : 'border-gray-200'}`}>
-                     <span className="material-symbols-outlined text-white">camera_alt</span>
-                  </div>
-                  <span className={`text-xs font-bold ${template === 'Photo' ? 'text-[#d47311]' : 'text-gray-500'}`}>Photo</span>
-               </div>
+               {TEMPLATE_CHIPS.map(chip => {
+                  const active = template === chip.id;
+                  return (
+                     <div
+                        key={chip.id}
+                        onClick={() => setTemplate(chip.id)}
+                        className="snap-center shrink-0 flex flex-col items-center gap-2 group cursor-pointer"
+                     >
+                        <div
+                           className={`relative w-20 h-32 rounded-xl border overflow-hidden flex items-center justify-center transition-all active:scale-95 ${active ? 'border-2' : 'border-gray-200 opacity-80 hover:opacity-100'}`}
+                           style={{ background: chip.swatch, borderColor: active ? chip.accent : undefined }}
+                        >
+                           <span className="material-symbols-outlined" style={{ color: chip.iconColor }}>{chip.icon}</span>
+                        </div>
+                        <span className="text-xs font-bold" style={{ color: active ? chip.accent : '#6b7280' }}>{chip.id}</span>
+                     </div>
+                  );
+               })}
             </div>
          </div>
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#f8f7f6] via-[#f8f7f6]/95 to-transparent dark:from-[#221910] dark:via-[#221910]/95 pt-8 pointer-events-none z-30">
-        <button 
-           onClick={() => handleDownload(customizeCardRef)}
-           className={`pointer-events-auto w-full text-white text-lg font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${template === 'Glass' ? 'bg-[#11d421]' : 'bg-primary'}`}
+        <button
+           onClick={() => handleShare(customizeCardRef)}
+           disabled={sharing}
+           className={`pointer-events-auto w-full text-white text-lg font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-60 ${template === 'Glass' ? 'bg-[#11d421]' : 'bg-primary'}`}
         >
-          <span>{ts.shareStory}</span>
+          <span>{sharing ? ts.sharing : ts.shareStory}</span>
           <span className="material-symbols-outlined">ios_share</span>
         </button>
       </div>

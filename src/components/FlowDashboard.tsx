@@ -3,7 +3,7 @@ import { supabase } from '../services/supabase';
 import { DailyStats, AppView, Meal, MonthWeek, MonthSummary } from '../types';
 import { USER_AVATAR } from '../constants';
 import { useLanguage } from '../i18n';
-import { GamificationService, GamificationStats } from '../services/gamificationService';
+import { GamificationService, GamificationStats, Achievement } from '../services/gamificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { EngagementCard } from './dashboard/EngagementCard';
@@ -24,6 +24,8 @@ import { MonthWeeksGrid } from './MonthWeeksGrid';
 import { StatsService } from '../services/statsService';
 import { MealService } from '../services/mealService';
 import { PatientNotificationBell } from './PatientNotificationBell';
+import { ShareMomentSheet } from './ShareMomentSheet';
+import { detectMoment, type ShareMoment } from '../services/shareMomentsService';
 
 interface FlowDashboardProps {
   stats: DailyStats;
@@ -214,6 +216,8 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
   // Saldos separados por especialidade (upsell psicológico)
   const [hasMedicoCredit, setHasMedicoCredit] = useState(false);
   const [hasPsicoCredit, setHasPsicoCredit] = useState(false);
+  const [shareMoment, setShareMoment] = useState<ShareMoment | null>(null);
+  const [pendingUnlocks, setPendingUnlocks] = useState<Achievement[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -229,8 +233,25 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
     const result = await GamificationService.updateStats(user.id);
     if (result) {
       setGameStats(result.stats);
+      // `newUnlocks` sempre chegou até aqui e era descartado: a conquista era
+      // gravada no banco sem nunca aparecer para o usuário.
+      setPendingUnlocks(result.newUnlocks);
     }
   };
+
+  // A detecção mora num efeito próprio porque `stats` é prop e chega depois do
+  // mount. Detectar dentro do loadGameStats capturaria flowScore ainda zerado e
+  // o momento "dia em flow" nunca dispararia.
+  useEffect(() => {
+    if (!user || !gameStats || shareMoment) return;
+    const moment = detectMoment({
+      userId: user.id,
+      stats: gameStats,
+      newUnlocks: pendingUnlocks,
+      flowScore: stats.flowScore,
+    });
+    if (moment) setShareMoment(moment);
+  }, [user, gameStats, pendingUnlocks, stats.flowScore, shareMoment]);
 
   // Load telemedicine data
   useEffect(() => {
@@ -2161,7 +2182,16 @@ export const FlowDashboard: React.FC<FlowDashboardProps> = ({
         )
       }
 
-
+      {/* Oferta de compartilhamento. Fica atrás do check-in e do questionário:
+          uma oferta por cima de algo que o usuário PRECISA responder vira
+          interrupção, não convite. */}
+      {shareMoment && user && !showCheckinModal && !campanhaAberta && (
+        <ShareMomentSheet
+          userId={user.id}
+          moment={shareMoment}
+          onClose={() => setShareMoment(null)}
+        />
+      )}
 
     </div >
   );

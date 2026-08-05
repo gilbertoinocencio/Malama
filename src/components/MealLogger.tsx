@@ -15,6 +15,7 @@ import { normalizeMealAnalysis } from '../utils/normalizeMealAnalysis';
 
 import { MalamaAiScan } from './MalamaAiScan';
 import { MalamaWaterScan } from './MalamaWaterScan';
+import { MealShareSheet } from './MealShareSheet';
 import { USER_AVATAR } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { MealService } from '../services/mealService';
@@ -76,6 +77,11 @@ interface Message {
   type: MessageType;
   content: any; // Text string or AIResponse object
   imageUri?: string; // Optional thumbnail for ai-photo scan cards
+  /**
+   * Só cards de refeição JÁ REGISTRADA oferecem compartilhar. O mesmo 'ai-card'
+   * também renderiza análises pendentes de confirmação, que não devem virar post.
+   */
+  shareable?: boolean;
 }
 
 // Simple markdown renderer for chat messages (bold, italic, line breaks, numbered/bullet lists)
@@ -279,7 +285,7 @@ const historyToMessages = (history: any[]): Message[] => {
             .replace(/<image_uri>[\s\S]*?<\/image_uri>/g, '')
             .trim();
           const parsedMeal = normalizeMealAnalysis(parseAiJson<unknown>(mealMatch[1]), { strict: true });
-          result.push({ id: msg.id + '-card', type: 'ai-card', content: parsedMeal, imageUri: savedImageUri });
+          result.push({ id: msg.id + '-card', type: 'ai-card', content: parsedMeal, imageUri: savedImageUri, shareable: true });
           if (cleanText) result.push({ id: msg.id + '-text', type: 'ai-text', content: cleanText });
         } catch {
           const cleanContent = msg.content
@@ -375,6 +381,7 @@ const isPureMealReport = (text: string): boolean => {
 export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sharingMeal, setSharingMeal] = useState<Meal | null>(null);
   const [success, setSuccess] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1126,7 +1133,7 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
         const capturedImageUri = scannedImageUri ?? undefined;
         setMessages(prev => [
           ...prev,
-          { id: cardId, type: 'ai-card', content: normalizedData, imageUri: capturedImageUri },
+          { id: cardId, type: 'ai-card', content: normalizedData, imageUri: capturedImageUri, shareable: true },
         ]);
         const feedback = await buildMealFeedback(normalizedData);
         const textId = (Date.now() + 1).toString();
@@ -1505,6 +1512,26 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
                     </div>
                   ))}
                 </div>
+              )}
+
+              {/* Oferta no pico: a refeição acabou de entrar e a foto está fresca. */}
+              {msg.shareable && (
+                <button
+                  onClick={() => setSharingMeal({
+                    id: msg.id,
+                    name: data.foodName,
+                    timestamp: new Date(),
+                    calories: data.calories,
+                    macros: { protein: data.macros.p, carbs: data.macros.c, fats: data.macros.f },
+                    type: msg.imageUri ? 'ai-photo' : 'ai-chat',
+                    items: data.items,
+                    imageUri: msg.imageUri,
+                  })}
+                  className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-Malama-petrol/10 dark:bg-primary/15 text-Malama-petrol dark:text-primary text-xs font-bold active:scale-[0.98] transition-transform"
+                >
+                  <span className="material-symbols-outlined text-[16px]">ios_share</span>
+                  {t.mealShare.share}
+                </button>
               )}
             </div>
           </div>
@@ -1897,6 +1924,10 @@ export const MealLogger: React.FC<MealLoggerProps> = ({ onLog, onClose }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {sharingMeal && (
+        <MealShareSheet meal={sharingMeal} onClose={() => setSharingMeal(null)} />
       )}
     </div>
   );
