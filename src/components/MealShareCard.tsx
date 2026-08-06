@@ -87,7 +87,7 @@ export const MealShareCard = forwardRef<HTMLDivElement, MealShareCardProps>(
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/35" />
 
         <div
-          className="absolute inset-0 flex flex-col justify-between p-8 text-white"
+          className="absolute inset-0 flex flex-col justify-between px-8 pt-8 pb-11 text-white"
           style={{ textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}
         >
           <div className="flex items-center justify-end">
@@ -102,7 +102,9 @@ export const MealShareCard = forwardRef<HTMLDivElement, MealShareCardProps>(
             {showMacros && (
               <>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-6xl font-extrabold tracking-tighter leading-none drop-shadow-sm">
+                  {/* leading >= 1: abaixo disso o html2canvas desenha os glifos
+                      fora da caixa e a linha seguinte é atropelada no PNG. */}
+                  <span className="text-6xl font-extrabold leading-[1.02] tracking-tighter drop-shadow-sm">
                     {Math.round(meal.calories)}
                   </span>
                   <span className="text-sm font-bold tracking-[0.2em] uppercase opacity-80">kcal</span>
@@ -117,7 +119,7 @@ export const MealShareCard = forwardRef<HTMLDivElement, MealShareCardProps>(
                     <React.Fragment key={m.l}>
                       {i > 0 && <div className="mx-5 h-7 w-px self-center bg-white opacity-25" />}
                       <div className="flex flex-col">
-                        <span className="text-lg font-bold leading-none">{Math.round(m.v)}g</span>
+                        <span className="text-lg font-bold leading-[1.1]">{Math.round(m.v)}g</span>
                         <span className="mt-2 text-[9px] uppercase tracking-[0.2em] opacity-70">{m.l}</span>
                       </div>
                     </React.Fragment>

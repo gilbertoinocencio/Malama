@@ -183,7 +183,10 @@ export const ShareCardShell = forwardRef<HTMLDivElement, ShareCardShellProps>(
         )}
 
         <div
-          className={`absolute inset-0 flex flex-col justify-between p-[2em] ${onDark ? 'text-white' : 'text-[#221910]'}`}
+          // A folga extra embaixo não é estética: o html2canvas desenha texto
+          // um pouco mais baixo que o navegador, e o desvio se acumula na
+          // pilha. Sem ela, a última linha do card sai cortada no PNG.
+          className={`absolute inset-0 flex flex-col justify-between px-[2em] pt-[2em] pb-[2.7em] ${onDark ? 'text-white' : 'text-[#221910]'}`}
           style={
             onDark
               ? {

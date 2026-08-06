@@ -110,6 +110,14 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
     setBackgroundId(id);
   };
 
+  /**
+   * O card sem fundo sai como adesivo: só a imagem, sem texto nem link.
+   *
+   * O Instagram não aceita PNG com alpha como fundo de story — ele descartava a
+   * imagem e transformava o texto e o link em adesivos de texto por cima da
+   * câmera. Sem texto junto, o arquivo vai para a galeria e o usuário compõe
+   * por cima da própria foto, que é o uso real desse modo.
+   */
   const handleShare = () =>
     share(
       cardRef.current,
@@ -120,6 +128,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
         // Fundo transparente só sobrevive no PNG se a captura não pintar nada
         // atrás — é o modo inteiro do card sem fundo.
         backgroundColor: null,
+        imageOnly: isTransparent,
       },
       { type: 'day', headline: ts.dailyFlow, subline: `${stats.consumedCalories ?? 0} ${ts.calories}` }
     );
@@ -160,7 +169,11 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
           <p className={`text-[0.62em] font-bold uppercase tracking-[0.35em] ${dimStrong}`}>
             {ts.calories}
           </p>
-          <h1 className="mt-[0.06em] font-display text-[5.1em] font-extrabold leading-[0.82] tracking-[-0.045em]">
+          {/* line-height >= 1 é obrigatório aqui. O html2canvas desenha o texto
+              pela linha de base da fonte e ignora entrelinha menor que 1: os
+              glifos saíam da caixa e a barra de meta atravessava o número no
+              PNG exportado, mesmo aparecendo certo no DOM. */}
+          <h1 className="mt-[0.1em] pb-[0.14em] font-display text-[4.9em] font-extrabold leading-[1.02] tracking-[-0.045em]">
             {consumed.toLocaleString(locale)}
           </h1>
         </div>
@@ -194,7 +207,7 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
                 <div className={`mx-[0.85em] h-[2em] w-px self-center bg-current ${hairline}`} />
               )}
               <div className="flex flex-col">
-                <span className="text-[1.2em] font-bold leading-none">{Math.round(m.v)}g</span>
+                <span className="text-[1.2em] font-bold leading-[1.1]">{Math.round(m.v)}g</span>
                 <span className={`mt-[0.5em] text-[0.55em] uppercase tracking-[0.16em] ${dim}`}>
                   {m.l}
                 </span>
@@ -206,7 +219,11 @@ export const SocialShare: React.FC<SocialShareProps> = ({ stats, onClose }) => {
     </ShareCardShell>
   );
 
-  const shareButtonLabel = sharing ? ts.sharing : ts.shareStory;
+  const shareButtonLabel = sharing
+    ? ts.sharing
+    : isTransparent
+      ? ts.saveImage
+      : ts.shareStory;
 
   if (view === 'LANDING') {
     return (

@@ -40,6 +40,14 @@ export interface ShareCardOptions {
   backgroundColor?: string | null;
   /** Largura final em px. O nó é escalado para bater com ela. */
   targetWidth?: number;
+  /**
+   * Entrega só a imagem, sem texto nem link.
+   *
+   * O card sem fundo é um adesivo para o usuário compor por cima da foto dele,
+   * não um post. Mandar texto junto faz o Instagram transformá-lo em adesivo de
+   * texto — foi exatamente isso que apareceu no lugar do card.
+   */
+  imageOnly?: boolean;
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
@@ -60,7 +68,9 @@ async function renderNodeToCanvas(
   await new Promise(r => requestAnimationFrame(() => setTimeout(r, 80)));
 
   const width = node.getBoundingClientRect().width || node.offsetWidth || targetWidth;
-  const scale = clamp(targetWidth / width, 1, 4);
+  // O teto precisa acomodar a pré-visualização pequena da tela de personalizar
+  // (~224px): com teto 4 o PNG saía 896px em vez dos 1080 pedidos.
+  const scale = clamp(targetWidth / width, 1, 8);
 
   return html2canvas(node, {
     scale,
@@ -122,8 +132,9 @@ async function shareNative(canvas: HTMLCanvasElement, o: ShareCardOptions): Prom
   try {
     await Share.share({
       title: o.title,
-      text: o.text,
-      url: o.url,
+      // `url` fica de fora sempre: o link já viaja dentro de `text`, e mandar os
+      // dois virava DOIS adesivos de texto no Instagram Stories.
+      text: o.imageOnly ? undefined : o.text,
       files: [uri],
       dialogTitle: o.dialogTitle ?? o.title,
     });
@@ -141,7 +152,9 @@ async function shareWeb(canvas: HTMLCanvasElement, o: ShareCardOptions): Promise
   const blob = await canvasToBlob(canvas);
   const file = new File([blob], `${o.filename}.png`, { type: 'image/png' });
 
-  if (navigator.canShare?.({ files: [file] })) {
+  // Adesivo é para salvar e compor depois, não para postar: vai direto ao
+  // download em vez de abrir a folha de compartilhamento.
+  if (!o.imageOnly && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: o.title, text: o.text });
       return 'shared';

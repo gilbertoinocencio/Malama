@@ -43,13 +43,12 @@ export function useShareCard() {
           return 'failed';
         }
 
-        let url = options.url;
         let text = options.text;
 
         // O link é opcional de propósito: se a publicação falhar, o
         // compartilhamento acontece mesmo assim. Perder o link é ruim; perder o
         // compartilhamento é pior.
-        if (publish && user) {
+        if (publish && user && !options.imageOnly) {
           const file = await canvasToFile(canvas, options.filename);
           const published = await publishShare({
             userId: user.id,
@@ -60,14 +59,14 @@ export function useShareCard() {
             referralToken: influencerRecord?.referral_token,
           });
           if (published) {
-            url = published.url;
-            // Android ignora `url` e só manda `text`; iOS trata os dois. Juntar
-            // aqui garante que o link viaja nas duas plataformas.
+            // Só dentro de `text`. O campo `url` separado gerava um segundo
+            // item de texto no Instagram, com o link cru aparecendo como
+            // adesivo por cima da foto.
             text = text ? `${text}\n\n${published.url}` : published.url;
           }
         }
 
-        const result = await shareRenderedCard(canvas, { ...options, url, text });
+        const result = await shareRenderedCard(canvas, { ...options, url: undefined, text });
         if (result === 'downloaded') toast.success(t.social.imageSaved);
         if (result === 'failed') toast.error(t.social.shareError);
         return result;

@@ -75,7 +75,7 @@ export const MomentShareCard = forwardRef<HTMLDivElement, MomentShareCardProps>(
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" />
 
         <div
-          className="absolute inset-0 flex flex-col justify-between p-8"
+          className="absolute inset-0 flex flex-col justify-between px-8 pt-8 pb-11"
           style={{ textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}
         >
           <div className="h-6" />
@@ -92,8 +92,11 @@ export const MomentShareCard = forwardRef<HTMLDivElement, MomentShareCardProps>(
               {kicker}
             </p>
 
+            {/* Entrelinha nunca abaixo de 1: o html2canvas posiciona o texto
+                pela linha de base da fonte e ignora entrelinha menor, jogando
+                os glifos para fora da caixa no PNG exportado. */}
             {headline && (
-              <h1 className="text-8xl font-extrabold tracking-tighter leading-[0.85] drop-shadow-sm">
+              <h1 className="text-8xl font-extrabold leading-[1.02] tracking-tighter drop-shadow-sm">
                 {headline}
               </h1>
             )}
