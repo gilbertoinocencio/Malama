@@ -147,57 +147,42 @@ async function notifyPatient(
   }
 }
 
-/** Processa o crédito de uma consulta no_show. Retorna se o crédito foi perdido (null = sem crédito vinculado). */
+/**
+ * Processa o crédito de uma consulta no_show. Retorna se o crédito foi perdido
+ * (null = sem crédito vinculado).
+ *
+ * A regra (24h / 1ª falta libera com 7 dias / 2ª falta perde) vive em
+ * liberar_credito_consulta, no banco. Esta função tinha uma CÓPIA dela que
+ * recriava o crédito substituto sem empresa_id e sem especialidade: para um
+ * crédito B2B isso viola credits_origem_check e o INSERT falha — o
+ * colaborador perdia a sessão do mês na primeira falta. Para um crédito psi,
+ * o substituto renascia como médico.
+ */
 async function processNoShowCredit(consultationId: string): Promise<boolean | null> {
   const { data: credit } = await supabase
     .from('consultation_credits')
-    .select('id, user_id, subscription_id, month_reference, expires_at, late_cancellations_count')
+    .select('id')
     .eq('appointment_id', consultationId)
     .maybeSingle();
   if (!credit) return null;
 
-  const newCount = (credit.late_cancellations_count ?? 0) + 1;
-  const nowIso = new Date().toISOString();
+  const { data: consulta } = await supabase
+    .from('consultations')
+    .select('scheduled_at')
+    .eq('id', consultationId)
+    .maybeSingle();
 
-  if (newCount >= 2) {
-    // 2ª falta: crédito do mês perdido — renova no próximo ciclo da assinatura
-    await supabase
-      .from('consultation_credits')
-      .update({
-        status: 'perdida_cancelamento',
-        late_cancellations_count: newCount,
-        appointment_id: null,
-        doctor_id: null,
-        updated_at: nowIso,
-      })
-      .eq('id', credit.id);
-    return true;
-  }
-
-  // 1ª falta: libera novo crédito para a remarcação única, com ao menos
-  // 7 dias de validade (senão um crédito à beira do vencimento tornaria
-  // a remarcação impossível).
-  await supabase
-    .from('consultation_credits')
-    .update({
-      status: 'cancelada_reagendada',
-      late_cancellations_count: newCount,
-      appointment_id: null,
-      doctor_id: null,
-      updated_at: nowIso,
-    })
-    .eq('id', credit.id);
-
-  const minExpiry = new Date(Date.now() + 7 * 86_400_000).toISOString();
-  await supabase.from('consultation_credits').insert({
-    user_id: credit.user_id,
-    subscription_id: credit.subscription_id,
-    status: 'disponivel',
-    month_reference: credit.month_reference,
-    expires_at: credit.expires_at > minExpiry ? credit.expires_at : minExpiry,
-    late_cancellations_count: newCount,
+  const { data, error } = await supabase.rpc('liberar_credito_consulta', {
+    p_credit_id: credit.id,
+    // Horário já passou, então cai no ramo de falta em qualquer caso.
+    p_scheduled_at: consulta?.scheduled_at ?? new Date().toISOString(),
   });
-  return false;
+
+  if (error || !data?.ok) {
+    console.error('[reminders] liberar_credito_consulta falhou:', error ?? data?.error);
+    return null;
+  }
+  return !!data.credito_perdido;
 }
 
 async function processNoShows(nowMs: number): Promise<number> {

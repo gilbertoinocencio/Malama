@@ -255,137 +255,54 @@ export const creditService = {
     return data || [];
   },
 
-  /** Vincula crédito a um agendamento e define o médico */
+  /**
+   * Vincula crédito a um agendamento e define o profissional.
+   *
+   * Vai por RPC porque consultation_credits tem RLS sem policy de UPDATE para
+   * authenticated: o UPDATE direto que existia aqui afetava 0 linhas e NÃO
+   * levantava erro — o crédito seguia 'disponivel' e o paciente podia agendar
+   * de novo com ele. A RPC ainda valida dono, validade e se a especialidade
+   * do crédito bate com o tipo do profissional.
+   */
   async markAsScheduled(
     creditId: string,
     appointmentId: string,
     doctorId: string
   ): Promise<void> {
-    const { error } = await supabase
-      .from('consultation_credits')
-      .update({
-        status: 'agendada' as CreditStatus,
-        appointment_id: appointmentId,
-        doctor_id: doctorId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', creditId);
+    const { data, error } = await supabase.rpc('reservar_credito', {
+      p_credit_id: creditId,
+      p_appointment_id: appointmentId,
+      p_doctor_id: doctorId,
+    });
 
     if (error) throw error;
-  },
-
-  /** Marca crédito como realizado após a consulta */
-  async markAsRealized(creditId: string): Promise<void> {
-    const { error } = await supabase
-      .from('consultation_credits')
-      .update({
-        status: 'realizada' as CreditStatus,
-        realized_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', creditId);
-
-    if (error) throw error;
+    if (!data?.ok) throw new Error(data?.error ?? 'Não foi possível usar seu crédito.');
   },
 
   /**
-   * Lógica de cancelamento de agendamento:
+   * Cancelamento e falta.
    * - >= 24h de antecedência: crédito liberado para reagendamento sem penalidade
-   * - < 24h (ou no-show): incrementa late_cancellations_count
-   *   - count >= 2: crédito perdido (renova no próximo ciclo da assinatura)
-   *   - count == 1: crédito liberado com contagem herdada
-   * Retorna se o crédito foi perdido, para a UI informar o paciente.
+   * - < 24h (ou no-show): conta strike
+   *   - 1º: crédito liberado com validade mínima de 7 dias
+   *   - 2º: crédito do ciclo perdido
+   *
+   * A regra mora em liberar_credito_consulta (SQL). Estava escrita aqui e
+   * de novo na Edge Function de lembretes, e as duas cópias criavam o crédito
+   * substituto sem empresa_id nem especialidade — o que faz um crédito B2B
+   * violar credits_origem_check e sumir, e um crédito psi renascer médico.
    */
   async handleAppointmentCancellation(
     creditId: string,
-    appointmentId: string,
     scheduledAt: string
   ): Promise<{ creditLost: boolean }> {
-    const { data: credit, error: fetchError } = await supabase
-      .from('consultation_credits')
-      .select('user_id, subscription_id, especialidade, month_reference, expires_at, late_cancellations_count')
-      .eq('id', creditId)
-      .single();
+    const { data, error } = await supabase.rpc('liberar_credito_consulta', {
+      p_credit_id: creditId,
+      p_scheduled_at: scheduledAt,
+    });
 
-    if (fetchError || !credit) throw fetchError ?? new Error('Crédito não encontrado');
-
-    const hoursUntil =
-      (new Date(scheduledAt).getTime() - Date.now()) / 3_600_000;
-    const isLate = hoursUntil < 24;
-
-    if (!isLate) {
-      // Cancelamento com antecedência: libera crédito para reagendamento
-      await supabase
-        .from('consultation_credits')
-        .update({
-          status: 'cancelada_reagendada' as CreditStatus,
-          appointment_id: null,
-          doctor_id: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', creditId);
-
-      // Cria novo crédito disponível (herda contagem de cancelamentos tardios e o
-      // expires_at ORIGINAL — o prazo de 30 dias para agendar não se estende por cancelar)
-      await supabase.from('consultation_credits').insert([{
-        user_id: credit.user_id,
-        subscription_id: credit.subscription_id,
-        // Preserva a especialidade: reagendar um crédito psi não pode rebaixá-lo a médico.
-        especialidade: credit.especialidade,
-        status: 'disponivel' as CreditStatus,
-        month_reference: credit.month_reference,
-        expires_at: credit.expires_at,
-        late_cancellations_count: credit.late_cancellations_count,
-      }]);
-      return { creditLost: false };
-    }
-
-    // Cancelamento tardio ou no-show
-    const newCount = credit.late_cancellations_count + 1;
-
-    if (newCount >= 2) {
-      // Crédito permanentemente perdido
-      await supabase
-        .from('consultation_credits')
-        .update({
-          status: 'perdida_cancelamento' as CreditStatus,
-          late_cancellations_count: newCount,
-          appointment_id: null,
-          doctor_id: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', creditId);
-      return { creditLost: true };
-    } else {
-      // Primeiro cancelamento tardio: libera crédito com contagem herdada
-      await supabase
-        .from('consultation_credits')
-        .update({
-          status: 'cancelada_reagendada' as CreditStatus,
-          late_cancellations_count: newCount,
-          appointment_id: null,
-          doctor_id: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', creditId);
-
-      // Garante ao menos 7 dias para a remarcação única pós-falta: sem isso,
-      // um crédito à beira do vencimento tornaria a remarcação impossível.
-      const minExpiry = new Date(Date.now() + 7 * 86_400_000).toISOString();
-      const newExpiry = credit.expires_at > minExpiry ? credit.expires_at : minExpiry;
-
-      await supabase.from('consultation_credits').insert([{
-        user_id: credit.user_id,
-        subscription_id: credit.subscription_id,
-        // Preserva a especialidade também na remarcação única pós-falta.
-        especialidade: credit.especialidade,
-        status: 'disponivel' as CreditStatus,
-        month_reference: credit.month_reference,
-        expires_at: newExpiry,
-        late_cancellations_count: newCount, // propaga contagem para o novo crédito
-      }]);
-    }
-    return { creditLost: false };
+    if (error) throw error;
+    if (!data?.ok) throw new Error(data?.error ?? 'Não foi possível liberar o crédito.');
+    return { creditLost: !!data.credito_perdido };
   },
 
   /** Retorna logs de auditoria admin para um crédito */

@@ -252,6 +252,10 @@ export const DoctorAgenda: React.FC = () => {
   const { doctor } = useOutletContext<{ doctor: Doctor }>();
   const navigate = useNavigate();
 
+  // Registro legado sem tipo_profissional é médico — mesma convenção do
+  // DoctorLayout e da migration 20260802.
+  const isPsicologo = doctor?.tipo_profissional === 'psicologo';
+
   // ── Availability ────────────────────────────────────────────────────────────
   const [weekOffset, setWeekOffset] = useState(0);
   const [availabilities, setAvailabilities] = useState<Record<string, DoctorAvailability[]>>({});
@@ -558,9 +562,21 @@ export const DoctorAgenda: React.FC = () => {
 
   // ── Sidebar action handlers ─────────────────────────────────────────────────
   const sidebarActions = selectedConsult ? {
-    onViewProfile: () => navigate(`/medico/paciente/${selectedConsult.patient_id}`),
+    onViewProfile: () => navigate(
+      // O psicólogo não tem acesso ao perfil metabólico do paciente
+      // (migration 20260802); o registro dele é a ficha da psicologia.
+      isPsicologo
+        ? `/medico/psi/paciente/${selectedConsult.patient_id}`
+        : `/medico/paciente/${selectedConsult.patient_id}`,
+    ),
     onStartVideo: () => navigate(`/medico/consulta/${selectedConsult.id}`),
-    onCloseConsult: () => { setCloseGate(selectedConsult); },
+    // Encerrar consulta abre o prontuário MÉDICO (diagnóstico, prescrição),
+    // que está fora do escopo do psicólogo — e o registro dele é a evolução
+    // da sessão, dentro da sala. Por isso ele encerra pela sala, não aqui.
+    onCloseConsult: () => {
+      if (isPsicologo) { navigate(`/medico/consulta/${selectedConsult.id}`); return; }
+      setCloseGate(selectedConsult);
+    },
     onNoShow: () => handleNoShow(selectedConsult.id),
     onCancel: () => setShowCancelModal(selectedConsult.id),
     onReschedule: () => openReschedule(selectedConsult),

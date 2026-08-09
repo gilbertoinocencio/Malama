@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useWebRTC } from '../hooks/useWebRTC';
+import { useConsultationLifecycle } from '../hooks/useConsultationLifecycle';
 import { VideoStream } from './VideoStream';
 import { supabase } from '../services/supabase';
 import { generatePrescriptionPDF, savePrescription, signPrescriptionPDF } from '../lib/prescription';
@@ -54,7 +55,6 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   doctorHasCertificate, patientName, onEnd,
 }) => {
   const [videoMinimized, setVideoMinimized] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
   const [tab, setTab] = useState<TabKey>('info');
 
   // Notas rápidas
@@ -78,11 +78,14 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
 
   // Encerramento — callEnded = vídeo encerrado mas análise ainda pendente
   const [endingCall, setEndingCall] = useState(false);
-  const [callEnded, setCallEnded] = useState(false);
 
-  // Trava de tempo: só pode finalizar após scheduled_at + duration_minutes
-  const [scheduleUnlockMs, setScheduleUnlockMs] = useState<number | null>(null);
-  const [canComplete, setCanComplete] = useState(false);
+  // Cronômetro, transições de status e trava de tempo (só finaliza após
+  // scheduled_at + duration_minutes) vêm do hook compartilhado com a sala do
+  // psicólogo — ver useConsultationLifecycle.
+  const {
+    elapsedLabel, callEnded, canComplete, scheduleUnlockMs,
+    handleConnected, handleDisconnected, markCallEnded, markCompleted,
+  } = useConsultationLifecycle(consultationId);
 
   // Modais de ação
   const [showGoalsModal, setShowGoalsModal] = useState(false);
@@ -96,10 +99,6 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
   const [actionMsg, setActionMsg] = useState('');
 
   const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Âncora do cronômetro: o tempo da consulta só conta a partir do horário
-  // agendado (mesmo que o médico entre até 15 min antes).
-  const scheduledAtMsRef = useRef<number | null>(null);
 
   const {
     localStream, remoteStream, connectionState,
@@ -107,48 +106,9 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
     isMuted, isCameraOff, error,
   } = useWebRTC({
     roomId, role: 'doctor',
-    onConnected: () => {
-      const tick = () => {
-        const anchor = scheduledAtMsRef.current;
-        if (anchor != null) {
-          // Antes do horário agendado o cronômetro fica em 00:00
-          setElapsed(Math.max(0, Math.floor((Date.now() - anchor) / 1000)));
-        } else {
-          setElapsed(e => e + 1);
-        }
-      };
-      tick();
-      timerRef.current = setInterval(tick, 1000);
-      supabase.from('consultations')
-        .update({ status: 'in_progress', started_at: new Date().toISOString() })
-        .eq('id', consultationId);
-    },
-    onDisconnected: () => { if (timerRef.current) clearInterval(timerRef.current); },
+    onConnected: handleConnected,
+    onDisconnected: handleDisconnected,
   });
-
-  // Trava de tempo: busca scheduled_at + duration_minutes e recalcula a cada 30s
-  useEffect(() => {
-    supabase.from('consultations')
-      .select('scheduled_at, duration_minutes')
-      .eq('id', consultationId)
-      .single()
-      .then(({ data }) => {
-        if (data?.scheduled_at && data?.duration_minutes != null) {
-          scheduledAtMsRef.current = new Date(data.scheduled_at).getTime();
-          setScheduleUnlockMs(new Date(data.scheduled_at).getTime() + data.duration_minutes * 60_000);
-        } else {
-          setCanComplete(true); // sem horário definido → sem trava
-        }
-      });
-  }, [consultationId]);
-
-  useEffect(() => {
-    if (scheduleUnlockMs == null) return;
-    const check = () => setCanComplete(Date.now() >= scheduleUnlockMs);
-    check();
-    const id = setInterval(check, 30_000);
-    return () => clearInterval(id);
-  }, [scheduleUnlockMs]);
 
   // Carregar dados do paciente
   useEffect(() => {
@@ -246,9 +206,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
 
       if (callEnded) {
         // Chamada já encerrada — marcar consulta como completa e sair
-        await supabase.from('consultations')
-          .update({ status: 'completed' })
-          .eq('id', consultationId);
+        await markCompleted();
         toast.success('Consulta finalizada com sucesso!');
         onEnd();
       } else {
@@ -261,24 +219,14 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
     }
   };
 
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60).toString().padStart(2, '0');
-    return `${m}:${(s % 60).toString().padStart(2, '0')}`;
-  };
-
   const handleEndCall = async () => {
     // Encerra o vídeo imediatamente — sem gate
     setEndingCall(true);
     endCall();
-    if (timerRef.current) clearInterval(timerRef.current);
     setEndingCall(false);
 
     // Registra fim da chamada e força aba de análise clínica
-    await supabase.from('consultations')
-      .update({ ended_at: new Date().toISOString() })
-      .eq('id', consultationId);
-
-    setCallEnded(true);
+    await markCallEnded();
     setTab('clinical');
     toast('Preencha a análise clínica para finalizar a consulta.', { icon: '📋', duration: 5000 });
   };
@@ -493,7 +441,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
             )}
             {connectionState === 'connected' && (
               <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-sm font-mono px-3 py-1 rounded-full">
-                ⏱ {formatTime(elapsed)}
+                ⏱ {elapsedLabel}
               </div>
             )}
             <button onClick={() => setVideoMinimized(true)}
@@ -539,7 +487,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
           )}
           <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
             <span className={`text-xs font-mono bg-black/60 px-1.5 py-0.5 rounded ${connColor}`}>
-              {connectionState === 'connected' ? formatTime(elapsed) : connLabel}
+              {connectionState === 'connected' ? elapsedLabel : connLabel}
             </span>
             <button onClick={() => setVideoMinimized(false)} className="p-1 bg-black/60 hover:bg-black/80 text-white rounded" title="Expandir">
               <Maximize2 className="w-3 h-3" />
@@ -581,7 +529,7 @@ export const DoctorConsultaPage: React.FC<DoctorConsultaPageProps> = ({
               connectionState === 'connecting' ? 'bg-yellow-400 animate-pulse' :
               'bg-stone-500'
             }`} />
-            {connectionState === 'connected' ? formatTime(elapsed) : connLabel}
+            {connectionState === 'connected' ? elapsedLabel : connLabel}
           </div>
           {patientData?.glp1_mode && (
             <span className="shrink-0 px-2 py-0.5 bg-green-900/40 rounded-full text-xs text-green-400">

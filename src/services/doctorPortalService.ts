@@ -447,11 +447,7 @@ export const consultationService = {
       const { creditService } = await import('./billingService');
       // Força 24h+ de antecedência (cancelamento pelo médico → paciente não perde crédito)
       const futureDate = new Date(Date.now() + 48 * 3600_000).toISOString();
-      await creditService.handleAppointmentCancellation(
-        credit.id,
-        consultationId,
-        futureDate
-      );
+      await creditService.handleAppointmentCancellation(credit.id, futureDate);
     }
 
     return data as unknown as Consultation;
@@ -485,7 +481,6 @@ export const consultationService = {
       // scheduled_at no passado → cai no ramo de falta/cancelamento tardio
       await creditService.handleAppointmentCancellation(
         credit.id,
-        consultationId,
         data[0].scheduled_at
       );
     }
@@ -549,19 +544,11 @@ export const consultationService = {
 
     if (error) throw error;
 
-    if (status === 'completed') {
-      const { data: credit } = await supabase
-        .from('consultation_credits')
-        .select('id')
-        .eq('appointment_id', consultationId)
-        .eq('status', 'agendada')
-        .maybeSingle();
-
-      if (credit) {
-        const { creditService } = await import('./billingService');
-        await creditService.markAsRealized(credit.id);
-      }
-    }
+    // O crédito é marcado como 'realizada' pelo trigger
+    // trg_realizar_credito_da_consulta. Era feito aqui, mas a RLS de
+    // consultation_credits barra UPDATE de médico (0 linhas, sem erro), então
+    // consulta encerrada nunca entrava na base de repasse. No banco também
+    // vale para quem encerra pela sala de vídeo, que não passa por aqui.
   },
 
   // Buscar consultas por dia

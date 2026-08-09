@@ -9,15 +9,15 @@
 // clínicas, sem chat. No lugar entram evolução da sessão, notas
 // interprofissionais e o registro de risco.
 //
-// ⚠️ SINCRONIA: o ciclo de vida da consulta (in_progress ao conectar,
-// ended_at ao encerrar, completed ao finalizar) é o mesmo de
-// DoctorConsultaPage. Não extraí para um hook comum porque isso exigiria
-// refatorar um fluxo de vídeo em produção que não tenho como testar
-// ponta a ponta. Se mudar a máquina de estados lá, mudar aqui também.
+// O ciclo de vida da consulta (cronômetro, in_progress, ended_at, completed
+// e a trava de duração) mora em useConsultationLifecycle, compartilhado com
+// DoctorConsultaPage. Enquanto era cópia, a trava de duração existia só lá:
+// sessão de psicologia podia ser encerrada no minuto 2 valendo repasse cheio.
 // =====================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useWebRTC } from '../hooks/useWebRTC';
+import { useConsultationLifecycle } from '../hooks/useConsultationLifecycle';
 import { VideoStream } from './VideoStream';
 import { supabase } from '../services/supabase';
 import toast from 'react-hot-toast';
@@ -71,15 +71,13 @@ export const PsiConsultaPage: React.FC<PsiConsultaPageProps> = ({
   consultationId, roomId, patientId, doctorId, patientName, onEnd,
 }) => {
   const [videoMinimized, setVideoMinimized] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
   const [tab, setTab] = useState<TabKey>('contexto');
-  const [callEnded, setCallEnded] = useState(false);
   const [endingCall, setEndingCall] = useState(false);
 
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // O cronômetro conta a partir do horário agendado, não da entrada na sala —
-  // o profissional pode entrar até 15 min antes.
-  const scheduledAtMsRef = useRef<number | null>(null);
+  const {
+    elapsedLabel, callEnded, canComplete, scheduleUnlockMs,
+    handleConnected, handleDisconnected, markCallEnded, markCompleted,
+  } = useConsultationLifecycle(consultationId);
 
   // Evolução (prontuário)
   const [noteId, setNoteId] = useState<string | null>(null);
@@ -119,30 +117,9 @@ export const PsiConsultaPage: React.FC<PsiConsultaPageProps> = ({
   } = useWebRTC({
     roomId,
     role: 'doctor',
-    onConnected: () => {
-      const tick = () => {
-        const anchor = scheduledAtMsRef.current;
-        if (anchor != null) setElapsed(Math.max(0, Math.floor((Date.now() - anchor) / 1000)));
-        else setElapsed(e => e + 1);
-      };
-      tick();
-      timerRef.current = setInterval(tick, 1000);
-      supabase.from('consultations')
-        .update({ status: 'in_progress', started_at: new Date().toISOString() })
-        .eq('id', consultationId);
-    },
-    onDisconnected: () => { if (timerRef.current) clearInterval(timerRef.current); },
+    onConnected: handleConnected,
+    onDisconnected: handleDisconnected,
   });
-
-  useEffect(() => {
-    supabase.from('consultations')
-      .select('scheduled_at')
-      .eq('id', consultationId)
-      .single()
-      .then(({ data }) => {
-        if (data?.scheduled_at) scheduledAtMsRef.current = new Date(data.scheduled_at).getTime();
-      });
-  }, [consultationId]);
 
   // Contexto e rascunho de evolução desta consulta
   useEffect(() => {
@@ -159,8 +136,6 @@ export const PsiConsultaPage: React.FC<PsiConsultaPageProps> = ({
       }
     });
   }, [patientId, consultationId]);
-
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
   const salvarEvolucao = useCallback(async (finalizar = false) => {
     setSalvando(true);
@@ -191,18 +166,11 @@ export const PsiConsultaPage: React.FC<PsiConsultaPageProps> = ({
     return () => { if (autosave.current) clearTimeout(autosave.current); };
   }, [queixa, evolucao, plano, observacoes, salvarEvolucao]);
 
-  const fmtTime = (s: number) =>
-    `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
-
   const handleEndCall = async () => {
     setEndingCall(true);
     endCall();
-    if (timerRef.current) clearInterval(timerRef.current);
     setEndingCall(false);
-    await supabase.from('consultations')
-      .update({ ended_at: new Date().toISOString() })
-      .eq('id', consultationId);
-    setCallEnded(true);
+    await markCallEnded();
     setTab('evolucao');
     toast('Registre a evolução para finalizar o atendimento.', { icon: '📝', duration: 5000 });
   };
@@ -213,11 +181,27 @@ export const PsiConsultaPage: React.FC<PsiConsultaPageProps> = ({
       setTab('evolucao');
       return;
     }
+    // Mesma trava da sala do médico: a sessão não se encerra antes do fim do
+    // horário agendado — é ele que define o repasse.
+    if (callEnded && !canComplete) {
+      const unlockStr = scheduleUnlockMs
+        ? new Date(scheduleUnlockMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        : null;
+      toast.error(unlockStr
+        ? `A sessão só pode ser encerrada após ${unlockStr}`
+        : 'Aguarde o fim do horário agendado');
+      return;
+    }
     const ok = await salvarEvolucao(true);
     if (!ok) return;
-    await supabase.from('consultations')
-      .update({ status: 'completed' })
-      .eq('id', consultationId);
+    try {
+      await markCompleted();
+    } catch {
+      // A evolução já está salva; sem o 'completed' o crédito não é realizado
+      // (trigger no banco) e o profissional não receberia por esta sessão.
+      toast.error('A evolução foi salva, mas não foi possível encerrar a consulta. Tente novamente.');
+      return;
+    }
     toast.success('Atendimento finalizado.');
     onEnd();
   };
@@ -299,7 +283,7 @@ export const PsiConsultaPage: React.FC<PsiConsultaPageProps> = ({
           </p>
         </div>
         <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-bold tabular-nums bg-stone-800 text-stone-300">
-          <span>{fmtTime(elapsed)}</span>
+          <span>{elapsedLabel}</span>
         </div>
       </div>
 
@@ -500,12 +484,19 @@ export const PsiConsultaPage: React.FC<PsiConsultaPageProps> = ({
                 <Save className="w-4 h-4" /> Salvar rascunho
               </button>
               <button
-                onClick={finalizar} disabled={salvando}
+                onClick={finalizar} disabled={salvando || (callEnded && !canComplete)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
               >
                 <CheckCircle className="w-4 h-4" /> Finalizar atendimento
               </button>
               {salvoEm && <span className="text-[11px] text-stone-500">Salvo às {salvoEm}</span>}
+              {callEnded && !canComplete && scheduleUnlockMs && (
+                <span className="text-[11px] text-amber-400/80 w-full">
+                  Encerramento disponível após{' '}
+                  {new Date(scheduleUnlockMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.
+                  O rascunho continua sendo salvo.
+                </span>
+              )}
             </div>
           </>
         )}

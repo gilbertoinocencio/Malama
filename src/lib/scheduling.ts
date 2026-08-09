@@ -296,11 +296,16 @@ export async function bookConsultation(params: {
 
   const { data: doctor } = await supabase
     .from('public_doctors')
-    .select('consultation_duration')
+    .select('consultation_duration, tipo_profissional')
     .eq('id', doctorId)
     .single();
 
   if (!doctor) throw new Error('Médico não encontrado');
+
+  // Registro legado sem tipo_profissional é médico (mesma convenção da
+  // migration 20260802 e do DoctorLayout).
+  const especialidadeNecessaria: 'medico' | 'psicologo' =
+    doctor.tipo_profissional === 'psicologo' ? 'psicologo' : 'medico';
 
   // A consulta não tem preço ao paciente: ele agenda com um crédito do
   // assento que a empresa contratou. price / platform_fee / doctor_payout
@@ -320,11 +325,15 @@ export async function bookConsultation(params: {
 
   // Crédito ativo do paciente: a data agendada deve estar DENTRO da validade
   // (janela de 30 dias). Não se pode agendar para uma data além do vencimento.
+  // Filtra pela especialidade do profissional escolhido: sem isso, agendar
+  // com psicólogo consumiria o crédito médico (o mais próximo do vencimento),
+  // deixando o paciente sem a consulta médica que a empresa pagou.
   const { data: activeCredit } = await supabase
     .from('consultation_credits')
     .select('id, expires_at')
     .eq('user_id', patientId)
     .eq('status', 'disponivel')
+    .eq('especialidade', especialidadeNecessaria)
     .gt('expires_at', new Date().toISOString())
     .order('expires_at', { ascending: true })
     .limit(1)
@@ -369,9 +378,20 @@ export async function bookConsultation(params: {
 
   // Vincula o crédito ao agendamento (disponivel → agendada). Isso protege o
   // crédito da expiração: uma vez agendado dentro do prazo, é honrado.
+  //
+  // Se a reserva falhar, a consulta recém-criada é cancelada: consulta de pé
+  // sem crédito consumido é consulta de graça, e o profissional apareceria
+  // para um horário que ninguém pagou.
   if (activeCredit) {
     const { creditService } = await import('../services/billingService');
-    await creditService.markAsScheduled(activeCredit.id, data.id, doctorId);
+    try {
+      await creditService.markAsScheduled(activeCredit.id, data.id, doctorId);
+    } catch (e) {
+      await supabase.from('consultations')
+        .update({ status: 'cancelled' })
+        .eq('id', data.id);
+      throw e;
+    }
   }
 
   return data;
@@ -449,7 +469,6 @@ export async function processMissedConsultation(
   const { creditService } = await import('../services/billingService');
   const { creditLost } = await creditService.handleAppointmentCancellation(
     credit.id,
-    consultationId,
     updated[0].scheduled_at // horário no passado → conta como falta/cancelamento tardio
   );
   return { creditLost, alreadyProcessed: false };
@@ -486,7 +505,6 @@ export async function cancelConsultation(consultationId: string, patientId: stri
     const { creditService } = await import('../services/billingService');
     await creditService.handleAppointmentCancellation(
       credit.id,
-      consultationId,
       consultation.scheduled_at
     );
   }
