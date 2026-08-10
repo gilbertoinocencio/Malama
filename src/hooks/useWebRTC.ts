@@ -100,6 +100,10 @@ export function useWebRTC({
   // answerer, então reofertas não causam glare.
   const offerRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const helloRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Reentrada no canal quando ele morre. endedRef impede que a reentrada
+  // ressuscite a sinalização depois de endCall/desmontagem.
+  const rejoinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endedRef = useRef(false);
   // O paciente guarda a última oferta aplicada e a resposta gerada. Como o
   // médico reenvia a MESMA oferta até conectar, ao ver uma oferta repetida o
   // paciente só reenvia a resposta (idempotente) — sem renegociar o PC.
@@ -162,6 +166,7 @@ export function useWebRTC({
   const stopRetries = useCallback(() => {
     if (offerRetryRef.current) { clearInterval(offerRetryRef.current); offerRetryRef.current = null; }
     if (helloRetryRef.current) { clearInterval(helloRetryRef.current); helloRetryRef.current = null; }
+    if (rejoinTimerRef.current) { clearTimeout(rejoinTimerRef.current); rejoinTimerRef.current = null; }
   }, []);
 
   const handleSignal = useCallback(
@@ -241,8 +246,20 @@ export function useWebRTC({
     // Tear down de qualquer sessão anterior — evita DUAS inscrições no mesmo
     // canal `webrtc:<room>` (o Supabase fecha a duplicada → o CLOSED que
     // aparecia nos logs e engolia sinais). Idempotente e seguro.
+    //
+    // removeChannel, NÃO unsubscribe: unsubscribe fecha o socket do canal mas
+    // DEIXA o objeto no registro do cliente supabase-js. Ao entrar de novo na
+    // mesma sala, `supabase.channel('webrtc:<room>')` criava um SEGUNDO canal
+    // com o mesmo tópico, o servidor fechava o duplicado, e o novo canal ficava
+    // mudo: não entregava a oferta do médico nem enviava os `hello` seguintes
+    // (`channel.send` em canal morto falha em silêncio). Sintoma: o paciente se
+    // vê na câmera, manda UM hello e trava em "Conectando..." para sempre.
+    // Todos os outros sete pontos do app já usavam removeChannel.
+    endedRef.current = false;
     stopRetries();
-    try { channelRef.current?.unsubscribe(); } catch { /* ignore */ }
+    if (channelRef.current) {
+      try { supabase.removeChannel(channelRef.current); } catch { /* ignore */ }
+    }
     try { pcRef.current?.close(); } catch { /* ignore */ }
     channelRef.current = null;
     pcRef.current = null;
@@ -262,17 +279,36 @@ export function useWebRTC({
     // via silêncio absoluto, indistinguível de problema de rede. Agora o peer
     // SEMPRE anuncia presença (hello); falha de mídia vira erro visível na
     // tela + chamada recvonly, e o console do médico mostra o que está vivo.
-    const channel = supabase.channel(`webrtc:${roomId}`, {
-      config: { broadcast: { self: false } },
-    });
-    channelRef.current = channel;
+    const joinChannel = () => {
+      const channel = supabase.channel(`webrtc:${roomId}`, {
+        config: { broadcast: { self: false } },
+      });
+      channelRef.current = channel;
 
-    channel
+      channel
       .on('broadcast', { event: 'signal' }, ({ payload }) => {
         handleSignal(payload);
       })
       .subscribe(async (status) => {
         console.log(`[WebRTC] canal realtime: ${status} (sala ${roomId})`);
+        // Canal morto = silêncio absoluto, indistinguível de "o outro lado não
+        // entrou". Nunca pode ser estado final: reentra até conectar ou até a
+        // chamada ser encerrada.
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          if (endedRef.current) return;
+          if (rejoinTimerRef.current) return;
+          console.warn(`[WebRTC] canal ${status} — reentrando na sala em 1.5s`);
+          rejoinTimerRef.current = setTimeout(() => {
+            rejoinTimerRef.current = null;
+            if (endedRef.current) return;
+            if (channelRef.current) {
+              try { supabase.removeChannel(channelRef.current); } catch { /* ignore */ }
+              channelRef.current = null;
+            }
+            joinChannel();
+          }, 1500);
+          return;
+        }
         if (status === 'SUBSCRIBED') {
           // Anuncia presença e liga a rede de segurança. O broadcast do
           // Supabase é efêmero (sem replay): quem entra primeiro perde o
@@ -306,6 +342,9 @@ export function useWebRTC({
           }
         }
       });
+    };
+
+    joinChannel();
 
     // 2. Câmera/microfone — falha NÃO derruba a sinalização.
     let stream: MediaStream | null = null;
@@ -425,10 +464,15 @@ export function useWebRTC({
   }, [roomId, role, onConnected, onDisconnected, sendSignal, handleSignal, createAndSendOffer, stopRetries]);
 
   const endCall = useCallback(() => {
+    endedRef.current = true;
     stopRetries();
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     pcRef.current?.close();
-    channelRef.current?.unsubscribe();
+    // removeChannel (não unsubscribe): tira o canal do registro do cliente,
+    // senão a próxima entrada nesta sala cria um tópico duplicado e nasce muda.
+    if (channelRef.current) {
+      try { supabase.removeChannel(channelRef.current); } catch { /* ignore */ }
+    }
     pcRef.current = null;
     channelRef.current = null;
     localStreamRef.current = null;
