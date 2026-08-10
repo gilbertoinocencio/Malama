@@ -156,38 +156,41 @@ export function activationEmailHtml(empresaNome: string, ctaUrl: string): string
   });
 }
 
-// ─── E-mail de ACESSO AO CADASTRO PROFISSIONAL ──
-// Usado quando o e-mail da fila de espera JÁ tem conta Malama (paciente, por
-// exemplo). Nesse caso o convite do Supabase falha ("email already registered"),
-// então mandamos um magic link que abre direto o cadastro profissional.
-export function professionalAccessEmailText(tipo: 'medico' | 'psicologo', ctaUrl: string): string {
+// ─── E-mail de CONVITE PARA O CADASTRO PROFISSIONAL ──
+// O convite NÃO cria conta: é só um link para o formulário completo, onde o
+// profissional define a própria senha e envia os documentos. A conta nasce no
+// submit do formulário, e o admin só aprova depois — com o cadastro inteiro à
+// vista. Sem isso o aprovado ficava em limbo: liberado, mas sem senha nem dados.
+export function professionalSignupEmailText(tipo: 'medico' | 'psicologo', ctaUrl: string): string {
   const papel = tipo === 'psicologo' ? 'psicólogo(a)' : 'médico(a)';
   return [
-    `Seu cadastro de ${papel} na Malama foi liberado.`,
+    `Sua vaga de ${papel} na Malama foi liberada.`,
     ``,
-    `Analisamos sua inscrição na fila de espera e liberamos seu acesso ao portal profissional.`,
-    `Use o link abaixo para entrar e completar o cadastro (conselho, especialidade e documentos):`,
+    `Analisamos sua inscrição na fila de espera e liberamos seu cadastro no portal profissional.`,
+    `Use o link abaixo para completar o cadastro — você define sua senha de acesso na hora:`,
     ctaUrl,
     ``,
-    `O link é pessoal e expira em algumas horas. Se expirar, peça um novo à equipe Malama.`,
+    `Depois de enviado, nossa equipe confere seus dados e libera o acesso ao portal.`,
     ``,
     `Malama — Cuidado contínuo, com gente de verdade por trás.`,
   ].join('\n');
 }
 
-export function professionalAccessEmailHtml(tipo: 'medico' | 'psicologo', ctaUrl: string): string {
+export function professionalSignupEmailHtml(tipo: 'medico' | 'psicologo', ctaUrl: string): string {
   const papel = tipo === 'psicologo' ? 'psicólogo(a)' : 'médico(a)';
+  const conselho = tipo === 'psicologo' ? 'CRP e e-Psi' : 'CRM';
   return brandedEmailHtml({
     eyebrow: 'Malama Profissionais',
-    preheader: `Seu acesso ao portal profissional da Malama está liberado.`,
-    heading: `Seu cadastro de ${papel} foi <em style="font-style:italic;color:${COLOR.petrol};">liberado</em>.`,
+    preheader: `Sua vaga no portal profissional da Malama foi liberada.`,
+    heading: `Sua vaga de ${papel} foi <em style="font-style:italic;color:${COLOR.petrol};">liberada</em>.`,
     bodyParagraphs: [
-      `Analisamos sua inscrição na fila de espera e liberamos seu acesso ao portal profissional da Malama.`,
-      `Como você já tem uma conta com este e-mail, é só usar o botão abaixo para entrar e completar o cadastro — registro no conselho, especialidade e documentos.`,
+      `Analisamos sua inscrição na fila de espera e liberamos seu cadastro no portal profissional da Malama.`,
+      `Leva poucos minutos: dados pessoais, ${conselho}, especialidade e valor da consulta. Você define sua <strong>senha de acesso</strong> no próprio formulário.`,
+      `Assim que enviar, nossa equipe confere os dados e libera seu acesso ao portal.`,
     ],
     ctaText: 'Completar meu cadastro',
     ctaUrl,
-    footnote: 'O link é pessoal e expira em algumas horas. Se ele expirar, peça um novo à equipe Malama.',
+    footnote: 'Se você não se inscreveu na Malama, pode ignorar este e-mail.',
   });
 }
 

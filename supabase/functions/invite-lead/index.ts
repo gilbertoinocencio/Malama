@@ -1,14 +1,23 @@
 // =====================================================
 // Malama — Edge Function: convidar lead da fila de espera
 // Chamada só pelo super_admin (médico/psicólogo em doctor_leads,
-// paciente em patient_leads). Requer service_role para resolver
-// e-mail → user_id e disparar convite/magic link.
+// paciente em patient_leads).
+//
+// PROFISSIONAL (type='doctor'): o convite NÃO cria conta. Manda um e-mail
+// com o link do formulário completo, onde ele define a própria senha e envia
+// documentos; a conta nasce no submit e o admin aprova depois, vendo o
+// cadastro inteiro. Criar a conta aqui deixava o profissional em limbo —
+// liberado pelo admin, mas sem senha e sem dados — e quebrava com
+// "email already registered" para quem já era paciente Malama.
+//
+// PACIENTE (type='patient'): não há formulário pesado, então segue o convite
+// nativo do Supabase (a senha é definida no link do convite).
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
-  professionalAccessEmailHtml,
-  professionalAccessEmailText,
+  professionalSignupEmailHtml,
+  professionalSignupEmailText,
   sendEmail,
 } from '../_shared/emails.ts';
 
@@ -27,8 +36,9 @@ interface Payload {
   email: string;
   type: 'doctor' | 'patient';
   lead_id: string;
+  /** Destino do convite: formulário de cadastro (doctor) ou login (patient). */
   redirect_to: string;
-  /** Só para type='doctor': muda o texto do e-mail de acesso. */
+  /** Só para type='doctor': muda o texto do e-mail. */
   tipo_profissional?: 'medico' | 'psicologo';
 }
 
@@ -38,11 +48,11 @@ function traduzErroAuth(message: string): string {
   if (m.includes('rate limit') || m.includes('too many requests')) {
     return 'Limite de envio de e-mails atingido. Aguarde alguns minutos antes de convidar de novo.';
   }
+  if (m.includes('already been registered') || m.includes('already registered')) {
+    return 'Este e-mail já tem conta na Malama — a pessoa pode entrar direto, sem convite.';
+  }
   if (m.includes('invalid') && m.includes('email')) {
     return 'E-mail inválido — corrija o endereço na fila de espera.';
-  }
-  if (m.includes('smtp') || m.includes('sending')) {
-    return `Falha no envio do e-mail: ${message}`;
   }
   return message;
 }
@@ -71,53 +81,25 @@ Deno.serve(async (req: Request) => {
     if (!email) return json({ error: 'E-mail é obrigatório' }, 400);
     if (type !== 'doctor' && type !== 'patient') return json({ error: 'Tipo de lead inválido' }, 400);
     if (!lead_id) return json({ error: 'Lead não identificado' }, 400);
+    if (!redirect_to) return json({ error: 'Destino do convite não informado' }, 400);
 
     const normalizedEmail = String(email).trim().toLowerCase();
     const table = type === 'doctor' ? 'doctor_leads' : 'patient_leads';
 
-    // O e-mail já tem conta no app? Um lead profissional costuma já ser
-    // paciente Malama — nesse caso inviteUserByEmail falha com
-    // "email already registered" e o convite morria com erro genérico.
-    const { data: existingUserId } = await supabase
-      .rpc('get_user_id_by_email', { p_email: normalizedEmail });
-
-    let flow: 'invite' | 'magiclink' = 'invite';
-    let emailed = true;
     let warning: string | undefined;
 
-    if (existingUserId) {
-      // Já tem conta: convite não se aplica. Geramos um magic link para o mesmo
-      // destino e enviamos pelo nosso provedor transacional (ZeptoMail/Resend),
-      // que não sofre o rate limit baixo do SMTP embutido do Supabase.
-      const { data: link, error: linkError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: normalizedEmail,
-        options: { redirectTo: redirect_to },
+    if (type === 'doctor') {
+      // Convite = link para o formulário. Nada de conta aqui.
+      const tipo = tipo_profissional === 'psicologo' ? 'psicologo' : 'medico';
+      const { sent, warning: emailWarning } = await sendEmail({
+        to: normalizedEmail,
+        subject: 'Sua vaga no portal profissional da Malama foi liberada',
+        html: professionalSignupEmailHtml(tipo, redirect_to),
+        text: professionalSignupEmailText(tipo, redirect_to),
       });
-
-      if (linkError || !link?.properties?.action_link) {
-        return json({ error: traduzErroAuth(linkError?.message ?? 'Falha ao gerar link de acesso') }, 400);
+      if (!sent) {
+        return json({ error: emailWarning ?? 'Falha ao enviar o e-mail de convite' }, 400);
       }
-
-      const actionLink = link.properties.action_link;
-
-      if (type === 'doctor') {
-        const tipo = tipo_profissional === 'psicologo' ? 'psicologo' : 'medico';
-        const res = await sendEmail({
-          to: normalizedEmail,
-          subject: 'Seu acesso ao portal profissional da Malama',
-          html: professionalAccessEmailHtml(tipo, actionLink),
-          text: professionalAccessEmailText(tipo, actionLink),
-        });
-        emailed = res.sent;
-        warning = res.warning;
-      } else {
-        // Paciente com conta: nada a convidar, só avisa o admin.
-        emailed = false;
-        warning = 'Este e-mail já tem conta na Malama — o paciente pode entrar normalmente.';
-      }
-
-      flow = 'magiclink';
     } else {
       const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(normalizedEmail, {
         redirectTo: redirect_to,
@@ -135,10 +117,10 @@ Deno.serve(async (req: Request) => {
       .eq('id', lead_id);
 
     if (updateError) {
-      warning = `E-mail processado, mas a fila não foi atualizada: ${updateError.message}`;
+      warning = `E-mail enviado, mas a fila não foi atualizada: ${updateError.message}`;
     }
 
-    return json({ success: true, flow, emailed, warning });
+    return json({ success: true, warning });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Erro interno';
     return json({ error: message }, 500);

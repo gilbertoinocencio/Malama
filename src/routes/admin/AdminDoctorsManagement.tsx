@@ -121,24 +121,15 @@ export const AdminDoctorsManagement: React.FC = () => {
           type: 'doctor',
           lead_id: lead.id,
           tipo_profissional: tipo,
-          // O cadastro abre já na trilha do profissional convidado (CRM x CRP,
-          // especialidades e e-Psi mudam conforme o tipo).
-          redirect_to: `${window.location.origin}/medico/cadastro?tipo=${tipo}`,
+          // O convite leva ao formulário completo, já na trilha do profissional
+          // (CRM x CRP, especialidades e e-Psi mudam conforme o tipo). A conta e
+          // a senha nascem lá; aqui nenhuma conta é criada.
+          redirect_to: `${window.location.origin}/medico/cadastro?tipo=${tipo}&email=${encodeURIComponent(lead.email)}`,
         },
       });
       if (error) throw error;
-
-      // Quem já tinha conta Malama recebe magic link (o convite do Supabase
-      // não se aplica); o provedor de e-mail pode falhar sem derrubar o fluxo.
-      if (data?.emailed === false) {
-        toast.error(data?.warning ?? `Não foi possível enviar o e-mail para ${lead.email}.`);
-      } else if (data?.flow === 'magiclink') {
-        toast.success(`${lead.email} já tinha conta — link de acesso ao cadastro enviado.`);
-        if (data?.warning) toast(data.warning);
-      } else {
-        toast.success(`Convite enviado para ${lead.email}`);
-        if (data?.warning) toast(data.warning);
-      }
+      toast.success(`Convite enviado para ${lead.email}`);
+      if (data?.warning) toast(data.warning);
       loadLeads();
     } catch (err) {
       toast.error(await edgeFunctionErrorMessage(err, 'Erro ao enviar convite. Tente novamente.'));

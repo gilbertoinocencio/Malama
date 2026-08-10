@@ -276,7 +276,6 @@ export interface DoctorRegistrationFormData {
   documentoConselho?: File | null;
 
   // Etapa 4: Configurações
-  consultationPrice: number;
   consultationDuration: number;
   pixKey: string;
   consultationTypes: ConsultationType[];

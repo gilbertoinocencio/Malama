@@ -11,7 +11,6 @@ import type { DoctorRegistrationFormData, DoctorSpecialty, ConsultationType, Con
 import { BRAZILIAN_STATES, SPECIALTY_OPTIONS, SPECIALTY_OPTIONS_PSICOLOGO, CONSULTATION_TYPE_OPTIONS, OBJECTIVE_OPTIONS, ConsultationType as CT, DoctorType } from '../../types/doctorPortal';
 import { MalamaLogo } from '../../components/MalamaLogo';
 
-const MIN_CONSULTATION_PRICE = 80;
 
 export const DoctorRegistration: React.FC = () => {
   const navigate = useNavigate();
@@ -46,7 +45,6 @@ export const DoctorRegistration: React.FC = () => {
     bio: '',
     photo: null,
     icpCertificate: null,
-    consultationPrice: MIN_CONSULTATION_PRICE,
     consultationDuration: 30,
     pixKey: '',
     consultationTypes: [CT.INITIAL, CT.FOLLOW_UP],
@@ -62,6 +60,15 @@ export const DoctorRegistration: React.FC = () => {
     const tipo = searchParams.get('tipo');
     if (tipo === DoctorType.PSICOLOGO || tipo === DoctorType.MEDICO) {
       setFormData(prev => ({ ...prev, tipoProfissional: tipo as DoctorType }));
+    }
+  }, [searchParams]);
+
+  // E-mail do convite (?email=). Só pré-preenche — o campo segue editável,
+  // porque o profissional pode preferir outro endereço para o portal.
+  useEffect(() => {
+    const email = searchParams.get('email');
+    if (email) {
+      setFormData(prev => (prev.email ? prev : { ...prev, email }));
     }
   }, [searchParams]);
 
@@ -189,11 +196,8 @@ export const DoctorRegistration: React.FC = () => {
       if (formData.bio.length > 300) newErrors.bio = 'Bio deve ter no máximo 300 caracteres';
     }
 
-    if (currentStep === 4) {
-      if (formData.consultationPrice < MIN_CONSULTATION_PRICE) {
-        newErrors.consultationPrice = `Valor mínimo é R$ ${MIN_CONSULTATION_PRICE}`;
-      }
-    }
+    // Etapa 4 não tem campo obrigatório: o valor da consulta é tabelado pela
+    // Malama (por nível) e a duração tem default.
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -213,7 +217,13 @@ export const DoctorRegistration: React.FC = () => {
 
     setLoading(true);
     try {
-      // Criar conta de usuário
+      // Criar conta de usuário. O e-mail pode já ter conta Malama — o
+      // profissional costuma ser paciente antes de se cadastrar como
+      // médico/psicólogo, e aí o signUp devolve "User already registered".
+      // Nesse caso entramos com a senha informada e seguimos o cadastro com o
+      // mesmo usuário, em vez de travar no último botão do formulário.
+      let userId: string;
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -225,19 +235,45 @@ export const DoctorRegistration: React.FC = () => {
         }
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Falha ao criar conta');
+      if (authError) {
+        const contaExiste = /already registered|already been registered|user_already_exists/i
+          .test(authError.message);
+        if (!contaExiste) throw authError;
+
+        const { data: signIn, error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+        if (signInError || !signIn.user) {
+          throw new Error(
+            'Este e-mail já tem conta na Malama. Informe a senha dessa conta para continuar o cadastro profissional, ou recupere-a em "Esqueci minha senha".'
+          );
+        }
+        userId = signIn.user.id;
+      } else {
+        if (!authData.user) throw new Error('Falha ao criar conta');
+        userId = authData.user.id;
+      }
+
+      // Já existe cadastro profissional para esse usuário? Evita um segundo
+      // registro (e o erro cru do banco) em reenvio ou clique duplo.
+      const jaCadastrado = await doctorService.getOwnDoctorProfile().catch(() => null);
+      if (jaCadastrado) {
+        toast.success('Você já tem cadastro profissional na Malama.');
+        navigate('/medico');
+        return;
+      }
 
       // Upload da foto
       let photoUrl: string | null = null;
       if (formData.photo) {
-        photoUrl = await storageService.uploadDoctorPhoto(formData.photo, authData.user.id);
+        photoUrl = await storageService.uploadDoctorPhoto(formData.photo, userId);
       }
 
       // Upload do certificado
       let certificateUrl: string | null = null;
       if (formData.icpCertificate) {
-        certificateUrl = await storageService.uploadCertificate(formData.icpCertificate, authData.user.id);
+        certificateUrl = await storageService.uploadCertificate(formData.icpCertificate, userId);
       }
 
       // Documento de comprovação do conselho (CRP / e-Psi). O CRM tem
@@ -245,7 +281,7 @@ export const DoctorRegistration: React.FC = () => {
       let documentoConselhoPath: string | null = null;
       if (formData.documentoConselho) {
         documentoConselhoPath = await storageService.uploadDocumentoConselho(
-          formData.documentoConselho, authData.user.id,
+          formData.documentoConselho, userId,
         );
       }
 
@@ -255,7 +291,7 @@ export const DoctorRegistration: React.FC = () => {
       // CRP + declaração de e-Psi. O conselho genérico guarda ambos os casos;
       // crm/crm_state seguem preenchidos (compat. com o resto do portal).
       await doctorService.createDoctor({
-        user_id: authData.user.id,
+        user_id: userId,
         name: formData.name,
         email: formData.email,
         cpf: formData.cpf,
@@ -273,7 +309,8 @@ export const DoctorRegistration: React.FC = () => {
         bio: formData.bio || null,
         photo_url: photoUrl,
         icp_certificate_url: certificateUrl,
-        consultation_price: formData.consultationPrice,
+        // consultation_price NÃO vai daqui: é tabelado por nível e só a Malama
+        // escreve (bloqueado no trigger protect_doctor_privileged_fields).
         consultation_duration: formData.consultationDuration,
         pix_key: formData.pixKey || null,
         address_zip: formData.addressZip || null,
@@ -758,16 +795,16 @@ export const DoctorRegistration: React.FC = () => {
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-gray-800">Configurações</h2>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Valor por Consulta (R$) *</label>
-        <input
-          type="number"
-          value={formData.consultationPrice}
-          onChange={e => updateField('consultationPrice', parseFloat(e.target.value) || 0)}
-          min={MIN_CONSULTATION_PRICE}
-          className={`w-full px-4 py-3 rounded-lg border ${errors.consultationPrice ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900`}
-        />
-        {errors.consultationPrice && <p className="text-red-500 text-sm mt-1">{errors.consultationPrice}</p>}
+      {/* A remuneração não é escolhida pelo profissional: é tabelada por nível,
+          definido pela Malama na aprovação. Ver AdminSettings (doctor_value_nivelN
+          / psi_value_nivelN) e doctorService.getDoctorEarnings. */}
+      <div className="bg-[#F2EBE6] border border-[#7d4a3c]/20 rounded-lg p-4">
+        <p className="text-sm font-medium text-[#7d4a3c] mb-1">Valor por consulta</p>
+        <p className="text-sm text-gray-700">
+          O valor é tabelado pela Malama, por nível de atuação. Sua faixa é definida
+          pela nossa equipe na aprovação do cadastro, e você acompanha os repasses
+          na aba Financeiro do portal.
+        </p>
       </div>
 
       <div>

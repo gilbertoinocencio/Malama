@@ -651,13 +651,8 @@ export const AdminUsersManagement: React.FC = () => {
         },
       });
       if (error) throw error;
-      if (data?.flow === 'magiclink') {
-        // Já tinha conta: nada foi enviado, mas o lead sai da fila.
-        toast(data?.warning ?? `${lead.email} já tem conta na Malama.`);
-      } else {
-        toast.success(`Convite enviado para ${lead.email}`);
-        if (data?.warning) toast(data.warning);
-      }
+      toast.success(`Convite enviado para ${lead.email}`);
+      if (data?.warning) toast(data.warning);
       loadPatientLeads();
     } catch (err) {
       toast.error(await edgeFunctionErrorMessage(err, 'Erro ao enviar convite. Tente novamente.'));
