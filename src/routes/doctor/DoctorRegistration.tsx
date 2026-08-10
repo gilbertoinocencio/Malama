@@ -10,6 +10,11 @@ import { doctorService, storageService } from '../../services/doctorPortalServic
 import type { DoctorRegistrationFormData, DoctorSpecialty, ConsultationType, ConsultationObjective } from '../../types/doctorPortal';
 import { BRAZILIAN_STATES, SPECIALTY_OPTIONS, SPECIALTY_OPTIONS_PSICOLOGO, CONSULTATION_TYPE_OPTIONS, OBJECTIVE_OPTIONS, ConsultationType as CT, DoctorType } from '../../types/doctorPortal';
 import { MalamaLogo } from '../../components/MalamaLogo';
+import { isValidCPF } from '../../utils/cpf';
+
+// Mesma regra da Edge Function validate-email: um @, sem espaços, domínio com
+// ponto e TLD de 2+ letras. O `\S+@\S+\.\S+` anterior aceitava "a@b.c".
+const EMAIL_RE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.[A-Za-z]{2,}$/;
 
 
 export const DoctorRegistration: React.FC = () => {
@@ -19,6 +24,10 @@ export const DoctorRegistration: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [inviteData, setInviteData] = useState<{ email: string; doctorId: string } | null>(null);
   const [crmValidating, setCrmValidating] = useState(false);
+  // E-mail já aprovado no teste de domínio (guarda o valor, não um booleano:
+  // trocar o e-mail depois obriga a checar de novo).
+  const [emailChecked, setEmailChecked] = useState<string | null>(null);
+  const [emailChecking, setEmailChecking] = useState(false);
   const [crmValidated, setCrmValidated] = useState<{ name: string; situation: string; specialty: string | null } | null>(null);
   const [crmError, setCrmError] = useState<string | null>(null);
 
@@ -163,8 +172,10 @@ export const DoctorRegistration: React.FC = () => {
     if (currentStep === 1) {
       if (!formData.name.trim()) newErrors.name = 'Nome é obrigatório';
       if (!formData.email.trim()) newErrors.email = 'Email é obrigatório';
-      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email inválido';
-      if (!formData.cpf.trim() || formData.cpf.replace(/\D/g, '').length !== 11) newErrors.cpf = 'CPF inválido';
+      else if (!EMAIL_RE.test(formData.email.trim())) newErrors.email = 'Email inválido';
+      // Dígitos verificadores, não só tamanho: antes qualquer 11 dígitos
+      // inventados passavam (inclusive 111.111.111-11).
+      if (!isValidCPF(formData.cpf)) newErrors.cpf = 'CPF inválido — confira os números';
       if (!formData.phone.trim() || formData.phone.replace(/\D/g, '').length !== 11) newErrors.phone = 'Telefone inválido';
       if (formData.password.length < 8) newErrors.password = 'Senha deve ter no mínimo 8 caracteres';
       if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Senhas não coincidem';
@@ -203,10 +214,39 @@ export const DoctorRegistration: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const nextStep = () => {
-    if (validateStep(step)) {
-      setStep(prev => Math.min(prev + 1, 4));
+  /**
+   * Confere no servidor se o domínio do e-mail existe e recebe correio.
+   * Regex não pega "charli@n.com": a sintaxe é válida, o domínio não existe.
+   * Só roda quando o e-mail muda, para não repetir DNS a cada avanço de etapa.
+   */
+  const checkEmailDomain = async (): Promise<boolean> => {
+    const email = formData.email.trim().toLowerCase();
+    if (emailChecked === email) return true;
+
+    setEmailChecking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-email', {
+        body: { email },
+      });
+      // Função fora do ar não pode travar um cadastro legítimo.
+      if (error) return true;
+      if (data?.valid === false) {
+        setErrors(prev => ({ ...prev, email: data.reason ?? 'E-mail inválido' }));
+        return false;
+      }
+      setEmailChecked(email);
+      return true;
+    } catch {
+      return true;
+    } finally {
+      setEmailChecking(false);
     }
+  };
+
+  const nextStep = async () => {
+    if (!validateStep(step)) return;
+    if (step === 1 && !(await checkEmailDomain())) return;
+    setStep(prev => Math.min(prev + 1, 4));
   };
 
   const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
@@ -214,6 +254,13 @@ export const DoctorRegistration: React.FC = () => {
   // Submit
   const handleSubmit = async () => {
     if (!validateStep(4)) return;
+    // Revalida etapa 1 no envio: quem voltou e trocou e-mail ou CPF não pode
+    // escapar da checagem por ter passado por ela uma vez.
+    if (!validateStep(1) || !(await checkEmailDomain())) {
+      setStep(1);
+      toast.error('Revise os dados pessoais antes de enviar.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -893,9 +940,10 @@ export const DoctorRegistration: React.FC = () => {
               <button
                 type="button"
                 onClick={nextStep}
-                className="px-8 py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium transition"
+                disabled={emailChecking}
+                className="px-8 py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium transition disabled:opacity-50"
               >
-                Próximo
+                {emailChecking ? 'Verificando e-mail...' : 'Próximo'}
               </button>
             ) : (
               <button
