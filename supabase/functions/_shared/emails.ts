@@ -156,6 +156,41 @@ export function activationEmailHtml(empresaNome: string, ctaUrl: string): string
   });
 }
 
+// ─── E-mail de ACESSO AO CADASTRO PROFISSIONAL ──
+// Usado quando o e-mail da fila de espera JÁ tem conta Malama (paciente, por
+// exemplo). Nesse caso o convite do Supabase falha ("email already registered"),
+// então mandamos um magic link que abre direto o cadastro profissional.
+export function professionalAccessEmailText(tipo: 'medico' | 'psicologo', ctaUrl: string): string {
+  const papel = tipo === 'psicologo' ? 'psicólogo(a)' : 'médico(a)';
+  return [
+    `Seu cadastro de ${papel} na Malama foi liberado.`,
+    ``,
+    `Analisamos sua inscrição na fila de espera e liberamos seu acesso ao portal profissional.`,
+    `Use o link abaixo para entrar e completar o cadastro (conselho, especialidade e documentos):`,
+    ctaUrl,
+    ``,
+    `O link é pessoal e expira em algumas horas. Se expirar, peça um novo à equipe Malama.`,
+    ``,
+    `Malama — Cuidado contínuo, com gente de verdade por trás.`,
+  ].join('\n');
+}
+
+export function professionalAccessEmailHtml(tipo: 'medico' | 'psicologo', ctaUrl: string): string {
+  const papel = tipo === 'psicologo' ? 'psicólogo(a)' : 'médico(a)';
+  return brandedEmailHtml({
+    eyebrow: 'Malama Profissionais',
+    preheader: `Seu acesso ao portal profissional da Malama está liberado.`,
+    heading: `Seu cadastro de ${papel} foi <em style="font-style:italic;color:${COLOR.petrol};">liberado</em>.`,
+    bodyParagraphs: [
+      `Analisamos sua inscrição na fila de espera e liberamos seu acesso ao portal profissional da Malama.`,
+      `Como você já tem uma conta com este e-mail, é só usar o botão abaixo para entrar e completar o cadastro — registro no conselho, especialidade e documentos.`,
+    ],
+    ctaText: 'Completar meu cadastro',
+    ctaUrl,
+    footnote: 'O link é pessoal e expira em algumas horas. Se ele expirar, peça um novo à equipe Malama.',
+  });
+}
+
 // ─── Envio (ZeptoMail/Zoho → Resend → no-op com aviso) ──
 export async function sendEmail(opts: {
   to: string;

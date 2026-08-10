@@ -10,6 +10,7 @@ import type { Doctor, DoctorStatus } from '../../types/doctorPortal';
 import type { AdminDoctorKpis } from '../../services/doctorPortalService';
 import { SPECIALTY_OPTIONS, SPECIALTY_OPTIONS_PSICOLOGO } from '../../types/doctorPortal';
 import { supabase } from '../../services/supabase';
+import { edgeFunctionErrorMessage } from '../../utils/functionError';
 import toast from 'react-hot-toast';
 
 interface DoctorLead {
@@ -111,23 +112,36 @@ export const AdminDoctorsManagement: React.FC = () => {
   };
 
   const handleInviteLead = async (lead: DoctorLead) => {
+    const tipo = lead.tipo_profissional === 'psicologo' ? 'psicologo' : 'medico';
     setInvitingLeadId(lead.id);
     try {
-      const { error } = await supabase.functions.invoke('invite-lead', {
+      const { data, error } = await supabase.functions.invoke('invite-lead', {
         body: {
           email: lead.email,
           type: 'doctor',
           lead_id: lead.id,
+          tipo_profissional: tipo,
           // O cadastro abre já na trilha do profissional convidado (CRM x CRP,
           // especialidades e e-Psi mudam conforme o tipo).
-          redirect_to: `${window.location.origin}/medico/cadastro?tipo=${lead.tipo_profissional ?? 'medico'}`,
+          redirect_to: `${window.location.origin}/medico/cadastro?tipo=${tipo}`,
         },
       });
       if (error) throw error;
-      toast.success(`Convite enviado para ${lead.email}`);
+
+      // Quem já tinha conta Malama recebe magic link (o convite do Supabase
+      // não se aplica); o provedor de e-mail pode falhar sem derrubar o fluxo.
+      if (data?.emailed === false) {
+        toast.error(data?.warning ?? `Não foi possível enviar o e-mail para ${lead.email}.`);
+      } else if (data?.flow === 'magiclink') {
+        toast.success(`${lead.email} já tinha conta — link de acesso ao cadastro enviado.`);
+        if (data?.warning) toast(data.warning);
+      } else {
+        toast.success(`Convite enviado para ${lead.email}`);
+        if (data?.warning) toast(data.warning);
+      }
       loadLeads();
-    } catch {
-      toast.error('Erro ao enviar convite. Tente novamente.');
+    } catch (err) {
+      toast.error(await edgeFunctionErrorMessage(err, 'Erro ao enviar convite. Tente novamente.'));
     } finally {
       setInvitingLeadId(null);
     }

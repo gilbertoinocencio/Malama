@@ -19,6 +19,7 @@ import type { PlanPrice } from '../../services/billingService';
 import type { CreditWithDetails, CreditStatus } from '../../types/billing';
 import { AdminSubscriptions } from './AdminSubscriptions';
 import { supabase } from '../../services/supabase';
+import { edgeFunctionErrorMessage } from '../../utils/functionError';
 import toast from 'react-hot-toast';
 
 interface PatientLead {
@@ -641,7 +642,7 @@ export const AdminUsersManagement: React.FC = () => {
   const handleInvitePatientLead = async (lead: PatientLead) => {
     setInvitingLeadId(lead.id);
     try {
-      const { error } = await supabase.functions.invoke('invite-lead', {
+      const { data, error } = await supabase.functions.invoke('invite-lead', {
         body: {
           email: lead.email,
           type: 'patient',
@@ -650,10 +651,16 @@ export const AdminUsersManagement: React.FC = () => {
         },
       });
       if (error) throw error;
-      toast.success(`Convite enviado para ${lead.email}`);
+      if (data?.flow === 'magiclink') {
+        // Já tinha conta: nada foi enviado, mas o lead sai da fila.
+        toast(data?.warning ?? `${lead.email} já tem conta na Malama.`);
+      } else {
+        toast.success(`Convite enviado para ${lead.email}`);
+        if (data?.warning) toast(data.warning);
+      }
       loadPatientLeads();
-    } catch {
-      toast.error('Erro ao enviar convite. Tente novamente.');
+    } catch (err) {
+      toast.error(await edgeFunctionErrorMessage(err, 'Erro ao enviar convite. Tente novamente.'));
     } finally {
       setInvitingLeadId(null);
     }
