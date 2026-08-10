@@ -332,18 +332,26 @@ export function useWebRTC({
     try {
       // 3. Create RTCPeerConnection
       const iceServers = await iceServersPromise;
-      // Em redes móveis (4G/5G) o NAT da operadora rotaciona o mapeamento de
-      // IP/porta e DERRUBA os pares host/srflx → a conexão cai e religa em loop
-      // (flapping visto nos logs: connected → failed → reconnect). Quando há
-      // TURN disponível, forçar 'relay' dá um caminho único e estável via
-      // Cloudflare, imune ao rebinding. Sem TURN, mantém 'all' (melhor esforço)
-      // para nunca ficar sem conexão alguma.
       const hasTurn = iceServers.some((s) => String(s.urls).includes('turn'));
-      const pc = new RTCPeerConnection({
-        iceServers,
-        iceTransportPolicy: hasTurn ? 'relay' : 'all',
-      });
-      console.log(`[WebRTC] iceTransportPolicy: ${hasTurn ? 'relay (TURN estável)' : 'all (sem TURN)'}`);
+
+      // iceTransportPolicy é SEMPRE 'all'. Antes era 'relay' quando havia TURN,
+      // para estabilizar o rebinding de NAT em 4G/5G — mas a política era
+      // decidida por peer, a partir do resultado do fetch de credenciais DAQUELE
+      // lado. Se um lado pegava TURN ('relay') e o outro caía no fallback STUN
+      // ('all'), os dois ficavam presos em "conectando" para sempre: o peer
+      // relay-only descarta os candidatos host/srflx do outro, e o outro não tem
+      // nenhum candidato relay para parear. Zero pares possíveis.
+      //
+      // E o fallback dispara fácil: turn-credentials responde 401 com sessão
+      // trocada (dois portais no mesmo navegador), 400 com room_id inválido, e
+      // há timeout de 5s. Bastava um desses de um lado só.
+      //
+      // 'all' é superset — com TURN na lista, candidatos relay continuam sendo
+      // coletados e o ICE os escolhe quando o caminho direto falha. Perde-se a
+      // preferência forçada por relay no 4G (que pode voltar a flapar), o que é
+      // melhor que uma chamada que nunca conecta.
+      const pc = new RTCPeerConnection({ iceServers, iceTransportPolicy: 'all' });
+      console.log(`[WebRTC] iceTransportPolicy: all (TURN na lista: ${hasTurn ? 'sim' : 'NÃO'})`);
       pcRef.current = pc;
 
       // 3b. Add local tracks (ou recvonly se a câmera falhou — ainda dá para
