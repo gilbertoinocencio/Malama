@@ -8,8 +8,8 @@ import { motion, type Variants } from 'framer-motion';
 import { MalamaLogo } from '../components/MalamaLogo';
 import {
   Target, Eye, Heart, AlertTriangle, TrendingUp, DollarSign,
-  Stethoscope, Syringe, Salad, BarChart2, Building2, UserPlus,
-  Smartphone, ShieldCheck, Zap, Layers, Leaf, CheckCircle,
+  Stethoscope, Salad, BarChart2, Building2, UserPlus,
+  Smartphone, ShieldCheck, Layers, Leaf, CheckCircle,
   ShoppingBag, Star, Award, Circle, ClipboardCheck, FileText,
   Lock, Brain,
 } from 'lucide-react';
@@ -58,6 +58,33 @@ const FeatureRow: React.FC<{ icon: React.ElementType; titulo: string; corpo: str
   </div>
 );
 
+// ─── Card de módulo ────────────────────────────────────
+// Os dois módulos usam o MESMO card de propósito. Nenhum é "o principal":
+// a empresa entra por qualquer um dos dois, e dar mais peso visual a um
+// deles na apresentação já custou a conversa de NR-1 mais de uma vez.
+const ModuloCard: React.FC<{
+  icon: React.ElementType; tag: string; titulo: string; promessa: string; itens: string[];
+}> = ({ icon: Icon, tag, titulo, promessa, itens }) => (
+  <div className="h-full rounded-2xl border border-Malama-border/50 bg-white p-8 shadow-sm">
+    <div className="flex items-center justify-between mb-6">
+      <div className="w-11 h-11 rounded-xl bg-Malama-petrol/8 flex items-center justify-center">
+        <Icon className="w-5 h-5 text-Malama-petrol" />
+      </div>
+      <span className="text-[10px] font-semibold tracking-widest uppercase border border-Malama-petrol/30 text-Malama-petrol px-3 py-1 rounded-full">{tag}</span>
+    </div>
+    <h3 className="font-serif text-3xl font-light text-Malama-main mb-2">{titulo}</h3>
+    <p className="text-Malama-petrol text-sm font-medium mb-6">{promessa}</p>
+    <div className="space-y-3">
+      {itens.map(i => (
+        <div key={i} className="flex items-start gap-3">
+          <CheckCircle className="w-4 h-4 text-Malama-petrol flex-shrink-0 mt-0.5" />
+          <span className="text-sm text-Malama-muted leading-relaxed">{i}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 export const PitchDeck: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
 
@@ -100,12 +127,12 @@ export const PitchDeck: React.FC = () => {
             className="font-serif text-5xl md:text-7xl lg:text-8xl font-light leading-[1.05] tracking-tight text-Malama-main mb-6">
             Primeira plataforma<br />
             digital de saúde<br />
-            <span className="text-Malama-petrol italic">metabólica.</span>
+            <span className="text-Malama-petrol italic">metabólica e mental.</span>
           </motion.h1>
 
           <motion.p variants={fadeInUp} className="text-Malama-muted text-lg md:text-xl max-w-xl mx-auto mb-12 leading-relaxed">
-            Benefício corporativo que reduz sinistralidade, controla o presenteísmo
-            e entrega performance real para o colaborador.
+            Benefício corporativo em dois módulos: reduz a sinistralidade do plano
+            de saúde e cumpre a NR-1 — no mesmo app, numa fatura só.
           </motion.p>
 
           <motion.div variants={fadeInUp} className="grid grid-cols-3 gap-6 max-w-2xl mx-auto">
@@ -275,13 +302,85 @@ export const PitchDeck: React.FC = () => {
       </section>
 
       {/* ================================================================
-          SLIDE 05 — CONFORMIDADE NR-1 / PGR
+          SLIDE 05 — A SOLUÇÃO · OS DOIS MÓDULOS
+
+          Vem ANTES do slide de NR-1 de propósito: a plateia precisa saber
+          que existem dois módulos antes de ver a esteira de conformidade
+          de um deles detalhada. Na ordem antiga o detalhe vinha primeiro e
+          o módulo mental parecia um relatório avulso do produto metabólico.
       ================================================================ */}
       <section className="min-h-screen flex items-center px-6 md:px-12 py-24">
         <div className="max-w-[1200px] mx-auto w-full">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
             <motion.div variants={fadeInUp}>
-              <SlideLabel n="05" label="Conformidade NR-1" />
+              <SlideLabel n="05" label="A Solução" />
+            </motion.div>
+
+            <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-6xl font-light leading-tight mb-4 max-w-3xl">
+              Uma plataforma,<br />
+              <span className="text-Malama-petrol italic">dois módulos.</span>
+            </motion.h2>
+            <motion.p variants={fadeInUp} className="text-Malama-muted mb-12 max-w-2xl leading-relaxed">
+              A empresa contrata os dois ou começa por um. Mesmo app para o colaborador,
+              mesmo painel para o RH, uma fatura só.
+            </motion.p>
+
+            <div className="grid lg:grid-cols-2 gap-6 mb-8">
+              <motion.div variants={fadeInUp}>
+                <ModuloCard
+                  icon={Salad}
+                  tag="Reduz sinistralidade"
+                  titulo="Metabólico"
+                  promessa="Ataca a causa do custo do plano de saúde."
+                  itens={[
+                    'Telemedicina com nutrólogos e endocrinologistas — sem fila, sem guia',
+                    'Plano nutricional clínico individualizado, acompanhado por IA todo dia',
+                    'Monitoramento contínuo de peso, composição corporal e evolução clínica',
+                    'Gestão segura de tratamentos GLP-1 — hoje o colaborador usa sem suporte médico',
+                  ]}
+                />
+              </motion.div>
+              <motion.div variants={fadeInUp}>
+                <ModuloCard
+                  icon={Brain}
+                  tag="Cumpre a NR-1"
+                  titulo="Saúde Mental"
+                  promessa="Transforma obrigação legal em cuidado real."
+                  itens={[
+                    'Rastreio mensal com o WHO-5, instrumento validado pela OMS',
+                    'Matriz de risco psicossocial por setor e função — o RH vê onde está o risco',
+                    'Relatório mensal pronto para anexar ao PGR',
+                    'Consulta com psicólogo como plano adicional, alocada pelo RH',
+                  ]}
+                />
+              </motion.div>
+            </div>
+
+            <motion.div variants={fadeInUp}
+              className="rounded-2xl border border-Malama-petrol/20 bg-Malama-petrol/5 p-7">
+              <p className="text-xs font-semibold tracking-widest uppercase text-Malama-muted mb-6">O que a empresa ganha</p>
+              <div className="grid md:grid-cols-3 gap-6">
+                {[
+                  { icon: TrendingUp, titulo: 'Menos absenteísmo e presenteísmo', corpo: 'Colaborador com saúde recuperada falta menos e produz mais.' },
+                  { icon: DollarSign, titulo: 'Menor reajuste do plano', corpo: 'Menos uso do plano significa menos sinistralidade no ano seguinte.' },
+                  { icon: ShieldCheck, titulo: 'Conformidade documentada', corpo: 'Evidência mensal pronta para a fiscalização, sem trabalho do RH.' },
+                ].map(item => (
+                  <FeatureRow key={item.titulo} {...item} />
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ================================================================
+          SLIDE 06 — CONFORMIDADE NR-1 / PGR
+      ================================================================ */}
+      <section className="min-h-screen flex items-center px-6 md:px-12 py-24 bg-[#f5f1ee]">
+        <div className="max-w-[1200px] mx-auto w-full">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
+            <motion.div variants={fadeInUp}>
+              <SlideLabel n="06" label="Conformidade NR-1" />
             </motion.div>
 
             <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-6xl font-light leading-tight mb-4 max-w-3xl">
@@ -344,59 +443,6 @@ export const PitchDeck: React.FC = () => {
                 </p>
               </div>
             </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ================================================================
-          SLIDE 06 — A SOLUÇÃO
-      ================================================================ */}
-      <section className="min-h-screen flex items-center px-6 md:px-12 py-24">
-        <div className="max-w-[1200px] mx-auto w-full">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
-            <motion.div variants={fadeInUp}>
-              <SlideLabel n="06" label="A Solução" />
-            </motion.div>
-
-            <div className="grid lg:grid-cols-2 gap-16 items-start">
-              <div>
-                <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-5xl font-light leading-tight mb-6">
-                  Saúde metabólica<br />
-                  <span className="text-Malama-petrol italic">como benefício corporativo.</span>
-                </motion.h2>
-                <motion.p variants={fadeInUp} className="text-Malama-muted leading-relaxed mb-10">
-                  O Malama atua sobre três pilares simultâneos — entregues via app,
-                  sem complexidade operacional para a empresa.
-                </motion.p>
-
-                <motion.div variants={stagger} className="space-y-6">
-                  {[
-                    { icon: TrendingUp, titulo: 'Redução do absenteísmo e presenteísmo', corpo: 'Colaboradores com saúde metabólica recuperada faltam menos e produzem mais — com foco, energia e disposição reais.' },
-                    { icon: DollarSign, titulo: 'Controle do custo do plano de saúde', corpo: 'Colaboradores mais saudáveis usam menos o plano. Menos sinistralidade significa menor reajuste anual — o Malama é uma contenção direta do segundo maior custo fixo.' },
-                    { icon: Zap, titulo: 'Melhora da performance', corpo: 'Saúde metabólica é base biológica de desempenho. Quando o colaborador recupera o sono e o equilíbrio hormonal, a produtividade surge naturalmente.' },
-                  ].map(item => (
-                    <motion.div key={item.titulo} variants={fadeInUp}>
-                      <FeatureRow {...item} />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </div>
-
-              <motion.div variants={fadeInUp} className="space-y-4">
-                <p className="text-xs font-semibold tracking-widest uppercase text-Malama-muted mb-6">O que entregamos</p>
-                {[
-                  { icon: Stethoscope, titulo: 'Telemedicina com especialistas em metabolismo', corpo: 'Nutrólogos e endocrinologistas diretamente no app — sem filas, sem guias.' },
-                  { icon: Salad, titulo: 'Plano nutricional clínico supervisionado por IA', corpo: 'Prescrições individualizadas para ganho de energia e otimização metabólica.' },
-                  { icon: BarChart2, titulo: 'Monitoramento contínuo de progresso', corpo: 'Peso, composição corporal e evolução clínica — o médico acessa o histórico nutricional completo antes de cada consulta.' },
-                  { icon: Syringe, titulo: 'Gestão segura de tratamentos GLP-1', corpo: 'Estrutura médica completa para colaboradores que utilizam semaglutida — diferencial único no Brasil.' },
-                  { icon: ShieldCheck, titulo: 'Conformidade NR-1', corpo: 'Relatórios mensais documentados que comprovam gestão de riscos psicossociais — a empresa fica protegida.' },
-                ].map(item => (
-                  <div key={item.titulo} className="rounded-xl border border-Malama-border/50 bg-white p-5 shadow-sm">
-                    <FeatureRow {...item} />
-                  </div>
-                ))}
-              </motion.div>
-            </div>
           </motion.div>
         </div>
       </section>
@@ -523,6 +569,7 @@ export const PitchDeck: React.FC = () => {
                     'Painel médico: histórico nutricional completo antes da consulta — diferencial clínico único no Brasil',
                     'Notas clínicas obrigatórias e acompanhamento contínuo',
                     'Módulo B2B: painel de RH, gestão de colaboradores e relatório mensal',
+                    'Módulo de saúde mental: questionário WHO-5, matriz de risco por setor e relatório para o PGR',
                     'Body Scan para monitoramento de composição corporal',
                     'Integração com Strava para dados de atividade física',
                     'Gestão segura de tratamentos GLP-1',
