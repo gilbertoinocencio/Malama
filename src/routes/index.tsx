@@ -10,6 +10,7 @@ import { LoginView } from '../components/LoginView';
 import { LandingPage } from './LandingPage';
 import { MedicosLandingPage } from './MedicosLandingPage';
 import { EmpresasLandingPage } from './EmpresasLandingPage';
+import { EmpresasMentalPage } from './EmpresasMentalPage';
 import { PitchDeck } from './PitchDeck';
 
 // Guards
@@ -302,8 +303,9 @@ export const AppRoutes: React.FC = () => {
 
           {/* ==================== EMPRESAS (B2B) ==================== */}
 
-          {/* Landing pública */}
+          {/* Landings públicas — uma por modo contratável */}
           <Route path="/empresas" element={<EmpresasLandingPage />} />
+          <Route path="/empresas/saude-mental" element={<EmpresasMentalPage />} />
 
           {/* Pitch Deck */}
           <Route path="/pitchdeck" element={<PitchDeck />} />

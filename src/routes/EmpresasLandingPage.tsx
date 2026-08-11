@@ -2,19 +2,18 @@
 // Malama Empresas — Landing Page B2B (/empresas)
 // =====================================================
 
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { MalamaLogo } from '../components/MalamaLogo';
+import React from 'react';
+import { motion, type Variants } from 'framer-motion';
 import {
-  Menu, X, ArrowRight, CheckCircle,
+  ArrowRight,
   Stethoscope, Syringe, Salad, BarChart2,
   Building2, UserPlus, Smartphone,
   ShieldCheck, Zap, Layers, Leaf,
   Heart, ShoppingBag, Award, Star,
-  Phone, Briefcase, FileText,
 } from 'lucide-react';
-import { supabase } from '../services/supabase';
+import { EmpresasHeader, scrollToContato } from '../components/empresas/EmpresasHeader';
+import { EmpresaLeadForm } from '../components/empresas/EmpresaLeadForm';
+import { EmpresasFooter } from '../components/empresas/EmpresasFooter';
 
 // ─── Animações ─────────────────────────────────────────
 const fadeInUp: Variants = {
@@ -88,75 +87,9 @@ const DIFERENCIAIS = [
 
 // ─── Componente ─────────────────────────────────────────
 export const EmpresasLandingPage: React.FC = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState('');
-
-  const [form, setForm] = useState({
-    nome: '', cargo: '', empresa: '', cnpj: '', email: '',
-    num_colaboradores: '', telefone: '',
-  });
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.nome || !form.empresa || !form.email || !form.num_colaboradores) {
-      setErro('Preencha todos os campos obrigatórios.');
-      return;
-    }
-    setLoading(true);
-    setErro('');
-    const { error } = await supabase.from('empresa_leads').insert({ ...form });
-    setLoading(false);
-    if (error) { setErro('Não foi possível enviar. Tente novamente.'); }
-    else { setSubmitted(true); }
-  };
-
-  const scrollToForm = () => {
-    document.getElementById('contato')?.scrollIntoView({ behavior: 'smooth' });
-    setIsMenuOpen(false);
-  };
-
   return (
     <div className="min-h-screen bg-Malama-bg text-Malama-main overflow-hidden font-sans selection:bg-Malama-petrol selection:text-white">
-
-      {/* ==================== HEADER ==================== */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-b border-transparent ${scrolled ? 'bg-Malama-bg/80 backdrop-blur-xl border-Malama-border/50 py-4' : 'bg-transparent py-6'}`}>
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="relative z-10 flex items-center gap-2">
-              <img src="/malama-logo-transparent.png" alt="Malama" className="h-[190px] w-auto max-w-none object-contain -my-[70px]" />
-            </Link>
-            <nav className="hidden md:flex items-center gap-10">
-              <Link to="/" className="text-sm font-medium tracking-wide text-Malama-muted hover:text-Malama-petrol transition-colors">A Plataforma</Link>
-              <button onClick={scrollToForm} className="text-sm font-medium tracking-wide text-Malama-petrol border-b border-Malama-petrol/40">Para Empresas</button>
-            </nav>
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden relative z-10 p-2 text-Malama-main">
-              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
-        <AnimatePresence>
-          {isMenuOpen && (
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-              className="absolute top-full left-0 right-0 bg-Malama-bg border-b border-Malama-border/50 shadow-2xl py-8 px-6 flex flex-col gap-6">
-              <Link to="/" onClick={() => setIsMenuOpen(false)} className="text-xl font-serif text-Malama-main">A Plataforma</Link>
-              <button onClick={scrollToForm} className="text-left text-xl font-serif text-Malama-petrol">Para Empresas</button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </header>
+      <EmpresasHeader aba="metabolico" />
 
       {/* ==================== HERO ==================== */}
       <section className="relative min-h-screen flex items-center pt-32 pb-16 px-6 md:px-12">
@@ -196,7 +129,7 @@ export const EmpresasLandingPage: React.FC = () => {
               </motion.div>
 
               <motion.div variants={fadeInUp}>
-                <button onClick={scrollToForm}
+                <button onClick={scrollToContato}
                   className="group inline-flex items-center gap-3 bg-Malama-main text-white px-8 py-4 rounded-full font-medium text-base hover:bg-Malama-petrol transition-colors duration-300">
                   Falar com um especialista
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -562,101 +495,17 @@ export const EmpresasLandingPage: React.FC = () => {
                 Deixe seu contato e um especialista do Malama apresenta a proposta personalizada para a sua empresa.
               </motion.p>
 
-              {submitted ? (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center gap-5 py-16 text-center">
-                  <div className="w-16 h-16 rounded-full bg-Malama-petrol/10 flex items-center justify-center">
-                    <CheckCircle className="w-8 h-8 text-Malama-petrol" />
-                  </div>
-                  <h3 className="font-serif text-3xl font-light text-Malama-main">Recebemos o seu contato!</h3>
-                  <p className="text-Malama-muted max-w-sm leading-relaxed">
-                    Nosso time vai entrar em contato em breve para apresentar uma proposta personalizada. Fique de olho no seu e-mail.
-                  </p>
-                </motion.div>
-              ) : (
-                <motion.form variants={fadeInUp} onSubmit={handleSubmit} className="flex flex-col gap-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Seu nome *</label>
-                      <input type="text" name="nome" value={form.nome} onChange={handleChange} placeholder="Maria Oliveira"
-                        className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-white text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm" />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Cargo</label>
-                      <input type="text" name="cargo" value={form.cargo} onChange={handleChange} placeholder="Gerente de RH"
-                        className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-white text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm" />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Empresa *</label>
-                      <input type="text" name="empresa" value={form.empresa} onChange={handleChange} placeholder="Nome da empresa"
-                        className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-white text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm" />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">CNPJ</label>
-                      <input type="text" name="cnpj" value={form.cnpj} onChange={handleChange} placeholder="00.000.000/0001-00"
-                        className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-white text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm" />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">E-mail corporativo *</label>
-                    <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="maria@empresa.com"
-                      className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-white text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm" />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Número de colaboradores *</label>
-                      <select name="num_colaboradores" value={form.num_colaboradores} onChange={handleChange}
-                        className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-white text-Malama-main focus:outline-none focus:border-Malama-petrol transition-colors text-sm appearance-none cursor-pointer">
-                        <option value="">Selecione</option>
-                        <option value="Até 50">Até 50</option>
-                        <option value="50 a 200">50 a 200</option>
-                        <option value="200 a 500">200 a 500</option>
-                        <option value="Acima de 500">Acima de 500</option>
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold tracking-wide text-Malama-muted uppercase">Telefone / WhatsApp</label>
-                      <input type="tel" name="telefone" value={form.telefone} onChange={handleChange} placeholder="(11) 90000-0000"
-                        className="w-full px-4 py-3.5 rounded-xl border border-Malama-border bg-white text-Malama-main placeholder:text-Malama-muted/50 focus:outline-none focus:border-Malama-petrol transition-colors text-sm" />
-                    </div>
-                  </div>
-
-                  {erro && <p className="text-sm text-red-500">{erro}</p>}
-
-                  <button type="submit" disabled={loading}
-                    className="mt-2 w-full group inline-flex items-center justify-center gap-3 bg-Malama-main text-white px-8 py-4 rounded-full font-medium text-base hover:bg-Malama-petrol transition-colors duration-300 disabled:opacity-60">
-                    {loading ? 'Enviando...' : 'Quero conhecer o Malama Empresas'}
-                    {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
-                  </button>
-
-                  <p className="text-xs text-center text-Malama-muted/60">Seus dados são usados apenas para contato. Sem spam.</p>
-                </motion.form>
-              )}
+              <EmpresaLeadForm
+                origem="metabolico"
+                ctaLabel="Quero conhecer o Malama Empresas"
+                variants={fadeInUp}
+              />
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* ==================== FOOTER ==================== */}
-      <footer className="border-t border-Malama-border py-12 px-6 md:px-12">
-        <div className="max-w-[1400px] mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex flex-col items-center md:items-start gap-2">
-              <MalamaLogo size="sm" />
-              <p className="text-xs text-Malama-muted">Cuide de quem faz sua empresa crescer.</p>
-            </div>
-            <div className="flex items-center gap-6 text-xs text-Malama-muted">
-              <a href="#" className="hover:text-Malama-petrol transition-colors">Termos</a>
-              <a href="#" className="hover:text-Malama-petrol transition-colors">Privacidade</a>
-            </div>
-          </div>
-          <div className="mt-8 pt-6 border-t border-Malama-border/50 text-center text-xs text-Malama-muted/60">
-            © {new Date().getFullYear()} Malama. Todos os direitos reservados.
-          </div>
-        </div>
-      </footer>
+      <EmpresasFooter tagline="Cuide de quem faz sua empresa crescer." />
     </div>
   );
 };
