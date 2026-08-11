@@ -1,0 +1,189 @@
+/* Ficha de módulo Malama — folha A4, uma página. */
+@page { size: A4; margin: 0; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #FDFBF9;
+  --main: #1C1917;
+  --muted: #57534E;
+  --petrol: #8c473e;
+  --border: #E7E5E4;
+  --tint: #F7F1EE;
+}
+
+body {
+  width: 210mm;
+  min-height: 297mm;
+  /* Coluna flex só para o rodapé colar embaixo — sem isso a folha fica
+     com um vão branco de uns 4cm e parece cortada. */
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  color: var(--main);
+  font-family: 'Outfit', -apple-system, 'Segoe UI', sans-serif;
+  font-size: 9.2pt;
+  line-height: 1.45;
+  padding: 13mm 14mm 12mm;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.serif { font-family: 'Cormorant Garamond', Georgia, serif; }
+
+/* ── Cabeçalho ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 5mm;
+  margin-bottom: 6mm;
+}
+/* O PNG do logo tem muita margem transparente — a janela recorta,
+   igual ao que o deck faz com margem negativa. */
+.logo-wrap { height: 13mm; overflow: hidden; display: flex; align-items: center; }
+.logo { height: 46mm; margin: -16.5mm 0; }
+
+.kicker {
+  font-size: 6.6pt;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--petrol);
+  text-align: right;
+}
+.kicker span { display: block; color: var(--muted); font-weight: 500; margin-top: 1mm; }
+
+/* ── Título ── */
+h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 33pt;
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin-bottom: 3mm;
+}
+h1 em { font-style: italic; color: var(--petrol); }
+
+.lead {
+  font-size: 10.5pt;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 148mm;
+  margin-bottom: 7mm;
+}
+
+/* ── Seções ── */
+h2 {
+  font-size: 6.8pt;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3mm;
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+}
+h2::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+section { margin-bottom: 6mm; }
+
+/* ── Números do problema ── */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3.5mm; }
+.stat {
+  border: 1px solid var(--border);
+  border-radius: 3mm;
+  padding: 4mm;
+}
+.stat .n {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 20pt;
+  color: var(--petrol);
+  line-height: 1;
+  margin-bottom: 2mm;
+}
+.stat p { color: var(--muted); font-size: 8.4pt; line-height: 1.4; }
+.stat .fonte { font-size: 6.4pt; color: #A8A29E; margin-top: 2mm; }
+
+/* ── Listas de entrega ── */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm 7mm; }
+ul { list-style: none; }
+li {
+  position: relative;
+  padding-left: 5mm;
+  margin-bottom: 2.4mm;
+  color: var(--muted);
+  font-size: 8.8pt;
+  line-height: 1.45;
+}
+li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 1.6mm;
+  width: 2mm; height: 2mm;
+  border-radius: 50%;
+  background: var(--petrol);
+}
+li b { color: var(--main); font-weight: 600; }
+
+/* ── Passos numerados ── */
+.passos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3.5mm; }
+.passo {
+  border: 1px solid var(--border);
+  border-radius: 3mm;
+  padding: 4mm;
+  background: var(--bg);
+}
+.passo .n {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 13pt;
+  color: rgba(140, 71, 62, 0.35);
+  line-height: 1;
+  margin-bottom: 2mm;
+}
+.passo b { display: block; font-size: 8.6pt; margin-bottom: 1.5mm; }
+.passo p { color: var(--muted); font-size: 7.8pt; line-height: 1.4; }
+
+/* ── Caixa de destaque ── */
+.destaque {
+  border: 1px solid rgba(140, 71, 62, 0.25);
+  background: var(--tint);
+  border-radius: 3mm;
+  padding: 5mm;
+}
+/* Só o título vira bloco. `b` dentro do parágrafo continua inline —
+   a regra genérica quebrava a frase no meio. */
+.destaque > b { display: block; margin-bottom: 1.5mm; font-size: 9.2pt; }
+.destaque p b { color: var(--main); font-weight: 600; }
+.destaque p { color: var(--muted); font-size: 8.6pt; line-height: 1.45; }
+
+/* ── Rodapé ── */
+footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding-top: 4mm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8mm;
+}
+footer .resultado { max-width: 118mm; }
+footer .resultado b { font-size: 8.8pt; }
+footer .resultado p { color: var(--muted); font-size: 8.4pt; margin-top: 1mm; line-height: 1.4; }
+footer .link {
+  text-align: right;
+  font-size: 8pt;
+  color: var(--petrol);
+  font-weight: 600;
+  white-space: nowrap;
+}
+footer .link span { display: block; color: #A8A29E; font-weight: 400; font-size: 6.6pt; margin-top: 1.5mm; }
+
+.nota {
+  font-size: 6.8pt;
+  color: #A8A29E;
+  line-height: 1.4;
+  margin-top: 3.5mm;
+}
