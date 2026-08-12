@@ -1245,6 +1245,21 @@ export const rhService = {
     return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;
   },
 
+  /**
+   * Reclassifica o setor de um colaborador já cadastrado (migration 20260831).
+   * Passar string vazia tira do setor. O servidor só aceita nome do registro
+   * e grava a grafia canônica dele.
+   */
+  async definirSetorColaborador(
+    colaboradorId: string, setor: string,
+  ): Promise<{ ok: boolean; error?: string; setor?: string | null }> {
+    const { data, error } = await supabase.rpc('rh_definir_setor_colaborador', {
+      p_colaborador_id: colaboradorId, p_setor: setor,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string; setor?: string | null };
+  },
+
   async excluirSetor(id: string): Promise<SetorMutacao> {
     const { data, error } = await supabase.rpc('rh_setor_excluir', { p_id: id });
     if (error) return { ok: false, error: error.message };

@@ -20,8 +20,14 @@ import { rhService, type SetorAdmin } from '../../services/empresaService';
 export const SetoresCard: React.FC<{
   /** Avisa o formulário de colaborador para atualizar o seletor. */
   onChange?: (ativos: string[]) => void;
+  /**
+   * Disparado só depois de criar/renomear/arquivar/excluir — nunca na carga
+   * inicial. Renomear um setor muda o texto gravado em cada colaborador, e
+   * sem isto a lista continuaria mostrando o nome antigo até um F5.
+   */
+  onMutacao?: () => void;
   disabled?: boolean;
-}> = ({ onChange, disabled }) => {
+}> = ({ onChange, onMutacao, disabled }) => {
   const [setores, setSetores] = useState<SetorAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [novo, setNovo] = useState('');
@@ -55,6 +61,7 @@ export const SetoresCard: React.FC<{
       toast.success(res.reativado ? `Setor "${nome}" reativado.` : `Setor "${nome}" criado.`);
       setNovo('');
       await load();
+      onMutacao?.();
     } finally {
       setSalvando(false);
     }
@@ -87,6 +94,7 @@ export const SetoresCard: React.FC<{
       toast.success(res.fundido ? `Setores unidos em "${res.nome}".` : `Setor renomeado para "${res.nome}".`);
       setEditandoId(null);
       await load();
+      onMutacao?.();
     } finally {
       setSalvando(false);
     }
@@ -97,6 +105,7 @@ export const SetoresCard: React.FC<{
     if (!res.ok) { toast.error(res.error || 'Não foi possível atualizar o setor.'); return; }
     toast.success(ativo ? `Setor "${s.nome}" reativado.` : `Setor "${s.nome}" arquivado.`);
     await load();
+    onMutacao?.();
   };
 
   const handleExcluir = async (s: SetorAdmin) => {
@@ -105,6 +114,7 @@ export const SetoresCard: React.FC<{
     if (!res.ok) { toast.error(res.error || 'Não foi possível excluir.'); return; }
     toast.success(`Setor "${s.nome}" excluído.`);
     await load();
+    onMutacao?.();
   };
 
   const ativos = setores.filter(s => s.ativo);

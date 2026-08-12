@@ -48,6 +48,7 @@ export const RhDashboard: React.FC = () => {
   const [cpf, setCpf] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [adding, setAdding] = useState(false);
+  const [salvandoSetor, setSalvandoSetor] = useState<string | null>(null);
   const [resending, setResending] = useState<string | null>(null);
   const [psi, setPsi] = useState<{ plano_ativo: boolean; max_assentos: number; assentos_em_uso: number } | null>(null);
   const [togglingPsi, setTogglingPsi] = useState<string | null>(null);
@@ -143,6 +144,30 @@ export const RhDashboard: React.FC = () => {
       toast.error(err?.message || 'Erro ao atualizar acesso psicológico.');
     } finally {
       setTogglingPsi(null);
+    }
+  };
+
+  const handleSetorColaborador = async (c: EmpresaColaborador, novo: string) => {
+    const anterior = c.setor ?? '';
+    if (novo === anterior) return;
+    setSalvandoSetor(c.id);
+    // Otimista: a linha muda na hora e volta atrás se o servidor recusar —
+    // reclassificar em lote fica insuportável esperando ida e volta a cada um.
+    setColaboradores(prev => prev.map(x => x.id === c.id ? { ...x, setor: novo || null } : x));
+    try {
+      const res = await rhService.definirSetorColaborador(c.id, novo);
+      if (!res.ok) {
+        setColaboradores(prev => prev.map(x => x.id === c.id ? { ...x, setor: c.setor } : x));
+        toast.error(res.error || 'Não foi possível alterar o setor.');
+        return;
+      }
+      // O servidor devolve a grafia canônica do registro.
+      setColaboradores(prev => prev.map(x => x.id === c.id ? { ...x, setor: res.setor ?? null } : x));
+    } catch (err: any) {
+      setColaboradores(prev => prev.map(x => x.id === c.id ? { ...x, setor: c.setor } : x));
+      toast.error(err?.message || 'Erro ao alterar o setor.');
+    } finally {
+      setSalvandoSetor(null);
     }
   };
 
@@ -354,6 +379,9 @@ export const RhDashboard: React.FC = () => {
           acompanhar, e só depois aponta cada pessoa para um deles. */}
       <SetoresCard
         disabled={empresa.status !== 'ativa'}
+        // Renomear/unir setor reescreve o texto gravado em cada colaborador:
+        // a lista precisa ser relida para não exibir o nome antigo.
+        onMutacao={load}
         onChange={ativos => {
           setSetoresAtivos(ativos);
           // Setor selecionado que foi renomeado/arquivado no card não pode
@@ -485,8 +513,26 @@ export const RhDashboard: React.FC = () => {
                     <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">
                       {c.whatsapp || '—'}
                     </td>
+                    {/* Reclassificável na própria linha: sem isto, quem entrou
+                        sem setor (ou no errado) ficava assim para sempre, e
+                        setor com gente dentro nunca podia ser arquivado. */}
                     <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">
-                      {c.setor || '—'}{c.funcao ? ` · ${c.funcao}` : ''}
+                      <select
+                        value={c.setor ?? ''}
+                        onChange={e => handleSetorColaborador(c, e.target.value)}
+                        disabled={setoresAtivos.length === 0 || salvandoSetor === c.id}
+                        title="Setor do colaborador"
+                        className="max-w-[10rem] bg-transparent border border-transparent hover:border-gray-300 focus:border-gray-300 rounded-md px-1.5 py-1 text-xs text-gray-600 focus:ring-2 focus:ring-[#7d4a3c] focus:outline-none disabled:opacity-60"
+                      >
+                        <option value="">Sem setor</option>
+                        {/* O setor atual pode estar arquivado: sem esta opção o
+                            select mostraria "Sem setor" e mentiria sobre o dado. */}
+                        {c.setor && !setoresAtivos.includes(c.setor) && (
+                          <option value={c.setor}>{c.setor} (arquivado)</option>
+                        )}
+                        {setoresAtivos.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      {c.funcao ? <span className="ml-1">· {c.funcao}</span> : ''}
                     </td>
                     <td className="px-4 py-3 text-center"><ColabStatusBadge status={c.status} /></td>
                     <td className="px-4 py-3 text-xs text-gray-500 hidden sm:table-cell">{fmtDate(c.data_adicao)}</td>
