@@ -13,9 +13,21 @@
 // =====================================================
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Layers, Plus, Pencil, Archive, ArchiveRestore, Trash2, Check, X } from 'lucide-react';
+import {
+  Layers, Plus, Pencil, Archive, ArchiveRestore, Trash2, Check, X, AlertTriangle,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { rhService, type SetorAdmin } from '../../services/empresaService';
+
+/**
+ * Piso de coorte dos relatórios. Duplicado do banco de propósito — lá é
+ * `v_min` nas funções que aplicam o corte, e não existe RPC que o exponha.
+ * Se mudar de lado, tem que mudar dos dois.
+ */
+const PISO_COORTE = 5;
+
+/** Tamanho real do setor: efetivo declarado, nunca menos que os cadastrados. */
+const tamanhoSetor = (s: SetorAdmin) => Math.max(s.n, s.efetivo ?? 0);
 
 export const SetoresCard: React.FC<{
   /** Avisa o formulário de colaborador para atualizar o seletor. */
@@ -37,6 +49,8 @@ export const SetoresCard: React.FC<{
   const [mostrarArquivados, setMostrarArquivados] = useState(false);
   // Rascunho por linha do campo de efetivo, para não gravar a cada tecla.
   const [efetivoEdit, setEfetivoEdit] = useState<Record<string, string>>({});
+  // Destino escolhido na sugestão de união dos setores abaixo do piso.
+  const [uniaoDestino, setUniaoDestino] = useState<Record<string, string>>({});
 
   // Via ref: o callback costuma ser uma arrow inline no pai, e depender dele
   // em `load` recarregaria a lista a cada render.
@@ -95,6 +109,34 @@ export const SetoresCard: React.FC<{
       if (!res.ok) { toast.error(res.error || 'Não foi possível renomear.'); return; }
       toast.success(res.fundido ? `Setores unidos em "${res.nome}".` : `Setor renomeado para "${res.nome}".`);
       setEditandoId(null);
+      await load();
+      onMutacao?.();
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  /**
+   * Une um setor pequeno demais a outro. É a mesma fusão do renomear, e é
+   * DEFINITIVA: o setor de origem deixa de existir e o histórico dele passa
+   * a contar no destino. Por isso a confirmação lista o que muda.
+   */
+  const handleUnir = async (s: SetorAdmin, destino: string) => {
+    if (!destino) return;
+    const ok = confirm(
+      `Unir "${s.nome}" em "${destino}"?\n\n` +
+      `As ${tamanhoSetor(s)} pessoa(s), os afastamentos, os atendimentos e os itens do plano de ação ` +
+      `de "${s.nome}" passam para "${destino}", e os relatórios anteriores passam a contar as duas ` +
+      `coortes juntas.\n\n` +
+      `"${s.nome}" deixa de existir. Isto não pode ser desfeito automaticamente.`
+    );
+    if (!ok) return;
+
+    setSalvando(true);
+    try {
+      const res = await rhService.renomearSetor(s.id, destino, true);
+      if (!res.ok) { toast.error(res.error || 'Não foi possível unir os setores.'); return; }
+      toast.success(`Setores unidos em "${res.nome}".`);
       await load();
       onMutacao?.();
     } finally {
@@ -184,7 +226,8 @@ export const SetoresCard: React.FC<{
       ) : (
         <ul className="flex flex-col divide-y divide-gray-100 mb-4">
           {visiveis.map(s => (
-            <li key={s.id} className="flex items-center gap-2 py-2">
+            <li key={s.id} className="py-2">
+              <div className="flex items-center gap-2">
               {editandoId === s.id ? (
                 <>
                   <input
@@ -271,6 +314,39 @@ export const SetoresCard: React.FC<{
                     </button>
                   )}
                 </>
+              )}
+              </div>
+
+              {/* Setor abaixo do piso de coorte: os relatórios não o mostram
+                  separadamente, então as pessoas dele ficam sem leitura — é
+                  onde o colaborador vira avulso. A saída oferecida é unir a um
+                  setor próximo, com o custo dito na confirmação. */}
+              {s.ativo && tamanhoSetor(s) > 0 && tamanhoSetor(s) < PISO_COORTE && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-2 text-xs text-amber-800">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="flex-1 min-w-[14rem]">
+                    {tamanhoSetor(s)} pessoa(s) — abaixo do piso de {PISO_COORTE}. Este setor não
+                    aparece separadamente nos relatórios, para não identificar ninguém.
+                  </span>
+                  <select
+                    value={uniaoDestino[s.id] ?? ''}
+                    onChange={e => setUniaoDestino(prev => ({ ...prev, [s.id]: e.target.value }))}
+                    disabled={disabled || salvando}
+                    className="px-2 py-1 border border-amber-200 rounded-md bg-white text-xs text-gray-700 focus:ring-2 focus:ring-[#7d4a3c] focus:outline-none disabled:opacity-50"
+                  >
+                    <option value="">unir a...</option>
+                    {ativos.filter(o => o.id !== s.id).map(o => (
+                      <option key={o.id} value={o.nome}>{o.nome}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => handleUnir(s, uniaoDestino[s.id] ?? '')}
+                    disabled={disabled || salvando || !uniaoDestino[s.id]}
+                    className="px-2.5 py-1 rounded-md bg-[#7d4a3c] text-white font-medium hover:bg-[#623a2f] transition disabled:opacity-40"
+                  >
+                    Unir
+                  </button>
+                </div>
               )}
             </li>
           ))}
