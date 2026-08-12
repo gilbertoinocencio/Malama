@@ -121,35 +121,39 @@ const DocumentoItem: React.FC<{
           <div className="px-4 py-4 max-h-96 overflow-y-auto text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
             {doc.conteudo}
           </div>
+        </div>
+      )}
 
-          {pendente && (
-            <div className="border-t border-gray-100 px-4 py-4 bg-gray-50">
-              <p className="text-xs text-gray-500 mb-3">
-                O aceite fica registrado com data, versão do documento e o nome informado abaixo.
-                Preencha com os dados de quem tem poderes para assinar pela empresa.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-                <input
-                  type="text" value={nome} onChange={e => setNome(e.target.value)}
-                  placeholder="Nome de quem aceita"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
-                />
-                <input
-                  type="text" value={cargo} onChange={e => setCargo(e.target.value)}
-                  placeholder="Cargo (ex.: Diretora de RH)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
-                />
-              </div>
-              <button
-                onClick={handleAceitar}
-                disabled={enviando}
-                className="flex items-center gap-2 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                {enviando ? 'Registrando...' : 'Li e aceito em nome da empresa'}
-              </button>
-            </div>
-          )}
+      {/* O aceite aparece depois de abrir o texto — ou de saída, quando o
+          documento mora numa página externa e não há o que expandir aqui.
+          Sem essa segunda condição, documento com URL e aceite obrigatório
+          ficaria impossível de aceitar. */}
+      {pendente && (aberto || !!doc.url) && (
+        <div className="border-t border-gray-100 px-4 py-4 bg-gray-50">
+          <p className="text-xs text-gray-500 mb-3">
+            O aceite fica registrado com data, versão do documento e o nome informado abaixo.
+            Preencha com os dados de quem tem poderes para assinar pela empresa.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+            <input
+              type="text" value={nome} onChange={e => setNome(e.target.value)}
+              placeholder="Nome de quem aceita"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+            />
+            <input
+              type="text" value={cargo} onChange={e => setCargo(e.target.value)}
+              placeholder="Cargo (ex.: Diretora de RH)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={handleAceitar}
+            disabled={enviando}
+            className="flex items-center gap-2 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            {enviando ? 'Registrando...' : 'Li e aceito em nome da empresa'}
+          </button>
         </div>
       )}
     </div>

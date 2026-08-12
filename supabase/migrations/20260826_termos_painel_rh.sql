@@ -1,0 +1,203 @@
+-- =====================================================
+-- Malama — Termos de Uso do Painel do RH (empresa contratante)
+-- Migration: 20260826_termos_painel_rh.sql
+--
+-- Aplicar via SQL Editor, depois de 20260825_documentos_legais_empresa.
+--
+-- POR QUE ESTE TEXTO EXISTE
+--   Os únicos documentos do produto eram B2C: falam com o paciente, sobre o
+--   app, comunidade e Body Scan. Nenhuma linha sobre o que a EMPRESA insere
+--   no painel — que é justamente onde entra dado de outra pessoa, o
+--   colaborador, e onde a responsabilidade precisa estar declarada.
+--
+--   O eixo do documento é a separação de papéis, que hoje não estava escrita
+--   em lugar nenhum:
+--     · o que o colaborador gera no app (refeição, peso, WHO-5, consulta) tem
+--       a Malama como CONTROLADORA perante ele, e a empresa não acessa;
+--     · o que a empresa digita ou importa no painel (nome, e-mail, CPF,
+--       setor, função, afastamento, ambulatório) é dela: a empresa é
+--       CONTROLADORA e a Malama trata por conta dela, como OPERADORA.
+--   Sem isso, um questionamento de colaborador sobre o afastamento que o RH
+--   lançou não tem documento que aponte de quem é a base legal.
+--
+-- ESTE TEXTO NÃO SUBSTITUI REVISÃO JURÍDICA.
+--   Ele entra como RASCUNHO (vigente = FALSE) e não aparece no portal
+--   enquanto não for publicado. Dois pontos precisam de decisão de advogado
+--   antes de publicar, e estão marcados no corpo com [CONFIRMAR]:
+--   o foro eleito e o prazo de comunicação de incidente.
+--
+-- CONSOLIDAÇÃO
+--   O rascunho separado de 'tratamento_dados' é removido: o tratamento está
+--   dentro deste documento (seções 3 a 11). Dois documentos com o mesmo
+--   conteúdo fariam o cliente assinar duas vezes a mesma coisa e divergir na
+--   próxima versão. Se o jurídico do cliente pedir um anexo autônomo de
+--   proteção de dados, ele volta como um INSERT novo.
+-- =====================================================
+
+-- =====================================================
+-- 1. TEXTO DOS TERMOS
+-- =====================================================
+
+UPDATE documentos_legais
+   SET titulo   = 'Termos de Uso do Painel do RH — Empresa Contratante',
+       versao   = '1.0',
+       conteudo = $doc$TERMOS DE USO DO PAINEL DO RH — EMPRESA CONTRATANTE
+
+Estes Termos regem o uso do Painel do RH da plataforma Malama pela empresa contratante ("Empresa") e o tratamento dos dados que a Empresa insere, importa ou gera nesse painel. Não se confundem com os Termos de Uso do aplicativo, que regem a relação entre a Malama e cada colaborador enquanto usuário.
+
+1. OBJETO
+
+1.1. A Malama Saúde Digital Ltda. ("Malama") disponibiliza à Empresa um painel de gestão para administrar os assentos contratados, acompanhar indicadores agregados de saúde e bem-estar e produzir evidência documental de gestão de riscos psicossociais.
+
+1.2. O uso do painel pressupõe contrato comercial vigente. Assentos, valores, vigência e escopo contratado constam do contrato e são exibidos no painel apenas para consulta.
+
+2. PAPÉIS DAS PARTES NO TRATAMENTO DE DADOS
+
+Esta é a cláusula central destes Termos. A plataforma reúne dois fluxos de dados com responsáveis distintos, e a distinção define quem responde perante o colaborador.
+
+2.1. DADOS INSERIDOS PELA EMPRESA. Em relação aos dados que a Empresa cadastra, importa ou lança no painel — descritos na seção 3 — a Empresa é a CONTROLADORA e a Malama atua como OPERADORA, tratando esses dados exclusivamente conforme estes Termos e as instruções da Empresa (Lei nº 13.709/2018, art. 5º, VI e VII).
+
+2.2. DADOS GERADOS PELO COLABORADOR NO APLICATIVO. Em relação aos dados que o colaborador produz ao usar o aplicativo — registros alimentares, medidas corporais, respostas a instrumentos de saúde, atendimentos de telemedicina e conteúdo clínico em geral — a Malama é a CONTROLADORA perante o titular, com base no consentimento e demais bases legais aplicáveis à tutela da saúde. A Empresa NÃO tem acesso a esses dados de forma identificada, em nenhuma hipótese, nem mediante solicitação.
+
+2.3. A Empresa não adquire, por força destes Termos ou do contrato, qualquer direito de acesso individualizado ao conteúdo clínico de seus colaboradores. O que a Empresa recebe são indicadores agregados, nos limites da seção 6.
+
+3. DADOS QUE A EMPRESA INSERE NO PAINEL
+
+3.1. Cadastro de colaborador: nome, e-mail, telefone/WhatsApp, CPF, setor e função. O CPF é opcional e serve exclusivamente para vincular eventos de afastamento ao cadastro.
+
+3.2. Registros de afastamento, lançados manualmente ou importados de eventos do eSocial: a plataforma armazena somente SETOR, CAPÍTULO do CID (a letra) e DURAÇÃO em dias. Não são armazenados nome, CPF nem o código de diagnóstico completo. Na importação, o CPF do arquivo é utilizado apenas para resolver o setor correspondente e é descartado ao final do processamento.
+
+3.3. Registros de ambulatório: setor, categoria de queixa (lista fechada) e data. Não identificam pessoa e não constituem prontuário.
+
+3.4. Plano de ação de riscos psicossociais: descrição do risco, medida de controle, nível de controle, responsável interno pela execução, prazo e evidência de conclusão.
+
+3.5. Campanhas de avaliação: instrumento, janela e setores destinatários. As respostas dos colaboradores não são inseridas pela Empresa e não lhe são acessíveis individualmente.
+
+3.6. Dados cadastrais da própria Empresa e do responsável pela conta.
+
+4. RESPONSABILIDADES DA EMPRESA
+
+4.1. BASE LEGAL E INFORMAÇÃO AOS TITULARES. A Empresa declara possuir base legal adequada para tratar os dados que insere no painel e é responsável por informar seus colaboradores, de forma clara e prévia, sobre o benefício, sobre quais dados são compartilhados com a Malama e para qual finalidade. A Malama não presume nem supre essa comunicação.
+
+4.2. EXATIDÃO E ATUALIZAÇÃO. A Empresa é responsável pela veracidade e pela atualização dos dados inseridos, inclusive pelo desligamento tempestivo de colaboradores que deixaram o quadro.
+
+4.3. MÍNIMO NECESSÁRIO. A Empresa compromete-se a inserir apenas os dados previstos na seção 3. É expressamente vedado inserir, em qualquer campo do painel, inclusive campos de texto livre: diagnóstico identificado, laudo, atestado, prontuário, código de CID completo associado a pessoa, dados de dependentes ou de terceiros sem vínculo, e qualquer dado sensível não previsto nestes Termos.
+
+4.4. CONTAS DE ACESSO. A Empresa é responsável por quem recebe acesso ao painel, pela adequação desse acesso à função de cada pessoa e pela revogação imediata quando o vínculo ou a atribuição cessar. As credenciais são pessoais e intransferíveis.
+
+4.5. FINALIDADE E VEDAÇÃO DE USO ADVERSO. Os indicadores fornecidos destinam-se à gestão de saúde ocupacional, ao cumprimento de obrigações de segurança e saúde no trabalho e à melhoria das condições de trabalho. A Empresa compromete-se a NÃO utilizar qualquer informação obtida no painel para decisão adversa individual — desligamento, sanção disciplinar, alteração de remuneração, exclusão de promoção ou processo seletivo — nem para constranger, expor ou retaliar colaborador em razão de participação, não participação ou conteúdo de resposta a qualquer instrumento.
+
+4.6. A violação da cláusula 4.5 autoriza a Malama a suspender o acesso ao painel, sem prejuízo das demais medidas cabíveis.
+
+5. RESPONSABILIDADES DA MALAMA
+
+5.1. Tratar os dados da seção 3 apenas para as finalidades destes Termos e do contrato, e não utilizá-los para finalidade própria diversa, ressalvada a produção de estatísticas agregadas e irreversivelmente anonimizadas.
+
+5.2. Manter medidas técnicas e administrativas de segurança compatíveis com a natureza dos dados, incluindo controle de acesso por perfil, segregação por empresa e registro de operações relevantes.
+
+5.3. Aplicar, nos relatórios entregues à Empresa, os limites de agregação descritos na seção 6.
+
+5.4. Auxiliar a Empresa, na medida de sua atuação como operadora, no atendimento a requisições de titulares e de autoridades.
+
+6. O QUE A EMPRESA VÊ E O QUE NÃO VÊ
+
+6.1. Todo indicador de saúde, bem-estar ou risco psicossocial é entregue de forma AGREGADA, sujeito a piso mínimo de coorte: recortes com menos pessoas do que o piso vigente (atualmente 5) são suprimidos do relatório, ainda que isso reduza a granularidade da análise.
+
+6.2. A Empresa não tem acesso, individualizado ou nominal, a: respostas a instrumentos de avaliação, conteúdo de consultas, registros alimentares ou corporais, prescrições, diagnósticos, ou qualquer informação que permita identificar a situação de saúde de colaborador determinado.
+
+6.3. O painel informa quem tem acesso liberado ao benefício e desde quando — dado de elegibilidade, necessário à gestão contratual. Não informa uso, adesão, frequência nem conteúdo.
+
+6.4. A Empresa reconhece que a supressão de recortes pequenos e a ausência de dado individual são características deliberadas do produto, e não falhas ou limitações a serem contornadas.
+
+7. CONFIDENCIALIDADE
+
+7.1. Os relatórios agregados são confidenciais e destinam-se ao uso interno da Empresa para as finalidades da cláusula 4.5, admitida a apresentação a auditoria, fiscalização ou órgão de controle quando exigido.
+
+7.2. A Empresa compromete-se a não divulgar internamente recortes de forma que permita, por cruzamento com informação que já detenha, inferir a situação individual de colaborador.
+
+8. SUBOPERADORES
+
+8.1. A Malama utiliza fornecedores de infraestrutura, comunicação e processamento para prestar o serviço, obrigando-os contratualmente a padrão de proteção compatível com estes Termos.
+
+8.2. A relação de suboperadores relevantes é disponibilizada à Empresa mediante solicitação ao contato da seção 13.
+
+9. RETENÇÃO E ELIMINAÇÃO
+
+9.1. Os dados inseridos pela Empresa são mantidos enquanto vigente o contrato.
+
+9.2. Encerrado o contrato, a Empresa pode solicitar, em até 30 (trinta) dias, a devolução dos dados que inseriu, em formato estruturado. Findo esse prazo, eles são eliminados, salvo o que a Malama deva conservar por obrigação legal ou regulatória.
+
+9.3. A remoção de colaborador do painel encerra o acesso corporativo dele ao benefício e libera o assento. Não apaga os dados que o colaborador gerou como usuário do aplicativo, que seguem sob a relação dele com a Malama e sob os direitos que ele exerce diretamente.
+
+9.4. Registros já agregados e irreversivelmente anonimizados, bem como documentos de evidência emitidos, não são revertidos por não constituírem dados pessoais.
+
+10. INCIDENTES DE SEGURANÇA
+
+10.1. A Malama comunicará a Empresa, sem demora injustificada e em até [CONFIRMAR: prazo, ex. 48 horas] da ciência, sobre incidente de segurança que possa acarretar risco ou dano relevante aos dados tratados por conta dela, com as informações disponíveis e as medidas adotadas.
+
+10.2. A comunicação a titulares e à Autoridade Nacional de Proteção de Dados, quando cabível em relação aos dados da seção 3, é atribuição da Empresa na qualidade de controladora, com o apoio da Malama.
+
+11. AUDITORIA E EVIDÊNCIA
+
+11.1. A Malama disponibiliza no painel documentos de evidência — relatórios agregados e certificados de disponibilização do benefício — destinados a comprovar diligência da Empresa perante fiscalização.
+
+11.2. Esses documentos refletem os dados existentes na plataforma na data de emissão e não substituem os registros próprios da Empresa nem laudo de profissional habilitado.
+
+12. VIGÊNCIA, ALTERAÇÕES E ACEITE
+
+12.1. Estes Termos vigoram enquanto durar o acesso da Empresa ao painel.
+
+12.2. O aceite é eletrônico e fica registrado com a versão do documento, a data e hora, e o nome e cargo de quem aceitou em nome da Empresa. A Empresa é responsável por assegurar que quem aceita detém poderes para obrigá-la.
+
+12.3. Alterações materiais dão origem a nova versão, submetida a novo aceite. O registro das versões anteriores e de seus aceites é preservado.
+
+13. LEGISLAÇÃO, FORO E CONTATO
+
+13.1. Estes Termos são regidos pela legislação brasileira, em especial a Lei nº 13.709/2018.
+
+13.2. Fica eleito o foro da comarca de [CONFIRMAR: comarca da sede da Malama] para dirimir controvérsias oriundas destes Termos.
+
+13.3. Contato do Encarregado pelo Tratamento de Dados Pessoais: privacidade@soumalama.com.br
+$doc$
+ WHERE tipo = 'termos_b2b' AND empresa_id IS NULL;
+
+
+-- =====================================================
+-- 2. A POLÍTICA DE PRIVACIDADE É DO COLABORADOR, E O TÍTULO PRECISA DIZER
+--
+-- Ela aparece na área da empresa como leitura, mas rege a relação da Malama
+-- com o colaborador — não com a Empresa. Sem essa distinção no título, o RH
+-- lê a política do app achando que é o documento dele, que foi exatamente a
+-- confusão que motivou esta migration.
+-- =====================================================
+
+UPDATE documentos_legais
+   SET titulo = 'Política de Privacidade da plataforma (aplicável aos colaboradores)'
+ WHERE tipo = 'privacidade' AND empresa_id IS NULL;
+
+
+-- =====================================================
+-- 3. REMOVE O RASCUNHO REDUNDANTE
+--
+-- O DELETE é condicionado à ausência de aceite: se por qualquer motivo já
+-- houver um registrado, a linha fica (e o FK RESTRICT barraria de todo
+-- jeito, abortando a migration inteira no SQL Editor).
+-- =====================================================
+
+DELETE FROM documentos_legais d
+ WHERE d.tipo = 'tratamento_dados'
+   AND d.empresa_id IS NULL
+   AND NOT d.vigente
+   AND NOT EXISTS (SELECT 1 FROM empresa_aceites a WHERE a.documento_id = d.id);
+
+
+-- =====================================================
+-- 4. PUBLICAÇÃO — NÃO INCLUSA DE PROPÓSITO
+--
+-- O documento continua com vigente = FALSE e por isso não aparece no portal.
+-- Depois da revisão jurídica e da substituição dos dois [CONFIRMAR]:
+--
+--   UPDATE documentos_legais
+--      SET vigente = TRUE, publicado_em = CURRENT_DATE
+--    WHERE tipo = 'termos_b2b' AND empresa_id IS NULL;
+-- =====================================================
