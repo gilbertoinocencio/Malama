@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { rhService, type RhEmpresa, type EmpresaColaborador } from '../../services/empresaService';
+import { SetoresCard } from '../../components/rh/SetoresCard';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
@@ -37,6 +38,10 @@ export const RhDashboard: React.FC = () => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [setor, setSetor] = useState('');
+  // Setores ativos do registro da empresa (migration 20260824). O campo de
+  // setor é um seletor: texto livre aqui era o que fabricava coortes
+  // duplicadas ("TI" / "T.I.") e fazia o piso k suprimir as duas.
+  const [setoresAtivos, setSetoresAtivos] = useState<string[]>([]);
   const [funcao, setFuncao] = useState('');
   // Chave de junção com os eventos do eSocial (migration 20260814). Opcional
   // aqui: quem já tem cadastro pode vincular em lote na aba Importar.
@@ -344,6 +349,19 @@ export const RhDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* ── Setores ──
+          Antes do cadastro de propósito: a empresa decide os setores que quer
+          acompanhar, e só depois aponta cada pessoa para um deles. */}
+      <SetoresCard
+        disabled={empresa.status !== 'ativa'}
+        onChange={ativos => {
+          setSetoresAtivos(ativos);
+          // Setor selecionado que foi renomeado/arquivado no card não pode
+          // continuar no formulário: gravaria um texto que não existe mais.
+          setSetor(prev => (prev && !ativos.includes(prev) ? '' : prev));
+        }}
+      />
+
       {/* ── Adicionar colaborador ── */}
       <div className="bg-white rounded-xl shadow p-5">
         <div className="flex items-center gap-2 mb-3">
@@ -380,12 +398,18 @@ export const RhDashboard: React.FC = () => {
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
               />
             </div>
-            <input
-              type="text" value={setor} onChange={e => setSetor(e.target.value)}
-              placeholder="Setor (ex.: Operações) — opcional"
-              disabled={cheio || empresa.status !== 'ativa'}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
-            />
+            <select
+              value={setor} onChange={e => setSetor(e.target.value)}
+              disabled={cheio || empresa.status !== 'ativa' || setoresAtivos.length === 0}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400"
+            >
+              <option value="">
+                {setoresAtivos.length === 0
+                  ? 'Cadastre um setor acima primeiro'
+                  : 'Setor — opcional'}
+              </option>
+              {setoresAtivos.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
             <input
               type="text" value={funcao} onChange={e => setFuncao(e.target.value)}
               placeholder="Função (ex.: Analista) — opcional"

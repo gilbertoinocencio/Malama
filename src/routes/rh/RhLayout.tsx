@@ -1,7 +1,8 @@
 // =====================================================
 // Malama — Layout do Portal do RH
 // Header + navegação por abas. Focado em usuário não-técnico.
-// A aba "Impacto" só aparece quando há ao menos 1 certificado emitido.
+// A aba "Impacto" está desligada por enquanto (ABA_IMPACTO_ATIVA = false) para
+// não poluir a barra. Quando religar, ela só aparece se houver ≥1 certificado emitido.
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
@@ -16,12 +17,17 @@ import { rhService } from '../../services/empresaService';
 
 type Tab = { to: string; label: string; icon: React.ReactNode };
 
+// Liga/desliga a aba Impacto na navegação. A rota /rh/impacto continua acessível
+// por link direto — só sai da barra de abas.
+const ABA_IMPACTO_ATIVA = false;
+
 export const RhLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [temImpacto, setTemImpacto] = useState(false);
 
   useEffect(() => {
+    if (!ABA_IMPACTO_ATIVA) return;
     // Best-effort: a aba Impacto só aparece se houver certificados emitidos.
     // Tolerante a erro (tabela pode não existir antes da migration de ESG).
     rhService.hasCertificados().then(setTemImpacto).catch(() => setTemImpacto(false));
@@ -41,7 +47,7 @@ export const RhLayout: React.FC = () => {
     { to: '/rh/importar', label: 'Importar', icon: <Upload className="w-4 h-4" /> },
     { to: '/rh/financeiro', label: 'Financeiro', icon: <CreditCard className="w-4 h-4" /> },
     { to: '/rh/compliance', label: 'Compliance', icon: <ShieldCheck className="w-4 h-4" /> },
-    ...(temImpacto
+    ...(ABA_IMPACTO_ATIVA && temImpacto
       ? [{ to: '/rh/impacto', label: 'Impacto', icon: <Leaf className="w-4 h-4" /> }]
       : []),
   ];

@@ -654,6 +654,33 @@ export type CampanhaLinks = {
 
 export type SetorEmpresa = { setor: string; n: number };
 
+// ── Registro de setores da empresa (migration 20260824) ──
+// O setor deixou de nascer da digitação no cadastro do colaborador: a
+// empresa registra seus setores primeiro e o cadastro só escolhe da lista.
+export type SetorAdmin = {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  /** Colaboradores ativos/convidados hoje neste setor. */
+  n: number;
+  /** Já aparece em afastamento, ambulatório, plano ou campanha — só arquiva. */
+  em_uso: boolean;
+};
+
+export type SetorMutacao = {
+  ok: boolean;
+  error?: string;
+  id?: string;
+  /** Criar um nome arquivado reativa a linha existente em vez de duplicar. */
+  reativado?: boolean;
+  /** Renomear para um nome que já existe: a tela pergunta antes de unir. */
+  fusao_possivel?: boolean;
+  destino?: string;
+  fundido?: boolean;
+  nome?: string;
+  ativo?: boolean;
+};
+
 // ── Matriz de risco psicossocial por setor (migration 20260730) ──
 // Cruza exposição ocupacional (JSS) com bem-estar (WHO-5).
 export type MatrizQuadrante =
@@ -1083,10 +1110,58 @@ export const rhService = {
     return (data ?? null) as CampanhaLinks | null;
   },
 
+  /**
+   * Setores disponíveis para seleção (registro + contagem de pessoas).
+   * Depois da migration 20260824 a lista vem do REGISTRO da empresa, então
+   * um setor recém-criado aparece com n = 0 — é o que permite planejar
+   * ação para um setor antes de haver alguém nele.
+   */
   async getSetores(): Promise<SetorEmpresa[]> {
     const { data, error } = await supabase.rpc('rh_setores');
     if (error) { console.error('[rhService] setores:', error.message); return []; }
     return (data ?? []) as SetorEmpresa[];
+  },
+
+  // ── Gestão do registro de setores (migration 20260824) ──
+  // Escrita só por RPC: o texto do setor é chave de junção de matriz,
+  // absenteísmo, JSS, plano de ação e campanhas, então renomear precisa
+  // acontecer nas 7 tabelas de uma vez, no servidor.
+
+  async getSetoresAdmin(): Promise<SetorAdmin[]> {
+    const { data, error } = await supabase.rpc('rh_setores_admin');
+    if (error) { console.error('[rhService] setores admin:', error.message); return []; }
+    return (data ?? []) as SetorAdmin[];
+  },
+
+  async criarSetor(nome: string): Promise<SetorMutacao> {
+    const { data, error } = await supabase.rpc('rh_setor_criar', { p_nome: nome });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;
+  },
+
+  /**
+   * Renomeia e propaga o texto. Se o nome de destino já existir, a primeira
+   * chamada volta com `fusao_possivel` em vez de agir — a tela confirma com
+   * o RH antes de unir duas coortes (e de invalidar links já divulgados).
+   */
+  async renomearSetor(id: string, nome: string, permitirFusao = false): Promise<SetorMutacao> {
+    const { data, error } = await supabase.rpc('rh_setor_renomear', {
+      p_id: id, p_nome: nome, p_permitir_fusao: permitirFusao,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;
+  },
+
+  async arquivarSetor(id: string, ativo: boolean): Promise<SetorMutacao> {
+    const { data, error } = await supabase.rpc('rh_setor_arquivar', { p_id: id, p_ativo: ativo });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;
+  },
+
+  async excluirSetor(id: string): Promise<SetorMutacao> {
+    const { data, error } = await supabase.rpc('rh_setor_excluir', { p_id: id });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;
   },
 
   /**

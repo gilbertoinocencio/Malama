@@ -48,7 +48,9 @@ Deno.serve(async (req: Request) => {
     // Setor/função alimentam os recortes k-anônimos do relatório psicossocial
     // do RH (NR-1/PGR). Opcionais — sem eles o colaborador entra no agregado
     // geral da empresa.
-    const setorValue = setor ? String(setor).trim() || null : null;
+    // Canonicalizado contra `empresa_setores` logo abaixo, quando a empresa
+    // do chamador já é conhecida.
+    let setorValue = setor ? String(setor).trim() || null : null;
     const funcaoValue = funcao ? String(funcao).trim() || null : null;
     const whatsappValue = String(whatsapp).trim();
     // CPF é a chave de junção com os eventos do eSocial (migration 20260814).
@@ -80,6 +82,32 @@ Deno.serve(async (req: Request) => {
 
     if (empError || !empresa) return json({ error: 'Empresa não encontrada' }, 404);
     if (empresa.status !== 'ativa') return json({ error: 'A conta da empresa não está ativa' }, 403);
+
+    // 2.1 Canonicalizar o setor contra o registro da empresa (migration
+    // 20260824). O texto gravado aqui é a chave de junção dos relatórios por
+    // setor, então "ti" e "T.I." precisam virar a MESMA coorte — senão cada
+    // fragmento cai abaixo do piso k e some do relatório sem erro nenhum.
+    // Comparação em JS, não ilike: nome de setor pode conter % ou _.
+    if (setorValue) {
+      const { data: registro } = await supabaseAdmin
+        .from('empresa_setores')
+        .select('nome')
+        .eq('empresa_id', empresaId);
+
+      const alvo = setorValue.toLowerCase();
+      const canonico = (registro ?? []).find((s: { nome: string }) => s.nome.trim().toLowerCase() === alvo);
+
+      if (canonico) {
+        setorValue = canonico.nome;
+      } else {
+        // Setor fora do registro (chamada legada, importação antiga). Registra
+        // em vez de aceitar calado: setor que só existe no cadastro fica
+        // invisível para a tela de gestão e ninguém consegue corrigi-lo.
+        await supabaseAdmin
+          .from('empresa_setores')
+          .insert([{ empresa_id: empresaId, nome: setorValue }]);
+      }
+    }
 
     // 3. Já existe colaborador ativo/convidado com esse e-mail?
     const { data: existing } = await supabaseAdmin
