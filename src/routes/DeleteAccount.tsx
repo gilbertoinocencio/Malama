@@ -86,7 +86,7 @@ export const DeleteAccount: React.FC = () => {
       </main>
 
       <footer className="bg-gray-100 text-center text-sm text-gray-500 py-6 px-4 mt-12">
-        © {new Date().getFullYear()} Malama Saúde Digital. Todos os direitos reservados.{' '}
+        © {new Date().getFullYear()} Malama Healthtech. Todos os direitos reservados.{' '}
         <a href="/privacidade" className="text-[#7d4a3c] underline">Política de Privacidade</a>
       </footer>
     </div>

@@ -26,7 +26,7 @@ export const TermsOfUse: React.FC = () => {
 
         <section className="mb-8">
           <p className="leading-relaxed text-gray-700">
-            Estes Termos de Uso ("Termos") regem o acesso e a utilização dos serviços oferecidos pela <strong>Malama Saúde Digital Ltda.</strong> ("Malama"). Ao cadastrar-se ou utilizar nossa plataforma, você declara ter lido, compreendido e concordado com as condições aqui estabelecidas.
+            Estes Termos de Uso ("Termos") regem o acesso e a utilização dos serviços oferecidos pela <strong>Malama Healthtech</strong> ("Malama"). Ao cadastrar-se ou utilizar nossa plataforma, você declara ter lido, compreendido e concordado com as condições aqui estabelecidas.
           </p>
         </section>
 
@@ -102,7 +102,7 @@ export const TermsOfUse: React.FC = () => {
       </main>
 
       <footer className="bg-gray-100 text-center text-sm text-gray-500 py-6 px-4">
-        © {new Date().getFullYear()} Malama Saúde Digital. Todos os direitos reservados.
+        © {new Date().getFullYear()} Malama Healthtech. Todos os direitos reservados.
       </footer>
     </div>
   );

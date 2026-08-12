@@ -22,7 +22,7 @@ export const PrivacyPolicy: React.FC = () => {
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-[#2d6a4f]">1. Quem somos</h2>
           <p className="leading-relaxed">
-            O Malama é uma plataforma digital de saúde e nutrição desenvolvida por <strong>Malama Saúde Digital Ltda.</strong>, com sede no Brasil. Nosso objetivo é proporcionar acompanhamento nutricional inteligente, monitoramento de saúde e conexão com profissionais de saúde via telemedicina.
+            O Malama é uma plataforma digital de saúde e nutrição desenvolvida pela <strong>Malama Healthtech</strong>, com sede no Brasil. Nosso objetivo é proporcionar acompanhamento nutricional inteligente, monitoramento de saúde e conexão com profissionais de saúde via telemedicina.
           </p>
           <p className="mt-2 text-sm text-gray-600">
             Contato do DPO / Privacidade: <a href="mailto:privacidade@soumalama.com.br" className="text-[#2d6a4f] underline font-medium">privacidade@soumalama.com.br</a>
@@ -104,7 +104,7 @@ export const PrivacyPolicy: React.FC = () => {
       </main>
 
       <footer className="bg-gray-100 text-center text-sm text-gray-500 py-6 px-4">
-        © {new Date().getFullYear()} Malama Saúde Digital. Todos os direitos reservados.
+        © {new Date().getFullYear()} Malama Healthtech. Todos os direitos reservados.
       </footer>
     </div>
   );
