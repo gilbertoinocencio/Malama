@@ -504,6 +504,13 @@ export type DocumentoLegal = {
   aceito_em: string | null;
   aceito_por_nome: string | null;
   aceito_por_cargo: string | null;
+  /**
+   * Como o registro foi feito (migration 20260829):
+   * 'automatico' = ciência gravada no acesso ao painel, sem clique;
+   * 'explicito'  = alguém declarou nome e cargo e aceitou.
+   * A distinção existe porque as duas coisas não valem o mesmo como prova.
+   */
+  modo: 'automatico' | 'explicito' | null;
 };
 
 export type RhComplianceMetricas = {
@@ -935,6 +942,16 @@ export const rhService = {
     });
     if (error) return { ok: false, error: error.message };
     return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  /**
+   * Registra ciência automática dos documentos vigentes (migration 20260829).
+   * Chamada a cada carga do portal: na prática só escreve na primeira vez de
+   * cada versão publicada, e não faz nada nas demais.
+   */
+  async registrarCiencia(): Promise<void> {
+    const { error } = await supabase.rpc('rh_registrar_ciencia');
+    if (error) console.error('[rhService] ciência de documentos:', error.message);
   },
 
   /** Documentos vigentes aplicáveis à empresa, com o aceite quando houver. */

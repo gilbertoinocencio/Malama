@@ -37,11 +37,15 @@ export const RhLayout: React.FC = () => {
 
   useEffect(() => {
     rhService.getMyEmpresa().then(e => setEmpresaNome(e?.nome ?? '')).catch(() => {});
-    // Marcador de documento por aceitar. Sem ele a área da empresa seria uma
-    // gaveta que ninguém abre — e termo não lido é termo não aceito.
-    // Tolerante a erro: antes da migration 20260825 a RPC não existe.
-    rhService.getDocumentos()
-      .then(ds => setDocsPendentes(ds.filter(d => d.exige_aceite && !d.aceito_em).length))
+
+    // Ciência dos documentos vigentes é registrada no acesso ao painel, e não
+    // por clique: quem tem conta de RH está ciente por força da contratação.
+    // A leitura vem DEPOIS da escrita para o marcador refletir o estado novo
+    // já nesta carga. Tolerante a erro nos dois passos.
+    rhService.registrarCiencia()
+      .catch(() => {})
+      .then(() => rhService.getDocumentos())
+      .then(ds => setDocsPendentes((ds ?? []).filter(d => d.exige_aceite && !d.aceito_em).length))
       .catch(() => setDocsPendentes(0));
   }, []);
 

@@ -49,8 +49,12 @@ const DocumentoItem: React.FC<{
   const [nome, setNome] = useState('');
   const [cargo, setCargo] = useState('');
   const [enviando, setEnviando] = useState(false);
+  // Formalizar = subir uma ciência automática para aceite assinado. Não é o
+  // caminho normal; existe para quando o jurídico do cliente pede assinatura.
+  const [formalizando, setFormalizando] = useState(false);
 
   const pendente = doc.exige_aceite && !doc.aceito_em;
+  const podeFormalizar = doc.exige_aceite && doc.modo === 'automatico';
 
   const handleAceitar = async () => {
     if (!nome.trim()) { toast.error('Informe o nome de quem está aceitando.'); return; }
@@ -81,10 +85,28 @@ const DocumentoItem: React.FC<{
           </div>
 
           {doc.aceito_em ? (
-            <p className="mt-1 text-xs text-green-700 flex items-center gap-1">
+            // O texto muda com o modo de propósito: chamar de "aceito por
+            // Fulano" um registro gravado sem clique seria mentira na trilha.
+            <p className={`mt-1 text-xs flex items-center gap-1 ${doc.modo === 'automatico' ? 'text-gray-500' : 'text-green-700'}`}>
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Aceito em {fmtDateTime(doc.aceito_em)} por {doc.aceito_por_nome}
-              {doc.aceito_por_cargo ? ` · ${doc.aceito_por_cargo}` : ''}
+              {doc.modo === 'automatico' ? (
+                <>
+                  Ciência registrada em {fmtDateTime(doc.aceito_em)} no acesso ao painel ({doc.aceito_por_nome})
+                  {podeFormalizar && !formalizando && (
+                    <button
+                      onClick={() => { setFormalizando(true); setAberto(true); }}
+                      className="ml-1 underline hover:text-[#7d4a3c]"
+                    >
+                      registrar aceite formal
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  Aceito em {fmtDateTime(doc.aceito_em)} por {doc.aceito_por_nome}
+                  {doc.aceito_por_cargo ? ` · ${doc.aceito_por_cargo}` : ''}
+                </>
+              )}
             </p>
           ) : doc.exige_aceite ? (
             <p className="mt-1 text-xs text-amber-700 flex items-center gap-1">
@@ -128,7 +150,7 @@ const DocumentoItem: React.FC<{
           documento mora numa página externa e não há o que expandir aqui.
           Sem essa segunda condição, documento com URL e aceite obrigatório
           ficaria impossível de aceitar. */}
-      {pendente && (aberto || !!doc.url) && (
+      {(pendente || formalizando) && (aberto || !!doc.url) && (
         <div className="border-t border-gray-100 px-4 py-4 bg-gray-50">
           <p className="text-xs text-gray-500 mb-3">
             O aceite fica registrado com data, versão do documento e o nome informado abaixo.
