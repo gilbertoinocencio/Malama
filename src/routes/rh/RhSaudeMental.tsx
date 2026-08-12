@@ -13,6 +13,7 @@
 // =====================================================
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Brain, Plus, Play, X, Users, BarChart3, Info, AlertCircle, FileDown,
   ChevronDown, ChevronUp, HeartPulse, Activity, CalendarRange, Link as LinkIcon,
@@ -420,6 +421,21 @@ const NovaCampanha: React.FC<{
           >
             Setores específicos
           </button>
+        </div>
+
+        {/* O setor é criado na aba Colaboradores, mas é AQUI que a falta dele
+            aparece — quem vai abrir uma campanha por setor descobre neste
+            momento que o setor não existe. Sem este atalho, a pessoa tem que
+            adivinhar onde cadastrar. */}
+        <div className="mt-2">
+          <Link
+            to="/rh/dashboard#setores"
+            className="text-xs text-[#7d4a3c] underline hover:opacity-80"
+          >
+            {setores.length === 0
+              ? 'Nenhum setor cadastrado — criar setores da empresa'
+              : 'Criar ou renomear setores'}
+          </Link>
         </div>
 
         {alvo === 'setores' && (

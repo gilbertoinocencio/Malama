@@ -76,6 +76,14 @@ export const RhDashboard: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  // O React Router não rola até a âncora sozinho. Sem isto, o atalho
+  // "criar setores" vindo da campanha só trocaria de aba e deixaria a pessoa
+  // no topo, procurando o card.
+  useEffect(() => {
+    if (loading || window.location.hash !== '#setores') return;
+    document.getElementById('setores')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [loading]);
+
   const ativos = colaboradores.filter(c => c.status === 'ativo').length;
   const convidados = colaboradores.filter(c => c.status === 'convidado').length;
   const usados = colaboradores.length;
@@ -376,7 +384,9 @@ export const RhDashboard: React.FC = () => {
 
       {/* ── Setores ──
           Antes do cadastro de propósito: a empresa decide os setores que quer
-          acompanhar, e só depois aponta cada pessoa para um deles. */}
+          acompanhar, e só depois aponta cada pessoa para um deles.
+          A âncora #setores é o destino do atalho vindo da tela de campanha. */}
+      <div id="setores" className="scroll-mt-6">
       <SetoresCard
         disabled={empresa.status !== 'ativa'}
         // Renomear/unir setor reescreve o texto gravado em cada colaborador:
@@ -388,7 +398,8 @@ export const RhDashboard: React.FC = () => {
           // continuar no formulário: gravaria um texto que não existe mais.
           setSetor(prev => (prev && !ativos.includes(prev) ? '' : prev));
         }}
-      />
+        />
+      </div>
 
       {/* ── Adicionar colaborador ── */}
       <div className="bg-white rounded-xl shadow p-5">
