@@ -962,6 +962,39 @@ export const rhService = {
   },
 
   /**
+   * E-mail com que o RH entra no painel. Não é o mesmo campo do contato do
+   * responsável: o login é criado pelo admin da Malama e pode ficar em nome de
+   * outra pessoa. Mostrar os dois lado a lado evita a troca de senha na conta
+   * errada.
+   */
+  async getEmailDeAcesso(): Promise<string | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.email ?? null;
+  },
+
+  /**
+   * Troca a senha de acesso ao painel. Pede a senha atual de propósito:
+   * `updateUser` sozinho deixaria qualquer sessão esquecida aberta tomar a
+   * conta. Como o e-mail é o mesmo usuário já logado, o signInWithPassword
+   * apenas revalida a credencial e renova a sessão — não abre uma segunda.
+   */
+  async alterarSenha(
+    senhaAtual: string, novaSenha: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) return { ok: false, error: 'Sessão expirada. Entre novamente.' };
+
+    const { error: authErr } = await supabase.auth.signInWithPassword({
+      email: user.email, password: senhaAtual,
+    });
+    if (authErr) return { ok: false, error: 'Senha atual incorreta.' };
+
+    const { error } = await supabase.auth.updateUser({ password: novaSenha });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  },
+
+  /**
    * Registra ciência automática dos documentos vigentes (migration 20260829).
    * Chamada a cada carga do portal: na prática só escreve na primeira vez de
    * cada versão publicada, e não faz nada nas demais.

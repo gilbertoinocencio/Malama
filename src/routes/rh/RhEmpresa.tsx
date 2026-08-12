@@ -12,13 +12,18 @@
 // Documento com `exige_aceite` só é aceito depois de aberto, e o aceite
 // pede nome e cargo de quem está assinando: quem opera o portal nem sempre
 // é quem tem poderes para obrigar a empresa.
+//
+// A senha de acesso também mora aqui. Ela nasce definida pelo admin da
+// Malama no cadastro da empresa, então trocá-la é a primeira coisa que o RH
+// deveria poder fazer sozinho — sem isso a credencial inicial circularia
+// para sempre por e-mail.
 // =====================================================
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Building2, ArrowLeft, Save, FileText, ExternalLink, CheckCircle2,
-  AlertCircle, ChevronDown, ChevronUp, ShieldCheck,
+  AlertCircle, ChevronDown, ChevronUp, ShieldCheck, KeyRound, Eye, EyeOff,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -182,6 +187,122 @@ const DocumentoItem: React.FC<{
   );
 };
 
+// ── Acesso ao painel: e-mail de login e troca de senha ──
+const AcessoCard: React.FC<{ emailLogin: string | null }> = ({ emailLogin }) => {
+  const [aberto, setAberto] = useState(false);
+  const [atual, setAtual] = useState('');
+  const [nova, setNova] = useState('');
+  const [confirma, setConfirma] = useState('');
+  const [visivel, setVisivel] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+
+  const limpar = () => { setAtual(''); setNova(''); setConfirma(''); setVisivel(false); };
+
+  const handleTrocar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!atual) { toast.error('Informe a senha atual.'); return; }
+    if (nova.length < 8) { toast.error('A nova senha precisa ter ao menos 8 caracteres.'); return; }
+    if (nova !== confirma) { toast.error('A confirmação não confere com a nova senha.'); return; }
+    if (nova === atual) { toast.error('A nova senha precisa ser diferente da atual.'); return; }
+
+    setSalvando(true);
+    try {
+      const res = await rhService.alterarSenha(atual, nova);
+      if (!res.ok) { toast.error(res.error || 'Não foi possível alterar a senha.'); return; }
+      toast.success('Senha alterada. Use a nova no próximo acesso.');
+      limpar();
+      setAberto(false);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const campo = 'w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent';
+
+  return (
+    <div className="bg-white rounded-xl shadow p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <KeyRound className="w-5 h-5 text-[#7d4a3c]" />
+        <h2 className="font-semibold text-gray-800">Acesso ao painel</h2>
+      </div>
+
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <dl><Campo label="E-mail de acesso">{emailLogin || '—'}</Campo></dl>
+        {!aberto && (
+          <button
+            onClick={() => setAberto(true)}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+          >
+            Alterar senha
+          </button>
+        )}
+      </div>
+
+      <p className="text-xs text-gray-400 mt-3">
+        Este é o e-mail com que você entra em /rh — ele pode ser diferente do contato do
+        responsável acima. Para trocá-lo, fale com a Malama.
+      </p>
+
+      {aberto && (
+        <form onSubmit={handleTrocar} className="border-t border-gray-100 mt-4 pt-4">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+            Alterar senha
+          </p>
+          {/* Campo escondido com o e-mail: dá contexto ao gerenciador de
+              senhas do navegador, que sem isso salva a credencial sem usuário. */}
+          <input type="text" name="username" autoComplete="username" value={emailLogin ?? ''} readOnly hidden />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input
+              type={visivel ? 'text' : 'password'} value={atual} onChange={e => setAtual(e.target.value)}
+              placeholder="Senha atual" autoComplete="current-password" className={campo}
+            />
+            <input
+              type={visivel ? 'text' : 'password'} value={nova} onChange={e => setNova(e.target.value)}
+              placeholder="Nova senha (mín. 8 caracteres)" autoComplete="new-password" className={campo}
+            />
+            <input
+              type={visivel ? 'text' : 'password'} value={confirma} onChange={e => setConfirma(e.target.value)}
+              placeholder="Repita a nova senha" autoComplete="new-password" className={campo}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setVisivel(v => !v)}
+            className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#7d4a3c] transition"
+          >
+            {visivel ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            {visivel ? 'Ocultar senhas' : 'Mostrar senhas'}
+          </button>
+
+          <p className="text-xs text-gray-400 mt-3">
+            Pedimos a senha atual para confirmar que é você — e a troca vale só para esta conta
+            de RH, não para o acesso dos colaboradores ao aplicativo.
+          </p>
+
+          <div className="flex items-center gap-2 mt-4">
+            <button
+              type="submit"
+              disabled={salvando}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
+            >
+              <KeyRound className="w-4 h-4" />
+              {salvando ? 'Alterando...' : 'Alterar senha'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { limpar(); setAberto(false); }}
+              className="px-4 py-2.5 text-sm text-gray-500 hover:text-gray-700 transition"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+};
+
 export const RhEmpresa: React.FC = () => {
   const [perfil, setPerfil] = useState<EmpresaPerfil | null>(null);
   const [docs, setDocs] = useState<DocumentoLegal[]>([]);
@@ -191,16 +312,19 @@ export const RhEmpresa: React.FC = () => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [emailLogin, setEmailLogin] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [p, d] = await Promise.all([
+      const [p, d, acesso] = await Promise.all([
         rhService.getEmpresaPerfil(),
         rhService.getDocumentos(),
+        rhService.getEmailDeAcesso(),
       ]);
       setPerfil(p);
       setDocs(d);
+      setEmailLogin(acesso);
       setNome(p?.responsavel_nome ?? '');
       setEmail(p?.responsavel_email ?? '');
       setTelefone(p?.responsavel_telefone ?? '');
@@ -315,6 +439,9 @@ export const RhEmpresa: React.FC = () => {
           </button>
         </form>
       </div>
+
+      {/* ── Acesso ── */}
+      <AcessoCard emailLogin={emailLogin} />
 
       {/* ── Documentos ── */}
       <div className="bg-white rounded-xl shadow p-5">

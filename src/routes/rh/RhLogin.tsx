@@ -1,6 +1,11 @@
 // =====================================================
 // Malama — Login do Portal do RH (empresas B2B)
 // Credenciais criadas pelo super admin na criação da empresa.
+//
+// A recuperação de senha manda o link para o e-mail de acesso e cai em
+// /rh/nova-senha. A resposta é sempre a mesma, com ou sem conta no endereço
+// digitado: dizer "não existe conta com esse e-mail" entregaria a quem
+// estivesse fora quais empresas são clientes.
 // =====================================================
 
 import React, { useState } from 'react';
@@ -15,6 +20,8 @@ export const RhLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [modo, setModo] = useState<'login' | 'recuperar'>('login');
+  const [enviado, setEnviado] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +47,100 @@ export const RhLogin: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const handleRecuperar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!email.trim()) { setError('Informe o e-mail de acesso.'); return; }
+    setLoading(true);
+
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/rh/nova-senha`,
+      });
+      // Só erro de infraestrutura (limite de envios, e-mail malformado) volta
+      // aqui — endereço sem conta responde sucesso, e é assim que deve ser.
+      if (resetError) { setError(resetError.message); return; }
+      setEnviado(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const voltarAoLogin = () => {
+    setModo('login');
+    setEnviado(false);
+    setError('');
+  };
+
+  const campo = 'w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900';
+
+  if (modo === 'recuperar') {
+    return (
+      <div className="min-h-screen bg-[#FDFBF9] flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <MalamaLogo size="xl" />
+            <p className="text-gray-600 mt-3 text-sm tracking-wide uppercase">Portal do RH</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            {enviado ? (
+              <>
+                <h2 className="text-xl font-semibold text-gray-800 mb-1">Verifique seu e-mail</h2>
+                <p className="text-sm text-gray-500 mb-6">
+                  Se houver uma conta em <span className="font-medium text-gray-700">{email}</span>,
+                  enviamos um link para criar uma senha nova. Ele vale por tempo limitado e só
+                  funciona uma vez — se não chegar em alguns minutos, confira o spam.
+                </p>
+                <button
+                  onClick={voltarAoLogin}
+                  className="w-full py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium transition"
+                >
+                  Voltar ao login
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-semibold text-gray-800 mb-1">Recuperar senha</h2>
+                <p className="text-sm text-gray-500 mb-6">
+                  Informe o e-mail de acesso ao portal e enviaremos um link para definir uma senha nova.
+                </p>
+
+                {error && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+                )}
+
+                <form onSubmit={handleRecuperar} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                    <input
+                      type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                      autoComplete="username" className={campo}
+                    />
+                  </div>
+
+                  <button
+                    type="submit" disabled={loading}
+                    className="w-full py-3 bg-[#7d4a3c] hover:bg-[#623a2f] text-white rounded-lg font-medium transition disabled:opacity-50"
+                  >
+                    {loading ? 'Enviando...' : 'Enviar link de recuperação'}
+                  </button>
+                </form>
+
+                <button
+                  onClick={voltarAoLogin}
+                  className="w-full mt-4 text-sm text-gray-500 hover:text-[#7d4a3c] transition"
+                >
+                  Voltar ao login
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFBF9] flex items-center justify-center p-4">
@@ -81,6 +182,14 @@ export const RhLogin: React.FC = () => {
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
+
+          <button
+            type="button"
+            onClick={() => { setModo('recuperar'); setError(''); setPassword(''); }}
+            className="w-full mt-4 text-sm text-gray-500 hover:text-[#7d4a3c] transition"
+          >
+            Esqueci minha senha
+          </button>
         </div>
       </div>
     </div>

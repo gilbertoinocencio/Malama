@@ -18,6 +18,7 @@ import { DoctorRoute, AdminRoute, PublicDoctorRoute, RhRoute } from './guards';
 
 // RH Portal (empresas B2B)
 import { RhLogin } from './rh/RhLogin';
+import { RhNovaSenha } from './rh/RhNovaSenha';
 import { RhLayout } from './rh/RhLayout';
 import { RhDashboard } from './rh/RhDashboard';
 import { RhFinanceiro } from './rh/RhFinanceiro';
@@ -313,6 +314,9 @@ export const AppRoutes: React.FC = () => {
 
           {/* Portal do RH */}
           <Route path="/rh" element={<RhLogin />} />
+          {/* Destino do link de recuperação: fica fora do RhRoute porque a
+              sessão só nasce ao abrir o link, depois da validação. */}
+          <Route path="/rh/nova-senha" element={<RhNovaSenha />} />
           <Route
             path="/rh"
             element={
