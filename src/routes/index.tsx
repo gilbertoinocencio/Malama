@@ -27,6 +27,7 @@ import { RhAbsenteismo } from './rh/RhAbsenteismo';
 import { RhPlanoAcao } from './rh/RhPlanoAcao';
 import { RhImportar } from './rh/RhImportar';
 import { RhImpacto } from './rh/RhImpacto';
+import { RhEmpresa } from './rh/RhEmpresa';
 
 // Doctor Pages
 import { DoctorLogin } from './doctor/DoctorLogin';
@@ -328,6 +329,8 @@ export const AppRoutes: React.FC = () => {
             <Route path="importar" element={<RhImportar />} />
             <Route path="compliance" element={<RhCompliance />} />
             <Route path="impacto" element={<RhImpacto />} />
+            {/* Área da empresa: fora da barra de abas, aberta pelo cabeçalho. */}
+            <Route path="empresa" element={<RhEmpresa />} />
           </Route>
 
           {/* Landing pages de captação */}

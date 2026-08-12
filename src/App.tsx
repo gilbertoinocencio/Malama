@@ -86,6 +86,12 @@ const PORTAL_PATH_PREFIXES = [
   '/listausuários',
   '/privacidade',
   '/privacy-policy',
+  // A privacidade estava aqui e os termos não: /termos, /terms e
+  // /termos-de-uso caíam no app do paciente (com sessão) ou no login (sem),
+  // e nunca na página. O rodapé da política e o link da tela de login
+  // apontam para lá. '/termos' cobre '/termos-de-uso' por prefixo.
+  '/termos',
+  '/terms',
   '/deletar-conta',
   '/delete-account',
   '/pitchdeck',

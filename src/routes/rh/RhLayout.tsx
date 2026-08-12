@@ -9,7 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link, Outlet } from 'react-router-dom';
 import {
   LogOut, Users, CreditCard, ShieldCheck, Leaf, Brain, CalendarX2, ClipboardList,
-  Upload,
+  Upload, Building2,
 } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { MalamaLogo } from '../../components/MalamaLogo';
@@ -25,12 +25,24 @@ export const RhLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [temImpacto, setTemImpacto] = useState(false);
+  const [empresaNome, setEmpresaNome] = useState('');
+  const [docsPendentes, setDocsPendentes] = useState(0);
 
   useEffect(() => {
     if (!ABA_IMPACTO_ATIVA) return;
     // Best-effort: a aba Impacto só aparece se houver certificados emitidos.
     // Tolerante a erro (tabela pode não existir antes da migration de ESG).
     rhService.hasCertificados().then(setTemImpacto).catch(() => setTemImpacto(false));
+  }, []);
+
+  useEffect(() => {
+    rhService.getMyEmpresa().then(e => setEmpresaNome(e?.nome ?? '')).catch(() => {});
+    // Marcador de documento por aceitar. Sem ele a área da empresa seria uma
+    // gaveta que ninguém abre — e termo não lido é termo não aceito.
+    // Tolerante a erro: antes da migration 20260825 a RPC não existe.
+    rhService.getDocumentos()
+      .then(ds => setDocsPendentes(ds.filter(d => d.exige_aceite && !d.aceito_em).length))
+      .catch(() => setDocsPendentes(0));
   }, []);
 
   const handleLogout = async () => {
@@ -62,13 +74,31 @@ export const RhLayout: React.FC = () => {
             <MalamaLogo size="sm" />
             <span className="hidden sm:inline text-sm text-gray-400 border-l border-gray-200 pl-3">Portal do RH</span>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#7d4a3c] transition"
-          >
-            <LogOut className="w-4 h-4" />
-            Sair
-          </button>
+          <div className="flex items-center gap-4">
+            {/* Área da empresa: dados cadastrais e termos. Fora da barra de
+                abas de propósito — é conta, não trabalho do dia. */}
+            <Link
+              to="/rh/empresa"
+              title="Dados e documentos da empresa"
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#7d4a3c] transition max-w-[45vw] sm:max-w-none"
+            >
+              <Building2 className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">{empresaNome || 'Minha empresa'}</span>
+              {docsPendentes > 0 && (
+                <span
+                  title={`${docsPendentes} documento(s) aguardando aceite`}
+                  className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"
+                />
+              )}
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#7d4a3c] transition"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </button>
+          </div>
         </div>
 
         {/* Abas */}

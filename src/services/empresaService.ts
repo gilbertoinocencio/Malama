@@ -477,6 +477,35 @@ export type RhEmpresa = Pick<Empresa,
   | 'modo_mental' | 'modo_metabolico'
 >;
 
+// Dados cadastrais completos da empresa (migration 20260825). Diferente de
+// RhEmpresa: traz e-mail e telefone do responsável, que são os campos que o
+// próprio RH pode corrigir. Continua sem valor_por_assento.
+export type EmpresaPerfil = RhEmpresa & {
+  responsavel_email: string | null;
+  responsavel_telefone: string | null;
+};
+
+// ── Documentos legais e aceite (migration 20260825) ──
+export type DocumentoTipo = 'termos_b2b' | 'tratamento_dados' | 'privacidade';
+
+export type DocumentoLegal = {
+  id: string;
+  tipo: DocumentoTipo;
+  versao: string;
+  titulo: string;
+  /** Texto puro — a tela renderiza com whitespace-pre-wrap, sem HTML. */
+  conteudo: string | null;
+  /** Alternativa ao texto: documento que já vive numa página pública. */
+  url: string | null;
+  exige_aceite: boolean;
+  publicado_em: string | null;
+  /** Contrato negociado com esta empresa, e não o documento da plataforma. */
+  especifico: boolean;
+  aceito_em: string | null;
+  aceito_por_nome: string | null;
+  aceito_por_cargo: string | null;
+};
+
 export type RhComplianceMetricas = {
   empresa_id: string;
   nome: string;
@@ -882,6 +911,47 @@ export const rhService = {
       return null;
     }
     return empresa;
+  },
+
+  // ── Área da empresa: cadastro e documentos (migration 20260825) ──
+
+  /** Cadastro completo, incluindo o contato do responsável. */
+  async getEmpresaPerfil(): Promise<EmpresaPerfil | null> {
+    const { data, error } = await supabase.rpc('rh_empresa_perfil');
+    if (error) { console.error('[rhService] perfil da empresa:', error.message); return null; }
+    return (data ?? null) as EmpresaPerfil | null;
+  },
+
+  /**
+   * Só o contato do responsável. Nome, CNPJ, assentos, status e data de
+   * início são termos comerciais — a RPC ignora qualquer tentativa de mexer
+   * neles, e `empresas` não tem policy de UPDATE para o RH.
+   */
+  async atualizarContato(
+    nome: string, email: string, telefone: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_atualizar_contato', {
+      p_nome: nome, p_email: email, p_telefone: telefone,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  /** Documentos vigentes aplicáveis à empresa, com o aceite quando houver. */
+  async getDocumentos(): Promise<DocumentoLegal[]> {
+    const { data, error } = await supabase.rpc('rh_documentos');
+    if (error) { console.error('[rhService] documentos:', error.message); return []; }
+    return (data ?? []) as DocumentoLegal[];
+  },
+
+  async aceitarDocumento(
+    documentoId: string, nome: string, cargo: string,
+  ): Promise<{ ok: boolean; error?: string; ja_aceito?: boolean }> {
+    const { data, error } = await supabase.rpc('rh_aceitar_documento', {
+      p_documento_id: documentoId, p_nome: nome, p_cargo: cargo,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string; ja_aceito?: boolean };
   },
 
   async getColaboradores(empresaId: string): Promise<EmpresaColaborador[]> {
