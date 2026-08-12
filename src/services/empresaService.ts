@@ -697,10 +697,16 @@ export type SetorAdmin = {
   id: string;
   nome: string;
   ativo: boolean;
-  /** Colaboradores ativos/convidados hoje neste setor. */
+  /** Colaboradores ativos/convidados hoje neste setor (derivado). */
   n: number;
   /** Já aparece em afastamento, ambulatório, plano ou campanha — só arquiva. */
   em_uso: boolean;
+  /**
+   * Total de pessoas do setor na empresa, declarado pelo RH (migration
+   * 20260832). NULL = não informado, que é diferente de zero. Não confundir
+   * com `n`: este inclui quem nunca abriu o app.
+   */
+  efetivo: number | null;
 };
 
 export type SetorMutacao = {
@@ -715,6 +721,7 @@ export type SetorMutacao = {
   fundido?: boolean;
   nome?: string;
   ativo?: boolean;
+  efetivo?: number | null;
 };
 
 // ── Matriz de risco psicossocial por setor (migration 20260730) ──
@@ -1234,6 +1241,18 @@ export const rhService = {
   async renomearSetor(id: string, nome: string, permitirFusao = false): Promise<SetorMutacao> {
     const { data, error } = await supabase.rpc('rh_setor_renomear', {
       p_id: id, p_nome: nome, p_permitir_fusao: permitirFusao,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;
+  },
+
+  /**
+   * Efetivo declarado do setor (migration 20260832). `null` limpa o campo —
+   * "não informado" não é a mesma coisa que "zero pessoas".
+   */
+  async definirEfetivoSetor(id: string, efetivo: number | null): Promise<SetorMutacao> {
+    const { data, error } = await supabase.rpc('rh_setor_definir_efetivo', {
+      p_id: id, p_efetivo: efetivo,
     });
     if (error) return { ok: false, error: error.message };
     return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;

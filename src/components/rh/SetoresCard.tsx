@@ -35,6 +35,8 @@ export const SetoresCard: React.FC<{
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editNome, setEditNome] = useState('');
   const [mostrarArquivados, setMostrarArquivados] = useState(false);
+  // Rascunho por linha do campo de efetivo, para não gravar a cada tecla.
+  const [efetivoEdit, setEfetivoEdit] = useState<Record<string, string>>({});
 
   // Via ref: o callback costuma ser uma arrow inline no pai, e depender dele
   // em `load` recarregaria a lista a cada render.
@@ -100,6 +102,33 @@ export const SetoresCard: React.FC<{
     }
   };
 
+  const handleEfetivo = async (s: SetorAdmin) => {
+    const bruto = efetivoEdit[s.id];
+    if (bruto === undefined) return;
+
+    const atual = s.efetivo != null ? String(s.efetivo) : '';
+    if (bruto.trim() === atual) { limparRascunho(s.id); return; }
+
+    // Campo esvaziado = "não informado", que não é zero.
+    const valor = bruto.trim() === '' ? null : Number(bruto);
+    if (valor !== null && (!Number.isFinite(valor) || !Number.isInteger(valor))) {
+      toast.error('Informe um número inteiro de pessoas.');
+      limparRascunho(s.id);
+      return;
+    }
+
+    const res = await rhService.definirEfetivoSetor(s.id, valor);
+    if (!res.ok) { toast.error(res.error || 'Não foi possível salvar o efetivo.'); limparRascunho(s.id); return; }
+    limparRascunho(s.id);
+    await load();
+  };
+
+  const limparRascunho = (id: string) =>
+    setEfetivoEdit(prev => {
+      const { [id]: _, ...resto } = prev;
+      return resto;
+    });
+
   const handleArquivar = async (s: SetorAdmin, ativo: boolean) => {
     const res = await rhService.arquivarSetor(s.id, ativo);
     if (!res.ok) { toast.error(res.error || 'Não foi possível atualizar o setor.'); return; }
@@ -141,6 +170,8 @@ export const SetoresCard: React.FC<{
       <p className="text-xs text-gray-500 mb-4">
         Registre os setores em que a empresa quer agir. São eles que recortam os relatórios de
         bem-estar, absenteísmo e o plano de ação — e é desta lista que o cadastro do colaborador escolhe.
+        O campo <strong>efetivo</strong> é quantas pessoas trabalham no setor, incluindo quem ainda não
+        tem acesso ao Malama; é ele que mostra a cobertura real de cada setor.
       </p>
 
       {loading ? (
@@ -187,9 +218,26 @@ export const SetoresCard: React.FC<{
                   <span className={`flex-1 text-sm ${s.ativo ? 'text-gray-800' : 'text-gray-400 line-through'}`}>
                     {s.nome}
                     <span className="ml-2 text-xs text-gray-400">
-                      {s.n === 1 ? '1 pessoa' : `${s.n} pessoas`}
+                      {s.efetivo != null
+                        ? `${s.n} de ${s.efetivo} com acesso`
+                        : s.n === 1 ? '1 com acesso' : `${s.n} com acesso`}
                     </span>
                   </span>
+
+                  {/* Efetivo do setor: quantas pessoas trabalham nele, incluindo
+                      quem não usa o Malama. É outro número, não a contagem de
+                      cadastrados — e só a empresa sabe qual é. */}
+                  <input
+                    type="number" min={s.n} max={100000}
+                    value={efetivoEdit[s.id] ?? (s.efetivo != null ? String(s.efetivo) : '')}
+                    onChange={e => setEfetivoEdit(prev => ({ ...prev, [s.id]: e.target.value }))}
+                    onBlur={() => handleEfetivo(s)}
+                    onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                    disabled={disabled}
+                    placeholder="efetivo"
+                    title="Total de pessoas que trabalham no setor, mesmo sem acesso ao Malama"
+                    className="w-20 px-2 py-1 border border-gray-200 rounded-md text-xs text-gray-600 text-right focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:opacity-40"
+                  />
 
                   {s.ativo && (
                     <button
