@@ -325,9 +325,20 @@ const NovaCampanha: React.FC<{
   // quadro o número saía muito menor que o público real (1 em vez de 3, no
   // caso que apareceu) — e o RH abria a campanha achando que ela não cobria
   // quase ninguém. Por setor a soma vale, porque ali só entra quem tem setor.
+  // O tamanho do setor é o EFETIVO declarado, não o número de cadastrados:
+  // quem não tem app responde pelo link do setor, e contar só assentos fazia
+  // um setor de 5 pessoas sem app aparecer como zero.
+  const tamanho = (s: SetorEmpresa) => Math.max(s.n, s.efetivo ?? 0);
+
   const alvoCount = alvo === 'todos'
     ? alvoTotal
-    : setores.filter(s => selecionados.includes(s.setor)).reduce((acc, s) => acc + s.n, 0);
+    : setores.filter(s => selecionados.includes(s.setor)).reduce((acc, s) => acc + tamanho(s), 0);
+
+  // Quantos, dentro do alvo, recebem pelo app. O restante só chega por link —
+  // e é isso que decide se vale imprimir cartaz.
+  const alvoComApp = alvo === 'setores'
+    ? setores.filter(s => selecionados.includes(s.setor)).reduce((acc, s) => acc + s.n, 0)
+    : null;
 
   const submeter = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -449,15 +460,21 @@ const NovaCampanha: React.FC<{
                     : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                {s.setor} <span className="opacity-60">({s.n})</span>
+                {s.setor} <span className="opacity-60">({tamanho(s)})</span>
               </button>
             ))}
           </div>
         )}
 
         <p className="text-xs text-gray-400 mt-2">
-          {alvoCount} colaborador(es) no público-alvo.
-          {setores.length === 0 && ' Nenhum colaborador tem setor preenchido — o recorte por setor fica indisponível.'}
+          {alvoCount} pessoa(s) no público-alvo.
+          {/* Diz de onde vem a diferença: sem isto, o RH veria "5" e esperaria
+              notificação no app para as 5, quando só o link alcança quem não
+              tem conta. */}
+          {alvoComApp != null && alvoCount > alvoComApp && (
+            ` ${alvoComApp} com acesso ao app; as demais respondem pelo link do setor, gerado em "Links" depois de abrir a campanha.`
+          )}
+          {setores.length === 0 && ' Nenhum setor cadastrado — o recorte por setor fica indisponível.'}
         </p>
       </div>
 

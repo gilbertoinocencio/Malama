@@ -688,7 +688,17 @@ export type CampanhaLinks = {
   links: CampanhaLink[];
 };
 
-export type SetorEmpresa = { setor: string; n: number };
+export type SetorEmpresa = {
+  setor: string;
+  /** Colaboradores com assento Malama neste setor. */
+  n: number;
+  /**
+   * Efetivo declarado pelo RH (migration 20260832). NULL = não informado.
+   * É este o tamanho real do setor: quem define alcance de campanha e
+   * denominador de adesão, porque quem não tem app responde pelo link.
+   */
+  efetivo: number | null;
+};
 
 // ── Registro de setores da empresa (migration 20260824) ──
 // O setor deixou de nascer da digitação no cadastro do colaborador: a
