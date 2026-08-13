@@ -33,6 +33,7 @@ import {
 import { generatePsychosocialReportPDF } from '../../lib/psychosocialReportDoc';
 import { generateJssReportPDF } from '../../lib/jssReportDoc';
 import { MatrizPsicossocial } from '../../components/rh/MatrizPsicossocial';
+import { JssDiagnosticoSetor } from '../../components/rh/JssDiagnosticoSetor';
 
 const MIN_COORTE = 5;
 
@@ -920,34 +921,7 @@ export const RhSaudeMental: React.FC = () => {
               </div>
             </div>
 
-            {jss.setores.length > 0 && (
-              <div className="overflow-x-auto mb-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-gray-400 border-b border-gray-100">
-                      <th className="text-left font-medium py-2">Setor</th>
-                      <th className="text-right font-medium py-2">Resp.</th>
-                      <th className="text-right font-medium py-2">Índice</th>
-                      <th className="text-right font-medium py-2">Demanda</th>
-                      <th className="text-right font-medium py-2">Controle</th>
-                      <th className="text-right font-medium py-2">Apoio</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {jss.setores.map(s => (
-                      <tr key={s.setor}>
-                        <td className="py-2 text-gray-700">{s.setor}</td>
-                        <td className="py-2 text-right text-gray-500">{s.n_respondentes}</td>
-                        <td className="py-2 text-right font-semibold text-[#7d4a3c]">{s.indice}</td>
-                        <td className="py-2 text-right text-gray-500">{s.demanda}</td>
-                        <td className="py-2 text-right text-gray-500">{s.controle}</td>
-                        <td className="py-2 text-right text-gray-500">{s.apoio}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <JssDiagnosticoSetor relatorio={jss} />
 
             {jss.setores_suprimidos > 0 && (
               <p className="text-xs text-gray-400 mb-3">

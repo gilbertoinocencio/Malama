@@ -25,13 +25,13 @@ import type {
 const STATUS: Record<MatrizQuadrante, { cor: string; label: string; acao: string }> = {
   risco_ocupacional: {
     cor: '#d03b3b',
-    label: 'Risco ocupacional',
-    acao: 'Alta exposição e bem-estar abaixo da mediana. Ação sobre a organização do trabalho.',
+    label: 'Prioridade ocupacional',
+    acao: 'Exposição alta e bem-estar abaixo da mediana. Investigar e agir sobre a organização do trabalho.',
   },
   fator_externo: {
     cor: '#ec835a',
-    label: 'Fator extra-ocupacional',
-    acao: 'Bem-estar baixo sem exposição alta. Ação de cuidado individual, não de reestruturação.',
+    label: 'Bem-estar reduzido',
+    acao: 'Bem-estar baixo sem alta exposição detectada pela JSS. Investigar outros fatores ocupacionais e não ocupacionais.',
   },
   risco_latente: {
     cor: '#fab219',
@@ -40,8 +40,8 @@ const STATUS: Record<MatrizQuadrante, { cor: string; label: string; acao: string
   },
   estavel: {
     cor: '#0ca30c',
-    label: 'Estável',
-    acao: 'Manter o acompanhamento periódico.',
+    label: 'Menor prioridade relativa',
+    acao: 'Resultados mais favoráveis que a mediana interna. Manter acompanhamento; não significa ausência de risco.',
   },
 };
 
@@ -206,7 +206,7 @@ export const MatrizPsicossocial: React.FC<{
       </div>
       <p className="text-sm text-gray-500 mb-4">
         Cruza a exposição a fatores de risco no trabalho com o bem-estar dos colaboradores.
-        É a leitura que separa o que decorre da organização do trabalho do que vem de fora dele.
+        Ajuda a priorizar onde aprofundar a análise, sem atribuir sozinho a causa do bem-estar reduzido.
       </p>
 
       {plotaveis.length === 0 ? (
@@ -347,7 +347,7 @@ export const MatrizPsicossocial: React.FC<{
             <>
               A classificação é <strong>relativa à sua empresa</strong>: o corte é a mediana entre
               os setores (exposição {matriz?.mediana_exposicao}, bem-estar {matriz?.mediana_bemestar}).
-              Serve para priorizar onde agir primeiro, não para afirmar que um setor está bom —
+              Serve para priorizar onde investigar e agir primeiro, não para afirmar que um setor está bom —
               para gravidade absoluta, veja as contagens de bem-estar reduzido.{' '}
             </>
           ) : (

@@ -16,6 +16,7 @@
 
 import jsPDF from 'jspdf';
 import type { RhRelatorioJss, PlanoAcao } from '../services/empresaService';
+import { JSS_CLASSIFICACAO, JSS_PRIORIDADE, obterInsightJss } from './jssInsights';
 
 const MAIN: [number, number, number] = [28, 25, 23];
 const PETROL: [number, number, number] = [140, 71, 62];
@@ -25,9 +26,11 @@ const METODOLOGIA =
   'Os indicadores deste relatório derivam da Job Stress Scale (JSS), versão resumida do modelo ' +
   'demanda-controle-apoio de Karasek/Theorell, adaptada e validada no Brasil (Alves MGM, Chor D, ' +
   'Faerstein E, Lopes CS, Werneck GL. Rev Saúde Pública 2004;38(2):164-71), aplicada periodicamente ' +
-  'e de forma voluntária aos colaboradores com acesso ao programa. O índice de exposição varia de ' +
-  '0 a 100 (quanto maior, mais o trabalho expõe a risco psicossocial), combinando alta demanda ' +
-  'psicológica com baixo controle sobre o próprio trabalho e baixo apoio social. A JSS mede ' +
+  'e de forma voluntária aos colaboradores. A interpretação principal mantém separadas as dimensões ' +
+  'demanda, controle e apoio. A matriz demanda-controle usa como referência a mediana dos respondentes ' +
+  'do período; portanto, sua classificação é relativa à população avaliada, não um ponto de corte ' +
+  'clínico. O índice de exposição de 0 a 100 é um resumo visual derivado que combina alta demanda ' +
+  'com baixo controle e baixo apoio, e não substitui a leitura das dimensões. A JSS mede ' +
   'EXPOSIÇÃO OCUPACIONAL — o que no trabalho expõe a risco — e não é, isoladamente, medida de ' +
   'bem-estar nem constitui diagnóstico clínico.';
 
@@ -174,6 +177,20 @@ export function generateJssReportPDF(
   doc.text('POR SETOR', M, y);
   y += 8;
 
+  if (rel.cortes) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...MUTED);
+    const referencia = doc.splitTextToSize(
+      `Referência relativa do período (mediana dos respondentes): demanda ${rel.cortes.demanda}; `
+      + `controle ${rel.cortes.controle}; apoio ${rel.cortes.apoio}. Apoio abaixo da mediana agrava `
+      + 'a prioridade, mas não confirma violência ou assédio.',
+      pageW - M * 2,
+    );
+    doc.text(referencia, M, y);
+    y += referencia.length * 4 + 5;
+  }
+
   if (rel.setores.length === 0) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
@@ -198,7 +215,8 @@ export function generateJssReportPDF(
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     for (const s of rel.setores) {
-      y = ensureSpace(8, y);
+      const insight = obterInsightJss(s, rel.cortes);
+      y = ensureSpace(19, y);
       doc.setTextColor(...MAIN);
       doc.text(doc.splitTextToSize(s.setor, pageW - M * 2 - 106)[0], M, y);
       doc.setTextColor(...MUTED);
@@ -211,7 +229,22 @@ export function generateJssReportPDF(
       doc.text(String(s.demanda), pageW - M - 48, y, { align: 'right' });
       doc.text(String(s.controle), pageW - M - 24, y, { align: 'right' });
       doc.text(String(s.apoio), pageW - M, y, { align: 'right' });
-      y += 7;
+      y += 4;
+
+      const classificacao = insight.classificacao
+        ? JSS_CLASSIFICACAO[insight.classificacao].label : 'Sem classificação';
+      const leitura = [
+        `${JSS_PRIORIDADE[insight.prioridade].label} — ${classificacao}`,
+        insight.fatores.length ? `Fatores: ${insight.fatores.join('; ')}` : null,
+        insight.sinais.length ? `Sinais predominantes: ${insight.sinais.join('; ')}` : null,
+      ].filter(Boolean).join('. ');
+      const detalhe = doc.splitTextToSize(leitura, pageW - M * 2 - 4);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(120, 120, 120);
+      doc.text(detalhe, M + 2, y);
+      y += detalhe.length * 3.6 + 4;
+      doc.setFontSize(9);
     }
   }
 

@@ -596,6 +596,31 @@ export type JssSetor = {
   demanda: number;
   controle: number;
   apoio: number;
+  /** Quadrante clássico demanda × controle. Ausente em resultados gerados
+   * antes da migration 20260835. */
+  classificacao?: JssClassificacao | null;
+  /** Média agregada, em 0–100, da contribuição adversa de cada item.
+   * Nunca contém respostas individuais e só é publicado quando o setor
+   * atinge o piso de anonimato. */
+  itens_risco?: Partial<Record<JssItemKey, number>>;
+};
+
+export type JssClassificacao =
+  | 'alta_exigencia'
+  | 'trabalho_ativo'
+  | 'trabalho_passivo'
+  | 'baixa_exigencia';
+
+export type JssItemKey =
+  | 'a' | 'b' | 'c' | 'd' | 'e'
+  | 'f' | 'g' | 'h' | 'i' | 'j' | 'k'
+  | 'l' | 'm' | 'n' | 'o' | 'p' | 'q';
+
+export type JssCortes = {
+  demanda: number;
+  controle: number;
+  apoio: number;
+  referencia: 'mediana_respondentes_periodo';
 };
 
 export type RhRelatorioJss = {
@@ -608,6 +633,9 @@ export type RhRelatorioJss = {
   geral: JssGeral;
   setores: JssSetor[];
   setores_suprimidos: number;
+  /** Cortes relativos calculados sobre as respostas individuais do período,
+   * sem expor nenhum registro individual. */
+  cortes?: JssCortes | null;
 };
 
 // ── Motor de campanhas psicossociais (migration 20260728) ──
