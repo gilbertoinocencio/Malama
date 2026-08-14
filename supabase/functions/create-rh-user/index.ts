@@ -93,8 +93,15 @@ Deno.serve(async (req: Request) => {
       .insert([{
         empresa_id: empresaRow.id,
         user_id: userData.user.id,
+        auth_user_id: userData.user.id,
         email: rh.email,
         nome: rh.nome || empresa.responsavel_nome || null,
+        papel: 'proprietario',
+        principal: true,
+        permissoes: [
+          'colaboradores', 'saude_mental', 'absenteismo', 'plano_acao',
+          'importar', 'financeiro', 'compliance', 'empresa', 'usuarios', 'apuracao',
+        ],
       }]);
 
     if (rhError) {

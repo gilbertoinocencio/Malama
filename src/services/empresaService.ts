@@ -940,7 +940,124 @@ export type RhResumoFinanceiro = {
   max_assentos_vigencia: string | null;
 };
 
+export type RhPermissao =
+  | 'colaboradores' | 'saude_mental' | 'absenteismo' | 'plano_acao'
+  | 'importar' | 'financeiro' | 'compliance' | 'empresa' | 'usuarios' | 'apuracao';
+
+export type RhPapel =
+  | 'proprietario' | 'gestor_rh' | 'saude_mental' | 'compliance' | 'financeiro' | 'personalizado';
+
+export type RhAcesso = {
+  id: string;
+  empresa_id: string;
+  nome: string | null;
+  email: string;
+  papel: RhPapel;
+  principal: boolean;
+  permissoes: RhPermissao[];
+};
+
+export type RhUsuarioEquipe = {
+  id: string;
+  nome: string | null;
+  email: string;
+  papel: RhPapel;
+  permissoes: RhPermissao[];
+  principal: boolean;
+  ativo: boolean;
+  created_at: string;
+};
+
+export type RhResumoRelatos = {
+  total: number;
+  novos: number;
+  urgentes_abertos: number;
+  ultimo_em: string | null;
+};
+
+export type RhRelatoLista = {
+  id: string;
+  protocolo: string;
+  categoria: string;
+  urgencia: string;
+  setor: string | null;
+  status: string;
+  criado_em: string;
+  atualizado_em: string;
+};
+
+export type RhRelatoDetalhe = RhRelatoLista & {
+  descricao: string;
+  envolvidos: string | null;
+  quando_ocorreu: string | null;
+  retorno_publico: string | null;
+};
+
 export const rhService = {
+  async getMeuAcesso(): Promise<RhAcesso | null> {
+    const { data, error } = await supabase.rpc('rh_meu_acesso');
+    if (error) throw error;
+    return (data ?? null) as RhAcesso | null;
+  },
+
+  async getUsuariosEquipe(): Promise<RhUsuarioEquipe[]> {
+    const { data, error } = await supabase.rpc('rh_listar_usuarios');
+    if (error) throw error;
+    return (data ?? []) as RhUsuarioEquipe[];
+  },
+
+  async convidarUsuarioEquipe(p: {
+    nome: string; email: string; papel: RhPapel; permissoes: RhPermissao[];
+  }): Promise<void> {
+    const { data, error } = await supabase.functions.invoke('invite-rh-user', { body: p });
+    if (error) {
+      let message = error.message;
+      const response = (error as { context?: Response }).context;
+      if (response && typeof response.json === 'function') {
+        try { const body = await response.json(); if (body?.error) message = body.error; } catch { /* noop */ }
+      }
+      throw new Error(message);
+    }
+    if (data?.error) throw new Error(data.error);
+  },
+
+  async atualizarUsuarioEquipe(p: {
+    id: string; nome: string; papel: RhPapel; permissoes: RhPermissao[]; ativo: boolean;
+  }): Promise<void> {
+    const { data, error } = await supabase.rpc('rh_atualizar_usuario', {
+      p_id: p.id, p_nome: p.nome, p_papel: p.papel,
+      p_permissoes: p.permissoes, p_ativo: p.ativo,
+    });
+    if (error) throw error;
+    if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Não foi possível atualizar o usuário');
+  },
+
+  async getResumoRelatos(): Promise<RhResumoRelatos> {
+    const { data, error } = await supabase.rpc('rh_resumo_relatos');
+    if (error) throw error;
+    return (data ?? { total: 0, novos: 0, urgentes_abertos: 0, ultimo_em: null }) as RhResumoRelatos;
+  },
+
+  async getRelatos(): Promise<RhRelatoLista[]> {
+    const { data, error } = await supabase.rpc('rh_listar_relatos');
+    if (error) throw error;
+    return (data ?? []) as RhRelatoLista[];
+  },
+
+  async abrirRelato(id: string): Promise<RhRelatoDetalhe> {
+    const { data, error } = await supabase.rpc('rh_abrir_relato', { p_id: id });
+    if (error) throw error;
+    return data as RhRelatoDetalhe;
+  },
+
+  async atualizarRelato(id: string, status: string, retornoPublico: string): Promise<void> {
+    const { data, error } = await supabase.rpc('rh_atualizar_relato', {
+      p_id: id, p_status: status, p_retorno_publico: retornoPublico || null,
+    });
+    if (error) throw error;
+    if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Não foi possível atualizar o relato');
+  },
+
   // Empresa do RH logado (sem campos financeiros)
   async getMyEmpresa(): Promise<RhEmpresa | null> {
     const { data: { user } } = await supabase.auth.getUser();

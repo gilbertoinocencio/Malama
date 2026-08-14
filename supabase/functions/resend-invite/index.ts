@@ -43,10 +43,12 @@ Deno.serve(async (req: Request) => {
 
     const { data: rh } = await supabaseAdmin
       .from('rh_usuarios')
-      .select('empresa_id')
+      .select('empresa_id, principal, permissoes, ativo')
       .eq('user_id', caller.user.id)
       .maybeSingle();
-    if (!rh) return json({ error: 'Apenas o RH da empresa pode reenviar convites' }, 403);
+    if (!rh?.ativo || (!rh.principal && !rh.permissoes?.includes('colaboradores'))) {
+      return json({ error: 'Sem permissão para gerenciar colaboradores' }, 403);
+    }
 
     // 2. Buscar colaborador (deve pertencer à mesma empresa)
     const { data: colab, error: colabErr } = await supabaseAdmin

@@ -29,6 +29,9 @@ import { RhPlanoAcao } from './rh/RhPlanoAcao';
 import { RhImportar } from './rh/RhImportar';
 import { RhImpacto } from './rh/RhImpacto';
 import { RhEmpresa } from './rh/RhEmpresa';
+import { RhUsuarios } from './rh/RhUsuarios';
+import { RhRelatos } from './rh/RhRelatos';
+import { RhHomeRedirect, RhPermissionGate } from '../contexts/RhAccessContext';
 
 // Doctor Pages
 import { DoctorLogin } from './doctor/DoctorLogin';
@@ -325,16 +328,19 @@ export const AppRoutes: React.FC = () => {
               </RhRoute>
             }
           >
-            <Route path="dashboard" element={<RhDashboard />} />
-            <Route path="financeiro" element={<RhFinanceiro />} />
-            <Route path="saude-mental" element={<RhSaudeMental />} />
-            <Route path="absenteismo" element={<RhAbsenteismo />} />
-            <Route path="plano-acao" element={<RhPlanoAcao />} />
-            <Route path="importar" element={<RhImportar />} />
-            <Route path="compliance" element={<RhCompliance />} />
-            <Route path="impacto" element={<RhImpacto />} />
+            <Route index element={<RhHomeRedirect />} />
+            <Route path="dashboard" element={<RhPermissionGate permissao="colaboradores"><RhDashboard /></RhPermissionGate>} />
+            <Route path="financeiro" element={<RhPermissionGate permissao="financeiro"><RhFinanceiro /></RhPermissionGate>} />
+            <Route path="saude-mental" element={<RhPermissionGate permissao="saude_mental"><RhSaudeMental /></RhPermissionGate>} />
+            <Route path="relatos" element={<RhPermissionGate permissao="apuracao"><RhRelatos /></RhPermissionGate>} />
+            <Route path="absenteismo" element={<RhPermissionGate permissao="absenteismo"><RhAbsenteismo /></RhPermissionGate>} />
+            <Route path="plano-acao" element={<RhPermissionGate permissao="plano_acao"><RhPlanoAcao /></RhPermissionGate>} />
+            <Route path="importar" element={<RhPermissionGate permissao="importar"><RhImportar /></RhPermissionGate>} />
+            <Route path="compliance" element={<RhPermissionGate permissao="compliance"><RhCompliance /></RhPermissionGate>} />
+            <Route path="impacto" element={<RhPermissionGate permissao="compliance"><RhImpacto /></RhPermissionGate>} />
             {/* Área da empresa: fora da barra de abas, aberta pelo cabeçalho. */}
-            <Route path="empresa" element={<RhEmpresa />} />
+            <Route path="empresa" element={<RhPermissionGate permissao="empresa"><RhEmpresa /></RhPermissionGate>} />
+            <Route path="usuarios" element={<RhPermissionGate permissao="usuarios"><RhUsuarios /></RhPermissionGate>} />
           </Route>
 
           {/* Landing pages de captação */}

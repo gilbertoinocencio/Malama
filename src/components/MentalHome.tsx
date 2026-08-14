@@ -21,6 +21,8 @@ import { InstrumentoModal } from './InstrumentoModal';
 import { ContatoEmergenciaModal, faltaContatoEmergencia } from './ContatoEmergenciaModal';
 import { getPatientConsultations, type Consultation } from '../lib/scheduling';
 import { creditService } from '../services/billingService';
+import { RelatoConfidencialModal } from './RelatoConfidencialModal';
+import { relatoConfidencialService } from '../services/relatoConfidencialService';
 
 const PETROL = '#7d4a3c';
 
@@ -49,18 +51,22 @@ export const MentalHome: React.FC<Props> = ({ onNavigate }) => {
   const [temCredito, setTemCredito] = useState(false);
   const [respondendo, setRespondendo] = useState<CampanhaPendente | null>(null);
   const [editandoContato, setEditandoContato] = useState(false);
+  const [relatando, setRelatando] = useState(false);
+  const [canalEmpresa, setCanalEmpresa] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const carregar = useCallback(async () => {
     if (!user) return;
     try {
-      const [pend, consultas, creditos] = await Promise.all([
+      const [pend, consultas, creditos, canalDisponivel] = await Promise.all([
         PsychosocialService.getCampanhasPendentes(),
         getPatientConsultations(user.id).catch(() => [] as Consultation[]),
         creditService.getAvailableForUser(user.id, 'psicologo').catch(() => [] as any[]),
+        relatoConfidencialService.disponivel(),
       ]);
       setCampanhas(pend);
       setTemCredito((creditos ?? []).length > 0);
+      setCanalEmpresa(canalDisponivel);
 
       const agora = Date.now();
       const futuras = (consultas ?? [])
@@ -237,6 +243,22 @@ export const MentalHome: React.FC<Props> = ({ onNavigate }) => {
             </div>
           </button>
 
+          {canalEmpresa && <button
+            onClick={() => setRelatando(true)}
+            className="w-full text-left rounded-2xl p-4 border border-amber-200 bg-amber-50/70 dark:bg-amber-900/10 dark:border-amber-800/40"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-amber-700">shield_lock</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-Malama-main dark:text-white">Relatar assédio ou violência</p>
+                <p className="text-xs text-Malama-muted dark:text-slate-400 mt-0.5">Canal confidencial com protocolo de acompanhamento</p>
+              </div>
+              <span className="material-symbols-outlined text-Malama-muted">chevron_right</span>
+            </div>
+          </button>}
+
           {campanhas.length === 0 && (
             <p className="text-xs text-Malama-muted dark:text-slate-500 text-center pt-4 leading-snug">
               Nenhum questionário pendente no momento.
@@ -265,6 +287,8 @@ export const MentalHome: React.FC<Props> = ({ onNavigate }) => {
           onRespondida={() => { setRespondendo(null); carregar(); }}
         />
       )}
+
+      {relatando && <RelatoConfidencialModal onClose={() => setRelatando(false)} />}
     </div>
   );
 };

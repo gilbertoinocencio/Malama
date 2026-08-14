@@ -34,6 +34,7 @@ import { generatePsychosocialReportPDF } from '../../lib/psychosocialReportDoc';
 import { generateJssReportPDF } from '../../lib/jssReportDoc';
 import { MatrizPsicossocial } from '../../components/rh/MatrizPsicossocial';
 import { JssDiagnosticoSetor } from '../../components/rh/JssDiagnosticoSetor';
+import { RelatosSentinelaCard } from '../../components/rh/RelatosSentinelaCard';
 
 const MIN_COORTE = 5;
 
@@ -629,6 +630,7 @@ export const RhSaudeMental: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <RelatosSentinelaCard />
       {/* ── Campanhas ── */}
       <div className="bg-white rounded-xl shadow p-5">
         <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">

@@ -165,7 +165,12 @@ export const RhRoute: React.FC<RhRouteProps> = ({ children }) => {
         }
 
         const { data: { user } } = await supabase.auth.getUser();
-        setAuthorized(user?.app_metadata?.role === 'rh');
+        if (user?.app_metadata?.role !== 'rh') {
+          setAuthorized(false);
+          return;
+        }
+        const { data: acesso, error } = await supabase.rpc('rh_meu_acesso');
+        setAuthorized(!error && Boolean(acesso));
       } catch (error) {
         console.error('Error checking RH auth:', error);
         setAuthorized(false);

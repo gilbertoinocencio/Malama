@@ -66,11 +66,13 @@ Deno.serve(async (req: Request) => {
 
     const { data: rh, error: rhError } = await supabaseAdmin
       .from('rh_usuarios')
-      .select('empresa_id')
+      .select('empresa_id, principal, permissoes, ativo')
       .eq('user_id', caller.user.id)
       .maybeSingle();
 
-    if (rhError || !rh) return json({ error: 'Apenas o RH da empresa pode adicionar colaboradores' }, 403);
+    if (rhError || !rh?.ativo || (!rh.principal && !rh.permissoes?.includes('colaboradores'))) {
+      return json({ error: 'Sem permissão para gerenciar colaboradores' }, 403);
+    }
     const empresaId = rh.empresa_id;
 
     // 2. Carregar empresa (nome + limite de assentos + status)
