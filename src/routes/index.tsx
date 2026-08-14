@@ -31,7 +31,7 @@ import { RhImpacto } from './rh/RhImpacto';
 import { RhEmpresa } from './rh/RhEmpresa';
 import { RhUsuarios } from './rh/RhUsuarios';
 import { RhRelatos } from './rh/RhRelatos';
-import { RhHomeRedirect, RhPermissionGate } from '../contexts/RhAccessContext';
+import { RhPermissionGate } from '../contexts/RhAccessContext';
 
 // Doctor Pages
 import { DoctorLogin } from './doctor/DoctorLogin';
@@ -328,7 +328,6 @@ export const AppRoutes: React.FC = () => {
               </RhRoute>
             }
           >
-            <Route index element={<RhHomeRedirect />} />
             <Route path="dashboard" element={<RhPermissionGate permissao="colaboradores"><RhDashboard /></RhPermissionGate>} />
             <Route path="financeiro" element={<RhPermissionGate permissao="financeiro"><RhFinanceiro /></RhPermissionGate>} />
             <Route path="saude-mental" element={<RhPermissionGate permissao="saude_mental"><RhSaudeMental /></RhPermissionGate>} />
