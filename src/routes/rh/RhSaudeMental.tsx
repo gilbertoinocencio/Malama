@@ -35,6 +35,7 @@ import { generateJssReportPDF } from '../../lib/jssReportDoc';
 import { MatrizPsicossocial } from '../../components/rh/MatrizPsicossocial';
 import { JssDiagnosticoSetor } from '../../components/rh/JssDiagnosticoSetor';
 import { JssIndicadores } from '../../components/rh/JssIndicadores';
+import { Who5Indicadores } from '../../components/rh/Who5Indicadores';
 import { RelatosSentinelaCard } from '../../components/rh/RelatosSentinelaCard';
 
 const MIN_COORTE = 5;
@@ -477,7 +478,7 @@ const NovaCampanha: React.FC<{
           {alvoComApp != null && alvoCount > alvoComApp && (
             ` ${alvoComApp} com acesso ao app; as demais respondem pelo link do setor, gerado em "Links" depois de abrir a campanha.`
           )}
-          {setores.length === 0 && ' Nenhum setor cadastrado — o recorte por setor fica indisponível.'}
+          {setores.length === 0 && ' Nenhum setor cadastrado — sem eles, o resultado não pode ser separado por setor.'}
         </p>
       </div>
 
@@ -649,9 +650,15 @@ export const RhSaudeMental: React.FC = () => {
             </button>
           )}
         </div>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-gray-500 mb-1">
           Aplique instrumentos validados aos colaboradores e acompanhe a adesão. As respostas são
           individuais e sigilosas — você vê quantos responderam, nunca quem respondeu o quê.
+        </p>
+        <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+          A barra mostra quantos responderam de quantos foram convidados. A cor tem significado:
+          verde a partir de 60%, laranja entre 30% e 60%, vermelho abaixo de 30%. Pouca gente
+          respondendo num setor já é, por si só, um sinal de alerta — e deixa o resultado daquele
+          setor menos confiável.
         </p>
 
         {criando && (
@@ -786,8 +793,10 @@ export const RhSaudeMental: React.FC = () => {
           <h2 className="font-semibold text-gray-800">Índice de bem-estar (WHO-5)</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          Resultado agregado das respostas no período, como subsídio à gestão de riscos
-          psicossociais (NR-1). Instrumento validado; dados agregados e anônimos.
+          Como o colaborador se sentiu nas últimas duas semanas — 5 perguntas, nota de 0 a 100
+          em que <strong>quanto maior, melhor</strong>. Fala da pessoa, não do trabalho. Os
+          resultados aparecem sempre somados e sem nome, e ajudam a empresa a cuidar dos riscos
+          psicossociais que a NR-1 cobra.
         </p>
 
         {psicoLoading ? (
@@ -796,62 +805,80 @@ export const RhSaudeMental: React.FC = () => {
           </div>
         ) : !psico || 'suprimido' in psico.geral ? (
           <div className="bg-gray-50 rounded-lg p-6 text-center">
-            <p className="text-sm text-gray-500 font-medium">Dados insuficientes neste período.</p>
+            <p className="text-sm text-gray-500 font-medium">
+              Ainda não há respostas suficientes neste período.
+            </p>
             <p className="text-xs text-gray-400 mt-1">
-              São necessários pelo menos {psico?.k_min ?? MIN_COORTE} colaboradores respondentes
-              para exibir resultados, preservando o anonimato.
+              São necessárias pelo menos {psico?.k_min ?? MIN_COORTE} pessoas respondendo para o
+              resultado aparecer — abaixo disso, ficaria fácil descobrir quem respondeu o quê.
             </p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-gray-800">{psico.geral.n_respondentes}</p>
-                <p className="text-xs text-gray-500 mt-1">Respondentes</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-[#7d4a3c]">{psico.geral.score_medio}</p>
-                <p className="text-xs text-gray-500 mt-1">Índice médio (0–100)</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-amber-600">{psico.geral.faixa_reduzido}</p>
-                <p className="text-xs text-gray-500 mt-1">Bem-estar reduzido</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-red-500">{psico.geral.faixa_risco}</p>
-                <p className="text-xs text-gray-500 mt-1">Faixa de atenção</p>
-              </div>
-            </div>
+            <Who5Indicadores geral={psico.geral} kMin={psico.k_min} />
 
             {psico.setores.length > 0 && (
-              <div className="overflow-x-auto mb-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-gray-400 border-b border-gray-100">
-                      <th className="text-left font-medium py-2">Setor</th>
-                      <th className="text-right font-medium py-2">Resp.</th>
-                      <th className="text-right font-medium py-2">Índice</th>
-                      <th className="text-right font-medium py-2">Reduzido</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {psico.setores.map(s => (
-                      <tr key={s.setor}>
-                        <td className="py-2 text-gray-700">{s.setor}</td>
-                        <td className="py-2 text-right text-gray-500">{s.n_respondentes}</td>
-                        <td className="py-2 text-right font-semibold text-[#7d4a3c]">{s.score_medio}</td>
-                        <td className="py-2 text-right text-gray-500">{s.faixa_reduzido}</td>
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-gray-700">Bem-estar por setor</p>
+                <p className="mt-0.5 mb-1 text-[11px] leading-relaxed text-gray-500">
+                  “Índice” é a nota média do setor, de 0 a 100 (quanto maior, melhor). Já
+                  “Reduzido” e “Atenção” são <strong>quantidades de pessoas</strong>: quem tirou
+                  menos de 50 e quem tirou 28 ou menos. Quem está em atenção já está contado em
+                  reduzido — não some os dois.
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-gray-400 border-b border-gray-100">
+                        <th className="text-left font-medium py-2">Setor</th>
+                        <th className="text-right font-medium py-2" title="Quantas pessoas responderam neste setor">
+                          Resp.
+                        </th>
+                        <th className="text-right font-medium py-2" title="Nota média do setor, de 0 a 100. Quanto maior, melhor.">
+                          Índice
+                        </th>
+                        <th className="text-right font-medium py-2" title="Quantas pessoas tiraram menos de 50">
+                          Reduzido
+                        </th>
+                        <th className="text-right font-medium py-2" title="Quantas pessoas tiraram 28 ou menos. Já estão contadas em 'Reduzido'.">
+                          Atenção
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {psico.setores.map(s => (
+                        <tr key={s.setor}>
+                          <td className="py-2 text-gray-700">{s.setor}</td>
+                          <td className="py-2 text-right text-gray-500 tabular-nums">{s.n_respondentes}</td>
+                          <td className={`py-2 text-right font-semibold tabular-nums ${
+                            s.score_medio < 50 ? 'text-[#c2603f]' : 'text-[#7d4a3c]'
+                          }`}>
+                            {s.score_medio}
+                          </td>
+                          <td className="py-2 text-right text-gray-500 tabular-nums">
+                            {s.faixa_reduzido}
+                            <span className="ml-1 text-xs text-gray-400">
+                              ({s.n_respondentes > 0
+                                ? Math.round((s.faixa_reduzido / s.n_respondentes) * 100) : 0}%)
+                            </span>
+                          </td>
+                          <td className={`py-2 text-right tabular-nums ${
+                            s.faixa_risco > 0 ? 'text-[#d03b3b] font-semibold' : 'text-gray-500'
+                          }`}>
+                            {s.faixa_risco}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {psico.setores_suprimidos > 0 && (
               <p className="text-xs text-gray-400 mb-3">
-                {psico.setores_suprimidos} setor(es) omitido(s) por não atingir(em) {psico.k_min}{' '}
-                respondentes.
+                {psico.setores_suprimidos} setor(es) fora da lista: tiveram menos de {psico.k_min}{' '}
+                respostas.
               </p>
             )}
 
@@ -869,9 +896,9 @@ export const RhSaudeMental: React.FC = () => {
         <div className="mt-4 flex items-start gap-2 text-xs text-gray-400">
           <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <span>
-            Subsídio à gestão de riscos psicossociais (NR-1). Não substitui o PGR, o PCMSO nem as
-            avaliações do SESMT/médico do trabalho. Índice = WHO-5 (0–100); recortes abaixo de{' '}
-            {psico?.k_min ?? MIN_COORTE} respondentes são suprimidos (LGPD).
+            Ajuda a empresa a cuidar dos riscos psicossociais que a NR-1 cobra, mas não substitui o
+            PGR, o PCMSO nem a avaliação do médico do trabalho. Grupos com menos de{' '}
+            {psico?.k_min ?? MIN_COORTE} respostas não aparecem, para proteger quem respondeu (LGPD).
           </span>
         </div>
       </div>
@@ -883,10 +910,10 @@ export const RhSaudeMental: React.FC = () => {
           <h2 className="font-semibold text-gray-800">Exposição ocupacional (JSS)</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          O que no trabalho expõe a risco — demanda, controle e apoio (modelo Karasek/Theorell).
-          São 17 perguntas sobre a organização do trabalho, e todos os índices vão de 0 a 100.
-          Documento separado do WHO-5: enquanto o bem-estar mede como a pessoa está, este mede
-          o que no trabalho a pressiona — eixos diferentes, cadência diferente (semestral).
+          O que no trabalho pesa sobre as pessoas: o quanto se cobra, a liberdade para decidir e
+          o apoio que existe. São 17 perguntas respondidas a cada seis meses, e todas as notas
+          vão de 0 a 100. É separado do bem-estar de propósito: um mostra como a pessoa está, e
+          este mostra o que no trabalho a pressiona.
         </p>
 
         {jssLoading ? (
@@ -895,10 +922,12 @@ export const RhSaudeMental: React.FC = () => {
           </div>
         ) : !jss || 'suprimido' in jss.geral ? (
           <div className="bg-gray-50 rounded-lg p-6 text-center">
-            <p className="text-sm text-gray-500 font-medium">Dados insuficientes neste período.</p>
+            <p className="text-sm text-gray-500 font-medium">
+              Ainda não há respostas suficientes neste período.
+            </p>
             <p className="text-xs text-gray-400 mt-1">
-              São necessários pelo menos {jss?.k_min ?? MIN_COORTE} colaboradores respondentes
-              para exibir resultados, preservando o anonimato.
+              São necessárias pelo menos {jss?.k_min ?? MIN_COORTE} pessoas respondendo para o
+              resultado aparecer — abaixo disso, ficaria fácil descobrir quem respondeu o quê.
             </p>
           </div>
         ) : (
@@ -909,8 +938,8 @@ export const RhSaudeMental: React.FC = () => {
 
             {jss.setores_suprimidos > 0 && (
               <p className="text-xs text-gray-400 mb-3">
-                {jss.setores_suprimidos} setor(es) omitido(s) por não atingir(em) {jss.k_min}{' '}
-                respondentes.
+                {jss.setores_suprimidos} setor(es) fora da lista: tiveram menos de {jss.k_min}{' '}
+                respostas.
               </p>
             )}
 
@@ -928,9 +957,9 @@ export const RhSaudeMental: React.FC = () => {
         <div className="mt-4 flex items-start gap-2 text-xs text-gray-400">
           <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <span>
-            Subsídio à gestão de riscos psicossociais (NR-1). Não substitui o PGR, o PCMSO nem as
-            avaliações do SESMT/médico do trabalho. Índice = JSS (0–100, maior = mais exposição);
-            recortes abaixo de {jss?.k_min ?? MIN_COORTE} respondentes são suprimidos (LGPD).
+            Ajuda a empresa a cuidar dos riscos psicossociais que a NR-1 cobra, mas não substitui o
+            PGR, o PCMSO nem a avaliação do médico do trabalho. Grupos com menos de{' '}
+            {jss?.k_min ?? MIN_COORTE} respostas não aparecem, para proteger quem respondeu (LGPD).
           </span>
         </div>
       </div>

@@ -26,22 +26,22 @@ const STATUS: Record<MatrizQuadrante, { cor: string; label: string; acao: string
   risco_ocupacional: {
     cor: '#d03b3b',
     label: 'Prioridade ocupacional',
-    acao: 'Exposição alta e bem-estar abaixo da mediana. Investigar e agir sobre a organização do trabalho.',
+    acao: 'O trabalho pesa muito e as pessoas não estão bem. É por aqui que se começa, mexendo em como o trabalho está organizado.',
   },
   fator_externo: {
     cor: '#ec835a',
     label: 'Bem-estar reduzido',
-    acao: 'Bem-estar baixo sem alta exposição detectada pela JSS. Investigar outros fatores ocupacionais e não ocupacionais.',
+    acao: 'As pessoas não estão bem, mas o questionário do trabalho não acusou peso alto. Vale procurar outras causas, dentro e fora do trabalho.',
   },
   risco_latente: {
     cor: '#fab219',
     label: 'Risco latente',
-    acao: 'Exposição alta com bem-estar ainda preservado. Agir antes de adoecer.',
+    acao: 'O trabalho pesa muito, mas as pessoas ainda estão bem. Dá para agir antes de alguém adoecer.',
   },
   estavel: {
     cor: '#0ca30c',
     label: 'Menor prioridade relativa',
-    acao: 'Resultados mais favoráveis que a mediana interna. Manter acompanhamento; não significa ausência de risco.',
+    acao: 'Resultados melhores que o meio da empresa. Seguir acompanhando — isso não quer dizer que não existe risco.',
   },
 };
 
@@ -204,18 +204,27 @@ export const MatrizPsicossocial: React.FC<{
         <Grid3x3 className="w-5 h-5 text-[#7d4a3c]" />
         <h2 className="font-semibold text-gray-800">Matriz de risco por setor</h2>
       </div>
-      <p className="text-sm text-gray-500 mb-4">
-        Cruza a exposição a fatores de risco no trabalho com o bem-estar dos colaboradores.
-        Ajuda a priorizar onde aprofundar a análise, sem atribuir sozinho a causa do bem-estar reduzido.
+      <p className="text-sm text-gray-500 mb-1">
+        Junta as duas medidas: o quanto o trabalho pesa em cada setor e como as pessoas daquele
+        setor estão. Ajuda a escolher onde olhar primeiro — mas sozinha não diz o motivo do
+        bem-estar estar baixo.
+      </p>
+      <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+        Cada bolinha é um setor, e as duas notas vão de 0 a 100 — mas em sentidos contrários:
+        <strong> quanto mais à direita, mais o trabalho pesa</strong>; e{' '}
+        <strong>quanto mais em cima, melhor as pessoas estão</strong>. Ou seja: o canto de baixo,
+        à direita, é o pior lugar do gráfico.
       </p>
 
       {plotaveis.length === 0 ? (
         <div className="bg-gray-50 rounded-lg p-8 text-center">
-          <p className="text-sm text-gray-500 font-medium">Ainda não há setores com os dois eixos.</p>
+          <p className="text-sm text-gray-500 font-medium">
+            Ainda não há setor com os dois questionários respondidos.
+          </p>
           <p className="text-xs text-gray-400 mt-1 max-w-md mx-auto leading-snug">
-            A matriz precisa de uma campanha de bem-estar (WHO-5) <strong>e</strong> uma de
-            exposição ocupacional (Job Stress Scale), cada uma com pelo menos{' '}
-            {matriz?.k_min ?? 5} respondentes no mesmo setor.
+            Para o gráfico aparecer, o mesmo setor precisa ter respondido o questionário de
+            bem-estar <strong>e</strong> o de exposição no trabalho, cada um com pelo menos{' '}
+            {matriz?.k_min ?? 5} pessoas.
           </p>
         </div>
       ) : (
@@ -300,11 +309,26 @@ export const MatrizPsicossocial: React.FC<{
               <thead>
                 <tr className="text-xs text-gray-400 border-b border-gray-100">
                   <th className="text-left font-medium py-2">Setor</th>
-                  <th className="text-right font-medium py-2">Exposição</th>
-                  <th className="text-right font-medium py-2 hidden sm:table-cell">Dem.</th>
-                  <th className="text-right font-medium py-2 hidden sm:table-cell">Contr.</th>
-                  <th className="text-right font-medium py-2 hidden sm:table-cell">Apoio</th>
-                  <th className="text-right font-medium py-2">Bem-estar</th>
+                  <th className="text-right font-medium py-2"
+                    title="O quanto o trabalho pesa (0 a 100). Quanto maior, pior.">
+                    Exposição
+                  </th>
+                  <th className="text-right font-medium py-2 hidden sm:table-cell"
+                    title="Demanda: o quanto o trabalho cobra — pressa, quantidade e prazo. Quanto maior, pior.">
+                    Dem.
+                  </th>
+                  <th className="text-right font-medium py-2 hidden sm:table-cell"
+                    title="Controle: liberdade para decidir o próprio trabalho. Quanto maior, melhor.">
+                    Contr.
+                  </th>
+                  <th className="text-right font-medium py-2 hidden sm:table-cell"
+                    title="Apoio: apoio dos colegas e da chefia. Quanto maior, melhor.">
+                    Apoio
+                  </th>
+                  <th className="text-right font-medium py-2"
+                    title="Nota média de bem-estar do setor (0 a 100). Quanto maior, melhor; abaixo de 50 é bem-estar baixo.">
+                    Bem-estar
+                  </th>
                   <th className="text-left font-medium py-2 pl-4">Classificação</th>
                 </tr>
               </thead>
@@ -345,21 +369,22 @@ export const MatrizPsicossocial: React.FC<{
         <span>
           {temCortes ? (
             <>
-              A classificação é <strong>relativa à sua empresa</strong>: o corte é a mediana entre
-              os setores (exposição {matriz?.mediana_exposicao}, bem-estar {matriz?.mediana_bemestar}).
-              Serve para priorizar onde investigar e agir primeiro, não para afirmar que um setor está bom —
-              para gravidade absoluta, veja as contagens de bem-estar reduzido.{' '}
+              A comparação é <strong>dentro da sua empresa</strong>: as linhas marcam o meio entre
+              os setores (trabalho pesa {matriz?.mediana_exposicao}, bem-estar {matriz?.mediana_bemestar}).
+              Serve para escolher por onde começar, não para dizer que um setor está bem — para saber
+              a gravidade, olhe quantas pessoas estão com bem-estar baixo.{' '}
             </>
           ) : (
             <>
-              Sem classificação por quadrante: são necessários pelo menos {matriz?.min_setores ?? 3}{' '}
-              setores com os dois eixos para a mediana significar alguma coisa
-              ({matriz?.setores_comparaveis ?? 0} hoje).{' '}
+              Ainda não dá para dividir o gráfico em cantos: são necessários pelo menos{' '}
+              {matriz?.min_setores ?? 3} setores com os dois questionários respondidos para o meio da
+              empresa significar alguma coisa (hoje são {matriz?.setores_comparaveis ?? 0}).{' '}
             </>
           )}
-          Índices são agregados; recortes abaixo de {matriz?.k_min ?? 5} respondentes são suprimidos (LGPD).
-          {(matriz?.setores_suprimidos ?? 0) > 0 && ` ${matriz?.setores_suprimidos} setor(es) omitido(s).`}
-          {' '}Associação não é causa — o cruzamento indica exposição a fatores de risco, não nexo causal.
+          Os números aparecem sempre somados; grupos com menos de {matriz?.k_min ?? 5} respostas ficam
+          de fora, para proteger quem respondeu (LGPD).
+          {(matriz?.setores_suprimidos ?? 0) > 0 && ` ${matriz?.setores_suprimidos} setor(es) fora por isso.`}
+          {' '}E atenção: aparecer junto não quer dizer que um causou o outro.
         </span>
       </div>
     </div>

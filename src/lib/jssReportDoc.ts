@@ -16,7 +16,10 @@
 
 import jsPDF from 'jspdf';
 import type { RhRelatorioJss, PlanoAcao } from '../services/empresaService';
-import { JSS_CLASSIFICACAO, JSS_PRIORIDADE, obterInsightJss } from './jssInsights';
+import {
+  JSS_CLASSIFICACAO, JSS_METRICAS, JSS_PRIORIDADE, obterInsightJss,
+  type JssMetricaKey,
+} from './jssInsights';
 
 const MAIN: [number, number, number] = [28, 25, 23];
 const PETROL: [number, number, number] = [140, 71, 62];
@@ -168,6 +171,32 @@ export function generateJssReportPDF(
     y += 2;
   }
 
+  // ── Glossário: o documento é lido por RH, SESMT e auditoria, e nenhum
+  //    deles é obrigado a conhecer a JSS. Sem isto, "Controle 50" não diz
+  //    nada — e pior, é lido como se maior fosse pior, que é o inverso. ──
+  y += 10;
+  y = ensureSpace(46, y);
+  doc.setTextColor(...MAIN);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('COMO LER OS INDICADORES', M, y);
+  y += 6;
+
+  doc.setFontSize(8.5);
+  for (const chave of ['demanda', 'controle', 'apoio', 'indice'] as JssMetricaKey[]) {
+    const m = JSS_METRICAS[chave];
+    const linhas = doc.splitTextToSize(
+      `${m.label} (nota de 0 a 100; ${m.sentidoLabel.toLowerCase()}): ${m.resumo} `
+      + m.composicao.replace(/−/g, '-'),
+      pageW - M * 2,
+    );
+    y = ensureSpace(linhas.length * 4 + 3, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...MUTED);
+    doc.text(linhas, M, y);
+    y += linhas.length * 4 + 2;
+  }
+
   // ── Quebra por setor ──
   y += 8;
   y = ensureSpace(30, y);
@@ -182,13 +211,27 @@ export function generateJssReportPDF(
     doc.setFontSize(8.5);
     doc.setTextColor(...MUTED);
     const referencia = doc.splitTextToSize(
-      `Referência relativa do período (mediana dos respondentes): demanda ${rel.cortes.demanda}; `
-      + `controle ${rel.cortes.controle}; apoio ${rel.cortes.apoio}. Apoio abaixo da mediana agrava `
-      + 'a prioridade, mas não confirma violência ou assédio.',
+      'A comparação é feita com o meio da própria empresa neste período (metade dos respondentes '
+      + `acima, metade abaixo): demanda ${rel.cortes.demanda}; controle ${rel.cortes.controle}; `
+      + `apoio ${rel.cortes.apoio}. Apoio baixo aumenta a prioridade do setor, mas não confirma `
+      + 'violência ou assédio.',
       pageW - M * 2,
     );
     doc.text(referencia, M, y);
-    y += referencia.length * 4 + 5;
+    y += referencia.length * 4 + 3;
+
+    const quadrantes = doc.splitTextToSize(
+      'Classificação de cada setor: '
+      + (Object.values(JSS_CLASSIFICACAO)
+        .map(c => `${c.label} = ${c.descricao.replace(/\.$/, '')}`)
+        .join('; '))
+      + '. A ordem de prioridade indicada serve para escolher por onde a empresa começa a olhar; '
+      + 'não é a classificação formal de risco do GRO/PGR.',
+      pageW - M * 2,
+    );
+    y = ensureSpace(quadrantes.length * 4 + 5, y);
+    doc.text(quadrantes, M, y);
+    y += quadrantes.length * 4 + 5;
   }
 
   if (rel.setores.length === 0) {

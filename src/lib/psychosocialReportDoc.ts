@@ -138,11 +138,17 @@ export function generatePsychosocialReportPDF(
     doc.text(t, M, y);
     y += t.length * 5 + 4;
   } else {
+    // Contagem sozinha não dimensiona: 9 pessoas em 12 e 9 em 300 são
+    // relatórios diferentes. A proporção vai ao lado do número absoluto.
+    const proporcao = (n: number) => geral.n_respondentes > 0
+      ? ` (${Math.round((n / geral.n_respondentes) * 100)}% dos respondentes)` : '';
     const linhas: [string, string][] = [
       ['Respondentes no período', String(geral.n_respondentes)],
-      ['Índice médio de bem-estar (0–100)', String(geral.score_medio)],
-      ['Colaboradores com bem-estar reduzido (< 50)', String(geral.faixa_reduzido)],
-      ['Colaboradores em faixa de atenção (≤ 28)', String(geral.faixa_risco)],
+      ['Nota média de bem-estar (0 a 100; quanto maior, melhor)', String(geral.score_medio)],
+      ['Pessoas com bem-estar reduzido (nota abaixo de 50)',
+        `${geral.faixa_reduzido}${proporcao(geral.faixa_reduzido)}`],
+      ['Pessoas em faixa de atenção (nota 28 ou menos)',
+        `${geral.faixa_risco}${proporcao(geral.faixa_risco)}`],
     ];
     doc.setFillColor(242, 235, 230);
     doc.roundedRect(M - 2, y, pageW - M * 2 + 4, linhas.length * 9 + 6, 3, 3, 'F');
@@ -158,6 +164,22 @@ export function generatePsychosocialReportPDF(
       y += 9;
     }
     y += 2;
+
+    // As duas faixas se sobrepõem. Sem este aviso o leitor soma os números
+    // e conta duas vezes as mesmas pessoas.
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(120, 120, 120);
+    const nota = doc.splitTextToSize(
+      'Atenção ao ler: quem está na faixa de atenção (28 ou menos) também está contado em '
+      + 'bem-estar reduzido (menos de 50). Os dois números não devem ser somados, senão as mesmas '
+      + 'pessoas são contadas duas vezes. A nota média sozinha pode esconder grupos que estão '
+      + 'muito mal — por isso as contagens de pessoas acompanham a média.',
+      pageW - M * 2,
+    );
+    y = ensureSpace(nota.length * 4 + 4, y);
+    doc.text(nota, M, y);
+    y += nota.length * 4;
   }
 
   // ── Quebra por setor ──
@@ -176,14 +198,30 @@ export function generatePsychosocialReportPDF(
     doc.text('Nenhum setor atingiu o mínimo de respondentes para exibição.', M, y);
     y += 8;
   } else {
+    // Legenda das colunas: "Reduzido" e "Atenção" são contagens de pessoas,
+    // "Índice" é escore. Misturar as duas naturezas sem avisar é o erro de
+    // leitura mais comum deste relatório.
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(120, 120, 120);
+    const legenda = doc.splitTextToSize(
+      'Resp. = quantas pessoas responderam. Índice = nota média do setor, de 0 a 100 (quanto maior, '
+      + 'melhor). Reduzido e Atenção = quantidade de pessoas com nota abaixo de 50 e com nota 28 ou '
+      + 'menos, respectivamente.',
+      pageW - M * 2,
+    );
+    doc.text(legenda, M, y);
+    y += legenda.length * 4 + 4;
+
     // Cabeçalho da tabela
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...MUTED);
     doc.text('Setor', M, y);
-    doc.text('Resp.', pageW - M - 78, y, { align: 'right' });
-    doc.text('Índice', pageW - M - 48, y, { align: 'right' });
-    doc.text('Reduzido', pageW - M - 18, y, { align: 'right' });
+    doc.text('Resp.', pageW - M - 96, y, { align: 'right' });
+    doc.text('Índice', pageW - M - 68, y, { align: 'right' });
+    doc.text('Reduzido', pageW - M - 38, y, { align: 'right' });
+    doc.text('Atenção', pageW - M, y, { align: 'right' });
     y += 3;
     doc.setDrawColor(220, 220, 220);
     doc.line(M, y, pageW - M, y);
@@ -192,11 +230,12 @@ export function generatePsychosocialReportPDF(
     for (const s of rel.setores) {
       y = ensureSpace(8, y);
       doc.setTextColor(...MAIN);
-      doc.text(doc.splitTextToSize(s.setor, pageW - M * 2 - 90)[0], M, y);
+      doc.text(doc.splitTextToSize(s.setor, pageW - M * 2 - 106)[0], M, y);
       doc.setTextColor(...MUTED);
-      doc.text(String(s.n_respondentes), pageW - M - 78, y, { align: 'right' });
-      doc.text(String(s.score_medio), pageW - M - 48, y, { align: 'right' });
-      doc.text(String(s.faixa_reduzido), pageW - M - 18, y, { align: 'right' });
+      doc.text(String(s.n_respondentes), pageW - M - 96, y, { align: 'right' });
+      doc.text(String(s.score_medio), pageW - M - 68, y, { align: 'right' });
+      doc.text(String(s.faixa_reduzido), pageW - M - 38, y, { align: 'right' });
+      doc.text(String(s.faixa_risco), pageW - M, y, { align: 'right' });
       y += 7;
     }
   }

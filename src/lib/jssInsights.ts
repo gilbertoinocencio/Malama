@@ -21,23 +21,23 @@ export const JSS_CLASSIFICACAO: Record<JssClassificacao, {
 }> = {
   alta_exigencia: {
     label: 'Alta exigência',
-    descricao: 'Demanda elevada combinada com baixo controle sobre o trabalho.',
-    leitura: 'É o quadrante associado a maior risco à saúde no modelo de Karasek — cobra-se muito de quem tem pouca margem para decidir. Costuma ser por onde a investigação começa.',
+    descricao: 'Cobra-se muito de quem tem pouca liberdade para decidir.',
+    leitura: 'É a pior combinação das duas: muita cobrança e pouca autonomia. Costuma ser por onde começar a olhar.',
   },
   trabalho_ativo: {
     label: 'Trabalho ativo',
-    descricao: 'Demanda elevada, mas com controle preservado.',
-    leitura: 'Trabalho puxado em que a pessoa ainda decide como fazer. Desgasta, mas a autonomia protege; vale monitorar volume e pausas.',
+    descricao: 'Cobra-se muito, mas a pessoa tem liberdade para decidir.',
+    leitura: 'Cansa, mas poder decidir protege. Vale ficar de olho no volume de trabalho e nas pausas.',
   },
   trabalho_passivo: {
     label: 'Trabalho passivo',
-    descricao: 'Demanda menor combinada com baixo controle.',
-    leitura: 'Pouca sobrecarga, pouca autonomia. Associa-se a desmotivação e perda de habilidades, não a sobrecarga aguda.',
+    descricao: 'Cobra-se menos, mas a pessoa também decide pouco.',
+    leitura: 'Aqui o problema não é sobrecarga: é o desânimo e a pessoa ir perdendo prática no que sabe fazer.',
   },
   baixa_exigencia: {
     label: 'Baixa exigência',
-    descricao: 'Demanda menor e controle preservado.',
-    leitura: 'Sem sinal de sobrecarga nem de falta de autonomia por este instrumento. Segue no acompanhamento de rotina.',
+    descricao: 'Cobrança menor e liberdade para decidir preservada.',
+    leitura: 'Não apareceu sinal de sobrecarga nem de falta de autonomia. Segue no acompanhamento de sempre.',
   },
 };
 
@@ -50,22 +50,22 @@ export const JSS_PRIORIDADE: Record<JssPrioridade, {
   critica: {
     label: 'Investigar primeiro',
     cor: '#d03b3b',
-    criterio: 'Alta exigência e apoio abaixo da mediana do período.',
+    criterio: 'Muita cobrança, pouca autonomia e pouco apoio ao mesmo tempo.',
   },
   alta: {
     label: 'Prioridade elevada',
     cor: '#ec835a',
-    criterio: 'Alta exigência: demanda acima e controle abaixo da mediana.',
+    criterio: 'Muita cobrança com pouca autonomia.',
   },
   moderada: {
-    label: 'Aprofundar análise',
+    label: 'Olhar com calma',
     cor: '#d59a16',
-    criterio: 'Um fator isolado: apoio reduzido, trabalho passivo ou trabalho ativo.',
+    criterio: 'Só um ponto chamou atenção: o apoio, a autonomia ou a cobrança.',
   },
   acompanhamento: {
     label: 'Acompanhar',
     cor: '#548064',
-    criterio: 'Nenhum fator acima do limiar relativo neste período.',
+    criterio: 'Nada chamou atenção neste período.',
   },
 };
 
@@ -89,55 +89,55 @@ export const JSS_METRICAS: Record<JssMetricaKey, {
   indice: {
     label: 'Índice de exposição',
     sentido: 'adverso',
-    sentidoLabel: 'Maior = mais exposição',
-    resumo: 'Resume em um número o quanto o trabalho, do jeito que está organizado, expõe quem o faz.',
-    pergunta: 'Se eu tivesse um só número para priorizar, qual seria?',
-    composicao: 'Média de demanda, controle invertido e apoio invertido: (demanda + (100 − controle) + (100 − apoio)) ÷ 3. Demanda alta empurra para cima; controle e apoio altos puxam para baixo.',
+    sentidoLabel: 'Quanto maior, pior',
+    resumo: 'Junta os três números abaixo em um só, para você saber por onde começar.',
+    pergunta: 'Se eu pudesse olhar um número só, qual seria?',
+    composicao: 'É a média de três coisas: a cobrança, a falta de autonomia e a falta de apoio. Cobrança alta faz o número subir; autonomia e apoio altos fazem ele descer.',
   },
   demanda: {
     label: 'Demanda',
     sentido: 'adverso',
-    sentidoLabel: 'Maior = mais cobrança',
-    resumo: 'O quanto o trabalho cobra: ritmo, volume e prazo.',
+    sentidoLabel: 'Quanto maior, mais cobrança',
+    resumo: 'O quanto o trabalho cobra: pressa, quantidade de tarefas e prazo.',
     pergunta: 'Estamos pedindo mais do que cabe no tempo e na equipe?',
-    composicao: '5 perguntas sobre rapidez exigida, intensidade, exigência excessiva, tempo suficiente para as tarefas e exigências contraditórias.',
+    composicao: '5 perguntas: se precisa trabalhar rápido demais, se produz muito em pouco tempo, se sente que o trabalho exige demais, se o tempo dá para as tarefas e se recebe ordens que se contradizem.',
   },
   controle: {
     label: 'Controle',
     sentido: 'protetor',
-    sentidoLabel: 'Maior = mais autonomia',
-    resumo: 'O quanto a pessoa decide sobre o próprio trabalho e usa o que sabe.',
-    pergunta: 'Quem faz o trabalho tem margem para decidir como fazê-lo?',
-    composicao: '6 perguntas sobre aprender coisas novas, usar habilidades, tomar iniciativa, repetição de tarefas e escolher como e o que fazer.',
+    sentidoLabel: 'Quanto maior, melhor',
+    resumo: 'O quanto a pessoa decide sobre o próprio trabalho e usa o que sabe fazer.',
+    pergunta: 'Quem faz o trabalho tem espaço para decidir como fazer?',
+    composicao: '6 perguntas: se aprende coisas novas, se usa o que sabe, se pode tomar iniciativa, se repete sempre as mesmas tarefas e se escolhe como e o que fazer.',
   },
   apoio: {
     label: 'Apoio',
     sentido: 'protetor',
-    sentidoLabel: 'Maior = mais suporte',
-    resumo: 'O quanto colegas e liderança sustentam quem está sob pressão.',
+    sentidoLabel: 'Quanto maior, melhor',
+    resumo: 'O quanto os colegas e a chefia seguram a barra de quem está sob pressão.',
     pergunta: 'Quem está sobrecarregado tem com quem contar?',
-    composicao: '6 perguntas sobre ambiente, convivência da equipe, apoio dos colegas, compreensão em dias difíceis e relação com a chefia.',
+    composicao: '6 perguntas: como é o ambiente, como o time convive, se dá para contar com os colegas, se há compreensão nos dias ruins e como é a relação com a chefia.',
   },
 };
 
 const ITEM_SINAIS: Record<JssItemKey, string> = {
-  a: 'Ritmo de trabalho muito rápido',
-  b: 'Trabalho intenso em pouco tempo',
-  c: 'Exigência percebida como excessiva',
-  d: 'Tempo insuficiente para as tarefas',
-  e: 'Exigências contraditórias ou discordantes',
-  f: 'Pouca oportunidade de aprender',
-  g: 'Baixo uso de habilidades e conhecimentos',
-  h: 'Pouco espaço para iniciativa',
-  i: 'Repetição excessiva de tarefas',
-  j: 'Pouca autonomia sobre como trabalhar',
-  k: 'Pouca autonomia sobre o que fazer',
-  l: 'Ambiente pouco calmo ou agradável',
-  m: 'Relacionamento de equipe fragilizado',
-  n: 'Baixo apoio dos colegas',
-  o: 'Baixa compreensão dos colegas em dias difíceis',
-  p: 'Relacionamento com a liderança fragilizado',
-  q: 'Baixa vinculação com os colegas',
+  a: 'Precisa trabalhar rápido demais',
+  b: 'Precisa produzir muito em pouco tempo',
+  c: 'Sente que o trabalho exige demais',
+  d: 'O tempo não dá para as tarefas',
+  e: 'Recebe ordens que se contradizem',
+  f: 'Quase não aprende coisas novas',
+  g: 'Não usa o que sabe fazer',
+  h: 'Pouco espaço para tomar iniciativa',
+  i: 'Repete sempre as mesmas tarefas',
+  j: 'Não escolhe como fazer o trabalho',
+  k: 'Não escolhe o que fazer no trabalho',
+  l: 'Ambiente pouco tranquilo',
+  m: 'Convivência ruim no time',
+  n: 'Não dá para contar com os colegas',
+  o: 'Pouca compreensão dos colegas nos dias ruins',
+  p: 'Relação difícil com a chefia',
+  q: 'Pouco vínculo com os colegas',
 };
 
 const ORDEM: JssPrioridade[] = ['critica', 'alta', 'moderada', 'acompanhamento'];
@@ -161,9 +161,9 @@ export function obterInsightJss(setor: JssSetor, cortes?: JssCortes | null): Jss
   const controleBaixo = cortes ? setor.controle < cortes.controle : false;
   const apoioReduzido = cortes ? setor.apoio < cortes.apoio : false;
   const fatores: string[] = [];
-  if (demandaAlta) fatores.push('Excesso de demanda / sobrecarga');
-  if (controleBaixo) fatores.push('Baixo controle / pouca autonomia');
-  if (apoioReduzido) fatores.push('Falta de suporte / apoio no trabalho');
+  if (demandaAlta) fatores.push('Cobrança alta (sobrecarga)');
+  if (controleBaixo) fatores.push('Pouca autonomia para decidir');
+  if (apoioReduzido) fatores.push('Pouco apoio de colegas ou da chefia');
 
   let prioridade: JssPrioridade = 'acompanhamento';
   if (classificacao === 'alta_exigencia' && apoioReduzido) prioridade = 'critica';
@@ -179,10 +179,10 @@ export function obterInsightJss(setor: JssSetor, cortes?: JssCortes | null): Jss
     .map(([key]) => ITEM_SINAIS[key]);
 
   const encaminhamentos: string[] = [];
-  if (demandaAlta) encaminhamentos.push('Revisar metas, volume, prazos, pausas, prioridades e dimensionamento da equipe.');
-  if (controleBaixo) encaminhamentos.push('Rever autonomia, participação nas decisões, desenho das tarefas e clareza de papéis.');
-  if (apoioReduzido) encaminhamentos.push('Investigar liderança, relações de equipe, conflitos, violência e possível assédio por método específico.');
-  if (fatores.length === 0) encaminhamentos.push('Manter acompanhamento periódico e validar o resultado com a escuta do trabalho real.');
+  if (demandaAlta) encaminhamentos.push('Rever metas, volume de trabalho, prazos, pausas, prioridades e tamanho da equipe.');
+  if (controleBaixo) encaminhamentos.push('Dar mais espaço de decisão, ouvir a equipe nas mudanças, rever como as tarefas são divididas e deixar claro o papel de cada um.');
+  if (apoioReduzido) encaminhamentos.push('Olhar de perto a chefia e a convivência do time: conflitos, desrespeito, possível assédio. Isso pede conversa reservada e método próprio.');
+  if (fatores.length === 0) encaminhamentos.push('Seguir acompanhando e confirmar o resultado conversando com quem faz o trabalho.');
 
   return { classificacao, prioridade, apoioReduzido, fatores, sinais, encaminhamentos };
 }

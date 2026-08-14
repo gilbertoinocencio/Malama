@@ -63,8 +63,8 @@ const ValorSetor: React.FC<{
     className="tabular-nums"
     title={
       corte != null
-        ? `${descricao} Escala 0–100. Mediana do período: ${corte}.`
-        : `${descricao} Escala 0–100.`
+        ? `${descricao} Nota de 0 a 100. Meio da empresa: ${corte}.`
+        : `${descricao} Nota de 0 a 100.`
     }
   >
     <span className={adverso ? 'text-[#c2603f]' : 'text-gray-500'}>{label} </span>
@@ -96,18 +96,18 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
           <h3 className="text-sm font-semibold text-gray-800">Diagnóstico JSS por setor</h3>
         </div>
         <p className="mt-1 text-xs leading-relaxed text-gray-500">
-          Cada setor é um ponto: quanto mais alto, mais o trabalho cobra (demanda); quanto mais
-          à direita, mais autonomia quem o faz tem (controle) — ambos de 0 a 100. O apoio não
-          entra nos eixos, funciona como agravante: setores com apoio abaixo da mediana recebem
-          um anel de alerta. A ordem abaixo é uma prioridade de triagem, não a classificação
-          formal de risco do GRO/PGR.
+          Cada setor é uma bolinha. Quanto mais em cima, mais o trabalho cobra; quanto mais à
+          direita, mais autonomia as pessoas têm para decidir. O apoio não entra no gráfico:
+          ele aparece como um anel vermelho em volta da bolinha quando está baixo. A ordem da
+          lista abaixo é só uma sugestão de por onde começar, não a classificação formal de
+          risco do GRO/PGR.
         </p>
       </div>
 
       {!cortes ? (
         <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">
-          Os escores estão disponíveis, mas ainda não há referência suficiente para classificar
-          os quadrantes neste período.
+          As notas já existem, mas ainda não dá para dividir o gráfico em cantos: falta gente
+          respondendo neste período para saber onde fica o meio da empresa.
         </div>
       ) : (
         <>
@@ -148,7 +148,7 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
           <div className="space-y-3">
             <div>
               <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
-                Cor do ponto = prioridade de triagem
+                A cor da bolinha diz por onde começar
               </p>
               <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-500">
                 {(Object.keys(JSS_PRIORIDADE) as JssPrioridade[]).map(p => (
@@ -161,14 +161,14 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-3 w-3 rounded-full border-2 border-red-500" />
                   <span className="font-medium text-gray-600">Anel vermelho</span>
-                  <span className="text-gray-400">— apoio abaixo da mediana do período</span>
+                  <span className="text-gray-400">— apoio abaixo do meio da empresa</span>
                 </span>
               </div>
             </div>
 
             <div>
               <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
-                Como ler os quadrantes
+                O que significa cada canto do gráfico
               </p>
               <div className="mt-1 grid gap-2 sm:grid-cols-2">
                 {(Object.keys(JSS_CLASSIFICACAO) as JssClassificacao[]).map(c => (
@@ -182,10 +182,10 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
             </div>
 
             <p className="text-[11px] leading-relaxed text-gray-500">
-              As linhas que dividem o gráfico são as medianas dos respondentes deste período:
-              demanda {cortes.demanda} · controle {cortes.controle} · apoio {cortes.apoio}. São
-              referências internas da empresa, não notas de corte oficiais — em qualquer
-              população sempre haverá setores de cada lado da linha.
+              As linhas que cortam o gráfico marcam o meio da sua empresa neste período:
+              demanda {cortes.demanda} · controle {cortes.controle} · apoio {cortes.apoio} —
+              metade dos setores fica de cada lado. Não são notas oficiais de aprovação: em
+              qualquer empresa sempre vai ter setor dos dois lados da linha.
             </p>
           </div>
         </>
@@ -193,11 +193,11 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
 
       <div className="space-y-2">
         <div>
-          <p className="text-xs font-semibold text-gray-700">Setores em ordem de prioridade</p>
+          <p className="text-xs font-semibold text-gray-700">Setores por ordem de prioridade</p>
           <p className="mt-0.5 text-[11px] leading-relaxed text-gray-500">
-            Escores de 0 a 100. Os números destacados em vermelho estão no lado adverso da
-            mediana do período: demanda acima dela, controle ou apoio abaixo. São eles que
-            explicam a classificação e os fatores sinalizados ao lado.
+            Notas de 0 a 100. Os números em vermelho são os que estão no lado ruim em relação
+            ao meio da empresa: cobrança alta demais, ou autonomia e apoio baixos demais. São
+            eles que explicam a classificação e o que aparece ao lado.
           </p>
         </div>
 
@@ -224,17 +224,17 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
                 </div>
                 <div className="flex gap-3 text-xs text-gray-500">
                   <ValorSetor
-                    label="Demanda" descricao="O quanto o trabalho cobra: ritmo, volume e prazo."
+                    label="Demanda" descricao="O quanto o trabalho cobra: pressa, quantidade de tarefas e prazo. Quanto maior, pior."
                     valor={setor.demanda} corte={cortes?.demanda}
                     adverso={cortes ? setor.demanda >= cortes.demanda : false}
                   />
                   <ValorSetor
-                    label="Controle" descricao="Autonomia para decidir como e o que fazer."
+                    label="Controle" descricao="Liberdade para decidir como e o que fazer. Quanto maior, melhor."
                     valor={setor.controle} corte={cortes?.controle}
                     adverso={cortes ? setor.controle < cortes.controle : false}
                   />
                   <ValorSetor
-                    label="Apoio" descricao="Suporte de colegas e liderança."
+                    label="Apoio" descricao="Apoio dos colegas e da chefia. Quanto maior, melhor."
                     valor={setor.apoio} corte={cortes?.apoio}
                     adverso={cortes ? setor.apoio < cortes.apoio : false}
                   />
@@ -244,25 +244,25 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
               <div className="mt-2 grid gap-2 md:grid-cols-3">
                 <div>
                   <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400"
-                    title="Eixos em que este setor está no lado adverso da mediana do período.">
-                    Fatores sinalizados
+                    title="Pontos em que este setor está pior que o meio da empresa neste período.">
+                    O que chamou atenção
                   </p>
                   <p className="mt-0.5 text-xs leading-relaxed text-gray-600">
-                    {insight.fatores.length ? insight.fatores.join(' · ') : 'Nenhum fator elevado na referência relativa.'}
+                    {insight.fatores.length ? insight.fatores.join(' · ') : 'Nada acima do meio da empresa neste período.'}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400"
-                    title="Perguntas do questionário com maior contribuição adversa neste setor (acima de 50, em 0–100). Sempre agregadas, nunca resposta individual.">
+                    title="As perguntas do questionário que mais puxaram a nota deste setor para baixo. Sempre somadas, nunca a resposta de uma pessoa.">
                     O que mais pesou
                   </p>
                   <p className="mt-0.5 text-xs leading-relaxed text-gray-600">
-                    {insight.sinais.length ? insight.sinais.join(' · ') : 'Sem item isolado acima do limiar de explicação.'}
+                    {insight.sinais.length ? insight.sinais.join(' · ') : 'Nenhuma pergunta se destacou das outras.'}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400"
-                    title="Encaminhamento sugerido a partir do eixo sinalizado. É ponto de partida para a escuta do trabalho real, não conclusão.">
+                    title="Sugestão de por onde começar, a partir do que chamou atenção. É ponto de partida para conversar com a equipe, não conclusão.">
                     Próximo passo
                   </p>
                   <p className="mt-0.5 text-xs leading-relaxed text-gray-600">
@@ -278,9 +278,10 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
       <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
         <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
         <span>
-          Os cortes são relativos à mediana dos respondentes deste período. “Apoio reduzido” pode
-          justificar investigação de liderança, relações, violência ou assédio, mas a JSS não confirma
-          assédio moral. A conclusão exige método específico, escuta protegida e análise do trabalho real.
+          A comparação é sempre com o meio da sua empresa neste período. Apoio baixo é um bom motivo
+          para olhar a chefia, a convivência do time e a possibilidade de desrespeito ou assédio —
+          mas este questionário <strong>não prova assédio</strong>. Concluir isso exige método
+          próprio, conversa reservada e olhar o trabalho de perto.
         </span>
       </div>
     </div>
