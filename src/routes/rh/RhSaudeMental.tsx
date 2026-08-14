@@ -524,9 +524,11 @@ export const RhSaudeMental: React.FC = () => {
   const [gerandoJss, setGerandoJss] = useState(false);
   const [matriz, setMatriz] = useState<RhMatrizPsicossocial | null>(null);
   const [matrizLoading, setMatrizLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const [c, i, s, total] = await Promise.all([
         rhService.getCampanhas(),
@@ -540,7 +542,7 @@ export const RhSaudeMental: React.FC = () => {
       setAlvoTotal(total);
     } catch (err) {
       console.error('Erro ao carregar saúde mental:', err);
-      toast.error('Erro ao carregar dados.');
+      setLoadError('Não foi possível atualizar campanhas e instrumentos. Os dados anteriores foram mantidos.');
     } finally {
       setLoading(false);
     }
@@ -558,17 +560,17 @@ export const RhSaudeMental: React.FC = () => {
 
     rhService.getRelatorioPsicossocial(inicio, fim)
       .then(r => { if (!cancelado) setPsico(r); })
-      .catch(() => { if (!cancelado) setPsico(null); })
+      .catch(() => { if (!cancelado) setLoadError('Não foi possível atualizar todos os resultados. Mantivemos os dados anteriores.'); })
       .finally(() => { if (!cancelado) setPsicoLoading(false); });
 
     rhService.getRelatorioJss(inicio, fim)
       .then(r => { if (!cancelado) setJss(r); })
-      .catch(() => { if (!cancelado) setJss(null); })
+      .catch(() => { if (!cancelado) setLoadError('Não foi possível atualizar todos os resultados. Mantivemos os dados anteriores.'); })
       .finally(() => { if (!cancelado) setJssLoading(false); });
 
     rhService.getMatrizPsicossocial(inicio, fim)
       .then(m => { if (!cancelado) setMatriz(m); })
-      .catch(() => { if (!cancelado) setMatriz(null); })
+      .catch(() => { if (!cancelado) setLoadError('Não foi possível atualizar todos os resultados. Mantivemos os dados anteriores.'); })
       .finally(() => { if (!cancelado) setMatrizLoading(false); });
 
     return () => { cancelado = true; };
@@ -632,6 +634,7 @@ export const RhSaudeMental: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {loadError && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3"><span>{loadError}</span><button onClick={load} className="font-semibold whitespace-nowrap">Tentar novamente</button></div>}
       <RelatosSentinelaCard />
       {/* ── Campanhas ── */}
       <div className="bg-white rounded-xl shadow p-5">

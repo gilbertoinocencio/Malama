@@ -1060,15 +1060,13 @@ export const rhService = {
 
   // Empresa do RH logado (sem campos financeiros)
   async getMyEmpresa(): Promise<RhEmpresa | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const { data: rh } = await supabase
-      .from('rh_usuarios')
-      .select('empresa_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (!rh) return null;
+    // Não chama getUser() aqui: várias telas carregam em paralelo e cada
+    // validação remota de Auth criava uma corrida desnecessária. A RPC já
+    // valida o JWT e diferencia vínculo inexistente de falha de sessão.
+    const { data: acesso, error: acessoError } = await supabase.rpc('rh_meu_acesso');
+    if (acessoError) throw acessoError;
+    const rh = acesso as RhAcesso | null;
+    if (!rh?.empresa_id) return null;
 
     const { data: empresa, error } = await supabase
       .from('empresas')
@@ -1077,7 +1075,7 @@ export const rhService = {
       .single();
     if (error) {
       console.error('[rhService] Falha ao ler empresa do RH:', error.message, '| empresa_id:', rh.empresa_id);
-      return null;
+      throw error;
     }
     return empresa;
   },
@@ -1279,7 +1277,7 @@ export const rhService = {
       p_inicio: inicio,
       p_fim: fim,
     });
-    if (error) { console.error('[rhService] relatório psicossocial:', error.message); return null; }
+    if (error) { console.error('[rhService] relatório psicossocial:', error.message); throw error; }
     return (data ?? null) as RhRelatorioPsicossocial | null;
   },
 
@@ -1291,7 +1289,7 @@ export const rhService = {
       p_inicio: inicio,
       p_fim: fim,
     });
-    if (error) { console.error('[rhService] relatório JSS:', error.message); return null; }
+    if (error) { console.error('[rhService] relatório JSS:', error.message); throw error; }
     return (data ?? null) as RhRelatorioJss | null;
   },
 
@@ -1334,13 +1332,13 @@ export const rhService = {
       .select('*')
       .order('eixo')
       .order('nome');
-    if (error) { console.error('[rhService] instrumentos:', error.message); return []; }
+    if (error) { console.error('[rhService] instrumentos:', error.message); throw error; }
     return (data ?? []) as PsychosocialInstrumento[];
   },
 
   async getCampanhas(): Promise<PsychosocialCampanha[]> {
     const { data, error } = await supabase.rpc('rh_listar_campanhas');
-    if (error) { console.error('[rhService] campanhas:', error.message); return []; }
+    if (error) { console.error('[rhService] campanhas:', error.message); throw error; }
     return (data ?? []) as PsychosocialCampanha[];
   },
 
@@ -1400,7 +1398,7 @@ export const rhService = {
    */
   async getSetores(): Promise<SetorEmpresa[]> {
     const { data, error } = await supabase.rpc('rh_setores');
-    if (error) { console.error('[rhService] setores:', error.message); return []; }
+    if (error) { console.error('[rhService] setores:', error.message); throw error; }
     return (data ?? []) as SetorEmpresa[];
   },
 
@@ -1483,7 +1481,7 @@ export const rhService = {
    */
   async getAlvoTotal(): Promise<number> {
     const { data, error } = await supabase.rpc('rh_alvo_total');
-    if (error) { console.error('[rhService] alvo total:', error.message); return 0; }
+    if (error) { console.error('[rhService] alvo total:', error.message); throw error; }
     return (data ?? 0) as number;
   },
 
@@ -1493,7 +1491,7 @@ export const rhService = {
     const { data, error } = await supabase.rpc('rh_matriz_psicossocial', {
       p_inicio: inicio, p_fim: fim,
     });
-    if (error) { console.error('[rhService] matriz psicossocial:', error.message); return null; }
+    if (error) { console.error('[rhService] matriz psicossocial:', error.message); throw error; }
     return (data ?? null) as RhMatrizPsicossocial | null;
   },
 

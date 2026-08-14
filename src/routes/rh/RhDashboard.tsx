@@ -52,23 +52,31 @@ export const RhDashboard: React.FC = () => {
   const [resending, setResending] = useState<string | null>(null);
   const [psi, setPsi] = useState<{ plano_ativo: boolean; max_assentos: number; assentos_em_uso: number } | null>(null);
   const [togglingPsi, setTogglingPsi] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const emp = await rhService.getMyEmpresa();
-      setEmpresa(emp);
+      if (!emp) {
+        setEmpresa(null);
+        return;
+      }
       if (emp) {
         const [colabs, resumoPsi] = await Promise.all([
           rhService.getColaboradores(emp.id),
           rhService.getResumoPsicologico(),
         ]);
+        // Publica o conjunto de uma vez: nunca mostra empresa nova com lista
+        // antiga, nem apaga o estado anterior se uma das chamadas falhar.
+        setEmpresa(emp);
         setColaboradores(colabs);
         setPsi(resumoPsi);
       }
     } catch (err) {
       console.error('Erro ao carregar painel do RH:', err);
-      toast.error('Erro ao carregar dados.');
+      setLoadError('Não foi possível atualizar os dados. Sua sessão ou conexão pode ter oscilado.');
     } finally {
       setLoading(false);
     }
@@ -242,6 +250,17 @@ export const RhDashboard: React.FC = () => {
     );
   }
 
+  if (loadError && !empresa) {
+    return (
+      <div className="bg-white rounded-xl shadow p-10 text-center">
+        <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+        <p className="text-gray-700 font-medium">Não foi possível carregar o painel agora.</p>
+        <p className="text-gray-500 text-sm mt-1">Seus dados não foram apagados.</p>
+        <button onClick={load} className="mt-4 px-4 py-2 rounded-lg bg-[#7d4a3c] text-white text-sm font-semibold">Tentar novamente</button>
+      </div>
+    );
+  }
+
   if (!empresa) {
     return (
       <div className="bg-white rounded-xl shadow p-10 text-center">
@@ -254,6 +273,7 @@ export const RhDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {loadError && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3"><span>{loadError} Mantivemos a última informação carregada.</span><button onClick={load} className="font-semibold whitespace-nowrap">Tentar novamente</button></div>}
       {/* ── Cabeçalho ── */}
       <div>
         <h1 className="text-2xl font-semibold text-gray-800">{empresa.nome}</h1>
