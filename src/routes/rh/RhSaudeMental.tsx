@@ -34,6 +34,7 @@ import { generatePsychosocialReportPDF } from '../../lib/psychosocialReportDoc';
 import { generateJssReportPDF } from '../../lib/jssReportDoc';
 import { MatrizPsicossocial } from '../../components/rh/MatrizPsicossocial';
 import { JssDiagnosticoSetor } from '../../components/rh/JssDiagnosticoSetor';
+import { JssIndicadores } from '../../components/rh/JssIndicadores';
 import { RelatosSentinelaCard } from '../../components/rh/RelatosSentinelaCard';
 
 const MIN_COORTE = 5;
@@ -883,7 +884,9 @@ export const RhSaudeMental: React.FC = () => {
         </div>
         <p className="text-sm text-gray-500 mb-4">
           O que no trabalho expõe a risco — demanda, controle e apoio (modelo Karasek/Theorell).
-          Documento separado do WHO-5: eixos diferentes, cadência diferente (semestral).
+          São 17 perguntas sobre a organização do trabalho, e todos os índices vão de 0 a 100.
+          Documento separado do WHO-5: enquanto o bem-estar mede como a pessoa está, este mede
+          o que no trabalho a pressiona — eixos diferentes, cadência diferente (semestral).
         </p>
 
         {jssLoading ? (
@@ -900,28 +903,7 @@ export const RhSaudeMental: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-5">
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-gray-800">{jss.geral.n_respondentes}</p>
-                <p className="text-xs text-gray-500 mt-1">Respondentes</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-[#7d4a3c]">{jss.geral.indice_medio}</p>
-                <p className="text-xs text-gray-500 mt-1">Índice de exposição</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-gray-800">{jss.geral.demanda_medio}</p>
-                <p className="text-xs text-gray-500 mt-1">Demanda</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-gray-800">{jss.geral.controle_medio}</p>
-                <p className="text-xs text-gray-500 mt-1">Controle</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-gray-800">{jss.geral.apoio_medio}</p>
-                <p className="text-xs text-gray-500 mt-1">Apoio</p>
-              </div>
-            </div>
+            <JssIndicadores geral={jss.geral} cortes={jss.cortes} kMin={jss.k_min} />
 
             <JssDiagnosticoSetor relatorio={jss} />
 

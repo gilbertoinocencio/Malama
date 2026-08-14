@@ -4,10 +4,10 @@ import {
   Scatter, ScatterChart, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { AlertTriangle, Grid3x3, Info, ShieldAlert } from 'lucide-react';
-import type { RhRelatorioJss } from '../../services/empresaService';
+import type { JssClassificacao, RhRelatorioJss } from '../../services/empresaService';
 import {
   JSS_CLASSIFICACAO, JSS_PRIORIDADE, obterInsightJss, prioridadeOrdem,
-  type JssInsight,
+  type JssInsight, type JssPrioridade,
 } from '../../lib/jssInsights';
 
 type PontoJss = {
@@ -50,6 +50,28 @@ const PontoSetor = (props: any) => {
   );
 };
 
+/** Escore do setor. Fica destacado quando cai no lado adverso do corte do
+ *  período — é o que explica a classificação, então precisa ser visível. */
+const ValorSetor: React.FC<{
+  label: string;
+  descricao: string;
+  valor: number;
+  corte?: number | null;
+  adverso: boolean;
+}> = ({ label, descricao, valor, corte, adverso }) => (
+  <span
+    className="tabular-nums"
+    title={
+      corte != null
+        ? `${descricao} Escala 0–100. Mediana do período: ${corte}.`
+        : `${descricao} Escala 0–100.`
+    }
+  >
+    <span className={adverso ? 'text-[#c2603f]' : 'text-gray-500'}>{label} </span>
+    <strong className={adverso ? 'text-[#c2603f]' : 'text-gray-700'}>{valor}</strong>
+  </span>
+);
+
 export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ relatorio }) => {
   const cortes = relatorio.cortes;
   const linhas = relatorio.setores
@@ -74,9 +96,11 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
           <h3 className="text-sm font-semibold text-gray-800">Diagnóstico JSS por setor</h3>
         </div>
         <p className="mt-1 text-xs leading-relaxed text-gray-500">
-          A matriz clássica cruza demanda e controle. O apoio social funciona como agravante;
-          setores com apoio abaixo da mediana recebem um anel de alerta. A ordem abaixo é uma
-          prioridade de triagem, não a classificação formal de risco do GRO/PGR.
+          Cada setor é um ponto: quanto mais alto, mais o trabalho cobra (demanda); quanto mais
+          à direita, mais autonomia quem o faz tem (controle) — ambos de 0 a 100. O apoio não
+          entra nos eixos, funciona como agravante: setores com apoio abaixo da mediana recebem
+          um anel de alerta. A ordem abaixo é uma prioridade de triagem, não a classificação
+          formal de risco do GRO/PGR.
         </p>
       </div>
 
@@ -121,16 +145,62 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
               </ScatterChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-gray-500">
-            <span>Cortes do período: demanda {cortes.demanda} · controle {cortes.controle} · apoio {cortes.apoio}</span>
-            <span className="inline-flex items-center gap-1">
-              <span className="h-3 w-3 rounded-full border-2 border-red-500" /> apoio reduzido
-            </span>
+          <div className="space-y-3">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+                Cor do ponto = prioridade de triagem
+              </p>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-500">
+                {(Object.keys(JSS_PRIORIDADE) as JssPrioridade[]).map(p => (
+                  <span key={p} className="inline-flex items-center gap-1.5" title={JSS_PRIORIDADE[p].criterio}>
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: JSS_PRIORIDADE[p].cor }} />
+                    <span className="font-medium text-gray-600">{JSS_PRIORIDADE[p].label}</span>
+                    <span className="text-gray-400">— {JSS_PRIORIDADE[p].criterio}</span>
+                  </span>
+                ))}
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-full border-2 border-red-500" />
+                  <span className="font-medium text-gray-600">Anel vermelho</span>
+                  <span className="text-gray-400">— apoio abaixo da mediana do período</span>
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+                Como ler os quadrantes
+              </p>
+              <div className="mt-1 grid gap-2 sm:grid-cols-2">
+                {(Object.keys(JSS_CLASSIFICACAO) as JssClassificacao[]).map(c => (
+                  <div key={c} className="rounded-lg bg-gray-50 p-2 text-[11px] leading-relaxed">
+                    <span className="font-semibold text-gray-700">{JSS_CLASSIFICACAO[c].label}</span>
+                    <span className="text-gray-500"> — {JSS_CLASSIFICACAO[c].descricao} </span>
+                    <span className="text-gray-500">{JSS_CLASSIFICACAO[c].leitura}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-[11px] leading-relaxed text-gray-500">
+              As linhas que dividem o gráfico são as medianas dos respondentes deste período:
+              demanda {cortes.demanda} · controle {cortes.controle} · apoio {cortes.apoio}. São
+              referências internas da empresa, não notas de corte oficiais — em qualquer
+              população sempre haverá setores de cada lado da linha.
+            </p>
           </div>
         </>
       )}
 
       <div className="space-y-2">
+        <div>
+          <p className="text-xs font-semibold text-gray-700">Setores em ordem de prioridade</p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-gray-500">
+            Escores de 0 a 100. Os números destacados em vermelho estão no lado adverso da
+            mediana do período: demanda acima dela, controle ou apoio abaixo. São eles que
+            explicam a classificação e os fatores sinalizados ao lado.
+          </p>
+        </div>
+
         {linhas.map(({ setor, insight }) => {
           const prioridade = JSS_PRIORIDADE[insight.prioridade];
           const classificacao = insight.classificacao
@@ -152,28 +222,49 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
                     {classificacao?.label ?? 'Sem classificação'} · {setor.n_respondentes} respondentes
                   </p>
                 </div>
-                <div className="flex gap-3 text-xs tabular-nums text-gray-500">
-                  <span>Dem. <strong className="text-gray-700">{setor.demanda}</strong></span>
-                  <span>Contr. <strong className="text-gray-700">{setor.controle}</strong></span>
-                  <span>Apoio <strong className="text-gray-700">{setor.apoio}</strong></span>
+                <div className="flex gap-3 text-xs text-gray-500">
+                  <ValorSetor
+                    label="Demanda" descricao="O quanto o trabalho cobra: ritmo, volume e prazo."
+                    valor={setor.demanda} corte={cortes?.demanda}
+                    adverso={cortes ? setor.demanda >= cortes.demanda : false}
+                  />
+                  <ValorSetor
+                    label="Controle" descricao="Autonomia para decidir como e o que fazer."
+                    valor={setor.controle} corte={cortes?.controle}
+                    adverso={cortes ? setor.controle < cortes.controle : false}
+                  />
+                  <ValorSetor
+                    label="Apoio" descricao="Suporte de colegas e liderança."
+                    valor={setor.apoio} corte={cortes?.apoio}
+                    adverso={cortes ? setor.apoio < cortes.apoio : false}
+                  />
                 </div>
               </div>
 
               <div className="mt-2 grid gap-2 md:grid-cols-3">
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Fatores sinalizados</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400"
+                    title="Eixos em que este setor está no lado adverso da mediana do período.">
+                    Fatores sinalizados
+                  </p>
                   <p className="mt-0.5 text-xs leading-relaxed text-gray-600">
                     {insight.fatores.length ? insight.fatores.join(' · ') : 'Nenhum fator elevado na referência relativa.'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">O que mais pesou</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400"
+                    title="Perguntas do questionário com maior contribuição adversa neste setor (acima de 50, em 0–100). Sempre agregadas, nunca resposta individual.">
+                    O que mais pesou
+                  </p>
                   <p className="mt-0.5 text-xs leading-relaxed text-gray-600">
                     {insight.sinais.length ? insight.sinais.join(' · ') : 'Sem item isolado acima do limiar de explicação.'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Próximo passo</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400"
+                    title="Encaminhamento sugerido a partir do eixo sinalizado. É ponto de partida para a escuta do trabalho real, não conclusão.">
+                    Próximo passo
+                  </p>
                   <p className="mt-0.5 text-xs leading-relaxed text-gray-600">
                     {insight.encaminhamentos.join(' ')}
                   </p>
