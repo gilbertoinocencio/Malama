@@ -14,9 +14,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   ClipboardList, Plus, X, Info, AlertTriangle, CheckCircle2, Clock,
-  Trash2, CalendarClock,
+  Trash2, CalendarClock, Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { LiderancaEvolucao } from '../../components/rh/LiderancaEvolucao';
 import {
   rhService,
   type PlanoAcao, type RhPlanosResumo, type SetorEmpresa,
@@ -194,6 +195,7 @@ export const RhPlanoAcao: React.FC = () => {
   const [setores, setSetores] = useState<SetorEmpresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [criando, setCriando] = useState(false);
+  const [visao, setVisao] = useState<'plano' | 'lideranca'>('plano');
 
   const load = useCallback(async () => {
     const fim = new Date();
@@ -253,6 +255,37 @@ export const RhPlanoAcao: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div className="inline-flex max-w-full rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setVisao('plano')}
+          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+            visao === 'plano'
+              ? 'bg-[#7d4a3c] text-white shadow-sm'
+              : 'text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <ClipboardList className="h-4 w-4" />
+          Plano de ação
+        </button>
+        <button
+          type="button"
+          onClick={() => setVisao('lideranca')}
+          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+            visao === 'lideranca'
+              ? 'bg-[#7d4a3c] text-white shadow-sm'
+              : 'text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <Sparkles className="h-4 w-4" />
+          Evolução da liderança
+        </button>
+      </div>
+
+      {visao === 'lideranca' ? (
+        <LiderancaEvolucao setores={setores} />
+      ) : (
+        <>
       {/* ── Alerta: risco de fonte tratado só no indivíduo ── */}
       {lacunas.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
@@ -443,6 +476,8 @@ export const RhPlanoAcao: React.FC = () => {
           PGR/PCMSO nem das decisões de gestão.
         </span>
       </div>
+        </>
+      )}
     </div>
   );
 };

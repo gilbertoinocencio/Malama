@@ -894,6 +894,7 @@ export type PlanoAcao = {
   concluida_em: string | null;
   atrasada: boolean;
   created_at: string;
+  lideranca_ciclo_id?: string | null;
 };
 
 export type RhPlanosResumo = {
@@ -966,6 +967,28 @@ export type RhUsuarioEquipe = {
   principal: boolean;
   ativo: boolean;
   created_at: string;
+};
+
+export type LiderancaEtapa =
+  | 'iniciada' | 'plano_definido' | 'em_acao' | 'pratica_incorporada' | 'evolucao_mantida';
+export type LiderancaStatus = 'ativo' | 'concluido' | 'arquivado';
+export type LiderancaAcao = Pick<PlanoAcao,
+  'id' | 'fator' | 'medida' | 'nivel_controle' | 'responsavel' | 'prazo' |
+  'status' | 'evidencia' | 'concluida_em' | 'atrasada'>;
+export type LiderancaCiclo = {
+  id: string;
+  setor: string;
+  inicio: string;
+  fim: string;
+  responsavel_rh: string;
+  pontos_fortes: string[];
+  pontos_atencao: string[];
+  etapa: LiderancaEtapa;
+  status: LiderancaStatus;
+  nota_evolucao: string | null;
+  created_at: string;
+  updated_at: string;
+  acoes: LiderancaAcao[];
 };
 
 export type RhResumoRelatos = {
@@ -1617,6 +1640,60 @@ export const rhService = {
 
   async excluirPlanoAcao(id: string): Promise<{ ok: boolean; error?: string }> {
     const { data, error } = await supabase.rpc('rh_excluir_plano_acao', { p_id: id });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  // ── Programa de Evolução da Liderança ───────────────
+  async getLiderancaCiclos(): Promise<LiderancaCiclo[]> {
+    const { data, error } = await supabase.rpc('rh_lideranca_listar_ciclos');
+    if (error) throw error;
+    return (data ?? []) as LiderancaCiclo[];
+  },
+
+  async criarLiderancaCiclo(p: {
+    setor: string; fim: string; responsavelRh: string;
+    pontosFortes: string[]; pontosAtencao: string[];
+  }): Promise<{ ok: boolean; id?: string; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_lideranca_criar_ciclo', {
+      p_setor: p.setor, p_fim: p.fim, p_responsavel_rh: p.responsavelRh,
+      p_pontos_fortes: p.pontosFortes, p_pontos_atencao: p.pontosAtencao,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; id?: string; error?: string };
+  },
+
+  async atualizarLiderancaPontos(p: {
+    id: string; fim: string; responsavelRh: string;
+    pontosFortes: string[]; pontosAtencao: string[];
+  }): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_lideranca_atualizar_pontos', {
+      p_id: p.id, p_fim: p.fim, p_responsavel_rh: p.responsavelRh,
+      p_pontos_fortes: p.pontosFortes, p_pontos_atencao: p.pontosAtencao,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  async adicionarLiderancaAcao(p: {
+    cicloId: string; fator: PlanoFator; objetivo: string; medida: string;
+    nivelControle: PlanoNivel; responsavel: string; prazo: string;
+  }): Promise<{ ok: boolean; id?: string; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_lideranca_adicionar_acao', {
+      p_ciclo_id: p.cicloId, p_fator: p.fator, p_objetivo: p.objetivo,
+      p_medida: p.medida, p_nivel_controle: p.nivelControle,
+      p_responsavel: p.responsavel, p_prazo: p.prazo,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; id?: string; error?: string };
+  },
+
+  async avancarLideranca(
+    id: string, etapa: LiderancaEtapa, nota?: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_lideranca_avancar', {
+      p_id: id, p_etapa: etapa, p_nota: nota ?? null,
+    });
     if (error) return { ok: false, error: error.message };
     return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
   },
