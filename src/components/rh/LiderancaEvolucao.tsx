@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ArrowRight, Check, CheckCircle2, Clipboard, Lightbulb, Plus, RefreshCw,
-  Sparkles, Target, ThumbsUp, UsersRound, X,
+  ArrowRight, CalendarDays, Check, CheckCircle2, Clipboard, GripVertical,
+  Lightbulb, Plus, RefreshCw, Sparkles, Target, ThumbsUp, UsersRound, X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-  rhService, type JssCortes, type JssSetor, type LiderancaCiclo, type LiderancaEtapa,
-  type PlanoFator, type PlanoNivel, type SetorEmpresa,
+  rhService, type JssCortes, type JssItemKey, type JssSetor, type LiderancaCiclo,
+  type LiderancaEtapa, type PlanoFator, type PlanoNivel, type SetorEmpresa,
 } from '../../services/empresaService';
 import { obterInsightJss } from '../../lib/jssInsights';
 
@@ -50,18 +50,52 @@ const dataBr = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('pt-B
 
 function diagnostico(setor: JssSetor | undefined, cortes: JssCortes | null | undefined) {
   if (!setor || !cortes) return { fortes: [] as string[], atencao: [] as string[], sugestoes: SUGESTOES.manutencao };
+  const temSinal = (itens: JssItemKey[]) => itens.some(item => (setor.itens_risco?.[item] ?? 0) >= 50);
+  const sinalDemanda = temSinal(['a', 'b', 'c', 'd', 'e']);
+  const sinalControle = temSinal(['f', 'g', 'h', 'i', 'j', 'k']);
+  const sinalApoio = temSinal(['l', 'm', 'n', 'o', 'p', 'q']);
   const fortes: string[] = [];
-  if (setor.demanda < cortes.demanda) fortes.push('A carga de trabalho está mais equilibrada que o ponto de referência atual.');
-  if (setor.controle >= cortes.controle) fortes.push('A equipe demonstra boa autonomia para organizar o trabalho.');
-  if (setor.apoio >= cortes.apoio) fortes.push('O apoio entre equipe e liderança aparece como ponto positivo.');
+  const mistos: string[] = [];
+  if (setor.demanda < cortes.demanda && !sinalDemanda) fortes.push('A carga de trabalho está mais equilibrada que o ponto de referência atual.');
+  if (setor.controle >= cortes.controle && !sinalControle) fortes.push('A equipe demonstra boa autonomia para organizar o trabalho.');
+  if (setor.apoio >= cortes.apoio && !sinalApoio) fortes.push('O apoio entre equipe e liderança aparece como ponto positivo.');
+  if (setor.demanda < cortes.demanda && sinalDemanda) mistos.push('Resultado misto na carga de trabalho: o geral é favorável, mas há situações específicas para investigar.');
+  if (setor.controle >= cortes.controle && sinalControle) mistos.push('Resultado misto na autonomia: o geral é favorável, mas há situações específicas para investigar.');
+  if (setor.apoio >= cortes.apoio && sinalApoio) mistos.push('Resultado misto no apoio: o geral é favorável, mas há situações específicas para investigar.');
   const insight = obterInsightJss(setor, cortes);
-  const atencao = [...insight.fatores, ...insight.sinais].slice(0, 4);
+  const atencao = [...insight.fatores, ...mistos, ...insight.sinais].slice(0, 6);
   const grupos: Sugestao[] = [];
-  if (insight.fatores.some(x => x.includes('Cobrança'))) grupos.push(...SUGESTOES.demanda);
-  if (insight.fatores.some(x => x.includes('autonomia'))) grupos.push(...SUGESTOES.controle);
-  if (insight.fatores.some(x => x.includes('apoio'))) grupos.push(...SUGESTOES.apoio);
+  if (setor.demanda >= cortes.demanda || sinalDemanda) grupos.push(...SUGESTOES.demanda);
+  if (setor.controle < cortes.controle || sinalControle) grupos.push(...SUGESTOES.controle);
+  if (setor.apoio < cortes.apoio || sinalApoio) grupos.push(...SUGESTOES.apoio);
   if (grupos.length === 0) grupos.push(...SUGESTOES.manutencao);
   return { fortes, atencao, sugestoes: grupos.slice(0, 4) };
+}
+
+async function avancarJornada(
+  ciclo: LiderancaCiclo,
+  destino: LiderancaEtapa,
+  onAtualizar: () => Promise<void>,
+) {
+  const atual = ETAPAS.findIndex(e => e.id === ciclo.etapa);
+  const novo = ETAPAS.findIndex(e => e.id === destino);
+  if (ciclo.status !== 'ativo') return toast.error('Esta jornada já foi concluída.');
+  if (novo !== atual + 1) return toast.error('Mova o cartão somente para o próximo marco.');
+
+  let nota: string | undefined;
+  if (destino === 'pratica_incorporada' || destino === 'evolucao_mantida') {
+    const resposta = prompt(
+      'Registre em uma frase o que foi observado ou aprendido neste marco:',
+      ciclo.nota_evolucao ?? '',
+    );
+    if (resposta === null) return;
+    if (!resposta.trim()) return toast.error('Registre o aprendizado para avançar.');
+    nota = resposta.trim();
+  }
+  const res = await rhService.avancarLideranca(ciclo.id, destino, nota);
+  if (!res.ok) return toast.error(res.error || 'Não foi possível avançar.');
+  toast.success(`Marco alcançado: ${ETAPAS[novo].label}.`);
+  await onAtualizar();
 }
 
 export const LiderancaEvolucao: React.FC<{ setores: SetorEmpresa[] }> = ({ setores }) => {
@@ -82,7 +116,7 @@ export const LiderancaEvolucao: React.FC<{ setores: SetorEmpresa[] }> = ({ setor
         rhService.getRelatorioJss(inicio.toISOString().slice(0, 10), fim.toISOString().slice(0, 10)).catch(() => null),
       ]);
       setCiclos(lista); setJss(relatorio);
-      setSelecionado(atual => atual && lista.some(c => c.id === atual) ? atual : lista[0]?.id ?? null);
+      setSelecionado(atual => atual && lista.some(c => c.id === atual) ? atual : null);
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível carregar as jornadas.'); }
     finally { setLoading(false); }
   }, []);
@@ -91,6 +125,9 @@ export const LiderancaEvolucao: React.FC<{ setores: SetorEmpresa[] }> = ({ setor
   const ciclo = ciclos.find(c => c.id === selecionado) ?? null;
   const setorJss = jss?.setores.find(s => s.setor === ciclo?.setor);
   const leitura = useMemo(() => diagnostico(setorJss, jss?.cortes), [setorJss, jss?.cortes]);
+  const mover = useCallback(async (item: LiderancaCiclo, destino: LiderancaEtapa) => {
+    await avancarJornada(item, destino, carregar);
+  }, [carregar]);
 
   if (loading) return <div className="flex h-56 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#7d4a3c] border-t-transparent" /></div>;
 
@@ -105,16 +142,98 @@ export const LiderancaEvolucao: React.FC<{ setores: SetorEmpresa[] }> = ({ setor
         <button onClick={() => setNovo(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white"><Plus className="h-4 w-4" /> Iniciar jornada</button>
       </div>
 
-      {ciclos.length === 0 ? <div className="rounded-xl bg-white p-10 text-center shadow"><Sparkles className="mx-auto h-9 w-9 text-gray-300" /><p className="mt-3 font-medium text-gray-600">Nenhuma jornada iniciada.</p><p className="mt-1 text-sm text-gray-400">Comece por um setor e leve sugestões práticas para a primeira conversa.</p></div> : <div className="grid gap-5 lg:grid-cols-[250px_1fr]">
-        <div className="space-y-2">{ciclos.map(c => <button key={c.id} onClick={() => setSelecionado(c.id)} className={`w-full rounded-xl border p-3 text-left transition ${c.id === selecionado ? 'border-[#7d4a3c] bg-[#7d4a3c]/5' : 'border-gray-200 bg-white hover:border-gray-300'}`}><div className="flex items-center justify-between gap-2"><span className="font-semibold text-gray-800">{c.setor}</span>{c.status === 'concluido' && <CheckCircle2 className="h-4 w-4 text-green-600" />}</div><p className="mt-1 text-xs text-gray-500">{ETAPAS.find(e => e.id === c.etapa)?.label}</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full bg-[#7d4a3c]" style={{ width: `${((ETAPAS.findIndex(e => e.id === c.etapa) + 1) / ETAPAS.length) * 100}%` }} /></div></button>)}</div>
-        {ciclo && <JornadaDetalhe ciclo={ciclo} sugestoes={leitura.sugestoes} onEditar={() => setEditando(true)} onAcao={setAcao} onAtualizar={carregar} />}
-      </div>}
+      {ciclos.length === 0
+        ? <div className="rounded-xl bg-white p-10 text-center shadow"><Sparkles className="mx-auto h-9 w-9 text-gray-300" /><p className="mt-3 font-medium text-gray-600">Nenhuma jornada iniciada.</p><p className="mt-1 text-sm text-gray-400">Comece por um setor e leve sugestões práticas para a primeira conversa.</p></div>
+        : <KanbanLideranca ciclos={ciclos} selecionado={selecionado} onSelecionar={setSelecionado} onMover={mover} />}
+
+      {ciclo && <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={() => setSelecionado(null)}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}><div className="mb-3 flex justify-end"><button onClick={() => setSelecionado(null)} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700" aria-label="Fechar detalhes"><X className="h-5 w-5" /></button></div><JornadaDetalhe ciclo={ciclo} sugestoes={leitura.sugestoes} onEditar={() => setEditando(true)} onAcao={setAcao} onAtualizar={carregar} /></aside></div>}
 
       {novo && <CicloForm setores={setores} jss={jss} onClose={() => setNovo(false)} onSaved={async id => { setNovo(false); await carregar(); setSelecionado(id); }} />}
       {editando && ciclo && <PontosForm ciclo={ciclo} onClose={() => setEditando(false)} onSaved={() => { setEditando(false); void carregar(); }} />}
       {acao && ciclo && <AcaoForm ciclo={ciclo} sugestao={acao} onClose={() => setAcao(null)} onSaved={() => { setAcao(null); void carregar(); }} />}
     </div>
   );
+};
+
+const KanbanLideranca: React.FC<{
+  ciclos: LiderancaCiclo[];
+  selecionado: string | null;
+  onSelecionar: (id: string) => void;
+  onMover: (ciclo: LiderancaCiclo, destino: LiderancaEtapa) => Promise<void>;
+}> = ({ ciclos, selecionado, onSelecionar, onMover }) => {
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const [sobre, setSobre] = useState<LiderancaEtapa | null>(null);
+
+  return <div>
+    <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
+      <GripVertical className="h-4 w-4" />
+      Arraste um cartão para o próximo marco ou abra os detalhes para avançar.
+    </div>
+    <div className="-mx-1 overflow-x-auto pb-3">
+      <div className="flex min-w-max gap-3 px-1">
+        {ETAPAS.map((etapa, indice) => {
+          const itens = ciclos.filter(c => c.etapa === etapa.id);
+          return <section
+            key={etapa.id}
+            className={`w-[270px] rounded-xl border p-3 transition ${
+              sobre === etapa.id ? 'border-[#7d4a3c] bg-[#7d4a3c]/5' : 'border-gray-200 bg-gray-100/70'
+            }`}
+            onDragOver={e => { e.preventDefault(); setSobre(etapa.id); }}
+            onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setSobre(null); }}
+            onDrop={e => {
+              e.preventDefault();
+              const id = e.dataTransfer.getData('text/plain') || arrastando;
+              const item = ciclos.find(c => c.id === id);
+              setSobre(null); setArrastando(null);
+              if (item && item.etapa !== etapa.id) void onMover(item, etapa.id);
+            }}
+          >
+            <header className="mb-3 flex items-center justify-between gap-2 px-1">
+              <div><p className="text-sm font-semibold text-gray-800">{etapa.label}</p><p className="text-[11px] text-gray-400">Marco {indice + 1} de 5</p></div>
+              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-gray-500 shadow-sm">{itens.length}</span>
+            </header>
+            <div className="min-h-32 space-y-2">
+              {itens.length === 0 && <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-gray-300 px-4 text-center text-xs text-gray-400">Solte aqui quando o requisito estiver pronto.</div>}
+              {itens.map(ciclo => {
+                const proximaAcao = [...ciclo.acoes]
+                  .filter(a => a.status === 'planejada' || a.status === 'em_andamento')
+                  .sort((a, b) => a.prazo.localeCompare(b.prazo))[0];
+                const concluidas = ciclo.acoes.filter(a => a.status === 'concluida').length;
+                return <button
+                  key={ciclo.id}
+                  type="button"
+                  draggable={ciclo.status === 'ativo'}
+                  aria-pressed={selecionado === ciclo.id}
+                  onDragStart={e => {
+                    setArrastando(ciclo.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', ciclo.id);
+                  }}
+                  onDragEnd={() => { setArrastando(null); setSobre(null); }}
+                  onClick={() => onSelecionar(ciclo.id)}
+                  className={`w-full rounded-lg border bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow ${
+                    selecionado === ciclo.id ? 'border-[#7d4a3c] ring-1 ring-[#7d4a3c]/20' : 'border-gray-200'
+                  } ${arrastando === ciclo.id ? 'opacity-50' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0"><p className="truncate text-sm font-semibold text-gray-800">{ciclo.setor}</p><p className="mt-0.5 truncate text-[11px] text-gray-500">RH: {ciclo.responsavel_rh}</p></div>
+                    {ciclo.status === 'concluido' ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600" /> : <GripVertical className="h-4 w-4 flex-shrink-0 cursor-grab text-gray-300" />}
+                  </div>
+                  {ciclo.pontos_fortes[0] && <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-green-700"><span className="font-semibold">Bom:</span> {ciclo.pontos_fortes[0]}</p>}
+                  {ciclo.pontos_atencao[0] && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-amber-700"><span className="font-semibold">Atenção:</span> {ciclo.pontos_atencao[0]}</p>}
+                  <div className="mt-3 border-t border-gray-100 pt-2">
+                    {proximaAcao
+                      ? <div className="flex items-center justify-between gap-2 text-[11px]"><span className={proximaAcao.atrasada ? 'font-semibold text-red-600' : 'text-gray-500'}>{proximaAcao.status === 'em_andamento' ? 'Em prática' : 'Planejada'}</span><span className="inline-flex items-center gap-1 text-gray-400"><CalendarDays className="h-3 w-3" />{dataBr(proximaAcao.prazo)}</span></div>
+                      : <p className="text-[11px] text-gray-400">{ciclo.acoes.length ? `${concluidas} combinado(s) concluído(s)` : 'Sem combinado ainda'}</p>}
+                  </div>
+                </button>;
+              })}
+            </div>
+          </section>;
+        })}
+      </div>
+    </div>
+  </div>;
 };
 
 const JornadaDetalhe: React.FC<{
@@ -154,14 +273,7 @@ const JornadaDetalhe: React.FC<{
 
   const avancar = async () => {
     if (!proxima) return;
-    let nota: string | undefined;
-    if (proxima.id === 'pratica_incorporada' || proxima.id === 'evolucao_mantida') {
-      const resposta = prompt('Registre em uma frase o que foi observado ou aprendido neste marco:', ciclo.nota_evolucao ?? '');
-      if (resposta === null) return; nota = resposta.trim();
-    }
-    const res = await rhService.avancarLideranca(ciclo.id, proxima.id, nota);
-    if (!res.ok) return toast.error(res.error || 'Não foi possível avançar.');
-    toast.success(`Marco alcançado: ${proxima.label}.`); await onAtualizar();
+    await avancarJornada(ciclo, proxima.id, onAtualizar);
   };
 
   const statusAcao = async (id: string, status: 'em_andamento' | 'concluida') => {
