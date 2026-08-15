@@ -35,6 +35,7 @@ import { generateJssReportPDF } from '../../lib/jssReportDoc';
 import { MatrizPsicossocial } from '../../components/rh/MatrizPsicossocial';
 import { JssDiagnosticoSetor } from '../../components/rh/JssDiagnosticoSetor';
 import { JssIndicadores } from '../../components/rh/JssIndicadores';
+import { JssTeiaTemas } from '../../components/rh/JssTeiaTemas';
 import { Who5Indicadores } from '../../components/rh/Who5Indicadores';
 import { RelatosSentinelaCard } from '../../components/rh/RelatosSentinelaCard';
 
@@ -936,6 +937,8 @@ export const RhSaudeMental: React.FC = () => {
         ) : (
           <>
             <JssIndicadores geral={jss.geral} cortes={jss.cortes} kMin={jss.k_min} />
+
+            <JssTeiaTemas inicio={jss.periodo_inicio} fim={jss.periodo_fim} />
 
             <JssDiagnosticoSetor relatorio={jss} />
 

@@ -638,6 +638,36 @@ export type RhRelatorioJss = {
   cortes?: JssCortes | null;
 };
 
+export type JssTemasValores = {
+  ritmo_volume: number;
+  organizacao: number;
+  competencias: number;
+  autonomia: number;
+  clima: number;
+  apoio_lideranca: number;
+};
+
+export type JssTeiaGeral =
+  | ({ n_respondentes: number; suprimido?: false } & JssTemasValores)
+  | { n_respondentes: number; suprimido: true };
+
+export type JssTeiaSetor = JssTemasValores & {
+  setor: string;
+  n_respondentes: number;
+};
+
+export type RhJssTeiaTemas = {
+  empresa_id: string;
+  periodo_inicio: string;
+  periodo_fim: string;
+  k_min: number;
+  geral: JssTeiaGeral;
+  setores: JssTeiaSetor[];
+  setores_suprimidos: number;
+  sentido: 'maior_mais_atencao';
+  natureza: 'leitura_tematica_gestao';
+};
+
 // ── Motor de campanhas psicossociais (migration 20260728) ──
 // Atenção ao que cada tipo carrega:
 //   participação (convidados/respondentes/taxa) → não é dado de saúde,
@@ -1314,6 +1344,15 @@ export const rhService = {
     });
     if (error) { console.error('[rhService] relatório JSS:', error.message); throw error; }
     return (data ?? null) as RhRelatorioJss | null;
+  },
+
+  async getJssTeiaTemas(inicio: string, fim: string): Promise<RhJssTeiaTemas | null> {
+    const { data, error } = await supabase.rpc('rh_jss_teia_temas', {
+      p_inicio: inicio,
+      p_fim: fim,
+    });
+    if (error) { console.error('[rhService] teia temática JSS:', error.message); throw error; }
+    return (data ?? null) as RhJssTeiaTemas | null;
   },
 
   // Colaboradores para o certificado de disponibilização (nome + data de
