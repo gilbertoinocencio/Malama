@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { rhService, type SetorAdmin } from '../../services/empresaService';
+import { CabecalhoColapsavel, ResumoRecolhido, useSecaoAberta } from './SecaoColapsavel';
 
 /**
  * Piso de coorte dos relatórios. Duplicado do banco de propósito — lá é
@@ -51,6 +52,12 @@ export const SetoresCard: React.FC<{
   const [efetivoEdit, setEfetivoEdit] = useState<Record<string, string>>({});
   // Destino escolhido na sugestão de união dos setores abaixo do piso.
   const [uniaoDestino, setUniaoDestino] = useState<Record<string, string>>({});
+
+  // Recolhido por padrão, mas abre sozinho enquanto não houver setor: é o
+  // primeiro passo do onboarding, e escondê-lo atrás de um clique seria
+  // esconder justamente o que o guia acabou de mandar fazer.
+  const semSetores = !loading && setores.filter(s => s.ativo).length === 0;
+  const [aberto, setAberto] = useSecaoAberta('#setores', semSetores);
 
   // Via ref: o callback costuma ser uma arrow inline no pai, e depender dele
   // em `load` recarregaria a lista a cada render.
@@ -194,13 +201,16 @@ export const SetoresCard: React.FC<{
 
   return (
     <div className="bg-white rounded-xl shadow p-5">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <Layers className="w-5 h-5 text-[#7d4a3c]" />
-          <h2 className="font-semibold text-gray-800">Setores da empresa</h2>
-          <span className="text-xs text-gray-400">{ativos.length}</span>
-        </div>
-        {arquivados.length > 0 && (
+      <div className="flex items-center justify-between">
+        <CabecalhoColapsavel
+          icone={<Layers className="w-5 h-5 text-[#7d4a3c]" />}
+          titulo="Setores da empresa"
+          contagem={ativos.length}
+          aberto={aberto}
+          onToggle={() => setAberto(v => !v)}
+          desabilitado={loading}
+        />
+        {aberto && arquivados.length > 0 && (
           <button
             onClick={() => setMostrarArquivados(v => !v)}
             className="text-xs text-gray-500 hover:text-gray-700 underline"
@@ -209,7 +219,20 @@ export const SetoresCard: React.FC<{
           </button>
         )}
       </div>
-      <p className="text-xs text-gray-500 mb-4">
+
+      {!aberto ? (
+        <ResumoRecolhido onAbrir={() => setAberto(true)}>
+          {/* Sem o caso de loading, o resumo piscava "nenhum setor
+              cadastrado" antes de a lista chegar. */}
+          {loading
+            ? 'Carregando...'
+            : ativos.length === 0
+              ? 'Nenhum setor cadastrado — clique para começar.'
+              : ativos.map(s => s.nome).join(' · ')}
+        </ResumoRecolhido>
+      ) : (
+      <>
+      <p className="text-xs text-gray-500 mb-4 mt-1">
         Registre os setores em que a empresa quer agir. São eles que recortam os relatórios de
         bem-estar, absenteísmo e o plano de ação — e é desta lista que o cadastro do colaborador escolhe.
         O campo <strong>efetivo</strong> é quantas pessoas trabalham no setor, incluindo quem ainda não
@@ -372,6 +395,8 @@ export const SetoresCard: React.FC<{
           Adicionar
         </button>
       </form>
+      </>
+      )}
     </div>
   );
 };

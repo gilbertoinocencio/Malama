@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import {
   Users, UserPlus, Trash2, Download, Mail, AlertCircle,
   CheckCircle2, Clock, Building2, Calendar, Send, Brain, Phone,
-  ArrowRight, Circle, ClipboardCheck, UserCog, ChevronDown, ChevronUp,
+  ArrowRight, Circle, ClipboardCheck, UserCog,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -17,6 +17,7 @@ import {
 } from '../../services/empresaService';
 import { SetoresCard } from '../../components/rh/SetoresCard';
 import { RitmoDoCicloCard } from '../../components/rh/RitmoDoCicloCard';
+import { CabecalhoColapsavel, ResumoRecolhido, useSecaoAberta } from '../../components/rh/SecaoColapsavel';
 import { useRhAccess } from '../../contexts/RhAccessContext';
 import { useRhJornada } from '../../contexts/RhJornadaContext';
 import { useScrollParaHash } from '../../hooks/useScrollParaHash';
@@ -130,6 +131,10 @@ export const RhDashboard: React.FC = () => {
   // A lista cresce sem limite e empurrava o resto do dashboard para fora
   // da tela; nasce fechada e o RH abre quando precisa mexer nela.
   const [listaAberta, setListaAberta] = useState(false);
+  // O formulário é uso ocasional depois da carga inicial — mas continua
+  // aberto enquanto não houver ninguém, e reabre quando o guia aponta
+  // para ele pela âncora.
+  const [formAberto, setFormAberto] = useSecaoAberta('#novo-colaborador', colaboradores.length === 0);
 
   // O resumo psicológico é o único dado exclusivo desta tela.
   useEffect(() => {
@@ -470,11 +475,19 @@ export const RhDashboard: React.FC = () => {
 
       {/* ── Adicionar colaborador ── */}
       <div id="novo-colaborador" className="scroll-mt-6 bg-white rounded-xl shadow p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <UserPlus className="w-5 h-5 text-[#7d4a3c]" />
-          <h2 className="font-semibold text-gray-800">Adicionar colaborador</h2>
-        </div>
-        <form onSubmit={handleAdd} className="flex flex-col gap-3">
+        <CabecalhoColapsavel
+          icone={<UserPlus className="w-5 h-5 text-[#7d4a3c]" />}
+          titulo="Adicionar colaborador"
+          aberto={formAberto}
+          onToggle={() => setFormAberto(v => !v)}
+        />
+        {!formAberto ? (
+          <ResumoRecolhido onAbrir={() => setFormAberto(true)}>
+            Convidar mais alguém para o benefício
+            {limite != null && ` — ${Math.max(0, limite - usados)} assento(s) livre(s)`}.
+          </ResumoRecolhido>
+        ) : (
+        <form onSubmit={handleAdd} className="mt-3 flex flex-col gap-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="relative">
               <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -537,31 +550,26 @@ export const RhDashboard: React.FC = () => {
             {adding ? 'Adicionando...' : 'Adicionar'}
           </button>
         </form>
-        <p className="text-xs text-gray-500 mt-2">
-          Se o colaborador já tem conta Malama, o acesso é vinculado na hora. Caso contrário, ele recebe um convite por e-mail.
-          Setor e função alimentam os relatórios agregados de bem-estar (nunca identificam respostas individuais).
-        </p>
+        )}
+        {formAberto && (
+          <p className="text-xs text-gray-500 mt-2">
+            Se o colaborador já tem conta Malama, o acesso é vinculado na hora. Caso contrário, ele recebe um convite por e-mail.
+            Setor e função alimentam os relatórios agregados de bem-estar (nunca identificam respostas individuais).
+          </p>
+        )}
       </div>
 
       {/* ── Lista de colaboradores ── */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => setListaAberta(v => !v)}
-            disabled={colaboradores.length === 0}
-            aria-expanded={listaAberta}
-            className="flex items-center gap-2 text-left rounded-lg -m-1 p-1 hover:bg-gray-50 transition disabled:hover:bg-transparent disabled:cursor-default"
-          >
-            <Users className="w-5 h-5 text-[#7d4a3c]" />
-            <h2 className="font-semibold text-gray-800">Colaboradores</h2>
-            <span className="text-xs text-gray-400">{colaboradores.length}</span>
-            {colaboradores.length > 0 && (
-              listaAberta
-                ? <ChevronUp className="w-4 h-4 text-gray-400" />
-                : <ChevronDown className="w-4 h-4 text-gray-400" />
-            )}
-          </button>
+          <CabecalhoColapsavel
+            icone={<Users className="w-5 h-5 text-[#7d4a3c]" />}
+            titulo="Colaboradores"
+            contagem={colaboradores.length}
+            aberto={listaAberta}
+            onToggle={() => setListaAberta(v => !v)}
+            desabilitado={colaboradores.length === 0}
+          />
           <button
             onClick={exportCsv}
             disabled={colaboradores.length === 0}
