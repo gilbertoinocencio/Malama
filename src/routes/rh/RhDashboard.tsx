@@ -54,9 +54,19 @@ const GuiaJornadaRh: React.FC<{
   const passos = passosPreparacao(dados);
   const concluidos = passos.filter(p => p.ok).length;
   const progresso = Math.round((concluidos / passos.length) * 100);
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const marcosParaVerificar = dados.ciclos.filter(c => {
+    if (c.status !== 'ativo') return false;
+    if (c.marco_status === 'verificado') return true;
+    const prazo = new Date(`${c.marco_prazo || c.fim}T00:00:00`);
+    return Math.ceil((prazo.getTime() - hoje.getTime()) / 86400000) <= 7;
+  });
 
   return (
     <section className="rounded-xl border border-[#7d4a3c]/20 bg-white p-5 shadow-sm" aria-labelledby="guia-rh-titulo">
+      {marcosParaVerificar.length > 0 && <Link to="/rh/plano-acao?visao=lideranca" className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-amber-900">
+        <span className="flex min-w-0 gap-2"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" /><span><span className="block text-sm font-semibold">{marcosParaVerificar.length} marco(s) de liderança pedem acompanhamento</span><span className="mt-0.5 block text-xs text-amber-800">Confira o combinado, registre o resultado ou agende uma nova data.</span></span></span><ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
+      </Link>}
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div className="flex min-w-0 gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#7d4a3c]/10 text-[#7d4a3c]">

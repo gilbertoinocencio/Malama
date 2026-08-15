@@ -4,19 +4,21 @@
 // (NR-1). PDF client-side com jsPDF, a partir do agregado k-anônimo
 // devolvido pela RPC rh_relatorio_psicossocial.
 //
-// TEXTO JURÍDICO: os blocos METODOLOGIA e DISCLAIMER abaixo são um
-// rascunho padrão, sujeito a revisão pelo jurídico da empresa-cliente.
 // O posicionamento é sempre COMPLEMENTAR — a Malama fornece subsídio,
 // não assume a responsabilidade técnica do PGR/PCMSO (do SESMT/médico
 // do trabalho da empresa).
+//
+// A emissão é registrada antes de o PDF sair (ver empresa_relatorios_emitidos):
+// número sequencial do servidor, snapshot do conteúdo e selo de verificação.
+// Relatório que não se reproduz não serve de prova.
 // =====================================================
 
 import jsPDF from 'jspdf';
 import type { RhRelatorioPsicossocial, PlanoAcao } from '../services/empresaService';
-
-const MAIN: [number, number, number] = [28, 25, 23];
-const PETROL: [number, number, number] = [140, 71, 62];
-const MUTED: [number, number, number] = [87, 83, 78];
+import {
+  MAIN, PETROL, MUTED, PRIVACIDADE, DISCLAIMER, NIVEL_LABEL, STATUS_LABEL,
+  blocoIdentificacao, blocoSumario, fmtDate, type EmissaoMeta,
+} from './relatorioBlocos';
 
 const METODOLOGIA =
   'Os indicadores deste relatório derivam do Índice de Bem-Estar da Organização Mundial da ' +
@@ -26,48 +28,63 @@ const METODOLOGIA =
   'reduzido e escores iguais ou inferiores a 28 sugerem a conveniência de rastreio aprofundado. ' +
   'O WHO-5 é um instrumento de triagem de bem-estar e NÃO constitui diagnóstico clínico.';
 
-const PRIVACIDADE =
-  'Todos os dados são agregados e anonimizados. Nenhum resultado individual é acessível à ' +
-  'empresa. Recortes com menos respondentes do que o piso de anonimato (k) são suprimidos e ' +
-  'exibidos como "dados insuficientes", em conformidade com a Lei Geral de Proteção de Dados ' +
-  '(LGPD), que classifica dados de saúde como dados pessoais sensíveis.';
-
-const DISCLAIMER =
-  'Este relatório é material de apoio à gestão de riscos psicossociais da empresa e constitui ' +
-  'evidência documental complementar para composição do Programa de Gerenciamento de Riscos ' +
-  '(PGR), no contexto da NR-1. NÃO substitui as avaliações e obrigações legais a cargo do SESMT, ' +
-  'do PCMSO, do médico do trabalho ou dos demais responsáveis técnicos da empresa, nem configura ' +
-  'ato médico ou laudo pericial. As decisões de gestão de risco permanecem de responsabilidade ' +
-  'exclusiva da empresa-cliente e de seus profissionais habilitados.';
-
-const fmtDate = (d: string | Date | null) => {
-  if (!d) return '—';
-  const date = typeof d === 'string' ? new Date(d + 'T00:00:00') : d;
-  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
-
-const NIVEL_LABEL: Record<string, string> = {
-  fonte: 'Na fonte',
-  organizacional: 'Organizacional',
-  individual: 'Individual',
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  planejada: 'Planejada',
-  em_andamento: 'Em andamento',
-  concluida: 'Concluída',
-  cancelada: 'Cancelada',
-};
-
-export interface PsychosocialReportMeta {
-  numeroDoc: string;
-  emitidoEm: Date;
+export interface PsychosocialReportMeta extends EmissaoMeta {
   /**
    * Itens do plano de ação. Diagnóstico sem medida de controle documenta
    * que a empresa sabia do risco e não agiu — por isso o plano entra no
    * mesmo documento, e a ausência dele é dita explicitamente.
    */
   planos?: PlanoAcao[];
+}
+
+/** Conclusões do período, em texto. Sem elas o documento entrega números
+ *  crus e deixa a leitura por conta de quem o receber. */
+function sintese(rel: RhRelatorioPsicossocial, planos: PlanoAcao[]): string[] {
+  const linhas: string[] = [];
+  const geral = rel.geral;
+
+  if (!('score_medio' in geral)) {
+    linhas.push(
+      `Não houve respondentes suficientes no período para publicação agregada `
+      + `(mínimo de ${rel.k_min}). O documento registra a aplicação do instrumento, não o resultado.`,
+    );
+  } else {
+    linhas.push(
+      `${geral.n_respondentes} pessoa(s) responderam no período, com nota média de bem-estar `
+      + `${geral.score_medio} em 100.`,
+    );
+    linhas.push(
+      `${geral.faixa_reduzido} pessoa(s) com bem-estar reduzido (abaixo de 50), das quais `
+      + `${geral.faixa_risco} em faixa de atenção (28 ou menos). O WHO-5 é rastreio de bem-estar `
+      + 'e não estabelece diagnóstico nem nexo com o trabalho.',
+    );
+  }
+
+  if (rel.setores_suprimidos > 0) {
+    linhas.push(
+      `${rel.setores_suprimidos} setor(es) não aparecem por não atingirem o piso de anonimato `
+      + `de ${rel.k_min} respondentes.`,
+    );
+  }
+
+  // A conclusão que mais importa juridicamente: houve diagnóstico e houve
+  // (ou não) resposta a ele.
+  const abertas = planos.filter(p => p.status !== 'concluida' && p.status !== 'cancelada');
+  const naFonte = planos.some(p => p.nivel_controle === 'fonte' || p.nivel_controle === 'organizacional');
+  if (planos.length === 0) {
+    linhas.push(
+      'Não havia medida de prevenção ou controle registrada no plano de ação até a emissão '
+      + 'deste documento.',
+    );
+  } else {
+    linhas.push(
+      `${planos.length} medida(s) registrada(s) no plano de ação, ${abertas.length} em aberto. `
+      + (naFonte
+        ? 'Há atuação sobre a fonte ou a organização do trabalho.'
+        : 'Todas de nível individual — sem atuação sobre a fonte ou a organização do trabalho.'),
+    );
+  }
+  return linhas;
 }
 
 export function generatePsychosocialReportPDF(
@@ -115,9 +132,15 @@ export function generatePsychosocialReportPDF(
   if (rel.empresa_cnpj) { y += 6; doc.text(`CNPJ: ${rel.empresa_cnpj}`, M, y); }
   y += 6;
   doc.text(`Período: ${fmtDate(rel.periodo_inicio)} a ${fmtDate(rel.periodo_fim)}`, M, y);
+  y += 6;
+  doc.text(`Documento nº ${meta.numeroDoc} · emitido em ${fmtDate(meta.emitidoEm)}`, M, y);
+
+  // ── Síntese: a conclusão vem antes dos números ──
+  y += 12;
+  y = blocoSumario(doc, y, pageW, M, sintese(rel, meta.planos ?? []));
 
   // ── Panorama geral ──
-  y += 12;
+  y += 10;
   doc.setTextColor(...MAIN);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
@@ -372,12 +395,7 @@ export function generatePsychosocialReportPDF(
   doc.text(disc, M, y);
   y += disc.length * 4 + 8;
 
-  // ── Rodapé ──
-  y = ensureSpace(12, y);
-  doc.setFontSize(8);
-  doc.setTextColor(120, 120, 120);
-  doc.text(`Documento nº ${meta.numeroDoc}`, M, y);
-  doc.text(`Emitido em ${fmtDate(meta.emitidoEm)}`, pageW - M, y, { align: 'right' });
+  blocoIdentificacao(doc, y, pageW, pageH, M, meta);
 
   doc.save(`relatorio-psicossocial-malama-${meta.numeroDoc}.pdf`);
 }

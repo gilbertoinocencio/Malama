@@ -554,6 +554,10 @@ export type ComplianceDoc = {
   consultas_realizadas: number;
   numero_doc: string;
   created_at: string;
+  /** Quem emitiu e selo do snapshot (migration 20260841). Nulos nos
+   *  documentos gerados antes dessa migração. */
+  emitido_por_nome: string | null;
+  hash_verificacao: string | null;
 };
 
 // ── Relatório psicossocial WHO-5 (agregado, k-anônimo) ──
@@ -954,7 +958,48 @@ export type CertificadoColaborador = {
   funcao: string | null;
   data_adicao: string;
   data_ativacao: string | null;
+  /** Fim do vínculo. Sem ela o certificado declarava disponibilidade em
+   *  aberto para quem já tinha saído — imprecisão em documento de defesa. */
+  data_saida: string | null;
   status: ColaboradorStatus;
+};
+
+// ── Relatórios psicossociais emitidos (migration 20260841) ──
+// Snapshot do que foi impresso. Reemitir lê daqui e nunca recalcula: sem
+// isso o mesmo número de documento designava conteúdos diferentes.
+export type RelatorioTipo = 'jss' | 'who5';
+
+export type RelatorioEmitido = {
+  id: string;
+  tipo: RelatorioTipo;
+  numero_doc: string;
+  periodo_inicio: string;
+  periodo_fim: string;
+  hash_verificacao: string;
+  emitido_por_nome: string | null;
+  emitido_em: string;
+};
+
+export type RelatorioEmitidoCompleto = RelatorioEmitido & {
+  payload: unknown;
+  emitido_por_email: string | null;
+};
+
+/** Identificação de quem clicou em emitir — vai impressa no rodapé. */
+export type EmissorDoc = {
+  nome: string | null;
+  email: string | null;
+};
+
+/**
+ * Versão do documento de tratamento de dados vigente na emissão. Vai
+ * impressa no relatório: sem ela, o PDF afirma que os dados são tratados em
+ * conformidade sem apontar sob qual instrumento isso foi acordado.
+ */
+export type AceiteVigente = {
+  titulo: string;
+  versao: string;
+  aceito_em: string | null;
 };
 
 export type RhResumoFinanceiro = {
@@ -1002,6 +1047,17 @@ export type RhUsuarioEquipe = {
 export type LiderancaEtapa =
   | 'iniciada' | 'plano_definido' | 'em_acao' | 'pratica_incorporada' | 'evolucao_mantida';
 export type LiderancaStatus = 'ativo' | 'concluido' | 'arquivado';
+export type LiderancaMarcoStatus = 'pendente' | 'verificado';
+export type LiderancaVerificacaoResultado = 'realizado' | 'parcial' | 'nao_realizado' | 'nao_verificado';
+export type LiderancaMarcoEvento = {
+  id: string;
+  etapa: LiderancaEtapa;
+  resultado: LiderancaVerificacaoResultado;
+  prazo_anterior: string;
+  prazo_novo: string | null;
+  nota: string;
+  created_at: string;
+};
 export type LiderancaAcao = Pick<PlanoAcao,
   'id' | 'fator' | 'medida' | 'nivel_controle' | 'responsavel' | 'prazo' |
   'status' | 'evidencia' | 'concluida_em' | 'atrasada'>;
@@ -1016,9 +1072,14 @@ export type LiderancaCiclo = {
   etapa: LiderancaEtapa;
   status: LiderancaStatus;
   nota_evolucao: string | null;
+  marco_prazo: string;
+  marco_status: LiderancaMarcoStatus;
+  marco_verificado_em: string | null;
+  marco_nota: string | null;
   created_at: string;
   updated_at: string;
   acoes: LiderancaAcao[];
+  historico_marcos: LiderancaMarcoEvento[];
 };
 
 export type RhResumoRelatos = {
@@ -1364,6 +1425,58 @@ export const rhService = {
     return (data ?? []) as CertificadoColaborador[];
   },
 
+  // ── Relatórios psicossociais emitidos (migration 20260841) ──
+  // O número do documento é gerado no SERVIDOR, sequencial por empresa e
+  // ano. No cliente ele saía de data+período, e dois relatórios do mesmo dia
+  // recebiam o mesmo número com conteúdos diferentes.
+  async registrarRelatorio(p: {
+    tipo: RelatorioTipo;
+    periodoInicio: string;
+    periodoFim: string;
+    payload: unknown;
+    hash: string;
+  }): Promise<{ ok: boolean; error?: string; numero_doc?: string; id?: string;
+                emitido_por_nome?: string | null; emitido_por_email?: string | null }> {
+    const { data, error } = await supabase.rpc('rh_registrar_relatorio', {
+      p_tipo: p.tipo,
+      p_periodo_inicio: p.periodoInicio,
+      p_periodo_fim: p.periodoFim,
+      p_payload: p.payload,
+      p_hash: p.hash,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean };
+  },
+
+  async getRelatoriosEmitidos(): Promise<RelatorioEmitido[]> {
+    const { data, error } = await supabase.rpc('rh_listar_relatorios_emitidos');
+    if (error) { console.error('[rhService] relatórios emitidos:', error.message); return []; }
+    return (data ?? []) as RelatorioEmitido[];
+  },
+
+  /**
+   * Documento de tratamento de dados vigente, para carimbar no relatório sob
+   * qual instrumento a coleta foi acordada. Silencioso em erro: falta de
+   * permissão para ler documentos não pode impedir a emissão do relatório.
+   */
+  async getAceiteVigente(): Promise<AceiteVigente | null> {
+    try {
+      const docs = await this.getDocumentos();
+      const doc = docs.find(d => d.tipo === 'tratamento_dados') ?? docs.find(d => d.exige_aceite);
+      if (!doc) return null;
+      return { titulo: doc.titulo, versao: doc.versao, aceito_em: doc.aceito_em };
+    } catch {
+      return null;
+    }
+  },
+
+  /** Snapshot completo, para reemitir o PDF idêntico ao arquivado. */
+  async getRelatorioEmitido(id: string): Promise<RelatorioEmitidoCompleto | null> {
+    const { data, error } = await supabase.rpc('rh_obter_relatorio_emitido', { p_id: id });
+    if (error) { console.error('[rhService] relatório emitido:', error.message); return null; }
+    return (data ?? null) as RelatorioEmitidoCompleto | null;
+  },
+
   // ── Plano psicológico (upsell) ──────────────────────
   // Resumo dos assentos psi da empresa (plano ativo, contratados, em uso).
   // Tolerante a erro: RPC só existe após 20260723_rh_alocar_psicologo.
@@ -1692,11 +1805,12 @@ export const rhService = {
 
   async criarLiderancaCiclo(p: {
     setor: string; fim: string; responsavelRh: string;
-    pontosFortes: string[]; pontosAtencao: string[];
+    pontosFortes: string[]; pontosAtencao: string[]; marcoPrazo: string;
   }): Promise<{ ok: boolean; id?: string; error?: string }> {
     const { data, error } = await supabase.rpc('rh_lideranca_criar_ciclo', {
       p_setor: p.setor, p_fim: p.fim, p_responsavel_rh: p.responsavelRh,
       p_pontos_fortes: p.pontosFortes, p_pontos_atencao: p.pontosAtencao,
+      p_marco_prazo: p.marcoPrazo,
     });
     if (error) return { ok: false, error: error.message };
     return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; id?: string; error?: string };
@@ -1728,10 +1842,21 @@ export const rhService = {
   },
 
   async avancarLideranca(
-    id: string, etapa: LiderancaEtapa, nota?: string,
+    id: string, etapa: LiderancaEtapa, proximoPrazo: string, nota?: string,
   ): Promise<{ ok: boolean; error?: string }> {
     const { data, error } = await supabase.rpc('rh_lideranca_avancar', {
-      p_id: id, p_etapa: etapa, p_nota: nota ?? null,
+      p_id: id, p_etapa: etapa, p_proximo_prazo: proximoPrazo, p_nota: nota ?? null,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  async verificarLiderancaMarco(p: {
+    id: string; resultado: LiderancaVerificacaoResultado; nota: string; novoPrazo?: string;
+  }): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_lideranca_verificar_marco', {
+      p_id: p.id, p_resultado: p.resultado, p_nota: p.nota,
+      p_novo_prazo: p.novoPrazo ?? null,
     });
     if (error) return { ok: false, error: error.message };
     return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
@@ -1754,8 +1879,13 @@ export const rhService = {
     colaboradores_ativos: number;
     consultas_realizadas: number;
     numero_doc: string;
+    emitido_por_nome: string | null;
+    hash_verificacao: string;
   }): Promise<void> {
-    const { error } = await supabase.from('empresa_compliance_docs').insert([doc]);
+    const { data: sessao } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from('empresa_compliance_docs')
+      .insert([{ ...doc, emitido_por: sessao?.user?.id ?? null }]);
     if (error) throw error;
   },
 

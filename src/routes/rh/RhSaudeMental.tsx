@@ -30,6 +30,9 @@ import {
   type RhRelatorioPsicossocial,
   type RhRelatorioJss,
   type RhMatrizPsicossocial,
+  type RelatorioEmitido,
+  type AceiteVigente,
+  type PlanoAcao,
 } from '../../services/empresaService';
 import { generatePsychosocialReportPDF } from '../../lib/psychosocialReportDoc';
 import { generateJssReportPDF } from '../../lib/jssReportDoc';
@@ -41,6 +44,8 @@ import { Who5Indicadores } from '../../components/rh/Who5Indicadores';
 import { RelatosSentinelaCard } from '../../components/rh/RelatosSentinelaCard';
 import { useScrollParaHash } from '../../hooks/useScrollParaHash';
 import { ritmoInstrumento } from '../../lib/rhJornada';
+import { hashDocumento, formatarHash } from '../../lib/hashDocumento';
+import { useRhAccess } from '../../contexts/RhAccessContext';
 
 const MIN_COORTE = 5;
 
@@ -600,6 +605,16 @@ export const RhSaudeMental: React.FC = () => {
   const [matriz, setMatriz] = useState<RhMatrizPsicossocial | null>(null);
   const [matrizLoading, setMatrizLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const { acesso } = useRhAccess();
+  // Histórico de emissões: é o que dá rastro ao documento e permite provar
+  // quando a empresa tomou ciência de cada resultado.
+  const [emitidos, setEmitidos] = useState<RelatorioEmitido[]>([]);
+
+  const carregarEmitidos = useCallback(() => {
+    rhService.getRelatoriosEmitidos().then(setEmitidos).catch(() => setEmitidos([]));
+  }, []);
+
+  useEffect(() => { carregarEmitidos(); }, [carregarEmitidos]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -663,41 +678,84 @@ export const RhSaudeMental: React.FC = () => {
     await load();
   };
 
-  const handleGerarPsico = async () => {
-    if (!psico) return;
-    setGerandoPsico(true);
+  /**
+   * Emite um relatório de evidência.
+   *
+   * A ordem importa: monta o snapshot, calcula o selo, REGISTRA no servidor
+   * e só então gera o PDF com o número devolvido. Se o registro falhar,
+   * nenhum arquivo sai — documento de evidência que não está registrado é
+   * exatamente o que a outra parte ataca como produzido para o processo.
+   */
+  const emitirRelatorio = async (tipo: 'jss' | 'who5') => {
+    const relatorio = tipo === 'jss' ? jss : psico;
+    if (!relatorio) return;
+    const marcarGerando = tipo === 'jss' ? setGerandoJss : setGerandoPsico;
+    marcarGerando(true);
     try {
       // O plano de ação entra no mesmo documento: diagnóstico sem medida de
       // controle registra que a empresa sabia do risco e não agiu.
       const planos = await rhService.getPlanosAcao();
-      const emitidoEm = new Date();
-      const ymd = `${emitidoEm.getFullYear()}${String(emitidoEm.getMonth() + 1).padStart(2, '0')}${String(emitidoEm.getDate()).padStart(2, '0')}`;
-      const numero = `MAL-PSICO-${ymd}-${PERIODO_LABEL[periodo].slice(0, 3).toUpperCase()}`;
-      generatePsychosocialReportPDF(psico, { numeroDoc: numero, emitidoEm, planos });
-      toast.success('Relatório psicossocial gerado.');
+      const aceite = await rhService.getAceiteVigente();
+      const payload = { relatorio, planos, aceite };
+      const hash = await hashDocumento(payload);
+
+      const res = await rhService.registrarRelatorio({
+        tipo,
+        periodoInicio: relatorio.periodo_inicio,
+        periodoFim: relatorio.periodo_fim,
+        payload,
+        hash,
+      });
+      if (!res.ok || !res.numero_doc) {
+        toast.error(res.error || 'Não foi possível registrar a emissão. O relatório não foi gerado.');
+        return;
+      }
+
+      const meta = {
+        numeroDoc: res.numero_doc,
+        emitidoEm: new Date(),
+        hash,
+        emitidoPorNome: res.emitido_por_nome ?? acesso.nome,
+        emitidoPorEmail: res.emitido_por_email ?? acesso.email,
+        aceite,
+        planos,
+      };
+      if (tipo === 'jss') generateJssReportPDF(relatorio as RhRelatorioJss, meta);
+      else generatePsychosocialReportPDF(relatorio as RhRelatorioPsicossocial, meta);
+
+      toast.success(`Relatório ${res.numero_doc} emitido e registrado.`);
+      carregarEmitidos();
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao gerar relatório.');
     } finally {
-      setGerandoPsico(false);
+      marcarGerando(false);
     }
   };
 
-  const handleGerarJss = async () => {
-    if (!jss) return;
-    setGerandoJss(true);
+  /** Reemissão: lê o snapshot e reproduz o PDF idêntico ao arquivado. */
+  const reemitir = async (item: RelatorioEmitido) => {
     try {
-      // Mesmo plano de ação do relatório WHO-5: é o mesmo registro de
-      // medidas de controle da empresa, só o diagnóstico que muda de eixo.
-      const planos = await rhService.getPlanosAcao();
-      const emitidoEm = new Date();
-      const ymd = `${emitidoEm.getFullYear()}${String(emitidoEm.getMonth() + 1).padStart(2, '0')}${String(emitidoEm.getDate()).padStart(2, '0')}`;
-      const numero = `MAL-JSS-${ymd}-${PERIODO_LABEL[periodo].slice(0, 3).toUpperCase()}`;
-      generateJssReportPDF(jss, { numeroDoc: numero, emitidoEm, planos });
-      toast.success('Relatório de carga de trabalho gerado.');
+      const registro = await rhService.getRelatorioEmitido(item.id);
+      const payload = registro?.payload as
+        | { relatorio: any; planos: PlanoAcao[]; aceite: AceiteVigente | null }
+        | undefined;
+      if (!payload?.relatorio) {
+        toast.error('Não foi possível ler o registro deste documento.');
+        return;
+      }
+      const meta = {
+        numeroDoc: item.numero_doc,
+        emitidoEm: new Date(item.emitido_em),
+        hash: item.hash_verificacao,
+        emitidoPorNome: item.emitido_por_nome,
+        emitidoPorEmail: registro?.emitido_por_email ?? null,
+        aceite: payload.aceite ?? null,
+        planos: payload.planos ?? [],
+      };
+      if (item.tipo === 'jss') generateJssReportPDF(payload.relatorio, meta);
+      else generatePsychosocialReportPDF(payload.relatorio, meta);
     } catch (err: any) {
-      toast.error(err?.message || 'Erro ao gerar relatório.');
-    } finally {
-      setGerandoJss(false);
+      toast.error(err?.message || 'Erro ao reemitir o documento.');
     }
   };
 
@@ -1005,7 +1063,7 @@ export const RhSaudeMental: React.FC = () => {
             )}
 
             <button
-              onClick={handleGerarPsico}
+              onClick={() => emitirRelatorio('who5')}
               disabled={gerandoPsico}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
             >
@@ -1068,7 +1126,7 @@ export const RhSaudeMental: React.FC = () => {
             )}
 
             <button
-              onClick={handleGerarJss}
+              onClick={() => emitirRelatorio('jss')}
               disabled={gerandoJss}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
             >
@@ -1086,6 +1144,74 @@ export const RhSaudeMental: React.FC = () => {
             {jss?.k_min ?? MIN_COORTE} respostas não aparecem, para proteger quem respondeu (LGPD).
           </span>
         </div>
+      </div>
+
+      {/* ── Documentos emitidos ──
+          O rastro é o que dá valor probatório: prova QUANDO a empresa tomou
+          ciência de cada resultado, e permite reemitir o mesmo conteúdo anos
+          depois em vez de recalcular um novo. */}
+      <div className="bg-white rounded-xl shadow p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <FileDown className="w-5 h-5 text-[#7d4a3c]" />
+          <h2 className="font-semibold text-gray-800">Documentos emitidos</h2>
+          <span className="text-xs text-gray-400">{emitidos.length}</span>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          Cada emissão fica registrada com número, data, quem emitiu e um selo do conteúdo.
+          Reemitir daqui reproduz exatamente o documento arquivado — não recalcula o período.
+        </p>
+
+        {emitidos.length === 0 ? (
+          <div className="bg-gray-50 rounded-lg p-6 text-center text-sm text-gray-400">
+            Nenhum relatório emitido ainda.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-gray-400 border-b border-gray-100">
+                  <th className="text-left font-medium py-2">Documento</th>
+                  <th className="text-left font-medium py-2 hidden sm:table-cell">Período</th>
+                  <th className="text-left font-medium py-2 hidden lg:table-cell">Emitido por</th>
+                  <th className="text-left font-medium py-2 hidden md:table-cell">Selo</th>
+                  <th className="text-right font-medium py-2">Reemitir</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {emitidos.map(d => (
+                  <tr key={d.id} className="hover:bg-gray-50 transition">
+                    <td className="py-2">
+                      <span className="text-gray-800">{d.numero_doc}</span>
+                      <span className="ml-2 text-xs text-gray-400">
+                        {d.tipo === 'jss' ? 'Carga de trabalho' : 'Bem-estar'}
+                      </span>
+                      <span className="block text-[11px] text-gray-400">
+                        {fmtDate(d.emitido_em.slice(0, 10))}
+                      </span>
+                    </td>
+                    <td className="py-2 text-xs text-gray-500 hidden sm:table-cell">
+                      {fmtDate(d.periodo_inicio)} a {fmtDate(d.periodo_fim)}
+                    </td>
+                    <td className="py-2 text-xs text-gray-500 hidden lg:table-cell">
+                      {d.emitido_por_nome ?? '—'}
+                    </td>
+                    <td className="py-2 text-[11px] text-gray-400 hidden md:table-cell font-mono">
+                      {formatarHash(d.hash_verificacao)}
+                    </td>
+                    <td className="py-2 text-right">
+                      <button
+                        onClick={() => reemitir(d)}
+                        className="inline-flex items-center gap-1 text-xs text-[#7d4a3c] hover:underline"
+                      >
+                        <FileDown className="w-3.5 h-3.5" /> PDF
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="flex items-start gap-2 text-xs text-gray-400 px-1">

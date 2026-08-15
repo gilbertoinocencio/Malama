@@ -39,7 +39,7 @@ test.describe('Portal do RH — jornada guiada', () => {
 
   test('conduz dashboard, cadência e conversa com a liderança', async ({ page }) => {
     await expect(page.getByText('Seu próximo passo')).toBeVisible();
-    await expect(page.getByText('Preparação do painel')).toBeVisible();
+    await expect(page.getByText(/Preparação do painel|Tudo pronto para o ciclo/)).toBeVisible();
 
     await page.goto(`${appUrl}/rh/saude-mental`);
     await expect(page.getByRole('heading', { name: 'Ciclo de cuidado da empresa' })).toBeVisible();
@@ -64,5 +64,29 @@ test.describe('Portal do RH — jornada guiada', () => {
     await expect(page.getByText('JSS trimestral')).toBeVisible();
     const larguraOk = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
     expect(larguraOk).toBeTruthy();
+  });
+
+  test('mostra prazo, alerta e verificação dos marcos de liderança', async ({ page }) => {
+    await page.goto(`${appUrl}/rh/dashboard`);
+    await expect(page.getByText(/marco\(s\) de liderança pedem acompanhamento/i)).toBeVisible();
+
+    await page.goto(`${appUrl}/rh/plano-acao?visao=lideranca`);
+    await expect(page.getByText(/Depois de verificar o combinado/i)).toBeVisible();
+    const cartao = page.getByRole('button').filter({ hasText: /RH:/ }).first();
+    await expect(cartao).toBeVisible();
+    await cartao.click();
+    await expect(page.getByText(/Prazo combinado com a liderança/i)).toBeVisible();
+
+    const verificar = page.getByRole('button', { name: /Verificar combinado/i });
+    if (await verificar.isVisible()) {
+      await verificar.click();
+      await expect(page.getByRole('heading', { name: /Verificar combinado/i })).toBeVisible();
+      await expect(page.getByText('Combinado realizado')).toBeVisible();
+      await expect(page.getByText('Realizado em parte')).toBeVisible();
+      await expect(page.getByLabel('Registro da conversa')).toBeVisible();
+      await page.getByRole('button', { name: 'Cancelar' }).click();
+    } else {
+      await expect(page.getByText(/pronto para avançar/i)).toBeVisible();
+    }
   });
 });

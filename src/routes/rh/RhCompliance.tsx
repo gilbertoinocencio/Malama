@@ -28,6 +28,8 @@ import {
 } from '../../lib/certificadoDisponibilizacao';
 import { DossieNr1Card } from '../../components/rh/DossieNr1Card';
 import { useRhJornada } from '../../contexts/RhJornadaContext';
+import { useRhAccess } from '../../contexts/RhAccessContext';
+import { hashDocumento } from '../../lib/hashDocumento';
 
 // Serviços disponibilizados a todo colaborador com assento, por modo
 // contratado. O certificado é documento de evidência — precisa listar o
@@ -44,16 +46,21 @@ const SERVICOS_METABOLICO = [
   'Monitoramento metabólico e de composição corporal',
 ];
 
+/**
+ * Serviços a declarar no certificado — só os efetivamente contratados.
+ *
+ * Havia um fallback para a lista metabólica quando nenhum modo estava
+ * marcado. O certificado começa com "A Malama declara, para os devidos
+ * fins", então esse palpite virava declaração de serviço que a empresa podia
+ * não ter contratado. Lista vazia agora BLOQUEIA a emissão: a migração
+ * 20260727 já nasceu com modo_metabolico = true para todo contrato antigo,
+ * então cair aqui significa dado inconsistente, não contrato legado.
+ */
 function servicosDoContrato(empresa: RhEmpresa | null): string[] {
-  const servicos = [
+  return [
     ...(empresa?.modo_mental ? SERVICOS_MENTAL : []),
     ...(empresa?.modo_metabolico ? SERVICOS_METABOLICO : []),
   ];
-  // Empresa em contrato antigo (antes dos modos): mantém a lista metabólica
-  // + rastreio, que era o escopo entregue na época.
-  return servicos.length > 0
-    ? servicos
-    : [...SERVICOS_METABOLICO, 'Rastreio periódico de bem-estar (WHO-5)'];
 }
 
 const MIN_COORTE = 5; // piso de privacidade: oculta % abaixo de 5 colaboradores com dados
@@ -63,6 +70,7 @@ const fmtDateTime = (d: string) =>
 
 export const RhCompliance: React.FC = () => {
   const { dados } = useRhJornada();
+  const { acesso } = useRhAccess();
   const [metricas, setMetricas] = useState<RhComplianceMetricas | null>(null);
   const [empresa, setEmpresa] = useState<RhEmpresa | null>(null);
   const [docs, setDocs] = useState<ComplianceDoc[]>([]);
@@ -101,19 +109,29 @@ export const RhCompliance: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  const servicos = servicosDoContrato(empresa);
+  const podeEmitirCert = servicos.length > 0;
+
   const certMeta = (): CertificadoMeta => {
     const emitidoEm = new Date();
     const ymd = `${emitidoEm.getFullYear()}${String(emitidoEm.getMonth() + 1).padStart(2, '0')}${String(emitidoEm.getDate()).padStart(2, '0')}`;
     return {
       empresaNome: metricas?.nome ?? '',
       empresaCnpj: metricas?.cnpj ?? null,
-      servicos: servicosDoContrato(empresa),
+      servicos,
       emitidoEm,
       numeroBase: `MAL-CERT-${ymd}`,
+      emitidoPorNome: acesso.nome,
+      emitidoPorEmail: acesso.email,
     };
   };
 
+  const bloqueioServicos = () => {
+    toast.error('O contrato desta empresa não tem serviços registrados. Fale com a Malama antes de emitir — o certificado declararia algo não contratado.');
+  };
+
   const handleCertIndividual = (colab: CertificadoColaborador) => {
+    if (!podeEmitirCert) { bloqueioServicos(); return; }
     try {
       generateCertificadoPDF(colab, certMeta());
     } catch (err: any) {
@@ -122,11 +140,13 @@ export const RhCompliance: React.FC = () => {
   };
 
   const handleCertLote = () => {
-    const emitiveis = colabsCert.filter(c => c.status !== 'removido');
-    if (emitiveis.length === 0) { toast.error('Nenhum colaborador para emitir.'); return; }
+    if (!podeEmitirCert) { bloqueioServicos(); return; }
+    // Ex-colaborador ENTRA no lote: é dele a alegação que o certificado
+    // costuma responder. O documento fecha o período em vez de omiti-lo.
+    if (colabsCert.length === 0) { toast.error('Nenhum colaborador para emitir.'); return; }
     try {
-      generateCertificadosLotePDF(emitiveis, certMeta());
-      toast.success(`${emitiveis.length} certificado(s) gerado(s).`);
+      generateCertificadosLotePDF(colabsCert, certMeta());
+      toast.success(`${colabsCert.length} certificado(s) gerado(s).`);
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao gerar certificados.');
     }
@@ -146,19 +166,9 @@ export const RhCompliance: React.FC = () => {
       const numero = gerarNumero();
       const emitidoEm = new Date();
       const hoje = emitidoEm.toISOString().slice(0, 10);
+      const aceite = await rhService.getAceiteVigente();
 
-      generateCompliancePDF({
-        empresaNome: metricas.nome,
-        empresaCnpj: metricas.cnpj,
-        dataInicio: metricas.data_inicio,
-        colaboradoresElegiveis: metricas.colaboradores_elegiveis,
-        colaboradoresAtivos: metricas.colaboradores_ativos,
-        consultasRealizadas: metricas.consultas_realizadas,
-        numeroDoc: numero,
-        emitidoEm,
-      });
-
-      await rhService.saveComplianceDoc({
+      const snapshot = {
         empresa_id: metricas.empresa_id,
         periodo_inicio: metricas.data_inicio,
         periodo_fim: hoje,
@@ -166,6 +176,31 @@ export const RhCompliance: React.FC = () => {
         colaboradores_ativos: metricas.colaboradores_ativos,
         consultas_realizadas: metricas.consultas_realizadas,
         numero_doc: numero,
+      };
+      const hash = await hashDocumento(snapshot);
+
+      // Registra ANTES de gerar: documento de evidência sem registro é o que
+      // a outra parte ataca como produzido depois do fato.
+      await rhService.saveComplianceDoc({
+        ...snapshot,
+        emitido_por_nome: acesso.nome,
+        hash_verificacao: hash,
+      });
+
+      generateCompliancePDF({
+        empresaNome: metricas.nome,
+        empresaCnpj: metricas.cnpj,
+        dataInicio: metricas.data_inicio,
+        periodoFim: hoje,
+        colaboradoresElegiveis: metricas.colaboradores_elegiveis,
+        colaboradoresAtivos: metricas.colaboradores_ativos,
+        consultasRealizadas: metricas.consultas_realizadas,
+        numeroDoc: numero,
+        emitidoEm,
+        hash,
+        emitidoPorNome: acesso.nome,
+        emitidoPorEmail: acesso.email,
+        aceite,
       });
       toast.success('Documento gerado e registrado.');
       load();
@@ -176,17 +211,25 @@ export const RhCompliance: React.FC = () => {
     }
   };
 
+  /** Reemissão a partir do registro — nunca dos números de hoje. */
   const rebaixar = (d: ComplianceDoc) => {
     if (!metricas) return;
     generateCompliancePDF({
       empresaNome: metricas.nome,
       empresaCnpj: metricas.cnpj,
       dataInicio: d.periodo_inicio,
+      periodoFim: d.periodo_fim ?? d.emitido_em.slice(0, 10),
       colaboradoresElegiveis: d.colaboradores_elegiveis,
       colaboradoresAtivos: d.colaboradores_ativos,
       consultasRealizadas: d.consultas_realizadas,
       numeroDoc: d.numero_doc,
       emitidoEm: new Date(d.emitido_em),
+      // Documentos anteriores à migração 20260841 não têm selo nem emissor
+      // gravados: o PDF diz isso em vez de inventar.
+      hash: d.hash_verificacao ?? 'NAO REGISTRADO',
+      emitidoPorNome: d.emitido_por_nome,
+      emitidoPorEmail: null,
+      aceite: null,
     });
   };
 
@@ -317,7 +360,7 @@ export const RhCompliance: React.FC = () => {
           </div>
           <button
             onClick={handleCertLote}
-            disabled={colabsCert.length === 0}
+            disabled={colabsCert.length === 0 || !podeEmitirCert}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-40"
           >
             <FileDown className="w-4 h-4" />
@@ -325,9 +368,22 @@ export const RhCompliance: React.FC = () => {
           </button>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          Comprovam que cada colaborador teve o benefício <strong>disponível</strong> desde a
-          ativação — evidência de diligência da empresa. Não contêm dados de uso nem de saúde.
+          Comprovam que cada colaborador teve o benefício <strong>disponível</strong> em um período
+          — evidência de diligência da empresa. Não contêm dados de uso nem de saúde. Quem já saiu
+          continua na lista de propósito: é a alegação de ex-colaborador que este documento costuma
+          responder, e nesse caso o certificado declara um período encerrado.
         </p>
+
+        {!podeEmitirCert && (
+          <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+            <span>
+              A emissão está bloqueada: o contrato desta empresa não tem serviços registrados. O
+              certificado é uma declaração formal, e sem essa informação ele listaria serviços que
+              a empresa pode não ter contratado. Fale com a Malama para regularizar o cadastro.
+            </span>
+          </div>
+        )}
 
         {colabsCert.length === 0 ? (
           <div className="bg-gray-50 rounded-lg p-6 text-center text-sm text-gray-400">
@@ -340,14 +396,21 @@ export const RhCompliance: React.FC = () => {
                 <tr className="text-xs text-gray-400 border-b border-gray-100">
                   <th className="text-left font-medium py-2">Colaborador</th>
                   <th className="text-left font-medium py-2 hidden sm:table-cell">Setor</th>
-                  <th className="text-left font-medium py-2 hidden md:table-cell">Desde</th>
+                  <th className="text-left font-medium py-2 hidden md:table-cell">Período coberto</th>
                   <th className="text-right font-medium py-2">Certificado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {colabsCert.map(c => (
                   <tr key={c.colaborador_id} className="hover:bg-gray-50 transition">
-                    <td className="py-2 text-gray-700">{c.nome}</td>
+                    <td className="py-2 text-gray-700">
+                      {c.nome}
+                      {c.data_saida && (
+                        <span className="ml-2 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
+                          vínculo encerrado
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2 text-gray-500 hidden sm:table-cell">
                       {c.setor || '—'}{c.funcao ? ` · ${c.funcao}` : ''}
                     </td>
@@ -355,11 +418,15 @@ export const RhCompliance: React.FC = () => {
                       {c.data_ativacao || c.data_adicao
                         ? new Date(c.data_ativacao ?? c.data_adicao).toLocaleDateString('pt-BR')
                         : '—'}
+                      {c.data_saida
+                        ? ` a ${new Date(c.data_saida).toLocaleDateString('pt-BR')}`
+                        : ' até hoje'}
                     </td>
                     <td className="py-2 text-right">
                       <button
                         onClick={() => handleCertIndividual(c)}
-                        className="inline-flex items-center gap-1 text-xs text-[#7d4a3c] hover:underline"
+                        disabled={!podeEmitirCert}
+                        className="inline-flex items-center gap-1 text-xs text-[#7d4a3c] hover:underline disabled:opacity-40 disabled:no-underline"
                       >
                         <Download className="w-3.5 h-3.5" /> PDF
                       </button>
@@ -384,31 +451,39 @@ export const RhCompliance: React.FC = () => {
       <div className="bg-white rounded-xl shadow p-5">
         <div className="flex items-center gap-2 mb-2">
           <ShieldCheck className="w-5 h-5 text-[#7d4a3c]" />
-          <h2 className="font-semibold text-gray-800">Selo Malama — Compliance NR-1</h2>
+          <h2 className="font-semibold text-gray-800">Relatório de evidência do programa</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
           Gere um documento com os indicadores atuais do programa, como evidência documental
-          complementar para o PGR da sua empresa.
+          complementar para o PGR da sua empresa. Não é certificado de conformidade — a
+          responsabilidade técnica pela NR-1 continua sendo da empresa.
         </p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-3">
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-gray-800">{metricas.colaboradores_elegiveis}</p>
-            <p className="text-xs text-gray-500 mt-1">Elegíveis</p>
+            <p className="text-xs text-gray-500 mt-1">Com benefício disponível</p>
           </div>
+          {/* "Ativado" e não "ativo": o número conta quem entrou ao menos uma
+              vez, e chamar isso de adesão afirmaria uso que não foi medido. */}
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-green-600">{metricas.colaboradores_ativos}</p>
-            <p className="text-xs text-gray-500 mt-1">Ativos</p>
+            <p className="text-xs text-gray-500 mt-1">Acesso ativado</p>
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-[#7d4a3c]">{taxa}%</p>
-            <p className="text-xs text-gray-500 mt-1">Adesão</p>
+            <p className="text-xs text-gray-500 mt-1">Taxa de ativação</p>
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-gray-800">{metricas.consultas_realizadas}</p>
-            <p className="text-xs text-gray-500 mt-1">Consultas</p>
+            <p className="text-xs text-gray-500 mt-1">Consultas concluídas</p>
           </div>
         </div>
+        <p className="mb-5 text-xs leading-relaxed text-gray-400">
+          Acesso ativado significa que a pessoa entrou ao menos uma vez na plataforma — não mede
+          frequência de uso nem resultado clínico. As contagens são de pessoas distintas: quem foi
+          desligado e readmitido conta uma vez só.
+        </p>
 
         <button
           onClick={handleGerar}
