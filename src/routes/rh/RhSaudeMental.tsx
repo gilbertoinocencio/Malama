@@ -697,7 +697,7 @@ export const RhSaudeMental: React.FC = () => {
       const ymd = `${emitidoEm.getFullYear()}${String(emitidoEm.getMonth() + 1).padStart(2, '0')}${String(emitidoEm.getDate()).padStart(2, '0')}`;
       const numero = `MAL-JSS-${ymd}-${PERIODO_LABEL[periodo].slice(0, 3).toUpperCase()}`;
       generateJssReportPDF(jss, { numeroDoc: numero, emitidoEm, planos });
-      toast.success('Relatório de exposição ocupacional gerado.');
+      toast.success('Relatório de carga de trabalho gerado.');
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao gerar relatório.');
     } finally {
@@ -822,7 +822,7 @@ export const RhSaudeMental: React.FC = () => {
                         <StatusBadge status={c.status} />
                         {c.eixo === 'exposicao' && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-600">
-                            Exposição ocupacional
+                            Carga de trabalho
                           </span>
                         )}
                       </div>
@@ -881,7 +881,7 @@ export const RhSaudeMental: React.FC = () => {
           <div className="mt-4 flex items-start gap-2 text-xs text-gray-500 bg-amber-50 border border-amber-100 rounded-lg p-3">
             <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-amber-500" />
             <span>
-              O instrumento de <strong>exposição ocupacional</strong> (que mede demanda, controle e
+              O instrumento de <strong>carga de trabalho</strong> (que mede cobrança, autonomia e
               apoio no trabalho) ainda não está liberado. Sem ele é possível medir como o
               colaborador está, mas não distinguir o que vem da natureza da ocupação do que vem de
               fatores externos.
@@ -1029,11 +1029,11 @@ export const RhSaudeMental: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Exposição ocupacional (resultado — dado de saúde) ── */}
+      {/* ── Carga de trabalho / exposição ocupacional (resultado) ── */}
       <div id="resultado-jss" className="scroll-mt-6 bg-white rounded-xl shadow p-5">
         <div className="flex items-center gap-2 mb-1">
           <Activity className="w-5 h-5 text-[#7d4a3c]" />
-          <h2 className="font-semibold text-gray-800">Exposição ocupacional (JSS)</h2>
+          <h2 className="font-semibold text-gray-800">Carga de trabalho (JSS)</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
           O que no trabalho pesa sobre as pessoas: o quanto se cobra, a liberdade para decidir e

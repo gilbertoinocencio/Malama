@@ -72,10 +72,19 @@ export const JSS_PRIORIDADE: Record<JssPrioridade, {
 // ── Dicionário dos indicadores gerais ──────────────────
 // O painel é lido por RH e SST, não por quem conhece a JSS. Cada número
 // precisa dizer o que mede, para que lado ele piora e de onde ele vem.
+//
+// As CHAVES seguem o modelo demanda-controle-apoio (é o que vem do banco e
+// o que o SESMT rastreia até a escala original); os RÓTULOS, não. Ninguém
+// no RH lê "Controle 37" e entende "pouca autonomia" — pior, lê como se
+// maior fosse pior. Daí o vocabulário de tela: carga, cobrança, autonomia
+// e apoio. O termo técnico sobrevive só onde é exigido: metodologia do
+// relatório do PGR e a análise Karasek/Theorell.
 export type JssMetricaKey = 'indice' | 'demanda' | 'controle' | 'apoio';
 
 export const JSS_METRICAS: Record<JssMetricaKey, {
   label: string;
+  /** Versão curta, para cabeçalho de tabela e eixo de gráfico. */
+  labelCurto: string;
   /** Onde o número piora: 'adverso' = maior é pior; 'protetor' = maior é melhor. */
   sentido: 'adverso' | 'protetor';
   sentidoLabel: string;
@@ -87,7 +96,8 @@ export const JSS_METRICAS: Record<JssMetricaKey, {
   composicao: string;
 }> = {
   indice: {
-    label: 'Índice de exposição',
+    label: 'Carga de trabalho',
+    labelCurto: 'Carga',
     sentido: 'adverso',
     sentidoLabel: 'Quanto maior, pior',
     resumo: 'Junta os três números abaixo em um só, para você saber por onde começar.',
@@ -95,7 +105,8 @@ export const JSS_METRICAS: Record<JssMetricaKey, {
     composicao: 'É a média de três coisas: a cobrança, a falta de autonomia e a falta de apoio. Cobrança alta faz o número subir; autonomia e apoio altos fazem ele descer.',
   },
   demanda: {
-    label: 'Demanda',
+    label: 'Cobrança',
+    labelCurto: 'Cobrança',
     sentido: 'adverso',
     sentidoLabel: 'Quanto maior, mais cobrança',
     resumo: 'O quanto o trabalho cobra: pressa, quantidade de tarefas e prazo.',
@@ -103,7 +114,8 @@ export const JSS_METRICAS: Record<JssMetricaKey, {
     composicao: '5 perguntas: se precisa trabalhar rápido demais, se produz muito em pouco tempo, se sente que o trabalho exige demais, se o tempo dá para as tarefas e se recebe ordens que se contradizem.',
   },
   controle: {
-    label: 'Controle',
+    label: 'Autonomia',
+    labelCurto: 'Autonomia',
     sentido: 'protetor',
     sentidoLabel: 'Quanto maior, melhor',
     resumo: 'O quanto a pessoa decide sobre o próprio trabalho e usa o que sabe fazer.',
@@ -112,6 +124,7 @@ export const JSS_METRICAS: Record<JssMetricaKey, {
   },
   apoio: {
     label: 'Apoio',
+    labelCurto: 'Apoio',
     sentido: 'protetor',
     sentidoLabel: 'Quanto maior, melhor',
     resumo: 'O quanto os colegas e a chefia seguram a barra de quem está sob pressão.',

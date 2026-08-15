@@ -140,8 +140,8 @@ export const Who5Indicadores: React.FC<{
           São 5 frases sobre <strong>as últimas duas semanas</strong> — bom humor,
           tranquilidade, energia, sono e interesse pelas coisas do dia a dia. A pessoa marca
           com que frequência se sentiu assim. Mostra <strong>como a pessoa está</strong>, e
-          não o que no trabalho pesa sobre ela — isso é o outro questionário, o de exposição
-          no trabalho. O nome técnico dele é WHO-5, da Organização Mundial da Saúde.
+          não o que no trabalho pesa sobre ela — isso é o outro questionário, o de carga de
+          trabalho. O nome técnico dele é WHO-5, da Organização Mundial da Saúde.
         </p>
       </BlocoExplicativo>
 

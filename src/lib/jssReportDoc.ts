@@ -35,7 +35,11 @@ const METODOLOGIA =
   'clínico. O índice de exposição de 0 a 100 é um resumo visual derivado que combina alta demanda ' +
   'com baixo controle e baixo apoio, e não substitui a leitura das dimensões. A JSS mede ' +
   'EXPOSIÇÃO OCUPACIONAL — o que no trabalho expõe a risco — e não é, isoladamente, medida de ' +
-  'bem-estar nem constitui diagnóstico clínico.';
+  'bem-estar nem constitui diagnóstico clínico. EQUIVALÊNCIA DE TERMOS: para leitura por gestores, ' +
+  'este documento nomeia as dimensões da escala em linguagem corrente — "cobrança" corresponde à ' +
+  'demanda psicológica, "autonomia" ao controle sobre o trabalho, "apoio" ao apoio social e ' +
+  '"carga de trabalho" ao índice de exposição ocupacional. Os construtos e o cálculo permanecem ' +
+  'os do instrumento original.';
 
 const PRIVACIDADE =
   'Todos os dados são agregados e anonimizados. Nenhum resultado individual é acessível à ' +
@@ -104,13 +108,17 @@ export function generateJssReportPDF(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...PETROL);
-  doc.text('RELATÓRIO DE EXPOSIÇÃO OCUPACIONAL — SUBSÍDIO AO PGR', M, 25);
+  doc.text('RELATÓRIO DE CARGA DE TRABALHO — SUBSÍDIO AO PGR', M, 25);
 
   // ── Título ──
   doc.setTextColor(...MAIN);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
-  const titulo = doc.splitTextToSize('Relatório Agregado de Exposição Ocupacional (JSS)', pageW - M * 2);
+  // O termo técnico fica no subtítulo do título: o RH lê "carga de trabalho",
+  // o auditor rastreia até a exposição ocupacional sem precisar da metodologia.
+  const titulo = doc.splitTextToSize(
+    'Relatório Agregado de Carga de Trabalho (JSS — exposição ocupacional)', pageW - M * 2,
+  );
   doc.text(titulo, M, 48);
   let y = 48 + titulo.length * 7 + 6;
 
@@ -150,10 +158,10 @@ export function generateJssReportPDF(
   } else {
     const linhas: [string, string][] = [
       ['Respondentes no período', String(geral.n_respondentes)],
-      ['Índice médio de exposição (0–100)', String(geral.indice_medio)],
-      ['Demanda psicológica média (0–100)', String(geral.demanda_medio)],
-      ['Controle médio sobre o trabalho (0–100)', String(geral.controle_medio)],
-      ['Apoio social médio (0–100)', String(geral.apoio_medio)],
+      ['Carga de trabalho — média (0–100)', String(geral.indice_medio)],
+      ['Cobrança — média (0–100)', String(geral.demanda_medio)],
+      ['Autonomia — média (0–100)', String(geral.controle_medio)],
+      ['Apoio — média (0–100)', String(geral.apoio_medio)],
     ];
     doc.setFillColor(242, 235, 230);
     doc.roundedRect(M - 2, y, pageW - M * 2 + 4, linhas.length * 9 + 6, 3, 3, 'F');
@@ -212,7 +220,7 @@ export function generateJssReportPDF(
     doc.setTextColor(...MUTED);
     const referencia = doc.splitTextToSize(
       'A comparação é feita com o meio da própria empresa neste período (metade dos respondentes '
-      + `acima, metade abaixo): demanda ${rel.cortes.demanda}; controle ${rel.cortes.controle}; `
+      + `acima, metade abaixo): cobrança ${rel.cortes.demanda}; autonomia ${rel.cortes.controle}; `
       + `apoio ${rel.cortes.apoio}. Apoio baixo aumenta a prioridade do setor, mas não confirma `
       + 'violência ou assédio.',
       pageW - M * 2,
@@ -247,9 +255,9 @@ export function generateJssReportPDF(
     doc.setTextColor(...MUTED);
     doc.text('Setor', M, y);
     doc.text('Resp.', pageW - M - 96, y, { align: 'right' });
-    doc.text('Índice', pageW - M - 72, y, { align: 'right' });
-    doc.text('Demanda', pageW - M - 48, y, { align: 'right' });
-    doc.text('Controle', pageW - M - 24, y, { align: 'right' });
+    doc.text('Carga', pageW - M - 72, y, { align: 'right' });
+    doc.text('Cobrança', pageW - M - 48, y, { align: 'right' });
+    doc.text('Autonomia', pageW - M - 24, y, { align: 'right' });
     doc.text('Apoio', pageW - M, y, { align: 'right' });
     y += 3;
     doc.setDrawColor(220, 220, 220);
@@ -377,7 +385,7 @@ export function generateJssReportPDF(
         'Observação: todas as medidas registradas são de nível individual. Na hierarquia de '
         + 'controle da NR-1, o cuidado individual é a última camada e não substitui a atuação '
         + 'sobre a fonte ou a organização do trabalho — e é justamente a fonte que este '
-        + 'relatório de exposição ocupacional aponta.',
+        + 'relatório de carga de trabalho aponta.',
         pageW - M * 2,
       );
       doc.text(aviso, M, y);

@@ -246,15 +246,18 @@ function pontosJss(item: InstrumentItem, resposta: number): number {
   return item.alinhamento === 'positivo' ? 5 - resposta : resposta;
 }
 
+// O nome fica em linguagem corrente porque quem lê é o colaborador que vai
+// responder e o RH — o nome técnico da escala segue em `fonte`. Precisa
+// bater com psychosocial_instruments.nome no banco (mesma redação).
 export const JSS: InstrumentDef = {
   code: 'jss',
-  nome: 'Job Stress Scale (demanda-controle-apoio)',
+  nome: 'Carga de trabalho (JSS)',
   eixo: 'exposicao',
   cadenciaMeses: 3,
   fonte: 'Alves MGM et al. Rev Saúde Pública 2004;38(2):164-71. Adaptação cedida por Töres Theorell.',
   scoreSignificado:
-    'Índice de exposição ocupacional. Maior = mais exposição a risco psicossocial '
-    + '(alta demanda combinada com baixo controle e baixo apoio).',
+    'Carga de trabalho (índice de exposição ocupacional). Maior = mais exposição a risco '
+    + 'psicossocial: muita cobrança combinada com pouca autonomia e pouco apoio.',
   blocks: [
     { options: JSS_OPCOES_FREQUENCIA, escalaVisual: 'magnitude', items: JSS_ITENS_FREQUENCIA },
     { options: JSS_OPCOES_CONCORDANCIA, escalaVisual: 'valencia', items: JSS_ITENS_CONCORDANCIA },

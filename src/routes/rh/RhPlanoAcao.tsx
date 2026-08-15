@@ -29,8 +29,8 @@ const fmtDate = (d: string | null) =>
   d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
 
 const FATORES: { v: PlanoFator; label: string }[] = [
-  { v: 'demanda',        label: 'Demanda / ritmo de trabalho' },
-  { v: 'controle',       label: 'Autonomia e controle sobre o trabalho' },
+  { v: 'demanda',        label: 'Cobrança / ritmo de trabalho' },
+  { v: 'controle',       label: 'Autonomia para decidir o trabalho' },
   { v: 'apoio',          label: 'Apoio social e liderança' },
   { v: 'assedio',        label: 'Assédio e violência' },
   { v: 'jornada',        label: 'Jornada e escalas' },
@@ -129,7 +129,7 @@ const NovoItem: React.FC<{
         <textarea
           required value={risco} onChange={e => setRisco(e.target.value)} rows={2}
           className={inputCls}
-          placeholder="Ex.: Demanda acima do controle no setor, com índice de exposição 78 e bem-estar 39."
+          placeholder="Ex.: Cobrança alta com pouca autonomia no setor, carga de trabalho 78 e bem-estar 39."
         />
       </div>
 

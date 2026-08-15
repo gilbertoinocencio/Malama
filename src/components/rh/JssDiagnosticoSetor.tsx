@@ -107,9 +107,10 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
           <div className="flex min-w-0 items-start gap-3">
             <Grid3x3 className="mt-0.5 h-5 w-5 shrink-0 text-[#8B4A3A]" />
             <div>
-              <p className="font-medium text-gray-900">Ver análise técnica Demanda × Controle</p>
+              <p className="font-medium text-gray-900">Ver análise técnica Cobrança × Autonomia</p>
               <p className="mt-0.5 text-sm text-gray-500">
-                Quadrantes do modelo Karasek/Theorell, preservados para consulta técnica e relatório do PGR.
+                Quadrantes do modelo demanda-controle (Karasek/Theorell) — aqui a demanda aparece como
+                cobrança e o controle como autonomia. Preservado para consulta técnica e relatório do PGR.
               </p>
             </div>
           </div>
@@ -149,11 +150,11 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
                 <ReferenceLine y={cortes.demanda} stroke="#b8b5ae" />
                 <XAxis type="number" dataKey="x" domain={[0, 100]} tickCount={6}
                   tick={{ fontSize: 10, fill: '#898781' }} tickLine={false}
-                  label={{ value: 'Controle / autonomia →', position: 'insideBottom', offset: -20,
+                  label={{ value: 'Autonomia →', position: 'insideBottom', offset: -20,
                     style: { fontSize: 11, fill: '#77736b' } }} />
                 <YAxis type="number" dataKey="y" domain={[0, 100]} tickCount={6} width={46}
                   tick={{ fontSize: 10, fill: '#898781' }} tickLine={false}
-                  label={{ value: 'Demanda →', angle: -90, position: 'insideLeft',
+                  label={{ value: 'Cobrança →', angle: -90, position: 'insideLeft',
                     style: { fontSize: 11, fill: '#77736b', textAnchor: 'middle' } }} />
                 <Tooltip content={<TooltipJss />} cursor={false} />
                 <Scatter data={pontos} shape={<PontoSetor />} isAnimationActive={false}>
@@ -201,7 +202,7 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
 
             <p className="text-[11px] leading-relaxed text-gray-500">
               As linhas que cortam o gráfico marcam o meio da sua empresa neste período:
-              demanda {cortes.demanda} · controle {cortes.controle} · apoio {cortes.apoio} —
+              cobrança {cortes.demanda} · autonomia {cortes.controle} · apoio {cortes.apoio} —
               metade dos setores fica de cada lado. Não são notas oficiais de aprovação: em
               qualquer empresa sempre vai ter setor dos dois lados da linha.
             </p>
@@ -244,12 +245,12 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
                 </div>
                 <div className="flex gap-3 text-xs text-gray-500">
                   <ValorSetor
-                    label="Demanda" descricao="O quanto o trabalho cobra: pressa, quantidade de tarefas e prazo. Quanto maior, pior."
+                    label="Cobrança" descricao="O quanto o trabalho cobra: pressa, quantidade de tarefas e prazo. Quanto maior, pior."
                     valor={setor.demanda} corte={cortes?.demanda}
                     adverso={cortes ? setor.demanda >= cortes.demanda : false}
                   />
                   <ValorSetor
-                    label="Controle" descricao="Liberdade para decidir como e o que fazer. Quanto maior, melhor."
+                    label="Autonomia" descricao="Liberdade para decidir como e o que fazer. Quanto maior, melhor."
                     valor={setor.controle} corte={cortes?.controle}
                     adverso={cortes ? setor.controle < cortes.controle : false}
                   />

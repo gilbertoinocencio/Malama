@@ -62,7 +62,7 @@ const HERO_CARD = [
 const CICLO_GRO = [
   {
     icon: Search, n: '01', titulo: 'Identificar',
-    exige: 'Levantar quais fatores psicossociais existem no trabalho — demanda, controle, apoio, jornada, assédio.',
+    exige: 'Levantar quais fatores psicossociais existem no trabalho — cobrança, autonomia, apoio, jornada, assédio.',
     entrega: 'Campanha com instrumento validado, aplicada por setor e por função.',
   },
   {
@@ -131,10 +131,10 @@ const INSTRUMENTOS = [
   {
     icon: Layers,
     nome: 'JSS',
-    subtitulo: 'Job Stress Scale — demanda, controle e apoio',
+    subtitulo: 'Job Stress Scale — cobrança, autonomia e apoio',
     cadencia: 'Trimestral',
     eixo: 'O que no trabalho expõe a risco',
-    corpo: 'Modelo Karasek/Theorell. Separa o que a organização do trabalho impõe (demanda), quanta autonomia a pessoa tem (controle) e quanto apoio recebe da chefia e dos colegas. É o eixo que aponta a causa, não o sintoma.',
+    corpo: 'Modelo Karasek/Theorell. Separa o que a organização do trabalho impõe (demanda, que o painel chama de cobrança), quanta autonomia a pessoa tem para decidir (controle) e quanto apoio recebe da chefia e dos colegas. É o eixo que aponta a causa, não o sintoma.',
     fonte: 'Alves MGM et al. Rev Saúde Pública 2004;38(2):164-71 — adaptação brasileira',
   },
 ];
@@ -149,22 +149,22 @@ const RIGOR_ITENS = [
 const QUADRANTES = [
   {
     id: 'estavel', cor: '#0ca30c', label: 'Estável',
-    pos: 'Bem-estar preservado · exposição baixa',
+    pos: 'Bem-estar preservado · carga de trabalho baixa',
     acao: 'Manter o acompanhamento periódico e a série histórica.',
   },
   {
     id: 'latente', cor: '#fab219', label: 'Risco latente',
-    pos: 'Bem-estar preservado · exposição alta',
+    pos: 'Bem-estar preservado · carga de trabalho alta',
     acao: 'O time ainda aguenta, mas a organização do trabalho já pressiona. Agir antes de adoecer.',
   },
   {
     id: 'externo', cor: '#ec835a', label: 'Fator extra-ocupacional',
-    pos: 'Bem-estar reduzido · exposição baixa',
-    acao: 'Sofrimento sem exposição alta no trabalho. Pede cuidado individual, não reestruturação de área.',
+    pos: 'Bem-estar reduzido · carga de trabalho baixa',
+    acao: 'Sofrimento sem carga alta no trabalho. Pede cuidado individual, não reestruturação de área.',
   },
   {
     id: 'ocupacional', cor: '#d03b3b', label: 'Risco ocupacional',
-    pos: 'Bem-estar reduzido · exposição alta',
+    pos: 'Bem-estar reduzido · carga de trabalho alta',
     acao: 'Onde a NR-1 cobra ação sobre a fonte. Palestra de bem-estar aqui não encerra o risco.',
   },
 ];
@@ -190,7 +190,7 @@ const PRIVACIDADE = [
 
 const DOCUMENTOS = [
   { icon: FileText, titulo: 'Relatório de Risco Psicossocial (WHO-5)', corpo: 'Bem-estar agregado por setor, no período que o RH escolher — mês, trimestre, semestre ou intervalo personalizado. Traz metodologia, fonte do instrumento e nota de privacidade.' },
-  { icon: Layers, titulo: 'Relatório de Exposição Ocupacional (JSS)', corpo: 'Demanda, controle e apoio por setor, com a matriz de risco e as medidas já lançadas no plano de ação. É o documento que aponta o fator, não só o sintoma.' },
+  { icon: Layers, titulo: 'Relatório de Carga de Trabalho (JSS)', corpo: 'Cobrança, autonomia e apoio por setor, com a matriz de risco e as medidas já lançadas no plano de ação. É o documento que aponta o fator, não só o sintoma.' },
   { icon: Award, titulo: 'Certificado de Disponibilização', corpo: 'Prova, colaborador a colaborador, que o cuidado esteve disponível e desde quando. Não contém nenhum dado de uso ou de saúde — só a diligência da empresa.' },
   { icon: ClipboardList, titulo: 'Plano de ação com evidência', corpo: 'Cada medida com fator, nível de controle, responsável, prazo e o arquivo que comprova a execução. Sem evidência, a medida não fecha.' },
 ];
@@ -493,7 +493,7 @@ export const EmpresasMentalPage: React.FC = () => {
               O problema é o trabalho <span className="text-Malama-petrol italic">ou é a vida?</span>
             </motion.h2>
             <motion.p variants={fadeInUp} className="text-Malama-muted mb-14 max-w-2xl leading-relaxed">
-              Cruzando exposição ocupacional (JSS) com bem-estar (WHO-5), cada setor cai num quadrante — e
+              Cruzando carga de trabalho (JSS) com bem-estar (WHO-5), cada setor cai num quadrante — e
               cada quadrante pede uma ação diferente. Confundir os dois é o erro mais caro do mercado:
               tratar organização de trabalho com palestra de mindfulness gasta orçamento e não move o risco.
             </motion.p>
@@ -547,7 +547,7 @@ export const EmpresasMentalPage: React.FC = () => {
                       })}
                     </div>
                     <p className="text-[10px] uppercase tracking-widest text-Malama-muted text-center mt-3">
-                      Exposição ocupacional (JSS) →
+                      Carga de trabalho (JSS) →
                     </p>
                   </div>
                 </div>
@@ -680,7 +680,7 @@ export const EmpresasMentalPage: React.FC = () => {
                   <div className="rounded-xl border border-Malama-border overflow-hidden mb-5 overflow-x-auto">
                     <div className="min-w-[520px]">
                     <div className="grid grid-cols-[1.4fr_0.8fr_0.8fr_1.2fr] gap-2 px-4 py-2.5 bg-Malama-bg text-[10px] uppercase tracking-wide text-Malama-muted">
-                      <span>Setor</span><span>Bem-estar</span><span>Exposição</span><span>Classificação</span>
+                      <span>Setor</span><span>Bem-estar</span><span>Carga</span><span>Classificação</span>
                     </div>
                     {[
                       { setor: 'Produção · turno B', who: '41', jss: 'Alta', q: 'Risco ocupacional', cor: '#d03b3b' },

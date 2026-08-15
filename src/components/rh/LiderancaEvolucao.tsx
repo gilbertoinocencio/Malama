@@ -56,10 +56,10 @@ function diagnostico(setor: JssSetor | undefined, cortes: JssCortes | null | und
   const sinalApoio = temSinal(['l', 'm', 'n', 'o', 'p', 'q']);
   const fortes: string[] = [];
   const mistos: string[] = [];
-  if (setor.demanda < cortes.demanda && !sinalDemanda) fortes.push('A carga de trabalho está mais equilibrada que o ponto de referência atual.');
+  if (setor.demanda < cortes.demanda && !sinalDemanda) fortes.push('A cobrança está mais equilibrada que o ponto de referência atual.');
   if (setor.controle >= cortes.controle && !sinalControle) fortes.push('A equipe demonstra boa autonomia para organizar o trabalho.');
   if (setor.apoio >= cortes.apoio && !sinalApoio) fortes.push('O apoio entre equipe e liderança aparece como ponto positivo.');
-  if (setor.demanda < cortes.demanda && sinalDemanda) mistos.push('Resultado misto na carga de trabalho: o geral é favorável, mas há situações específicas para investigar.');
+  if (setor.demanda < cortes.demanda && sinalDemanda) mistos.push('Resultado misto na cobrança: o geral é favorável, mas há situações específicas para investigar.');
   if (setor.controle >= cortes.controle && sinalControle) mistos.push('Resultado misto na autonomia: o geral é favorável, mas há situações específicas para investigar.');
   if (setor.apoio >= cortes.apoio && sinalApoio) mistos.push('Resultado misto no apoio: o geral é favorável, mas há situações específicas para investigar.');
   const insight = obterInsightJss(setor, cortes);

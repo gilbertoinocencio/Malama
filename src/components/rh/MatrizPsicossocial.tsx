@@ -20,6 +20,8 @@ import { Grid3x3, Info } from 'lucide-react';
 import type {
   RhMatrizPsicossocial, MatrizQuadrante, MatrizSetor,
 } from '../../services/empresaService';
+// Rótulos vêm do dicionário para a tabela nunca divergir dos cards da JSS.
+import { JSS_METRICAS, type JssMetricaKey } from '../../lib/jssInsights';
 
 // Paleta de status (fixa, nunca tematizada). Usada só onde há texto junto.
 const STATUS: Record<MatrizQuadrante, { cor: string; label: string; acao: string }> = {
@@ -100,6 +102,20 @@ function posicionarRotulos(pontos: Omit<Ponto, 'labelDy' | 'labelEsquerda'>[]): 
   });
 }
 
+/** Cabeçalho de coluna numérica da JSS — rótulo e explicação saem do
+ *  dicionário, para a tabela dizer a mesma coisa que os cards do painel. */
+const ColunaJss: React.FC<{ chave: JssMetricaKey; secundaria?: boolean }> = ({ chave, secundaria }) => {
+  const m = JSS_METRICAS[chave];
+  return (
+    <th
+      className={`text-right font-medium py-2${secundaria ? ' hidden sm:table-cell' : ''}`}
+      title={`${m.label}: ${m.resumo} Nota de 0 a 100 — ${m.sentidoLabel.toLowerCase()}.`}
+    >
+      {m.labelCurto}
+    </th>
+  );
+};
+
 const QuadranteChip: React.FC<{ q: MatrizQuadrante }> = ({ q }) => (
   <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
     <span
@@ -121,9 +137,9 @@ const TooltipMatriz: React.FC<any> = ({ active, payload }) => {
       {quadrante && <div className="mb-1.5"><QuadranteChip q={quadrante} /></div>}
       {exposicao && (
         <p className="text-gray-600">
-          Exposição <strong className="text-gray-800">{exposicao.indice}</strong>
+          Carga de trabalho <strong className="text-gray-800">{exposicao.indice}</strong>
           <span className="text-gray-400">
-            {' '}· demanda {exposicao.demanda} · controle {exposicao.controle} · apoio {exposicao.apoio}
+            {' '}· cobrança {exposicao.demanda} · autonomia {exposicao.controle} · apoio {exposicao.apoio}
           </span>
         </p>
       )}
@@ -263,7 +279,7 @@ export const MatrizPsicossocial: React.FC<{
                   tick={{ fontSize: 11, fill: MUTED }} tickLine={false}
                   axisLine={{ stroke: AXIS }}
                   label={{
-                    value: 'Exposição ocupacional →', position: 'insideBottom', offset: -16,
+                    value: 'Carga de trabalho →', position: 'insideBottom', offset: -16,
                     style: { fontSize: 11, fill: MUTED },
                   }}
                 />
@@ -309,22 +325,10 @@ export const MatrizPsicossocial: React.FC<{
               <thead>
                 <tr className="text-xs text-gray-400 border-b border-gray-100">
                   <th className="text-left font-medium py-2">Setor</th>
-                  <th className="text-right font-medium py-2"
-                    title="O quanto o trabalho pesa (0 a 100). Quanto maior, pior.">
-                    Exposição
-                  </th>
-                  <th className="text-right font-medium py-2 hidden sm:table-cell"
-                    title="Demanda: o quanto o trabalho cobra — pressa, quantidade e prazo. Quanto maior, pior.">
-                    Dem.
-                  </th>
-                  <th className="text-right font-medium py-2 hidden sm:table-cell"
-                    title="Controle: liberdade para decidir o próprio trabalho. Quanto maior, melhor.">
-                    Contr.
-                  </th>
-                  <th className="text-right font-medium py-2 hidden sm:table-cell"
-                    title="Apoio: apoio dos colegas e da chefia. Quanto maior, melhor.">
-                    Apoio
-                  </th>
+                  <ColunaJss chave="indice" />
+                  <ColunaJss chave="demanda" secundaria />
+                  <ColunaJss chave="controle" secundaria />
+                  <ColunaJss chave="apoio" secundaria />
                   <th className="text-right font-medium py-2"
                     title="Nota média de bem-estar do setor (0 a 100). Quanto maior, melhor; abaixo de 50 é bem-estar baixo.">
                     Bem-estar
