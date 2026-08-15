@@ -190,12 +190,17 @@ const NovoItem: React.FC<{
 
 // ─── Página ────────────────────────────────────────────
 export const RhPlanoAcao: React.FC = () => {
+  const parametrosIniciais = new URLSearchParams(window.location.search);
   const [itens, setItens] = useState<PlanoAcao[]>([]);
   const [resumo, setResumo] = useState<RhPlanosResumo | null>(null);
   const [setores, setSetores] = useState<SetorEmpresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [criando, setCriando] = useState(false);
-  const [visao, setVisao] = useState<'plano' | 'lideranca'>('plano');
+  const [visao, setVisao] = useState<'plano' | 'lideranca'>(() =>
+    parametrosIniciais.get('visao') === 'lideranca' ? 'lideranca' : 'plano',
+  );
+  const abrirNovaJornada = parametrosIniciais.get('nova') === '1';
+  const setorInicial = parametrosIniciais.get('setor');
 
   const load = useCallback(async () => {
     const fim = new Date();
@@ -283,7 +288,7 @@ export const RhPlanoAcao: React.FC = () => {
       </div>
 
       {visao === 'lideranca' ? (
-        <LiderancaEvolucao setores={setores} />
+        <LiderancaEvolucao setores={setores} abrirNovo={abrirNovaJornada} setorInicial={setorInicial} />
       ) : (
         <>
       {/* ── Alerta: risco de fonte tratado só no indivíduo ── */}

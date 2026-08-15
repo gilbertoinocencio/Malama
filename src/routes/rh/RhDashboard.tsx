@@ -5,13 +5,19 @@
 // =====================================================
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Users, UserPlus, Trash2, Download, Mail, AlertCircle,
   CheckCircle2, Clock, Building2, Calendar, Send, Brain, Phone,
+  ArrowRight, Circle, ClipboardCheck, UserCog,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { rhService, type RhEmpresa, type EmpresaColaborador } from '../../services/empresaService';
+import {
+  rhService, type RhEmpresa, type EmpresaColaborador, type LiderancaCiclo,
+  type PsychosocialCampanha, type RhUsuarioEquipe,
+} from '../../services/empresaService';
 import { SetoresCard } from '../../components/rh/SetoresCard';
+import { useRhAccess } from '../../contexts/RhAccessContext';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
@@ -31,9 +37,129 @@ const ColabStatusBadge: React.FC<{ status: EmpresaColaborador['status'] }> = ({ 
   );
 };
 
+type GuiaRhProps = {
+  setores: number;
+  colaboradores: number;
+  campanhas: PsychosocialCampanha[];
+  ciclos: LiderancaCiclo[];
+  usuariosEquipe: RhUsuarioEquipe[];
+  principal: boolean;
+  podeSaudeMental: boolean;
+  podePlanoAcao: boolean;
+};
+
+const GuiaJornadaRh: React.FC<GuiaRhProps> = ({
+  setores, colaboradores, campanhas, ciclos, usuariosEquipe, principal,
+  podeSaudeMental, podePlanoAcao,
+}) => {
+  const temSetores = setores > 0;
+  const temColaboradores = colaboradores > 0;
+  const temCampanha = campanhas.some(c => c.status !== 'cancelada');
+  const requisitos = [true, temSetores, temColaboradores, ...(podeSaudeMental ? [temCampanha] : [])];
+  const concluidos = requisitos.filter(Boolean).length;
+  const progresso = Math.round((concluidos / requisitos.length) * 100);
+  const campanhaAberta = campanhas.find(c => c.status === 'aberta');
+  const temJss = campanhas.some(c => c.instrument === 'jss' && c.status !== 'cancelada');
+  const cicloAtivo = ciclos.find(c => c.status === 'ativo');
+
+  let titulo = 'Base da empresa pronta';
+  let descricao = 'Os setores e colaboradores estão organizados. Continue acompanhando os próximos ciclos.';
+  let destino = '/rh/dashboard';
+  let acao = 'Revisar cadastro';
+
+  if (!temSetores) {
+    titulo = 'Organize os setores da empresa';
+    descricao = 'Os setores permitem apresentar resultados úteis sem expor respostas individuais.';
+    destino = '/rh/dashboard#setores';
+    acao = 'Cadastrar setores';
+  } else if (!temColaboradores) {
+    titulo = 'Adicione os colaboradores';
+    descricao = 'Convide pelo painel ou importe a lista para preparar a primeira avaliação.';
+    destino = '/rh/dashboard#novo-colaborador';
+    acao = 'Adicionar colaboradores';
+  } else if (podeSaudeMental && campanhaAberta) {
+    titulo = `Acompanhe a campanha de ${campanhaAberta.instrument === 'jss' ? 'JSS' : 'WHO-5'}`;
+    descricao = 'Veja a participação, compartilhe os links e encerre a campanha quando a janela terminar.';
+    destino = '/rh/saude-mental#campanhas';
+    acao = 'Acompanhar campanha';
+  } else if (podeSaudeMental && !temCampanha) {
+    titulo = 'Abra o primeiro diagnóstico';
+    descricao = 'Comece com WHO-5 e JSS para criar a primeira fotografia de bem-estar e condições de trabalho.';
+    destino = '/rh/saude-mental?nova=1';
+    acao = 'Iniciar diagnóstico';
+  } else if (podeSaudeMental && !temJss) {
+    titulo = 'Complete o diagnóstico inicial com o JSS';
+    descricao = 'O WHO-5 mostra como as pessoas estão; o JSS ajuda a entender o que no trabalho precisa mudar.';
+    destino = '/rh/saude-mental?nova=1&instrumento=jss';
+    acao = 'Abrir JSS';
+  } else if (podePlanoAcao && cicloAtivo) {
+    titulo = `Acompanhe os combinados de ${cicloAtivo.setor}`;
+    descricao = 'Registre o que entrou em prática e avance a jornada somente quando houver evidência.';
+    destino = '/rh/plano-acao?visao=lideranca';
+    acao = 'Ver evolução';
+  } else if (podePlanoAcao && temJss) {
+    titulo = 'Prepare a conversa com as lideranças';
+    descricao = 'Use o diagnóstico agregado para reconhecer pontos fortes e combinar até três melhorias por setor.';
+    destino = '/rh/plano-acao?visao=lideranca&nova=1';
+    acao = 'Preparar conversa';
+  }
+
+  const passos = [
+    { label: 'Empresa vinculada', ok: true },
+    { label: 'Setores organizados', ok: temSetores },
+    { label: 'Colaboradores adicionados', ok: temColaboradores },
+    ...(podeSaudeMental ? [{ label: 'Primeira avaliação aberta', ok: temCampanha }] : []),
+  ];
+
+  return (
+    <section className="rounded-xl border border-[#7d4a3c]/20 bg-white p-5 shadow-sm" aria-labelledby="guia-rh-titulo">
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+        <div className="flex min-w-0 gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#7d4a3c]/10 text-[#7d4a3c]">
+            <ClipboardCheck className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">Seu próximo passo</p>
+            <h2 id="guia-rh-titulo" className="mt-0.5 text-lg font-semibold text-gray-900">{titulo}</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-gray-600">{descricao}</p>
+          </div>
+        </div>
+        <Link to={destino} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#623a2f]">
+          {acao} <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      <details className="group mt-4 border-t border-gray-100 pt-3" open={progresso < 100}>
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm [&::-webkit-details-marker]:hidden">
+          <span className="font-medium text-gray-700">Preparação do painel</span>
+          <span className="text-xs text-gray-500">{concluidos} de {requisitos.length} etapas · {progresso}%</span>
+        </summary>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {passos.map(passo => (
+            <div key={passo.label} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${passo.ok ? 'bg-green-50 text-green-800' : 'bg-gray-50 text-gray-500'}`}>
+              {passo.ok ? <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" /> : <Circle className="h-4 w-4 shrink-0 text-gray-300" />}
+              {passo.label}
+            </div>
+          ))}
+        </div>
+        {principal && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            <span className="inline-flex items-center gap-2"><UserCog className="h-4 w-4 text-gray-400" />Equipe do RH: {Math.max(0, usuariosEquipe.filter(u => !u.principal && u.ativo).length)} usuário(s) auxiliar(es). Esta etapa é opcional.</span>
+            <Link to="/rh/usuarios" className="font-semibold text-[#7d4a3c]">Gerenciar acessos</Link>
+          </div>
+        )}
+      </details>
+    </section>
+  );
+};
+
 export const RhDashboard: React.FC = () => {
+  const { acesso } = useRhAccess();
   const [empresa, setEmpresa] = useState<RhEmpresa | null>(null);
   const [colaboradores, setColaboradores] = useState<EmpresaColaborador[]>([]);
+  const [campanhas, setCampanhas] = useState<PsychosocialCampanha[]>([]);
+  const [ciclos, setCiclos] = useState<LiderancaCiclo[]>([]);
+  const [usuariosEquipe, setUsuariosEquipe] = useState<RhUsuarioEquipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -64,15 +190,25 @@ export const RhDashboard: React.FC = () => {
         return;
       }
       if (emp) {
-        const [colabs, resumoPsi] = await Promise.all([
+        const [colabs, resumoPsi, setores, campanhasAtuais, ciclosAtuais, equipe] = await Promise.all([
           rhService.getColaboradores(emp.id),
           rhService.getResumoPsicologico(),
+          rhService.getSetores().catch(() => []),
+          (acesso.principal || acesso.permissoes.includes('saude_mental'))
+            ? rhService.getCampanhas().catch(() => []) : Promise.resolve([]),
+          (acesso.principal || acesso.permissoes.includes('plano_acao'))
+            ? rhService.getLiderancaCiclos().catch(() => []) : Promise.resolve([]),
+          acesso.principal ? rhService.getUsuariosEquipe().catch(() => []) : Promise.resolve([]),
         ]);
         // Publica o conjunto de uma vez: nunca mostra empresa nova com lista
         // antiga, nem apaga o estado anterior se uma das chamadas falhar.
         setEmpresa(emp);
         setColaboradores(colabs);
         setPsi(resumoPsi);
+        setSetoresAtivos(setores.map(s => s.setor));
+        setCampanhas(campanhasAtuais);
+        setCiclos(ciclosAtuais);
+        setUsuariosEquipe(equipe);
       }
     } catch (err) {
       console.error('Erro ao carregar painel do RH:', err);
@@ -80,7 +216,7 @@ export const RhDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [acesso]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -280,6 +416,17 @@ export const RhDashboard: React.FC = () => {
         <p className="text-sm text-gray-500">Gerencie os colaboradores com acesso ao benefício Malama.</p>
       </div>
 
+      <GuiaJornadaRh
+        setores={setoresAtivos.length}
+        colaboradores={colaboradores.length}
+        campanhas={campanhas}
+        ciclos={ciclos}
+        usuariosEquipe={usuariosEquipe}
+        principal={acesso.principal}
+        podeSaudeMental={acesso.principal || acesso.permissoes.includes('saude_mental')}
+        podePlanoAcao={acesso.principal || acesso.permissoes.includes('plano_acao')}
+      />
+
       {empresa.status !== 'ativa' && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-yellow-800">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -422,7 +569,7 @@ export const RhDashboard: React.FC = () => {
       </div>
 
       {/* ── Adicionar colaborador ── */}
-      <div className="bg-white rounded-xl shadow p-5">
+      <div id="novo-colaborador" className="scroll-mt-6 bg-white rounded-xl shadow p-5">
         <div className="flex items-center gap-2 mb-3">
           <UserPlus className="w-5 h-5 text-[#7d4a3c]" />
           <h2 className="font-semibold text-gray-800">Adicionar colaborador</h2>

@@ -132,7 +132,7 @@ const INSTRUMENTOS = [
     icon: Layers,
     nome: 'JSS',
     subtitulo: 'Job Stress Scale — demanda, controle e apoio',
-    cadencia: 'Semestral',
+    cadencia: 'Trimestral',
     eixo: 'O que no trabalho expõe a risco',
     corpo: 'Modelo Karasek/Theorell. Separa o que a organização do trabalho impõe (demanda), quanta autonomia a pessoa tem (controle) e quanto apoio recebe da chefia e dos colegas. É o eixo que aponta a causa, não o sintoma.',
     fonte: 'Alves MGM et al. Rev Saúde Pública 2004;38(2):164-71 — adaptação brasileira',

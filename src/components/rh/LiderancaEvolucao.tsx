@@ -6,7 +6,7 @@ import {
 import toast from 'react-hot-toast';
 import {
   rhService, type JssCortes, type JssItemKey, type JssSetor, type LiderancaCiclo,
-  type LiderancaEtapa, type PlanoFator, type PlanoNivel, type SetorEmpresa,
+  type LiderancaEtapa, type PlanoFator, type PlanoNivel, type PsychosocialSetor, type SetorEmpresa,
 } from '../../services/empresaService';
 import { obterInsightJss } from '../../lib/jssInsights';
 
@@ -98,24 +98,32 @@ async function avancarJornada(
   await onAtualizar();
 }
 
-export const LiderancaEvolucao: React.FC<{ setores: SetorEmpresa[] }> = ({ setores }) => {
+export const LiderancaEvolucao: React.FC<{
+  setores: SetorEmpresa[];
+  abrirNovo?: boolean;
+  setorInicial?: string | null;
+}> = ({ setores, abrirNovo = false, setorInicial = null }) => {
   const [ciclos, setCiclos] = useState<LiderancaCiclo[]>([]);
   const [selecionado, setSelecionado] = useState<string | null>(null);
   const [jss, setJss] = useState<Awaited<ReturnType<typeof rhService.getRelatorioJss>>>(null);
+  const [who5, setWho5] = useState<Awaited<ReturnType<typeof rhService.getRelatorioPsicossocial>>>(null);
   const [loading, setLoading] = useState(true);
-  const [novo, setNovo] = useState(false);
+  const [novo, setNovo] = useState(abrirNovo);
   const [editando, setEditando] = useState(false);
   const [acao, setAcao] = useState<Sugestao | null>(null);
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const fim = new Date(); const inicio = new Date(); inicio.setMonth(inicio.getMonth() - 6);
+    const fim = new Date();
+    const inicioJss = new Date(); inicioJss.setMonth(inicioJss.getMonth() - 3);
+    const inicioWho5 = new Date(); inicioWho5.setMonth(inicioWho5.getMonth() - 1);
     try {
-      const [lista, relatorio] = await Promise.all([
+      const [lista, relatorio, bemEstar] = await Promise.all([
         rhService.getLiderancaCiclos(),
-        rhService.getRelatorioJss(inicio.toISOString().slice(0, 10), fim.toISOString().slice(0, 10)).catch(() => null),
+        rhService.getRelatorioJss(inicioJss.toISOString().slice(0, 10), fim.toISOString().slice(0, 10)).catch(() => null),
+        rhService.getRelatorioPsicossocial(inicioWho5.toISOString().slice(0, 10), fim.toISOString().slice(0, 10)).catch(() => null),
       ]);
-      setCiclos(lista); setJss(relatorio);
+      setCiclos(lista); setJss(relatorio); setWho5(bemEstar);
       setSelecionado(atual => atual && lista.some(c => c.id === atual) ? atual : null);
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível carregar as jornadas.'); }
     finally { setLoading(false); }
@@ -124,6 +132,7 @@ export const LiderancaEvolucao: React.FC<{ setores: SetorEmpresa[] }> = ({ setor
 
   const ciclo = ciclos.find(c => c.id === selecionado) ?? null;
   const setorJss = jss?.setores.find(s => s.setor === ciclo?.setor);
+  const setorWho5 = who5?.setores.find(s => s.setor === ciclo?.setor);
   const leitura = useMemo(() => diagnostico(setorJss, jss?.cortes), [setorJss, jss?.cortes]);
   const mover = useCallback(async (item: LiderancaCiclo, destino: LiderancaEtapa) => {
     await avancarJornada(item, destino, carregar);
@@ -146,9 +155,9 @@ export const LiderancaEvolucao: React.FC<{ setores: SetorEmpresa[] }> = ({ setor
         ? <div className="rounded-xl bg-white p-10 text-center shadow"><Sparkles className="mx-auto h-9 w-9 text-gray-300" /><p className="mt-3 font-medium text-gray-600">Nenhuma jornada iniciada.</p><p className="mt-1 text-sm text-gray-400">Comece por um setor e leve sugestões práticas para a primeira conversa.</p></div>
         : <KanbanLideranca ciclos={ciclos} selecionado={selecionado} onSelecionar={setSelecionado} onMover={mover} />}
 
-      {ciclo && <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={() => setSelecionado(null)}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}><div className="mb-3 flex justify-end"><button onClick={() => setSelecionado(null)} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700" aria-label="Fechar detalhes"><X className="h-5 w-5" /></button></div><JornadaDetalhe ciclo={ciclo} sugestoes={leitura.sugestoes} onEditar={() => setEditando(true)} onAcao={setAcao} onAtualizar={carregar} /></aside></div>}
+      {ciclo && <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={() => setSelecionado(null)}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}><div className="mb-3 flex justify-end"><button onClick={() => setSelecionado(null)} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700" aria-label="Fechar detalhes"><X className="h-5 w-5" /></button></div><JornadaDetalhe ciclo={ciclo} sugestoes={leitura.sugestoes} who5={setorWho5} onEditar={() => setEditando(true)} onAcao={setAcao} onAtualizar={carregar} /></aside></div>}
 
-      {novo && <CicloForm setores={setores} jss={jss} onClose={() => setNovo(false)} onSaved={async id => { setNovo(false); await carregar(); setSelecionado(id); }} />}
+      {novo && <CicloForm setores={setores} jss={jss} setorInicial={setorInicial} onClose={() => setNovo(false)} onSaved={async id => { setNovo(false); await carregar(); setSelecionado(id); }} />}
       {editando && ciclo && <PontosForm ciclo={ciclo} onClose={() => setEditando(false)} onSaved={() => { setEditando(false); void carregar(); }} />}
       {acao && ciclo && <AcaoForm ciclo={ciclo} sugestao={acao} onClose={() => setAcao(null)} onSaved={() => { setAcao(null); void carregar(); }} />}
     </div>
@@ -237,9 +246,9 @@ const KanbanLideranca: React.FC<{
 };
 
 const JornadaDetalhe: React.FC<{
-  ciclo: LiderancaCiclo; sugestoes: Sugestao[]; onEditar: () => void;
+  ciclo: LiderancaCiclo; sugestoes: Sugestao[]; who5?: PsychosocialSetor; onEditar: () => void;
   onAcao: (s: Sugestao) => void; onAtualizar: () => Promise<void>;
-}> = ({ ciclo, sugestoes, onEditar, onAcao, onAtualizar }) => {
+}> = ({ ciclo, sugestoes, who5, onEditar, onAcao, onAtualizar }) => {
   const indice = ETAPAS.findIndex(e => e.id === ciclo.etapa);
   const proxima = ETAPAS[indice + 1];
   const temAcao = ciclo.acoes.some(a => a.status !== 'cancelada');
@@ -300,6 +309,12 @@ const JornadaDetalhe: React.FC<{
       <div className="rounded-xl border border-green-100 bg-green-50/60 p-4"><div className="flex items-center gap-2"><ThumbsUp className="h-4 w-4 text-green-700" /><h4 className="text-sm font-semibold text-green-900">O que está funcionando</h4></div><ul className="mt-2 space-y-1.5 text-sm text-green-900">{ciclo.pontos_fortes.length ? ciclo.pontos_fortes.map((x,i) => <li key={i}>• {x}</li>) : <li className="text-green-700">Definir na conversa com o gestor.</li>}</ul></div>
       <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-4"><div className="flex items-center gap-2"><Target className="h-4 w-4 text-amber-700" /><h4 className="text-sm font-semibold text-amber-900">O que precisa melhorar</h4></div><ul className="mt-2 space-y-1.5 text-sm text-amber-900">{ciclo.pontos_atencao.length ? ciclo.pontos_atencao.map((x,i) => <li key={i}>• {x}</li>) : <li className="text-amber-700">Definir na conversa com o gestor.</li>}</ul></div>
     </div>
+    <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div><p className="text-sm font-semibold text-blue-900">Termômetro mensal de bem-estar</p><p className="mt-1 text-xs leading-relaxed text-blue-800">O WHO-5 ajuda o RH a acompanhar o ambiente entre um JSS e outro. Ele mostra como as pessoas estão, não prova a causa.</p></div>
+        {who5 ? <div className="shrink-0 text-right"><p className="text-2xl font-bold text-blue-900">{who5.score_medio}</p><p className="text-[10px] uppercase tracking-wide text-blue-700">WHO-5 agregado</p></div> : <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[10px] font-medium text-blue-700">Sem recorte publicado</span>}
+      </div>
+    </div>
     {ciclo.status === 'ativo' && <button onClick={onEditar} className="text-xs font-semibold text-[#7d4a3c]">Editar pontos da conversa</button>}
 
     {ciclo.status === 'ativo' && <div className="rounded-xl bg-white p-5 shadow"><div className="flex items-center gap-2"><Lightbulb className="h-5 w-5 text-amber-500" /><h4 className="font-semibold text-gray-800">Ideias práticas</h4></div><p className="mt-1 text-xs text-gray-500">Sugestões curtas para o RH adaptar junto com o gestor.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{sugestoes.map((s,i) => <div key={`${s.titulo}-${i}`} className="rounded-lg border p-3"><p className="text-sm font-semibold text-gray-800">{s.titulo}</p><p className="mt-1 text-xs leading-relaxed text-gray-500">{s.medida}</p><button onClick={() => onAcao(s)} className="mt-2 text-xs font-semibold text-[#7d4a3c]">Usar esta ideia</button></div>)}</div><button onClick={() => onAcao({ fator:'outro', titulo:'Ação personalizada', objetivo:'', medida:'', nivel:'organizacional' })} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#7d4a3c]"><Plus className="h-3.5 w-3.5" /> Criar outra ação</button></div>}
@@ -310,10 +325,11 @@ const JornadaDetalhe: React.FC<{
 
 const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onMouseDown={onClose}><div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-xl" onMouseDown={e => e.stopPropagation()}><div className="flex items-center justify-between border-b p-5"><h3 className="font-bold text-gray-900">{title}</h3><button onClick={onClose}><X className="h-5 w-5 text-gray-400" /></button></div>{children}</div></div>;
 
-const CicloForm: React.FC<{ setores:SetorEmpresa[]; jss:Awaited<ReturnType<typeof rhService.getRelatorioJss>>; onClose:()=>void; onSaved:(id:string)=>void }> = ({ setores,jss,onClose,onSaved }) => {
+const CicloForm: React.FC<{ setores:SetorEmpresa[]; jss:Awaited<ReturnType<typeof rhService.getRelatorioJss>>; setorInicial?:string|null; onClose:()=>void; onSaved:(id:string)=>void }> = ({ setores,jss,setorInicial,onClose,onSaved }) => {
   const fimPadrao=new Date();fimPadrao.setMonth(fimPadrao.getMonth()+3);
-  const [setor,setSetor]=useState('');const [fim,setFim]=useState(fimPadrao.toISOString().slice(0,10));const [rh,setRh]=useState('');const [fortes,setFortes]=useState('');const [atencao,setAtencao]=useState('');const [saving,setSaving]=useState(false);
+  const [setor,setSetor]=useState(setorInicial??'');const [fim,setFim]=useState(fimPadrao.toISOString().slice(0,10));const [rh,setRh]=useState('');const [fortes,setFortes]=useState('');const [atencao,setAtencao]=useState('');const [saving,setSaving]=useState(false);
   const preencher=()=>{const d=diagnostico(jss?.setores.find(s=>s.setor===setor),jss?.cortes);setFortes(d.fortes.join('\n'));setAtencao(d.atencao.join('\n'));};
+  useEffect(()=>{if(!setorInicial)return;const d=diagnostico(jss?.setores.find(s=>s.setor===setorInicial),jss?.cortes);setFortes(d.fortes.join('\n'));setAtencao(d.atencao.join('\n'));},[jss,setorInicial]);
   const salvar=async()=>{setSaving(true);const res=await rhService.criarLiderancaCiclo({setor,fim,responsavelRh:rh,pontosFortes:linhas(fortes),pontosAtencao:linhas(atencao)});setSaving(false);if(!res.ok||!res.id)return toast.error(res.error||'Não foi possível iniciar.');toast.success('Jornada iniciada.');onSaved(res.id);};
   return <Modal title="Iniciar jornada de liderança" onClose={onClose}><div className="space-y-4 p-5"><label className="block text-sm font-medium">Setor<select className={`${input} mt-1`} value={setor} onChange={e=>setSetor(e.target.value)}><option value="">Escolha...</option>{setores.map(s=><option key={s.setor}>{s.setor}</option>)}</select></label>{setor&&<button onClick={preencher} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7d4a3c]"><RefreshCw className="h-3.5 w-3.5" /> Usar diagnóstico agregado atual</button>}<label className="block text-sm font-medium">O que está funcionando<textarea className={`${input} mt-1`} rows={3} value={fortes} onChange={e=>setFortes(e.target.value)} placeholder="Um ponto por linha" /></label><label className="block text-sm font-medium">O que precisa melhorar<textarea className={`${input} mt-1`} rows={3} value={atencao} onChange={e=>setAtencao(e.target.value)} placeholder="Um ponto por linha" /></label><div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm font-medium">Responsável do RH<input className={`${input} mt-1`} value={rh} onChange={e=>setRh(e.target.value)} /></label><label className="block text-sm font-medium">Fim do ciclo<input type="date" className={`${input} mt-1`} value={fim} onChange={e=>setFim(e.target.value)} /></label></div><p className="text-xs text-gray-500">Esses textos podem ser ajustados junto com o gestor. Nenhuma nota ou quantidade de respostas será levada ao resumo.</p></div><div className="flex justify-end gap-2 border-t p-5"><button onClick={onClose} className="px-4 py-2 text-sm">Cancelar</button><button disabled={saving} onClick={salvar} className="rounded-lg bg-[#7d4a3c] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving?'Salvando...':'Iniciar jornada'}</button></div></Modal>;
 };

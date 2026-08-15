@@ -119,7 +119,7 @@ export const JssIndicadores: React.FC<{
     <ComoLer>
       <BlocoExplicativo titulo="O que é este questionário">
         <p>
-          São 17 perguntas que o colaborador responde a cada seis meses sobre o dia a dia
+          São 17 perguntas que o colaborador responde a cada três meses sobre o dia a dia
           do trabalho dele: o ritmo, a liberdade para decidir e o apoio que recebe de
           colegas e da chefia. Ele fala <strong>do trabalho</strong>, não da saúde da
           pessoa — quem pergunta como a pessoa está é o outro questionário, o de

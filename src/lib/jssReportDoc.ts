@@ -8,7 +8,7 @@
 // WHO-5 documenta COMO o colaborador está, este documenta O QUE NO
 // TRABALHO expõe a risco (demanda, controle, apoio — modelo Karasek/
 // Theorell). Separados porque são evidências de natureza diferente e os
-// períodos raramente coincidem (JSS é semestral, WHO-5 é mensal).
+// períodos raramente coincidem (JSS é trimestral, WHO-5 é mensal).
 //
 // TEXTO JURÍDICO: os blocos METODOLOGIA e DISCLAIMER abaixo são um
 // rascunho padrão, sujeito a revisão pelo jurídico da empresa-cliente.

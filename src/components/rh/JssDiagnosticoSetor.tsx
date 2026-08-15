@@ -1,9 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   CartesianGrid, LabelList, ReferenceArea, ReferenceLine, ResponsiveContainer,
   Scatter, ScatterChart, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { AlertTriangle, ChevronDown, Grid3x3, Info, ListChecks, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ChevronDown, Grid3x3, Info, ListChecks, ShieldAlert } from 'lucide-react';
 import type { JssClassificacao, RhRelatorioJss } from '../../services/empresaService';
 import {
   JSS_CLASSIFICACAO, JSS_PRIORIDADE, obterInsightJss, prioridadeOrdem,
@@ -288,6 +289,14 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
                     {insight.encaminhamentos.join(' ')}
                   </p>
                 </div>
+              </div>
+              <div className="mt-3 flex justify-end border-t border-gray-100 pt-2">
+                <Link
+                  to={`/rh/plano-acao?visao=lideranca&nova=1&setor=${encodeURIComponent(setor.setor)}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7d4a3c]"
+                >
+                  Preparar conversa com esta liderança <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
             </div>
           );

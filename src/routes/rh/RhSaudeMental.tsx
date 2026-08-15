@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom';
 import {
   Brain, Plus, Play, X, Users, BarChart3, Info, AlertCircle, FileDown,
   ChevronDown, ChevronUp, HeartPulse, Activity, CalendarRange, Link as LinkIcon,
+  ArrowRight, CheckCircle2, Clock3,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -299,14 +300,18 @@ const LinksCampanha: React.FC<{ campaignId: string }> = ({ campaignId }) => {
 const NovaCampanha: React.FC<{
   instrumentos: PsychosocialInstrumento[];
   setores: SetorEmpresa[];
+  instrumentoInicial?: string | null;
   /** Total real de colaboradores ativos/convidados — ver `alvoCount`. */
   alvoTotal: number;
   onCriada: () => void;
   onCancelar: () => void;
-}> = ({ instrumentos, setores, alvoTotal, onCriada, onCancelar }) => {
+}> = ({ instrumentos, setores, instrumentoInicial, alvoTotal, onCriada, onCancelar }) => {
   const disponiveis = instrumentos.filter(i => i.ativo);
-  const [code, setCode] = useState(disponiveis[0]?.code ?? '');
-  const inicial = janelaSugerida(disponiveis[0]?.cadencia_meses ?? null);
+  const codigoInicial = disponiveis.some(i => i.code === instrumentoInicial)
+    ? instrumentoInicial as string
+    : disponiveis[0]?.code ?? '';
+  const [code, setCode] = useState(codigoInicial);
+  const inicial = janelaSugerida(disponiveis.find(i => i.code === codigoInicial)?.cadencia_meses ?? null);
   const [inicio, setInicio] = useState(inicial.inicio);
   const [fim, setFim] = useState(inicial.fim);
   const [alvo, setAlvo] = useState<'todos' | 'setores'>('todos');
@@ -321,6 +326,11 @@ const NovaCampanha: React.FC<{
     setInicio(j.inicio);
     setFim(j.fim);
   };
+
+  useEffect(() => {
+    if (!instrumentoInicial || !disponiveis.some(i => i.code === instrumentoInicial)) return;
+    trocarInstrumento(instrumentoInicial);
+  }, [instrumentoInicial]);
 
   const toggleSetor = (s: string) =>
     setSelecionados(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -502,14 +512,85 @@ const NovaCampanha: React.FC<{
   );
 };
 
+const CicloAvaliacoes: React.FC<{
+  campanhas: PsychosocialCampanha[];
+  onNova: (instrumento: string) => void;
+}> = ({ campanhas, onNova }) => {
+  const hoje = new Date();
+
+  const estado = (instrumento: 'who5' | 'jss', meses: number) => {
+    const relacionadas = campanhas
+      .filter(c => c.instrument === instrumento && c.status !== 'cancelada')
+      .sort((a, b) => b.janela_fim.localeCompare(a.janela_fim));
+    const aberta = relacionadas.find(c => c.status === 'aberta');
+    if (aberta) return { aberto: true, destaque: 'Campanha em andamento', detalhe: `Fecha em ${fmtDate(aberta.janela_fim)}` };
+    const ultima = relacionadas[0];
+    if (!ultima) return { aberto: false, destaque: 'Primeira medição pendente', detalhe: 'Crie a linha de base da empresa.' };
+    const referencia = ultima.encerrada_em?.slice(0, 10) ?? ultima.janela_fim;
+    const base = new Date(`${referencia}T12:00:00`);
+    base.setMonth(base.getMonth() + meses);
+    const vencida = base <= hoje;
+    return {
+      aberto: false,
+      destaque: vencida ? 'Nova medição recomendada' : `Próxima em ${base.toLocaleDateString('pt-BR')}`,
+      detalhe: vencida ? `O último ciclo terminou em ${fmtDate(referencia)}.` : `Último ciclo encerrado em ${fmtDate(referencia)}.`,
+    };
+  };
+
+  const itens = [
+    { code: 'who5' as const, nome: 'WHO-5 mensal', descricao: 'Termômetro de bem-estar', icon: HeartPulse, estado: estado('who5', 1) },
+    { code: 'jss' as const, nome: 'JSS trimestral', descricao: 'Condições de trabalho', icon: Activity, estado: estado('jss', 3) },
+  ];
+
+  return (
+    <section className="rounded-xl border border-[#7d4a3c]/20 bg-[#7d4a3c]/5 p-4" aria-labelledby="ciclo-avaliacoes-titulo">
+      <div className="mb-3 flex items-start gap-3">
+        <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-[#7d4a3c]" />
+        <div>
+          <h2 id="ciclo-avaliacoes-titulo" className="text-sm font-semibold text-gray-800">Ciclo de cuidado da empresa</h2>
+          <p className="mt-0.5 text-xs leading-relaxed text-gray-600">O WHO-5 acompanha o mês. O JSS orienta a conversa trimestral e as melhorias com cada liderança.</p>
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {itens.map(item => {
+          const Icon = item.icon;
+          return (
+            <div key={item.code} className="flex items-center justify-between gap-3 rounded-lg border border-white bg-white p-3 shadow-sm">
+              <div className="flex min-w-0 items-start gap-2.5">
+                <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#7d4a3c]" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800">{item.nome}</p>
+                  <p className="text-xs text-gray-500">{item.descricao}</p>
+                  <p className={`mt-1 text-xs font-medium ${item.estado.aberto ? 'text-green-700' : 'text-[#7d4a3c]'}`}>{item.estado.destaque}</p>
+                  <p className="text-[11px] text-gray-400">{item.estado.detalhe}</p>
+                </div>
+              </div>
+              {item.estado.aberto ? (
+                <a href="#campanhas" className="shrink-0 text-xs font-semibold text-[#7d4a3c]">Acompanhar</a>
+              ) : (
+                <button type="button" onClick={() => onNova(item.code)} className="shrink-0 rounded-lg border border-[#7d4a3c]/30 px-3 py-2 text-xs font-semibold text-[#7d4a3c] transition hover:bg-[#7d4a3c]/5">Preparar</button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-[11px] leading-relaxed text-gray-500">Relatos de assédio ou violência não aguardam esse calendário: seguem imediatamente para o fluxo restrito de apuração.</p>
+    </section>
+  );
+};
+
 // ─── Página ────────────────────────────────────────────
 export const RhSaudeMental: React.FC = () => {
+  const parametrosIniciais = new URLSearchParams(window.location.search);
+  const instrumentoInicial = parametrosIniciais.get('instrumento');
+  const [instrumentoSugerido, setInstrumentoSugerido] = useState<string | null>(instrumentoInicial);
   const [campanhas, setCampanhas] = useState<PsychosocialCampanha[]>([]);
   const [instrumentos, setInstrumentos] = useState<PsychosocialInstrumento[]>([]);
   const [setores, setSetores] = useState<SetorEmpresa[]>([]);
   const [alvoTotal, setAlvoTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [criando, setCriando] = useState(false);
+  const [criando, setCriando] = useState(() => parametrosIniciais.get('nova') === '1');
+  const [campanhaEncerrada, setCampanhaEncerrada] = useState<PsychosocialCampanha | null>(null);
   const [expandida, setExpandida] = useState<string | null>(null);
   // Separado da adesão de propósito: o RH costuma querer os links (para
   // reenviar) enquanto olha a adesão, e fechar um para ver o outro atrapalha.
@@ -581,8 +662,9 @@ export const RhSaudeMental: React.FC = () => {
     if (!confirm(`Encerrar a campanha de ${c.instrument_nome}? Quem ainda não respondeu não poderá mais responder.`)) return;
     const res = await rhService.encerrarCampanha(c.id);
     if (!res.ok) { toast.error(res.error || 'Erro ao encerrar.'); return; }
-    toast.success('Campanha encerrada.');
-    load();
+    toast.success('Campanha encerrada. Os resultados já podem orientar o próximo passo.');
+    setCampanhaEncerrada(c);
+    await load();
   };
 
   const handleGerarPsico = async () => {
@@ -636,9 +718,48 @@ export const RhSaudeMental: React.FC = () => {
   return (
     <div className="space-y-6">
       {loadError && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3"><span>{loadError}</span><button onClick={load} className="font-semibold whitespace-nowrap">Tentar novamente</button></div>}
+      <CicloAvaliacoes
+        campanhas={campanhas}
+        onNova={instrumento => {
+          setInstrumentoSugerido(instrumento);
+          setCriando(true);
+          window.setTimeout(() => document.getElementById('campanhas')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+        }}
+      />
+
+      {campanhaEncerrada && (
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
+              <div>
+                <p className="text-sm font-semibold text-green-900">Pesquisa encerrada. Agora transforme o resultado em conversa.</p>
+                <p className="mt-1 text-xs leading-relaxed text-green-800">Revise os dados agregados, reconheça o que está funcionando e escolha poucos pontos para melhorar.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPeriodo(campanhaEncerrada.instrument === 'who5' ? 'mes' : 'tri');
+                      window.setTimeout(() => document.getElementById(campanhaEncerrada.instrument === 'who5' ? 'resultado-who5' : 'resultado-jss')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    Ver resultados <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                  {campanhaEncerrada.instrument === 'jss' && (
+                    <Link to="/rh/plano-acao?visao=lideranca&nova=1" className="inline-flex items-center gap-1.5 rounded-lg border border-green-300 bg-white px-3 py-2 text-xs font-semibold text-green-800">Preparar conversa com a liderança</Link>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button type="button" onClick={() => setCampanhaEncerrada(null)} aria-label="Fechar orientação" className="text-green-700/60 hover:text-green-900"><X className="h-4 w-4" /></button>
+          </div>
+        </div>
+      )}
+
       <RelatosSentinelaCard />
       {/* ── Campanhas ── */}
-      <div className="bg-white rounded-xl shadow p-5">
+      <div id="campanhas" className="scroll-mt-6 bg-white rounded-xl shadow p-5">
         <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
           <div className="flex items-center gap-2">
             <Brain className="w-5 h-5 text-[#7d4a3c]" />
@@ -647,7 +768,7 @@ export const RhSaudeMental: React.FC = () => {
           </div>
           {!criando && (
             <button
-              onClick={() => setCriando(true)}
+              onClick={() => { setInstrumentoSugerido(null); setCriando(true); }}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition"
             >
               <Plus className="w-4 h-4" /> Nova campanha
@@ -670,6 +791,7 @@ export const RhSaudeMental: React.FC = () => {
             <NovaCampanha
               instrumentos={instrumentos}
               setores={setores}
+              instrumentoInicial={instrumentoSugerido}
               alvoTotal={alvoTotal}
               onCriada={() => { setCriando(false); load(); }}
               onCancelar={() => setCriando(false)}
@@ -791,7 +913,7 @@ export const RhSaudeMental: React.FC = () => {
       <MatrizPsicossocial matriz={matriz} loading={matrizLoading} />
 
       {/* ── Índice de bem-estar (resultado — dado de saúde) ── */}
-      <div className="bg-white rounded-xl shadow p-5">
+      <div id="resultado-who5" className="scroll-mt-6 bg-white rounded-xl shadow p-5">
         <div className="flex items-center gap-2 mb-1">
           <HeartPulse className="w-5 h-5 text-[#7d4a3c]" />
           <h2 className="font-semibold text-gray-800">Índice de bem-estar (WHO-5)</h2>
@@ -908,14 +1030,14 @@ export const RhSaudeMental: React.FC = () => {
       </div>
 
       {/* ── Exposição ocupacional (resultado — dado de saúde) ── */}
-      <div className="bg-white rounded-xl shadow p-5">
+      <div id="resultado-jss" className="scroll-mt-6 bg-white rounded-xl shadow p-5">
         <div className="flex items-center gap-2 mb-1">
           <Activity className="w-5 h-5 text-[#7d4a3c]" />
           <h2 className="font-semibold text-gray-800">Exposição ocupacional (JSS)</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
           O que no trabalho pesa sobre as pessoas: o quanto se cobra, a liberdade para decidir e
-          o apoio que existe. São 17 perguntas respondidas a cada seis meses, e todas as notas
+          o apoio que existe. São 17 perguntas respondidas a cada três meses, e todas as notas
           vão de 0 a 100. É separado do bem-estar de propósito: um mostra como a pessoa está, e
           este mostra o que no trabalho a pressiona.
         </p>

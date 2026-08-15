@@ -584,7 +584,7 @@ export type RhRelatorioPsicossocial = {
 // ── Relatório de exposição ocupacional JSS (agregado, k-anônimo) ──
 // Documenta O QUE NO TRABALHO expõe a risco (demanda/controle/apoio),
 // separado do WHO-5 porque são evidências de natureza diferente para o
-// PGR e raramente compartilham o mesmo período (JSS é semestral).
+// PGR e raramente compartilham o mesmo período (JSS é trimestral).
 export type JssGeral =
   | { n_respondentes: number; indice_medio: number; demanda_medio: number; controle_medio: number; apoio_medio: number; suprimido?: false }
   | { n_respondentes: number; suprimido: true };

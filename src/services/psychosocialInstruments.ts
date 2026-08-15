@@ -250,7 +250,7 @@ export const JSS: InstrumentDef = {
   code: 'jss',
   nome: 'Job Stress Scale (demanda-controle-apoio)',
   eixo: 'exposicao',
-  cadenciaMeses: 6,
+  cadenciaMeses: 3,
   fonte: 'Alves MGM et al. Rev Saúde Pública 2004;38(2):164-71. Adaptação cedida por Töres Theorell.',
   scoreSignificado:
     'Índice de exposição ocupacional. Maior = mais exposição a risco psicossocial '
