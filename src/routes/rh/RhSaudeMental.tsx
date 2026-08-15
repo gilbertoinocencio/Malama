@@ -39,6 +39,7 @@ import { JssIndicadores } from '../../components/rh/JssIndicadores';
 import { JssTeiaTemas } from '../../components/rh/JssTeiaTemas';
 import { Who5Indicadores } from '../../components/rh/Who5Indicadores';
 import { RelatosSentinelaCard } from '../../components/rh/RelatosSentinelaCard';
+import { useScrollParaHash } from '../../hooks/useScrollParaHash';
 
 const MIN_COORTE = 5;
 
@@ -631,6 +632,9 @@ export const RhSaudeMental: React.FC = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // O guia do dashboard aponta para "#campanhas" e "#resultado-jss" daqui.
+  useScrollParaHash(!loading);
 
   useEffect(() => {
     let cancelado = false;

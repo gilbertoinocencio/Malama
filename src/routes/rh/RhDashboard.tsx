@@ -14,13 +14,22 @@ import {
 import toast from 'react-hot-toast';
 import {
   rhService, type RhEmpresa, type EmpresaColaborador, type LiderancaCiclo,
-  type PsychosocialCampanha, type RhUsuarioEquipe,
+  type PsychosocialCampanha, type RhUsuarioEquipe, type DocumentoLegal,
 } from '../../services/empresaService';
 import { SetoresCard } from '../../components/rh/SetoresCard';
 import { useRhAccess } from '../../contexts/RhAccessContext';
+import { useScrollParaHash } from '../../hooks/useScrollParaHash';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+
+// Leitura auxiliar do painel: o resultado carrega se a chamada deu certo.
+// Sem isso, `.catch(() => [])` fazia falha de rede virar "não existe nada".
+type Leitura<T> = { ok: boolean; dados: T[] };
+const opcional = <T,>(p: Promise<T[]>): Promise<Leitura<T>> =>
+  p.then(dados => ({ ok: true, dados })).catch(() => ({ ok: false, dados: [] as T[] }));
+/** Chamada que nem foi feita (sem permissão) — ausência não é falha. */
+const vazio = <T,>(): Promise<Leitura<T>> => Promise.resolve({ ok: true, dados: [] as T[] });
 
 const ColabStatusBadge: React.FC<{ status: EmpresaColaborador['status'] }> = ({ status }) => {
   if (status === 'ativo') {
@@ -46,39 +55,69 @@ type GuiaRhProps = {
   principal: boolean;
   podeSaudeMental: boolean;
   podePlanoAcao: boolean;
+  podeEmpresa: boolean;
+  docsPendentes: number;
+  empresaAtiva: boolean;
 };
 
 const GuiaJornadaRh: React.FC<GuiaRhProps> = ({
   setores, colaboradores, campanhas, ciclos, usuariosEquipe, principal,
-  podeSaudeMental, podePlanoAcao,
+  podeSaudeMental, podePlanoAcao, podeEmpresa, docsPendentes, empresaAtiva,
 }) => {
   const temSetores = setores > 0;
   const temColaboradores = colaboradores > 0;
   const temCampanha = campanhas.some(c => c.status !== 'cancelada');
-  const requisitos = [true, temSetores, temColaboradores, ...(podeSaudeMental ? [temCampanha] : [])];
-  const concluidos = requisitos.filter(Boolean).length;
-  const progresso = Math.round((concluidos / requisitos.length) * 100);
   const campanhaAberta = campanhas.find(c => c.status === 'aberta');
+  const temResultado = campanhas.some(c => c.status === 'encerrada');
   const temJss = campanhas.some(c => c.instrument === 'jss' && c.status !== 'cancelada');
   const cicloAtivo = ciclos.find(c => c.status === 'ativo');
 
-  let titulo = 'Base da empresa pronta';
-  let descricao = 'Os setores e colaboradores estão organizados. Continue acompanhando os próximos ciclos.';
-  let destino = '/rh/dashboard';
-  let acao = 'Revisar cadastro';
+  // Fonte única do checklist E do progresso: eram dois arrays paralelos que
+  // precisavam ser editados juntos para não divergir.
+  const passos = [
+    { label: 'Empresa vinculada', ok: true },
+    { label: 'Setores organizados', ok: temSetores },
+    { label: 'Colaboradores adicionados', ok: temColaboradores },
+    ...(podeEmpresa ? [{ label: 'Documentos aceitos', ok: docsPendentes === 0 }] : []),
+    // "realizada", não "aberta": campanha encerrada também conta, e o item
+    // ficava verde dizendo "aberta" depois que a janela fechava.
+    ...(podeSaudeMental ? [{ label: 'Primeira avaliação realizada', ok: temCampanha }] : []),
+  ];
+  const concluidos = passos.filter(p => p.ok).length;
+  const progresso = Math.round((concluidos / passos.length) * 100);
 
-  if (!temSetores) {
+  let titulo = 'Empresa em dia com o ciclo';
+  let descricao = 'A base está montada e o ciclo está rodando. Acompanhe os resultados a cada nova janela de resposta.';
+  // Pode ser null: passo sem ação real não ganha botão morto.
+  let destino: string | null = podeSaudeMental ? '/rh/saude-mental#resultado-jss' : '/rh/dashboard#novo-colaborador';
+  let acao = podeSaudeMental ? 'Ver diagnóstico' : 'Gerenciar colaboradores';
+  let atalho: { to: string; label: string } | null = null;
+
+  if (!empresaAtiva) {
+    titulo = 'Conta da empresa não está ativa';
+    descricao = 'Enquanto isso não for regularizado, não dá para adicionar colaboradores nem abrir avaliações. Fale com a Malama.';
+    destino = podeEmpresa ? '/rh/empresa' : null;
+    acao = 'Ver dados da empresa';
+  } else if (!temSetores) {
     titulo = 'Organize os setores da empresa';
     descricao = 'Os setores permitem apresentar resultados úteis sem expor respostas individuais.';
     destino = '/rh/dashboard#setores';
     acao = 'Cadastrar setores';
   } else if (!temColaboradores) {
     titulo = 'Adicione os colaboradores';
-    descricao = 'Convide pelo painel ou importe a lista para preparar a primeira avaliação.';
+    descricao = 'Convide um a um pelo painel ou traga a lista inteira de uma vez pela planilha.';
     destino = '/rh/dashboard#novo-colaborador';
     acao = 'Adicionar colaboradores';
+    atalho = { to: '/rh/importar', label: 'Importar planilha' };
+  } else if (podeEmpresa && docsPendentes > 0) {
+    // Antes da campanha de propósito: a coleta é de dado de saúde, e o
+    // aceite é o que documenta a base legal disso.
+    titulo = docsPendentes === 1 ? 'Aceite o documento pendente' : `Aceite os ${docsPendentes} documentos pendentes`;
+    descricao = 'O aceite fica registrado com versão, data e quem assinou — é o que sustenta a coleta de dados de saúde no PGR.';
+    destino = '/rh/empresa';
+    acao = 'Revisar documentos';
   } else if (podeSaudeMental && campanhaAberta) {
-    titulo = `Acompanhe a campanha de ${campanhaAberta.instrument === 'jss' ? 'JSS' : 'WHO-5'}`;
+    titulo = `Acompanhe a campanha de ${campanhaAberta.instrument === 'jss' ? 'carga de trabalho' : 'bem-estar'}`;
     descricao = 'Veja a participação, compartilhe os links e encerre a campanha quando a janela terminar.';
     destino = '/rh/saude-mental#campanhas';
     acao = 'Acompanhar campanha';
@@ -92,6 +131,13 @@ const GuiaJornadaRh: React.FC<GuiaRhProps> = ({
     descricao = 'O WHO-5 mostra como as pessoas estão; o JSS ajuda a entender o que no trabalho precisa mudar.';
     destino = '/rh/saude-mental?nova=1&instrumento=jss';
     acao = 'Abrir JSS';
+  } else if (podeSaudeMental && temResultado && ciclos.length === 0) {
+    // Sem este passo a jornada pulava de "acompanhe a campanha" direto para
+    // "converse com a liderança", sem nunca convidar a LER o resultado.
+    titulo = 'Leia o diagnóstico do período';
+    descricao = 'Veja quais setores pedem atenção primeiro e o que puxou o resultado, antes de decidir qualquer medida.';
+    destino = '/rh/saude-mental#resultado-jss';
+    acao = 'Ver diagnóstico';
   } else if (podePlanoAcao && cicloAtivo) {
     titulo = `Acompanhe os combinados de ${cicloAtivo.setor}`;
     descricao = 'Registre o que entrou em prática e avance a jornada somente quando houver evidência.';
@@ -104,13 +150,6 @@ const GuiaJornadaRh: React.FC<GuiaRhProps> = ({
     acao = 'Preparar conversa';
   }
 
-  const passos = [
-    { label: 'Empresa vinculada', ok: true },
-    { label: 'Setores organizados', ok: temSetores },
-    { label: 'Colaboradores adicionados', ok: temColaboradores },
-    ...(podeSaudeMental ? [{ label: 'Primeira avaliação aberta', ok: temCampanha }] : []),
-  ];
-
   return (
     <section className="rounded-xl border border-[#7d4a3c]/20 bg-white p-5 shadow-sm" aria-labelledby="guia-rh-titulo">
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
@@ -122,17 +161,26 @@ const GuiaJornadaRh: React.FC<GuiaRhProps> = ({
             <p className="text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">Seu próximo passo</p>
             <h2 id="guia-rh-titulo" className="mt-0.5 text-lg font-semibold text-gray-900">{titulo}</h2>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-gray-600">{descricao}</p>
+            {atalho && (
+              <Link to={atalho.to} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#7d4a3c] hover:underline">
+                {atalho.label} <ArrowRight className="h-3 w-3" />
+              </Link>
+            )}
           </div>
         </div>
-        <Link to={destino} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#623a2f]">
-          {acao} <ArrowRight className="h-4 w-4" />
-        </Link>
+        {destino && (
+          <Link to={destino} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#623a2f]">
+            {acao} <ArrowRight className="h-4 w-4" />
+          </Link>
+        )}
       </div>
 
       <details className="group mt-4 border-t border-gray-100 pt-3" open={progresso < 100}>
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm [&::-webkit-details-marker]:hidden">
-          <span className="font-medium text-gray-700">Preparação do painel</span>
-          <span className="text-xs text-gray-500">{concluidos} de {requisitos.length} etapas · {progresso}%</span>
+          <span className="font-medium text-gray-700">
+            {progresso === 100 ? 'Tudo pronto para o ciclo' : 'Preparação do painel'}
+          </span>
+          <span className="text-xs text-gray-500">{concluidos} de {passos.length} etapas · {progresso}%</span>
         </summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {passos.map(passo => (
@@ -179,6 +227,7 @@ export const RhDashboard: React.FC = () => {
   const [psi, setPsi] = useState<{ plano_ativo: boolean; max_assentos: number; assentos_em_uso: number } | null>(null);
   const [togglingPsi, setTogglingPsi] = useState<string | null>(null);
   const [loadError, setLoadError] = useState('');
+  const [docsPendentes, setDocsPendentes] = useState(0);
   // A lista cresce sem limite e empurrava o resto do dashboard para fora
   // da tela; nasce fechada e o RH abre quando precisa mexer nela.
   const [listaAberta, setListaAberta] = useState(false);
@@ -193,25 +242,35 @@ export const RhDashboard: React.FC = () => {
         return;
       }
       if (emp) {
-        const [colabs, resumoPsi, setores, campanhasAtuais, ciclosAtuais, equipe] = await Promise.all([
+        const [colabs, resumoPsi, setores, campanhasAtuais, ciclosAtuais, equipe, documentos] = await Promise.all([
           rhService.getColaboradores(emp.id),
           rhService.getResumoPsicologico(),
-          rhService.getSetores().catch(() => []),
+          opcional(rhService.getSetores()),
           (acesso.principal || acesso.permissoes.includes('saude_mental'))
-            ? rhService.getCampanhas().catch(() => []) : Promise.resolve([]),
+            ? opcional(rhService.getCampanhas()) : vazio<PsychosocialCampanha>(),
           (acesso.principal || acesso.permissoes.includes('plano_acao'))
-            ? rhService.getLiderancaCiclos().catch(() => []) : Promise.resolve([]),
-          acesso.principal ? rhService.getUsuariosEquipe().catch(() => []) : Promise.resolve([]),
+            ? opcional(rhService.getLiderancaCiclos()) : vazio<LiderancaCiclo>(),
+          acesso.principal ? opcional(rhService.getUsuariosEquipe()) : vazio<RhUsuarioEquipe>(),
+          (acesso.principal || acesso.permissoes.includes('empresa'))
+            ? opcional(rhService.getDocumentos()) : vazio<DocumentoLegal>(),
         ]);
         // Publica o conjunto de uma vez: nunca mostra empresa nova com lista
         // antiga, nem apaga o estado anterior se uma das chamadas falhar.
         setEmpresa(emp);
         setColaboradores(colabs);
         setPsi(resumoPsi);
-        setSetoresAtivos(setores.map(s => s.setor));
-        setCampanhas(campanhasAtuais);
-        setCiclos(ciclosAtuais);
-        setUsuariosEquipe(equipe);
+        // Leitura que falhou NÃO vira lista vazia: zerar o contador fazia o
+        // guia mandar uma empresa madura refazer o passo 1 do zero.
+        if (setores.ok) setSetoresAtivos(setores.dados.map(s => s.setor));
+        if (campanhasAtuais.ok) setCampanhas(campanhasAtuais.dados);
+        if (ciclosAtuais.ok) setCiclos(ciclosAtuais.dados);
+        if (equipe.ok) setUsuariosEquipe(equipe.dados);
+        if (documentos.ok) {
+          setDocsPendentes(documentos.dados.filter(d => d.exige_aceite && !d.aceito_em).length);
+        }
+        if (![setores, campanhasAtuais, ciclosAtuais, equipe, documentos].every(r => r.ok)) {
+          setLoadError('Parte do painel não pôde ser lida agora. O que aparece abaixo pode estar desatualizado.');
+        }
       }
     } catch (err) {
       console.error('Erro ao carregar painel do RH:', err);
@@ -223,13 +282,9 @@ export const RhDashboard: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  // O React Router não rola até a âncora sozinho. Sem isto, o atalho
-  // "criar setores" vindo da campanha só trocaria de aba e deixaria a pessoa
-  // no topo, procurando o card.
-  useEffect(() => {
-    if (loading || window.location.hash !== '#setores') return;
-    document.getElementById('setores')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [loading]);
+  // Serve tanto o atalho vindo da tela de campanha quanto os passos do guia,
+  // que apontam para âncoras desta mesma página.
+  useScrollParaHash(!loading);
 
   const ativos = colaboradores.filter(c => c.status === 'ativo').length;
   const convidados = colaboradores.filter(c => c.status === 'convidado').length;
@@ -419,6 +474,14 @@ export const RhDashboard: React.FC = () => {
         <p className="text-sm text-gray-500">Gerencie os colaboradores com acesso ao benefício Malama.</p>
       </div>
 
+      {/* Acima do guia: é o motivo de o guia estar dizendo para parar. */}
+      {empresa.status !== 'ativa' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-yellow-800">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          A conta da empresa está {empresa.status}. Novos colaboradores não podem ser adicionados no momento.
+        </div>
+      )}
+
       <GuiaJornadaRh
         setores={setoresAtivos.length}
         colaboradores={colaboradores.length}
@@ -428,14 +491,10 @@ export const RhDashboard: React.FC = () => {
         principal={acesso.principal}
         podeSaudeMental={acesso.principal || acesso.permissoes.includes('saude_mental')}
         podePlanoAcao={acesso.principal || acesso.permissoes.includes('plano_acao')}
+        podeEmpresa={acesso.principal || acesso.permissoes.includes('empresa')}
+        docsPendentes={docsPendentes}
+        empresaAtiva={empresa.status === 'ativa'}
       />
-
-      {empresa.status !== 'ativa' && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-yellow-800">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          A conta da empresa está {empresa.status}. Novos colaboradores não podem ser adicionados no momento.
-        </div>
-      )}
 
       {/* ── Dados da empresa ── */}
       <div className="bg-white rounded-xl shadow p-5">
