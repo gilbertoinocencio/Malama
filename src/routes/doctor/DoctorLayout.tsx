@@ -243,7 +243,7 @@ export const DoctorLayout: React.FC = () => {
         </header>
 
         {/* Content */}
-        <div className="p-4 lg:p-8">
+        <div className="mx-auto w-full max-w-[1800px] p-4 lg:p-8">
           {/* Greeting */}
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-800">

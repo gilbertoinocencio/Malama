@@ -87,7 +87,7 @@ export const RhLayout: React.FC = () => {
     <RhAccessProvider acesso={acesso}>
       <div className="min-h-screen bg-[#F8F9FA]">
         <header className="bg-white border-b border-gray-200">
-          <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
               <MalamaLogo size="sm" />
               <span className="hidden sm:inline text-sm text-gray-400 border-l border-gray-200 pl-3">Portal do RH</span>
@@ -111,7 +111,7 @@ export const RhLayout: React.FC = () => {
             </div>
           </div>
 
-          <div className="max-w-5xl mx-auto px-6">
+          <div className="mx-auto w-full max-w-[1800px] px-4 sm:px-6 lg:px-8">
             <nav className="flex gap-1 -mb-px overflow-x-auto">
               {tabs.map(tab => (
                 <Link key={tab.to} to={tab.to} className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition ${location.pathname === tab.to ? 'border-[#7d4a3c] text-[#7d4a3c]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
@@ -122,7 +122,7 @@ export const RhLayout: React.FC = () => {
           </div>
         </header>
 
-        <main className="max-w-5xl mx-auto p-6"><Outlet /></main>
+        <main className="mx-auto w-full max-w-[1800px] p-4 sm:p-6 lg:px-8"><Outlet /></main>
       </div>
     </RhAccessProvider>
   );

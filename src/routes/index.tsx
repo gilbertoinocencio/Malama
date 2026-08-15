@@ -87,7 +87,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <div className="min-h-screen bg-[#F8F9FA]">
       {/* Admin Header */}
       <header className="bg-[#1A1A1A] text-white px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between">
           <MalamaLogo size="sm" />
           <nav className="flex gap-4 flex-wrap">
             <a href="/admin/dashboard" className="text-sm hover:text-[#2ECC71] transition">Dashboard</a>
@@ -104,7 +104,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6">
+      <main className="mx-auto w-full max-w-[1800px] p-4 sm:p-6 lg:px-8">
         {children}
       </main>
     </div>
