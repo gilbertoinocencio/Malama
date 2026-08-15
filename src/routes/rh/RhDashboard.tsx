@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import {
   Users, UserPlus, Trash2, Download, Mail, AlertCircle,
   CheckCircle2, Clock, Building2, Calendar, Send, Brain, Phone,
-  ArrowRight, Circle, ClipboardCheck, UserCog,
+  ArrowRight, Circle, ClipboardCheck, UserCog, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -179,6 +179,9 @@ export const RhDashboard: React.FC = () => {
   const [psi, setPsi] = useState<{ plano_ativo: boolean; max_assentos: number; assentos_em_uso: number } | null>(null);
   const [togglingPsi, setTogglingPsi] = useState<string | null>(null);
   const [loadError, setLoadError] = useState('');
+  // A lista cresce sem limite e empurrava o resto do dashboard para fora
+  // da tela; nasce fechada e o RH abre quando precisa mexer nela.
+  const [listaAberta, setListaAberta] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -645,12 +648,23 @@ export const RhDashboard: React.FC = () => {
 
       {/* ── Lista de colaboradores ── */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setListaAberta(v => !v)}
+            disabled={colaboradores.length === 0}
+            aria-expanded={listaAberta}
+            className="flex items-center gap-2 text-left rounded-lg -m-1 p-1 hover:bg-gray-50 transition disabled:hover:bg-transparent disabled:cursor-default"
+          >
             <Users className="w-5 h-5 text-[#7d4a3c]" />
             <h2 className="font-semibold text-gray-800">Colaboradores</h2>
             <span className="text-xs text-gray-400">{colaboradores.length}</span>
-          </div>
+            {colaboradores.length > 0 && (
+              listaAberta
+                ? <ChevronUp className="w-4 h-4 text-gray-400" />
+                : <ChevronDown className="w-4 h-4 text-gray-400" />
+            )}
+          </button>
           <button
             onClick={exportCsv}
             disabled={colaboradores.length === 0}
@@ -667,6 +681,14 @@ export const RhDashboard: React.FC = () => {
             <p className="text-gray-500 font-medium">Nenhum colaborador ainda.</p>
             <p className="text-gray-400 text-sm mt-1">Adicione o primeiro colaborador pelo e-mail acima.</p>
           </div>
+        ) : !listaAberta ? (
+          <button
+            type="button"
+            onClick={() => setListaAberta(true)}
+            className="w-full px-5 py-3 text-xs text-gray-500 hover:bg-gray-50 transition text-left"
+          >
+            Lista recolhida — clique para ver os {colaboradores.length} colaboradores.
+          </button>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
