@@ -3,7 +3,7 @@ import {
   CartesianGrid, LabelList, ReferenceArea, ReferenceLine, ResponsiveContainer,
   Scatter, ScatterChart, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { AlertTriangle, Grid3x3, Info, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Grid3x3, Info, ListChecks, ShieldAlert } from 'lucide-react';
 import type { JssClassificacao, RhRelatorioJss } from '../../services/empresaService';
 import {
   JSS_CLASSIFICACAO, JSS_PRIORIDADE, obterInsightJss, prioridadeOrdem,
@@ -92,17 +92,34 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
     <div className="mb-5 space-y-4">
       <div className="border-t border-gray-100 pt-5">
         <div className="flex items-center gap-2">
-          <Grid3x3 className="h-4 w-4 text-[#7d4a3c]" />
-          <h3 className="text-sm font-semibold text-gray-800">Diagnóstico JSS por setor</h3>
+          <ListChecks className="h-4 w-4 text-[#7d4a3c]" />
+          <h3 className="text-sm font-semibold text-gray-800">Diagnóstico e próximos passos por setor</h3>
         </div>
         <p className="mt-1 text-xs leading-relaxed text-gray-500">
-          Cada setor é uma bolinha. Quanto mais em cima, mais o trabalho cobra; quanto mais à
-          direita, mais autonomia as pessoas têm para decidir. O apoio não entra no gráfico:
-          ele aparece como um anel vermelho em volta da bolinha quando está baixo. A ordem da
-          lista abaixo é só uma sugestão de por onde começar, não a classificação formal de
-          risco do GRO/PGR.
+          A lista organiza os setores por onde vale começar e traduz os resultados em sinais e
+          próximos passos, sem comparar lideranças nem expor respostas individuais.
         </p>
       </div>
+
+      <details className="group rounded-xl border border-gray-200 bg-white">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
+          <div className="flex min-w-0 items-start gap-3">
+            <Grid3x3 className="mt-0.5 h-5 w-5 shrink-0 text-[#8B4A3A]" />
+            <div>
+              <p className="font-medium text-gray-900">Ver análise técnica Demanda × Controle</p>
+              <p className="mt-0.5 text-sm text-gray-500">
+                Quadrantes do modelo Karasek/Theorell, preservados para consulta técnica e relatório do PGR.
+              </p>
+            </div>
+          </div>
+          <ChevronDown className="h-5 w-5 shrink-0 text-gray-500 transition-transform group-open:rotate-180" />
+        </summary>
+
+        <div className="space-y-3 border-t border-gray-100 p-4">
+          <p className="text-sm leading-6 text-gray-600">
+            Cada setor é uma bolinha. Quanto mais em cima, mais o trabalho cobra; quanto mais à direita, mais autonomia
+            as pessoas têm para decidir. O apoio aparece como um anel vermelho quando está abaixo da referência.
+          </p>
 
       {!cortes ? (
         <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">
@@ -190,6 +207,8 @@ export const JssDiagnosticoSetor: React.FC<{ relatorio: RhRelatorioJss }> = ({ r
           </div>
         </>
       )}
+        </div>
+      </details>
 
       <div className="space-y-2">
         <div>
