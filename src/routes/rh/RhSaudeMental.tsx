@@ -40,6 +40,7 @@ import { JssTeiaTemas } from '../../components/rh/JssTeiaTemas';
 import { Who5Indicadores } from '../../components/rh/Who5Indicadores';
 import { RelatosSentinelaCard } from '../../components/rh/RelatosSentinelaCard';
 import { useScrollParaHash } from '../../hooks/useScrollParaHash';
+import { ritmoInstrumento } from '../../lib/rhJornada';
 
 const MIN_COORTE = 5;
 
@@ -517,25 +518,16 @@ const CicloAvaliacoes: React.FC<{
   campanhas: PsychosocialCampanha[];
   onNova: (instrumento: string) => void;
 }> = ({ campanhas, onNova }) => {
-  const hoje = new Date();
-
+  // Mesma matemática de cadência do "Ritmo do ciclo" no dashboard: as duas
+  // telas discordavam sobre quando era a próxima medição quando cada uma
+  // calculava por conta própria.
   const estado = (instrumento: 'who5' | 'jss', meses: number) => {
-    const relacionadas = campanhas
-      .filter(c => c.instrument === instrumento && c.status !== 'cancelada')
-      .sort((a, b) => b.janela_fim.localeCompare(a.janela_fim));
-    const aberta = relacionadas.find(c => c.status === 'aberta');
-    if (aberta) return { aberto: true, destaque: 'Campanha em andamento', detalhe: `Fecha em ${fmtDate(aberta.janela_fim)}` };
-    const ultima = relacionadas[0];
-    if (!ultima) return { aberto: false, destaque: 'Primeira medição pendente', detalhe: 'Crie a linha de base da empresa.' };
-    const referencia = ultima.encerrada_em?.slice(0, 10) ?? ultima.janela_fim;
-    const base = new Date(`${referencia}T12:00:00`);
-    base.setMonth(base.getMonth() + meses);
-    const vencida = base <= hoje;
-    return {
-      aberto: false,
-      destaque: vencida ? 'Nova medição recomendada' : `Próxima em ${base.toLocaleDateString('pt-BR')}`,
-      detalhe: vencida ? `O último ciclo terminou em ${fmtDate(referencia)}.` : `Último ciclo encerrado em ${fmtDate(referencia)}.`,
-    };
+    const r = ritmoInstrumento(campanhas, instrumento, meses);
+    const destaque = r.situacao === 'em_andamento' ? 'Campanha em andamento'
+      : r.situacao === 'pendente' ? 'Primeira medição pendente'
+      : r.situacao === 'vencido' ? 'Nova medição recomendada'
+      : `Próxima em ${r.proxima!.toLocaleDateString('pt-BR')}`;
+    return { aberto: r.situacao === 'em_andamento', destaque, detalhe: r.detalhe };
   };
 
   const itens = [

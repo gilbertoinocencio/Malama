@@ -8,16 +8,32 @@ import { supabase } from '../../services/supabase';
 import { MalamaLogo } from '../../components/MalamaLogo';
 import { rhService, type RhAcesso, type RhPermissao } from '../../services/empresaService';
 import { RhAccessProvider } from '../../contexts/RhAccessContext';
+import { RhJornadaProvider, useRhJornada } from '../../contexts/RhJornadaContext';
+import { FaixaProximoPasso } from '../../components/rh/FaixaProximoPasso';
+import { docsPendentesDe } from '../../lib/rhJornada';
 
 type Tab = { to: string; label: string; icon: React.ReactNode; permissao: RhPermissao };
 const ABA_IMPACTO_ATIVA = false;
+
+/** Identidade da empresa no cabeçalho. Fica em componente próprio para poder
+ *  ler o contexto da jornada — nome e documentos já vêm de lá, sem repetir
+ *  as chamadas que o layout fazia por conta própria. */
+const EmpresaNoCabecalho: React.FC = () => {
+  const { empresa, documentos } = useRhJornada();
+  const pendentes = docsPendentesDe(documentos);
+  return (
+    <Link to="/rh/empresa" title="Dados e documentos da empresa" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#7d4a3c] transition max-w-[45vw] sm:max-w-none">
+      <Building2 className="w-4 h-4 flex-shrink-0" />
+      <span className="truncate">{empresa?.nome || 'Minha empresa'}</span>
+      {pendentes > 0 && <span title={`${pendentes} documento(s) aguardando aceite`} className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />}
+    </Link>
+  );
+};
 
 export const RhLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [temImpacto, setTemImpacto] = useState(false);
-  const [empresaNome, setEmpresaNome] = useState('');
-  const [docsPendentes, setDocsPendentes] = useState(0);
   const [acesso, setAcesso] = useState<RhAcesso | null>(null);
   const [carregando, setCarregando] = useState(true);
 
@@ -32,19 +48,6 @@ export const RhLayout: React.FC = () => {
     if (!ABA_IMPACTO_ATIVA) return;
     rhService.hasCertificados().then(setTemImpacto).catch(() => setTemImpacto(false));
   }, []);
-
-  useEffect(() => {
-    rhService.getMyEmpresa().then(e => setEmpresaNome(e?.nome ?? '')).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!acesso || (!acesso.principal && !acesso.permissoes.includes('empresa'))) return;
-    rhService.registrarCiencia()
-      .catch(() => {})
-      .then(() => rhService.getDocumentos())
-      .then(ds => setDocsPendentes((ds ?? []).filter(d => d.exige_aceite && !d.aceito_em).length))
-      .catch(() => setDocsPendentes(0));
-  }, [acesso]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -85,7 +88,8 @@ export const RhLayout: React.FC = () => {
 
   return (
     <RhAccessProvider acesso={acesso}>
-      <div className="min-h-screen bg-[#F8F9FA]">
+      <RhJornadaProvider>
+        <div className="min-h-screen bg-[#F8F9FA]">
         <header className="bg-white border-b border-gray-200">
           <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
@@ -93,13 +97,7 @@ export const RhLayout: React.FC = () => {
               <span className="hidden sm:inline text-sm text-gray-400 border-l border-gray-200 pl-3">Portal do RH</span>
             </div>
             <div className="flex items-center gap-4">
-              {can('empresa') && (
-                <Link to="/rh/empresa" title="Dados e documentos da empresa" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#7d4a3c] transition max-w-[45vw] sm:max-w-none">
-                  <Building2 className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">{empresaNome || 'Minha empresa'}</span>
-                  {docsPendentes > 0 && <span title={`${docsPendentes} documento(s) aguardando aceite`} className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />}
-                </Link>
-              )}
+              {can('empresa') && <EmpresaNoCabecalho />}
               {acesso.principal && (
                 <Link to="/rh/usuarios" title="Usuários e permissões" className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#7d4a3c] transition">
                   <UserCog className="w-5 h-5" /><span className="hidden md:inline">Equipe</span>
@@ -120,10 +118,15 @@ export const RhLayout: React.FC = () => {
               ))}
             </nav>
           </div>
+
+          {/* Bússola em todas as abas: sem isto, "o que eu faço agora?" só
+              tinha resposta no dashboard. */}
+          <FaixaProximoPasso />
         </header>
 
         <main className="mx-auto w-full max-w-[1800px] p-4 sm:p-6 lg:px-8"><Outlet /></main>
-      </div>
+        </div>
+      </RhJornadaProvider>
     </RhAccessProvider>
   );
 };

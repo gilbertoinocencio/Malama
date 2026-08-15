@@ -31,6 +31,7 @@ import { RhImpacto } from './rh/RhImpacto';
 import { RhEmpresa } from './rh/RhEmpresa';
 import { RhUsuarios } from './rh/RhUsuarios';
 import { RhRelatos } from './rh/RhRelatos';
+import { RhComoFunciona } from './rh/RhComoFunciona';
 import { RhPermissionGate } from '../contexts/RhAccessContext';
 
 // Doctor Pages
@@ -337,6 +338,10 @@ export const AppRoutes: React.FC = () => {
             <Route path="importar" element={<RhPermissionGate permissao="importar"><RhImportar /></RhPermissionGate>} />
             <Route path="compliance" element={<RhPermissionGate permissao="compliance"><RhCompliance /></RhPermissionGate>} />
             <Route path="impacto" element={<RhPermissionGate permissao="compliance"><RhImpacto /></RhPermissionGate>} />
+            {/* Explicador da norma: fora da barra de abas e sem permissão —
+                quem está perdido na NR-1 pode ser justamente quem tem o
+                acesso mais restrito. */}
+            <Route path="nr1" element={<RhComoFunciona />} />
             {/* Área da empresa: fora da barra de abas, aberta pelo cabeçalho. */}
             <Route path="empresa" element={<RhPermissionGate permissao="empresa"><RhEmpresa /></RhPermissionGate>} />
             <Route path="usuarios" element={<RhPermissionGate permissao="usuarios"><RhUsuarios /></RhPermissionGate>} />

@@ -13,23 +13,17 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-  rhService, type RhEmpresa, type EmpresaColaborador, type LiderancaCiclo,
-  type PsychosocialCampanha, type RhUsuarioEquipe, type DocumentoLegal,
+  rhService, type EmpresaColaborador, type RhUsuarioEquipe,
 } from '../../services/empresaService';
 import { SetoresCard } from '../../components/rh/SetoresCard';
+import { RitmoDoCicloCard } from '../../components/rh/RitmoDoCicloCard';
 import { useRhAccess } from '../../contexts/RhAccessContext';
+import { useRhJornada } from '../../contexts/RhJornadaContext';
 import { useScrollParaHash } from '../../hooks/useScrollParaHash';
+import { passosPreparacao, proximoPasso, type DadosJornada } from '../../lib/rhJornada';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-
-// Leitura auxiliar do painel: o resultado carrega se a chamada deu certo.
-// Sem isso, `.catch(() => [])` fazia falha de rede virar "não existe nada".
-type Leitura<T> = { ok: boolean; dados: T[] };
-const opcional = <T,>(p: Promise<T[]>): Promise<Leitura<T>> =>
-  p.then(dados => ({ ok: true, dados })).catch(() => ({ ok: false, dados: [] as T[] }));
-/** Chamada que nem foi feita (sem permissão) — ausência não é falha. */
-const vazio = <T,>(): Promise<Leitura<T>> => Promise.resolve({ ok: true, dados: [] as T[] });
 
 const ColabStatusBadge: React.FC<{ status: EmpresaColaborador['status'] }> = ({ status }) => {
   if (status === 'ativo') {
@@ -46,109 +40,19 @@ const ColabStatusBadge: React.FC<{ status: EmpresaColaborador['status'] }> = ({ 
   );
 };
 
-type GuiaRhProps = {
-  setores: number;
-  colaboradores: number;
-  campanhas: PsychosocialCampanha[];
-  ciclos: LiderancaCiclo[];
+/**
+ * Versão completa do guia — a mesma decisão da faixa do cabeçalho, só que
+ * com descrição e checklist. Toda a regra vive em `lib/rhJornada`.
+ */
+const GuiaJornadaRh: React.FC<{
+  dados: DadosJornada;
   usuariosEquipe: RhUsuarioEquipe[];
   principal: boolean;
-  podeSaudeMental: boolean;
-  podePlanoAcao: boolean;
-  podeEmpresa: boolean;
-  docsPendentes: number;
-  empresaAtiva: boolean;
-};
-
-const GuiaJornadaRh: React.FC<GuiaRhProps> = ({
-  setores, colaboradores, campanhas, ciclos, usuariosEquipe, principal,
-  podeSaudeMental, podePlanoAcao, podeEmpresa, docsPendentes, empresaAtiva,
-}) => {
-  const temSetores = setores > 0;
-  const temColaboradores = colaboradores > 0;
-  const temCampanha = campanhas.some(c => c.status !== 'cancelada');
-  const campanhaAberta = campanhas.find(c => c.status === 'aberta');
-  const temResultado = campanhas.some(c => c.status === 'encerrada');
-  const temJss = campanhas.some(c => c.instrument === 'jss' && c.status !== 'cancelada');
-  const cicloAtivo = ciclos.find(c => c.status === 'ativo');
-
-  // Fonte única do checklist E do progresso: eram dois arrays paralelos que
-  // precisavam ser editados juntos para não divergir.
-  const passos = [
-    { label: 'Empresa vinculada', ok: true },
-    { label: 'Setores organizados', ok: temSetores },
-    { label: 'Colaboradores adicionados', ok: temColaboradores },
-    ...(podeEmpresa ? [{ label: 'Documentos aceitos', ok: docsPendentes === 0 }] : []),
-    // "realizada", não "aberta": campanha encerrada também conta, e o item
-    // ficava verde dizendo "aberta" depois que a janela fechava.
-    ...(podeSaudeMental ? [{ label: 'Primeira avaliação realizada', ok: temCampanha }] : []),
-  ];
+}> = ({ dados, usuariosEquipe, principal }) => {
+  const { titulo, descricao, destino, acao, atalho } = proximoPasso(dados);
+  const passos = passosPreparacao(dados);
   const concluidos = passos.filter(p => p.ok).length;
   const progresso = Math.round((concluidos / passos.length) * 100);
-
-  let titulo = 'Empresa em dia com o ciclo';
-  let descricao = 'A base está montada e o ciclo está rodando. Acompanhe os resultados a cada nova janela de resposta.';
-  // Pode ser null: passo sem ação real não ganha botão morto.
-  let destino: string | null = podeSaudeMental ? '/rh/saude-mental#resultado-jss' : '/rh/dashboard#novo-colaborador';
-  let acao = podeSaudeMental ? 'Ver diagnóstico' : 'Gerenciar colaboradores';
-  let atalho: { to: string; label: string } | null = null;
-
-  if (!empresaAtiva) {
-    titulo = 'Conta da empresa não está ativa';
-    descricao = 'Enquanto isso não for regularizado, não dá para adicionar colaboradores nem abrir avaliações. Fale com a Malama.';
-    destino = podeEmpresa ? '/rh/empresa' : null;
-    acao = 'Ver dados da empresa';
-  } else if (!temSetores) {
-    titulo = 'Organize os setores da empresa';
-    descricao = 'Os setores permitem apresentar resultados úteis sem expor respostas individuais.';
-    destino = '/rh/dashboard#setores';
-    acao = 'Cadastrar setores';
-  } else if (!temColaboradores) {
-    titulo = 'Adicione os colaboradores';
-    descricao = 'Convide um a um pelo painel ou traga a lista inteira de uma vez pela planilha.';
-    destino = '/rh/dashboard#novo-colaborador';
-    acao = 'Adicionar colaboradores';
-    atalho = { to: '/rh/importar', label: 'Importar planilha' };
-  } else if (podeEmpresa && docsPendentes > 0) {
-    // Antes da campanha de propósito: a coleta é de dado de saúde, e o
-    // aceite é o que documenta a base legal disso.
-    titulo = docsPendentes === 1 ? 'Aceite o documento pendente' : `Aceite os ${docsPendentes} documentos pendentes`;
-    descricao = 'O aceite fica registrado com versão, data e quem assinou — é o que sustenta a coleta de dados de saúde no PGR.';
-    destino = '/rh/empresa';
-    acao = 'Revisar documentos';
-  } else if (podeSaudeMental && campanhaAberta) {
-    titulo = `Acompanhe a campanha de ${campanhaAberta.instrument === 'jss' ? 'carga de trabalho' : 'bem-estar'}`;
-    descricao = 'Veja a participação, compartilhe os links e encerre a campanha quando a janela terminar.';
-    destino = '/rh/saude-mental#campanhas';
-    acao = 'Acompanhar campanha';
-  } else if (podeSaudeMental && !temCampanha) {
-    titulo = 'Abra o primeiro diagnóstico';
-    descricao = 'Comece com WHO-5 e JSS para criar a primeira fotografia de bem-estar e condições de trabalho.';
-    destino = '/rh/saude-mental?nova=1';
-    acao = 'Iniciar diagnóstico';
-  } else if (podeSaudeMental && !temJss) {
-    titulo = 'Complete o diagnóstico inicial com o JSS';
-    descricao = 'O WHO-5 mostra como as pessoas estão; o JSS ajuda a entender o que no trabalho precisa mudar.';
-    destino = '/rh/saude-mental?nova=1&instrumento=jss';
-    acao = 'Abrir JSS';
-  } else if (podeSaudeMental && temResultado && ciclos.length === 0) {
-    // Sem este passo a jornada pulava de "acompanhe a campanha" direto para
-    // "converse com a liderança", sem nunca convidar a LER o resultado.
-    titulo = 'Leia o diagnóstico do período';
-    descricao = 'Veja quais setores pedem atenção primeiro e o que puxou o resultado, antes de decidir qualquer medida.';
-    destino = '/rh/saude-mental#resultado-jss';
-    acao = 'Ver diagnóstico';
-  } else if (podePlanoAcao && cicloAtivo) {
-    titulo = `Acompanhe os combinados de ${cicloAtivo.setor}`;
-    descricao = 'Registre o que entrou em prática e avance a jornada somente quando houver evidência.';
-    destino = '/rh/plano-acao?visao=lideranca';
-    acao = 'Ver evolução';
-  } else if (podePlanoAcao && temJss) {
-    titulo = 'Prepare a conversa com as lideranças';
-    descricao = 'Use o diagnóstico agregado para reconhecer pontos fortes e combinar até três melhorias por setor.';
-    destino = '/rh/plano-acao?visao=lideranca&nova=1';
-    acao = 'Preparar conversa';
-  }
 
   return (
     <section className="rounded-xl border border-[#7d4a3c]/20 bg-white p-5 shadow-sm" aria-labelledby="guia-rh-titulo">
@@ -203,19 +107,16 @@ const GuiaJornadaRh: React.FC<GuiaRhProps> = ({
 
 export const RhDashboard: React.FC = () => {
   const { acesso } = useRhAccess();
-  const [empresa, setEmpresa] = useState<RhEmpresa | null>(null);
-  const [colaboradores, setColaboradores] = useState<EmpresaColaborador[]>([]);
-  const [campanhas, setCampanhas] = useState<PsychosocialCampanha[]>([]);
-  const [ciclos, setCiclos] = useState<LiderancaCiclo[]>([]);
-  const [usuariosEquipe, setUsuariosEquipe] = useState<RhUsuarioEquipe[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Empresa, colaboradores, setores, campanhas, ciclos e documentos vêm do
+  // contexto da jornada — carregados uma vez no layout e compartilhados com
+  // a faixa do cabeçalho. Aqui ficam só os estados do próprio formulário.
+  const {
+    empresa, colaboradores, setColaboradores, setores: setoresAtivos,
+    usuariosEquipe, loading, parcial, dados, recarregar,
+  } = useRhJornada();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [setor, setSetor] = useState('');
-  // Setores ativos do registro da empresa (migration 20260824). O campo de
-  // setor é um seletor: texto livre aqui era o que fabricava coortes
-  // duplicadas ("TI" / "T.I.") e fazia o piso k suprimir as duas.
-  const [setoresAtivos, setSetoresAtivos] = useState<string[]>([]);
   const [funcao, setFuncao] = useState('');
   // Chave de junção com os eventos do eSocial (migration 20260814). Opcional
   // aqui: quem já tem cadastro pode vincular em lote na aba Importar.
@@ -226,61 +127,19 @@ export const RhDashboard: React.FC = () => {
   const [resending, setResending] = useState<string | null>(null);
   const [psi, setPsi] = useState<{ plano_ativo: boolean; max_assentos: number; assentos_em_uso: number } | null>(null);
   const [togglingPsi, setTogglingPsi] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState('');
-  const [docsPendentes, setDocsPendentes] = useState(0);
   // A lista cresce sem limite e empurrava o resto do dashboard para fora
   // da tela; nasce fechada e o RH abre quando precisa mexer nela.
   const [listaAberta, setListaAberta] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setLoadError('');
-    try {
-      const emp = await rhService.getMyEmpresa();
-      if (!emp) {
-        setEmpresa(null);
-        return;
-      }
-      if (emp) {
-        const [colabs, resumoPsi, setores, campanhasAtuais, ciclosAtuais, equipe, documentos] = await Promise.all([
-          rhService.getColaboradores(emp.id),
-          rhService.getResumoPsicologico(),
-          opcional(rhService.getSetores()),
-          (acesso.principal || acesso.permissoes.includes('saude_mental'))
-            ? opcional(rhService.getCampanhas()) : vazio<PsychosocialCampanha>(),
-          (acesso.principal || acesso.permissoes.includes('plano_acao'))
-            ? opcional(rhService.getLiderancaCiclos()) : vazio<LiderancaCiclo>(),
-          acesso.principal ? opcional(rhService.getUsuariosEquipe()) : vazio<RhUsuarioEquipe>(),
-          (acesso.principal || acesso.permissoes.includes('empresa'))
-            ? opcional(rhService.getDocumentos()) : vazio<DocumentoLegal>(),
-        ]);
-        // Publica o conjunto de uma vez: nunca mostra empresa nova com lista
-        // antiga, nem apaga o estado anterior se uma das chamadas falhar.
-        setEmpresa(emp);
-        setColaboradores(colabs);
-        setPsi(resumoPsi);
-        // Leitura que falhou NÃO vira lista vazia: zerar o contador fazia o
-        // guia mandar uma empresa madura refazer o passo 1 do zero.
-        if (setores.ok) setSetoresAtivos(setores.dados.map(s => s.setor));
-        if (campanhasAtuais.ok) setCampanhas(campanhasAtuais.dados);
-        if (ciclosAtuais.ok) setCiclos(ciclosAtuais.dados);
-        if (equipe.ok) setUsuariosEquipe(equipe.dados);
-        if (documentos.ok) {
-          setDocsPendentes(documentos.dados.filter(d => d.exige_aceite && !d.aceito_em).length);
-        }
-        if (![setores, campanhasAtuais, ciclosAtuais, equipe, documentos].every(r => r.ok)) {
-          setLoadError('Parte do painel não pôde ser lida agora. O que aparece abaixo pode estar desatualizado.');
-        }
-      }
-    } catch (err) {
-      console.error('Erro ao carregar painel do RH:', err);
-      setLoadError('Não foi possível atualizar os dados. Sua sessão ou conexão pode ter oscilado.');
-    } finally {
-      setLoading(false);
-    }
-  }, [acesso]);
+  // O resumo psicológico é o único dado exclusivo desta tela.
+  useEffect(() => {
+    rhService.getResumoPsicologico().then(setPsi).catch(() => setPsi(null));
+  }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const load = useCallback(async () => {
+    await recarregar();
+    rhService.getResumoPsicologico().then(setPsi).catch(() => {});
+  }, [recarregar]);
 
   // Serve tanto o atalho vindo da tela de campanha quanto os passos do guia,
   // que apontam para âncoras desta mesma página.
@@ -444,17 +303,6 @@ export const RhDashboard: React.FC = () => {
     );
   }
 
-  if (loadError && !empresa) {
-    return (
-      <div className="bg-white rounded-xl shadow p-10 text-center">
-        <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-        <p className="text-gray-700 font-medium">Não foi possível carregar o painel agora.</p>
-        <p className="text-gray-500 text-sm mt-1">Seus dados não foram apagados.</p>
-        <button onClick={load} className="mt-4 px-4 py-2 rounded-lg bg-[#7d4a3c] text-white text-sm font-semibold">Tentar novamente</button>
-      </div>
-    );
-  }
-
   if (!empresa) {
     return (
       <div className="bg-white rounded-xl shadow p-10 text-center">
@@ -467,7 +315,7 @@ export const RhDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {loadError && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3"><span>{loadError} Mantivemos a última informação carregada.</span><button onClick={load} className="font-semibold whitespace-nowrap">Tentar novamente</button></div>}
+      {parcial && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3"><span>Parte do painel não pôde ser lida agora — mantivemos a última informação carregada.</span><button onClick={load} className="font-semibold whitespace-nowrap">Tentar novamente</button></div>}
       {/* ── Cabeçalho ── */}
       <div>
         <h1 className="text-2xl font-semibold text-gray-800">{empresa.nome}</h1>
@@ -482,19 +330,11 @@ export const RhDashboard: React.FC = () => {
         </div>
       )}
 
-      <GuiaJornadaRh
-        setores={setoresAtivos.length}
-        colaboradores={colaboradores.length}
-        campanhas={campanhas}
-        ciclos={ciclos}
-        usuariosEquipe={usuariosEquipe}
-        principal={acesso.principal}
-        podeSaudeMental={acesso.principal || acesso.permissoes.includes('saude_mental')}
-        podePlanoAcao={acesso.principal || acesso.permissoes.includes('plano_acao')}
-        podeEmpresa={acesso.principal || acesso.permissoes.includes('empresa')}
-        docsPendentes={docsPendentes}
-        empresaAtiva={empresa.status === 'ativa'}
-      />
+      <GuiaJornadaRh dados={dados} usuariosEquipe={usuariosEquipe} principal={acesso.principal} />
+
+      {/* O calendário é o tabuleiro: a pergunta que o RH traz da reunião é
+          "estou atrasado?", não "qual é a minha nota". */}
+      <RitmoDoCicloCard dados={dados} />
 
       {/* ── Dados da empresa ── */}
       <div className="bg-white rounded-xl shadow p-5">
@@ -621,12 +461,10 @@ export const RhDashboard: React.FC = () => {
         // Renomear/unir setor reescreve o texto gravado em cada colaborador:
         // a lista precisa ser relida para não exibir o nome antigo.
         onMutacao={load}
-        onChange={ativos => {
-          setSetoresAtivos(ativos);
-          // Setor selecionado que foi renomeado/arquivado no card não pode
-          // continuar no formulário: gravaria um texto que não existe mais.
-          setSetor(prev => (prev && !ativos.includes(prev) ? '' : prev));
-        }}
+        // A lista compartilhada é atualizada por `onMutacao`; aqui só resta
+        // proteger o formulário: setor selecionado que foi renomeado ou
+        // arquivado no card gravaria um texto que não existe mais.
+        onChange={ativos => setSetor(prev => (prev && !ativos.includes(prev) ? '' : prev))}
         />
       </div>
 

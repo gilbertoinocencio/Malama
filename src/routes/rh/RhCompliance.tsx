@@ -26,6 +26,8 @@ import { generateCompliancePDF } from '../../lib/complianceDoc';
 import {
   generateCertificadoPDF, generateCertificadosLotePDF, type CertificadoMeta,
 } from '../../lib/certificadoDisponibilizacao';
+import { DossieNr1Card } from '../../components/rh/DossieNr1Card';
+import { useRhJornada } from '../../contexts/RhJornadaContext';
 
 // Serviços disponibilizados a todo colaborador com assento, por modo
 // contratado. O certificado é documento de evidência — precisa listar o
@@ -60,6 +62,7 @@ const fmtDateTime = (d: string) =>
   new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 export const RhCompliance: React.FC = () => {
+  const { dados } = useRhJornada();
   const [metricas, setMetricas] = useState<RhComplianceMetricas | null>(null);
   const [empresa, setEmpresa] = useState<RhEmpresa | null>(null);
   const [docs, setDocs] = useState<ComplianceDoc[]>([]);
@@ -229,6 +232,9 @@ export const RhCompliance: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Primeiro de tudo: é a pergunta que traz o RH a esta aba. */}
+      <DossieNr1Card dados={dados} />
+
       {/* Resultados de bem-estar */}
       {bemestar && (
         <div className="bg-white rounded-xl shadow p-5">
