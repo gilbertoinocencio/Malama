@@ -78,17 +78,26 @@ export const RhFinanceiro: React.FC = () => {
     new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
   const saveAssentos = async () => {
+    if (!resumo) return;
     const n = parseInt(novoAssentos, 10);
     if (!Number.isFinite(n)) { toast.error('Informe um número válido.'); return; }
+    if (n < resumo.assentos_ocupados) {
+      toast.error(`O novo total não pode ser menor que os ${resumo.assentos_ocupados} assentos ocupados.`);
+      return;
+    }
+    if (n === resumo.max_assentos) {
+      toast.error('Informe uma quantidade diferente da atual.');
+      return;
+    }
     setSavingAssentos(true);
     try {
       const vigencia = await rhService.agendarAssentos(n);
-      toast.success(`Redução agendada para ${fmtMesAno(vigencia)}. A fatura atual não muda.`);
+      toast.success(`Ajuste agendado para ${fmtMesAno(vigencia)}. A fatura atual não muda.`);
       setEditAssentos(false);
       setNovoAssentos('');
       load();
     } catch (err: any) {
-      toast.error(err?.message || 'Não foi possível agendar a redução.');
+      toast.error(err?.message || 'Não foi possível agendar o ajuste.');
     } finally {
       setSavingAssentos(false);
     }
@@ -170,13 +179,16 @@ export const RhFinanceiro: React.FC = () => {
             <h2 className="font-semibold text-gray-800">Resumo do contrato</h2>
           </div>
           {!editAssentos ? (
-            <button onClick={() => { setEditAssentos(true); setNovoAssentos(String(resumo.max_assentos ?? '')); }}
+            <button onClick={() => {
+              setEditAssentos(true);
+              setNovoAssentos(String(resumo.max_assentos_agendado ?? resumo.max_assentos ?? ''));
+            }}
               className="inline-flex items-center gap-1.5 text-sm text-[#7d4a3c] hover:underline">
               <Pencil className="w-3.5 h-3.5" /> Editar assentos
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <input type="number" min={resumo.assentos_ocupados} max={(resumo.max_assentos ?? 1) - 1}
+              <input type="number" min={Math.max(1, resumo.assentos_ocupados)} step="1"
                 value={novoAssentos} onChange={e => setNovoAssentos(e.target.value)}
                 className="w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-[#7d4a3c]" />
               <button onClick={saveAssentos} disabled={savingAssentos}
@@ -212,13 +224,16 @@ export const RhFinanceiro: React.FC = () => {
           <div className="mt-4 flex items-start gap-2 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800">
             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <span>
-              Redução agendada: <strong>{resumo.max_assentos_agendado} assentos</strong> a partir de{' '}
+              Ajuste agendado: <strong>{resumo.max_assentos_agendado} assentos</strong> a partir de{' '}
               <strong>{fmtMesAno(resumo.max_assentos_vigencia)}</strong>. A fatura do mês atual mantém o valor vigente.
+              {' '}O novo total mensal será <strong>{fmtCurrency(
+                (resumo.valor_por_assento ?? 0) * resumo.max_assentos_agendado
+              )}</strong>.
             </span>
           </div>
         )}
         <p className="text-xs text-gray-400 mt-3">
-          As alterações passam a valer no mês seguinte.
+          Aumentos e reduções passam a valer no mês seguinte. O total não pode ser menor que os assentos ocupados.
         </p>
       </div>
 

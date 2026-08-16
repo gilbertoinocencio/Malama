@@ -290,14 +290,14 @@ export const AdminDashboard: React.FC = () => {
             <p className="text-xs text-gray-400 mt-0.5">Acesso suspenso</p>
           </div>
 
-          {/* Reduções agendadas */}
+          {/* Ajustes de assentos agendados */}
           <div className="bg-white rounded-xl shadow p-5">
             <div className="flex items-center gap-2 mb-2">
               <BarChart2 className="w-4 h-4 text-orange-400" />
-              <p className="text-xs text-gray-500">Reduções agendadas</p>
+              <p className="text-xs text-gray-500">Ajustes agendados</p>
             </div>
-            <p className="text-2xl font-bold text-gray-800">{b2bStats?.reducoes_agendadas ?? 0}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Assentos caem no próximo mês</p>
+            <p className="text-2xl font-bold text-gray-800">{b2bStats?.ajustes_assentos_agendados ?? 0}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Vigência no próximo mês</p>
           </div>
         </div>
       </section>

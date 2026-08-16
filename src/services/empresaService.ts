@@ -166,7 +166,7 @@ export type B2BDashboardStats = {
   assentos_mental: number;
   bloqueadas: number;
   inadimplentes: number;
-  reducoes_agendadas: number;
+  ajustes_assentos_agendados: number;
   leads_pendentes: number;
 };
 
@@ -275,7 +275,7 @@ export const empresaAdminService = {
         .reduce((s, e) => s + (e.max_assentos ?? 0), 0),
       bloqueadas: ativas.filter(e => e.acesso_bloqueado).length,
       inadimplentes: inadimplentes ?? 0,
-      reducoes_agendadas: ativas.filter(e => e.max_assentos_agendado != null).length,
+      ajustes_assentos_agendados: ativas.filter(e => e.max_assentos_agendado != null).length,
       leads_pendentes: leads ?? 0,
     };
   },

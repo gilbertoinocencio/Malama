@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
     const competencia = `${vencimento.slice(0, 7)}-01`;
 
     // 2. Assentos CONTRATADOS → valor da fatura (cobra-se o contratado, não o uso).
-    // Se há redução agendada com vigência ≤ competência desta fatura, aplica-a
+    // Se há ajuste agendado com vigência ≤ competência desta fatura, aplica-o
     // (e promove permanentemente em empresas).
     let maxAssentos = empresa.max_assentos ?? 0;
     if (empresa.max_assentos_agendado != null && empresa.max_assentos_vigencia &&
