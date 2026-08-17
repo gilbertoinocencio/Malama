@@ -19,6 +19,7 @@ import {
 import toast from 'react-hot-toast';
 import { rhService, type SetorAdmin } from '../../services/empresaService';
 import { CabecalhoColapsavel, ResumoRecolhido, useSecaoAberta } from './SecaoColapsavel';
+import { ConfirmarUniaoSetor } from './ConfirmarUniaoSetor';
 
 /**
  * Piso de coorte dos relatórios. Duplicado do banco de propósito — lá é
@@ -52,6 +53,12 @@ export const SetoresCard: React.FC<{
   const [efetivoEdit, setEfetivoEdit] = useState<Record<string, string>>({});
   // Destino escolhido na sugestão de união dos setores abaixo do piso.
   const [uniaoDestino, setUniaoDestino] = useState<Record<string, string>>({});
+  // União aguardando confirmação. Os dois caminhos que levam a uma fusão
+  // (renomear para um nome existente, e o botão de unir) desaguam aqui,
+  // para haver um aviso só — e não duas redações que envelhecem separadas.
+  const [uniao, setUniao] = useState<
+    { setorId: string; origem: string; destino: string; pessoas: number } | null
+  >(null);
 
   // Recolhido por padrão, mas abre sozinho enquanto não houver setor: é o
   // primeiro passo do onboarding, e escondê-lo atrás de um clique seria
@@ -98,19 +105,13 @@ export const SetoresCard: React.FC<{
     try {
       let res = await rhService.renomearSetor(s.id, nome);
 
-      // Nome de destino já existe: isto é uma FUSÃO de duas coortes, não um
-      // rename. Confirmação explícita porque muda relatório histórico e pode
-      // invalidar um link de campanha já divulgado.
+      // Nome de destino já existe: isto é uma FUSÃO de dois setores, não um
+      // rename. Sai do fluxo e abre o diálogo de confirmação — antes era um
+      // `confirm()` do navegador, que entrega uma operação irreversível como
+      // um parágrafo cinza com dois botões iguais.
       if (!res.ok && res.fusao_possivel) {
-        const ok = confirm(
-          `Já existe o setor "${res.destino}".\n\n` +
-          `Unir "${s.nome}" em "${res.destino}"? As pessoas, os afastamentos, os atendimentos ` +
-          `e os itens do plano de ação passam para "${res.destino}", e os relatórios anteriores ` +
-          `passam a contar as duas coortes juntas.\n\n` +
-          `Se as duas já receberam link da mesma campanha, o link de "${s.nome}" deixa de funcionar.`
-        );
-        if (!ok) return;
-        res = await rhService.renomearSetor(s.id, nome, true);
+        setUniao({ setorId: s.id, origem: s.nome, destino: res.destino ?? nome, pessoas: tamanhoSetor(s) });
+        return;
       }
 
       if (!res.ok) { toast.error(res.error || 'Não foi possível renomear.'); return; }
@@ -126,24 +127,23 @@ export const SetoresCard: React.FC<{
   /**
    * Une um setor pequeno demais a outro. É a mesma fusão do renomear, e é
    * DEFINITIVA: o setor de origem deixa de existir e o histórico dele passa
-   * a contar no destino. Por isso a confirmação lista o que muda.
+   * a contar no destino. Só abre o diálogo — quem executa é `confirmarUniao`.
    */
-  const handleUnir = async (s: SetorAdmin, destino: string) => {
+  const handleUnir = (s: SetorAdmin, destino: string) => {
     if (!destino) return;
-    const ok = confirm(
-      `Unir "${s.nome}" em "${destino}"?\n\n` +
-      `As ${tamanhoSetor(s)} pessoa(s), os afastamentos, os atendimentos e os itens do plano de ação ` +
-      `de "${s.nome}" passam para "${destino}", e os relatórios anteriores passam a contar as duas ` +
-      `coortes juntas.\n\n` +
-      `"${s.nome}" deixa de existir. Isto não pode ser desfeito automaticamente.`
-    );
-    if (!ok) return;
+    setUniao({ setorId: s.id, origem: s.nome, destino, pessoas: tamanhoSetor(s) });
+  };
 
+  /** Executa a fusão já confirmada, vinda de qualquer um dos dois caminhos. */
+  const confirmarUniao = async () => {
+    if (!uniao) return;
     setSalvando(true);
     try {
-      const res = await rhService.renomearSetor(s.id, destino, true);
+      const res = await rhService.renomearSetor(uniao.setorId, uniao.destino, true);
       if (!res.ok) { toast.error(res.error || 'Não foi possível unir os setores.'); return; }
       toast.success(`Setores unidos em "${res.nome}".`);
+      setUniao(null);
+      setEditandoId(null);
       await load();
       onMutacao?.();
     } finally {
@@ -201,6 +201,14 @@ export const SetoresCard: React.FC<{
 
   return (
     <div className="bg-white rounded-xl shadow p-5">
+      {uniao && (
+        <ConfirmarUniaoSetor
+          uniao={uniao}
+          salvando={salvando}
+          onConfirmar={confirmarUniao}
+          onCancelar={() => setUniao(null)}
+        />
+      )}
       <div className="flex items-center justify-between">
         <CabecalhoColapsavel
           icone={<Layers className="w-5 h-5 text-[#7d4a3c]" />}

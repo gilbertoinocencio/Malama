@@ -128,6 +128,7 @@ export const RhJornadaProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       saudeMental: can('saude_mental'),
       planoAcao: can('plano_acao'),
       empresa: can('empresa'),
+      importar: can('importar'),
       // Espelha o gate de leitura acima: o dossiê só pode afirmar "não foi
       // feito" sobre o que este usuário de fato consegue enxergar.
       veCampanhas: can('saude_mental') || can('compliance'),

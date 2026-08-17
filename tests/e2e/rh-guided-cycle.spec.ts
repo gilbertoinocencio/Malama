@@ -50,7 +50,15 @@ test.describe('Portal do RH — jornada guiada', () => {
 
   test('conduz dashboard, cadência e conversa com a liderança', async ({ page }) => {
     await expect(page.getByText('Seu próximo passo')).toBeVisible();
-    await expect(page.getByText(/Preparação do painel|Tudo pronto para o ciclo/)).toBeVisible();
+
+    // O trilho substituiu o checklist de preparação, que sumia ao completar
+    // e deixava o RH sem noção de onde estava no ciclo. A etapa marcada como
+    // atual sai de `proximoPasso().etapa`, então esta asserção também protege
+    // o acoplamento entre o card e o trilho.
+    const trilho = page.locator('section[aria-labelledby="trilho-titulo"]');
+    await expect(trilho).toBeVisible();
+    await expect(trilho.locator('[aria-current="step"]')).toHaveCount(1);
+    await expect(trilho.getByText(/\d+ de \d+ etapas cumpridas/)).toBeVisible();
 
     await page.goto(`${appUrl}/rh/saude-mental`);
     await expect(page.getByRole('heading', { name: 'Ciclo de cuidado da empresa' })).toBeVisible();

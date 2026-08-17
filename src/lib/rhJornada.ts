@@ -25,6 +25,9 @@ export type PermissoesJornada = {
   saudeMental: boolean;
   planoAcao: boolean;
   empresa: boolean;
+  /** Aba Importar. Separada de `colaboradores` porque é permissão própria:
+   *  mandar para a planilha quem não pode abri-la cai no gate e volta. */
+  importar: boolean;
   /** Consegue LER campanhas/medidas (saúde mental ou compliance). Separado
    *  de agir sobre elas: o dossiê só pode dizer "não foi feito" sobre o que
    *  este usuário enxerga — o resto é "sem visibilidade", não "pendente". */
@@ -43,6 +46,11 @@ export type DadosJornada = {
   pode: PermissoesJornada;
 };
 
+/** Etapas do ciclo, na ordem em que acontecem. Ver `etapasDaJornada`. */
+export type EtapaChave =
+  | 'setores' | 'pessoas' | 'documentos' | 'medir' | 'ler' | 'conversar'
+  | 'medidas' | 'comprovar';
+
 export type PassoJornada = {
   titulo: string;
   descricao: string;
@@ -52,6 +60,9 @@ export type PassoJornada = {
   atalho?: { to: string; label: string };
   /** Bloqueia o resto da jornada — a faixa destaca em âmbar. */
   bloqueio?: boolean;
+  /** Onde este passo cai no trilho. É o que mantém o card e o trilho
+   *  concordando: o trilho não recalcula "onde estou", ele lê daqui. */
+  etapa?: EtapaChave;
 };
 
 export type ItemPreparacao = { label: string; ok: boolean };
@@ -85,15 +96,26 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
       descricao: 'Os setores permitem apresentar resultados úteis sem expor respostas individuais.',
       destino: '/rh/dashboard#setores',
       acao: 'Cadastrar setores',
+      etapa: 'setores',
     };
   }
+  // A planilha é a ação principal, e o formulário virou o atalho. Era o
+  // contrário, e nenhuma empresa de duzentas pessoas cadastra uma a uma —
+  // descobrir isso depois de digitar quinze é uma péssima primeira hora de
+  // produto. Quem não tem a permissão de importar continua vendo o
+  // formulário como caminho, senão o passo aponta para uma porta fechada.
   if (pode.colaboradores && d.nColaboradores === 0) {
     return {
-      titulo: 'Adicione os colaboradores',
-      descricao: 'Convide um a um pelo painel ou traga a lista inteira de uma vez pela planilha.',
-      destino: '/rh/dashboard#novo-colaborador',
-      acao: 'Adicionar colaboradores',
-      atalho: { to: '/rh/importar', label: 'Importar planilha' },
+      titulo: 'Traga as pessoas para o painel',
+      descricao: pode.importar
+        ? 'Suba a lista inteira de uma vez pela planilha. Para uma pessoa só, o formulário do painel resolve.'
+        : 'Cadastre pelo formulário do painel. Se precisar subir uma lista inteira, peça a permissão de importar ao usuário principal.',
+      destino: pode.importar ? '/rh/importar' : '/rh/dashboard#novo-colaborador',
+      acao: pode.importar ? 'Importar planilha' : 'Adicionar colaboradores',
+      atalho: pode.importar
+        ? { to: '/rh/dashboard#novo-colaborador', label: 'Adicionar uma pessoa' }
+        : undefined,
+      etapa: 'pessoas',
     };
   }
   // Antes da campanha de propósito: a coleta é de dado de saúde, e o aceite
@@ -104,6 +126,7 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
       descricao: 'O aceite fica registrado com versão, data e quem assinou — é o que sustenta a coleta de dados de saúde no PGR.',
       destino: '/rh/empresa',
       acao: 'Revisar documentos',
+      etapa: 'documentos',
       bloqueio: true,
     };
   }
@@ -117,15 +140,32 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
       descricao: 'Conclua com evidência ou repactue o prazo. Medida vencida sem registro enfraquece todo o dossiê.',
       destino: '/rh/plano-acao',
       acao: 'Rever plano de ação',
+      etapa: 'comprovar',
       bloqueio: true,
     };
   }
+  // Duas ou quatro semanas de janela em que o passo dizia "acompanhe" — que
+  // na prática significa "fique olhando". É aqui que nasce o "e agora?" e é
+  // aqui que o RH fecha a aba e não volta. Então o passo passa a dizer a
+  // data em que algo muda e qual é o trabalho útil DESTE intervalo.
   if (pode.saudeMental && campanhaAberta) {
+    const taxa = campanhaAberta.n_convidados > 0
+      ? Math.round((campanhaAberta.n_respondentes / campanhaAberta.n_convidados) * 100)
+      : 0;
+    const baixa = campanhaAberta.n_convidados > 0 && taxa < 30;
     return {
-      titulo: `Acompanhe a campanha de ${campanhaAberta.instrument === 'jss' ? 'carga de trabalho' : 'bem-estar'}`,
-      descricao: 'Veja a participação, compartilhe os links e encerre a campanha quando a janela terminar.',
+      titulo: baixa
+        ? `Poucas respostas na medição de ${campanhaAberta.instrument === 'jss' ? 'carga de trabalho' : 'bem-estar'}`
+        : `Medição de ${campanhaAberta.instrument === 'jss' ? 'carga de trabalho' : 'bem-estar'} em andamento`,
+      descricao: baixa
+        ? `A janela fica aberta até ${fmt(campanhaAberta.janela_fim)} e ${campanhaAberta.n_respondentes} de ${campanhaAberta.n_convidados} responderam. `
+          + 'Vale reenviar o link do setor e repor os cartazes — adesão baixa costuma ser receio, não desinteresse. '
+          + 'Não cobre ninguém individualmente: além de constranger, distorce o resultado.'
+        : `A janela fica aberta até ${fmt(campanhaAberta.janela_fim)} e ${campanhaAberta.n_respondentes} de ${campanhaAberta.n_convidados} já responderam. `
+          + 'Não há nada a fazer até lá — avisamos você quando estiver perto de fechar.',
       destino: '/rh/saude-mental#campanhas',
-      acao: 'Acompanhar campanha',
+      acao: baixa ? 'Divulgar de novo' : 'Ver participação',
+      etapa: 'medir',
     };
   }
   if (pode.saudeMental && !temCampanha) {
@@ -134,6 +174,7 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
       descricao: 'Comece com WHO-5 e JSS para criar a primeira fotografia de bem-estar e condições de trabalho.',
       destino: '/rh/saude-mental?nova=1',
       acao: 'Iniciar diagnóstico',
+      etapa: 'medir',
     };
   }
   if (pode.saudeMental && !temJss) {
@@ -142,6 +183,7 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
       descricao: 'O WHO-5 mostra como as pessoas estão; o JSS ajuda a entender o que no trabalho precisa mudar.',
       destino: '/rh/saude-mental?nova=1&instrumento=jss',
       acao: 'Abrir JSS',
+      etapa: 'medir',
     };
   }
   // Sem este passo a jornada pulava de "acompanhe a campanha" direto para
@@ -152,6 +194,7 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
       descricao: 'Veja quais setores pedem atenção primeiro e o que puxou o resultado, antes de decidir qualquer medida.',
       destino: '/rh/saude-mental#resultado-jss',
       acao: 'Ver diagnóstico',
+      etapa: 'ler',
     };
   }
   if (pode.planoAcao && cicloAtivo) {
@@ -160,6 +203,7 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
       descricao: 'Registre o que entrou em prática e avance a jornada somente quando houver evidência.',
       destino: '/rh/plano-acao?visao=lideranca',
       acao: 'Ver evolução',
+      etapa: 'conversar',
     };
   }
   if (pode.planoAcao && temJss && d.planos.length === 0) {
@@ -168,6 +212,7 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
       descricao: 'Use o diagnóstico agregado para reconhecer pontos fortes e combinar até três melhorias por setor.',
       destino: '/rh/plano-acao?visao=lideranca&nova=1',
       acao: 'Preparar conversa',
+      etapa: 'medidas',
     };
   }
   return {
@@ -194,6 +239,122 @@ export function passosPreparacao(d: DadosJornada): ItemPreparacao[] {
       ? [{ label: 'Primeira avaliação realizada', ok: d.campanhas.some(c => c.status !== 'cancelada') }]
       : []),
   ];
+}
+
+// ── Trilho da jornada ──────────────────────────────────
+// O checklist acima cobria só a preparação (4 itens de cadastro) e sumia
+// depois. Quem terminava o cadastro perdia qualquer noção de onde estava
+// no ciclo da NR-1 — e a faixa do cabeçalho, que mostra um passo por vez,
+// nunca deixou ver o que vem depois.
+//
+// A etapa ATUAL não é recalculada aqui: vem do `etapa` que `proximoPasso`
+// declara. Se o trilho decidisse por conta própria, ele e o card diriam
+// coisas diferentes na primeira regra que mudasse — que é exatamente o
+// problema que este arquivo existe para não ter.
+
+export type EtapaJornada = {
+  chave: EtapaChave;
+  nome: string;
+  /** O que essa etapa entrega, em uma linha. */
+  resumo: string;
+  /** Já foi cumprida ao menos uma vez neste histórico. */
+  ok: boolean;
+  /** É para cá que o próximo passo aponta agora. */
+  atual: boolean;
+  destino: string;
+};
+
+type DefEtapa = {
+  chave: EtapaChave;
+  nome: string;
+  resumo: string;
+  destino: string;
+  /** Já foi cumprida? */
+  ok: (d: DadosJornada) => boolean;
+  /** Este usuário participa desta etapa? Etapa que ele não pode executar
+   *  nem enxergar não entra no trilho — senão o trilho promete progresso
+   *  que ele não tem como destravar. */
+  visivel: (p: PermissoesJornada) => boolean;
+};
+
+const ETAPAS: DefEtapa[] = [
+  {
+    chave: 'setores', nome: 'Setores', resumo: 'O recorte que protege o anonimato',
+    destino: '/rh/dashboard#setores',
+    ok: d => d.nSetores > 0, visivel: p => p.colaboradores,
+  },
+  {
+    chave: 'pessoas', nome: 'Pessoas', resumo: 'Quem será convidado a responder',
+    destino: '/rh/dashboard#novo-colaborador',
+    ok: d => d.nColaboradores > 0, visivel: p => p.colaboradores,
+  },
+  {
+    chave: 'documentos', nome: 'Documentos', resumo: 'A base legal da coleta',
+    destino: '/rh/empresa',
+    ok: d => docsPendentesDe(d.documentos) === 0, visivel: p => p.empresa,
+  },
+  {
+    chave: 'medir', nome: 'Medir', resumo: 'Questionário validado aplicado',
+    destino: '/rh/saude-mental#campanhas',
+    // Encerrada, não aberta: campanha em andamento ainda não produziu
+    // resultado, e marcar como feita esconderia o passo que falta.
+    ok: d => d.campanhas.some(c => c.status === 'encerrada'),
+    visivel: p => p.saudeMental,
+  },
+  {
+    chave: 'ler', nome: 'Ler', resumo: 'Quais setores pedem atenção',
+    destino: '/rh/saude-mental#resultado-jss',
+    // A leitura não deixa rastro próprio; o que prova que aconteceu é a
+    // decisão que veio depois.
+    ok: d => d.ciclos.length > 0 || d.planos.length > 0,
+    visivel: p => p.saudeMental,
+  },
+  {
+    chave: 'conversar', nome: 'Conversar', resumo: 'Combinados com cada liderança',
+    destino: '/rh/plano-acao?visao=lideranca',
+    ok: d => d.ciclos.length > 0, visivel: p => p.planoAcao,
+  },
+  {
+    chave: 'medidas', nome: 'Medidas', resumo: 'Responsável e prazo definidos',
+    destino: '/rh/plano-acao',
+    ok: d => d.planos.length > 0, visivel: p => p.planoAcao,
+  },
+  {
+    chave: 'comprovar', nome: 'Comprovar', resumo: 'Medida concluída com evidência',
+    destino: '/rh/plano-acao',
+    ok: d => d.planos.some(p => p.status === 'concluida' && !!p.evidencia),
+    visivel: p => p.planoAcao,
+  },
+];
+
+export function etapasDaJornada(d: DadosJornada): EtapaJornada[] {
+  const atual = proximoPasso(d).etapa;
+  return ETAPAS
+    .filter(e => e.visivel(d.pode))
+    .map(e => ({
+      chave: e.chave,
+      nome: e.nome,
+      resumo: e.resumo,
+      destino: e.destino,
+      // Cumprida e atual são independentes, e precisam ser: o ciclo se
+      // repete, então a empresa que já fechou um ciclo inteiro volta a
+      // "Medir" na janela seguinte sem desfazer o que fez. Colapsar os dois
+      // num estado só fazia uma etapa concluída voltar a aparecer como
+      // pendente — e o contador dizer "7 de 8" com as 8 cumpridas.
+      ok: e.ok(d),
+      atual: e.chave === atual,
+    }));
+}
+
+/** Ciclo completo: todas as etapas visíveis cumpridas. É o marco que o
+ *  painel nunca marcou — e é a batida em que o cliente percebe que
+ *  recebeu o que comprou. */
+export function cicloCompleto(d: DadosJornada): boolean {
+  const etapas = ETAPAS.filter(e => e.visivel(d.pode));
+  // Um usuário que só enxerga cadastro não "conclui o ciclo" por ter
+  // cadastrado gente: sem as etapas de medição e controle não há ciclo.
+  const temNucleo = etapas.some(e => e.chave === 'comprovar');
+  return temNucleo && etapas.every(e => e.ok(d));
 }
 
 // ── Ritmo do ciclo ─────────────────────────────────────

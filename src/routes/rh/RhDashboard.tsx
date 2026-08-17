@@ -17,6 +17,8 @@ import {
 } from '../../services/empresaService';
 import { SetoresCard } from '../../components/rh/SetoresCard';
 import { LinkSuporte } from '../../components/rh/LinkSuporte';
+import { TrilhoDaJornada } from '../../components/rh/TrilhoDaJornada';
+import { MarcoCicloCompleto } from '../../components/rh/MarcoCicloCompleto';
 import { RitmoDoCicloCard } from '../../components/rh/RitmoDoCicloCard';
 import { CabecalhoColapsavel, ResumoRecolhido, useSecaoAberta } from '../../components/rh/SecaoColapsavel';
 import { useRhAccess } from '../../contexts/RhAccessContext';
@@ -91,28 +93,35 @@ const GuiaJornadaRh: React.FC<{
         )}
       </div>
 
-      <details className="group mt-4 border-t border-gray-100 pt-3" open={progresso < 100}>
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm [&::-webkit-details-marker]:hidden">
-          <span className="font-medium text-gray-700">
-            {progresso === 100 ? 'Tudo pronto para o ciclo' : 'Preparação do painel'}
-          </span>
-          <span className="text-xs text-gray-500">{concluidos} de {passos.length} etapas · {progresso}%</span>
-        </summary>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {passos.map(passo => (
-            <div key={passo.label} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${passo.ok ? 'bg-green-50 text-green-800' : 'bg-gray-50 text-gray-500'}`}>
-              {passo.ok ? <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" /> : <Circle className="h-4 w-4 shrink-0 text-gray-300" />}
-              {passo.label}
-            </div>
-          ))}
-        </div>
-        {principal && (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
-            <span className="inline-flex items-center gap-2"><UserCog className="h-4 w-4 text-gray-400" />Equipe do RH: {Math.max(0, usuariosEquipe.filter(u => !u.principal && u.ativo).length)} usuário(s) auxiliar(es). Esta etapa é opcional.</span>
-            <Link to="/rh/usuarios" className="font-semibold text-[#7d4a3c]">Gerenciar acessos</Link>
+      {/* O trilho substituiu o checklist de preparação: aquele cobria só os
+          4 itens de cadastro e se recolhia ao completar, deixando o RH sem
+          nenhuma noção de onde estava no ciclo daí em diante. O checklist
+          continua existindo, recolhido, porque no estado zero ele responde
+          uma pergunta que o trilho não responde: "o que falta configurar". */}
+      <TrilhoDaJornada dados={dados} />
+
+      {progresso < 100 && (
+        <details className="group mt-3 border-t border-gray-100 pt-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm [&::-webkit-details-marker]:hidden">
+            <span className="font-medium text-gray-700">Preparação do painel</span>
+            <span className="text-xs text-gray-500">{concluidos} de {passos.length} etapas · {progresso}%</span>
+          </summary>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {passos.map(passo => (
+              <div key={passo.label} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${passo.ok ? 'bg-green-50 text-green-800' : 'bg-gray-50 text-gray-500'}`}>
+                {passo.ok ? <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" /> : <Circle className="h-4 w-4 shrink-0 text-gray-300" />}
+                {passo.label}
+              </div>
+            ))}
           </div>
-        )}
-      </details>
+          {principal && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+              <span className="inline-flex items-center gap-2"><UserCog className="h-4 w-4 text-gray-400" />Equipe do RH: {Math.max(0, usuariosEquipe.filter(u => !u.principal && u.ativo).length)} usuário(s) auxiliar(es). Esta etapa é opcional.</span>
+              <Link to="/rh/usuarios" className="font-semibold text-[#7d4a3c]">Gerenciar acessos</Link>
+            </div>
+          )}
+        </details>
+      )}
     </section>
   );
 };
@@ -358,6 +367,11 @@ export const RhDashboard: React.FC = () => {
           A conta da empresa está {empresa.status}. Novos colaboradores não podem ser adicionados no momento.
         </div>
       )}
+
+      {/* Acima do guia: quando o ciclo fechou, "seu próximo passo" é
+          manutenção — e o que o RH precisa ver primeiro é que existe o que
+          mostrar. */}
+      <MarcoCicloCompleto dados={dados} />
 
       <GuiaJornadaRh dados={dados} usuariosEquipe={usuariosEquipe} principal={acesso.principal} />
 

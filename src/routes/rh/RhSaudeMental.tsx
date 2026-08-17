@@ -274,7 +274,10 @@ const NovaCampanha: React.FC<{
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Instrumento</label>
+        {/* "Questionário", e não "instrumento": o termo técnico aparecia na
+            tela antes de qualquer explicação. Ele continua nos documentos,
+            onde o leitor é o SESMT ou o perito. */}
+        <label className="block text-xs font-medium text-gray-600 mb-1">Questionário</label>
         <select
           value={code} onChange={e => trocarInstrumento(e.target.value)}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
@@ -703,7 +706,7 @@ export const RhSaudeMental: React.FC = () => {
           )}
         </div>
         <p className="text-sm text-gray-500 mb-1">
-          Aplique instrumentos validados aos colaboradores e acompanhe a adesão. As respostas são
+          Aplique questionários validados aos colaboradores e acompanhe a adesão. As respostas são
           individuais e sigilosas — você vê quantos responderam, nunca quem respondeu o quê.
         </p>
         <p className="text-xs text-gray-500 mb-4 leading-relaxed">
@@ -816,7 +819,7 @@ export const RhSaudeMental: React.FC = () => {
           <div className="mt-4 flex items-start gap-2 text-xs text-gray-500 bg-amber-50 border border-amber-100 rounded-lg p-3">
             <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-amber-500" />
             <span>
-              O instrumento de <strong>carga de trabalho</strong> (que mede cobrança, autonomia e
+              O questionário de <strong>carga de trabalho</strong> (que mede cobrança, autonomia e
               apoio no trabalho) ainda não está liberado. Sem ele é possível medir como o
               colaborador está, mas não distinguir o que vem da natureza da ocupação do que vem de
               fatores externos.

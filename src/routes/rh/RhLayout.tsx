@@ -15,8 +15,95 @@ import { docsPendentesDe } from '../../lib/rhJornada';
 import { jaViuApresentacao, marcarApresentacaoVista } from '../../lib/rhPrimeiroAcesso';
 import { EMAIL_SUPORTE, linkSuporte } from '../../lib/suporteMalama';
 
-type Tab = { to: string; label: string; icon: React.ReactNode; permissao: RhPermissao };
+/**
+ * Grupos da barra. As oito abas chegavam com o mesmo peso e sem nenhuma
+ * marca de ordem, então nada distinguia a SEQUÊNCIA do ciclo (medir →
+ * agir → comprovar) das ferramentas de apoio e da parte administrativa —
+ * eram oito decisões antes da primeira ação.
+ */
+type GrupoAba = 'ciclo' | 'apoio' | 'admin';
+const ROTULO_GRUPO: Record<GrupoAba, string> = {
+  ciclo: 'Ciclo',
+  apoio: 'Apoio',
+  admin: 'Administração',
+};
+
+type Tab = {
+  to: string; label: string; icon: React.ReactNode;
+  permissao: RhPermissao; grupo: GrupoAba;
+};
 const ABA_IMPACTO_ATIVA = false;
+
+/**
+ * Barra de abas. Componente próprio porque precisa do contexto da jornada
+ * para saber quais abas ainda não têm nada dentro — e o provider é montado
+ * pelo próprio RhLayout, então o corpo dele não pode ler o contexto.
+ */
+const AbasDoPainel: React.FC<{ tabs: Tab[]; atual: string }> = ({ tabs, atual }) => {
+  const { dados, loading } = useRhJornada();
+
+  // Só marcamos "ainda sem dado" onde a jornada realmente sabe a resposta.
+  // Relatos, Absenteísmo e Financeiro não passam por aqui, e chutar um
+  // ponto neles seria pior do que não marcar nada.
+  const vazias: Record<string, string> = {
+    '/rh/dashboard': dados.nColaboradores === 0 ? 'Nenhuma pessoa cadastrada ainda' : '',
+    '/rh/saude-mental': dados.campanhas.length === 0 ? 'Nenhuma medição aplicada ainda' : '',
+    '/rh/plano-acao': dados.planos.length === 0 ? 'Nenhuma medida registrada ainda' : '',
+  };
+
+  const grupos: GrupoAba[] = ['ciclo', 'apoio', 'admin'];
+
+  return (
+    <nav className="flex gap-1 -mb-px overflow-x-auto" aria-label="Seções do painel">
+      {grupos.map((grupo, gi) => {
+        const doGrupo = tabs.filter(t => t.grupo === grupo);
+        if (doGrupo.length === 0) return null;
+        return (
+          <React.Fragment key={grupo}>
+            {gi > 0 && (
+              <span aria-hidden="true" className="my-2.5 w-px shrink-0 self-stretch bg-gray-200" />
+            )}
+            {doGrupo.map(tab => {
+              const vazia = !loading && vazias[tab.to];
+              return (
+                <Link
+                  key={tab.to}
+                  to={tab.to}
+                  title={vazia || undefined}
+                  aria-label={vazia ? `${tab.label} — ${vazia}` : undefined}
+                  className={`flex items-center gap-2 px-3 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition ${atual === tab.to ? 'border-[#7d4a3c] text-[#7d4a3c]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                >
+                  {tab.icon}
+                  <span className="flex items-center gap-1.5">
+                    {tab.label}
+                    {vazia && (
+                      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+                    )}
+                  </span>
+                </Link>
+              );
+            })}
+            {gi === 0 && (
+              <span className="sr-only">Fim das abas do grupo {ROTULO_GRUPO[grupo]}</span>
+            )}
+          </React.Fragment>
+        );
+      })}
+      {/* Fora do filtro de permissão, e à direita: quem está perdido na
+          norma costuma ser quem tem o acesso mais restrito. Antes só se
+          chegava aqui por um ícone dentro da faixa — que some no dashboard,
+          a tela onde o RH mais aterrissa. O padding das abas foi reduzido
+          para esta caber inteira num notebook de 1280px: aba que só aparece
+          depois de rolar a barra não resolve descoberta nenhuma. */}
+      <Link
+        to="/rh/nr1"
+        className={`ml-auto flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition ${atual === '/rh/nr1' ? 'border-[#7d4a3c] text-[#7d4a3c]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+      >
+        <Compass className="w-4 h-4" />Como funciona
+      </Link>
+    </nav>
+  );
+};
 
 /** Suporte no cabeçalho, com empresa e usuário já embutidos no e-mail.
  *  Vive dentro do provider da jornada para saber de qual empresa se trata —
@@ -126,17 +213,22 @@ export const RhLayout: React.FC = () => {
   );
 
   const can = (p: RhPermissao) => acesso.principal || acesso.permissoes.includes(p);
+  // A ordem dentro de "ciclo" é a do próprio ciclo da NR-1: quem são as
+  // pessoas → medir → agir → comprovar. Ler a barra da esquerda para a
+  // direita passou a ser ler o processo.
   const todasAsTabs: Tab[] = [
-    { to: '/rh/dashboard', label: 'Colaboradores', icon: <Users className="w-4 h-4" />, permissao: 'colaboradores' },
-    { to: '/rh/saude-mental', label: 'Saúde Mental', icon: <Brain className="w-4 h-4" />, permissao: 'saude_mental' },
-    { to: '/rh/relatos', label: 'Relatos', icon: <ShieldAlert className="w-4 h-4" />, permissao: 'apuracao' },
-    { to: '/rh/absenteismo', label: 'Absenteísmo', icon: <CalendarX2 className="w-4 h-4" />, permissao: 'absenteismo' },
-    { to: '/rh/plano-acao', label: 'Plano de ação', icon: <ClipboardList className="w-4 h-4" />, permissao: 'plano_acao' },
-    { to: '/rh/importar', label: 'Importar', icon: <Upload className="w-4 h-4" />, permissao: 'importar' },
-    { to: '/rh/financeiro', label: 'Financeiro', icon: <CreditCard className="w-4 h-4" />, permissao: 'financeiro' },
-    { to: '/rh/compliance', label: 'Compliance', icon: <ShieldCheck className="w-4 h-4" />, permissao: 'compliance' },
+    { to: '/rh/dashboard', label: 'Colaboradores', icon: <Users className="w-4 h-4" />, permissao: 'colaboradores', grupo: 'ciclo' },
+    { to: '/rh/saude-mental', label: 'Saúde Mental', icon: <Brain className="w-4 h-4" />, permissao: 'saude_mental', grupo: 'ciclo' },
+    { to: '/rh/plano-acao', label: 'Plano de ação', icon: <ClipboardList className="w-4 h-4" />, permissao: 'plano_acao', grupo: 'ciclo' },
+    { to: '/rh/compliance', label: 'Compliance', icon: <ShieldCheck className="w-4 h-4" />, permissao: 'compliance', grupo: 'ciclo' },
+    // Apoio: não é etapa do ciclo, é o que alimenta ou corre em paralelo.
+    // Relatos não espera calendário nenhum — segue para apuração na hora.
+    { to: '/rh/relatos', label: 'Relatos', icon: <ShieldAlert className="w-4 h-4" />, permissao: 'apuracao', grupo: 'apoio' },
+    { to: '/rh/absenteismo', label: 'Absenteísmo', icon: <CalendarX2 className="w-4 h-4" />, permissao: 'absenteismo', grupo: 'apoio' },
+    { to: '/rh/importar', label: 'Importar', icon: <Upload className="w-4 h-4" />, permissao: 'importar', grupo: 'apoio' },
+    { to: '/rh/financeiro', label: 'Financeiro', icon: <CreditCard className="w-4 h-4" />, permissao: 'financeiro', grupo: 'admin' },
     ...(ABA_IMPACTO_ATIVA && temImpacto
-      ? [{ to: '/rh/impacto', label: 'Impacto', icon: <Leaf className="w-4 h-4" />, permissao: 'compliance' as const }]
+      ? [{ to: '/rh/impacto', label: 'Impacto', icon: <Leaf className="w-4 h-4" />, permissao: 'compliance' as const, grupo: 'admin' as const }]
       : []),
   ];
   const tabs = todasAsTabs.filter(tab => can(tab.permissao));
@@ -166,26 +258,7 @@ export const RhLayout: React.FC = () => {
           </div>
 
           <div className="mx-auto w-full max-w-[1800px] px-4 sm:px-6 lg:px-8">
-            <nav className="flex gap-1 -mb-px overflow-x-auto">
-              {tabs.map(tab => (
-                <Link key={tab.to} to={tab.to} className={`flex items-center gap-2 px-3 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition ${location.pathname === tab.to ? 'border-[#7d4a3c] text-[#7d4a3c]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                  {tab.icon}{tab.label}
-                </Link>
-              ))}
-              {/* Fora do filtro de permissão, e à direita: quem está perdido na
-                  norma costuma ser quem tem o acesso mais restrito. Antes só se
-                  chegava aqui por um ícone dentro da faixa — que some no
-                  dashboard, a tela onde o RH mais aterrissa.
-                  O padding das abas foi reduzido para esta caber inteira num
-                  notebook de 1280px: aba que só aparece depois de rolar a barra
-                  não resolve descoberta nenhuma. */}
-              <Link
-                to="/rh/nr1"
-                className={`ml-auto flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition ${location.pathname === '/rh/nr1' ? 'border-[#7d4a3c] text-[#7d4a3c]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-              >
-                <Compass className="w-4 h-4" />Como funciona
-              </Link>
-            </nav>
+            <AbasDoPainel tabs={tabs} atual={location.pathname} />
           </div>
 
           {/* Bússola em todas as abas: sem isto, "o que eu faço agora?" só
