@@ -27,6 +27,7 @@ import {
   generateCertificadoPDF, generateCertificadosLotePDF, type CertificadoMeta,
 } from '../../lib/certificadoDisponibilizacao';
 import { DossieNr1Card } from '../../components/rh/DossieNr1Card';
+import { LinkSuporte } from '../../components/rh/LinkSuporte';
 import { useRhJornada } from '../../contexts/RhJornadaContext';
 import { useRhAccess } from '../../contexts/RhAccessContext';
 import { hashDocumento } from '../../lib/hashDocumento';
@@ -246,7 +247,13 @@ export const RhCompliance: React.FC = () => {
       <div className="bg-white rounded-xl shadow p-10 text-center">
         <AlertCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
         <p className="text-gray-600 font-medium">Dados de compliance indisponíveis.</p>
-        <p className="text-gray-400 text-sm mt-1">Entre em contato com a Malama.</p>
+        <p className="text-gray-400 text-sm mt-1">
+          Não é algo que se resolva daqui — o suporte consegue ver o que travou a leitura.
+        </p>
+        <LinkSuporte
+          assunto="Dados de compliance indisponíveis"
+          detalhe="A aba Compliance não consegue carregar os dados da empresa."
+        />
       </div>
     );
   }
@@ -380,7 +387,13 @@ export const RhCompliance: React.FC = () => {
             <span>
               A emissão está bloqueada: o contrato desta empresa não tem serviços registrados. O
               certificado é uma declaração formal, e sem essa informação ele listaria serviços que
-              a empresa pode não ter contratado. Fale com a Malama para regularizar o cadastro.
+              a empresa pode não ter contratado.
+              <LinkSuporte
+                assunto="Contrato sem serviços registrados"
+                detalhe="A emissão do certificado está bloqueada por falta de serviços no contrato."
+                rotulo="Pedir a regularização do cadastro"
+                className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-amber-900 underline underline-offset-2"
+              />
             </span>
           </div>
         )}

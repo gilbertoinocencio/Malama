@@ -11,12 +11,14 @@
 // arriscaria mais o cliente do que ajudá-lo.
 // =====================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight, BarChart3, CalendarClock, ClipboardList, Info, Search, ShieldCheck, XCircle,
+  ArrowRight, BarChart3, CalendarClock, ClipboardList, Info, PlayCircle, Search,
+  ShieldCheck, XCircle,
 } from 'lucide-react';
 import { useRhAccess } from '../../contexts/RhAccessContext';
+import { PrimeiroAcessoRh } from '../../components/rh/PrimeiroAcessoRh';
 
 const CICLO = [
   {
@@ -74,18 +76,32 @@ const DUVIDAS = [
 
 export const RhComoFunciona: React.FC = () => {
   const { can } = useRhAccess();
+  // Rever a apresentação do primeiro acesso. Sem esta porta, quem clicou em
+  // "Começar" sem ler perdia o enquadramento para sempre — e é justamente
+  // quem tem pressa no primeiro dia que mais precisa dele depois.
+  const [revendo, setRevendo] = useState(false);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-800">Entenda a NR-1 em cinco minutos</h1>
-        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-gray-500">
-          A NR-1 passou a tratar risco psicossocial como qualquer outro risco ocupacional: a empresa
-          precisa <strong>identificar</strong>, <strong>avaliar</strong>, <strong>controlar</strong> e{' '}
-          <strong>verificar</strong>. Não existe prova de conformidade que seja um documento só —
-          o que se comprova é um ciclo que gira e deixa rastro. Esta página mostra o ciclo e onde,
-          neste painel, cada parte dele acontece.
-        </p>
+      {revendo && <PrimeiroAcessoRh onFechar={() => setRevendo(false)} />}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-800">Entenda a NR-1 em cinco minutos</h1>
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-gray-500">
+            A NR-1 passou a tratar risco psicossocial como qualquer outro risco ocupacional: a empresa
+            precisa <strong>identificar</strong>, <strong>avaliar</strong>, <strong>controlar</strong> e{' '}
+            <strong>verificar</strong>. Não existe prova de conformidade que seja um documento só —
+            o que se comprova é um ciclo que gira e deixa rastro. Esta página mostra o ciclo e onde,
+            neste painel, cada parte dele acontece.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setRevendo(true)}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+        >
+          <PlayCircle className="h-4 w-4" /> Rever a apresentação
+        </button>
       </div>
 
       <section className="rounded-xl bg-white p-5 shadow">

@@ -16,7 +16,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Brain, Plus, Play, X, Users, BarChart3, Info, AlertCircle, FileDown,
-  ChevronDown, ChevronUp, HeartPulse, Activity, CalendarRange, Link as LinkIcon,
+  ChevronDown, ChevronUp, HeartPulse, Activity, CalendarRange, Megaphone,
   ArrowRight, CheckCircle2, Clock3,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -25,7 +25,6 @@ import {
   type PsychosocialCampanha,
   type PsychosocialInstrumento,
   type CampanhaParticipacao,
-  type CampanhaLinks,
   type SetorEmpresa,
   type RhRelatorioPsicossocial,
   type RhRelatorioJss,
@@ -37,6 +36,8 @@ import {
 import { generatePsychosocialReportPDF } from '../../lib/psychosocialReportDoc';
 import { generateJssReportPDF } from '../../lib/jssReportDoc';
 import { MatrizPsicossocial } from '../../components/rh/MatrizPsicossocial';
+import { KitDivulgacao } from '../../components/rh/KitDivulgacao';
+import { LinkSuporte } from '../../components/rh/LinkSuporte';
 import { JssDiagnosticoSetor } from '../../components/rh/JssDiagnosticoSetor';
 import { JssIndicadores } from '../../components/rh/JssIndicadores';
 import { JssTeiaTemas } from '../../components/rh/JssTeiaTemas';
@@ -168,141 +169,6 @@ const ParticipacaoSetores: React.FC<{ campaignId: string }> = ({ campaignId }) =
   );
 };
 
-// ─── Links por setor para distribuir ───────────────────
-//
-// Existe para resolver adesão: esperar o colaborador abrir o app sozinho no
-// começo do mês entrega participação baixa. Com o link, o RH manda no grupo
-// de WhatsApp, no e-mail interno ou imprime um cartaz com QR na área.
-//
-// UM LINK POR SETOR, não por pessoa. O modelo anterior era por pessoa e caiu
-// por dois motivos: empresa de mil colaboradores precisaria de mil links, e o
-// RH ficava com o link de cada um — o que derruba a confiança na pesquisa
-// mesmo que ninguém abuse. Numa pesquisa de saúde mental, desconfiança custa
-// adesão, e adesão é o produto.
-//
-// Ninguém se identifica ao responder. O setor vem embutido no link, então o
-// recorte que sustenta o PGR e a matriz de risco continua exato — é a única
-// coisa que a resposta carrega.
-const LinksCampanha: React.FC<{ campaignId: string }> = ({ campaignId }) => {
-  const [dados, setDados] = useState<CampanhaLinks | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelado = false;
-    setLoading(true);
-    rhService.getCampanhaLinks(campaignId)
-      .then(d => { if (!cancelado) setDados(d); })
-      .finally(() => { if (!cancelado) setLoading(false); });
-    return () => { cancelado = true; };
-  }, [campaignId]);
-
-  const urlDe = (token: string) => `${window.location.origin}/q/${token}`;
-
-  const copiar = async (texto: string, aviso: string) => {
-    try {
-      await navigator.clipboard.writeText(texto);
-      toast.success(aviso);
-    } catch {
-      toast.error('Não foi possível copiar. Selecione o texto manualmente.');
-    }
-  };
-
-  const baixarCsv = () => {
-    if (!dados) return;
-    // Ponto e vírgula e BOM: é o que faz o Excel em pt-BR abrir o arquivo em
-    // colunas e com acento certo, sem a pessoa ter que importar na mão.
-    const linhas = [
-      ['Setor', 'Colaboradores', 'Link'],
-      ...dados.links.map(l => [l.setor, String(l.colaboradores), urlDe(l.token)]),
-    ];
-    const csv = '﻿' + linhas
-      .map(cols => cols.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';'))
-      .join('\r\n');
-
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `links-questionario-${campaignId.slice(0, 8)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  if (loading) {
-    return <div className="py-4 text-center text-xs text-gray-400">Gerando links...</div>;
-  }
-  if (!dados?.ok) {
-    return (
-      <div className="py-4 text-center text-xs text-gray-400">
-        {dados?.error ?? 'Não foi possível gerar os links.'}
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-gray-50 rounded-lg p-3 mt-2">
-      <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
-        <p className="text-xs font-medium text-gray-500">
-          Links por setor · {dados.links.length}
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => copiar(
-              dados.links.map(l => `${l.setor}: ${urlDe(l.token)}`).join('\n'),
-              `${dados.links.length} links copiados`,
-            )}
-            disabled={dados.links.length === 0}
-            className="px-2.5 py-1 text-xs font-medium border border-gray-200 bg-white rounded-lg text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
-          >
-            Copiar todos
-          </button>
-          <button
-            onClick={baixarCsv}
-            disabled={dados.links.length === 0}
-            className="px-2.5 py-1 text-xs font-medium border border-gray-200 bg-white rounded-lg text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
-          >
-            Baixar CSV
-          </button>
-        </div>
-      </div>
-
-      {dados.links.length === 0 ? (
-        <p className="py-3 text-center text-xs text-gray-400">
-          Nenhum colaborador no público-alvo desta campanha.
-        </p>
-      ) : (
-        <table className="w-full text-sm">
-          <tbody className="divide-y divide-gray-100">
-            {dados.links.map(l => (
-              <tr key={l.token}>
-                <td className="py-1.5 pr-3">
-                  <p className="text-gray-700 leading-tight">{l.setor}</p>
-                  <p className="text-[11px] text-gray-400 leading-tight">
-                    {l.colaboradores} colaborador(es)
-                  </p>
-                </td>
-                <td className="py-1.5 text-right whitespace-nowrap">
-                  <button
-                    onClick={() => copiar(urlDe(l.token), 'Link copiado')}
-                    className="px-2.5 py-1 text-xs font-medium border border-gray-200 bg-white rounded-lg text-gray-600 hover:bg-gray-50 transition"
-                  >
-                    Copiar link
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      <p className="text-[11px] text-gray-400 mt-2 leading-snug">
-        Cada link vale para todo o setor e pode ser divulgado no grupo ou no mural, até{' '}
-        {fmtDate(dados.janela_fim)}. A pesquisa é anônima: quem responde não se identifica, então
-        nem a Malama nem você conseguem saber quem respondeu — só quantos, por setor.
-      </p>
-    </div>
-  );
-};
-
 // ─── Formulário de nova campanha ───────────────────────
 const NovaCampanha: React.FC<{
   instrumentos: PsychosocialInstrumento[];
@@ -386,7 +252,14 @@ const NovaCampanha: React.FC<{
   if (disponiveis.length === 0) {
     return (
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-        Nenhum instrumento liberado para uso no momento. Fale com a Malama.
+        Nenhum questionário está liberado para a sua empresa no momento, então não há campanha a
+        abrir. A liberação é feita pela Malama.
+        <LinkSuporte
+          assunto="Nenhum questionário liberado"
+          detalhe="A tela de nova campanha não lista nenhum instrumento ativo."
+          rotulo="Pedir a liberação"
+          className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-amber-900 underline underline-offset-2"
+        />
       </div>
     );
   }
@@ -887,7 +760,11 @@ export const RhSaudeMental: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    {/* Quebra no celular: a linha de ações nunca quebrava e só
+                        não estourava porque os rótulos eram curtos. Rótulo
+                        maior (ou mais um botão) empurrava a página inteira
+                        para fora da tela. */}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                       <div className="w-32">
                         <div className="flex items-center gap-1 text-xs text-gray-500 mb-0.5">
                           <Users className="w-3 h-3" />
@@ -902,14 +779,16 @@ export const RhSaudeMental: React.FC = () => {
                       >
                         {aberta ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </button>
+                      {/* Ação principal da campanha aberta: enquanto ninguém
+                          responder, nada mais nesta tela tem o que mostrar. */}
                       {c.status === 'aberta' && (
                         <button
                           onClick={() => setLinksAbertos(linksAbertos === c.id ? null : c.id)}
-                          title="Links para enviar aos colaboradores"
-                          className="px-2.5 py-1 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition whitespace-nowrap flex items-center gap-1"
+                          title="Links, cartazes e mensagens prontas para a equipe"
+                          className="px-2.5 py-1 text-xs font-semibold bg-[#7d4a3c] hover:bg-[#623a2f] rounded-lg text-white transition whitespace-nowrap flex items-center gap-1"
                         >
-                          <LinkIcon className="w-3 h-3" />
-                          Links
+                          <Megaphone className="w-3 h-3" />
+                          Divulgar
                         </button>
                       )}
                       {c.status === 'aberta' && (
@@ -924,7 +803,9 @@ export const RhSaudeMental: React.FC = () => {
                   </div>
 
                   {aberta && <ParticipacaoSetores campaignId={c.id} />}
-                  {linksAbertos === c.id && <LinksCampanha campaignId={c.id} />}
+                  {linksAbertos === c.id && (
+                    <KitDivulgacao campaignId={c.id} instrumento={c.instrument} />
+                  )}
                 </div>
               );
             })}

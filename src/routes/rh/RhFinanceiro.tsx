@@ -14,6 +14,7 @@ import {
   type EmpresaFatura,
   type RhResumoFinanceiro,
 } from '../../services/empresaService';
+import { LinkSuporte } from '../../components/rh/LinkSuporte';
 
 const fmtCurrency = (v: number | null | undefined) =>
   (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -123,7 +124,13 @@ export const RhFinanceiro: React.FC = () => {
       <div className="bg-white rounded-xl shadow p-10 text-center">
         <AlertCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
         <p className="text-gray-600 font-medium">Dados financeiros indisponíveis.</p>
-        <p className="text-gray-400 text-sm mt-1">Entre em contato com a Malama.</p>
+        <p className="text-gray-400 text-sm mt-1">
+          Cobrança e contrato são mantidos pela Malama — o suporte resolve.
+        </p>
+        <LinkSuporte
+          assunto="Dados financeiros indisponíveis"
+          detalhe="A aba Financeiro não consegue carregar os dados do contrato."
+        />
       </div>
     );
   }

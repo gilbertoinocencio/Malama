@@ -35,6 +35,17 @@ test.describe('Portal do RH — jornada guiada', () => {
     });
     await page.goto(`${appUrl}/rh/dashboard`);
     await page.waitForLoadState('networkidle');
+
+    // A apresentação de primeiro acesso é uma sobreposição, e cada teste roda
+    // num contexto novo (localStorage limpo) — ou seja, ela SEMPRE aparece
+    // aqui. Estes testes descrevem o painel de quem já usa, então fechamos a
+    // apresentação como o usuário faria; o clique também grava a marca de
+    // "já vista", e ela não volta nas navegações seguintes do mesmo teste.
+    const apresentacao = page.getByRole('dialog', { name: /A NR-1 não pede um documento/i });
+    if (await apresentacao.isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: 'Fechar apresentação' }).click();
+      await expect(apresentacao).toBeHidden();
+    }
   });
 
   test('conduz dashboard, cadência e conversa com a liderança', async ({ page }) => {

@@ -16,6 +16,7 @@ import {
   rhService, type EmpresaColaborador, type RhUsuarioEquipe,
 } from '../../services/empresaService';
 import { SetoresCard } from '../../components/rh/SetoresCard';
+import { LinkSuporte } from '../../components/rh/LinkSuporte';
 import { RitmoDoCicloCard } from '../../components/rh/RitmoDoCicloCard';
 import { CabecalhoColapsavel, ResumoRecolhido, useSecaoAberta } from '../../components/rh/SecaoColapsavel';
 import { useRhAccess } from '../../contexts/RhAccessContext';
@@ -323,7 +324,13 @@ export const RhDashboard: React.FC = () => {
       <div className="bg-white rounded-xl shadow p-10 text-center">
         <AlertCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
         <p className="text-gray-600 font-medium">Nenhuma empresa vinculada a esta conta.</p>
-        <p className="text-gray-400 text-sm mt-1">Entre em contato com a Malama.</p>
+        <p className="text-gray-400 text-sm mt-1">
+          Só o suporte consegue fazer esse vínculo — não há nada a configurar do seu lado.
+        </p>
+        <LinkSuporte
+          assunto="Conta sem empresa vinculada"
+          detalhe="O painel abre, mas nenhuma empresa está vinculada a esta conta."
+        />
       </div>
     );
   }
@@ -332,9 +339,16 @@ export const RhDashboard: React.FC = () => {
     <div className="space-y-6">
       {parcial && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3"><span>Parte do painel não pôde ser lida agora — mantivemos a última informação carregada.</span><button onClick={load} className="font-semibold whitespace-nowrap">Tentar novamente</button></div>}
       {/* ── Cabeçalho ── */}
+      {/* O subtítulo antigo ("colaboradores com acesso ao benefício") era a
+          primeira frase que o cliente lia depois do login e posicionava o
+          produto como gestão de assentos. Quem foi vendido em NR-1 chegava e
+          não reconhecia o que comprou. */}
       <div>
         <h1 className="text-2xl font-semibold text-gray-800">{empresa.nome}</h1>
-        <p className="text-sm text-gray-500">Gerencie os colaboradores com acesso ao benefício Malama.</p>
+        <p className="text-sm text-gray-500">
+          Ponto de partida do ciclo de riscos psicossociais: aqui ficam os setores e as pessoas
+          que os relatórios vão medir.
+        </p>
       </div>
 
       {/* Acima do guia: é o motivo de o guia estar dizendo para parar. */}
@@ -351,7 +365,11 @@ export const RhDashboard: React.FC = () => {
           "estou atrasado?", não "qual é a minha nota". */}
       <RitmoDoCicloCard dados={dados} />
 
-      {/* ── Dados da empresa ── */}
+      {/* ── Dados da empresa ──
+          Some enquanto não há ninguém cadastrado: no estado zero, tudo que
+          não é o próximo passo empurra o formulário para fora da tela. É
+          consulta, não ação, e continua a um clique pelo cabeçalho. */}
+      {colaboradores.length > 0 && (
       <div className="bg-white rounded-xl shadow p-5">
         <div className="flex items-center gap-2 mb-4">
           <Building2 className="w-5 h-5 text-[#7d4a3c]" />
@@ -380,6 +398,7 @@ export const RhDashboard: React.FC = () => {
           )}
         </dl>
       </div>
+      )}
 
       {/* ── Breakdown de assentos ── */}
       <div className="grid grid-cols-3 gap-4">
