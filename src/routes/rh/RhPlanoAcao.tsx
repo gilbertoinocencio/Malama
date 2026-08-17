@@ -201,6 +201,10 @@ export const RhPlanoAcao: React.FC = () => {
   );
   const abrirNovaJornada = parametrosIniciais.get('nova') === '1';
   const setorInicial = parametrosIniciais.get('setor');
+  // Ciclo a focar ao trocar de aba. Estado, e não query param: a troca
+  // acontece dentro da mesma rota, e um <Link> para o mesmo caminho não
+  // reexecutaria a leitura de `window.location.search`.
+  const [cicloFoco, setCicloFoco] = useState<string | null>(parametrosIniciais.get('ciclo'));
 
   const load = useCallback(async () => {
     const fim = new Date();
@@ -287,8 +291,24 @@ export const RhPlanoAcao: React.FC = () => {
         </button>
       </div>
 
+      {/* As duas abas pareciam a mesma coisa, porque as duas criam medida com
+          responsável e prazo. A diferença é a direção: uma é a conversa que
+          PRODUZ a medida, a outra é o registro que a SUSTENTA. Dizer isso na
+          tela é mais barato do que esperar que o RH deduza. */}
+      <p className="-mt-2 max-w-3xl text-xs leading-relaxed text-gray-500">
+        {visao === 'lideranca'
+          ? 'Aqui é a conversa com cada liderança: o que está funcionando, o que precisa melhorar e até três combinados por setor. Todo combinado registrado vira automaticamente um item do Plano de ação, com prazo e evidência.'
+          : 'Este é o registro formal de todas as medidas — as que nasceram da conversa com a liderança e as que você adiciona direto aqui. É esta lista que a fiscalização lê.'}
+      </p>
+
       {visao === 'lideranca' ? (
-        <LiderancaEvolucao setores={setores} abrirNovo={abrirNovaJornada} setorInicial={setorInicial} />
+        <LiderancaEvolucao
+          setores={setores}
+          abrirNovo={abrirNovaJornada}
+          setorInicial={setorInicial}
+          cicloFoco={cicloFoco}
+          onVerNoPlano={() => { setCicloFoco(null); setVisao('plano'); }}
+        />
       ) : (
         <>
       {/* ── Alerta: risco de fonte tratado só no indivíduo ── */}
@@ -415,6 +435,27 @@ export const RhPlanoAcao: React.FC = () => {
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600">
                         Fora do prazo
                       </span>
+                    )}
+                    {/* De onde a medida veio. Sem isto, um combinado nascido
+                        na conversa com a liderança ficava idêntico a um item
+                        digitado à mão aqui — e as duas abas passavam a
+                        impressão de ser a mesma coisa duplicada. */}
+                    {/* Clicável: leva à conversa que gerou esta medida. O
+                        vínculo existia no banco desde a 20260837 e não tinha
+                        caminho nenhum na tela — era o que fazia as duas abas
+                        parecerem listas paralelas. */}
+                    {it.lideranca_ciclo_id && (
+                      <button
+                        type="button"
+                        onClick={() => { setCicloFoco(it.lideranca_ciclo_id!); setVisao('lideranca'); }}
+                        title="Abrir a conversa com a liderança que originou esta medida"
+                        className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+                      >
+                        <Sparkles className="h-2.5 w-2.5" />
+                        {it.lideranca_setor
+                          ? `Combinado com a liderança de ${it.lideranca_setor}`
+                          : 'Combinado com a liderança'}
+                      </button>
                     )}
                   </div>
                   <p className="text-sm text-gray-800 leading-snug">{it.risco_descricao}</p>

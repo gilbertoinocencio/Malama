@@ -996,7 +996,12 @@ export type PlanoAcao = {
   concluida_em: string | null;
   atrasada: boolean;
   created_at: string;
+  /** Vínculo com o ciclo de liderança que originou o combinado. É a FK, e
+   *  não `origem`, que distingue os dois caminhos: a RPC da liderança grava
+   *  origem = 'manual'. Só chega preenchido a partir da migration 20260847. */
   lideranca_ciclo_id?: string | null;
+  /** Setor do ciclo de origem, para a tela rotular sem buscar os ciclos. */
+  lideranca_setor?: string | null;
 };
 
 export type RhPlanosResumo = {

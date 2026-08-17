@@ -95,9 +95,16 @@ export const LiderancaEvolucao: React.FC<{
   setores: SetorEmpresa[];
   abrirNovo?: boolean;
   setorInicial?: string | null;
-}> = ({ setores, abrirNovo = false, setorInicial = null }) => {
+  /** Ciclo a abrir já selecionado. É por aqui que uma medida do plano de
+   *  ação leva de volta à conversa que a originou — sem isso, o vínculo
+   *  existia no banco e não tinha caminho na tela. */
+  cicloFoco?: string | null;
+  /** Leva ao plano de ação formal, onde os combinados são concluídos com
+   *  evidência. Sem isso o RH sai daqui achando que concluiu o ciclo. */
+  onVerNoPlano?: () => void;
+}> = ({ setores, abrirNovo = false, setorInicial = null, cicloFoco = null, onVerNoPlano }) => {
   const [ciclos, setCiclos] = useState<LiderancaCiclo[]>([]);
-  const [selecionado, setSelecionado] = useState<string | null>(null);
+  const [selecionado, setSelecionado] = useState<string | null>(cicloFoco);
   const [jss, setJss] = useState<Awaited<ReturnType<typeof rhService.getRelatorioJss>>>(null);
   const [who5, setWho5] = useState<Awaited<ReturnType<typeof rhService.getRelatorioPsicossocial>>>(null);
   const [loading, setLoading] = useState(true);
@@ -106,6 +113,10 @@ export const LiderancaEvolucao: React.FC<{
   const [acao, setAcao] = useState<Sugestao | null>(null);
   const [verificando, setVerificando] = useState<LiderancaCiclo | null>(null);
   const [transicao, setTransicao] = useState<{ ciclo: LiderancaCiclo; destino: LiderancaEtapa } | null>(null);
+
+  // O foco pode chegar depois da montagem (o RH clica no selo de uma medida
+  // já estando nesta aba), então não basta o valor inicial do useState.
+  useEffect(() => { if (cicloFoco) setSelecionado(cicloFoco); }, [cicloFoco]);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -162,7 +173,15 @@ export const LiderancaEvolucao: React.FC<{
         ? <div className="rounded-xl bg-white p-10 text-center shadow"><Sparkles className="mx-auto h-9 w-9 text-gray-300" /><p className="mt-3 font-medium text-gray-600">Nenhuma jornada iniciada.</p><p className="mt-1 text-sm text-gray-400">Comece por um setor e leve sugestões práticas para a primeira conversa.</p></div>
         : <KanbanLideranca ciclos={ciclos} selecionado={selecionado} onSelecionar={setSelecionado} onMover={mover} />}
 
-      {ciclo && <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={() => setSelecionado(null)}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}><div className="mb-3 flex justify-end"><button onClick={() => setSelecionado(null)} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700" aria-label="Fechar detalhes"><X className="h-5 w-5" /></button></div><JornadaDetalhe ciclo={ciclo} sugestoes={leitura.sugestoes} who5={setorWho5} onEditar={() => setEditando(true)} onAcao={setAcao} onVerificar={() => setVerificando(ciclo)} onAvancar={destino => setTransicao({ ciclo, destino })} onAtualizar={carregar} /></aside></div>}
+      {ciclo && <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={() => setSelecionado(null)}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}><div className="mb-3 flex items-center justify-between gap-3">
+        {/* Caminho de ida: da conversa para o registro formal. O de volta é
+            o selo "Combinado com a liderança", no plano. */}
+        {onVerNoPlano
+          ? <button onClick={onVerNoPlano} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[#7d4a3c] transition hover:bg-white">
+              <Clipboard className="h-3.5 w-3.5" /> Ver os combinados no plano de ação
+            </button>
+          : <span />}
+        <button onClick={() => setSelecionado(null)} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700" aria-label="Fechar detalhes"><X className="h-5 w-5" /></button></div><JornadaDetalhe ciclo={ciclo} sugestoes={leitura.sugestoes} who5={setorWho5} onEditar={() => setEditando(true)} onAcao={setAcao} onVerificar={() => setVerificando(ciclo)} onAvancar={destino => setTransicao({ ciclo, destino })} onAtualizar={carregar} /></aside></div>}
 
       {novo && <CicloForm setores={setores} jss={jss} setorInicial={setorInicial} onClose={() => setNovo(false)} onSaved={async id => { setNovo(false); await carregar(); setSelecionado(id); }} />}
       {editando && ciclo && <PontosForm ciclo={ciclo} onClose={() => setEditando(false)} onSaved={() => { setEditando(false); void carregar(); }} />}

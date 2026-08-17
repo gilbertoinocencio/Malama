@@ -47,7 +47,8 @@ const SEMANAS = [
   {
     quando: 'Semana 4',
     o_que: 'Conversar e combinar',
-    detalhe: 'Levar o resultado a cada liderança, reconhecer o que funciona e combinar até três melhorias por setor.',
+    detalhe: 'Levar o resultado a cada liderança, reconhecer o que funciona e combinar até três melhorias por setor. '
+      + 'Cada combinado vira sozinho um item do plano de ação — é lá que ele se encerra, com evidência.',
   },
 ];
 

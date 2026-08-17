@@ -346,7 +346,9 @@ const ETAPAS: DefEtapa[] = [
     ok: d => d.ciclos.length > 0, visivel: p => p.planoAcao,
   },
   {
-    chave: 'medidas', nome: 'Medidas', resumo: 'Responsável e prazo definidos',
+    // O resumo diz de onde as medidas vêm: o RH lia "Conversar" e "Medidas"
+    // como duas listas paralelas, quando a segunda é alimentada pela primeira.
+    chave: 'medidas', nome: 'Medidas', resumo: 'Os combinados viram plano formal',
     destino: '/rh/plano-acao',
     ok: d => d.planos.length > 0, visivel: p => p.planoAcao,
   },
