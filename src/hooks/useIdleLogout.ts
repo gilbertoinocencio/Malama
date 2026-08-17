@@ -82,8 +82,34 @@ export function useIdleLogout(enabled: boolean) {
     void supabase.auth.getSession().then(({ data }) => {
       if (disposed || !data.session?.user.id) return;
       activityKey = `${ACTIVITY_KEY_PREFIX}${data.session.user.id}`;
-      if (!localStorage.getItem(activityKey)) localStorage.setItem(activityKey, String(Date.now()));
+
+      // A marca só era escrita quando AINDA NÃO EXISTIA — e nada, em lugar
+      // nenhum, a apagava no logout. Numa sessão nova, encontrar a marca de
+      // uma sessão antiga fazia o primeiro `checkIdle` deslogar a pessoa no
+      // mesmo instante em que ela acabava de entrar, sem mensagem de erro:
+      // parecia que o botão Entrar não fazia nada. E como a chave sobrevivia
+      // ao logout, o usuário ficava trancado para fora do produto INTEIRO
+      // (ver App.tsx) até esvaziar o localStorage na mão — o navegador
+      // anônimo era a única forma de entrar.
+      //
+      // Montar este efeito com a aba visível significa que alguém acabou de
+      // abrir ou de autenticar o app: isso é atividade, e o relógio começa
+      // agora. Aba escondida não reinicia nada, para não estender por engano
+      // uma sessão que outra aba está prestes a encerrar.
+      if (document.visibilityState === 'visible') {
+        localStorage.setItem(activityKey, String(Date.now()));
+      } else if (!localStorage.getItem(activityKey)) {
+        localStorage.setItem(activityKey, String(Date.now()));
+      }
       void checkIdle();
+    });
+
+    // Sair leva a marca junto. Sem isto a chave se acumula por usuário e
+    // volta a envenenar o próximo login feito no mesmo navegador.
+    const { data: assinatura } = supabase.auth.onAuthStateChange((evento) => {
+      if (evento === 'SIGNED_OUT' && activityKey) {
+        try { localStorage.removeItem(activityKey); } catch { /* storage indisponível */ }
+      }
     });
 
     ACTIVITY_EVENTS.forEach(event => window.addEventListener(event, markActivity, { passive: true }));
@@ -93,6 +119,7 @@ export function useIdleLogout(enabled: boolean) {
     return () => {
       disposed = true;
       clearTimer();
+      assinatura.subscription.unsubscribe();
       ACTIVITY_EVENTS.forEach(event => window.removeEventListener(event, markActivity));
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('storage', onStorage);
