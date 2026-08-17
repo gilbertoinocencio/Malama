@@ -28,6 +28,8 @@ import {
 } from '../../lib/certificadoDisponibilizacao';
 import { DossieNr1Card } from '../../components/rh/DossieNr1Card';
 import { LinkSuporte } from '../../components/rh/LinkSuporte';
+import { CabecalhoColapsavel, ResumoRecolhido } from '../../components/rh/SecaoColapsavel';
+import { useScrollParaHash } from '../../hooks/useScrollParaHash';
 import { useRhJornada } from '../../contexts/RhJornadaContext';
 import { useRhAccess } from '../../contexts/RhAccessContext';
 import { hashDocumento } from '../../lib/hashDocumento';
@@ -82,6 +84,9 @@ export const RhCompliance: React.FC = () => {
 
   // Certificados de disponibilização
   const [colabsCert, setColabsCert] = useState<CertificadoColaborador[]>([]);
+  // Recolhido por padrão: a lista tem uma linha por colaborador e empurra o
+  // relatório de evidência para fora da tela numa empresa grande.
+  const [certAberto, setCertAberto] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -109,6 +114,9 @@ export const RhCompliance: React.FC = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Destino de "#relatorio-evidencia", vindo do marco de ciclo completo.
+  useScrollParaHash(!loading);
 
   const servicos = servicosDoContrato(empresa);
   const podeEmitirCert = servicos.length > 0;
@@ -357,23 +365,42 @@ export const RhCompliance: React.FC = () => {
       {/* O índice de bem-estar (WHO-5) e as campanhas ficam na aba
           Saúde Mental — esta aba trata só de documentos e evidências. */}
 
-      {/* ── Certificados de disponibilização ── */}
+      {/* ── Certificados de disponibilização ──
+          Nasce recolhido: a tabela tem uma linha por colaborador (inclusive
+          quem já saiu, de propósito), então numa empresa grande ela empurra
+          o resto da aba — inclusive o relatório de evidência — para fora da
+          tela. Quem precisa de certificado vem atrás dele; quem não precisa
+          não deveria rolar centenas de linhas para chegar no que interessa. */}
       <div className="bg-white rounded-xl shadow p-5">
         <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-[#7d4a3c]" />
-            <h2 className="font-semibold text-gray-800">Certificados de disponibilização</h2>
-            <span className="text-xs text-gray-400">{colabsCert.length}</span>
-          </div>
-          <button
-            onClick={handleCertLote}
-            disabled={colabsCert.length === 0 || !podeEmitirCert}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-40"
-          >
-            <FileDown className="w-4 h-4" />
-            Emitir todos (PDF)
-          </button>
+          <CabecalhoColapsavel
+            icone={<Award className="w-5 h-5 text-[#7d4a3c]" />}
+            titulo="Certificados de disponibilização"
+            contagem={colabsCert.length}
+            aberto={certAberto}
+            onToggle={() => setCertAberto(v => !v)}
+            desabilitado={colabsCert.length === 0}
+          />
+          {certAberto && (
+            <button
+              onClick={handleCertLote}
+              disabled={colabsCert.length === 0 || !podeEmitirCert}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-40"
+            >
+              <FileDown className="w-4 h-4" />
+              Emitir todos (PDF)
+            </button>
+          )}
         </div>
+
+        {!certAberto ? (
+          <ResumoRecolhido onAbrir={() => setCertAberto(true)}>
+            {colabsCert.length === 0
+              ? 'Nenhum colaborador para emitir certificado ainda.'
+              : `Emitir certificado de ${colabsCert.length} colaborador(es) — comprova que o benefício esteve disponível num período.`}
+          </ResumoRecolhido>
+        ) : (
+        <>
         <p className="text-sm text-gray-500 mb-4">
           Comprovam que cada colaborador teve o benefício <strong>disponível</strong> em um período
           — evidência de diligência da empresa. Não contêm dados de uso nem de saúde. Quem já saiu
@@ -458,17 +485,23 @@ export const RhCompliance: React.FC = () => {
             PGR/PCMSO nem as avaliações do SESMT/médico do trabalho.
           </span>
         </div>
+        </>
+        )}
       </div>
 
-      {/* Cabeçalho + gerar */}
-      <div className="bg-white rounded-xl shadow p-5">
+      {/* Cabeçalho + gerar.
+          A âncora é o destino do marco de ciclo completo, no dashboard: sem
+          ela o botão levava ao topo desta aba e o RH tinha que caçar, lá
+          embaixo, o que ele acabou de pedir. */}
+      <div id="relatorio-evidencia" className="scroll-mt-6 bg-white rounded-xl shadow p-5">
         <div className="flex items-center gap-2 mb-2">
           <ShieldCheck className="w-5 h-5 text-[#7d4a3c]" />
           <h2 className="font-semibold text-gray-800">Relatório de evidência do programa</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
           Gere um documento com os indicadores atuais do programa, como evidência documental
-          complementar para o PGR da sua empresa. Não é certificado de conformidade — a
+          complementar para o <strong>PGR</strong> da sua empresa. Ele não é o PGR e não substitui
+          o seu: é uma peça que entra nele. Também não é certificado de conformidade — a
           responsabilidade técnica pela NR-1 continua sendo da empresa.
         </p>
 

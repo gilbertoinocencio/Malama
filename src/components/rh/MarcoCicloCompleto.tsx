@@ -15,17 +15,36 @@
 // evidências, e a leitura oficial continua sendo do SESMT.
 // =====================================================
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, FolderCheck } from 'lucide-react';
 import { cicloCompleto, type DadosJornada } from '../../lib/rhJornada';
+import { rhService, type ComplianceDoc } from '../../services/empresaService';
+
+const fmtData = (iso: string) =>
+  new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 export const MarcoCicloCompleto: React.FC<{ dados: DadosJornada }> = ({ dados }) => {
-  if (!cicloCompleto(dados)) return null;
-
   // Sem permissão de compliance não há para onde mandar: o marco vira uma
   // frase, e não um botão que devolve "acesso negado".
   const podeAbrirDossie = dados.pode.vePlanos && dados.pode.veCampanhas;
+  const completo = cicloCompleto(dados);
+
+  // O marco não sabia se o documento já tinha sido emitido, então continuava
+  // dizendo "gerar" para sempre — inclusive depois de o RH gerar. Com o
+  // último documento em mãos ele passa a confirmar o que existe, que é o
+  // que o RH leva para a diretoria.
+  const [ultimo, setUltimo] = useState<ComplianceDoc | null>(null);
+  useEffect(() => {
+    if (!completo || !podeAbrirDossie) return;
+    let cancelado = false;
+    rhService.getComplianceDocs()
+      .then(lista => { if (!cancelado) setUltimo(lista[0] ?? null); })
+      .catch(() => { /* sem o histórico o marco só oferece gerar */ });
+    return () => { cancelado = true; };
+  }, [completo, podeAbrirDossie]);
+
+  if (!completo) return null;
 
   return (
     <section
@@ -46,17 +65,26 @@ export const MarcoCicloCompleto: React.FC<{ dados: DadosJornada }> = ({ dados })
             </h2>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-green-800">
               Medição aplicada, resultado lido, conversa registrada com a liderança e ao menos uma
-              medida concluída com evidência anexada. Se a fiscalização perguntar hoje, existe o
-              que mostrar — e o documento sai com número, data e selo de verificação.
+              medida concluída com evidência anexada. Daqui sai o{' '}
+              <strong>Relatório de evidência do programa</strong>, com número, data e selo de
+              verificação — a peça que entra no <strong>PGR</strong> da sua empresa. Ele não é o
+              PGR nem substitui o seu.
             </p>
+            {ultimo && (
+              <p className="mt-2 text-xs text-green-800">
+                Último emitido: <strong>{ultimo.numero_doc}</strong> em {fmtData(ultimo.emitido_em)}.
+                Gere de novo quando os números mudarem.
+              </p>
+            )}
           </div>
         </div>
         {podeAbrirDossie && (
           <Link
-            to="/rh/compliance"
+            to="/rh/compliance#relatorio-evidencia"
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800"
           >
-            Gerar o documento <ArrowRight className="h-4 w-4" />
+            {ultimo ? 'Emitir nova versão' : 'Gerar o relatório de evidência'}
+            <ArrowRight className="h-4 w-4" />
           </Link>
         )}
       </div>
