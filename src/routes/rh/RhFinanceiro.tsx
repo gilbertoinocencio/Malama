@@ -12,9 +12,11 @@ import toast from 'react-hot-toast';
 import {
   rhService,
   type EmpresaFatura,
+  modulosDaEmpresa,
   type RhResumoFinanceiro,
 } from '../../services/empresaService';
 import { LinkSuporte } from '../../components/rh/LinkSuporte';
+import { useRhJornada } from '../../contexts/RhJornadaContext';
 
 const fmtCurrency = (v: number | null | undefined) =>
   (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -30,6 +32,10 @@ const statusBadge: Record<EmpresaFatura['status'], { label: string; cls: string 
 };
 
 export const RhFinanceiro: React.FC = () => {
+  // Os módulos vêm da empresa já carregada pelo layout — o resumo financeiro
+  // é uma RPC própria e não os devolve.
+  const { empresa } = useRhJornada();
+  const modulos = modulosDaEmpresa(empresa);
   const [resumo, setResumo] = useState<RhResumoFinanceiro | null>(null);
   const [faturas, setFaturas] = useState<EmpresaFatura[]>([]);
   const [loading, setLoading] = useState(true);
@@ -226,6 +232,23 @@ export const RhFinanceiro: React.FC = () => {
             <dd className="mt-1 text-lg font-semibold text-[#7d4a3c]">{fmtCurrency(totalMensal)}</dd>
           </div>
         </dl>
+
+        {/* O valor do assento aparecia sem dizer do que é composto — e é a
+            primeira pergunta de quem confere a fatura. */}
+        {modulos.length > 0 && (
+          <div className="mt-4 border-t border-gray-100 pt-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              O que está incluído no assento
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {modulos.map(m => (
+                <span key={m} className="rounded-full bg-[#7d4a3c]/10 px-2.5 py-1 text-xs font-medium text-[#7d4a3c]">
+                  {m}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {resumo.max_assentos_agendado != null && resumo.max_assentos_vigencia && (
           <div className="mt-4 flex items-start gap-2 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800">

@@ -36,11 +36,18 @@ export type Empresa = {
   // Modos de contrato (migration 20260727). Definem o que o assento entrega.
   modo_mental?: boolean;
   modo_metabolico?: boolean;
+  /** Ciclo de gestão de risco psicossocial (migration 20260846). Vem
+   *  agregado ao pacote: é sempre verdadeiro quando há mental ou
+   *  metabólico, e um trigger no banco garante isso. Só é COBRADO quando é
+   *  a única modalidade contratada. */
+  modo_compliance?: boolean;
   // Preço por assento de cada modalidade (migration 20260807). A empresa que
   // contrata as duas paga pelas duas. valor_por_assento vira o legado/fallback
   // do metabólico.
   valor_assento_mental?: number | null;
   valor_assento_metabolico?: number | null;
+  /** Só usado quando compliance é a única modalidade. */
+  valor_assento_compliance?: number | null;
 };
 
 export type EmpresaSummary = Empresa & {
@@ -139,6 +146,13 @@ export function valorAssentoEmpresa(e: Partial<Empresa>): number {
   let total = 0;
   if (e.modo_metabolico) total += e.valor_assento_metabolico ?? e.valor_por_assento ?? 0;
   if (e.modo_mental) total += e.valor_assento_mental ?? 0;
+  // Compliance só entra quando é o único contratado: nos contratos com
+  // módulo de cuidado o ciclo já está no preço deles. Ver o comentário em
+  // `empresa_valor_assento()` (migration 20260846) — as duas precisam
+  // concordar, senão a tela do admin mostra um valor e a fatura sai outro.
+  if (e.modo_compliance && !e.modo_metabolico && !e.modo_mental) {
+    return e.valor_assento_compliance ?? 0;
+  }
   // Contrato anterior aos modos: cai no valor legado.
   if (!e.modo_metabolico && !e.modo_mental) total = e.valor_por_assento ?? 0;
   return total;
@@ -164,6 +178,9 @@ export type B2BDashboardStats = {
   mrr_mental: number;
   mrr_metabolico: number;
   assentos_mental: number;
+  /** Contratos SÓ de compliance — os únicos em que ele é cobrado. */
+  empresas_compliance: number;
+  mrr_compliance: number;
   bloqueadas: number;
   inadimplentes: number;
   ajustes_assentos_agendados: number;
@@ -238,7 +255,10 @@ export const empresaAdminService = {
     ] = await Promise.all([
       supabase
         .from('empresas')
-        .select('id, status, max_assentos, valor_por_assento, valor_assento_mental, valor_assento_metabolico, modo_mental, modo_metabolico, acesso_bloqueado, max_assentos_agendado, created_at'),
+        // `*` aqui é seguro (só o super admin chega nesta consulta) e evita
+        // que a lista quebre a cada coluna nova de contrato — foi o que
+        // aconteceu ao introduzir modo_compliance.
+        .select('*'),
       supabase
         .from('empresa_colaboradores')
         .select('*', { count: 'exact', head: true })
@@ -273,6 +293,15 @@ export const empresaAdminService = {
       assentos_mental: ativas
         .filter(e => e.modo_mental)
         .reduce((s, e) => s + (e.max_assentos ?? 0), 0),
+      // "Só compliance": as que não têm módulo de cuidado. Contar aqui todas
+      // as que TÊM compliance juntaria a base inteira num número só e
+      // esconderia justamente o que esta quebra existe para mostrar — quem
+      // paga apenas pelo ciclo.
+      empresas_compliance: ativas
+        .filter(e => e.modo_compliance && !e.modo_mental && !e.modo_metabolico).length,
+      mrr_compliance: ativas
+        .filter(e => e.modo_compliance && !e.modo_mental && !e.modo_metabolico)
+        .reduce((s, e) => s + (e.max_assentos ?? 0) * (e.valor_assento_compliance ?? 0), 0),
       bloqueadas: ativas.filter(e => e.acesso_bloqueado).length,
       inadimplentes: inadimplentes ?? 0,
       ajustes_assentos_agendados: ativas.filter(e => e.max_assentos_agendado != null).length,
@@ -474,8 +503,33 @@ export const empresaAdminService = {
 
 export type RhEmpresa = Pick<Empresa,
   'id' | 'nome' | 'cnpj' | 'responsavel_nome' | 'max_assentos' | 'status' | 'data_inicio'
-  | 'modo_mental' | 'modo_metabolico'
+  | 'modo_mental' | 'modo_metabolico' | 'modo_compliance'
 >;
+
+// Colunas que o portal do RH pode ver — nunca `*`, que exporia o contrato.
+const COLUNAS_RH_EMPRESA_LEGADO =
+  'id, nome, cnpj, responsavel_nome, max_assentos, status, data_inicio, modo_mental, modo_metabolico';
+const COLUNAS_RH_EMPRESA = `${COLUNAS_RH_EMPRESA_LEGADO}, modo_compliance`;
+
+/** PostgREST recusa a consulta inteira quando uma coluna pedida não existe
+ *  (código 42703). Serve para tolerar a janela entre o deploy do código e a
+ *  aplicação da migração, sem engolir erro de verdade. */
+export function colunaAusente(erro: { code?: string; message?: string }, coluna: string): boolean {
+  return erro?.code === '42703' || (erro?.message ?? '').includes(coluna);
+}
+
+/** Módulos do contrato em linguagem de cliente. Compliance aparece sempre:
+ *  ele é o que toda empresa contrata, e some da lista só se o registro for
+ *  anterior à migration 20260846 e não tiver módulo de cuidado nenhum. */
+export function modulosDaEmpresa(e: Pick<Empresa, 'modo_mental' | 'modo_metabolico' | 'modo_compliance'> | null): string[] {
+  if (!e) return [];
+  const temCompliance = e.modo_compliance || e.modo_mental || e.modo_metabolico;
+  return [
+    temCompliance ? 'Compliance NR-1' : null,
+    e.modo_mental ? 'Saúde mental' : null,
+    e.modo_metabolico ? 'Saúde metabólica' : null,
+  ].filter((x): x is string => x !== null);
+}
 
 // Dados cadastrais completos da empresa (migration 20260825). Diferente de
 // RhEmpresa: traz e-mail e telefone do responsável, que são os campos que o
@@ -1186,7 +1240,17 @@ export const rhService = {
     if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Não foi possível atualizar o relato');
   },
 
-  // Empresa do RH logado (sem campos financeiros)
+  /**
+   * Empresa do RH logado (sem campos financeiros).
+   *
+   * A lista de colunas é explícita de propósito — `select('*')` entregaria
+   * valor_por_assento e o resto do contrato ao portal do RH. Por isso ela
+   * também é frágil na direção oposta: pedir uma coluna que ainda não
+   * existe faz o PostgREST recusar a consulta inteira, e o portal fica sem
+   * empresa nenhuma. `modo_compliance` chega na migration 20260846, então
+   * a leitura tenta com ela e reexecuta sem, caso o banco ainda não tenha
+   * sido migrado. Assim a ordem entre deploy e migração deixa de importar.
+   */
   async getMyEmpresa(): Promise<RhEmpresa | null> {
     // Não chama getUser() aqui: várias telas carregam em paralelo e cada
     // validação remota de Auth criava uma corrida desnecessária. A RPC já
@@ -1196,16 +1260,18 @@ export const rhService = {
     const rh = acesso as RhAcesso | null;
     if (!rh?.empresa_id) return null;
 
-    const { data: empresa, error } = await supabase
-      .from('empresas')
-      .select('id, nome, cnpj, responsavel_nome, max_assentos, status, data_inicio, modo_mental, modo_metabolico')
-      .eq('id', rh.empresa_id)
-      .single();
+    const ler = (colunas: string) => supabase
+      .from('empresas').select(colunas).eq('id', rh.empresa_id).single();
+
+    let { data: empresa, error } = await ler(COLUNAS_RH_EMPRESA);
+    if (error && colunaAusente(error, 'modo_compliance')) {
+      ({ data: empresa, error } = await ler(COLUNAS_RH_EMPRESA_LEGADO));
+    }
     if (error) {
       console.error('[rhService] Falha ao ler empresa do RH:', error.message, '| empresa_id:', rh.empresa_id);
       throw error;
     }
-    return empresa;
+    return empresa as RhEmpresa | null;
   },
 
   // ── Área da empresa: cadastro e documentos (migration 20260825) ──

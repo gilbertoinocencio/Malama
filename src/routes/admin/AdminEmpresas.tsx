@@ -6,7 +6,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Plus, Search, X, Building2, Users, DollarSign, TrendingUp,
   Pause, Play, Ban, Inbox, ExternalLink, Lock, Unlock, Receipt, Bell, AlertTriangle,
-  Percent, CalendarDays, UserCheck, Brain, Activity,
+  Percent, CalendarDays, UserCheck, Brain, Activity, ShieldCheck,
 } from 'lucide-react';
 import {
   empresaAdminService,
@@ -65,6 +65,8 @@ type EmpresaForm = {
   max_assentos: string;
   modo_mental: boolean;
   modo_metabolico: boolean;
+  modo_compliance: boolean;
+  valor_assento_compliance: string;
   plano_psicologico: boolean;
   valor_assento_psi: string;
   max_assentos_psi: string;
@@ -77,7 +79,10 @@ const EMPTY_FORM: EmpresaForm = {
   nome: '', cnpj: '', responsavel_nome: '', responsavel_email: '',
   responsavel_telefone: '', valor_por_assento: '',
   valor_assento_mental: '', valor_assento_metabolico: '', max_assentos: '',
+  // Compliance nasce marcado: ele acompanha qualquer contrato, e desmarcá-lo
+  // com um módulo de cuidado ligado nem é possível.
   modo_mental: true, modo_metabolico: false,
+  modo_compliance: true, valor_assento_compliance: '',
   plano_psicologico: false, valor_assento_psi: '', max_assentos_psi: '',
   status: 'ativa', data_inicio: new Date().toISOString().slice(0, 10), rh_password: '',
 };
@@ -104,6 +109,12 @@ const EmpresaModal: React.FC<{
           max_assentos: initial.max_assentos != null ? String(initial.max_assentos) : '',
           modo_mental: initial.modo_mental ?? false,
           modo_metabolico: initial.modo_metabolico ?? true,
+          // Contrato anterior à 20260846 não tem a coluna preenchida, mas
+          // sempre entregou o ciclo: se há módulo de cuidado, tem compliance.
+          modo_compliance: initial.modo_compliance
+            ?? !!(initial.modo_mental || initial.modo_metabolico),
+          valor_assento_compliance: initial.valor_assento_compliance != null
+            ? String(initial.valor_assento_compliance) : '',
           plano_psicologico: initial.plano_psicologico ?? false,
           valor_assento_psi: initial.valor_assento_psi != null ? String(initial.valor_assento_psi) : '',
           max_assentos_psi: initial.max_assentos_psi != null ? String(initial.max_assentos_psi) : '',
@@ -119,12 +130,22 @@ const EmpresaModal: React.FC<{
   const set = <K extends keyof EmpresaForm>(k: K, v: EmpresaForm[K]) =>
     setForm(f => ({ ...f, [k]: v }));
 
+  // Compliance vem no pacote de qualquer módulo de cuidado, e por isso não
+  // é editável nem cobrado quando um deles está marcado.
+  const complianceIncluso = form.modo_mental || form.modo_metabolico;
+  const complianceSozinho = form.modo_compliance && !complianceIncluso;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
     if (!form.nome.trim()) { setFormError('Informe o nome da empresa.'); return; }
-    if (!form.modo_mental && !form.modo_metabolico) {
+    if (!form.modo_mental && !form.modo_metabolico && !form.modo_compliance) {
       setFormError('Selecione ao menos um modo de contrato.'); return;
+    }
+    // Compliance sozinho é contrato válido, mas precisa de preço: sem ele
+    // `empresa_valor_assento()` devolve NULL e a emissão da fatura falha.
+    if (complianceSozinho && !form.valor_assento_compliance.trim()) {
+      setFormError('Informe o valor do assento de compliance.'); return;
     }
     if (!initial) {
       if (!form.responsavel_email.trim()) { setFormError('Informe o e-mail do responsável de RH.'); return; }
@@ -270,6 +291,46 @@ const EmpresaModal: React.FC<{
                   </span>
                 </label>
               </div>
+              {/* Compliance é o ciclo da NR-1, que TODO contrato entrega.
+                  Aparece como modalidade para dar visibilidade de quem tem o
+                  quê, mas fica travado quando há módulo de cuidado: nesses
+                  contratos ele vem no pacote e não é cobrado à parte. O
+                  mesmo é garantido por trigger no banco (20260846). */}
+              <label
+                className={`mt-2 flex gap-2.5 rounded-lg border p-3 transition ${
+                  complianceIncluso
+                    ? 'cursor-default border-gray-200 bg-gray-50'
+                    : form.modo_compliance
+                      ? 'cursor-pointer border-[#7d4a3c] bg-[#7d4a3c]/5'
+                      : 'cursor-pointer border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={complianceIncluso || form.modo_compliance}
+                  disabled={complianceIncluso}
+                  onChange={e => set('modo_compliance', e.target.checked)}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 rounded accent-[#7d4a3c] disabled:opacity-60"
+                />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
+                    <ShieldCheck className="h-3.5 w-3.5 text-[#7d4a3c]" /> Compliance NR-1
+                    {complianceIncluso && (
+                      <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
+                        incluso no pacote
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-snug text-gray-500">
+                    Ciclo completo: diagnóstico psicossocial por setor, plano de ação, dossiê e
+                    relatório de evidência para o PGR. Sem atendimento individual.
+                    {complianceIncluso
+                      ? ' Já vem com o módulo de cuidado contratado, sem custo adicional.'
+                      : ' Marque sozinho para a empresa que quer só a conformidade.'}
+                  </span>
+                </span>
+              </label>
+
               {form.modo_mental && (
                 <p className="text-xs text-gray-500 mt-2">
                   No modo Mental o acompanhamento psicológico é universal — o RH não escolhe quem recebe.
@@ -304,6 +365,22 @@ const EmpresaModal: React.FC<{
                   onChange={e => set('valor_assento_mental', e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
                   placeholder="130.00"
+                />
+              </div>
+            )}
+
+            {/* Só aparece quando compliance é o único modo: nos demais ele
+                não é cobrado, e um campo de preço ali sugeriria que é. */}
+            {form.modo_compliance && !complianceIncluso && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Assento compliance (R$)
+                </label>
+                <input
+                  type="number" min="0" step="0.01" value={form.valor_assento_compliance}
+                  onChange={e => set('valor_assento_compliance', e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+                  placeholder="25.00"
                 />
               </div>
             )}
@@ -608,6 +685,13 @@ export const AdminEmpresas: React.FC = () => {
         max_assentos: form.max_assentos ? parseInt(form.max_assentos, 10) : null,
         modo_mental: form.modo_mental,
         modo_metabolico: form.modo_metabolico,
+        // Compliance acompanha qualquer módulo de cuidado (o trigger em
+        // 20260846 também garante), e só tem preço quando vai sozinho.
+        modo_compliance: form.modo_compliance || form.modo_mental || form.modo_metabolico,
+        valor_assento_compliance:
+          form.modo_compliance && !form.modo_mental && !form.modo_metabolico
+            && form.valor_assento_compliance
+            ? parseFloat(form.valor_assento_compliance) : null,
         status: form.status,
         data_inicio: form.data_inicio || null,
       },
@@ -639,6 +723,14 @@ export const AdminEmpresas: React.FC = () => {
       max_assentos: form.max_assentos ? parseInt(form.max_assentos, 10) : null,
       modo_mental: form.modo_mental,
       modo_metabolico: form.modo_metabolico,
+      modo_compliance: form.modo_compliance || form.modo_mental || form.modo_metabolico,
+      // O preço só existe no contrato de compliance puro. Zerar aqui evita
+      // que o valor sobreviva escondido se a empresa contratar um módulo de
+      // cuidado depois e voltar a ficar só no compliance mais adiante.
+      valor_assento_compliance:
+        form.modo_compliance && !form.modo_mental && !form.modo_metabolico
+          && form.valor_assento_compliance
+          ? parseFloat(form.valor_assento_compliance) : null,
       // Plano psicológico avulso (legado). No modo Mental o psicólogo é universal,
       // então o avulso é desligado para não coexistirem dois caminhos de acesso.
       plano_psicologico: form.modo_mental ? false : form.plano_psicologico,
@@ -698,6 +790,12 @@ export const AdminEmpresas: React.FC = () => {
     (s, e) => s + (e.max_assentos ?? 0) * (e.valor_assento_mental ?? 0), 0);
   const mrrMetabolico = empresasMetabolico.reduce(
     (s, e) => s + (e.max_assentos ?? 0) * (e.valor_assento_metabolico ?? e.valor_por_assento ?? 0), 0);
+  // Compliance-only: as únicas em que ele é cobrado. Contar todas as que
+  // TÊM compliance daria o total da base e esconderia o que interessa aqui.
+  const empresasComplianceSo = ativas.filter(
+    e => e.modo_compliance && !e.modo_mental && !e.modo_metabolico);
+  const mrrCompliance = empresasComplianceSo.reduce(
+    (s, e) => s + (e.max_assentos ?? 0) * (e.valor_assento_compliance ?? 0), 0);
 
   const cards = [
     { icon: <Building2 className="w-5 h-5 text-[#7d4a3c]" />, label: 'Empresas ativas',          value: String(dashboard?.empresas_ativas ?? 0) },
@@ -712,6 +810,8 @@ export const AdminEmpresas: React.FC = () => {
     { icon: <Activity className="w-5 h-5 text-[#7d4a3c]" />, label: 'Empresas · Metabólico',    value: String(empresasMetabolico.length) },
     { icon: <Brain    className="w-5 h-5 text-[#7d4a3c]" />, label: 'MRR Saúde Mental',         value: fmtCurrency(mrrMental) },
     { icon: <Activity className="w-5 h-5 text-[#7d4a3c]" />, label: 'MRR Metabólico',           value: fmtCurrency(mrrMetabolico) },
+    { icon: <ShieldCheck className="w-5 h-5 text-[#7d4a3c]" />, label: 'Empresas · Só compliance', value: String(empresasComplianceSo.length) },
+    { icon: <ShieldCheck className="w-5 h-5 text-[#7d4a3c]" />, label: 'MRR Só compliance',       value: fmtCurrency(mrrCompliance) },
   ];
 
   return (
@@ -808,6 +908,14 @@ export const AdminEmpresas: React.FC = () => {
                         {e.modo_metabolico && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
                             <Activity className="w-2.5 h-2.5" /> Metabólico
+                          </span>
+                        )}
+                        {/* Só quando é o contrato inteiro: um selo de
+                            compliance em toda linha viraria ruído, já que
+                            todas têm. */}
+                        {e.modo_compliance && !e.modo_mental && !e.modo_metabolico && (
+                          <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                            <ShieldCheck className="h-2.5 w-2.5" /> Só compliance
                           </span>
                         )}
                       </div>
