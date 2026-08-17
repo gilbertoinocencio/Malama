@@ -85,10 +85,13 @@ test.describe('Portal do RH — jornada guiada', () => {
     expect(larguraOk).toBeTruthy();
   });
 
-  test('mostra prazo, alerta e verificação dos marcos de liderança', async ({ page }) => {
-    await page.goto(`${appUrl}/rh/dashboard`);
-    await expect(page.getByText(/marco\(s\) de liderança pedem acompanhamento/i)).toBeVisible();
-
+  test('mostra prazo e verificação dos marcos de liderança', async ({ page }) => {
+    // A faixa âmbar do dashboard saiu deste teste de propósito. Ela agora só
+    // aparece com o prazo do marco a 3 dias ou menos (ver DIAS_MARCO_URGENTE
+    // em RhDashboard), então a presença dela depende de quanto falta para os
+    // ciclos da empresa de teste — afirmar qualquer um dos dois lados aqui
+    // daria um teste que quebra sozinho com a passagem dos dias. O que este
+    // teste cobre é o fluxo do marco em si, que é estável.
     await page.goto(`${appUrl}/rh/plano-acao?visao=lideranca`);
     await expect(page.getByText(/Depois de verificar o combinado/i)).toBeVisible();
     const cartao = page.getByRole('button').filter({ hasText: /RH:/ }).first();

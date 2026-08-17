@@ -29,6 +29,12 @@ import { passosPreparacao, proximoPasso, type DadosJornada } from '../../lib/rhJ
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
+/** Dias de antecedência para o aviso de marco de liderança virar alerta.
+ *  Curto de propósito: a conversa com a liderança é agendada, não improvisada,
+ *  mas um aviso que aparece com uma semana de antecedência para cada ciclo
+ *  ativo vira ruído de fundo. Prazo vencido também entra (dias negativos). */
+const DIAS_MARCO_URGENTE = 3;
+
 const ColabStatusBadge: React.FC<{ status: EmpresaColaborador['status'] }> = ({ status }) => {
   if (status === 'ativo') {
     return (
@@ -57,12 +63,21 @@ const GuiaJornadaRh: React.FC<{
   const passos = passosPreparacao(dados);
   const concluidos = passos.filter(p => p.ok).length;
   const progresso = Math.round((concluidos / passos.length) * 100);
+  // Alerta só quando o prazo está mesmo em cima — ou já passou.
+  //
+  // Eram 7 dias, e o marco 'verificado' aparecia sempre. Numa empresa com
+  // meia dúzia de ciclos ativos isso deixava a faixa âmbar permanente no
+  // topo do dashboard: alerta que nunca sai não é alerta, é decoração, e
+  // ainda empurra o próximo passo para baixo.
+  //
+  // O marco 'verificado' saiu da conta porque não tem prazo: ele significa
+  // "pronto para avançar", e quem cobra isso é o próprio "seu próximo
+  // passo" ("Acompanhe os combinados de X"), sem precisar de âmbar.
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
   const marcosParaVerificar = dados.ciclos.filter(c => {
-    if (c.status !== 'ativo') return false;
-    if (c.marco_status === 'verificado') return true;
+    if (c.status !== 'ativo' || c.marco_status === 'verificado') return false;
     const prazo = new Date(`${c.marco_prazo || c.fim}T00:00:00`);
-    return Math.ceil((prazo.getTime() - hoje.getTime()) / 86400000) <= 7;
+    return Math.ceil((prazo.getTime() - hoje.getTime()) / 86400000) <= DIAS_MARCO_URGENTE;
   });
 
   return (
