@@ -124,7 +124,9 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
     return {
       titulo: pendentes === 1 ? 'Aceite o documento pendente' : `Aceite os ${pendentes} documentos pendentes`,
       descricao: 'O aceite fica registrado com versão, data e quem assinou — é o que sustenta a coleta de dados de saúde no PGR.',
-      destino: '/rh/empresa',
+      // Com âncora: os termos ficam no fim da área da empresa, e sem ela o
+      // passo entregava a tela de dados cadastrais.
+      destino: '/rh/empresa#documentos',
       acao: 'Revisar documentos',
       etapa: 'documentos',
       bloqueio: true,
@@ -289,8 +291,8 @@ const ETAPAS: DefEtapa[] = [
     ok: d => d.nColaboradores > 0, visivel: p => p.colaboradores,
   },
   {
-    chave: 'documentos', nome: 'Documentos', resumo: 'A base legal da coleta',
-    destino: '/rh/empresa',
+    chave: 'documentos', nome: 'Documentos', resumo: 'Termos que autorizam a coleta',
+    destino: '/rh/empresa#documentos',
     ok: d => docsPendentesDe(d.documentos) === 0, visivel: p => p.empresa,
   },
   {

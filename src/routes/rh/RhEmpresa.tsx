@@ -21,6 +21,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useScrollParaHash } from '../../hooks/useScrollParaHash';
 import {
   Building2, ArrowLeft, Save, FileText, ExternalLink, CheckCircle2,
   AlertCircle, ChevronDown, ChevronUp, ShieldCheck, KeyRound, Eye, EyeOff,
@@ -338,6 +339,9 @@ export const RhEmpresa: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  // Destino de "#documentos", vindo do passo da jornada.
+  useScrollParaHash(!loading);
+
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     setSalvando(true);
@@ -443,8 +447,12 @@ export const RhEmpresa: React.FC = () => {
       {/* ── Acesso ── */}
       <AcessoCard emailLogin={emailLogin} />
 
-      {/* ── Documentos ── */}
-      <div className="bg-white rounded-xl shadow p-5">
+      {/* ── Documentos ──
+          A âncora é o destino do passo "Documentos — a base legal da coleta",
+          na jornada. Sem ela o passo largava a pessoa no topo desta página,
+          em "Dados cadastrais": ela pedia para tratar do aceite e entregava
+          o perfil da empresa, com os documentos fora da tela lá embaixo. */}
+      <div id="documentos" className="scroll-mt-6 bg-white rounded-xl shadow p-5">
         <div className="flex items-center gap-2 mb-1">
           <ShieldCheck className="w-5 h-5 text-[#7d4a3c]" />
           <h2 className="font-semibold text-gray-800">Termos e documentos</h2>
