@@ -13,7 +13,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   CalendarX2, Stethoscope, Plus, X, Info, Brain, TrendingDown,
-  Trash2, ChevronDown, ChevronUp,
+  Trash2, ChevronDown, ChevronUp, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -302,11 +302,14 @@ export const RhAbsenteismo: React.FC = () => {
   const [lancAfast, setLancAfast] = useState<AfastamentoLancamento[]>([]);
   const [lancAmb, setLancAmb] = useState<AmbulatorioLancamento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
   const [formAfast, setFormAfast] = useState(false);
   const [formAmb, setFormAmb] = useState(false);
 
   const load = useCallback(async () => {
     const { inicio, fim } = periodoRange(periodo);
+    setLoading(true);
+    setErro(null);
     try {
       const [a, b, s, la, lb] = await Promise.all([
         rhService.getAbsenteismo(inicio, fim),
@@ -317,8 +320,10 @@ export const RhAbsenteismo: React.FC = () => {
       ]);
       setAbs(a); setAmb(b); setSetores(s);
       setLancAfast(la); setLancAmb(lb);
-    } catch {
-      toast.error('Erro ao carregar dados.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha desconhecida';
+      setErro(message);
+      toast.error('Não foi possível carregar os indicadores. Nenhum dado foi substituído.');
     } finally {
       setLoading(false);
     }
@@ -346,6 +351,26 @@ export const RhAbsenteismo: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7d4a3c]" />
+      </div>
+    );
+  }
+
+  if (erro) {
+    return (
+      <div className="bg-white border border-red-200 rounded-xl p-8 text-center">
+        <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+        <h2 className="font-semibold text-gray-900">Não foi possível consultar os dados</h2>
+        <p className="text-sm text-gray-500 mt-2">
+          Os registros continuam preservados. Verifique sua sessão ou tente carregar novamente.
+        </p>
+        <p className="text-xs text-red-600 mt-2 break-words">{erro}</p>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#7d4a3c] text-white text-sm font-semibold"
+        >
+          <RefreshCw className="w-4 h-4" /> Tentar novamente
+        </button>
       </div>
     );
   }

@@ -1264,7 +1264,7 @@ export const rhService = {
   /** Documentos vigentes aplicáveis à empresa, com o aceite quando houver. */
   async getDocumentos(): Promise<DocumentoLegal[]> {
     const { data, error } = await supabase.rpc('rh_documentos');
-    if (error) { console.error('[rhService] documentos:', error.message); return []; }
+    if (error) { console.error('[rhService] documentos:', error.message); throw error; }
     return (data ?? []) as DocumentoLegal[];
   },
 
@@ -1353,7 +1353,7 @@ export const rhService = {
     if (error) throw error;
   },
 
-  // RH agenda REDUÇÃO de assentos (vigência no 1º dia do próximo mês). Retorna a data de vigência.
+  // RH agenda aumento ou redução de assentos (vigência no 1º dia do próximo mês).
   async agendarAssentos(novo: number): Promise<string> {
     const { data, error } = await supabase.rpc('rh_agendar_assentos', { p_novo: novo });
     if (error) throw error;
@@ -1695,7 +1695,7 @@ export const rhService = {
     const { data, error } = await supabase.rpc('rh_absenteismo_resumo', {
       p_inicio: inicio, p_fim: fim,
     });
-    if (error) { console.error('[rhService] absenteísmo:', error.message); return null; }
+    if (error) { console.error('[rhService] absenteísmo:', error.message); throw error; }
     return (data ?? null) as RhAbsenteismo | null;
   },
 
@@ -1703,7 +1703,7 @@ export const rhService = {
     const { data, error } = await supabase.rpc('rh_ambulatorio_resumo', {
       p_inicio: inicio, p_fim: fim,
     });
-    if (error) { console.error('[rhService] ambulatório:', error.message); return null; }
+    if (error) { console.error('[rhService] ambulatório:', error.message); throw error; }
     return (data ?? null) as RhAmbulatorio | null;
   },
 
@@ -1717,7 +1717,7 @@ export const rhService = {
       .lte('data_inicio', fim)
       .order('data_inicio', { ascending: false })
       .limit(200);
-    if (error) { console.error('[rhService] lançamentos de afastamento:', error.message); return []; }
+    if (error) { console.error('[rhService] lançamentos de afastamento:', error.message); throw error; }
     return (data ?? []) as AfastamentoLancamento[];
   },
 
@@ -1735,7 +1735,7 @@ export const rhService = {
       .lte('data', fim)
       .order('data', { ascending: false })
       .limit(200);
-    if (error) { console.error('[rhService] lançamentos de ambulatório:', error.message); return []; }
+    if (error) { console.error('[rhService] lançamentos de ambulatório:', error.message); throw error; }
     return (data ?? []) as AmbulatorioLancamento[];
   },
 
@@ -1748,7 +1748,7 @@ export const rhService = {
   // ── Plano de ação ────────────────────────────────────
   async getPlanosAcao(): Promise<PlanoAcao[]> {
     const { data, error } = await supabase.rpc('rh_listar_planos_acao');
-    if (error) { console.error('[rhService] planos de ação:', error.message); return []; }
+    if (error) { console.error('[rhService] planos de ação:', error.message); throw error; }
     return (data ?? []) as PlanoAcao[];
   },
 

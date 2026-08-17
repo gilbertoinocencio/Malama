@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, ChevronRight, LockKeyhole, X } from 'lucide-react';
+import { AlertTriangle, ChevronRight, LockKeyhole, RefreshCw, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { rhService, type RhRelatoDetalhe, type RhRelatoLista } from '../../services/empresaService';
 
@@ -19,8 +19,21 @@ export const RhRelatos: React.FC = () => {
   const [retorno, setRetorno] = useState('');
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
-  const carregar = () => rhService.getRelatos().then(setRelatos).catch(e => { toast.error(e.message); }).finally(() => setLoading(false));
+  const carregar = async () => {
+    setLoading(true);
+    setErro(null);
+    try {
+      setRelatos(await rhService.getRelatos());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha desconhecida';
+      setErro(message);
+      toast.error('Não foi possível consultar os relatos. Nenhum dado foi substituído.');
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => { void carregar(); }, []);
 
   const abrir = async (id: string) => {
@@ -52,7 +65,18 @@ export const RhRelatos: React.FC = () => {
         <p>Um relato é um sinal grave que exige acolhimento e triagem, mas não deve ser apresentado como acusação comprovada. Preserve sigilo, imparcialidade e proteção contra retaliação.</p>
       </div>
       <div className="bg-white border rounded-2xl overflow-hidden">
-        {loading ? <div className="p-10 text-center text-gray-400">Carregando...</div> : relatos.length === 0 ? <div className="p-10 text-center"><LockKeyhole className="w-8 h-8 text-gray-300 mx-auto" /><p className="text-sm text-gray-500 mt-2">Nenhum relato recebido.</p></div> : relatos.map(r => (
+        {loading ? <div className="p-10 text-center text-gray-400">Carregando...</div> : erro ? (
+          <div className="p-10 text-center">
+            <AlertTriangle className="w-8 h-8 text-red-500 mx-auto" />
+            <p className="text-sm font-medium text-gray-800 mt-2">Não foi possível consultar os relatos</p>
+            <p className="text-xs text-gray-500 mt-1">Os registros continuam preservados.</p>
+            <p className="text-xs text-red-600 mt-2 break-words">{erro}</p>
+            <button type="button" onClick={() => void carregar()}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white">
+              <RefreshCw className="w-4 h-4" /> Tentar novamente
+            </button>
+          </div>
+        ) : relatos.length === 0 ? <div className="p-10 text-center"><LockKeyhole className="w-8 h-8 text-gray-300 mx-auto" /><p className="text-sm text-gray-500 mt-2">Nenhum relato recebido.</p></div> : relatos.map(r => (
           <button key={r.id} onClick={() => abrir(r.id)} className="w-full text-left p-4 border-b last:border-0 hover:bg-gray-50 flex items-center gap-4">
             <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${r.urgencia === 'imediata' ? 'bg-red-600' : r.urgencia === 'alta' ? 'bg-amber-500' : 'bg-blue-500'}`} />
             <div className="min-w-0 flex-1"><div className="flex gap-2 items-center flex-wrap"><span className="font-semibold text-sm">{categoriaLabel[r.categoria] ?? r.categoria}</span><span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full">{statusLabel[r.status] ?? r.status}</span></div><p className="text-xs text-gray-500 mt-1">{r.protocolo} · {new Date(r.criado_em).toLocaleString('pt-BR')}{r.setor ? ` · Setor informado: ${r.setor}` : ''}</p></div>

@@ -44,6 +44,20 @@ export const RhLayout: React.FC = () => {
       .finally(() => setCarregando(false));
   }, []);
 
+  // O guard roda apenas na montagem. Sem acompanhar os eventos de Auth, uma
+  // sessão encerrada/expirada deixava o painel aberto e as leituras seguintes
+  // pareciam dados apagados. Qualquer troca para uma identidade que não seja
+  // RH volta imediatamente ao login, antes de renderizar zeros falsos.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || (session && session.user.app_metadata?.role !== 'rh')) {
+        setAcesso(null);
+        navigate('/rh', { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
   useEffect(() => {
     if (!ABA_IMPACTO_ATIVA) return;
     rhService.hasCertificados().then(setTemImpacto).catch(() => setTemImpacto(false));
