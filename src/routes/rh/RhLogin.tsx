@@ -113,8 +113,9 @@ export const RhLogin: React.FC = () => {
 
                 <form onSubmit={handleRecuperar} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                    <label htmlFor="rh-recuperar-email" className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
                     <input
+                      id="rh-recuperar-email"
                       type="email" value={email} onChange={e => setEmail(e.target.value)} required
                       autoComplete="username" className={campo}
                     />
@@ -158,19 +159,29 @@ export const RhLogin: React.FC = () => {
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
           )}
 
+          {/* Os rótulos precisam de `htmlFor` casando com o `id` do campo:
+              sem isso o leitor de tela anuncia "caixa de edição" sem dizer
+              qual, e clicar no texto não foca o campo. O `autoComplete`
+              também faltava, então gerenciador de senha não preenchia nem
+              oferecia salvar — num portal de acesso esporádico, é o que
+              transforma "esqueci a senha" em chamado de suporte. */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+              <label htmlFor="rh-login-email" className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
               <input
+                id="rh-login-email"
                 type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                autoComplete="username"
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+              <label htmlFor="rh-login-senha" className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
               <input
+                id="rh-login-senha"
                 type="password" value={password} onChange={e => setPassword(e.target.value)} required
+                autoComplete="current-password"
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent text-gray-900"
               />
             </div>
