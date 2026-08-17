@@ -185,6 +185,12 @@ export const RhCompliance: React.FC = () => {
         colaboradores_ativos: metricas.colaboradores_ativos,
         consultas_realizadas: metricas.consultas_realizadas,
         numero_doc: numero,
+        // Entram no selo de propósito: os módulos definem O QUE o documento
+        // declara, então mudar de plano tem que mudar o hash.
+        modo_mental: metricas.modo_mental,
+        modo_metabolico: metricas.modo_metabolico,
+        consultas_psicologo: metricas.consultas_psicologo,
+        consultas_medico: metricas.consultas_medico,
       };
       const hash = await hashDocumento(snapshot);
 
@@ -210,6 +216,9 @@ export const RhCompliance: React.FC = () => {
         emitidoPorNome: acesso.nome,
         emitidoPorEmail: acesso.email,
         aceite,
+        modulos,
+        consultasPsicologo: metricas.consultas_psicologo,
+        consultasMedico: metricas.consultas_medico,
       });
       toast.success('Documento gerado e registrado.');
       load();
@@ -239,6 +248,14 @@ export const RhCompliance: React.FC = () => {
       emitidoPorNome: d.emitido_por_nome,
       emitidoPorEmail: null,
       aceite: null,
+      // Módulos do REGISTRO, não os de hoje. Documento anterior à migração
+      // 20260845 não tem esse dado gravado: fica `undefined`, e o gerador
+      // reproduz o texto do programa completo, que é como ele saiu na época.
+      modulos: d.modo_mental == null && d.modo_metabolico == null
+        ? undefined
+        : { mental: !!d.modo_mental, metabolico: !!d.modo_metabolico },
+      consultasPsicologo: d.consultas_psicologo,
+      consultasMedico: d.consultas_medico,
     });
   };
 
@@ -269,6 +286,18 @@ export const RhCompliance: React.FC = () => {
   const taxa = metricas.colaboradores_elegiveis > 0
     ? Math.round((metricas.colaboradores_ativos / metricas.colaboradores_elegiveis) * 100)
     : 0;
+
+  // Os módulos vêm de `empresa`, a mesma fonte que o certificado já usa em
+  // `servicosDoContrato` — e que não depende da migration 20260845. Assim a
+  // descrição do documento fica correta assim que este código sobe.
+  //
+  // A SEPARAÇÃO das consultas por tipo de profissional é que depende da
+  // migração. Sem ela os campos vêm `undefined`, e mostrar 0 seria afirmar
+  // que ninguém foi atendido: nesse caso o documento volta ao número único,
+  // como era antes.
+  const modulos = { mental: !!empresa?.modo_mental, metabolico: !!empresa?.modo_metabolico };
+  const temQuebraDeConsultas =
+    metricas.consultas_psicologo != null && metricas.consultas_medico != null;
 
   const pctOuNull = (num: number, den: number): number | null =>
     den < MIN_COORTE ? null : Math.round((num / den) * 100);
@@ -505,6 +534,10 @@ export const RhCompliance: React.FC = () => {
           responsabilidade técnica pela NR-1 continua sendo da empresa.
         </p>
 
+        {/* Os mesmos indicadores que vão para o PDF, e pela mesma regra: só
+            aparece consulta do módulo que a empresa contratou. Um card
+            "Consultas concluídas: 0" numa empresa sem módulo de atendimento
+            parece serviço contratado e não usado. */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-3">
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-gray-800">{metricas.colaboradores_elegiveis}</p>
@@ -520,11 +553,30 @@ export const RhCompliance: React.FC = () => {
             <p className="text-2xl font-bold text-[#7d4a3c]">{taxa}%</p>
             <p className="text-xs text-gray-500 mt-1">Taxa de ativação</p>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-gray-800">{metricas.consultas_realizadas}</p>
-            <p className="text-xs text-gray-500 mt-1">Consultas concluídas</p>
-          </div>
+          {(!temQuebraDeConsultas || modulos.mental) && (
+            <div className="bg-gray-50 rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold text-gray-800">{metricas.consultas_psicologo}</p>
+              <p className="text-xs text-gray-500 mt-1">Consultas com psicólogo</p>
+            </div>
+          )}
+          {temQuebraDeConsultas && modulos.metabolico && (
+            <div className="bg-gray-50 rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold text-gray-800">{metricas.consultas_medico}</p>
+              <p className="text-xs text-gray-500 mt-1">Consultas médicas</p>
+            </div>
+          )}
         </div>
+
+        {/* O leitor precisa saber o escopo do que acabou de ler. */}
+        <p className="mb-3 text-xs text-gray-500">
+          Módulos contratados: <strong className="text-gray-700">
+            {[
+              'gestão de risco psicossocial',
+              metricas.modo_mental ? 'saúde mental' : null,
+              metricas.modo_metabolico ? 'saúde metabólica' : null,
+            ].filter(Boolean).join(' · ')}
+          </strong>. O documento descreve apenas estes — e é isso que ele declara formalmente.
+        </p>
         <p className="mb-5 text-xs leading-relaxed text-gray-400">
           Acesso ativado significa que a pessoa entrou ao menos uma vez na plataforma — não mede
           frequência de uso nem resultado clínico. As contagens são de pessoas distintas: quem foi

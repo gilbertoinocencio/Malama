@@ -521,6 +521,14 @@ export type RhComplianceMetricas = {
   colaboradores_elegiveis: number;
   colaboradores_ativos: number;
   consultas_realizadas: number;
+  /** Módulos contratados (migration 20260845). O relatório de evidência só
+   *  pode descrever o que está aqui: afirmar telemedicina para quem só tem
+   *  o módulo psicossocial é declarar serviço inexistente. */
+  modo_mental: boolean;
+  modo_metabolico: boolean;
+  /** `consultas_realizadas` separado por `doctors.tipo_profissional`. */
+  consultas_psicologo: number;
+  consultas_medico: number;
 };
 
 export type RhMetricasBemestar = {
@@ -558,6 +566,12 @@ export type ComplianceDoc = {
    *  documentos gerados antes dessa migração. */
   emitido_por_nome: string | null;
   hash_verificacao: string | null;
+  /** Módulos vigentes NA EMISSÃO (migration 20260845). NULL nos documentos
+   *  anteriores, cujo texto descrevia o programa completo. */
+  modo_mental: boolean | null;
+  modo_metabolico: boolean | null;
+  consultas_psicologo: number | null;
+  consultas_medico: number | null;
 };
 
 // ── Relatório psicossocial WHO-5 (agregado, k-anônimo) ──
@@ -1881,6 +1895,13 @@ export const rhService = {
     numero_doc: string;
     emitido_por_nome: string | null;
     hash_verificacao: string;
+    // Snapshot dos módulos: a reemissão lê daqui, nunca do contrato de hoje.
+    // Sem isto, reimprimir um documento antigo depois de a empresa contratar
+    // outro módulo o descreveria com serviços que ela não tinha na data.
+    modo_mental?: boolean;
+    modo_metabolico?: boolean;
+    consultas_psicologo?: number;
+    consultas_medico?: number;
   }): Promise<void> {
     const { data: sessao } = await supabase.auth.getUser();
     const { error } = await supabase
