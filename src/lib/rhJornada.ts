@@ -48,7 +48,7 @@ export type DadosJornada = {
 
 /** Etapas do ciclo, na ordem em que acontecem. Ver `etapasDaJornada`. */
 export type EtapaChave =
-  | 'setores' | 'pessoas' | 'documentos' | 'medir' | 'ler' | 'conversar'
+  | 'setores' | 'pessoas' | 'medir' | 'ler' | 'conversar'
   | 'medidas' | 'comprovar';
 
 export type PassoJornada = {
@@ -78,7 +78,6 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
   const temResultado = d.campanhas.some(c => c.status === 'encerrada');
   const temJss = d.campanhas.some(c => c.instrument === 'jss' && c.status !== 'cancelada');
   const cicloAtivo = d.ciclos.find(c => c.status === 'ativo');
-  const pendentes = docsPendentesDe(d.documentos);
   const atrasadas = d.planos.filter(p => p.atrasada && p.status !== 'concluida' && p.status !== 'cancelada');
 
   if (!d.empresaAtiva) {
@@ -118,20 +117,12 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
       etapa: 'pessoas',
     };
   }
-  // Antes da campanha de propósito: a coleta é de dado de saúde, e o aceite
-  // é o que documenta a base legal disso.
-  if (pode.empresa && pendentes > 0) {
-    return {
-      titulo: pendentes === 1 ? 'Aceite o documento pendente' : `Aceite os ${pendentes} documentos pendentes`,
-      descricao: 'O aceite fica registrado com versão, data e quem assinou — é o que sustenta a coleta de dados de saúde no PGR.',
-      // Com âncora: os termos ficam no fim da área da empresa, e sem ela o
-      // passo entregava a tela de dados cadastrais.
-      destino: '/rh/empresa#documentos',
-      acao: 'Revisar documentos',
-      etapa: 'documentos',
-      bloqueio: true,
-    };
-  }
+  // O passo "aceite os documentos pendentes" foi removido daqui. Ele era
+  // inalcançável: `RhJornadaContext` chama `rh_registrar_ciencia()` ANTES de
+  // ler a lista, então todo documento aplicável já volta aceito. Pior, ele
+  // interrompia o ciclo em nome de uma "base legal da coleta" que o contrato
+  // de adesão não estabelece. Documento realmente pendente continua sinalizado
+  // pelo ponto âmbar ao lado do nome da empresa, no cabeçalho.
   // Medida vencida passa na frente de abrir avaliação nova: diagnóstico que
   // não vira medida executada é o que a fiscalização enxerga como omissão.
   if (pode.planoAcao && atrasadas.length > 0) {
@@ -234,7 +225,6 @@ export function passosPreparacao(d: DadosJornada): ItemPreparacao[] {
       { label: 'Setores organizados', ok: d.nSetores > 0 },
       { label: 'Colaboradores adicionados', ok: d.nColaboradores > 0 },
     ] : []),
-    ...(d.pode.empresa ? [{ label: 'Documentos aceitos', ok: docsPendentesDe(d.documentos) === 0 }] : []),
     // "realizada", não "aberta": campanha encerrada também conta, e o item
     // ficava verde dizendo "aberta" depois que a janela fechava.
     ...(d.pode.saudeMental
@@ -290,11 +280,12 @@ const ETAPAS: DefEtapa[] = [
     destino: '/rh/dashboard#novo-colaborador',
     ok: d => d.nColaboradores > 0, visivel: p => p.colaboradores,
   },
-  {
-    chave: 'documentos', nome: 'Documentos', resumo: 'Termos que autorizam a coleta',
-    destino: '/rh/empresa#documentos',
-    ok: d => docsPendentesDe(d.documentos) === 0, visivel: p => p.empresa,
-  },
+  // "Documentos" saiu do trilho. Não era etapa do ciclo: o único documento
+  // que existe é o contrato de adesão, e `rh_registrar_ciencia()` o aceita
+  // sozinha na primeira carga do painel. A etapa nascia verde sem ninguém
+  // fazer nada, e o rótulo ainda dava a entender que aquele aceite era a
+  // base legal da coleta de dado de saúde — que é outro documento, o termo
+  // de tratamento de dados. Ver a etapa 'formalizar' do dossiê.
   {
     chave: 'medir', nome: 'Medir', resumo: 'Questionário validado aplicado',
     destino: '/rh/saude-mental#campanhas',
@@ -527,7 +518,12 @@ export function dossieNr1(d: DadosJornada): EtapaDossie[] {
   const comMedida = d.planos.length > 0;
   const naFonte = d.planos.some(p => p.nivel_controle === 'fonte' || p.nivel_controle === 'organizacional');
   const comEvidencia = d.planos.some(p => p.status === 'concluida' && !!p.evidencia);
-  const aceites = d.documentos.filter(doc => doc.exige_aceite);
+  // O contrato de adesão (`termos_b2b`) não autoriza tratar dado de saúde:
+  // ele rege a relação comercial. A base legal da coleta é o termo de
+  // tratamento de dados (controladora × operadora, LGPD art. 39).
+  const tratamentoDados = d.documentos.filter(
+    doc => doc.tipo === 'tratamento_dados' && doc.exige_aceite,
+  );
 
   return [
     {
@@ -578,12 +574,19 @@ export function dossieNr1(d: DadosJornada): EtapaDossie[] {
     {
       chave: 'formalizar',
       exige: 'Formalizar a base legal do tratamento de dados',
-      comprova: 'Documentos da empresa aceitos, com versão, data e signatário',
-      ok: aceites.length > 0 && aceites.every(doc => !!doc.aceito_em),
-      pendencia: aceites.length === 0
-        ? 'Ainda não há documento vigente exigindo aceite.'
-        : 'Há documento aguardando aceite.',
-      destino: '/rh/empresa',
+      comprova: 'Termo de tratamento de dados aceito, com versão, data e signatário',
+      // SÓ o termo de tratamento de dados vale aqui. Antes qualquer aceite
+      // servia — e o único documento que existe é o contrato de adesão
+      // (`termos_b2b`), aceito automaticamente na primeira carga do painel.
+      // Ou seja: o dossiê dava esta etapa por cumprida sem que a empresa
+      // tivesse assinado nada sobre tratamento de dado de saúde. Num
+      // documento que existe para responder à fiscalização, afirmar isso é
+      // pior do que deixar a etapa em aberto.
+      ok: tratamentoDados.length > 0 && tratamentoDados.every(doc => !!doc.aceito_em),
+      pendencia: tratamentoDados.length === 0
+        ? 'Não há termo de tratamento de dados vigente para aceitar. O contrato de adesão não cobre isto — fale com a Malama.'
+        : 'O termo de tratamento de dados ainda não foi aceito.',
+      destino: '/rh/empresa#documentos',
     },
   ];
 }
