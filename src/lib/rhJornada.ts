@@ -70,8 +70,24 @@ export type ItemPreparacao = { label: string; ok: boolean };
 export const docsPendentesDe = (documentos: DocumentoLegal[]): number =>
   documentos.filter(d => d.exige_aceite && !d.aceito_em).length;
 
+/** Dias inteiros até uma data ISO, do ponto de vista de hoje. */
+const diasAte = (iso: string, hoje: Date): number => {
+  const alvo = new Date(`${iso.slice(0, 10)}T12:00:00`);
+  const base = new Date(hoje);
+  base.setHours(12, 0, 0, 0);
+  return Math.round((alvo.getTime() - base.getTime()) / 86400000);
+};
+
+/**
+ * Abaixo disto, não se pede mais divulgação.
+ * Três dias é o mínimo para uma mensagem circular entre turnos, folgas e
+ * quem está fora na semana — abaixo disso o único jeito de mover o número
+ * é cobrar pessoa por pessoa, que é o que invalida o instrumento.
+ */
+const DIAS_MINIMOS_PARA_DIVULGAR = 3;
+
 // ── Próximo passo ──────────────────────────────────────
-export function proximoPasso(d: DadosJornada): PassoJornada {
+export function proximoPasso(d: DadosJornada, hoje = new Date()): PassoJornada {
   const { pode } = d;
   const temCampanha = d.campanhas.some(c => c.status !== 'cancelada');
   const campanhaAberta = d.campanhas.find(c => c.status === 'aberta');
@@ -142,22 +158,44 @@ export function proximoPasso(d: DadosJornada): PassoJornada {
   // aqui que o RH fecha a aba e não volta. Então o passo passa a dizer a
   // data em que algo muda e qual é o trabalho útil DESTE intervalo.
   if (pode.saudeMental && campanhaAberta) {
+    const nome = campanhaAberta.instrument === 'jss' ? 'carga de trabalho' : 'bem-estar';
     const taxa = campanhaAberta.n_convidados > 0
       ? Math.round((campanhaAberta.n_respondentes / campanhaAberta.n_convidados) * 100)
       : 0;
     const baixa = campanhaAberta.n_convidados > 0 && taxa < 30;
-    return {
-      titulo: baixa
-        ? `Poucas respostas na medição de ${campanhaAberta.instrument === 'jss' ? 'carga de trabalho' : 'bem-estar'}`
-        : `Medição de ${campanhaAberta.instrument === 'jss' ? 'carga de trabalho' : 'bem-estar'} em andamento`,
-      descricao: baixa
-        ? `A janela fica aberta até ${fmt(campanhaAberta.janela_fim)} e ${campanhaAberta.n_respondentes} de ${campanhaAberta.n_convidados} responderam. `
+    const respostas = `${campanhaAberta.n_respondentes} de ${campanhaAberta.n_convidados}`;
+    const dias = diasAte(campanhaAberta.janela_fim, hoje);
+    // Divulgar de novo só rende com tempo de circular: link mandado na
+    // véspera não alcança quem está de folga, de férias ou em outro turno.
+    // Faltando isso, sugerir divulgação empurra o RH para a cobrança de
+    // última hora — a única forma de mexer no número nesse prazo, e a que
+    // enviesa o instrumento. Não havendo como prorrogar a janela, o que
+    // resta é ler o que veio.
+    const daTempo = dias > DIAS_MINIMOS_PARA_DIVULGAR;
+
+    if (baixa && daTempo) {
+      return {
+        titulo: `Poucas respostas na medição de ${nome}`,
+        descricao: `A janela fica aberta até ${fmt(campanhaAberta.janela_fim)} e ${respostas} responderam. `
           + 'Vale reenviar o link do setor e repor os cartazes — adesão baixa costuma ser receio, não desinteresse. '
-          + 'Não cobre ninguém individualmente: além de constranger, distorce o resultado.'
-        : `A janela fica aberta até ${fmt(campanhaAberta.janela_fim)} e ${campanhaAberta.n_respondentes} de ${campanhaAberta.n_convidados} já responderam. `
-          + 'Não há nada a fazer até lá — avisamos você quando estiver perto de fechar.',
+          + 'Não cobre ninguém individualmente: além de constranger, distorce o resultado.',
+        destino: '/rh/saude-mental#campanhas',
+        acao: 'Divulgar de novo',
+        etapa: 'medir',
+      };
+    }
+    return {
+      titulo: daTempo
+        ? `Medição de ${nome} em andamento`
+        : `A medição de ${nome} está fechando`,
+      descricao: daTempo
+        ? `A janela fica aberta até ${fmt(campanhaAberta.janela_fim)} e ${respostas} já responderam. `
+          + 'Não há nada a fazer até lá — avisamos você quando estiver perto de fechar.'
+        : `A janela fecha em ${fmt(campanhaAberta.janela_fim)}, com ${respostas} até agora. `
+          + 'Não vale mais correr atrás de resposta: nesse prazo só se consegue número na base da cobrança, '
+          + 'e aí o resultado deixa de valer. Assim que fechar, o diagnóstico fica pronto para leitura.',
       destino: '/rh/saude-mental#campanhas',
-      acao: baixa ? 'Divulgar de novo' : 'Ver participação',
+      acao: 'Ver participação',
       etapa: 'medir',
     };
   }
