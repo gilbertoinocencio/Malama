@@ -162,6 +162,174 @@ function perfilOperacionalSeguro(value: unknown) {
   };
 }
 
+/** Chamadas opcionais não podem tornar o copiloto indisponível. Uma leitura
+ * recém-criada pode ainda não existir ou estar corretamente suprimida pelo
+ * piso de anonimato; nesses casos o agente recebe apenas o que há de seguro. */
+async function rpcOpcional(supabase: any, funcao: string, args?: Record<string, unknown>) {
+  const { data, error } = await supabase.rpc(funcao, args);
+  if (error) {
+    console.warn(`[rh-agent] contexto ${funcao}:`, error.message);
+    return null;
+  }
+  return data ?? null;
+}
+
+function resumoWho5(relatorio: any) {
+  if (!relatorio || typeof relatorio !== 'object') return null;
+  const geral = relatorio.geral;
+  return {
+    periodo: { inicio: texto(relatorio.periodo_inicio, 20), fim: texto(relatorio.periodo_fim, 20) },
+    k_min: typeof relatorio.k_min === 'number' ? relatorio.k_min : null,
+    geral: geral?.suprimido === true
+      ? { dados_suprimidos: true, n_respondentes: geral.n_respondentes ?? 0 }
+      : {
+          n_respondentes: geral?.n_respondentes ?? 0,
+          score_medio: geral?.score_medio ?? null,
+          faixa_reduzido: geral?.faixa_reduzido ?? 0,
+          faixa_risco: geral?.faixa_risco ?? 0,
+        },
+    setores: Array.isArray(relatorio.setores) ? relatorio.setores.slice(0, 40).map((setor: any) => ({
+      setor: texto(setor?.setor, 80), n_respondentes: setor?.n_respondentes ?? 0,
+      score_medio: setor?.score_medio ?? null, faixa_reduzido: setor?.faixa_reduzido ?? 0,
+      faixa_risco: setor?.faixa_risco ?? 0,
+    })) : [],
+    setores_suprimidos: relatorio.setores_suprimidos ?? 0,
+  };
+}
+
+function resumoJss(relatorio: any, temas: any) {
+  if (!relatorio || typeof relatorio !== 'object') return null;
+  const geral = relatorio.geral;
+  return {
+    periodo: { inicio: texto(relatorio.periodo_inicio, 20), fim: texto(relatorio.periodo_fim, 20) },
+    k_min: typeof relatorio.k_min === 'number' ? relatorio.k_min : null,
+    geral: geral?.suprimido === true
+      ? { dados_suprimidos: true, n_respondentes: geral.n_respondentes ?? 0 }
+      : {
+          n_respondentes: geral?.n_respondentes ?? 0, indice_medio: geral?.indice_medio ?? null,
+          demanda_medio: geral?.demanda_medio ?? null, controle_medio: geral?.controle_medio ?? null,
+          apoio_medio: geral?.apoio_medio ?? null,
+        },
+    setores: Array.isArray(relatorio.setores) ? relatorio.setores.slice(0, 40).map((setor: any) => ({
+      setor: texto(setor?.setor, 80), n_respondentes: setor?.n_respondentes ?? 0,
+      indice: setor?.indice ?? null, demanda: setor?.demanda ?? null,
+      controle: setor?.controle ?? null, apoio: setor?.apoio ?? null,
+      classificacao: texto(setor?.classificacao, 40) || null,
+    })) : [],
+    temas_gestao: temas?.geral?.suprimido === true ? { dados_suprimidos: true } : temas?.geral ?? null,
+    setores_suprimidos: relatorio.setores_suprimidos ?? 0,
+  };
+}
+
+function resumoMatriz(matriz: any) {
+  if (!matriz || typeof matriz !== 'object') return null;
+  return {
+    periodo: { inicio: texto(matriz.periodo_inicio, 20), fim: texto(matriz.periodo_fim, 20) },
+    comparaveis: matriz.setores_comparaveis ?? 0,
+    setores: Array.isArray(matriz.setores) ? matriz.setores.slice(0, 40).map((setor: any) => ({
+      setor: texto(setor?.setor, 80), quadrante: texto(setor?.quadrante, 40) || null,
+      bemestar: setor?.bemestar ? { score_medio: setor.bemestar.score_medio ?? null } : null,
+      exposicao: setor?.exposicao ? {
+        indice: setor.exposicao.indice ?? null, demanda: setor.exposicao.demanda ?? null,
+        controle: setor.exposicao.controle ?? null, apoio: setor.exposicao.apoio ?? null,
+      } : null,
+    })) : [],
+  };
+}
+
+async function leituraAnalitica(
+  supabase: any,
+  podeSaude: boolean,
+  podePlano: boolean,
+  podeCompliance: boolean,
+) {
+  const campanhas = podeSaude ? await rpcOpcional(supabase, 'rh_listar_campanhas') : null;
+  const listaCampanhas = Array.isArray(campanhas) ? campanhas : [];
+  const maisRecente = (instrumento: string) => listaCampanhas
+    .filter((campanha: any) => campanha?.instrument === instrumento && campanha?.status === 'encerrada')
+    .sort((a: any, b: any) => String(b.encerrada_em ?? b.janela_fim).localeCompare(String(a.encerrada_em ?? a.janela_fim)))[0] ?? null;
+  const who5 = maisRecente('who5');
+  const jss = maisRecente('jss');
+  const inicioMatriz = [who5?.janela_inicio, jss?.janela_inicio].filter(Boolean).sort()[0]
+    ?? new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const fimHoje = new Date().toISOString().slice(0, 10);
+
+  const [
+    who5Relatorio, jssRelatorio, temasJss, matriz, planos, resumoPlanos, ciclos,
+    metricasPrograma, relatoriosEmitidos, documentosEvidencia,
+  ] = await Promise.all([
+    who5 ? rpcOpcional(supabase, 'rh_relatorio_psicossocial', { p_inicio: who5.janela_inicio, p_fim: who5.janela_fim }) : Promise.resolve(null),
+    jss ? rpcOpcional(supabase, 'rh_relatorio_jss', { p_inicio: jss.janela_inicio, p_fim: jss.janela_fim }) : Promise.resolve(null),
+    jss ? rpcOpcional(supabase, 'rh_jss_teia_temas', { p_inicio: jss.janela_inicio, p_fim: jss.janela_fim }) : Promise.resolve(null),
+    podeSaude ? rpcOpcional(supabase, 'rh_matriz_psicossocial', { p_inicio: inicioMatriz, p_fim: fimHoje }) : Promise.resolve(null),
+    podePlano ? rpcOpcional(supabase, 'rh_listar_planos_acao') : Promise.resolve(null),
+    podePlano ? rpcOpcional(supabase, 'rh_planos_acao_resumo', { p_inicio: inicioMatriz, p_fim: fimHoje }) : Promise.resolve(null),
+    podePlano ? rpcOpcional(supabase, 'rh_lideranca_listar_ciclos') : Promise.resolve(null),
+    podeCompliance ? rpcOpcional(supabase, 'rh_compliance_metricas') : Promise.resolve(null),
+    podeCompliance ? rpcOpcional(supabase, 'rh_listar_relatorios_emitidos') : Promise.resolve(null),
+    podeCompliance
+      ? supabase.from('empresa_compliance_docs')
+          .select('numero_doc, emitido_em, periodo_inicio, periodo_fim')
+          .order('emitido_em', { ascending: false }).limit(12)
+          .then(({ data, error }: any) => {
+            if (error) console.warn('[rh-agent] contexto empresa_compliance_docs:', error.message);
+            return data ?? null;
+          })
+      : Promise.resolve(null),
+  ]);
+  const listaPlanos = Array.isArray(planos) ? planos : [];
+  const listaMetricas = Array.isArray(metricasPrograma) ? metricasPrograma[0] : metricasPrograma;
+
+  return {
+    campanhas_abertas: listaCampanhas.filter((campanha: any) => campanha?.status === 'aberta').slice(0, 12).map((campanha: any) => ({
+      instrumento: texto(campanha.instrument_nome, 100), inicio: texto(campanha.janela_inicio, 20), fim: texto(campanha.janela_fim, 20),
+      convidados: campanha.n_convidados ?? 0, respondentes: campanha.n_respondentes ?? 0,
+    })),
+    ultimos_relatorios: {
+      who5: resumoWho5(who5Relatorio),
+      jss: resumoJss(jssRelatorio, temasJss),
+      matriz: resumoMatriz(matriz),
+    },
+    plano_de_acao: podePlano ? {
+      resumo: resumoPlanos,
+      medidas_concluidas_com_evidencia: listaPlanos.filter((plano: any) =>
+        plano?.status === 'concluida' && texto(plano?.evidencia, 10).length > 0).length,
+      medidas_abertas: listaPlanos
+        .filter((plano: any) => ['planejada', 'em_andamento'].includes(plano?.status))
+        .slice(0, 40).map((plano: any) => ({
+          setor: texto(plano?.setor, 80) || 'Empresa toda', fator: texto(plano?.fator, 80),
+          medida: texto(plano?.medida, 300), nivel_controle: texto(plano?.nivel_controle, 40),
+          prazo: texto(plano?.prazo, 20), status: texto(plano?.status, 40), atrasada: plano?.atrasada === true,
+        })),
+    } : null,
+    lideranca: podePlano && Array.isArray(ciclos) ? ciclos.slice(0, 30).map((ciclo: any) => ({
+      setor: texto(ciclo?.setor, 80), etapa: texto(ciclo?.etapa, 60), status: texto(ciclo?.status, 40),
+      fim: texto(ciclo?.fim, 20), marco_prazo: texto(ciclo?.marco_prazo, 20), marco_status: texto(ciclo?.marco_status, 40),
+      acoes_abertas: Array.isArray(ciclo?.acoes) ? ciclo.acoes.filter((acao: any) => ['planejada', 'em_andamento'].includes(acao?.status)).length : 0,
+    })) : [],
+    evidencias: podeCompliance ? {
+      programa: listaMetricas ? {
+        data_inicio: texto(listaMetricas.data_inicio, 20),
+        colaboradores_elegiveis: listaMetricas.colaboradores_elegiveis ?? 0,
+        colaboradores_ativos: listaMetricas.colaboradores_ativos ?? 0,
+        modo_mental: listaMetricas.modo_mental === true,
+        modo_metabolico: listaMetricas.modo_metabolico === true,
+      } : null,
+      relatorios_psicossociais_emitidos: Array.isArray(relatoriosEmitidos)
+        ? relatoriosEmitidos.slice(0, 12).map((relatorio: any) => ({
+            tipo: texto(relatorio?.tipo, 20), numero: texto(relatorio?.numero_doc, 60),
+            periodo_inicio: texto(relatorio?.periodo_inicio, 20), periodo_fim: texto(relatorio?.periodo_fim, 20),
+            emitido_em: texto(relatorio?.emitido_em, 40),
+          })) : [],
+      relatorios_evidencia_emitidos: Array.isArray(documentosEvidencia)
+        ? documentosEvidencia.map((documento: any) => ({
+            numero: texto(documento?.numero_doc, 60), emitido_em: texto(documento?.emitido_em, 40),
+            periodo_inicio: texto(documento?.periodo_inicio, 20), periodo_fim: texto(documento?.periodo_fim, 20),
+          })) : [],
+    } : null,
+  };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Método não permitido' }, 405);
@@ -243,7 +411,11 @@ Deno.serve(async (req: Request) => {
     // A estrutura dos setores é contexto declaratório e agregado. O agente
     // recebe nomes, modalidades e turnos, mas nunca pessoas ou respostas.
     const permissoes = new Set<string>(contexto?.usuario?.permissoes ?? []);
-    const podeVerSetores = contexto?.usuario?.principal === true || permissoes.has('colaboradores');
+    const principal = contexto?.usuario?.principal === true;
+    const podeVerSetores = principal || permissoes.has('colaboradores');
+    const podeVerSaude = principal || permissoes.has('saude_mental') || permissoes.has('compliance');
+    const podeVerPlano = principal || permissoes.has('plano_acao') || permissoes.has('compliance');
+    const podeVerCompliance = principal || permissoes.has('compliance');
     const { data: setores } = podeVerSetores
       ? await supabase.rpc('rh_setores_admin')
       : { data: null };
@@ -252,10 +424,41 @@ Deno.serve(async (req: Request) => {
       modelos_trabalho: lista(setor?.modelos_trabalho, 3),
       turnos: lista(setor?.turnos, 6),
     })).filter((setor: { nome: string }) => setor.nome) : [];
+    const leitura = await leituraAnalitica(supabase, podeVerSaude, podeVerPlano, podeVerCompliance);
+    const estadoCiclo = {
+      onboarding: {
+        perfil_contextualizado: !!contexto?.perfil_operacional?.confirmado_em,
+        setores_cadastrados: contexto?.indicadores?.setores ?? null,
+        colaboradores_cadastrados: contexto?.indicadores?.colaboradores ?? null,
+      },
+      medicao: {
+        campanhas_abertas: leitura.campanhas_abertas.length,
+        relatorio_who5_disponivel: leitura.ultimos_relatorios.who5 !== null,
+        relatorio_jss_disponivel: leitura.ultimos_relatorios.jss !== null,
+        matriz_disponivel: leitura.ultimos_relatorios.matriz !== null,
+      },
+      plano_de_acao: leitura.plano_de_acao ? {
+        medidas_abertas: leitura.plano_de_acao.resumo?.abertas ?? leitura.plano_de_acao.medidas_abertas.length,
+        medidas_atrasadas: leitura.plano_de_acao.resumo?.atrasadas ?? 0,
+        medidas_concluidas_com_evidencia: leitura.plano_de_acao.medidas_concluidas_com_evidencia,
+        setores_sem_acao_na_fonte: leitura.plano_de_acao.resumo?.setores_sem_acao_na_fonte ?? [],
+      } : null,
+      lideranca: {
+        ciclos_ativos: leitura.lideranca.filter((ciclo: any) => ciclo.status === 'ativo').length,
+        marcos_pendentes: leitura.lideranca.filter((ciclo: any) =>
+          ciclo.status === 'ativo' && ciclo.marco_status === 'pendente').length,
+      },
+      evidencias: leitura.evidencias ? {
+        relatorios_psicossociais_emitidos: leitura.evidencias.relatorios_psicossociais_emitidos.length,
+        relatorios_programa_emitidos: leitura.evidencias.relatorios_evidencia_emitidos.length,
+      } : null,
+    };
     const contextoSeguro = {
       ...contexto,
       perfil_operacional: perfilOperacionalSeguro(contexto?.perfil_operacional),
       estrutura_trabalho: estruturaTrabalho,
+      leitura_analitica: leitura,
+      estado_ciclo: estadoCiclo,
       tela_atual: tela.startsWith('/rh/') ? tela : null,
       passo_visivel: passo,
       rotas_permitidas: permitidas,
