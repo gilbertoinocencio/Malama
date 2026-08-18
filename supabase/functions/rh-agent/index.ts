@@ -135,13 +135,24 @@ function rascunhoSeguro(parsed: Record<string, unknown>) {
     cnae_principal: campoOuNull(parsed.cnae_principal, 20),
     descricao_negocio: campoOuNull(parsed.descricao_negocio, 2000),
     produtos_servicos: lista(parsed.produtos_servicos, 20),
-    processos_principais: lista(parsed.processos_principais, 20),
     unidades: lista(parsed.unidades, 30),
-    areas_funcoes: lista(parsed.areas_funcoes, 50),
-    modelo_trabalho: campoOuNull(parsed.modelo_trabalho, 120),
-    turnos: lista(parsed.turnos, 12),
-    sazonalidade: campoOuNull(parsed.sazonalidade, 1000),
+    setores_sugeridos: lista(parsed.setores_sugeridos, 50),
     contexto_adicional: campoOuNull(parsed.contexto_adicional, 2000),
+  };
+}
+
+function perfilOperacionalSeguro(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const perfil = value as Record<string, unknown>;
+  return {
+    setor_atuacao: campoOuNull(perfil.setor_atuacao, 120),
+    cnae_principal: campoOuNull(perfil.cnae_principal, 20),
+    descricao_negocio: campoOuNull(perfil.descricao_negocio, 2000),
+    produtos_servicos: lista(perfil.produtos_servicos, 20),
+    unidades: lista(perfil.unidades, 30),
+    contexto_adicional: campoOuNull(perfil.contexto_adicional, 2000),
+    confirmado_em: campoOuNull(perfil.confirmado_em, 80),
+    versao: typeof perfil.versao === 'number' ? perfil.versao : null,
   };
 }
 
@@ -223,8 +234,22 @@ Deno.serve(async (req: Request) => {
       destino: texto(body.visibleStep.destino, 180),
       acao: texto(body.visibleStep.acao, 100),
     } : null;
+    // A estrutura dos setores é contexto declaratório e agregado. O agente
+    // recebe nomes, modalidades e turnos, mas nunca pessoas ou respostas.
+    const permissoes = new Set<string>(contexto?.usuario?.permissoes ?? []);
+    const podeVerSetores = contexto?.usuario?.principal === true || permissoes.has('colaboradores');
+    const { data: setores } = podeVerSetores
+      ? await supabase.rpc('rh_setores_admin')
+      : { data: null };
+    const estruturaTrabalho = Array.isArray(setores) ? setores.slice(0, 100).map((setor: any) => ({
+      nome: texto(setor?.nome, 60),
+      modelos_trabalho: lista(setor?.modelos_trabalho, 3),
+      turnos: lista(setor?.turnos, 6),
+    })).filter((setor: { nome: string }) => setor.nome) : [];
     const contextoSeguro = {
       ...contexto,
+      perfil_operacional: perfilOperacionalSeguro(contexto?.perfil_operacional),
+      estrutura_trabalho: estruturaTrabalho,
       tela_atual: tela.startsWith('/rh/') ? tela : null,
       passo_visivel: passo,
       rotas_permitidas: permitidas,

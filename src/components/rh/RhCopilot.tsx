@@ -7,27 +7,24 @@ import {
 import { useRhAccess } from '../../contexts/RhAccessContext';
 import { useRhJornada } from '../../contexts/RhJornadaContext';
 import { proximoPasso } from '../../lib/rhJornada';
+import { rhSetorSugestoes } from '../../lib/rhSetorSugestoes';
 import {
-  rhService, type EmpresaContextoOperacional, type EmpresaContextoOperacionalInput,
+  rhService, type EmpresaContextoOperacional,
 } from '../../services/empresaService';
 import {
-  rhAgentService, type RhAgentHistoryItem, type RhAgentSuggestion,
+  rhAgentService, type RhAgentHistoryItem, type RhAgentSuggestion, type RhProfileDraft,
 } from '../../services/rhAgentService';
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void };
 type ChatItem = RhAgentHistoryItem & { suggestions?: RhAgentSuggestion[] };
 
-const vazio: EmpresaContextoOperacionalInput = {
+const vazio: RhProfileDraft = {
   setor_atuacao: null,
   cnae_principal: null,
   descricao_negocio: null,
   produtos_servicos: [],
-  processos_principais: [],
   unidades: [],
-  areas_funcoes: [],
-  modelo_trabalho: null,
-  turnos: [],
-  sazonalidade: null,
+  setores_sugeridos: [],
   contexto_adicional: null,
 };
 
@@ -60,7 +57,7 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
   const [perfilConsultado, setPerfilConsultado] = useState(false);
   const [modoPerfil, setModoPerfil] = useState(false);
   const [descricao, setDescricao] = useState('');
-  const [rascunho, setRascunho] = useState<EmpresaContextoOperacionalInput | null>(null);
+  const [rascunho, setRascunho] = useState<RhProfileDraft | null>(null);
   const [gerando, setGerando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erroPerfil, setErroPerfil] = useState('');
@@ -80,7 +77,7 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
       })
       .catch(() => {
         // Falha aqui não bloqueia o portal nem a bússola determinística.
-        setErroPerfil('Não consegui carregar o perfil operacional agora. O restante do painel continua disponível.');
+        setErroPerfil('Não consegui carregar o perfil da empresa agora. O restante do painel continua disponível.');
       })
       .finally(() => {
         setPerfilConsultado(true);
@@ -121,12 +118,8 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
         cnae_principal: contexto.cnae_principal,
         descricao_negocio: contexto.descricao_negocio,
         produtos_servicos: contexto.produtos_servicos,
-        processos_principais: contexto.processos_principais,
         unidades: contexto.unidades,
-        areas_funcoes: contexto.areas_funcoes,
-        modelo_trabalho: contexto.modelo_trabalho,
-        turnos: contexto.turnos,
-        sazonalidade: contexto.sazonalidade,
+        setores_sugeridos: [],
         contexto_adicional: contexto.contexto_adicional,
       });
     }
@@ -136,7 +129,7 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
 
   const gerarRascunho = async () => {
     if (descricao.trim().length < 20) {
-      setErroPerfil('Conte um pouco mais: o que a empresa faz, como o trabalho se organiza e se há turnos ou períodos de pico.');
+      setErroPerfil('Conte um pouco mais: o que a empresa faz, o que produz ou presta e quais setores possui.');
       return;
     }
     setGerando(true);
@@ -160,12 +153,19 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
     setErroPerfil('');
     try {
       const salvo = await rhService.salvarContextoOperacional(rascunho);
+      const temSugestoes = rascunho.setores_sugeridos.length > 0;
+      if (temSugestoes) rhSetorSugestoes.adicionar(acesso.empresa_id, rascunho.setores_sugeridos);
       setContexto(salvo);
       setModoPerfil(false);
       setDescricao('');
       setChat(items => [...items, {
         role: 'assistant',
-        content: 'Perfil operacional confirmado. Vou usá-lo como contexto para formular perguntas melhores — nunca como prova ou classificação de risco.',
+        content: temSugestoes
+          ? 'Perfil da empresa confirmado. Deixei os setores sugeridos para você revisar e configurar — nenhum deles foi criado automaticamente.'
+          : 'Perfil da empresa confirmado. Vou usá-lo como contexto para formular perguntas melhores — nunca como prova ou classificação de risco.',
+        suggestions: temSugestoes
+          ? [{ label: 'Revisar setores', action: 'navigate', target: '/rh/dashboard#setores' }]
+          : [],
       }]);
     } catch (err) {
       setErroPerfil(err instanceof Error ? err.message : 'Não foi possível salvar o perfil.');
@@ -212,8 +212,8 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
     }
   };
 
-  const setCampo = <K extends keyof EmpresaContextoOperacionalInput>(
-    campo: K, valor: EmpresaContextoOperacionalInput[K],
+  const setCampo = <K extends keyof RhProfileDraft>(
+    campo: K, valor: RhProfileDraft[K],
   ) => setRascunho(atual => ({ ...(atual ?? vazio), [campo]: valor }));
 
   return (
@@ -249,7 +249,7 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
               </div>
               <div className="flex items-center gap-1">
                 {podeEditarPerfil && contexto && !modoPerfil && (
-                  <button type="button" onClick={iniciarEdicao} title="Editar perfil operacional" className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+                  <button type="button" onClick={iniciarEdicao} title="Editar perfil da empresa" className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
                     <Pencil className="h-4 w-4" />
                   </button>
                 )}
@@ -266,7 +266,7 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
                 <div className="mb-5 flex gap-3 rounded-xl bg-[#7d4a3c]/5 p-4">
                   <Building2 className="mt-0.5 h-5 w-5 shrink-0 text-[#7d4a3c]" />
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900">Conte como a empresa funciona</h3>
+                    <h3 className="text-sm font-semibold text-gray-900">Conte sobre a empresa</h3>
                     <p className="mt-1 text-xs leading-relaxed text-gray-600">
                       Isso ajuda o copiloto a contextualizar as orientações. Não é avaliação de risco nem documento técnico.
                     </p>
@@ -280,9 +280,9 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
                       rows={8}
                       value={descricao}
                       onChange={e => setDescricao(e.target.value)}
-                      placeholder="Ex.: Somos uma padaria com produção própria e atendimento no balcão. Temos dois turnos, pico pela manhã e aos fins de semana..."
+                      placeholder="Ex.: Somos uma padaria com produção própria e atendimento no balcão. Vendemos pães, refeições e encomendas. Temos os setores de produção, atendimento e administrativo..."
                     />
-                    <p className="text-xs text-gray-500">Inclua o que produz ou presta, processos principais, modelo de trabalho, turnos e períodos de pico.</p>
+                    <p className="text-xs text-gray-500">Inclua o que produz ou presta, onde atua e quais setores ou equipes possui.</p>
                     {erroPerfil && <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{erroPerfil}</p>}
                     <button type="button" disabled={gerando} onClick={gerarRascunho} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
                       {gerando ? <><Loader2 className="h-4 w-4 animate-spin" /> Organizando...</> : <><Sparkles className="h-4 w-4" /> Organizar para revisão</>}
@@ -300,12 +300,9 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
                     </div>
                     <Textarea label="O que a empresa faz" rows={3} value={rascunho.descricao_negocio ?? ''} onChange={e => setCampo('descricao_negocio', e.target.value || null)} />
                     <Textarea label="Produtos ou serviços · um por linha" rows={3} value={linhas(rascunho.produtos_servicos)} onChange={e => setCampo('produtos_servicos', emLista(e.target.value))} />
-                    <Textarea label="Processos principais · um por linha" rows={3} value={linhas(rascunho.processos_principais)} onChange={e => setCampo('processos_principais', emLista(e.target.value))} />
                     <Textarea label="Unidades ou locais · um por linha" rows={2} value={linhas(rascunho.unidades)} onChange={e => setCampo('unidades', emLista(e.target.value, 30))} />
-                    <Textarea label="Áreas e funções principais · uma por linha" rows={3} value={linhas(rascunho.areas_funcoes)} onChange={e => setCampo('areas_funcoes', emLista(e.target.value, 50))} />
-                    <Input label="Modelo de trabalho" value={rascunho.modelo_trabalho ?? ''} onChange={e => setCampo('modelo_trabalho', e.target.value || null)} />
-                    <Textarea label="Turnos · um por linha" rows={2} value={linhas(rascunho.turnos)} onChange={e => setCampo('turnos', emLista(e.target.value).slice(0, 12))} />
-                    <Textarea label="Sazonalidade e períodos de pico" rows={2} value={rascunho.sazonalidade ?? ''} onChange={e => setCampo('sazonalidade', e.target.value || null)} />
+                    <Textarea label="Setores sugeridos para revisar · um por linha" rows={3} value={linhas(rascunho.setores_sugeridos)} onChange={e => setCampo('setores_sugeridos', emLista(e.target.value, 50))} />
+                    <p className="-mt-1 text-xs text-gray-500">Ao confirmar, eles aparecerão como sugestões na área Setores. Você decide quais criar e configura modalidade e turnos de cada um.</p>
                     <Textarea label="Contexto adicional" rows={2} value={rascunho.contexto_adicional ?? ''} onChange={e => setCampo('contexto_adicional', e.target.value || null)} />
                     {erroPerfil && <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{erroPerfil}</p>}
                     <div className="flex gap-2 pt-2">
@@ -343,7 +340,7 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
                 <div className="border-t border-gray-100 bg-white p-4">
                   {!contexto && podeEditarPerfil && (
                     <button type="button" onClick={iniciarEdicao} className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-[#7d4a3c]">
-                      <Building2 className="h-3.5 w-3.5" /> Completar perfil operacional
+                      <Building2 className="h-3.5 w-3.5" /> Completar perfil da empresa
                     </button>
                   )}
                   <form onSubmit={e => { e.preventDefault(); void enviar(); }} className="flex items-end gap-2">

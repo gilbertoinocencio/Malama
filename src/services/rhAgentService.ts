@@ -2,6 +2,11 @@ import type { PassoJornada } from '../lib/rhJornada';
 import type { EmpresaContextoOperacionalInput } from './empresaService';
 import { supabase } from './supabase';
 
+export type RhProfileDraft = EmpresaContextoOperacionalInput & {
+  /** Sugestões para revisão no cadastro de setores; nunca são criadas pela IA. */
+  setores_sugeridos: string[];
+};
+
 export type RhAgentHistoryItem = {
   role: 'user' | 'assistant';
   content: string;
@@ -43,8 +48,8 @@ export const rhAgentService = {
     await invoke<{ status: string }>({ action: 'warmup' });
   },
 
-  async criarRascunhoPerfil(description: string): Promise<EmpresaContextoOperacionalInput> {
-    const data = await invoke<{ draft: EmpresaContextoOperacionalInput }>({
+  async criarRascunhoPerfil(description: string): Promise<RhProfileDraft> {
+    const data = await invoke<{ draft: RhProfileDraft }>({
       action: 'profile_draft', description,
     });
     return data.draft;
@@ -59,4 +64,3 @@ export const rhAgentService = {
     return invoke<RhAgentReply>({ action: 'chat', ...params });
   },
 };
-

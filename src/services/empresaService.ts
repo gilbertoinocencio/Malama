@@ -549,12 +549,7 @@ export type EmpresaContextoOperacional = {
   cnae_principal: string | null;
   descricao_negocio: string | null;
   produtos_servicos: string[];
-  processos_principais: string[];
   unidades: string[];
-  areas_funcoes: string[];
-  modelo_trabalho: string | null;
-  turnos: string[];
-  sazonalidade: string | null;
   contexto_adicional: string | null;
   confirmado_em: string | null;
   versao: number;
@@ -874,7 +869,13 @@ export type SetorAdmin = {
    * com `n`: este inclui quem nunca abriu o app.
    */
   efetivo: number | null;
+  /** Modalidades e turnos declarados para este setor (migration 20260849). */
+  modelos_trabalho: ModeloTrabalhoSetor[];
+  turnos: TurnoSetor[];
 };
+
+export type ModeloTrabalhoSetor = 'presencial' | 'home_office' | 'hibrido';
+export type TurnoSetor = 'comercial' | 'manha' | 'tarde' | 'noite' | 'madrugada' | 'flexivel';
 
 export type SetorMutacao = {
   ok: boolean;
@@ -1315,7 +1316,7 @@ export const rhService = {
     return (data ?? null) as EmpresaPerfil | null;
   },
 
-  /** Perfil operacional usado no onboarding progressivo do copiloto. */
+  /** Perfil da empresa usado no onboarding progressivo do copiloto. */
   async getContextoOperacional(): Promise<EmpresaContextoOperacional | null> {
     const { data, error } = await supabase.rpc('rh_contexto_operacional');
     if (error) throw error;
@@ -1334,12 +1335,14 @@ export const rhService = {
       p_cnae_principal: contexto.cnae_principal,
       p_descricao_negocio: contexto.descricao_negocio,
       p_produtos_servicos: contexto.produtos_servicos,
-      p_processos_principais: contexto.processos_principais,
+      // Campos legados da migration 48 ficam neutros. Modalidade e turnos
+      // agora pertencem a cada setor; processos já estão na descrição.
+      p_processos_principais: [],
       p_unidades: contexto.unidades,
-      p_areas_funcoes: contexto.areas_funcoes,
-      p_modelo_trabalho: contexto.modelo_trabalho,
-      p_turnos: contexto.turnos,
-      p_sazonalidade: contexto.sazonalidade,
+      p_areas_funcoes: [],
+      p_modelo_trabalho: null,
+      p_turnos: [],
+      p_sazonalidade: null,
       p_contexto_adicional: contexto.contexto_adicional,
     });
     if (error) throw error;
@@ -1731,8 +1734,26 @@ export const rhService = {
     return (data ?? []) as SetorAdmin[];
   },
 
-  async criarSetor(nome: string): Promise<SetorMutacao> {
-    const { data, error } = await supabase.rpc('rh_setor_criar', { p_nome: nome });
+  async criarSetor(
+    nome: string,
+    modelosTrabalho: ModeloTrabalhoSetor[] = [],
+    turnos: TurnoSetor[] = [],
+  ): Promise<SetorMutacao> {
+    const { data, error } = await supabase.rpc('rh_setor_criar_configurado', {
+      p_nome: nome, p_modelos_trabalho: modelosTrabalho, p_turnos: turnos,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;
+  },
+
+  async atualizarOperacaoSetor(
+    id: string,
+    modelosTrabalho: ModeloTrabalhoSetor[],
+    turnos: TurnoSetor[],
+  ): Promise<SetorMutacao> {
+    const { data, error } = await supabase.rpc('rh_setor_atualizar_operacao', {
+      p_id: id, p_modelos_trabalho: modelosTrabalho, p_turnos: turnos,
+    });
     if (error) return { ok: false, error: error.message };
     return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;
   },
