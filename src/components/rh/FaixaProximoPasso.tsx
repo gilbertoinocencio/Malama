@@ -22,6 +22,13 @@ export const FaixaProximoPasso: React.FC = () => {
   const passo = proximoPasso(dados);
   const alerta = passo.bloqueio === true;
 
+  // Na própria aba Saúde Mental, o passo "medir" aponta para o mesmo lugar
+  // que o card "Ciclo de cuidado da empresa" já mostra na tela — "Ver
+  // participação"/"Divulgar de novo" e "Acompanhar"/"Preparar" levam ao
+  // mesmo #campanhas. O título continua útil como resumo fixo ao rolar a
+  // página; o botão duplicado é que não tem por quê existir aqui.
+  const botaoRedundante = pathname === '/rh/saude-mental' && passo.etapa === 'medir';
+
   return (
     <div className={`border-t ${alerta ? 'border-amber-200 bg-amber-50' : 'border-gray-100 bg-[#7d4a3c]/[0.04]'}`}>
       <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 sm:px-6 lg:px-8">
@@ -42,7 +49,7 @@ export const FaixaProximoPasso: React.FC = () => {
           <HelpCircle className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Entenda a NR-1</span>
         </Link>
-        {passo.destino && (
+        {passo.destino && !botaoRedundante && (
           <Link
             to={passo.destino}
             className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition ${

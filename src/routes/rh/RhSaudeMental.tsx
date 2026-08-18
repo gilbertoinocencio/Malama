@@ -44,7 +44,7 @@ import { JssTeiaTemas } from '../../components/rh/JssTeiaTemas';
 import { Who5Indicadores } from '../../components/rh/Who5Indicadores';
 import { RelatosSentinelaCard } from '../../components/rh/RelatosSentinelaCard';
 import { useScrollParaHash } from '../../hooks/useScrollParaHash';
-import { ritmoInstrumento } from '../../lib/rhJornada';
+import { ritmoInstrumento, prontoParaPreparar } from '../../lib/rhJornada';
 import { hashDocumento, formatarHash } from '../../lib/hashDocumento';
 import { useRhAccess } from '../../contexts/RhAccessContext';
 
@@ -408,7 +408,12 @@ const CicloAvaliacoes: React.FC<{
       : r.situacao === 'pendente' ? 'Primeira medição pendente'
       : r.situacao === 'vencido' ? 'Nova medição recomendada'
       : `Próxima em ${r.proxima!.toLocaleDateString('pt-BR')}`;
-    return { aberto: r.situacao === 'em_andamento', destaque, detalhe: r.detalhe };
+    return {
+      aberto: r.situacao === 'em_andamento', destaque, detalhe: r.detalhe,
+      // JSS é trimestral: sem isto "Preparar" ficava ativo o ciclo inteiro,
+      // sem distinguir "pode abrir agora" de "faltam 80 dias".
+      pronto: prontoParaPreparar(r),
+    };
   };
 
   const itens = [
@@ -441,8 +446,15 @@ const CicloAvaliacoes: React.FC<{
               </div>
               {item.estado.aberto ? (
                 <a href="#campanhas" className="shrink-0 text-xs font-semibold text-[#7d4a3c]">Acompanhar</a>
-              ) : (
+              ) : item.estado.pronto ? (
                 <button type="button" onClick={() => onNova(item.code)} className="shrink-0 rounded-lg border border-[#7d4a3c]/30 px-3 py-2 text-xs font-semibold text-[#7d4a3c] transition hover:bg-[#7d4a3c]/5">Preparar</button>
+              ) : (
+                <span
+                  title="Ainda não é hora de preparar — veja a data ao lado"
+                  className="shrink-0 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-400"
+                >
+                  Preparar
+                </span>
               )}
             </div>
           );

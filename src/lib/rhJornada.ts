@@ -407,6 +407,10 @@ export type CompromissoRitmo = {
   detalhe: string;
   destino: string;
   acao: string;
+  /** `false` = a ação ainda não deve ser oferecida (ver `prontoParaPreparar`).
+   *  Ausente/`true` = ativa normalmente. Só who5 e jss usam isto: os
+   *  compromissos de liderança e plano não têm essa antecipação a evitar. */
+  pronto?: boolean;
 };
 
 const fmt = (d: Date | string) =>
@@ -464,6 +468,26 @@ export function ritmoInstrumento(
   };
 }
 
+/**
+ * O botão "Preparar" fica em espera enquanto a próxima medição está longe.
+ * JSS é trimestral: não há por que oferecer "Preparar" a três meses de
+ * distância, e um botão sempre ativo não distingue "pode começar agora" de
+ * "só daqui a 80 dias" — o RH clicava e criava a campanha antes da hora.
+ *
+ * "pendente" (nunca aplicado) e "vencido" (já passou da hora) continuam
+ * sempre prontos: aí a urgência é real, não antecipação.
+ */
+export const DIAS_ANTECEDENCIA_PREPARO = 14;
+
+export function prontoParaPreparar(
+  r: { situacao: SituacaoRitmo; proxima: Date | null },
+  hoje = new Date(),
+): boolean {
+  if (r.situacao !== 'em_dia' || !r.proxima) return true;
+  const dias = Math.ceil((r.proxima.getTime() - hoje.getTime()) / 86400000);
+  return dias <= DIAS_ANTECEDENCIA_PREPARO;
+}
+
 export function ritmoDoCiclo(d: DadosJornada, hoje = new Date()): CompromissoRitmo[] {
   const itens: CompromissoRitmo[] = [];
 
@@ -478,6 +502,7 @@ export function ritmoDoCiclo(d: DadosJornada, hoje = new Date()): CompromissoRit
       detalhe: who5.detalhe,
       destino: who5.situacao === 'em_andamento' ? '/rh/saude-mental#campanhas' : '/rh/saude-mental?nova=1&instrumento=who5',
       acao: who5.situacao === 'em_andamento' ? 'Acompanhar' : 'Preparar',
+      pronto: prontoParaPreparar(who5, hoje),
     });
 
     const jss = ritmoInstrumento(d.campanhas, 'jss', 3, hoje);
@@ -490,6 +515,7 @@ export function ritmoDoCiclo(d: DadosJornada, hoje = new Date()): CompromissoRit
       detalhe: jss.detalhe,
       destino: jss.situacao === 'em_andamento' ? '/rh/saude-mental#campanhas' : '/rh/saude-mental?nova=1&instrumento=jss',
       acao: jss.situacao === 'em_andamento' ? 'Acompanhar' : 'Preparar',
+      pronto: prontoParaPreparar(jss, hoje),
     });
   }
 

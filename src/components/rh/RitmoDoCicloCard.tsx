@@ -39,12 +39,25 @@ const Linha: React.FC<{ item: CompromissoRitmo }> = ({ item }) => {
         <p className="mt-0.5 text-xs text-gray-500">{item.proposito}</p>
         <p className="mt-0.5 text-[11px] leading-relaxed text-gray-400">{item.detalhe}</p>
       </div>
-      <Link
-        to={item.destino}
-        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#7d4a3c]/30 px-3 py-1.5 text-xs font-semibold text-[#7d4a3c] transition hover:bg-[#7d4a3c]/5"
-      >
-        {item.acao} <ArrowRight className="h-3 w-3" />
-      </Link>
+      {/* `pronto === false`: a próxima medição ainda está longe (ver
+          `prontoParaPreparar`). Sem link — um botão sempre ativo não
+          distingue "pode começar agora" de "só daqui a 80 dias", e o
+          `detalhe` acima já diz a partir de quando. */}
+      {item.pronto === false ? (
+        <span
+          title="Ainda não é hora de preparar — veja a data acima"
+          className="inline-flex shrink-0 cursor-default items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-400"
+        >
+          {item.acao}
+        </span>
+      ) : (
+        <Link
+          to={item.destino}
+          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[#7d4a3c]/30 px-3 py-1.5 text-xs font-semibold text-[#7d4a3c] transition hover:bg-[#7d4a3c]/5"
+        >
+          {item.acao} <ArrowRight className="h-3 w-3" />
+        </Link>
+      )}
     </div>
   );
 };
