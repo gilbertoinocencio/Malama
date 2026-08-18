@@ -53,6 +53,10 @@ const MIN_COORTE = 5;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR');
 
+/** Quantas campanhas já encerradas ficam sempre visíveis, além de qualquer
+ *  aberta. O resto (histórico mais antigo) some atrás do toggle. */
+const CAMPANHAS_RECENTES_VISIVEIS = 4;
+
 // Presets de período do relatório de bem-estar (fim = hoje)
 type PeriodoPreset = 'mes' | 'tri' | 'semestre' | 'ano';
 const PERIODO_MESES: Record<PeriodoPreset, number> = { mes: 1, tri: 3, semestre: 6, ano: 12 };
@@ -481,6 +485,10 @@ export const RhSaudeMental: React.FC = () => {
   // Separado da adesão de propósito: o RH costuma querer os links (para
   // reenviar) enquanto olha a adesão, e fechar um para ver o outro atrapalha.
   const [linksAbertos, setLinksAbertos] = useState<string | null>(null);
+  // WHO-5 é mensal e JSS trimestral: em dois anos de uso já são ~32
+  // campanhas, e sem corte o card cresce para sempre. Aberta continua
+  // sempre visível; o resto além das mais recentes fica atrás do toggle.
+  const [historicoAberto, setHistoricoAberto] = useState(false);
 
   // Período: um filtro só, acima de tudo que ele escopa (matriz + WHO-5)
   const [periodo, setPeriodo] = useState<PeriodoPreset>('tri');
@@ -660,9 +668,27 @@ export const RhSaudeMental: React.FC = () => {
               Abra a primeira para começar o inventário de riscos psicossociais.
             </p>
           </div>
-        ) : (
+        ) : (() => {
+          // `campanhas` já vem ordenada por mais recente primeiro. Aberta
+          // sempre entra; entre as encerradas/canceladas, só as mais
+          // recentes ficam à mostra — o resto vai para o histórico, sem
+          // perder a ordem cronológica de cada grupo.
+          const visiveis: typeof campanhas = [];
+          const antigas: typeof campanhas = [];
+          let recentesContadas = 0;
+          for (const c of campanhas) {
+            if (c.status === 'aberta' || recentesContadas < CAMPANHAS_RECENTES_VISIVEIS) {
+              visiveis.push(c);
+              if (c.status !== 'aberta') recentesContadas++;
+            } else {
+              antigas.push(c);
+            }
+          }
+          const listadas = historicoAberto ? campanhas : visiveis;
+
+          return (
           <div className="space-y-2">
-            {campanhas.map(c => {
+            {listadas.map(c => {
               const taxa = c.n_convidados > 0
                 ? Math.round((c.n_respondentes / c.n_convidados) * 100) : 0;
               const aberta = expandida === c.id;
@@ -735,8 +761,20 @@ export const RhSaudeMental: React.FC = () => {
                 </div>
               );
             })}
+            {antigas.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setHistoricoAberto(v => !v)}
+                className="w-full rounded-lg px-3 py-2 text-center text-xs font-medium text-gray-500 transition hover:bg-gray-50"
+              >
+                {historicoAberto
+                  ? 'Ocultar histórico anterior'
+                  : `Ver histórico anterior (${antigas.length} campanha${antigas.length > 1 ? 's' : ''})`}
+              </button>
+            )}
           </div>
-        )}
+          );
+        })()}
 
         {!temInstrumentoExposicao && (
           <div className="mt-4 flex items-start gap-2 text-xs text-gray-500 bg-amber-50 border border-amber-100 rounded-lg p-3">
