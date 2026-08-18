@@ -99,21 +99,27 @@ function rotaValida(target: string, permitidas: string[]) {
   return permitidas.some(base => target === base || target.startsWith(`${base}?`) || target.startsWith(`${base}#`));
 }
 
+// Nome de provedor é detalhe interno. Esta proteção no servidor impede que uma
+// fuga pontual do modelo exponha a infraestrutura na interface da empresa.
+function textoPublico(value: unknown, max: number) {
+  return texto(value, max).replace(/\b(?:caramel(?:o)?|gemini|gpt|chatgpt|openai|anthropic|claude)\b/gi, 'Copiloto Malama');
+}
+
 function respostaSegura(parsed: Record<string, unknown>, permitidas: string[]) {
-  const message = texto(parsed.message, 6000);
+  const message = textoPublico(parsed.message, 6000);
   if (!message) throw new Error('Resposta sem mensagem');
   const suggestions: Sugestao[] = [];
   if (Array.isArray(parsed.suggestions)) {
     for (const item of parsed.suggestions.slice(0, 3)) {
       if (!item || typeof item !== 'object') continue;
       const s = item as Record<string, unknown>;
-      const label = texto(s.label, 80);
+      const label = textoPublico(s.label, 80);
       if (!label) continue;
       if (s.action === 'navigate') {
         const target = texto(s.target, 180);
         if (rotaValida(target, permitidas)) suggestions.push({ label, action: 'navigate', target });
       } else if (s.action === 'prompt') {
-        const prompt = texto(s.prompt, 500);
+        const prompt = textoPublico(s.prompt, 500);
         if (prompt) suggestions.push({ label, action: 'prompt', prompt });
       }
     }
