@@ -14,7 +14,14 @@ export type RhAgentHistoryItem = {
 
 export type RhAgentSuggestion =
   | { label: string; action: 'navigate'; target: string }
-  | { label: string; action: 'prompt'; prompt: string };
+  | { label: string; action: 'prompt'; prompt: string }
+  // Rascunho de item do plano de ação sugerido pela leitura de JSS/WHO-5.
+  // Nunca grava sozinho: só leva a um formulário pré-preenchido para o RH
+  // revisar e confirmar.
+  | {
+      label: string; action: 'nova_acao'; setor?: string; fator: string;
+      risco_descricao: string; medida: string; nivel_controle: string;
+    };
 
 export type RhAgentReply = {
   message: string;

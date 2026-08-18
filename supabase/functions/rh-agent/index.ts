@@ -22,10 +22,24 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 type Historico = { role: 'user' | 'assistant'; content: string };
 type Sugestao = {
   label: string;
-  action: 'navigate' | 'prompt';
+  action: 'navigate' | 'prompt' | 'nova_acao';
   target?: string;
   prompt?: string;
+  // Rascunho de item do plano de ação — nunca gravado pelo agente. O clique
+  // só abre o formulário já preenchido no quadro, para o RH revisar e
+  // confirmar (regra 8 do prompt: toda gravação exige ação humana explícita).
+  setor?: string;
+  fator?: string;
+  risco_descricao?: string;
+  medida?: string;
+  nivel_controle?: string;
 };
+
+// Mesmos enums de empresa_planos_acao (20260801_plano_acao.sql) — uma
+// sugestão fora desse vocabulário não passa pela validação do banco na hora
+// de salvar, então é descartada aqui antes de chegar ao cliente.
+const FATORES_VALIDOS = new Set(['demanda', 'controle', 'apoio', 'assedio', 'jornada', 'reconhecimento', 'outro']);
+const NIVEIS_VALIDOS = new Set(['fonte', 'organizacional', 'individual']);
 
 const texto = (value: unknown, max: number) =>
   typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -130,6 +144,20 @@ function respostaSegura(parsed: Record<string, unknown>, permitidas: string[]) {
       } else if (s.action === 'prompt') {
         const prompt = textoPublico(s.prompt, 500);
         if (prompt) suggestions.push({ label, action: 'prompt', prompt });
+      } else if (s.action === 'nova_acao') {
+        // Só existe se a pessoa puder acessar o plano de ação — mesmo gate
+        // usado para liberar a rota /rh/plano-acao.
+        if (!permitidas.includes('/rh/plano-acao')) continue;
+        const fator = texto(s.fator, 40);
+        const nivelControle = texto(s.nivel_controle, 40);
+        const medida = textoPublico(s.medida, 400);
+        const riscoDescricao = textoPublico(s.risco_descricao, 400);
+        const setor = texto(s.setor, 80);
+        if (!FATORES_VALIDOS.has(fator) || !NIVEIS_VALIDOS.has(nivelControle) || !medida || !riscoDescricao) continue;
+        suggestions.push({
+          label, action: 'nova_acao', fator, nivel_controle: nivelControle,
+          medida, risco_descricao: riscoDescricao, ...(setor ? { setor } : {}),
+        });
       }
     }
   }
@@ -433,7 +461,6 @@ function respostaDeterministica(
 
   const suggestions = [
     sugestaoRota('Ver plano de ação', '/rh/plano-acao', permitidas),
-    sugestaoRota('Ver evolução da liderança', '/rh/plano-acao?visao=lideranca', permitidas),
     sugestaoRota('Ler últimos resultados', '/rh/saude-mental', permitidas),
   ].filter((item): item is Sugestao => item !== null);
 

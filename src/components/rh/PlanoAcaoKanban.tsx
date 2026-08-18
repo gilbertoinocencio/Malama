@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AlertTriangle, ArrowRight, Bell, CalendarDays, Check, CheckCircle2, Clipboard,
-  Clock3, GripVertical, History, Lightbulb, Plus, RefreshCw, Sparkles, Target,
-  ThumbsUp, UsersRound, X,
+  AlertTriangle, ArrowRight, Bell, CalendarClock, CalendarDays, Check, CheckCircle2, Clipboard,
+  ClipboardList, Clock3, GripVertical, History, Lightbulb, Plus, RefreshCw, Sparkles, Target,
+  ThumbsUp, Trash2, UsersRound, X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-  rhService, type JssCortes, type JssItemKey, type JssSetor, type LiderancaCiclo,
-  type LiderancaEtapa, type LiderancaVerificacaoResultado, type PlanoFator, type PlanoNivel,
-  type PsychosocialSetor, type SetorEmpresa,
+  rhService, type LiderancaCiclo,
+  type LiderancaEtapa, type LiderancaVerificacaoResultado, type PlanoAcao, type PlanoFator,
+  type PlanoNivel, type PlanoStatus, type PsychosocialSetor, type SetorEmpresa,
 } from '../../services/empresaService';
-import { obterInsightJss } from '../../lib/jssInsights';
+import { gerarDiagnostico, type Sugestao } from '../../lib/planoSugestoes';
+import { FATOR_LABEL, FATORES, NIVEIS, NIVEL_LABEL, STATUS_INFO } from '../../lib/planoAcaoLabels';
 
 const ETAPAS: { id: LiderancaEtapa; label: string; curto: string }[] = [
   { id: 'iniciada', label: 'Jornada iniciada', curto: 'Início' },
@@ -19,32 +20,6 @@ const ETAPAS: { id: LiderancaEtapa; label: string; curto: string }[] = [
   { id: 'pratica_incorporada', label: 'Prática incorporada', curto: 'Prática' },
   { id: 'evolucao_mantida', label: 'Evolução mantida', curto: 'Evolução' },
 ];
-
-type Sugestao = {
-  fator: PlanoFator; titulo: string; objetivo: string; medida: string; nivel: PlanoNivel;
-};
-
-const SUGESTOES: Record<'demanda' | 'controle' | 'apoio' | 'manutencao', Sugestao[]> = {
-  demanda: [
-    { fator: 'demanda', titulo: 'Três prioridades por semana', objetivo: 'Dar clareza ao que realmente precisa ser entregue.', medida: 'No início da semana, definir com a equipe as três prioridades e o que pode esperar.', nivel: 'organizacional' },
-    { fator: 'demanda', titulo: 'Revisão rápida da carga', objetivo: 'Evitar acúmulo e prazos incompatíveis.', medida: 'Fazer uma conversa de 20 minutos para listar tarefas, retirar duplicidades e redistribuir o excesso.', nivel: 'fonte' },
-    { fator: 'jornada', titulo: 'Pausas e turnos previsíveis', objetivo: 'Reduzir desgaste durante a jornada.', medida: 'Revisar pausas, trocas de turno e horas extras; comunicar a escala com antecedência.', nivel: 'fonte' },
-  ],
-  controle: [
-    { fator: 'controle', titulo: 'Escolha de como fazer', objetivo: 'Aumentar a autonomia nas tarefas.', medida: 'Definir o resultado esperado e deixar a equipe escolher o melhor modo de executar.', nivel: 'organizacional' },
-    { fator: 'controle', titulo: 'Ouvir antes de mudar', objetivo: 'Incluir quem executa o trabalho nas decisões.', medida: 'Antes de alterar rotina, meta ou escala, ouvir impactos e sugestões da equipe.', nivel: 'organizacional' },
-    { fator: 'controle', titulo: 'Papéis mais claros', objetivo: 'Reduzir ordens conflitantes e retrabalho.', medida: 'Registrar quem decide, quem executa e qual é o critério de conclusão das tarefas principais.', nivel: 'fonte' },
-  ],
-  apoio: [
-    { fator: 'apoio', titulo: 'Conversa individual curta', objetivo: 'Criar espaço seguro para pedir ajuda.', medida: 'Realizar uma conversa individual de 20 minutos por mês, com escuta e próximo passo registrado.', nivel: 'organizacional' },
-    { fator: 'apoio', titulo: 'Acordos de convivência', objetivo: 'Melhorar respeito e cooperação no dia a dia.', medida: 'Construir com a equipe três acordos simples de convivência e revisá-los mensalmente.', nivel: 'organizacional' },
-    { fator: 'reconhecimento', titulo: 'Reconhecimento específico', objetivo: 'Valorizar entregas e atitudes positivas.', medida: 'Toda semana, reconhecer de forma específica uma entrega, colaboração ou melhoria observada.', nivel: 'organizacional' },
-  ],
-  manutencao: [
-    { fator: 'apoio', titulo: 'Preservar o que funciona', objetivo: 'Manter as práticas positivas do setor.', medida: 'Perguntar à equipe qual prática ajuda mais o trabalho e combinar como mantê-la no próximo ciclo.', nivel: 'organizacional' },
-    { fator: 'reconhecimento', titulo: 'Compartilhar uma boa prática', objetivo: 'Transformar um ponto forte em rotina consciente.', medida: 'Registrar uma prática que funciona, explicar por que ajuda e reforçá-la nas reuniões do setor.', nivel: 'organizacional' },
-  ],
-};
 
 const input = 'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-[#7d4a3c]';
 const linhas = (texto: string) => texto.split('\n').map(x => x.trim()).filter(Boolean);
@@ -67,55 +42,42 @@ function estadoMarco(ciclo: LiderancaCiclo) {
   return { tipo: 'em_dia', label: 'Acompanhamento em dia', classe: '!border-l-gray-300 bg-white', texto: 'text-gray-500', alerta: false };
 }
 
-function diagnostico(setor: JssSetor | undefined, cortes: JssCortes | null | undefined) {
-  if (!setor || !cortes) return { fortes: [] as string[], atencao: [] as string[], sugestoes: SUGESTOES.manutencao };
-  const temSinal = (itens: JssItemKey[]) => itens.some(item => (setor.itens_risco?.[item] ?? 0) >= 50);
-  const sinalDemanda = temSinal(['a', 'b', 'c', 'd', 'e']);
-  const sinalControle = temSinal(['f', 'g', 'h', 'i', 'j', 'k']);
-  const sinalApoio = temSinal(['l', 'm', 'n', 'o', 'p', 'q']);
-  const fortes: string[] = [];
-  const mistos: string[] = [];
-  if (setor.demanda < cortes.demanda && !sinalDemanda) fortes.push('A cobrança está mais equilibrada que o ponto de referência atual.');
-  if (setor.controle >= cortes.controle && !sinalControle) fortes.push('A equipe demonstra boa autonomia para organizar o trabalho.');
-  if (setor.apoio >= cortes.apoio && !sinalApoio) fortes.push('O apoio entre equipe e liderança aparece como ponto positivo.');
-  if (setor.demanda < cortes.demanda && sinalDemanda) mistos.push('Resultado misto na cobrança: o geral é favorável, mas há situações específicas para investigar.');
-  if (setor.controle >= cortes.controle && sinalControle) mistos.push('Resultado misto na autonomia: o geral é favorável, mas há situações específicas para investigar.');
-  if (setor.apoio >= cortes.apoio && sinalApoio) mistos.push('Resultado misto no apoio: o geral é favorável, mas há situações específicas para investigar.');
-  const insight = obterInsightJss(setor, cortes);
-  const atencao = [...insight.fatores, ...mistos, ...insight.sinais].slice(0, 6);
-  const grupos: Sugestao[] = [];
-  if (setor.demanda >= cortes.demanda || sinalDemanda) grupos.push(...SUGESTOES.demanda);
-  if (setor.controle < cortes.controle || sinalControle) grupos.push(...SUGESTOES.controle);
-  if (setor.apoio < cortes.apoio || sinalApoio) grupos.push(...SUGESTOES.apoio);
-  if (grupos.length === 0) grupos.push(...SUGESTOES.manutencao);
-  return { fortes, atencao, sugestoes: grupos.slice(0, 4) };
-}
-
-export const LiderancaEvolucao: React.FC<{
+export const PlanoAcaoKanban: React.FC<{
   setores: SetorEmpresa[];
   abrirNovo?: boolean;
   setorInicial?: string | null;
   /** Ciclo a abrir já selecionado. É por aqui que uma medida do plano de
-   *  ação leva de volta à conversa que a originou — sem isso, o vínculo
-   *  existia no banco e não tinha caminho na tela. */
+   *  ação leva de volta à conversa que a originou. */
   cicloFoco?: string | null;
-  /** Leva ao plano de ação formal, onde os combinados são concluídos com
-   *  evidência. Sem isso o RH sai daqui achando que concluiu o ciclo. */
-  onVerNoPlano?: () => void;
-}> = ({ setores, abrirNovo = false, setorInicial = null, cicloFoco = null, onVerNoPlano }) => {
+  /** Abre o formulário de ação geral pré-preenchido — usado pelo deep link
+   *  do Copiloto do RH (?novaAcao=1&setor=&fator=&medida=&nivel=&risco=). */
+  novaAcaoInicial?: boolean;
+  novaAcaoSetorInicial?: string | null;
+  novaAcaoFatorInicial?: PlanoFator | null;
+  novaAcaoRiscoInicial?: string | null;
+  novaAcaoMedidaInicial?: string | null;
+  novaAcaoNivelInicial?: PlanoNivel | null;
+}> = ({
+  setores, abrirNovo = false, setorInicial = null, cicloFoco = null,
+  novaAcaoInicial = false, novaAcaoSetorInicial = null, novaAcaoFatorInicial = null,
+  novaAcaoRiscoInicial = null, novaAcaoMedidaInicial = null, novaAcaoNivelInicial = null,
+}) => {
   const [ciclos, setCiclos] = useState<LiderancaCiclo[]>([]);
+  const [planos, setPlanos] = useState<PlanoAcao[]>([]);
   const [selecionado, setSelecionado] = useState<string | null>(cicloFoco);
+  const [acaoSelecionada, setAcaoSelecionada] = useState<string | null>(null);
   const [jss, setJss] = useState<Awaited<ReturnType<typeof rhService.getRelatorioJss>>>(null);
   const [who5, setWho5] = useState<Awaited<ReturnType<typeof rhService.getRelatorioPsicossocial>>>(null);
   const [loading, setLoading] = useState(true);
   const [novo, setNovo] = useState(abrirNovo);
+  const [novaAcao, setNovaAcao] = useState(novaAcaoInicial);
   const [editando, setEditando] = useState(false);
   const [acao, setAcao] = useState<Sugestao | null>(null);
   const [verificando, setVerificando] = useState<LiderancaCiclo | null>(null);
   const [transicao, setTransicao] = useState<{ ciclo: LiderancaCiclo; destino: LiderancaEtapa } | null>(null);
 
   // O foco pode chegar depois da montagem (o RH clica no selo de uma medida
-  // já estando nesta aba), então não basta o valor inicial do useState.
+  // já estando nesta tela), então não basta o valor inicial do useState.
   useEffect(() => { if (cicloFoco) setSelecionado(cicloFoco); }, [cicloFoco]);
 
   const carregar = useCallback(async () => {
@@ -124,22 +86,28 @@ export const LiderancaEvolucao: React.FC<{
     const inicioJss = new Date(); inicioJss.setMonth(inicioJss.getMonth() - 3);
     const inicioWho5 = new Date(); inicioWho5.setMonth(inicioWho5.getMonth() - 1);
     try {
-      const [lista, relatorio, bemEstar] = await Promise.all([
+      const [lista, relatorio, bemEstar, itensPlano] = await Promise.all([
         rhService.getLiderancaCiclos(),
         rhService.getRelatorioJss(inicioJss.toISOString().slice(0, 10), fim.toISOString().slice(0, 10)).catch(() => null),
         rhService.getRelatorioPsicossocial(inicioWho5.toISOString().slice(0, 10), fim.toISOString().slice(0, 10)).catch(() => null),
+        rhService.getPlanosAcao().catch(() => []),
       ]);
-      setCiclos(lista); setJss(relatorio); setWho5(bemEstar);
+      setCiclos(lista); setJss(relatorio); setWho5(bemEstar); setPlanos(itensPlano);
       setSelecionado(atual => atual && lista.some(c => c.id === atual) ? atual : null);
-    } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível carregar as jornadas.'); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível carregar o plano de ação.'); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void carregar(); }, [carregar]);
 
+  // Ações sem jornada de liderança associada — a coluna "Ações gerais" do
+  // quadro. Tudo que nasce dentro de um ciclo já vem embutido em `ciclo.acoes`.
+  const acoesGerais = useMemo(() => planos.filter(p => !p.lideranca_ciclo_id), [planos]);
+  const acaoAtual = acoesGerais.find(a => a.id === acaoSelecionada) ?? null;
+
   const ciclo = ciclos.find(c => c.id === selecionado) ?? null;
   const setorJss = jss?.setores.find(s => s.setor === ciclo?.setor);
   const setorWho5 = who5?.setores.find(s => s.setor === ciclo?.setor);
-  const leitura = useMemo(() => diagnostico(setorJss, jss?.cortes), [setorJss, jss?.cortes]);
+  const leitura = useMemo(() => gerarDiagnostico(setorJss, jss?.cortes, setorWho5), [setorJss, jss?.cortes, setorWho5]);
   const mover = useCallback(async (item: LiderancaCiclo, destino: LiderancaEtapa) => {
     const atual = ETAPAS.findIndex(e => e.id === item.etapa);
     const novoIndice = ETAPAS.findIndex(e => e.id === destino);
@@ -149,6 +117,32 @@ export const LiderancaEvolucao: React.FC<{
     setTransicao({ ciclo: item, destino });
   }, []);
 
+  const mudarStatusAcaoGeral = useCallback(async (item: PlanoAcao, status: PlanoStatus) => {
+    let evidencia: string | undefined;
+    if (status === 'concluida') {
+      const resp = prompt(
+        'O que comprova que esta medida foi executada?\n' +
+        '(ex.: ata da reunião de 12/08, nova escala publicada, turma treinada em 03/09)',
+        item.evidencia ?? '',
+      );
+      if (resp === null) return;
+      if (!resp.trim()) { toast.error('Sem evidência não dá para concluir o item.'); return; }
+      evidencia = resp.trim();
+    }
+    const res = await rhService.atualizarPlanoAcao(item.id, status, evidencia);
+    if (!res.ok) { toast.error(res.error || 'Não foi possível atualizar.'); return; }
+    toast.success('Item atualizado.');
+    await carregar();
+  }, [carregar]);
+
+  const excluirAcaoGeral = useCallback(async (item: PlanoAcao) => {
+    if (!confirm('Excluir este item do plano de ação?')) return;
+    const res = await rhService.excluirPlanoAcao(item.id);
+    if (!res.ok) { toast.error(res.error || 'Não foi possível excluir.'); return; }
+    setAcaoSelecionada(null);
+    await carregar();
+  }, [carregar]);
+
   const alertas = ciclos.filter(c => estadoMarco(c).alerta && c.status === 'ativo');
 
   if (loading) return <div className="flex h-56 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#7d4a3c] border-t-transparent" /></div>;
@@ -156,12 +150,15 @@ export const LiderancaEvolucao: React.FC<{
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-[#7d4a3c]/20 bg-[#7d4a3c]/5 p-4">
-        <div className="flex items-start gap-3"><UsersRound className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#7d4a3c]" /><div><p className="text-sm font-semibold text-gray-800">Uma jornada particular para cada liderança</p><p className="mt-1 text-xs leading-relaxed text-gray-600">Não existe ranking entre setores. O RH usa esta área para reconhecer o que está bom, combinar melhorias e acompanhar ações com o gestor. Nenhuma resposta individual ou relato confidencial aparece aqui.</p></div></div>
+        <div className="flex items-start gap-3"><UsersRound className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#7d4a3c]" /><div><p className="text-sm font-semibold text-gray-800">Um quadro só para o plano de ação</p><p className="mt-1 text-xs leading-relaxed text-gray-600">Ações gerais e jornadas de liderança convivem aqui. Não existe ranking entre setores — o RH usa este espaço para reconhecer o que está bom, combinar melhorias e acompanhar execução. Nenhuma resposta individual ou relato confidencial aparece aqui.</p></div></div>
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <div><h2 className="text-lg font-semibold text-gray-800">Jornadas por setor</h2><p className="text-sm text-gray-500">Escolha uma jornada para preparar a conversa com a liderança.</p></div>
-        <button onClick={() => setNovo(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white"><Plus className="h-4 w-4" /> Iniciar jornada</button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><h2 className="text-lg font-semibold text-gray-800">Plano de ação</h2><p className="text-sm text-gray-500">Escolha um cartão para ver os detalhes ou registre uma nova ação.</p></div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setNovaAcao(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#7d4a3c] px-4 py-2 text-sm font-semibold text-[#7d4a3c] hover:bg-[#7d4a3c]/5"><Plus className="h-4 w-4" /> Nova ação</button>
+          <button onClick={() => setNovo(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white"><Plus className="h-4 w-4" /> Iniciar jornada</button>
+        </div>
       </div>
 
       {alertas.length > 0 && <button onClick={() => setSelecionado(alertas[0].id)} className="flex w-full items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
@@ -169,45 +166,89 @@ export const LiderancaEvolucao: React.FC<{
         <span><span className="block text-sm font-semibold text-amber-900">{alertas.length} acompanhamento(s) pedem atenção do RH</span><span className="mt-0.5 block text-xs text-amber-800">Abra o primeiro cartão para verificar o combinado ou definir a próxima data. Isso não é uma nota para o gestor.</span></span>
       </button>}
 
-      {ciclos.length === 0
-        ? <div className="rounded-xl bg-white p-10 text-center shadow"><Sparkles className="mx-auto h-9 w-9 text-gray-300" /><p className="mt-3 font-medium text-gray-600">Nenhuma jornada iniciada.</p><p className="mt-1 text-sm text-gray-400">Comece por um setor e leve sugestões práticas para a primeira conversa.</p></div>
-        : <KanbanLideranca ciclos={ciclos} selecionado={selecionado} onSelecionar={setSelecionado} onMover={mover} />}
+      <KanbanPlano
+        ciclos={ciclos}
+        acoesGerais={acoesGerais}
+        selecionado={selecionado}
+        selecionadoAcao={acaoSelecionada}
+        onSelecionar={setSelecionado}
+        onSelecionarAcao={setAcaoSelecionada}
+        onMover={mover}
+      />
 
-      {ciclo && <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={() => setSelecionado(null)}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}><div className="mb-3 flex items-center justify-between gap-3">
-        {/* Caminho de ida: da conversa para o registro formal. O de volta é
-            o selo "Combinado com a liderança", no plano. */}
-        {onVerNoPlano
-          ? <button onClick={onVerNoPlano} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[#7d4a3c] transition hover:bg-white">
-              <Clipboard className="h-3.5 w-3.5" /> Ver os combinados no plano de ação
-            </button>
-          : <span />}
+      {ciclo && <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={() => setSelecionado(null)}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}><div className="mb-3 flex items-center justify-end">
         <button onClick={() => setSelecionado(null)} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700" aria-label="Fechar detalhes"><X className="h-5 w-5" /></button></div><JornadaDetalhe ciclo={ciclo} sugestoes={leitura.sugestoes} who5={setorWho5} onEditar={() => setEditando(true)} onAcao={setAcao} onVerificar={() => setVerificando(ciclo)} onAvancar={destino => setTransicao({ ciclo, destino })} onAtualizar={carregar} /></aside></div>}
+
+      {acaoAtual && <AcaoGeralDetalhe item={acaoAtual} onFechar={() => setAcaoSelecionada(null)} onStatus={mudarStatusAcaoGeral} onExcluir={excluirAcaoGeral} />}
 
       {novo && <CicloForm setores={setores} jss={jss} setorInicial={setorInicial} onClose={() => setNovo(false)} onSaved={async id => { setNovo(false); await carregar(); setSelecionado(id); }} />}
       {editando && ciclo && <PontosForm ciclo={ciclo} onClose={() => setEditando(false)} onSaved={() => { setEditando(false); void carregar(); }} />}
       {acao && ciclo && <AcaoForm ciclo={ciclo} sugestao={acao} onClose={() => setAcao(null)} onSaved={() => { setAcao(null); void carregar(); }} />}
       {verificando && <VerificacaoForm ciclo={verificando} onClose={() => setVerificando(null)} onSaved={() => { setVerificando(null); void carregar(); }} />}
       {transicao && <PrazoMarcoForm ciclo={transicao.ciclo} destino={transicao.destino} onClose={() => setTransicao(null)} onSaved={() => { setTransicao(null); void carregar(); }} />}
+      {novaAcao && <NovaAcaoGeralForm
+        setores={setores} jss={jss} who5={who5}
+        setorInicial={novaAcaoSetorInicial} fatorInicial={novaAcaoFatorInicial}
+        riscoInicial={novaAcaoRiscoInicial} medidaInicial={novaAcaoMedidaInicial}
+        nivelInicial={novaAcaoNivelInicial}
+        onClose={() => setNovaAcao(false)}
+        onSaved={async () => { setNovaAcao(false); await carregar(); }}
+      />}
     </div>
   );
 };
 
-const KanbanLideranca: React.FC<{
+const KanbanPlano: React.FC<{
   ciclos: LiderancaCiclo[];
+  acoesGerais: PlanoAcao[];
   selecionado: string | null;
+  selecionadoAcao: string | null;
   onSelecionar: (id: string) => void;
+  onSelecionarAcao: (id: string) => void;
   onMover: (ciclo: LiderancaCiclo, destino: LiderancaEtapa) => Promise<void>;
-}> = ({ ciclos, selecionado, onSelecionar, onMover }) => {
+}> = ({ ciclos, acoesGerais, selecionado, selecionadoAcao, onSelecionar, onSelecionarAcao, onMover }) => {
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [sobre, setSobre] = useState<LiderancaEtapa | null>(null);
 
   return <div>
     <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
       <GripVertical className="h-4 w-4" />
-      Depois de verificar o combinado, arraste o cartão para o próximo marco ou abra os detalhes.
+      Depois de verificar o combinado, arraste o cartão de jornada para o próximo marco ou abra os detalhes.
     </div>
     <div className="-mx-1 overflow-x-auto pb-3">
       <div className="flex min-w-max gap-3 px-1">
+        <section className="w-[270px] shrink-0 rounded-xl border border-gray-200 bg-gray-100/70 p-3">
+          <header className="mb-3 flex items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-1.5"><ClipboardList className="h-3.5 w-3.5 text-gray-400" /><div><p className="text-sm font-semibold text-gray-800">Ações gerais</p><p className="text-[11px] text-gray-400">Sem jornada de liderança</p></div></div>
+            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-gray-500 shadow-sm">{acoesGerais.length}</span>
+          </header>
+          <div className="min-h-32 space-y-2">
+            {acoesGerais.length === 0 && <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-gray-300 px-4 text-center text-xs text-gray-400">Nenhuma ação avulsa registrada.</div>}
+            {acoesGerais.map(item => {
+              const info = STATUS_INFO[item.status];
+              return <button
+                key={item.id}
+                type="button"
+                aria-pressed={selecionadoAcao === item.id}
+                onClick={() => onSelecionarAcao(item.id)}
+                className={`w-full rounded-lg border border-l-4 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow ${
+                  item.atrasada ? '!border-l-red-400 bg-red-50/40' : item.status === 'concluida' ? '!border-l-green-400 bg-green-50/40' : 'border-l-transparent bg-white'
+                } ${selecionadoAcao === item.id ? 'border-[#7d4a3c] ring-1 ring-[#7d4a3c]/20' : 'border-gray-200'}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="truncate text-sm font-semibold text-gray-800">{item.setor ?? 'Toda a empresa'}</p>
+                  <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${info.cls}`}>{info.label}</span>
+                </div>
+                <p className="mt-0.5 text-[11px] text-gray-500">{FATOR_LABEL[item.fator]}</p>
+                <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-600">{item.risco_descricao}</p>
+                <div className="mt-2 flex items-center justify-between gap-2 text-[11px]">
+                  <span className={item.atrasada ? 'font-semibold text-red-600' : 'text-gray-400'}>{item.atrasada ? 'Fora do prazo' : `prazo ${dataBr(item.prazo)}`}</span>
+                </div>
+              </button>;
+            })}
+          </div>
+        </section>
+
         {ETAPAS.map((etapa, indice) => {
           const itens = ciclos.filter(c => c.etapa === etapa.id);
           return <section
@@ -272,6 +313,43 @@ const KanbanLideranca: React.FC<{
         })}
       </div>
     </div>
+  </div>;
+};
+
+const AcaoGeralDetalhe: React.FC<{
+  item: PlanoAcao;
+  onFechar: () => void;
+  onStatus: (item: PlanoAcao, status: PlanoStatus) => Promise<void>;
+  onExcluir: (item: PlanoAcao) => Promise<void>;
+}> = ({ item, onFechar, onStatus, onExcluir }) => {
+  const info = STATUS_INFO[item.status];
+  return <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={onFechar}>
+    <aside className="h-full w-full max-w-lg overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}>
+      <div className="mb-3 flex items-center justify-end"><button onClick={onFechar} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700" aria-label="Fechar detalhes"><X className="h-5 w-5" /></button></div>
+      <div className="rounded-xl bg-white p-5 shadow">
+        <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-gray-400">Ação geral</p>
+            <h3 className="text-xl font-bold text-gray-800">{item.setor ?? 'Toda a empresa'}</h3>
+            <p className="mt-1 text-xs text-gray-500">{FATOR_LABEL[item.fator]} · {NIVEL_LABEL[item.nivel_controle]}</p>
+          </div>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${info.cls}`}>{info.label}</span>
+        </div>
+        {item.atrasada && <p className="mb-2 inline-flex items-center gap-1 rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-medium text-red-600"><CalendarClock className="h-3 w-3" /> Fora do prazo</p>}
+        <p className="text-sm leading-relaxed text-gray-800">{item.risco_descricao}</p>
+        <p className="mt-2 text-sm leading-relaxed text-gray-600"><span className="text-gray-400">Medida:</span> {item.medida}</p>
+        <p className="mt-2 text-xs text-gray-400">{item.responsavel} · prazo {dataBr(item.prazo)}{item.concluida_em && ` · concluída em ${dataBr(item.concluida_em)}`}</p>
+        {item.evidencia && <p className="mt-2 rounded-lg bg-gray-50 px-2.5 py-1.5 text-xs leading-snug text-gray-500"><span className="text-gray-400">Evidência:</span> {item.evidencia}</p>}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {item.status === 'planejada' && <button onClick={() => onStatus(item, 'em_andamento')} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">Iniciar</button>}
+          {(item.status === 'planejada' || item.status === 'em_andamento') && <>
+            <button onClick={() => onStatus(item, 'concluida')} className="rounded-lg bg-[#7d4a3c] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#623a2f]">Concluir com evidência</button>
+            <button onClick={() => onStatus(item, 'cancelada')} className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-400 hover:bg-gray-50">Cancelar</button>
+          </>}
+          <button onClick={() => onExcluir(item)} className="ml-auto inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /> Excluir</button>
+        </div>
+      </div>
+    </aside>
   </div>;
 };
 
@@ -427,8 +505,8 @@ const Modal: React.FC<{ title: string; onClose: () => void; children: React.Reac
 const CicloForm: React.FC<{ setores:SetorEmpresa[]; jss:Awaited<ReturnType<typeof rhService.getRelatorioJss>>; setorInicial?:string|null; onClose:()=>void; onSaved:(id:string)=>void }> = ({ setores,jss,setorInicial,onClose,onSaved }) => {
   const fimPadrao=new Date();fimPadrao.setMonth(fimPadrao.getMonth()+3);
   const [setor,setSetor]=useState(setorInicial??'');const [fim,setFim]=useState(fimPadrao.toISOString().slice(0,10));const [marcoPrazo,setMarcoPrazo]=useState(somarDias(7,fimPadrao.toISOString().slice(0,10)));const [rh,setRh]=useState('');const [fortes,setFortes]=useState('');const [atencao,setAtencao]=useState('');const [saving,setSaving]=useState(false);
-  const preencher=()=>{const d=diagnostico(jss?.setores.find(s=>s.setor===setor),jss?.cortes);setFortes(d.fortes.join('\n'));setAtencao(d.atencao.join('\n'));};
-  useEffect(()=>{if(!setorInicial)return;const d=diagnostico(jss?.setores.find(s=>s.setor===setorInicial),jss?.cortes);setFortes(d.fortes.join('\n'));setAtencao(d.atencao.join('\n'));},[jss,setorInicial]);
+  const preencher=()=>{const d=gerarDiagnostico(jss?.setores.find(s=>s.setor===setor),jss?.cortes);setFortes(d.fortes.join('\n'));setAtencao(d.atencao.join('\n'));};
+  useEffect(()=>{if(!setorInicial)return;const d=gerarDiagnostico(jss?.setores.find(s=>s.setor===setorInicial),jss?.cortes);setFortes(d.fortes.join('\n'));setAtencao(d.atencao.join('\n'));},[jss,setorInicial]);
   const salvar=async()=>{setSaving(true);const res=await rhService.criarLiderancaCiclo({setor,fim,marcoPrazo,responsavelRh:rh,pontosFortes:linhas(fortes),pontosAtencao:linhas(atencao)});setSaving(false);if(!res.ok||!res.id)return toast.error(res.error||'Não foi possível iniciar.');toast.success('Jornada iniciada.');onSaved(res.id);};
   return <Modal title="Iniciar jornada de liderança" onClose={onClose}><div className="space-y-4 p-5"><label className="block text-sm font-medium">Setor<select className={`${input} mt-1`} value={setor} onChange={e=>setSetor(e.target.value)}><option value="">Escolha...</option>{setores.map(s=><option key={s.setor}>{s.setor}</option>)}</select></label>{setor&&<button onClick={preencher} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7d4a3c]"><RefreshCw className="h-3.5 w-3.5" /> Usar diagnóstico agregado atual</button>}<label className="block text-sm font-medium">O que está funcionando<textarea className={`${input} mt-1`} rows={3} value={fortes} onChange={e=>setFortes(e.target.value)} placeholder="Um ponto por linha" /></label><label className="block text-sm font-medium">O que precisa melhorar<textarea className={`${input} mt-1`} rows={3} value={atencao} onChange={e=>setAtencao(e.target.value)} placeholder="Um ponto por linha" /></label><div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm font-medium">Responsável do RH<input className={`${input} mt-1`} value={rh} onChange={e=>setRh(e.target.value)} /></label><label className="block text-sm font-medium">Fim do ciclo<input type="date" min={hojeIso()} className={`${input} mt-1`} value={fim} onChange={e=>setFim(e.target.value)} /></label><label className="block text-sm font-medium sm:col-span-2">Verificar o primeiro marco em<input type="date" min={hojeIso()} max={fim} className={`${input} mt-1`} value={marcoPrazo} onChange={e=>setMarcoPrazo(e.target.value)} /><span className="mt-1 block text-xs font-normal text-gray-500">Defina essa data junto com a liderança. O painel lembrará o RH de checar o combinado.</span></label></div><p className="text-xs text-gray-500">Esses textos podem ser ajustados junto com o gestor. Nenhuma nota ou quantidade de respostas será levada ao resumo.</p></div><div className="flex justify-end gap-2 border-t p-5"><button onClick={onClose} className="px-4 py-2 text-sm">Cancelar</button><button disabled={saving} onClick={salvar} className="rounded-lg bg-[#7d4a3c] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving?'Salvando...':'Iniciar jornada'}</button></div></Modal>;
 };
@@ -436,3 +514,119 @@ const CicloForm: React.FC<{ setores:SetorEmpresa[]; jss:Awaited<ReturnType<typeo
 const PontosForm: React.FC<{ ciclo:LiderancaCiclo;onClose:()=>void;onSaved:()=>void }> = ({ciclo,onClose,onSaved}) => {const[fortes,setFortes]=useState(ciclo.pontos_fortes.join('\n'));const[atencao,setAtencao]=useState(ciclo.pontos_atencao.join('\n'));const[rh,setRh]=useState(ciclo.responsavel_rh);const[fim,setFim]=useState(ciclo.fim);const salvar=async()=>{const res=await rhService.atualizarLiderancaPontos({id:ciclo.id,fim,responsavelRh:rh,pontosFortes:linhas(fortes),pontosAtencao:linhas(atencao)});if(!res.ok)return toast.error(res.error||'Não foi possível salvar.');toast.success('Pontos atualizados.');onSaved();};return <Modal title="Pontos da conversa" onClose={onClose}><div className="space-y-4 p-5"><label className="block text-sm font-medium">O que está funcionando<textarea className={`${input} mt-1`} rows={4} value={fortes} onChange={e=>setFortes(e.target.value)} /></label><label className="block text-sm font-medium">O que precisa melhorar<textarea className={`${input} mt-1`} rows={4} value={atencao} onChange={e=>setAtencao(e.target.value)} /></label><div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm font-medium">Responsável do RH<input className={`${input} mt-1`} value={rh} onChange={e=>setRh(e.target.value)} /></label><label className="block text-sm font-medium">Fim do ciclo<input type="date" className={`${input} mt-1`} value={fim} onChange={e=>setFim(e.target.value)} /></label></div></div><div className="flex justify-end gap-2 border-t p-5"><button onClick={onClose} className="px-4 py-2 text-sm">Cancelar</button><button onClick={salvar} className="rounded-lg bg-[#7d4a3c] px-5 py-2 text-sm font-semibold text-white">Salvar</button></div></Modal>;};
 
 const AcaoForm: React.FC<{ciclo:LiderancaCiclo;sugestao:Sugestao;onClose:()=>void;onSaved:()=>void}> = ({ciclo,sugestao,onClose,onSaved}) => {const prazoPadrao=new Date();prazoPadrao.setMonth(prazoPadrao.getMonth()+1);const[objetivo,setObjetivo]=useState(sugestao.objetivo);const[medida,setMedida]=useState(sugestao.medida);const[responsavel,setResponsavel]=useState('Gestor do setor');const[prazo,setPrazo]=useState(prazoPadrao.toISOString().slice(0,10));const[saving,setSaving]=useState(false);const salvar=async()=>{setSaving(true);const res=await rhService.adicionarLiderancaAcao({cicloId:ciclo.id,fator:sugestao.fator,objetivo,medida,nivelControle:sugestao.nivel,responsavel,prazo});setSaving(false);if(!res.ok)return toast.error(res.error||'Não foi possível registrar.');toast.success('Combinado adicionado ao plano de ação.');onSaved();};return <Modal title={`Novo combinado — ${ciclo.setor}`} onClose={onClose}><div className="space-y-4 p-5"><label className="block text-sm font-medium">Objetivo<textarea className={`${input} mt-1`} rows={2} value={objetivo} onChange={e=>setObjetivo(e.target.value)} /></label><label className="block text-sm font-medium">Ação combinada<textarea className={`${input} mt-1`} rows={3} value={medida} onChange={e=>setMedida(e.target.value)} /></label><div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm font-medium">Responsável<input className={`${input} mt-1`} value={responsavel} onChange={e=>setResponsavel(e.target.value)} /></label><label className="block text-sm font-medium">Prazo<input type="date" className={`${input} mt-1`} value={prazo} onChange={e=>setPrazo(e.target.value)} /></label></div><p className="text-xs text-gray-500">O combinado também será registrado no Plano de Ação formal, com prazo e evidência.</p></div><div className="flex justify-end gap-2 border-t p-5"><button onClick={onClose} className="px-4 py-2 text-sm">Cancelar</button><button disabled={saving} onClick={salvar} className="rounded-lg bg-[#7d4a3c] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving?'Salvando...':'Adicionar combinado'}</button></div></Modal>;};
+
+const NovaAcaoGeralForm: React.FC<{
+  setores: SetorEmpresa[];
+  jss: Awaited<ReturnType<typeof rhService.getRelatorioJss>>;
+  who5: Awaited<ReturnType<typeof rhService.getRelatorioPsicossocial>>;
+  setorInicial?: string | null;
+  fatorInicial?: PlanoFator | null;
+  riscoInicial?: string | null;
+  medidaInicial?: string | null;
+  nivelInicial?: PlanoNivel | null;
+  onClose: () => void;
+  onSaved: () => void;
+}> = ({ setores, jss, who5, setorInicial, fatorInicial, riscoInicial, medidaInicial, nivelInicial, onClose, onSaved }) => {
+  const prazoPadrao = new Date(); prazoPadrao.setMonth(prazoPadrao.getMonth() + 3);
+  const [setor, setSetor] = useState(setorInicial ?? '');
+  const [fator, setFator] = useState<PlanoFator>(fatorInicial ?? 'demanda');
+  const [risco, setRisco] = useState(riscoInicial ?? '');
+  const [medida, setMedida] = useState(medidaInicial ?? '');
+  const [nivel, setNivel] = useState<PlanoNivel>(nivelInicial ?? 'fonte');
+  const [responsavel, setResponsavel] = useState('');
+  const [prazo, setPrazo] = useState(prazoPadrao.toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+
+  const diagnosticoSetor = useMemo(() => setor
+    ? gerarDiagnostico(jss?.setores.find(s => s.setor === setor), jss?.cortes, who5?.setores.find(s => s.setor === setor))
+    : null, [setor, jss, who5]);
+
+  const usarIdeia = (s: Sugestao) => {
+    setFator(s.fator); setNivel(s.nivel);
+    setMedida(atual => atual.trim() ? atual : s.medida);
+    setRisco(atual => atual.trim() ? atual : [s.objetivo, ...(diagnosticoSetor?.atencao ?? [])].filter(Boolean).join(' '));
+  };
+
+  const ajudaNivel = NIVEIS.find(n => n.v === nivel)?.ajuda;
+
+  const salvar = async () => {
+    if (!risco.trim()) return toast.error('Descreva o risco identificado.');
+    if (!medida.trim()) return toast.error('Descreva a medida de controle.');
+    if (!responsavel.trim()) return toast.error('Informe o responsável pela medida.');
+    setSaving(true);
+    const res = await rhService.criarPlanoAcao({
+      setor, origem: 'manual', fator, risco_descricao: risco.trim(), medida: medida.trim(),
+      nivel_controle: nivel, responsavel: responsavel.trim(), prazo,
+    });
+    setSaving(false);
+    if (!res.ok) return toast.error(res.error || 'Não foi possível criar o item.');
+    toast.success('Ação adicionada ao plano.');
+    onSaved();
+  };
+
+  return <Modal title="Nova ação geral" onClose={onClose}>
+    <div className="space-y-4 p-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="block text-sm font-medium">Setor
+          <select className={`${input} mt-1`} value={setor} onChange={e => setSetor(e.target.value)}>
+            <option value="">Toda a empresa</option>
+            {setores.map(s => <option key={s.setor} value={s.setor}>{s.setor}</option>)}
+          </select>
+        </label>
+        <label className="block text-sm font-medium">Fator de risco
+          <select className={`${input} mt-1`} value={fator} onChange={e => setFator(e.target.value as PlanoFator)}>
+            {FATORES.map(f => <option key={f.v} value={f.v}>{f.label}</option>)}
+          </select>
+        </label>
+      </div>
+
+      {diagnosticoSetor && diagnosticoSetor.sugestoes.length > 0 && (
+        <div className="rounded-lg border border-[#7d4a3c]/20 bg-[#7d4a3c]/5 p-3">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-[#7d4a3c]"><Lightbulb className="h-3.5 w-3.5" /> Ideias a partir do WHO-5 e da JSS deste setor</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {diagnosticoSetor.sugestoes.map((s, i) => (
+              <div key={`${s.titulo}-${i}`} className="rounded-lg border bg-white p-2.5">
+                <p className="text-xs font-semibold text-gray-800">{s.titulo}</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-gray-500">{s.medida}</p>
+                <button type="button" onClick={() => usarIdeia(s)} className="mt-1.5 text-[11px] font-semibold text-[#7d4a3c]">Usar esta ideia</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <label className="block text-sm font-medium">Risco identificado
+        <textarea className={`${input} mt-1`} rows={2} value={risco} onChange={e => setRisco(e.target.value)}
+          placeholder="Ex.: Cobrança alta com pouca autonomia no setor, carga de trabalho 78 e bem-estar 39." />
+      </label>
+      <label className="block text-sm font-medium">Medida de controle
+        <textarea className={`${input} mt-1`} rows={2} value={medida} onChange={e => setMedida(e.target.value)}
+          placeholder="Ex.: Redimensionar a fila de atendimento e contratar 2 posições no turno da tarde." />
+      </label>
+      <div>
+        <p className="mb-1.5 text-sm font-medium">Nível de controle</p>
+        <div className="flex flex-wrap gap-1.5">
+          {NIVEIS.map(n => (
+            <button key={n.v} type="button" onClick={() => setNivel(n.v)}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${nivel === n.v ? 'border-[#7d4a3c] bg-[#7d4a3c] text-white' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}>
+              {n.label}
+            </button>
+          ))}
+        </div>
+        {ajudaNivel && <p className="mt-1.5 text-xs leading-snug text-gray-500">{ajudaNivel}</p>}
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="block text-sm font-medium">Responsável
+          <input className={`${input} mt-1`} value={responsavel} onChange={e => setResponsavel(e.target.value)} placeholder="Nome ou cargo dentro da empresa" />
+        </label>
+        <label className="block text-sm font-medium">Prazo
+          <input type="date" className={`${input} mt-1`} value={prazo} onChange={e => setPrazo(e.target.value)} />
+        </label>
+      </div>
+    </div>
+    <div className="flex justify-end gap-2 border-t p-5">
+      <button onClick={onClose} className="px-4 py-2 text-sm">Cancelar</button>
+      <button disabled={saving} onClick={salvar} className="rounded-lg bg-[#7d4a3c] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Salvando...' : 'Adicionar ao plano'}</button>
+    </div>
+  </Modal>;
+};

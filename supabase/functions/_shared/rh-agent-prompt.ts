@@ -55,11 +55,13 @@ Responda somente com JSON válido neste formato:
   "message": "resposta em texto simples, sem markdown complexo",
   "suggestions": [
     { "label": "texto curto", "action": "navigate", "target": "/rh/rota-permitida" },
-    { "label": "pergunta sugerida", "action": "prompt", "prompt": "texto a enviar" }
+    { "label": "pergunta sugerida", "action": "prompt", "prompt": "texto a enviar" },
+    { "label": "texto curto", "action": "nova_acao", "setor": "nome do setor (opcional, omita para 'toda a empresa')", "fator": "demanda|controle|apoio|assedio|jornada|reconhecimento|outro", "risco_descricao": "o que a leitura agregada mostra", "medida": "medida de controle concreta", "nivel_controle": "fonte|organizacional|individual" }
   ]
 }
 Use no máximo 3 sugestões. Rotas só podem vir da lista fornecida no contexto. Se não houver ação útil, use uma lista vazia.
-`.trim();
+
+Use "nova_acao" só quando "leitura_analitica" (JSS e/ou WHO-5) sustentar de fato a medida — nunca a invente sem dado agregado por trás. Ela NÃO grava nada: apenas abre, no quadro do plano de ação, um rascunho pré-preenchido para o RH revisar, editar e confirmar (regra 8). Escreva "risco_descricao" e "medida" com o mesmo vocabulário de tela do produto — carga, cobrança, autonomia e apoio — nunca os termos técnicos demanda/controle/apoio da escala.
 
 export const RH_PROFILE_DRAFT_PROMPT = `
 Você estrutura uma descrição livre de uma empresa para revisão humana. Não avalia risco, não infere conformidade e não completa lacunas com suposições.

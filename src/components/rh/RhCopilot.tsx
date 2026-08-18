@@ -82,6 +82,13 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
     if (s.action === 'navigate') {
       navigate(s.target);
       onOpenChange(false);
+    } else if (s.action === 'nova_acao') {
+      // Nunca grava sozinho: só abre o formulário pré-preenchido para o RH
+      // revisar e confirmar no quadro do plano de ação.
+      const params = new URLSearchParams({ novaAcao: '1', fator: s.fator, medida: s.medida, nivel: s.nivel_controle, risco: s.risco_descricao });
+      if (s.setor) params.set('setor', s.setor);
+      navigate(`/rh/plano-acao?${params.toString()}`);
+      onOpenChange(false);
     } else {
       void enviar(s.prompt);
     }
