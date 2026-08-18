@@ -11,6 +11,7 @@ import { RhAccessProvider } from '../../contexts/RhAccessContext';
 import { RhJornadaProvider, useRhJornada } from '../../contexts/RhJornadaContext';
 import { FaixaProximoPasso } from '../../components/rh/FaixaProximoPasso';
 import { PrimeiroAcessoRh } from '../../components/rh/PrimeiroAcessoRh';
+import { RhCopilot } from '../../components/rh/RhCopilot';
 import { cicloCompleto, docsPendentesDe } from '../../lib/rhJornada';
 import { jaViuApresentacao, marcarApresentacaoVista } from '../../lib/rhPrimeiroAcesso';
 import { EMAIL_SUPORTE, linkSuporte } from '../../lib/suporteMalama';
@@ -164,6 +165,7 @@ export const RhLayout: React.FC = () => {
   const [acesso, setAcesso] = useState<RhAcesso | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [apresentando, setApresentando] = useState(false);
+  const [copilotoAberto, setCopilotoAberto] = useState(false);
 
   useEffect(() => {
     rhService.getMeuAcesso()
@@ -290,7 +292,13 @@ export const RhLayout: React.FC = () => {
         </header>
 
         <main className="mx-auto w-full max-w-[1800px] p-4 sm:p-6 lg:px-8"><Outlet /></main>
-        {apresentando && <PrimeiroAcessoRh onFechar={encerrarApresentacao} />}
+        <RhCopilot open={copilotoAberto} onOpenChange={setCopilotoAberto} />
+        {apresentando && (
+          <PrimeiroAcessoRh
+            onFechar={encerrarApresentacao}
+            onComecar={() => setCopilotoAberto(true)}
+          />
+        )}
         </div>
       </RhJornadaProvider>
     </RhAccessProvider>

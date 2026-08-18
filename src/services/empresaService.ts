@@ -539,6 +539,33 @@ export type EmpresaPerfil = RhEmpresa & {
   responsavel_telefone: string | null;
 };
 
+/**
+ * Descrição confirmada pela própria empresa sobre o trabalho que realiza.
+ * É contexto para o copiloto — não é avaliação, inventário nem evidência de risco.
+ */
+export type EmpresaContextoOperacional = {
+  empresa_id: string;
+  setor_atuacao: string | null;
+  cnae_principal: string | null;
+  descricao_negocio: string | null;
+  produtos_servicos: string[];
+  processos_principais: string[];
+  unidades: string[];
+  areas_funcoes: string[];
+  modelo_trabalho: string | null;
+  turnos: string[];
+  sazonalidade: string | null;
+  contexto_adicional: string | null;
+  confirmado_em: string | null;
+  versao: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EmpresaContextoOperacionalInput = Omit<EmpresaContextoOperacional,
+  'empresa_id' | 'confirmado_em' | 'versao' | 'created_at' | 'updated_at'
+>;
+
 // ── Documentos legais e aceite (migration 20260825) ──
 export type DocumentoTipo = 'termos_b2b' | 'tratamento_dados' | 'privacidade';
 
@@ -1286,6 +1313,37 @@ export const rhService = {
     const { data, error } = await supabase.rpc('rh_empresa_perfil');
     if (error) { console.error('[rhService] perfil da empresa:', error.message); return null; }
     return (data ?? null) as EmpresaPerfil | null;
+  },
+
+  /** Perfil operacional usado no onboarding progressivo do copiloto. */
+  async getContextoOperacional(): Promise<EmpresaContextoOperacional | null> {
+    const { data, error } = await supabase.rpc('rh_contexto_operacional');
+    if (error) throw error;
+    return (data ?? null) as EmpresaContextoOperacional | null;
+  },
+
+  /**
+   * Persiste somente depois da revisão e confirmação humana no cliente.
+   * A RPC repete a autorização e incrementa a versão no banco.
+   */
+  async salvarContextoOperacional(
+    contexto: EmpresaContextoOperacionalInput,
+  ): Promise<EmpresaContextoOperacional> {
+    const { data, error } = await supabase.rpc('rh_salvar_contexto_operacional', {
+      p_setor_atuacao: contexto.setor_atuacao,
+      p_cnae_principal: contexto.cnae_principal,
+      p_descricao_negocio: contexto.descricao_negocio,
+      p_produtos_servicos: contexto.produtos_servicos,
+      p_processos_principais: contexto.processos_principais,
+      p_unidades: contexto.unidades,
+      p_areas_funcoes: contexto.areas_funcoes,
+      p_modelo_trabalho: contexto.modelo_trabalho,
+      p_turnos: contexto.turnos,
+      p_sazonalidade: contexto.sazonalidade,
+      p_contexto_adicional: contexto.contexto_adicional,
+    });
+    if (error) throw error;
+    return data as EmpresaContextoOperacional;
   },
 
   /**

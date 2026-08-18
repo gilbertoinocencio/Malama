@@ -37,9 +37,9 @@ const staggerContainer: Variants = {
 // ─── Dados ─────────────────────────────────────────────
 const HERO_BULLETS = [
   {
-    stat: '472mil',
-    text: 'afastamentos por transtornos mentais concedidos pelo INSS em 2024 — recorde da série histórica e alta de 68% sobre o ano anterior.',
-    fonte: 'Ministério da Previdência Social — Observatório de Segurança e Saúde no Trabalho',
+    stat: '546mil',
+    text: 'benefícios por incapacidade relacionados a transtornos mentais e comportamentais foram concedidos em 2025 — alta de 15,66% sobre 2024.',
+    fonte: 'Ministério da Previdência Social — dados preliminares de 2025, publicados em 2026',
   },
   {
     stat: '2026',
@@ -54,9 +54,9 @@ const HERO_BULLETS = [
 ];
 
 const HERO_CARD = [
-  { stat: '3ª', label: 'maior causa de afastamento do trabalho no Brasil são os transtornos mentais e comportamentais', fonte: 'Ministério da Previdência Social — 2024' },
-  { stat: '30%', label: 'dos trabalhadores brasileiros convivem com burnout — o 2º maior índice do mundo', fonte: 'ISMA-BR — International Stress Management Association' },
-  { stat: '9,3%', label: 'da população vive com transtorno de ansiedade — a maior taxa registrada no mundo', fonte: 'Organização Mundial da Saúde' },
+  { stat: '3º', label: 'grupo mais frequente entre os benefícios acidentários: transtornos mentais e comportamentais', fonte: 'Ministério da Previdência Social — 2025' },
+  { stat: '166.489', label: 'benefícios por incapacidade temporária ligados a outros transtornos ansiosos em 2025', fonte: 'Ministério da Previdência Social — CID F41, 2025' },
+  { stat: '126.608', label: 'benefícios por incapacidade temporária ligados a episódios depressivos em 2025', fonte: 'Ministério da Previdência Social — CID F32, 2025' },
 ];
 
 const CICLO_GRO = [
@@ -68,7 +68,7 @@ const CICLO_GRO = [
   {
     icon: BarChart3, n: '02', titulo: 'Avaliar',
     exige: 'Dimensionar o nível de risco por recorte, com método rastreável e reprodutível.',
-    entrega: 'Escore determinístico e matriz de risco por setor, com o critério publicado.',
+    entrega: 'Escore determinístico e visão de prioridades por setor, com o critério publicado, para subsidiar a análise da empresa.',
   },
   {
     icon: ClipboardList, n: '03', titulo: 'Controlar',
@@ -77,20 +77,20 @@ const CICLO_GRO = [
   },
   {
     icon: CalendarClock, n: '04', titulo: 'Verificar',
-    exige: 'Comprovar que a medida funcionou, reavaliando no período seguinte.',
-    entrega: 'Reaplicação periódica, série histórica e cruzamento com absenteísmo.',
+    exige: 'Acompanhar a implementação e observar a evolução após as medidas.',
+    entrega: 'Reaplicação periódica, série histórica e indicadores de absenteísmo, sem atribuir causalidade automaticamente.',
   },
 ];
 
 const BENEFICIOS = [
   {
-    icon: ShieldCheck, titulo: 'Conformidade com a NR-1',
-    corpo: 'O inventário de risco psicossocial, a avaliação periódica e o plano de ação passam a existir de fato — com data, método declarado e histórico. Quando a auditoria pedir o documento, ele está pronto e é re-emitível a qualquer momento.',
-    ganhos: ['Inventário por setor', 'Reavaliação periódica', 'Histórico auditável'],
+    icon: ShieldCheck, titulo: 'Apoio à gestão da NR-1',
+    corpo: 'A empresa passa a reunir dados agregados, avaliações periódicas, medidas e evidências em uma trilha rastreável. Esse material subsidia o processo formal de GRO da empresa, sem substituir inventário de riscos, AEP ou PGR.',
+    ganhos: ['Resultados agregados por setor', 'Reavaliação periódica', 'Histórico rastreável'],
   },
   {
-    icon: Gavel, titulo: 'Defesa jurídica com prova',
-    corpo: 'Em reclamatória por adoecimento relacionado ao trabalho, o que se discute é diligência. Sem registro, a empresa argumenta sobre o próprio silêncio. Com o Malama, ela apresenta quando avaliou, o que encontrou, o que fez e desde quando ofereceu cuidado — nominalmente, sem expor dado de saúde de ninguém.',
+    icon: Gavel, titulo: 'Rastreabilidade da diligência',
+    corpo: 'O Malama organiza quando houve coleta, quais resultados agregados foram observados, que medidas foram registradas e desde quando o cuidado esteve disponível. Isso cria histórico verificável sem expor respostas ou dados de saúde individuais.',
     ganhos: ['Certificado de disponibilização', 'Medidas com evidência', 'Linha do tempo datada'],
   },
   {
@@ -109,13 +109,11 @@ const BENEFICIOS = [
 // Existe porque comprador de compliance não compra promessa — compra a
 // linha que ele vai apontar quando o auditor perguntar.
 const MAPEAMENTO_NR1 = [
-  { exige: 'Identificar os fatores de risco psicossocial', onde: 'Campanha com JSS por setor e função' },
-  { exige: 'Avaliar o nível de risco com método rastreável', onde: 'Escore determinístico + matriz de risco por setor' },
-  { exige: 'Registrar tudo no inventário de riscos', onde: 'Relatórios WHO-5 e JSS em PDF, com metodologia e fonte' },
-  { exige: 'Adotar medidas de prevenção e controle', onde: 'Plano de ação com fator, nível de controle, prazo e responsável' },
-  { exige: 'Comprovar a implementação das medidas', onde: 'Conclusão bloqueada sem evidência anexada' },
-  { exige: 'Acompanhar a saúde dos trabalhadores expostos', onde: 'Reaplicação periódica + absenteísmo por capítulo de CID (eSocial)' },
-  { exige: 'Disponibilizar cuidado a quem precisa', onde: 'Psicólogo com CRP e e-Psi por telemedicina + certificado de disponibilização' },
+  { exige: 'Reconhecer fatores psicossociais relacionados ao trabalho', onde: 'JSS e participação dos trabalhadores geram dados agregados para análise da empresa' },
+  { exige: 'Avaliar e definir prioridades no GRO', onde: 'Escores determinísticos e recortes agregados subsidiam a decisão formal da empresa' },
+  { exige: 'Manter registros do processo', onde: 'Relatórios WHO-5 e JSS documentam método, período e resultados agregados' },
+  { exige: 'Planejar e acompanhar medidas de prevenção', onde: 'Plano de ação registra fator, nível de controle, prazo e responsável' },
+  { exige: 'Acompanhar a implementação das medidas', onde: 'Conclusão exige registro da evidência de execução' },
 ];
 
 const INSTRUMENTOS = [
@@ -158,14 +156,14 @@ const QUADRANTES = [
     acao: 'O time ainda aguenta, mas a organização do trabalho já pressiona. Agir antes de adoecer.',
   },
   {
-    id: 'externo', cor: '#ec835a', label: 'Fator extra-ocupacional',
+    id: 'externo', cor: '#ec835a', label: 'Pede investigação',
     pos: 'Bem-estar reduzido · carga de trabalho baixa',
-    acao: 'Sofrimento sem carga alta no trabalho. Pede cuidado individual, não reestruturação de área.',
+    acao: 'O JSS não explica sozinho o bem-estar reduzido. Aprofundar a escuta sem presumir causa ou nexo.',
   },
   {
-    id: 'ocupacional', cor: '#d03b3b', label: 'Risco ocupacional',
+    id: 'ocupacional', cor: '#d03b3b', label: 'Prioridade para aprofundar',
     pos: 'Bem-estar reduzido · carga de trabalho alta',
-    acao: 'Onde a NR-1 cobra ação sobre a fonte. Palestra de bem-estar aqui não encerra o risco.',
+    acao: 'Há sinais convergentes no período. A empresa aprofunda a análise e decide as medidas cabíveis.',
   },
 ];
 
@@ -216,9 +214,9 @@ const COMO_FUNCIONA = [
 ];
 
 const DIFERENCIAIS = [
-  { icon: Scale, titulo: 'Instrumento validado, não pesquisa de clima', corpo: 'Formulário interno de satisfação não sustenta laudo nem resiste a perícia. Aqui os dois instrumentos são publicados, validados em português e citados no relatório com a referência original.' },
+  { icon: Scale, titulo: 'Instrumentos com método declarado', corpo: 'WHO-5 e JSS têm finalidade e regras de cálculo próprias. O relatório preserva os itens, aplica fórmulas determinísticas e informa as referências utilizadas.' },
   { icon: Lock, titulo: 'Anonimato imposto pela arquitetura', corpo: 'O piso de anonimato e a ausência de acesso do RH estão no banco de dados, não numa cláusula de contrato. É por isso que o colaborador responde — e sem resposta não existe diagnóstico.' },
-  { icon: FileText, titulo: 'O documento sai pronto, não vira projeto', corpo: 'Consultoria de risco psicossocial entrega um diagnóstico e vai embora. O Malama deixa instalado o ciclo inteiro: coleta periódica, relatório re-emitível e plano de ação vivo.' },
+  { icon: FileText, titulo: 'A evidência acompanha o ciclo', corpo: 'O Malama mantém coleta periódica, relatório reemitível e plano de ação vivo no mesmo fluxo, para a empresa não depender de registros espalhados.' },
   { icon: Volume2, titulo: 'Desenhado para quem trabalha em pé', corpo: 'Áudio dos itens, âncora visual nas opções, alvo de toque grande e resposta sem login. A base que mais adoece é justamente a que menos responde formulário corporativo.' },
 ];
 
@@ -246,14 +244,14 @@ export const EmpresasMentalPage: React.FC = () => {
                 className="font-serif text-4xl md:text-6xl lg:text-7xl font-light leading-[1.02] tracking-tight text-Malama-main mb-6">
                 Risco psicossocial<br />
                 virou obrigação legal.<br />
-                <span className="text-Malama-petrol italic">Nós entregamos a prova</span><br />
-                de que você cuidou.
+                <span className="text-Malama-petrol italic">Organize as evidências</span><br />
+                do ciclo de prevenção.
               </motion.h1>
 
               <motion.p variants={fadeInUp} className="text-base md:text-lg text-Malama-muted font-light leading-relaxed max-w-xl mb-10">
                 A NR-1 passou a exigir que a empresa identifique, avalie e controle os fatores de risco
-                psicossocial do trabalho — com documento. O Malama Mental faz o rastreio com instrumentos
-                científicos validados, entrega o relatório pronto para o PGR e coloca psicólogos por
+                psicossocial do trabalho dentro do GRO. O Malama Mental apoia a coleta com instrumentos
+                reconhecidos, organiza relatórios que subsidiam o processo da empresa e coloca psicólogos por
                 telemedicina à disposição do seu time.
               </motion.p>
 
@@ -272,7 +270,7 @@ export const EmpresasMentalPage: React.FC = () => {
               <motion.div variants={fadeInUp} className="flex flex-wrap items-center gap-4">
                 <button onClick={scrollToContato}
                   className="group inline-flex items-center gap-3 bg-Malama-main text-white px-8 py-4 rounded-full font-medium text-base hover:bg-Malama-petrol transition-colors duration-300">
-                  Adequar minha empresa à NR-1
+                  Organizar o ciclo psicossocial
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
                 <span className="text-xs text-Malama-muted/70 max-w-[15rem] leading-snug">
@@ -349,7 +347,7 @@ export const EmpresasMentalPage: React.FC = () => {
                   nem de que o cuidado foi oferecido e quando.
                 </p>
                 <p className="text-xs text-white/30 mt-3">
-                  Conteúdo informativo. A adequação formal da sua empresa deve ser validada pelo seu SESMT e pelo seu jurídico.
+                  Conteúdo informativo. As decisões formais e a integração ao GRO cabem à empresa e a quem ela designar para essas atribuições.
                 </p>
               </div>
             </motion.div>
@@ -366,7 +364,7 @@ export const EmpresasMentalPage: React.FC = () => {
               <span className="text-xs font-semibold tracking-widest uppercase text-Malama-petrol">O que a empresa ganha</span>
             </motion.div>
             <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-5xl font-light leading-tight mb-4 max-w-3xl text-Malama-main">
-              Conformidade é o piso. <span className="text-Malama-petrol italic">O que se ganha está acima dele.</span>
+              Organizar o ciclo é o piso. <span className="text-Malama-petrol italic">O que se ganha está acima dele.</span>
             </motion.h2>
             <motion.p variants={fadeInUp} className="text-Malama-muted mb-14 max-w-2xl leading-relaxed">
               A NR-1 obriga. Mas o mesmo processo que atende a norma também protege a empresa numa
@@ -398,7 +396,7 @@ export const EmpresasMentalPage: React.FC = () => {
             <motion.div variants={fadeInUp} className="bg-white border border-Malama-border rounded-2xl overflow-hidden">
               <div className="px-6 md:px-8 py-5 border-b border-Malama-border flex items-center gap-3">
                 <ClipboardList className="w-4 h-4 text-Malama-petrol" />
-                <span className="text-sm font-semibold text-Malama-main">O que a norma cobra × onde isso está no Malama</span>
+                <span className="text-sm font-semibold text-Malama-main">O que o processo exige × como o Malama apoia</span>
               </div>
               <div className="hidden sm:grid grid-cols-2 gap-4 px-6 md:px-8 py-3 bg-Malama-bg text-[10px] uppercase tracking-wide text-Malama-muted">
                 <span>Exigência do gerenciamento de riscos</span>
@@ -417,9 +415,8 @@ export const EmpresasMentalPage: React.FC = () => {
                 </div>
               ))}
               <p className="px-6 md:px-8 py-4 border-t border-Malama-border text-xs text-Malama-muted/60 leading-relaxed">
-                Quadro informativo, de leitura da norma. A adequação formal da sua empresa deve ser
-                conduzida pelo seu SESMT e validada pelo seu jurídico — o Malama entrega a coleta, o
-                indicador e o documento que sustentam essa decisão.
+                Quadro informativo. A adequação formal e as decisões técnicas continuam sob responsabilidade
+                da empresa e de quem ela designar. O Malama organiza dados, indicadores e evidências de apoio.
               </p>
             </motion.div>
           </motion.div>
@@ -435,7 +432,7 @@ export const EmpresasMentalPage: React.FC = () => {
               <span className="text-xs font-semibold tracking-widest uppercase text-Malama-petrol">Como medimos</span>
             </motion.div>
             <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-5xl font-light leading-tight mb-4 max-w-3xl text-Malama-main">
-              Um escore que se sustenta numa auditoria — <span className="text-Malama-petrol italic">não uma pesquisa de clima.</span>
+              Um escore transparente e reproduzível — <span className="text-Malama-petrol italic">não uma nota inventada pela IA.</span>
             </motion.h2>
             <motion.p variants={fadeInUp} className="text-Malama-muted mb-14 max-w-2xl leading-relaxed">
               Dois instrumentos científicos, validados em português, com chave de correção pública. Um mede
@@ -635,7 +632,7 @@ export const EmpresasMentalPage: React.FC = () => {
               <span className="text-xs font-semibold tracking-widest uppercase text-Malama-petrol">Evidência documental</span>
             </motion.div>
             <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-5xl font-light leading-tight mb-4 max-w-3xl text-Malama-main">
-              Sai em PDF, com metodologia e fonte — <span className="text-Malama-petrol italic">pronto para anexar ao PGR.</span>
+              Sai em PDF, com metodologia e fonte — <span className="text-Malama-petrol italic">como subsídio ao GRO.</span>
             </motion.h2>
             <motion.p variants={fadeInUp} className="text-Malama-muted mb-14 max-w-2xl leading-relaxed">
               O RH escolhe o período e emite quando quiser, quantas vezes quiser. Todo documento traz a
@@ -683,8 +680,8 @@ export const EmpresasMentalPage: React.FC = () => {
                       <span>Setor</span><span>Bem-estar</span><span>Carga</span><span>Classificação</span>
                     </div>
                     {[
-                      { setor: 'Produção · turno B', who: '41', jss: 'Alta', q: 'Risco ocupacional', cor: '#d03b3b' },
-                      { setor: 'Atendimento', who: '46', jss: 'Alta', q: 'Risco ocupacional', cor: '#d03b3b' },
+                      { setor: 'Produção · turno B', who: '41', jss: 'Alta', q: 'Aprofundar', cor: '#d03b3b' },
+                      { setor: 'Atendimento', who: '46', jss: 'Alta', q: 'Aprofundar', cor: '#d03b3b' },
                       { setor: 'Logística', who: '63', jss: 'Alta', q: 'Risco latente', cor: '#fab219' },
                       { setor: 'Administrativo', who: '71', jss: 'Baixa', q: 'Estável', cor: '#0ca30c' },
                     ].map((l, i) => (
@@ -711,9 +708,9 @@ export const EmpresasMentalPage: React.FC = () => {
                   <div className="border-t border-Malama-border pt-5 flex items-start gap-3">
                     <Scale className="w-4 h-4 text-Malama-petrol flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-Malama-muted leading-relaxed">
-                      Documento de subsídio ao Programa de Gerenciamento de Riscos. Não substitui o PCMSO,
-                      o laudo do SESMT nem a avaliação de profissional habilitado — soma-se a eles como
-                      evidência de identificação e avaliação de fatores psicossociais.
+                      Documento de apoio ao Gerenciamento de Riscos Ocupacionais. Não substitui AEP, PGR,
+                      PCMSO, inventário ou decisão técnica da empresa — organiza resultados agregados para
+                      subsidiar esse processo.
                     </p>
                   </div>
                 </div>
@@ -779,17 +776,17 @@ export const EmpresasMentalPage: React.FC = () => {
                 <h3 className="font-semibold text-Malama-main text-sm mb-2">Concluir exige evidência</h3>
                 <p className="text-xs text-Malama-muted leading-relaxed">
                   Nenhuma medida é marcada como concluída sem o arquivo que comprova a execução — a regra
-                  também é validada no banco, não só na tela. Plano sem evidência não prova nada numa
-                  fiscalização.
+                  também é validada no banco, não só na tela. O arquivo registra a execução, mas não
+                  substitui a avaliação do conjunto do processo pela empresa.
                 </p>
               </motion.div>
               <motion.div variants={fadeInUp} className="bg-Malama-petrol-light border border-Malama-border rounded-2xl p-7">
                 <AlertTriangle className="w-5 h-5 text-Malama-petrol mb-4" />
                 <h3 className="font-semibold text-Malama-main text-sm mb-2">Medida individual sozinha é sinalizada</h3>
                 <p className="text-xs text-Malama-muted leading-relaxed">
-                  Setor em risco ocupacional tratado apenas com acolhimento individual recebe um alerta.
-                  Cuidar de quem adoeceu não é errado — mas, sozinho, não encerra um risco que está na
-                  organização do trabalho.
+                  Quando os indicadores apontam atenção à organização do trabalho e o plano contém apenas
+                  acolhimento individual, o painel sinaliza a lacuna. A classificação formal continua sendo
+                  uma decisão da empresa.
                 </p>
               </motion.div>
               <motion.div variants={fadeInUp} className="bg-Malama-petrol-light border border-Malama-border rounded-2xl p-7">
@@ -797,8 +794,8 @@ export const EmpresasMentalPage: React.FC = () => {
                 <h3 className="font-semibold text-Malama-main text-sm mb-2">Absenteísmo fecha o ciclo</h3>
                 <p className="text-xs text-Malama-muted leading-relaxed">
                   Os afastamentos entram pelo formato que a empresa já declara ao governo (eSocial S-2230) e
-                  viram indicador por capítulo de CID e setor — sem apontar pessoa nenhuma. É o número que
-                  mostra se a medida funcionou.
+                  viram indicador por capítulo de CID e setor — sem apontar pessoa nenhuma. É uma das séries
+                  que ajudam a acompanhar a evolução, sem provar causalidade isoladamente.
                 </p>
               </motion.div>
             </motion.div>
@@ -880,7 +877,7 @@ export const EmpresasMentalPage: React.FC = () => {
               <span className="text-xs font-semibold tracking-widest uppercase text-Malama-petrol">O que nos torna únicos</span>
             </motion.div>
             <motion.h2 variants={fadeInUp} className="font-serif text-4xl md:text-5xl font-light leading-tight mb-4 max-w-3xl text-Malama-main">
-              Entre a consultoria que vai embora e o app que ninguém abre, <span className="text-Malama-petrol italic">existe o ciclo instalado.</span>
+              Entre o diagnóstico pontual e o app que ninguém abre, <span className="text-Malama-petrol italic">existe o ciclo acompanhado.</span>
             </motion.h2>
             <motion.p variants={fadeInUp} className="text-Malama-muted mb-14 max-w-2xl leading-relaxed">
               A NR-1 não pede um diagnóstico único: pede um processo que se repete e se comprova. É isso
@@ -916,14 +913,14 @@ export const EmpresasMentalPage: React.FC = () => {
                 Sua empresa já tem o inventário de risco psicossocial?
               </motion.h2>
               <motion.p variants={fadeInUp} className="text-Malama-muted mb-12 leading-relaxed">
-                Se a resposta ainda é "não", o caminho mais curto é uma conversa de trinta minutos. Deixe
-                seu contato e um especialista mostra o painel do RH, os relatórios e exatamente o que
-                falta para a sua empresa se adequar.
+                Se a resposta ainda é "não", deixe seu contato. A equipe Malama mostra o painel do RH,
+                os relatórios e como a plataforma apoia a organização desse ciclo — sem assumir as decisões
+                formais da empresa.
               </motion.p>
 
               <EmpresaLeadForm
                 origem="mental"
-                ctaLabel="Quero adequar minha empresa à NR-1"
+                ctaLabel="Quero organizar meu ciclo psicossocial"
                 variants={fadeInUp}
               />
             </motion.div>
@@ -931,7 +928,7 @@ export const EmpresasMentalPage: React.FC = () => {
         </div>
       </section>
 
-      <EmpresasFooter tagline="Cuidar do time é obrigação. Provar que cuidou, também." />
+      <EmpresasFooter tagline="Cuidar do time é essencial. Organizar as evidências também." />
     </div>
   );
 };

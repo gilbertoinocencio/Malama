@@ -60,8 +60,8 @@ const PAPEIS = [
   },
   {
     Icone: HardHat,
-    quem: 'O SESMT ou a consultoria de SST',
-    faz: 'Faz a leitura técnica do risco, classifica no GRO e leva a evidência daqui para dentro do PGR. Essa decisão é da empresa, não da plataforma.',
+    quem: 'Quem a empresa designar para SST',
+    faz: 'Faz a leitura técnica, toma as decisões formais do GRO e integra as evidências ao processo da empresa. Essa atribuição não passa para a plataforma.',
   },
   {
     Icone: Building2,
@@ -71,7 +71,7 @@ const PAPEIS = [
   {
     Icone: Sparkles,
     quem: 'A Malama',
-    faz: 'Entrega os questionários validados, o cálculo do risco e os documentos com número e selo de verificação. Não substitui PGR, PCMSO nem laudo pericial.',
+    faz: 'Apoia a coleta, calcula os instrumentos de forma determinística e organiza resultados agregados, medidas e evidências. Não substitui AEP, PGR, PCMSO nem decisão técnica.',
   },
 ];
 
@@ -169,7 +169,7 @@ const PASSOS: Passo[] = [
   },
 ];
 
-export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar }) => {
+export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void; onComecar?: () => void }> = ({ onFechar, onComecar }) => {
   const [i, setI] = useState(0);
   const painelRef = useRef<HTMLDivElement>(null);
   const passo = PASSOS[i];
@@ -252,7 +252,7 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
                 </Link>
                 <button
                   type="button"
-                  onClick={fechar}
+                  onClick={() => { onComecar?.(); fechar(); }}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#623a2f]"
                 >
                   Começar <ArrowRight className="h-4 w-4" />
