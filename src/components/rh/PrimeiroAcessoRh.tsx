@@ -16,7 +16,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, ArrowLeft, Search, BarChart3, ClipboardList, CalendarClock,
-  X, Users, HardHat, Building2, Sparkles,
+  X, Users, HardHat, Building2, Sparkles, Bot, CheckCircle2,
 } from 'lucide-react';
 
 type Passo = { chave: string; titulo: string; resumo: string; corpo: React.ReactNode };
@@ -167,9 +167,58 @@ const PASSOS: Passo[] = [
       </div>
     ),
   },
+  {
+    chave: 'copiloto',
+    titulo: 'Seu copiloto acompanha esse caminho com você',
+    resumo: 'Conheça seu copiloto',
+    corpo: (
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-3 rounded-xl border border-[#7d4a3c]/10 bg-[#7d4a3c]/5 p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#7d4a3c] shadow-sm">
+            <Bot className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Copiloto do RH</p>
+            <p className="mt-1 text-xs leading-relaxed text-gray-600">
+              Apoio sênior em RH e SST para explicar o painel, organizar informações da empresa
+              e ajudar você a executar o próximo passo indicado pelo Malama.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          {[
+            'Traduz os dados agregados e o ciclo em linguagem clara.',
+            'Usa o perfil da empresa e os setores que você confirmou.',
+            'Prepara rascunhos e sugestões para sua revisão.',
+            'Aponta a tela certa sem alterar nada sozinho.',
+          ].map(item => (
+            <div key={item} className="flex gap-2 rounded-lg border border-gray-100 p-3">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+              <p className="text-xs leading-relaxed text-gray-600">{item}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
+          O copiloto é uma ferramenta de apoio: não assume responsabilidade técnica, não substitui
+          AEP, PGR, PCMSO ou decisões formais da empresa e nunca cria setores ou grava mudanças sem
+          sua confirmação.
+        </div>
+
+        <p className="text-sm leading-relaxed text-gray-600">
+          Para começar, conte brevemente o que a empresa faz. O copiloto organiza o perfil e pode
+          sugerir setores; você revisa tudo e configura modalidade e turnos de cada setor no painel.
+        </p>
+      </div>
+    ),
+  },
 ];
 
-export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void; onComecar?: () => void }> = ({ onFechar, onComecar }) => {
+export const PrimeiroAcessoRh: React.FC<{
+  onFechar: () => void;
+  onAbrirCopiloto?: () => void;
+}> = ({ onFechar, onAbrirCopiloto }) => {
   const [i, setI] = useState(0);
   const painelRef = useRef<HTMLDivElement>(null);
   const passo = PASSOS[i];
@@ -252,10 +301,10 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void; onComecar?: () =
                 </Link>
                 <button
                   type="button"
-                  onClick={() => { onComecar?.(); fechar(); }}
+                  onClick={() => { onAbrirCopiloto?.(); fechar(); }}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#623a2f]"
                 >
-                  Começar <ArrowRight className="h-4 w-4" />
+                  Começar com o copiloto <ArrowRight className="h-4 w-4" />
                 </button>
               </>
             ) : (

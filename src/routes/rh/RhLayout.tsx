@@ -291,12 +291,14 @@ export const RhLayout: React.FC = () => {
           <FaixaProximoPasso />
         </header>
 
-        <main className="mx-auto w-full max-w-[1800px] p-4 sm:p-6 lg:px-8"><Outlet /></main>
+        <main className="mx-auto w-full max-w-[1800px] p-4 sm:p-6 lg:px-8">
+          <Outlet context={{ abrirCopiloto: () => setCopilotoAberto(true) }} />
+        </main>
         <RhCopilot open={copilotoAberto} onOpenChange={setCopilotoAberto} />
         {apresentando && (
           <PrimeiroAcessoRh
             onFechar={encerrarApresentacao}
-            onComecar={() => setCopilotoAberto(true)}
+            onAbrirCopiloto={() => setCopilotoAberto(true)}
           />
         )}
         </div>
