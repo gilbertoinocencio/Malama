@@ -71,12 +71,28 @@ function periodoRange(preset: PeriodoPreset): { inicio: string; fim: string } {
   return { inicio: iso(inicio), fim: iso(fim) };
 }
 
+/** Fim do ciclo de referência. A abertura pode acontecer no meio do ciclo;
+ *  o fechamento é sempre o último dia do mês ou trimestre correspondente. */
+function fimDoCiclo(inicio: Date, cadenciaMeses: number | null): string | null {
+  if (cadenciaMeses !== 1 && cadenciaMeses !== 3) return null;
+
+  const mesInicialDoCiclo = cadenciaMeses === 1
+    ? inicio.getMonth()
+    : Math.floor(inicio.getMonth() / 3) * 3;
+  // Meio-dia evita que a conversão para ISO recue um dia em fusos negativos.
+  const fim = new Date(inicio.getFullYear(), mesInicialDoCiclo + cadenciaMeses, 0, 12);
+  return iso(fim);
+}
+
 /** Janela padrão sugerida a partir da cadência do instrumento. */
 function janelaSugerida(cadenciaMeses: number | null): { inicio: string; fim: string } {
   const inicio = new Date();
-  const fim = new Date();
-  // Mensal → 14 dias para responder. Cadência maior → 30 dias.
-  fim.setDate(fim.getDate() + ((cadenciaMeses ?? 1) <= 1 ? 14 : 30));
+  const fimDoPeriodo = fimDoCiclo(inicio, cadenciaMeses);
+  if (fimDoPeriodo) return { inicio: iso(inicio), fim: fimDoPeriodo };
+
+  // Instrumentos sem cadência calendária mantêm uma janela curta configurável.
+  const fim = new Date(inicio);
+  fim.setDate(fim.getDate() + 14);
   return { inicio: iso(inicio), fim: iso(fim) };
 }
 
@@ -196,12 +212,22 @@ const NovaCampanha: React.FC<{
   const [salvando, setSalvando] = useState(false);
 
   const instrumento = disponiveis.find(i => i.code === code) ?? null;
+  const cicloCalendarizado = instrumento?.cadencia_meses === 1 || instrumento?.cadencia_meses === 3;
 
   const trocarInstrumento = (novo: string) => {
     setCode(novo);
     const j = janelaSugerida(disponiveis.find(i => i.code === novo)?.cadencia_meses ?? null);
     setInicio(j.inicio);
     setFim(j.fim);
+  };
+
+  const alterarInicio = (novoInicio: string) => {
+    setInicio(novoInicio);
+    const fimDoPeriodo = fimDoCiclo(
+      new Date(`${novoInicio}T12:00:00`),
+      instrumento?.cadencia_meses ?? null,
+    );
+    if (fimDoPeriodo) setFim(fimDoPeriodo);
   };
 
   useEffect(() => {
@@ -301,18 +327,28 @@ const NovaCampanha: React.FC<{
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Abre em</label>
           <input
-            type="date" value={inicio} onChange={e => setInicio(e.target.value)}
+            type="date" value={inicio} onChange={e => alterarInicio(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
           />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Fecha em</label>
           <input
-            type="date" value={fim} min={inicio} onChange={e => setFim(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+            type="date" value={fim} min={inicio} readOnly={cicloCalendarizado}
+            onChange={e => setFim(e.target.value)}
+            className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent ${
+              cicloCalendarizado ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'
+            }`}
           />
         </div>
       </div>
+      {cicloCalendarizado && (
+        <p className="text-xs text-gray-500 -mt-2 leading-snug">
+          {instrumento?.cadencia_meses === 1
+            ? 'A janela mensal fica aberta até o último dia do mês de referência.'
+            : 'A janela trimestral fica aberta até o último dia do trimestre de referência.'}
+        </p>
+      )}
 
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1.5">Público-alvo</label>

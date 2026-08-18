@@ -190,10 +190,10 @@ export function proximoPasso(d: DadosJornada, hoje = new Date()): PassoJornada {
         : `A medição de ${nome} está fechando`,
       descricao: daTempo
         ? `A janela fica aberta até ${fmt(campanhaAberta.janela_fim)} e ${respostas} já responderam. `
-          + 'Não há nada a fazer até lá — avisamos você quando estiver perto de fechar.'
+          + 'Mantenha somente a divulgação coletiva prevista; avisamos você quando estiver perto de fechar.'
         : `A janela fecha em ${fmt(campanhaAberta.janela_fim)}, com ${respostas} até agora. `
-          + 'Não vale mais correr atrás de resposta: nesse prazo só se consegue número na base da cobrança, '
-          + 'e aí o resultado deixa de valer. Assim que fechar, o diagnóstico fica pronto para leitura.',
+          + 'Na reta final, não pressione respostas individuais: isso pode constranger as pessoas e distorcer o resultado. '
+          + 'Assim que fechar, o diagnóstico fica pronto para leitura.',
       destino: '/rh/saude-mental#campanhas',
       acao: 'Ver participação',
       etapa: 'medir',
