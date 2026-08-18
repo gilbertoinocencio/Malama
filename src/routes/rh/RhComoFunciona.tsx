@@ -12,7 +12,7 @@
 // =====================================================
 
 import React, { useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   ArrowRight, BarChart3, CalendarClock, ClipboardList, Info, PlayCircle, Search,
   ShieldCheck, XCircle,
@@ -76,7 +76,6 @@ const DUVIDAS = [
 
 export const RhComoFunciona: React.FC = () => {
   const { can } = useRhAccess();
-  const { abrirCopiloto } = useOutletContext<{ abrirCopiloto: () => void }>();
   // Rever a apresentação do primeiro acesso. Sem esta porta, quem clicou em
   // "Começar" sem ler perdia o enquadramento para sempre — e é justamente
   // quem tem pressa no primeiro dia que mais precisa dele depois.
@@ -87,7 +86,6 @@ export const RhComoFunciona: React.FC = () => {
       {revendo && (
         <PrimeiroAcessoRh
           onFechar={() => setRevendo(false)}
-          onAbrirCopiloto={abrirCopiloto}
         />
       )}
       <div className="flex flex-wrap items-start justify-between gap-3">

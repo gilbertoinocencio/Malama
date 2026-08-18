@@ -27,6 +27,7 @@ import {
   AlertCircle, ChevronDown, ChevronUp, ShieldCheck, KeyRound, Eye, EyeOff,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { PerfilEmpresaForm } from '../../components/rh/PerfilEmpresaForm';
 import {
   rhService, type EmpresaPerfil, type DocumentoLegal,
 } from '../../services/empresaService';
@@ -442,6 +443,21 @@ export const RhEmpresa: React.FC = () => {
             {salvando ? 'Salvando...' : 'Salvar contato'}
           </button>
         </form>
+      </div>
+
+      {/* Contexto declaratório usado pelo copiloto. O primeiro preenchimento
+          acontece nas boas-vindas; depois, a edição mora com os demais dados
+          da empresa — nunca dentro da conversa. */}
+      <div className="bg-white rounded-xl shadow p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <Building2 className="w-5 h-5 text-[#7d4a3c]" />
+          <h2 className="font-semibold text-gray-800">Perfil da empresa</h2>
+        </div>
+        <p className="mb-4 text-xs leading-relaxed text-gray-500">
+          Essas informações ajudam o copiloto a contextualizar as orientações. São declarações
+          da empresa, não avaliação de risco nem documento técnico.
+        </p>
+        <PerfilEmpresaForm />
       </div>
 
       {/* ── Acesso ── */}

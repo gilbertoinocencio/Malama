@@ -18,6 +18,7 @@ import {
   ArrowRight, ArrowLeft, Search, BarChart3, ClipboardList, CalendarClock,
   X, Users, HardHat, Building2, Sparkles, Bot, CheckCircle2,
 } from 'lucide-react';
+import { PerfilEmpresaForm } from './PerfilEmpresaForm';
 
 type Passo = { chave: string; titulo: string; resumo: string; corpo: React.ReactNode };
 
@@ -215,11 +216,9 @@ const PASSOS: Passo[] = [
   },
 ];
 
-export const PrimeiroAcessoRh: React.FC<{
-  onFechar: () => void;
-  onAbrirCopiloto?: () => void;
-}> = ({ onFechar, onAbrirCopiloto }) => {
+export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar }) => {
   const [i, setI] = useState(0);
+  const [perfilConcluido, setPerfilConcluido] = useState(false);
   const painelRef = useRef<HTMLDivElement>(null);
   const passo = PASSOS[i];
   const ultimo = i === PASSOS.length - 1;
@@ -266,7 +265,17 @@ export const PrimeiroAcessoRh: React.FC<{
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{passo.corpo}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          {passo.corpo}
+          {passo.chave === 'copiloto' && (
+            <div className="mt-5 rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">
+                Perfil inicial da empresa
+              </p>
+              <PerfilEmpresaForm onSaved={() => setPerfilConcluido(true)} />
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
           <div className="flex items-center gap-1.5" aria-hidden="true">
@@ -301,10 +310,10 @@ export const PrimeiroAcessoRh: React.FC<{
                 </Link>
                 <button
                   type="button"
-                  onClick={() => { onAbrirCopiloto?.(); fechar(); }}
+                  onClick={fechar}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#623a2f]"
                 >
-                  Começar com o copiloto <ArrowRight className="h-4 w-4" />
+                  {perfilConcluido ? 'Entrar no painel' : 'Fazer depois'} <ArrowRight className="h-4 w-4" />
                 </button>
               </>
             ) : (
