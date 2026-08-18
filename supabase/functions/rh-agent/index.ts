@@ -354,23 +354,90 @@ function leituraVazia() {
   };
 }
 
-function respostaDeterministica(passo: any, permitidas: string[]) {
-  const titulo = texto(passo?.titulo, 160);
-  const descricao = texto(passo?.descricao, 800);
-  const destino = texto(passo?.destino, 180);
-  const acao = texto(passo?.acao, 100) || 'Abrir próximo passo';
-  const suggestions: Sugestao[] = destino && rotaValida(destino, permitidas)
-    ? [{ label: acao, action: 'navigate', target: destino }]
-    : [];
+function dataPt(value: unknown) {
+  const isoDate = texto(value, 20);
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : isoDate;
+}
 
-  return {
-    message: titulo
-      ? `Agora, priorize: ${titulo}. ${descricao} Faça essa etapa no Portal do RH; quando o registro for atualizado, o Malama recalcula e apresenta o próximo passo do ciclo.`
-      : 'O Portal não identificou uma próxima etapa disponível para esta conta agora. Confira as permissões e os dados exibidos na tela atual.',
-    suggestions,
-    requestId: null,
-    degraded: true,
-  };
+function sugestaoRota(label: string, target: string, permitidas: string[]): Sugestao | null {
+  return rotaValida(target, permitidas) ? { label, action: 'navigate', target } : null;
+}
+
+function linhaResultados(leitura: any) {
+  const who5 = leitura?.ultimos_relatorios?.who5;
+  const jss = leitura?.ultimos_relatorios?.jss;
+  const partes: string[] = [];
+  if (who5?.geral?.dados_suprimidos) {
+    partes.push(`WHO-5: última coleta encerrada com ${who5.geral.n_respondentes ?? 0} resposta(s), abaixo do piso para leitura agregada`);
+  } else if (who5?.geral) {
+    partes.push(`WHO-5 (${dataPt(who5.periodo?.inicio)} a ${dataPt(who5.periodo?.fim)}): média ${who5.geral.score_medio}, com ${who5.geral.faixa_reduzido ?? 0} resultado(s) em bem-estar reduzido e ${who5.geral.faixa_risco ?? 0} na faixa de maior atenção`);
+  }
+  if (jss?.geral?.dados_suprimidos) {
+    partes.push(`JSS: última coleta encerrada com ${jss.geral.n_respondentes ?? 0} resposta(s), abaixo do piso para leitura agregada`);
+  } else if (jss?.geral) {
+    partes.push(`JSS (${dataPt(jss.periodo?.inicio)} a ${dataPt(jss.periodo?.fim)}): demanda ${jss.geral.demanda_medio}, controle ${jss.geral.controle_medio} e apoio ${jss.geral.apoio_medio}`);
+  }
+  return partes.length > 0 ? partes.join('. ') : 'Ainda não há relatório encerrado disponível para uma leitura agregada';
+}
+
+function respostaDeterministica(
+  passo: any,
+  permitidas: string[],
+  leitura: any,
+  estadoCiclo: any,
+  pergunta: string,
+) {
+  const normalizada = pergunta.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const querPlano = /plano|medida|acao|prazo|atrasad|mitig/.test(normalizada);
+  const querLideranca = /lider|gestor|marco|evolucao/.test(normalizada);
+  const querResultados = /resultado|pesquisa|who|jss|kpi|indicador|situacao|como est/.test(normalizada);
+  const plano = estadoCiclo?.plano_de_acao;
+  const lideranca = estadoCiclo?.lideranca;
+  const campanhas = Array.isArray(leitura?.campanhas_abertas) ? leitura.campanhas_abertas : [];
+  const linhas: string[] = [];
+
+  if (querPlano && !querLideranca && !querResultados) {
+    linhas.push(plano
+      ? `Plano de ação: ${plano.medidas_abertas ?? 0} medida(s) aberta(s), ${plano.medidas_atrasadas ?? 0} atrasada(s) e ${plano.medidas_concluidas_com_evidencia ?? 0} concluída(s) com evidência.`
+      : 'Plano de ação: essa informação não está disponível para o seu perfil de acesso.');
+    const semFonte = Array.isArray(plano?.setores_sem_acao_na_fonte) ? plano.setores_sem_acao_na_fonte : [];
+    if (semFonte.length > 0) linhas.push(`Lacuna: ${semFonte.join(', ')} ainda não têm medida de fonte ou organizacional registrada.`);
+  } else if (querLideranca && !querPlano && !querResultados) {
+    linhas.push(`Evolução da liderança: ${lideranca?.ciclos_ativos ?? 0} ciclo(s) ativo(s) e ${lideranca?.marcos_pendentes ?? 0} marco(s) pendente(s) de verificação.`);
+  } else {
+    linhas.push(`Últimos resultados disponíveis: ${linhaResultados(leitura)}.`);
+    linhas.push(plano
+      ? `Plano de ação: ${plano.medidas_abertas ?? 0} aberta(s), ${plano.medidas_atrasadas ?? 0} atrasada(s) e ${plano.medidas_concluidas_com_evidencia ?? 0} concluída(s) com evidência.`
+      : 'Plano de ação: sem leitura disponível para este perfil.');
+    linhas.push(`Evolução da liderança: ${lideranca?.ciclos_ativos ?? 0} ciclo(s) ativo(s) e ${lideranca?.marcos_pendentes ?? 0} marco(s) pendente(s).`);
+    if (campanhas.length > 0) {
+      linhas.push(`Alerta secundário de adesão: ${campanhas.map((campanha: any) =>
+        `${campanha.instrumento} está com ${campanha.respondentes}/${campanha.convidados} respostas e fecha em ${dataPt(campanha.fim)}`).join('; ')}. Mantenha apenas a divulgação coletiva.`);
+    }
+  }
+
+  const frentes: string[] = [];
+  if ((plano?.medidas_atrasadas ?? 0) > 0) frentes.push('regularizar as medidas atrasadas e registrar a evidência do que já foi executado');
+  else if ((plano?.medidas_abertas ?? 0) > 0) frentes.push('acompanhar responsáveis, prazos e evidências das medidas abertas');
+  if ((lideranca?.marcos_pendentes ?? 0) > 0) frentes.push('verificar os marcos pendentes com as lideranças');
+  const temRelatorio = leitura?.ultimos_relatorios?.who5 || leitura?.ultimos_relatorios?.jss;
+  if (frentes.length === 0 && temRelatorio) frentes.push('ler os últimos resultados e transformá-los em perguntas para as lideranças e medidas registradas');
+  if (frentes.length === 0 && campanhas.length > 0) frentes.push('acompanhar a campanha aberta com divulgação coletiva, sem cobrança individual');
+  if (frentes.length > 0) linhas.push(`Condução agora: ${frentes.join('; ')}. Essas frentes caminham em paralelo.`);
+  else {
+    const titulo = texto(passo?.titulo, 160);
+    const descricao = texto(passo?.descricao, 600);
+    if (titulo) linhas.push(`Próxima entrega calculada pelo Malama: ${titulo}. ${descricao}`);
+  }
+
+  const suggestions = [
+    sugestaoRota('Ver plano de ação', '/rh/plano-acao', permitidas),
+    sugestaoRota('Ver evolução da liderança', '/rh/plano-acao?visao=lideranca', permitidas),
+    sugestaoRota('Ler últimos resultados', '/rh/saude-mental', permitidas),
+  ].filter((item): item is Sugestao => item !== null);
+
+  return { message: linhas.join('\n\n'), suggestions, requestId: null, degraded: true };
 }
 
 async function consultarAgente(
@@ -388,7 +455,16 @@ async function consultarAgente(
       `PERGUNTA ATUAL:\n${message}`,
     ].join('\n\n'),
   }]);
-  return { ...respostaSegura(jsonDoModelo(result.content), permitidas), requestId: result.requestId };
+  try {
+    return { ...respostaSegura(jsonDoModelo(result.content), permitidas), requestId: result.requestId };
+  } catch (error) {
+    // Alguns modelos do roteador ignoram response_format e devolvem texto
+    // puro. Uma resposta útil não deve virar indisponibilidade só por isso.
+    const messageText = textoPublico(result.content
+      .replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, ''), 6000);
+    if (!messageText || messageText.startsWith('{')) throw error;
+    return { message: messageText, suggestions: [], requestId: result.requestId };
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -531,6 +607,13 @@ Deno.serve(async (req: Request) => {
       rotas_permitidas: permitidas,
     };
 
+    // Perguntas de status usam fatos do banco diretamente. Isso evita que a
+    // resposta fique refém do destaque visual de uma única tela ou campanha.
+    const perguntaNormalizada = message.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (/proximo passo|o que (devo|faco|fazer)|kpis?|indicadores|panorama|resumo|status|situacao|como est(a|ao)/.test(perguntaNormalizada)) {
+      return json(respostaDeterministica(passo, permitidas, leitura, estadoCiclo, message));
+    }
+
     // A primeira tentativa usa o contexto analítico completo. Se o roteador
     // rejeitar volume ou estrutura, repetimos com o checklist compacto. Se a
     // IA continuar indisponível, o motor determinístico mantém a condução.
@@ -550,7 +633,7 @@ Deno.serve(async (req: Request) => {
         return json(await consultarAgente(contextoCompacto, history.slice(-6), message, permitidas));
       } catch (errorCompacto) {
         console.error('[rh-agent] tentativa compacta falhou:', errorCompacto);
-        return json(respostaDeterministica(passo, permitidas));
+        return json(respostaDeterministica(passo, permitidas, leitura, estadoCiclo, message));
       }
     }
   } catch (error) {

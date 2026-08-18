@@ -95,6 +95,7 @@ export function proximoPasso(d: DadosJornada, hoje = new Date()): PassoJornada {
   const temJss = d.campanhas.some(c => c.instrument === 'jss' && c.status !== 'cancelada');
   const cicloAtivo = d.ciclos.find(c => c.status === 'ativo');
   const atrasadas = d.planos.filter(p => p.atrasada && p.status !== 'concluida' && p.status !== 'cancelada');
+  const medidasAbertas = d.planos.filter(p => p.status === 'planejada' || p.status === 'em_andamento');
 
   if (!d.empresaAtiva) {
     return {
@@ -153,6 +154,40 @@ export function proximoPasso(d: DadosJornada, hoje = new Date()): PassoJornada {
       bloqueio: true,
     };
   }
+  // Campanha aberta não paralisa o trabalho que nasceu dos ciclos anteriores.
+  // Medidas e marcos de liderança são execução; adesão é acompanhamento e
+  // aparece como alerta secundário no dashboard.
+  if (pode.planoAcao && cicloAtivo) {
+    return {
+      titulo: `Acompanhe os combinados de ${cicloAtivo.setor}`,
+      descricao: 'Registre o que entrou em prática, verifique o marco combinado e avance somente quando houver evidência.',
+      destino: '/rh/plano-acao?visao=lideranca',
+      acao: 'Ver evolução',
+      etapa: 'conversar',
+    };
+  }
+  if (pode.planoAcao && medidasAbertas.length > 0) {
+    return {
+      titulo: medidasAbertas.length === 1
+        ? 'Acompanhe a medida aberta no plano'
+        : `Acompanhe as ${medidasAbertas.length} medidas abertas no plano`,
+      descricao: 'Confira responsáveis e prazos, registre o andamento e só conclua uma medida quando houver evidência da execução.',
+      destino: '/rh/plano-acao',
+      acao: 'Abrir plano de ação',
+      etapa: 'medidas',
+    };
+  }
+  if (pode.planoAcao && pode.saudeMental && temResultado && temJss && d.ciclos.length === 0) {
+    return {
+      titulo: 'Leia o diagnóstico e prepare as conversas',
+      descricao: 'Use os resultados agregados para reconhecer pontos fortes e levar perguntas objetivas às lideranças antes de combinar melhorias.',
+      destino: '/rh/saude-mental#resultado-jss',
+      acao: 'Ler diagnóstico',
+      atalho: { to: '/rh/plano-acao?visao=lideranca&nova=1', label: 'Preparar conversa com a liderança' },
+      etapa: 'ler',
+    };
+  }
+
   // Duas ou quatro semanas de janela em que o passo dizia "acompanhe" — que
   // na prática significa "fique olhando". É aqui que nasce o "e agora?" e é
   // aqui que o RH fecha a aba e não volta. Então o passo passa a dizer a
@@ -215,35 +250,6 @@ export function proximoPasso(d: DadosJornada, hoje = new Date()): PassoJornada {
       destino: '/rh/saude-mental?nova=1&instrumento=jss',
       acao: 'Abrir JSS',
       etapa: 'medir',
-    };
-  }
-  // Sem este passo a jornada pulava de "acompanhe a campanha" direto para
-  // "converse com a liderança", sem nunca convidar a LER o resultado.
-  if (pode.saudeMental && temResultado && d.ciclos.length === 0) {
-    return {
-      titulo: 'Leia o diagnóstico do período',
-      descricao: 'Veja quais setores pedem atenção primeiro e o que puxou o resultado, antes de decidir qualquer medida.',
-      destino: '/rh/saude-mental#resultado-jss',
-      acao: 'Ver diagnóstico',
-      etapa: 'ler',
-    };
-  }
-  if (pode.planoAcao && cicloAtivo) {
-    return {
-      titulo: `Acompanhe os combinados de ${cicloAtivo.setor}`,
-      descricao: 'Registre o que entrou em prática e avance a jornada somente quando houver evidência.',
-      destino: '/rh/plano-acao?visao=lideranca',
-      acao: 'Ver evolução',
-      etapa: 'conversar',
-    };
-  }
-  if (pode.planoAcao && temJss && d.planos.length === 0) {
-    return {
-      titulo: 'Prepare a conversa com as lideranças',
-      descricao: 'Use o diagnóstico agregado para reconhecer pontos fortes e combinar até três melhorias por setor.',
-      destino: '/rh/plano-acao?visao=lideranca&nova=1',
-      acao: 'Preparar conversa',
-      etapa: 'medidas',
     };
   }
   return {
