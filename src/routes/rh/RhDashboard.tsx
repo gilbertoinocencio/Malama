@@ -18,7 +18,6 @@ import {
 import { SetoresCard } from '../../components/rh/SetoresCard';
 import { LinkSuporte } from '../../components/rh/LinkSuporte';
 import { TrilhoDaJornada } from '../../components/rh/TrilhoDaJornada';
-import { MarcoCicloCompleto } from '../../components/rh/MarcoCicloCompleto';
 import { RitmoDoCicloCard } from '../../components/rh/RitmoDoCicloCard';
 import { CabecalhoColapsavel, ResumoRecolhido, useSecaoAberta } from '../../components/rh/SecaoColapsavel';
 import { useRhAccess } from '../../contexts/RhAccessContext';
@@ -383,11 +382,10 @@ export const RhDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Acima do guia: quando o ciclo fechou, "seu próximo passo" é
-          manutenção — e o que o RH precisa ver primeiro é que existe o que
-          mostrar. */}
-      <MarcoCicloCompleto dados={dados} />
-
+      {/* O card "ciclo completo" saiu daqui: ele repetia, em quatro linhas, o
+          que a aba Documentos já comunica só por existir e ficar verde. No
+          dashboard ele empurrava o próximo passo para baixo justamente quando
+          não havia mais nada urgente a fazer. */}
       <GuiaJornadaRh dados={dados} usuariosEquipe={usuariosEquipe} principal={acesso.principal} />
 
       {/* O calendário é o tabuleiro: a pergunta que o RH traz da reunião é

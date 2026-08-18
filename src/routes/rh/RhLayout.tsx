@@ -71,13 +71,27 @@ const AbasDoPainel: React.FC<{ tabs: Tab[]; atual: string }> = ({ tabs, atual })
             )}
             {doGrupo.map(tab => {
               const vazia = !loading && vazias[tab.to];
+              // Documentos em verde: ela só entra na barra com o ciclo
+              // fechado, e a cor é o que substitui o antigo card de "ciclo
+              // completo" no dashboard — a conquista vira a própria aba,
+              // sem ocupar quatro linhas acima do próximo passo.
+              const concluida = tab.to === '/rh/documentos';
+              const cor = concluida
+                ? (atual === tab.to
+                    ? 'border-green-600 text-green-700'
+                    : 'border-transparent text-green-700 hover:text-green-800')
+                : (atual === tab.to
+                    ? 'border-[#7d4a3c] text-[#7d4a3c]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700');
               return (
                 <Link
                   key={tab.to}
                   to={tab.to}
-                  title={vazia || undefined}
+                  title={concluida
+                    ? 'Ciclo completo — relatórios e certificados prontos para emitir'
+                    : (vazia || undefined)}
                   aria-label={vazia ? `${tab.label} — ${vazia}` : undefined}
-                  className={`flex items-center gap-2 px-3 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition ${atual === tab.to ? 'border-[#7d4a3c] text-[#7d4a3c]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  className={`flex items-center gap-2 px-3 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition ${cor}`}
                 >
                   {tab.icon}
                   <span className="flex items-center gap-1.5">
