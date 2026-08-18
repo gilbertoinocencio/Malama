@@ -71,6 +71,10 @@ export const PlanoAcaoKanban: React.FC<{
   const [loading, setLoading] = useState(true);
   const [novo, setNovo] = useState(abrirNovo);
   const [novaAcao, setNovaAcao] = useState(novaAcaoInicial);
+  // Um botão só, com a escolha explicada no momento em que ela é feita.
+  // Dois botões lado a lado exigiam saber de antemão que uma jornada CONTÉM
+  // ações — e sem isso as duas pareciam a mesma coisa.
+  const [escolhendo, setEscolhendo] = useState(false);
   const [editando, setEditando] = useState(false);
   const [acao, setAcao] = useState<Sugestao | null>(null);
   const [verificando, setVerificando] = useState<LiderancaCiclo | null>(null);
@@ -154,11 +158,8 @@ export const PlanoAcaoKanban: React.FC<{
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><h2 className="text-lg font-semibold text-gray-800">Plano de ação</h2><p className="text-sm text-gray-500">Escolha um cartão para ver os detalhes ou registre uma nova ação.</p></div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setNovaAcao(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#7d4a3c] px-4 py-2 text-sm font-semibold text-[#7d4a3c] hover:bg-[#7d4a3c]/5"><Plus className="h-4 w-4" /> Nova ação</button>
-          <button onClick={() => setNovo(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white"><Plus className="h-4 w-4" /> Iniciar jornada</button>
-        </div>
+        <div><h2 className="text-lg font-semibold text-gray-800">Plano de ação</h2><p className="text-sm text-gray-500">Escolha um cartão para ver os detalhes ou registre algo novo.</p></div>
+        <button onClick={() => setEscolhendo(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white"><Plus className="h-4 w-4" /> Adicionar</button>
       </div>
 
       {alertas.length > 0 && <button onClick={() => setSelecionado(alertas[0].id)} className="flex w-full items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
@@ -180,6 +181,12 @@ export const PlanoAcaoKanban: React.FC<{
         <button onClick={() => setSelecionado(null)} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700" aria-label="Fechar detalhes"><X className="h-5 w-5" /></button></div><JornadaDetalhe ciclo={ciclo} sugestoes={leitura.sugestoes} who5={setorWho5} onEditar={() => setEditando(true)} onAcao={setAcao} onVerificar={() => setVerificando(ciclo)} onAvancar={destino => setTransicao({ ciclo, destino })} onAtualizar={carregar} /></aside></div>}
 
       {acaoAtual && <AcaoGeralDetalhe item={acaoAtual} onFechar={() => setAcaoSelecionada(null)} onStatus={mudarStatusAcaoGeral} onExcluir={excluirAcaoGeral} />}
+
+      {escolhendo && <EscolhaTipo
+        onMedida={() => { setEscolhendo(false); setNovaAcao(true); }}
+        onJornada={() => { setEscolhendo(false); setNovo(true); }}
+        onClose={() => setEscolhendo(false)}
+      />}
 
       {novo && <CicloForm setores={setores} jss={jss} setorInicial={setorInicial} onClose={() => setNovo(false)} onSaved={async id => { setNovo(false); await carregar(); setSelecionado(id); }} />}
       {editando && ciclo && <PontosForm ciclo={ciclo} onClose={() => setEditando(false)} onSaved={() => { setEditando(false); void carregar(); }} />}
@@ -501,6 +508,33 @@ const PrazoMarcoForm: React.FC<{ ciclo: LiderancaCiclo; destino: LiderancaEtapa;
 };
 
 const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onMouseDown={onClose}><div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-xl" onMouseDown={e => e.stopPropagation()}><div className="flex items-center justify-between border-b p-5"><h3 className="font-bold text-gray-900">{title}</h3><button onClick={onClose}><X className="h-5 w-5 text-gray-400" /></button></div>{children}</div></div>;
+
+/**
+ * Explica a diferença no momento da decisão, em vez de exigir que o RH já
+ * saiba que uma jornada CONTÉM ações. Com dois botões lado a lado, as duas
+ * coisas pareciam a mesma — e a escolha errada só aparecia depois.
+ */
+const EscolhaTipo: React.FC<{ onMedida: () => void; onJornada: () => void; onClose: () => void }> = ({ onMedida, onJornada, onClose }) => {
+  const opcao = 'flex w-full items-start gap-3 rounded-xl border border-gray-200 p-4 text-left transition hover:border-[#7d4a3c] hover:bg-[#7d4a3c]/5';
+  return <Modal title="O que você quer registrar?" onClose={onClose}>
+    <div className="space-y-3 p-5">
+      <button type="button" onClick={onMedida} className={opcao}>
+        <ClipboardList className="mt-0.5 h-5 w-5 shrink-0 text-[#7d4a3c]" />
+        <span>
+          <span className="block text-sm font-semibold text-gray-800">Uma medida pontual</span>
+          <span className="mt-1 block text-xs leading-relaxed text-gray-500">Um risco, uma medida, um responsável e um prazo. Entra direto no plano como ação avulsa, sem acompanhamento recorrente. Pode valer para um setor ou para a empresa toda.</span>
+        </span>
+      </button>
+      <button type="button" onClick={onJornada} className={opcao}>
+        <UsersRound className="mt-0.5 h-5 w-5 shrink-0 text-[#7d4a3c]" />
+        <span>
+          <span className="block text-sm font-semibold text-gray-800">Um acompanhamento com a liderança</span>
+          <span className="mt-1 block text-xs leading-relaxed text-gray-500">A conversa com o gestor de um setor ao longo do ciclo. Começa pelo que está funcionando e pelo que precisa melhorar, e vai gerando medidas a cada marco, com verificação combinada. Um setor por vez.</span>
+        </span>
+      </button>
+    </div>
+  </Modal>;
+};
 
 const CicloForm: React.FC<{ setores:SetorEmpresa[]; jss:Awaited<ReturnType<typeof rhService.getRelatorioJss>>; setorInicial?:string|null; onClose:()=>void; onSaved:(id:string)=>void }> = ({ setores,jss,setorInicial,onClose,onSaved }) => {
   const fimPadrao=new Date();fimPadrao.setMonth(fimPadrao.getMonth()+3);
