@@ -45,5 +45,5 @@ export function parseAiJson<T>(raw: string): T {
     }
   }
 
-  throw new Error('A resposta estruturada do Caramel veio incompleta');
+  throw new Error('A resposta estruturada da IA veio incompleta');
 }

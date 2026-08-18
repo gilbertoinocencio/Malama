@@ -244,7 +244,7 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
                 </div>
                 <div>
                   <h2 className="text-sm font-semibold text-gray-900">Copiloto do RH</h2>
-                  <p className="text-xs text-gray-500">Apoio sênior em RH e SST · Caramel</p>
+                  <p className="text-xs text-gray-500">Apoio sênior em RH e SST</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -292,7 +292,7 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
                 ) : (
                   <div className="space-y-3">
                     <p className="text-xs leading-relaxed text-amber-800 rounded-lg bg-amber-50 p-3">
-                      Revise antes de confirmar. O Caramel apenas estruturou o que entendeu e pode ter deixado campos incompletos.
+                      Revise antes de confirmar. A IA apenas estruturou o que entendeu e pode ter deixado campos incompletos.
                     </p>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <Input label="Setor de atuação" value={rascunho.setor_atuacao ?? ''} onChange={e => setCampo('setor_atuacao', e.target.value || null)} />
