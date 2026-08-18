@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, ArrowRight, Bell, CalendarClock, CalendarDays, Check, CheckCircle2, Clipboard,
-  ClipboardList, Clock3, GripVertical, History, Lightbulb, Plus, RefreshCw, Sparkles, Target,
+  ClipboardList, Clock3, History, Lightbulb, Plus, RefreshCw, Sparkles, Target,
   ThumbsUp, Trash2, UsersRound, X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -40,6 +40,33 @@ function estadoMarco(ciclo: LiderancaCiclo) {
   if (dias === 0) return { tipo: 'hoje', label: 'Verificar hoje', classe: '!border-l-amber-500 bg-amber-50/50', texto: 'text-amber-700', alerta: true };
   if (dias <= 7) return { tipo: 'proximo', label: `Verificar em ${dias} dia(s)`, classe: '!border-l-amber-400 bg-amber-50/40', texto: 'text-amber-700', alerta: true };
   return { tipo: 'em_dia', label: 'Acompanhamento em dia', classe: '!border-l-gray-300 bg-white', texto: 'text-gray-500', alerta: false };
+}
+
+/**
+ * O que ainda falta para a jornada avançar de marco. Espelha as regras de
+ * `rh_lideranca_avancar` (20260841) — o servidor continua sendo a autoridade;
+ * aqui a lista existe para a tela nomear TODOS os bloqueios, não só o
+ * primeiro. Um cartão pode estar preso por falta de combinado E de
+ * verificação ao mesmo tempo, e contar só um manda o RH resolver metade.
+ */
+function avaliarAvanco(ciclo: LiderancaCiclo) {
+  const indice = ETAPAS.findIndex(e => e.id === ciclo.etapa);
+  const proxima = ETAPAS[indice + 1] ?? null;
+  if (!proxima || ciclo.status !== 'ativo') return { proxima: null, pronto: false, faltas: [] as string[] };
+  const ativas = ciclo.acoes.filter(a => a.status !== 'cancelada');
+  const faltas: string[] = [];
+  if (proxima.id === 'plano_definido' && ativas.length === 0) {
+    faltas.push('registrar ao menos um combinado');
+  }
+  if (proxima.id === 'em_acao' && !ativas.some(a => a.status === 'em_andamento' || a.status === 'concluida')) {
+    faltas.push('iniciar ao menos um combinado');
+  }
+  if ((proxima.id === 'pratica_incorporada' || proxima.id === 'evolucao_mantida')
+      && !ativas.some(a => a.status === 'concluida')) {
+    faltas.push('concluir um combinado com evidência');
+  }
+  if (ciclo.marco_status !== 'verificado') faltas.push('verificar o combinado deste marco');
+  return { proxima, pronto: faltas.length === 0, faltas };
 }
 
 export const PlanoAcaoKanban: React.FC<{
@@ -112,19 +139,14 @@ export const PlanoAcaoKanban: React.FC<{
   const setorJss = jss?.setores.find(s => s.setor === ciclo?.setor);
   const setorWho5 = who5?.setores.find(s => s.setor === ciclo?.setor);
   const leitura = useMemo(() => gerarDiagnostico(setorJss, jss?.cortes, setorWho5), [setorJss, jss?.cortes, setorWho5]);
-  const mover = useCallback(async (item: LiderancaCiclo, destino: LiderancaEtapa) => {
-    const atual = ETAPAS.findIndex(e => e.id === item.etapa);
-    const novoIndice = ETAPAS.findIndex(e => e.id === destino);
-    if (item.status !== 'ativo') { toast.error('Esta jornada já foi concluída.'); return; }
-    if (novoIndice !== atual + 1) { toast.error('Mova o cartão somente para o próximo marco.'); return; }
-    if (item.marco_status !== 'verificado') {
-      // O RH só descobre o bloqueio quando tenta. Sem apontar ONDE resolver,
-      // a mensagem vira um "não" sem saída.
-      toast.error('Verifique o combinado deste marco antes de avançar. Abra o cartão e use “Verificar combinado”.');
-      setSelecionado(item.id);
-      return;
-    }
-    setTransicao({ ciclo: item, destino });
+  // Avanço agora é explícito, pelo botão do cartão. O arrasto foi removido:
+  // ele prometia manipulação direta que a regra nunca honra (avançar sempre
+  // exige verificação e uma nova data), e o gesto não iniciava de forma
+  // confiável no navegador — o quadro ficava inerte, sem explicar nada.
+  const avancar = useCallback((item: LiderancaCiclo) => {
+    const { proxima, pronto } = avaliarAvanco(item);
+    if (!proxima || !pronto) { setSelecionado(item.id); return; }
+    setTransicao({ ciclo: item, destino: proxima.id });
   }, []);
 
   const mudarStatusAcaoGeral = useCallback(async (item: PlanoAcao, status: PlanoStatus) => {
@@ -180,7 +202,7 @@ export const PlanoAcaoKanban: React.FC<{
         selecionadoAcao={acaoSelecionada}
         onSelecionar={setSelecionado}
         onSelecionarAcao={setAcaoSelecionada}
-        onMover={mover}
+        onAvancar={avancar}
       />
 
       {ciclo && <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={() => setSelecionado(null)}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}><div className="mb-3 flex items-center justify-end">
@@ -218,17 +240,14 @@ const KanbanPlano: React.FC<{
   selecionadoAcao: string | null;
   onSelecionar: (id: string) => void;
   onSelecionarAcao: (id: string) => void;
-  onMover: (ciclo: LiderancaCiclo, destino: LiderancaEtapa) => Promise<void>;
-}> = ({ ciclos, acoesGerais, selecionado, selecionadoAcao, onSelecionar, onSelecionarAcao, onMover }) => {
-  const [arrastando, setArrastando] = useState<string | null>(null);
-  const [sobre, setSobre] = useState<LiderancaEtapa | null>(null);
-
+  onAvancar: (ciclo: LiderancaCiclo) => void;
+}> = ({ ciclos, acoesGerais, selecionado, selecionadoAcao, onSelecionar, onSelecionarAcao, onAvancar }) => {
   return <div>
     <div className="mb-2 flex items-start gap-2 text-xs text-gray-500">
-      <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+      <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
       <span>
-        Cartão com a alça azul já teve o marco verificado e pode ser arrastado para o próximo.
-        Cartão com o relógio ainda espera verificação — abra-o para registrar.
+        Cada cartão mostra o que ainda falta para avançar de marco. Quando nada faltar,
+        o botão “Avançar” aparece no próprio cartão.
       </span>
     </div>
     <div className="-mx-1 overflow-x-auto pb-3">
@@ -269,67 +288,43 @@ const KanbanPlano: React.FC<{
           const itens = ciclos.filter(c => c.etapa === etapa.id);
           return <section
             key={etapa.id}
-            className={`w-[270px] rounded-xl border p-3 transition ${
-              sobre === etapa.id ? 'border-[#7d4a3c] bg-[#7d4a3c]/5' : 'border-gray-200 bg-gray-100/70'
-            }`}
-            onDragOver={e => { e.preventDefault(); setSobre(etapa.id); }}
-            onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setSobre(null); }}
-            onDrop={e => {
-              e.preventDefault();
-              const id = e.dataTransfer.getData('text/plain') || arrastando;
-              const item = ciclos.find(c => c.id === id);
-              setSobre(null); setArrastando(null);
-              if (item && item.etapa !== etapa.id) void onMover(item, etapa.id);
-            }}
+            className="w-[270px] rounded-xl border border-gray-200 bg-gray-100/70 p-3"
           >
             <header className="mb-3 flex items-center justify-between gap-2 px-1">
               <div><p className="text-sm font-semibold text-gray-800">{etapa.label}</p><p className="text-[11px] text-gray-400">Marco {indice + 1} de 5</p></div>
               <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-gray-500 shadow-sm">{itens.length}</span>
             </header>
             <div className="min-h-32 space-y-2">
-              {itens.length === 0 && <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-gray-300 px-4 text-center text-xs text-gray-400">Solte aqui quando o requisito estiver pronto.</div>}
+              {itens.length === 0 && <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-gray-300 px-4 text-center text-xs text-gray-400">Nenhuma jornada neste marco.</div>}
               {itens.map(ciclo => {
                 const marco = estadoMarco(ciclo);
                 const proximaAcao = [...ciclo.acoes]
                   .filter(a => a.status === 'planejada' || a.status === 'em_andamento')
                   .sort((a, b) => a.prazo.localeCompare(b.prazo))[0];
                 const concluidas = ciclo.acoes.filter(a => a.status === 'concluida').length;
-                // Pronto para avançar de fato. Serve para a alça e o cursor
-                // dizerem a verdade — antes a alça aparecia justamente em quem
-                // NÃO podia ser arrastado.
-                const prontoParaAvancar = ciclo.status === 'ativo' && ciclo.marco_status === 'verificado';
-                // Jornada ativa sempre inicia o arrasto, mesmo sem o marco
-                // verificado: é o `onDrop` que explica o que falta. Com
-                // draggable=false o arrasto não começava, o drop nunca ocorria
-                // e a mensagem de `mover()` era código morto — o RH arrastava
-                // e não acontecia nada, sem nenhum aviso.
-                return <button
+                const avanco = avaliarAvanco(ciclo);
+                // Div, e não <button>: o cartão passa a conter o botão
+                // "Avançar", e botão dentro de botão é HTML inválido.
+                // role/tabIndex/onKeyDown preservam o acesso por teclado.
+                return <div
                   key={ciclo.id}
-                  type="button"
-                  draggable={ciclo.status === 'ativo'}
-                  title={ciclo.status !== 'ativo'
-                    ? 'Jornada concluída — não avança mais de marco.'
-                    : prontoParaAvancar
-                      ? 'Arraste para o próximo marco ou abra para ver os detalhes.'
-                      : 'Verifique o combinado deste marco antes de avançar. Abra o cartão para registrar a verificação.'}
+                  role="button"
+                  tabIndex={0}
                   aria-pressed={selecionado === ciclo.id}
-                  onDragStart={e => {
-                    setArrastando(ciclo.id);
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', ciclo.id);
-                  }}
-                  onDragEnd={() => { setArrastando(null); setSobre(null); }}
                   onClick={() => onSelecionar(ciclo.id)}
-                  className={`w-full rounded-lg border border-l-4 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow ${marco.classe} ${
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelecionar(ciclo.id); }
+                  }}
+                  className={`w-full cursor-pointer rounded-lg border border-l-4 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow ${marco.classe} ${
                     selecionado === ciclo.id ? 'border-[#7d4a3c] ring-1 ring-[#7d4a3c]/20' : 'border-gray-200'
-                  } ${arrastando === ciclo.id ? 'opacity-50' : ''} ${prontoParaAvancar ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0"><p className="truncate text-sm font-semibold text-gray-800">{ciclo.setor}</p><p className="mt-0.5 truncate text-[11px] text-gray-500">RH: {ciclo.responsavel_rh}</p></div>
                     {ciclo.status === 'concluido'
                       ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600" />
-                      : prontoParaAvancar
-                        ? <GripVertical className="h-4 w-4 flex-shrink-0 text-blue-500" />
+                      : avanco.pronto
+                        ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-blue-600" />
                         : <Clock3 className="h-4 w-4 flex-shrink-0 text-gray-300" />}
                   </div>
                   {ciclo.pontos_fortes[0] && <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-green-700"><span className="font-semibold">Bom:</span> {ciclo.pontos_fortes[0]}</p>}
@@ -340,7 +335,21 @@ const KanbanPlano: React.FC<{
                       ? <div className="flex items-center justify-between gap-2 text-[11px]"><span className={proximaAcao.atrasada ? 'font-semibold text-red-600' : 'text-gray-500'}>{proximaAcao.status === 'em_andamento' ? 'Em prática' : 'Planejada'}</span><span className="inline-flex items-center gap-1 text-gray-400"><CalendarDays className="h-3 w-3" />{dataBr(proximaAcao.prazo)}</span></div>
                       : <p className="text-[11px] text-gray-400">{ciclo.acoes.length ? `${concluidas} combinado(s) concluído(s)` : 'Sem combinado ainda'}</p>}
                   </div>
-                </button>;
+                  {/* Todos os bloqueios de uma vez. Nomear só o primeiro fazia
+                      o RH resolver metade e continuar preso, sem saber por quê. */}
+                  {avanco.proxima && (avanco.pronto
+                    ? <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); onAvancar(ciclo); }}
+                        className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#7d4a3c] px-2 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#623a2f]"
+                      >
+                        Avançar para “{avanco.proxima.label}” <ArrowRight className="h-3 w-3" />
+                      </button>
+                    : <p className="mt-2 border-t border-gray-100 pt-2 text-[11px] leading-relaxed text-gray-500">
+                        <span className="font-semibold text-gray-600">Para avançar, falta:</span>{' '}
+                        {avanco.faltas.join(' e ')}.
+                      </p>)}
+                </div>;
               })}
             </div>
           </section>;
@@ -394,22 +403,10 @@ const JornadaDetalhe: React.FC<{
 }> = ({ ciclo, sugestoes, who5, onEditar, onAcao, onVerificar, onAvancar, onAtualizar }) => {
   const indice = ETAPAS.findIndex(e => e.id === ciclo.etapa);
   const proxima = ETAPAS[indice + 1];
-  const temAcao = ciclo.acoes.some(a => a.status !== 'cancelada');
-  const temAcaoIniciada = ciclo.acoes.some(a => a.status === 'em_andamento' || a.status === 'concluida');
-  const temAcaoConcluida = ciclo.acoes.some(a => a.status === 'concluida');
-  const requisitoPronto = !proxima
-    ? false
-    : proxima.id === 'plano_definido'
-      ? temAcao
-      : proxima.id === 'em_acao'
-        ? temAcaoIniciada
-      : temAcaoConcluida;
-  const podeAvancar = requisitoPronto && ciclo.marco_status === 'verificado';
-  const orientacao = proxima?.id === 'plano_definido'
-    ? 'Adicione um combinado para alcançar o próximo marco.'
-    : proxima?.id === 'em_acao'
-      ? 'Inicie ao menos um combinado para avançar.'
-      : 'Conclua uma ação com evidência para avançar.';
+  // Mesmo cálculo do cartão: o painel e o quadro não podem discordar sobre
+  // o que falta.
+  const avanco = avaliarAvanco(ciclo);
+  const podeAvancar = avanco.pronto;
 
   const copiar = async () => {
     const texto = [
@@ -441,7 +438,7 @@ const JornadaDetalhe: React.FC<{
       <div className="mt-5 grid grid-cols-5 gap-1">{ETAPAS.map((e, i) => <div key={e.id} className="text-center"><div className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${i <= indice ? 'bg-[#7d4a3c] text-white' : 'bg-gray-100 text-gray-400'}`}>{i < indice ? <Check className="h-4 w-4" /> : i + 1}</div><p className={`mt-1 text-[10px] ${i <= indice ? 'font-medium text-[#7d4a3c]' : 'text-gray-400'}`}>{e.curto}</p></div>)}</div>
       {proxima && (podeAvancar
         ? <button onClick={() => onAvancar(proxima.id)} className="mx-auto mt-4 flex items-center gap-1.5 text-xs font-semibold text-[#7d4a3c]">Avançar para “{proxima.label}” <ArrowRight className="h-3.5 w-3.5" /></button>
-        : <p className="mt-4 text-center text-xs text-gray-500">{ciclo.marco_status !== 'verificado' ? 'Verifique este marco antes de avançar.' : orientacao}</p>)}
+        : <p className="mt-4 text-center text-xs text-gray-500">Para avançar, falta: {avanco.faltas.join(' e ')}.</p>)}
     </div>
 
     <MarcoAcompanhamento ciclo={ciclo} onVerificar={onVerificar} />
