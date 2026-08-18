@@ -33,8 +33,9 @@ import {
   type AceiteVigente,
   type PlanoAcao,
 } from '../../services/empresaService';
-import { generatePsychosocialReportPDF } from '../../lib/psychosocialReportDoc';
-import { generateJssReportPDF } from '../../lib/jssReportDoc';
+import {
+  emitirRelatorioPsicossocial, reemitirRelatorioPsicossocial,
+} from '../../lib/emissaoDocumentos';
 import { MatrizPsicossocial } from '../../components/rh/MatrizPsicossocial';
 import { KitDivulgacao } from '../../components/rh/KitDivulgacao';
 import { LinkSuporte } from '../../components/rh/LinkSuporte';
@@ -562,78 +563,25 @@ export const RhSaudeMental: React.FC = () => {
    * nenhum arquivo sai — documento de evidência que não está registrado é
    * exatamente o que a outra parte ataca como produzido para o processo.
    */
+  // A orquestração da emissão (registrar antes de gerar, selo, número do
+  // servidor) vive em `lib/emissaoDocumentos`, compartilhada com a aba
+  // Documentos. Aqui fica só o estado de "gerando" desta tela.
   const emitirRelatorio = async (tipo: 'jss' | 'who5') => {
     const relatorio = tipo === 'jss' ? jss : psico;
     if (!relatorio) return;
     const marcarGerando = tipo === 'jss' ? setGerandoJss : setGerandoPsico;
     marcarGerando(true);
     try {
-      // O plano de ação entra no mesmo documento: diagnóstico sem medida de
-      // controle registra que a empresa sabia do risco e não agiu.
-      const planos = await rhService.getPlanosAcao();
-      const aceite = await rhService.getAceiteVigente();
-      const payload = { relatorio, planos, aceite };
-      const hash = await hashDocumento(payload);
-
-      const res = await rhService.registrarRelatorio({
-        tipo,
-        periodoInicio: relatorio.periodo_inicio,
-        periodoFim: relatorio.periodo_fim,
-        payload,
-        hash,
-      });
-      if (!res.ok || !res.numero_doc) {
-        toast.error(res.error || 'Não foi possível registrar a emissão. O relatório não foi gerado.');
-        return;
-      }
-
-      const meta = {
-        numeroDoc: res.numero_doc,
-        emitidoEm: new Date(),
-        hash,
-        emitidoPorNome: res.emitido_por_nome ?? acesso.nome,
-        emitidoPorEmail: res.emitido_por_email ?? acesso.email,
-        aceite,
-        planos,
-      };
-      if (tipo === 'jss') generateJssReportPDF(relatorio as RhRelatorioJss, meta);
-      else generatePsychosocialReportPDF(relatorio as RhRelatorioPsicossocial, meta);
-
-      toast.success(`Relatório ${res.numero_doc} emitido e registrado.`);
-      carregarEmitidos();
-    } catch (err: any) {
-      toast.error(err?.message || 'Erro ao gerar relatório.');
+      const ok = await emitirRelatorioPsicossocial(
+        tipo, relatorio, { nome: acesso.nome, email: acesso.email },
+      );
+      if (ok) carregarEmitidos();
     } finally {
       marcarGerando(false);
     }
   };
 
-  /** Reemissão: lê o snapshot e reproduz o PDF idêntico ao arquivado. */
-  const reemitir = async (item: RelatorioEmitido) => {
-    try {
-      const registro = await rhService.getRelatorioEmitido(item.id);
-      const payload = registro?.payload as
-        | { relatorio: any; planos: PlanoAcao[]; aceite: AceiteVigente | null }
-        | undefined;
-      if (!payload?.relatorio) {
-        toast.error('Não foi possível ler o registro deste documento.');
-        return;
-      }
-      const meta = {
-        numeroDoc: item.numero_doc,
-        emitidoEm: new Date(item.emitido_em),
-        hash: item.hash_verificacao,
-        emitidoPorNome: item.emitido_por_nome,
-        emitidoPorEmail: registro?.emitido_por_email ?? null,
-        aceite: payload.aceite ?? null,
-        planos: payload.planos ?? [],
-      };
-      if (item.tipo === 'jss') generateJssReportPDF(payload.relatorio, meta);
-      else generatePsychosocialReportPDF(payload.relatorio, meta);
-    } catch (err: any) {
-      toast.error(err?.message || 'Erro ao reemitir o documento.');
-    }
-  };
+  const reemitir = (item: RelatorioEmitido) => void reemitirRelatorioPsicossocial(item);
 
   if (loading) {
     return (

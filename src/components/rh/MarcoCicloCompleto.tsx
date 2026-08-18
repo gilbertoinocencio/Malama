@@ -65,10 +65,9 @@ export const MarcoCicloCompleto: React.FC<{ dados: DadosJornada }> = ({ dados })
             </h2>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-green-800">
               Medição aplicada, resultado lido, conversa registrada com a liderança e ao menos uma
-              medida concluída com evidência anexada. Daqui sai o{' '}
-              <strong>Relatório de evidência do programa</strong>, com número, data e selo de
-              verificação — a peça que entra no <strong>PGR</strong> da sua empresa. Ele não é o
-              PGR nem substitui o seu.
+              medida concluída com evidência anexada. A aba <strong>Documentos</strong> abriu no
+              menu: é de lá que saem os relatórios e certificados, com número, data e selo de
+              verificação.
             </p>
             {ultimo && (
               <p className="mt-2 text-xs text-green-800">
@@ -80,10 +79,10 @@ export const MarcoCicloCompleto: React.FC<{ dados: DadosJornada }> = ({ dados })
         </div>
         {podeAbrirDossie && (
           <Link
-            to="/rh/compliance#relatorio-evidencia"
+            to="/rh/documentos"
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800"
           >
-            {ultimo ? 'Emitir nova versão' : 'Gerar o relatório de evidência'}
+            Abrir Documentos
             <ArrowRight className="h-4 w-4" />
           </Link>
         )}

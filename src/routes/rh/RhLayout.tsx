@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link, Outlet } from 'react-router-dom';
 import {
   LogOut, Users, CreditCard, ShieldCheck, Leaf, Brain, CalendarX2,
-  ClipboardList, Upload, Building2, UserCog, ShieldAlert, Compass, LifeBuoy,
+  ClipboardList, Upload, Building2, UserCog, ShieldAlert, Compass, LifeBuoy, FileText,
 } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { MalamaLogo } from '../../components/MalamaLogo';
@@ -11,7 +11,7 @@ import { RhAccessProvider } from '../../contexts/RhAccessContext';
 import { RhJornadaProvider, useRhJornada } from '../../contexts/RhJornadaContext';
 import { FaixaProximoPasso } from '../../components/rh/FaixaProximoPasso';
 import { PrimeiroAcessoRh } from '../../components/rh/PrimeiroAcessoRh';
-import { docsPendentesDe } from '../../lib/rhJornada';
+import { cicloCompleto, docsPendentesDe } from '../../lib/rhJornada';
 import { jaViuApresentacao, marcarApresentacaoVista } from '../../lib/rhPrimeiroAcesso';
 import { EMAIL_SUPORTE, linkSuporte } from '../../lib/suporteMalama';
 
@@ -42,6 +42,12 @@ const ABA_IMPACTO_ATIVA = false;
 const AbasDoPainel: React.FC<{ tabs: Tab[]; atual: string }> = ({ tabs, atual }) => {
   const { dados, loading } = useRhJornada();
 
+  // Documentos só entra na barra quando o ciclo fecha: antes disso não há o
+  // que emitir além do certificado, e uma aba a mais no dia 1 é mais uma
+  // decisão para quem já chega perdido. Estar na rota sem estar na barra é
+  // de propósito — o link direto continua funcionando.
+  const visiveis = tabs.filter(t => t.to !== '/rh/documentos' || cicloCompleto(dados));
+
   // Só marcamos "ainda sem dado" onde a jornada realmente sabe a resposta.
   // Relatos, Absenteísmo e Financeiro não passam por aqui, e chutar um
   // ponto neles seria pior do que não marcar nada.
@@ -56,7 +62,7 @@ const AbasDoPainel: React.FC<{ tabs: Tab[]; atual: string }> = ({ tabs, atual })
   return (
     <nav className="flex gap-1 -mb-px overflow-x-auto" aria-label="Seções do painel">
       {grupos.map((grupo, gi) => {
-        const doGrupo = tabs.filter(t => t.grupo === grupo);
+        const doGrupo = visiveis.filter(t => t.grupo === grupo);
         if (doGrupo.length === 0) return null;
         return (
           <React.Fragment key={grupo}>
@@ -221,6 +227,8 @@ export const RhLayout: React.FC = () => {
     { to: '/rh/saude-mental', label: 'Saúde Mental', icon: <Brain className="w-4 h-4" />, permissao: 'saude_mental', grupo: 'ciclo' },
     { to: '/rh/plano-acao', label: 'Plano de ação', icon: <ClipboardList className="w-4 h-4" />, permissao: 'plano_acao', grupo: 'ciclo' },
     { to: '/rh/compliance', label: 'Compliance', icon: <ShieldCheck className="w-4 h-4" />, permissao: 'compliance', grupo: 'ciclo' },
+    // Antes do Financeiro: é o fim do ciclo, não administração.
+    { to: '/rh/documentos', label: 'Documentos', icon: <FileText className="w-4 h-4" />, permissao: 'compliance', grupo: 'ciclo' },
     // Apoio: não é etapa do ciclo, é o que alimenta ou corre em paralelo.
     // Relatos não espera calendário nenhum — segue para apuração na hora.
     { to: '/rh/relatos', label: 'Relatos', icon: <ShieldAlert className="w-4 h-4" />, permissao: 'apuracao', grupo: 'apoio' },

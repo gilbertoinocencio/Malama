@@ -22,7 +22,7 @@ import {
   type CertificadoColaborador,
   type RhEmpresa,
 } from '../../services/empresaService';
-import { generateCompliancePDF } from '../../lib/complianceDoc';
+import { emitirRelatorioEvidencia, reemitirRelatorioEvidencia } from '../../lib/emissaoDocumentos';
 import {
   generateCertificadoPDF, generateCertificadosLotePDF, type CertificadoMeta,
 } from '../../lib/certificadoDisponibilizacao';
@@ -161,69 +161,18 @@ export const RhCompliance: React.FC = () => {
     }
   };
 
-  const gerarNumero = () => {
-    const hoje = new Date();
-    const ymd = `${hoje.getFullYear()}${String(hoje.getMonth() + 1).padStart(2, '0')}${String(hoje.getDate()).padStart(2, '0')}`;
-    const seq = String(docs.length + 1).padStart(3, '0');
-    return `MAL-PGR-${ymd}-${seq}`;
-  };
-
+  // A orquestração vive em `lib/emissaoDocumentos`, compartilhada com a aba
+  // Documentos: é ela que registra antes de gerar, sela o snapshot e numera.
+  // Duas cópias divergiriam e produziriam documentos com o mesmo número.
   const handleGerar = async () => {
     if (!metricas) return;
     setGerando(true);
     try {
-      const numero = gerarNumero();
-      const emitidoEm = new Date();
-      const hoje = emitidoEm.toISOString().slice(0, 10);
-      const aceite = await rhService.getAceiteVigente();
-
-      const snapshot = {
-        empresa_id: metricas.empresa_id,
-        periodo_inicio: metricas.data_inicio,
-        periodo_fim: hoje,
-        colaboradores_elegiveis: metricas.colaboradores_elegiveis,
-        colaboradores_ativos: metricas.colaboradores_ativos,
-        consultas_realizadas: metricas.consultas_realizadas,
-        numero_doc: numero,
-        // Entram no selo de propósito: os módulos definem O QUE o documento
-        // declara, então mudar de plano tem que mudar o hash.
-        modo_mental: metricas.modo_mental,
-        modo_metabolico: metricas.modo_metabolico,
-        consultas_psicologo: metricas.consultas_psicologo,
-        consultas_medico: metricas.consultas_medico,
-      };
-      const hash = await hashDocumento(snapshot);
-
-      // Registra ANTES de gerar: documento de evidência sem registro é o que
-      // a outra parte ataca como produzido depois do fato.
-      await rhService.saveComplianceDoc({
-        ...snapshot,
-        emitido_por_nome: acesso.nome,
-        hash_verificacao: hash,
+      const ok = await emitirRelatorioEvidencia({
+        metricas, modulos, jaEmitidos: docs.length,
+        emissor: { nome: acesso.nome, email: acesso.email },
       });
-
-      generateCompliancePDF({
-        empresaNome: metricas.nome,
-        empresaCnpj: metricas.cnpj,
-        dataInicio: metricas.data_inicio,
-        periodoFim: hoje,
-        colaboradoresElegiveis: metricas.colaboradores_elegiveis,
-        colaboradoresAtivos: metricas.colaboradores_ativos,
-        consultasRealizadas: metricas.consultas_realizadas,
-        numeroDoc: numero,
-        emitidoEm,
-        hash,
-        emitidoPorNome: acesso.nome,
-        emitidoPorEmail: acesso.email,
-        aceite,
-        modulos,
-        consultasPsicologo: metricas.consultas_psicologo,
-        consultasMedico: metricas.consultas_medico,
-      });
-      toast.success('Documento gerado e registrado.');
-      load();
-    } catch (err: any) {
-      toast.error(err?.message || 'Erro ao gerar documento.');
+      if (ok) load();
     } finally {
       setGerando(false);
     }
@@ -232,31 +181,7 @@ export const RhCompliance: React.FC = () => {
   /** Reemissão a partir do registro — nunca dos números de hoje. */
   const rebaixar = (d: ComplianceDoc) => {
     if (!metricas) return;
-    generateCompliancePDF({
-      empresaNome: metricas.nome,
-      empresaCnpj: metricas.cnpj,
-      dataInicio: d.periodo_inicio,
-      periodoFim: d.periodo_fim ?? d.emitido_em.slice(0, 10),
-      colaboradoresElegiveis: d.colaboradores_elegiveis,
-      colaboradoresAtivos: d.colaboradores_ativos,
-      consultasRealizadas: d.consultas_realizadas,
-      numeroDoc: d.numero_doc,
-      emitidoEm: new Date(d.emitido_em),
-      // Documentos anteriores à migração 20260841 não têm selo nem emissor
-      // gravados: o PDF diz isso em vez de inventar.
-      hash: d.hash_verificacao ?? 'NAO REGISTRADO',
-      emitidoPorNome: d.emitido_por_nome,
-      emitidoPorEmail: null,
-      aceite: null,
-      // Módulos do REGISTRO, não os de hoje. Documento anterior à migração
-      // 20260845 não tem esse dado gravado: fica `undefined`, e o gerador
-      // reproduz o texto do programa completo, que é como ele saiu na época.
-      modulos: d.modo_mental == null && d.modo_metabolico == null
-        ? undefined
-        : { mental: !!d.modo_mental, metabolico: !!d.modo_metabolico },
-      consultasPsicologo: d.consultas_psicologo,
-      consultasMedico: d.consultas_medico,
-    });
+    reemitirRelatorioEvidencia(d, metricas);
   };
 
   if (loading) {

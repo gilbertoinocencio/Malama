@@ -32,6 +32,7 @@ import { RhEmpresa } from './rh/RhEmpresa';
 import { RhUsuarios } from './rh/RhUsuarios';
 import { RhRelatos } from './rh/RhRelatos';
 import { RhComoFunciona } from './rh/RhComoFunciona';
+import { RhDocumentos } from './rh/RhDocumentos';
 import { RhPermissionGate } from '../contexts/RhAccessContext';
 
 // Doctor Pages
@@ -337,6 +338,10 @@ export const AppRoutes: React.FC = () => {
             <Route path="plano-acao" element={<RhPermissionGate permissao="plano_acao"><RhPlanoAcao /></RhPermissionGate>} />
             <Route path="importar" element={<RhPermissionGate permissao="importar"><RhImportar /></RhPermissionGate>} />
             <Route path="compliance" element={<RhPermissionGate permissao="compliance"><RhCompliance /></RhPermissionGate>} />
+            {/* Reúne a emissão de todos os documentos. A aba só aparece na
+                barra quando o ciclo fecha (ver RhLayout), mas a rota existe
+                sempre — quem tem o link direto não deve bater em 404. */}
+            <Route path="documentos" element={<RhPermissionGate permissao="compliance"><RhDocumentos /></RhPermissionGate>} />
             <Route path="impacto" element={<RhPermissionGate permissao="compliance"><RhImpacto /></RhPermissionGate>} />
             {/* Explicador da norma: fora da barra de abas e sem permissão —
                 quem está perdido na NR-1 pode ser justamente quem tem o
