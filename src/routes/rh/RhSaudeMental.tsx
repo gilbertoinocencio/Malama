@@ -31,7 +31,6 @@ import {
   type RhMatrizPsicossocial,
   type RelatorioEmitido,
   type AceiteVigente,
-  type PlanoAcao,
 } from '../../services/empresaService';
 import {
   emitirRelatorioPsicossocial, reemitirRelatorioPsicossocial,
@@ -475,23 +474,15 @@ export const RhSaudeMental: React.FC = () => {
   const [periodo, setPeriodo] = useState<PeriodoPreset>('tri');
   const [psico, setPsico] = useState<RhRelatorioPsicossocial | null>(null);
   const [psicoLoading, setPsicoLoading] = useState(false);
-  const [gerandoPsico, setGerandoPsico] = useState(false);
   const [jss, setJss] = useState<RhRelatorioJss | null>(null);
   const [jssLoading, setJssLoading] = useState(false);
-  const [gerandoJss, setGerandoJss] = useState(false);
   const [matriz, setMatriz] = useState<RhMatrizPsicossocial | null>(null);
   const [matrizLoading, setMatrizLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const { acesso } = useRhAccess();
-  // Histórico de emissões: é o que dá rastro ao documento e permite provar
-  // quando a empresa tomou ciência de cada resultado.
-  const [emitidos, setEmitidos] = useState<RelatorioEmitido[]>([]);
 
-  const carregarEmitidos = useCallback(() => {
-    rhService.getRelatoriosEmitidos().then(setEmitidos).catch(() => setEmitidos([]));
-  }, []);
-
-  useEffect(() => { carregarEmitidos(); }, [carregarEmitidos]);
+  // Emissão e histórico de documentos saíram desta tela: vivem na aba
+  // Documentos. Aqui ficou só a LEITURA do diagnóstico — os botões apenas
+  // levam para lá, e o estado de "gerando" deixou de existir.
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -554,34 +545,6 @@ export const RhSaudeMental: React.FC = () => {
     setCampanhaEncerrada(c);
     await load();
   };
-
-  /**
-   * Emite um relatório de evidência.
-   *
-   * A ordem importa: monta o snapshot, calcula o selo, REGISTRA no servidor
-   * e só então gera o PDF com o número devolvido. Se o registro falhar,
-   * nenhum arquivo sai — documento de evidência que não está registrado é
-   * exatamente o que a outra parte ataca como produzido para o processo.
-   */
-  // A orquestração da emissão (registrar antes de gerar, selo, número do
-  // servidor) vive em `lib/emissaoDocumentos`, compartilhada com a aba
-  // Documentos. Aqui fica só o estado de "gerando" desta tela.
-  const emitirRelatorio = async (tipo: 'jss' | 'who5') => {
-    const relatorio = tipo === 'jss' ? jss : psico;
-    if (!relatorio) return;
-    const marcarGerando = tipo === 'jss' ? setGerandoJss : setGerandoPsico;
-    marcarGerando(true);
-    try {
-      const ok = await emitirRelatorioPsicossocial(
-        tipo, relatorio, { nome: acesso.nome, email: acesso.email },
-      );
-      if (ok) carregarEmitidos();
-    } finally {
-      marcarGerando(false);
-    }
-  };
-
-  const reemitir = (item: RelatorioEmitido) => void reemitirRelatorioPsicossocial(item);
 
   if (loading) {
     return (
@@ -894,14 +857,12 @@ export const RhSaudeMental: React.FC = () => {
               </p>
             )}
 
-            <button
-              onClick={() => emitirRelatorio('who5')}
-              disabled={gerandoPsico}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
+            <Link
+              to="/rh/documentos"
+              className="inline-flex items-center gap-2 rounded-lg border border-[#7d4a3c]/30 px-4 py-2.5 text-sm font-semibold text-[#7d4a3c] transition hover:bg-[#7d4a3c]/5"
             >
-              <FileDown className="w-4 h-4" />
-              {gerandoPsico ? 'Gerando...' : 'Gerar relatório para PGR'}
-            </button>
+              <FileDown className="h-4 w-4" /> Emitir relatório em Documentos
+            </Link>
           </>
         )}
 
@@ -957,14 +918,12 @@ export const RhSaudeMental: React.FC = () => {
               </p>
             )}
 
-            <button
-              onClick={() => emitirRelatorio('jss')}
-              disabled={gerandoJss}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
+            <Link
+              to="/rh/documentos"
+              className="inline-flex items-center gap-2 rounded-lg border border-[#7d4a3c]/30 px-4 py-2.5 text-sm font-semibold text-[#7d4a3c] transition hover:bg-[#7d4a3c]/5"
             >
-              <FileDown className="w-4 h-4" />
-              {gerandoJss ? 'Gerando...' : 'Gerar relatório JSS para PGR'}
-            </button>
+              <FileDown className="h-4 w-4" /> Emitir relatório em Documentos
+            </Link>
           </>
         )}
 
@@ -978,73 +937,10 @@ export const RhSaudeMental: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Documentos emitidos ──
-          O rastro é o que dá valor probatório: prova QUANDO a empresa tomou
-          ciência de cada resultado, e permite reemitir o mesmo conteúdo anos
-          depois em vez de recalcular um novo. */}
-      <div className="bg-white rounded-xl shadow p-5">
-        <div className="flex items-center gap-2 mb-1">
-          <FileDown className="w-5 h-5 text-[#7d4a3c]" />
-          <h2 className="font-semibold text-gray-800">Documentos emitidos</h2>
-          <span className="text-xs text-gray-400">{emitidos.length}</span>
-        </div>
-        <p className="text-sm text-gray-500 mb-4">
-          Cada emissão fica registrada com número, data, quem emitiu e um selo do conteúdo.
-          Reemitir daqui reproduz exatamente o documento arquivado — não recalcula o período.
-        </p>
-
-        {emitidos.length === 0 ? (
-          <div className="bg-gray-50 rounded-lg p-6 text-center text-sm text-gray-400">
-            Nenhum relatório emitido ainda.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-gray-400 border-b border-gray-100">
-                  <th className="text-left font-medium py-2">Documento</th>
-                  <th className="text-left font-medium py-2 hidden sm:table-cell">Período</th>
-                  <th className="text-left font-medium py-2 hidden lg:table-cell">Emitido por</th>
-                  <th className="text-left font-medium py-2 hidden md:table-cell">Selo</th>
-                  <th className="text-right font-medium py-2">Reemitir</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {emitidos.map(d => (
-                  <tr key={d.id} className="hover:bg-gray-50 transition">
-                    <td className="py-2">
-                      <span className="text-gray-800">{d.numero_doc}</span>
-                      <span className="ml-2 text-xs text-gray-400">
-                        {d.tipo === 'jss' ? 'Carga de trabalho' : 'Bem-estar'}
-                      </span>
-                      <span className="block text-[11px] text-gray-400">
-                        {fmtDate(d.emitido_em.slice(0, 10))}
-                      </span>
-                    </td>
-                    <td className="py-2 text-xs text-gray-500 hidden sm:table-cell">
-                      {fmtDate(d.periodo_inicio)} a {fmtDate(d.periodo_fim)}
-                    </td>
-                    <td className="py-2 text-xs text-gray-500 hidden lg:table-cell">
-                      {d.emitido_por_nome ?? '—'}
-                    </td>
-                    <td className="py-2 text-[11px] text-gray-400 hidden md:table-cell font-mono">
-                      {formatarHash(d.hash_verificacao)}
-                    </td>
-                    <td className="py-2 text-right">
-                      <button
-                        onClick={() => reemitir(d)}
-                        className="inline-flex items-center gap-1 text-xs text-[#7d4a3c] hover:underline"
-                      >
-                        <FileDown className="w-3.5 h-3.5" /> PDF
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* O histórico de emissões saiu daqui: agora vive na aba
+          Documentos, junto com todos os outros documentos da empresa. Duas
+          listas do mesmo rastro obrigavam o RH a lembrar em qual tela cada
+          documento tinha sido gerado. */}
 
       <div className="flex items-start gap-2 text-xs text-gray-400 px-1">
         <BarChart3 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />

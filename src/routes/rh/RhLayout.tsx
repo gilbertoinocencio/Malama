@@ -42,11 +42,13 @@ const ABA_IMPACTO_ATIVA = false;
 const AbasDoPainel: React.FC<{ tabs: Tab[]; atual: string }> = ({ tabs, atual }) => {
   const { dados, loading } = useRhJornada();
 
-  // Documentos só entra na barra quando o ciclo fecha: antes disso não há o
-  // que emitir além do certificado, e uma aba a mais no dia 1 é mais uma
-  // decisão para quem já chega perdido. Estar na rota sem estar na barra é
-  // de propósito — o link direto continua funcionando.
-  const visiveis = tabs.filter(t => t.to !== '/rh/documentos' || cicloCompleto(dados));
+  // Documentos aparece sempre. Chegou a ficar oculta até o ciclo fechar,
+  // mas com a emissão inteira consolidada nela isso trancaria o certificado
+  // de disponibilização — que não depende do ciclo e é justamente o
+  // documento que uma empresa nova precisa. O que muda com o ciclo completo
+  // é a COR, não a existência: verde é a conquista que antes ocupava um card
+  // inteiro no dashboard.
+  const documentosProntos = cicloCompleto(dados);
 
   // Só marcamos "ainda sem dado" onde a jornada realmente sabe a resposta.
   // Relatos, Absenteísmo e Financeiro não passam por aqui, e chutar um
@@ -62,7 +64,7 @@ const AbasDoPainel: React.FC<{ tabs: Tab[]; atual: string }> = ({ tabs, atual })
   return (
     <nav className="flex gap-1 -mb-px overflow-x-auto" aria-label="Seções do painel">
       {grupos.map((grupo, gi) => {
-        const doGrupo = visiveis.filter(t => t.grupo === grupo);
+        const doGrupo = tabs.filter(t => t.grupo === grupo);
         if (doGrupo.length === 0) return null;
         return (
           <React.Fragment key={grupo}>
@@ -71,11 +73,10 @@ const AbasDoPainel: React.FC<{ tabs: Tab[]; atual: string }> = ({ tabs, atual })
             )}
             {doGrupo.map(tab => {
               const vazia = !loading && vazias[tab.to];
-              // Documentos em verde: ela só entra na barra com o ciclo
-              // fechado, e a cor é o que substitui o antigo card de "ciclo
-              // completo" no dashboard — a conquista vira a própria aba,
-              // sem ocupar quatro linhas acima do próximo passo.
-              const concluida = tab.to === '/rh/documentos';
+              // Verde quando o ciclo fechou: é o que substitui o antigo card
+              // de "ciclo completo" no dashboard — a conquista vira a própria
+              // aba, sem ocupar quatro linhas acima do próximo passo.
+              const concluida = tab.to === '/rh/documentos' && documentosProntos;
               const cor = concluida
                 ? (atual === tab.to
                     ? 'border-green-600 text-green-700'
@@ -88,7 +89,7 @@ const AbasDoPainel: React.FC<{ tabs: Tab[]; atual: string }> = ({ tabs, atual })
                   key={tab.to}
                   to={tab.to}
                   title={concluida
-                    ? 'Ciclo completo — relatórios e certificados prontos para emitir'
+                    ? 'Ciclo completo — todos os documentos disponíveis'
                     : (vazia || undefined)}
                   aria-label={vazia ? `${tab.label} — ${vazia}` : undefined}
                   className={`flex items-center gap-2 px-3 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition ${cor}`}
