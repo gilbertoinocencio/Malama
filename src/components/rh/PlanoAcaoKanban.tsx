@@ -117,7 +117,13 @@ export const PlanoAcaoKanban: React.FC<{
     const novoIndice = ETAPAS.findIndex(e => e.id === destino);
     if (item.status !== 'ativo') { toast.error('Esta jornada já foi concluída.'); return; }
     if (novoIndice !== atual + 1) { toast.error('Mova o cartão somente para o próximo marco.'); return; }
-    if (item.marco_status !== 'verificado') { toast.error('Verifique o combinado deste marco antes de avançar.'); return; }
+    if (item.marco_status !== 'verificado') {
+      // O RH só descobre o bloqueio quando tenta. Sem apontar ONDE resolver,
+      // a mensagem vira um "não" sem saída.
+      toast.error('Verifique o combinado deste marco antes de avançar. Abra o cartão e use “Verificar combinado”.');
+      setSelecionado(item.id);
+      return;
+    }
     setTransicao({ ciclo: item, destino });
   }, []);
 
@@ -218,9 +224,12 @@ const KanbanPlano: React.FC<{
   const [sobre, setSobre] = useState<LiderancaEtapa | null>(null);
 
   return <div>
-    <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
-      <GripVertical className="h-4 w-4" />
-      Depois de verificar o combinado, arraste o cartão de jornada para o próximo marco ou abra os detalhes.
+    <div className="mb-2 flex items-start gap-2 text-xs text-gray-500">
+      <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+      <span>
+        Cartão com a alça azul já teve o marco verificado e pode ser arrastado para o próximo.
+        Cartão com o relógio ainda espera verificação — abra-o para registrar.
+      </span>
     </div>
     <div className="-mx-1 overflow-x-auto pb-3">
       <div className="flex min-w-max gap-3 px-1">
@@ -285,10 +294,24 @@ const KanbanPlano: React.FC<{
                   .filter(a => a.status === 'planejada' || a.status === 'em_andamento')
                   .sort((a, b) => a.prazo.localeCompare(b.prazo))[0];
                 const concluidas = ciclo.acoes.filter(a => a.status === 'concluida').length;
+                // Pronto para avançar de fato. Serve para a alça e o cursor
+                // dizerem a verdade — antes a alça aparecia justamente em quem
+                // NÃO podia ser arrastado.
+                const prontoParaAvancar = ciclo.status === 'ativo' && ciclo.marco_status === 'verificado';
+                // Jornada ativa sempre inicia o arrasto, mesmo sem o marco
+                // verificado: é o `onDrop` que explica o que falta. Com
+                // draggable=false o arrasto não começava, o drop nunca ocorria
+                // e a mensagem de `mover()` era código morto — o RH arrastava
+                // e não acontecia nada, sem nenhum aviso.
                 return <button
                   key={ciclo.id}
                   type="button"
-                  draggable={ciclo.status === 'ativo' && ciclo.marco_status === 'verificado'}
+                  draggable={ciclo.status === 'ativo'}
+                  title={ciclo.status !== 'ativo'
+                    ? 'Jornada concluída — não avança mais de marco.'
+                    : prontoParaAvancar
+                      ? 'Arraste para o próximo marco ou abra para ver os detalhes.'
+                      : 'Verifique o combinado deste marco antes de avançar. Abra o cartão para registrar a verificação.'}
                   aria-pressed={selecionado === ciclo.id}
                   onDragStart={e => {
                     setArrastando(ciclo.id);
@@ -299,11 +322,15 @@ const KanbanPlano: React.FC<{
                   onClick={() => onSelecionar(ciclo.id)}
                   className={`w-full rounded-lg border border-l-4 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow ${marco.classe} ${
                     selecionado === ciclo.id ? 'border-[#7d4a3c] ring-1 ring-[#7d4a3c]/20' : 'border-gray-200'
-                  } ${arrastando === ciclo.id ? 'opacity-50' : ''}`}
+                  } ${arrastando === ciclo.id ? 'opacity-50' : ''} ${prontoParaAvancar ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0"><p className="truncate text-sm font-semibold text-gray-800">{ciclo.setor}</p><p className="mt-0.5 truncate text-[11px] text-gray-500">RH: {ciclo.responsavel_rh}</p></div>
-                    {ciclo.status === 'concluido' ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600" /> : ciclo.marco_status === 'verificado' ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-blue-600" /> : <GripVertical className="h-4 w-4 flex-shrink-0 cursor-grab text-gray-300" />}
+                    {ciclo.status === 'concluido'
+                      ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600" />
+                      : prontoParaAvancar
+                        ? <GripVertical className="h-4 w-4 flex-shrink-0 text-blue-500" />
+                        : <Clock3 className="h-4 w-4 flex-shrink-0 text-gray-300" />}
                   </div>
                   {ciclo.pontos_fortes[0] && <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-green-700"><span className="font-semibold">Bom:</span> {ciclo.pontos_fortes[0]}</p>}
                   {ciclo.pontos_atencao[0] && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-amber-700"><span className="font-semibold">Atenção:</span> {ciclo.pontos_atencao[0]}</p>}
