@@ -5,6 +5,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const CARAMELO_API_URL = (Deno.env.get('CARAMELO_API_URL') ?? '').replace(/\/$/, '');
 const CARAMELO_API_KEY = Deno.env.get('CARAMELO_API_KEY') ?? '';
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
 const MAX_REQUEST_BYTES = 64 * 1024;
 const TIMEOUT_MS = 90_000;
 
@@ -64,7 +65,47 @@ function jsonDoModelo(raw: string): Record<string, unknown> {
   throw new Error('Resposta estruturada inválida');
 }
 
-async function chamarCaramel(
+async function chamarGemini(
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+) {
+  if (!GEMINI_API_KEY) throw new Error('Gemini não configurado');
+
+  const system = messages
+    .filter(message => message.role === 'system')
+    .map(message => message.content)
+    .join('\n\n');
+  const contents = messages
+    .filter(message => message.role !== 'system')
+    .map(message => ({
+      role: message.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: message.content }],
+    }));
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...(system ? { system_instruction: { parts: [{ text: system }] } } : {}),
+        contents,
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 1600,
+          responseMimeType: 'application/json',
+        },
+      }),
+    },
+  );
+  if (!response.ok) throw new Error(`Gemini HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
+  const data = await response.json();
+  const content = data?.candidates?.[0]?.content?.parts
+    ?.map((part: { text?: unknown }) => typeof part.text === 'string' ? part.text : '')
+    .join('') ?? '';
+  if (!content.trim()) throw new Error('Gemini devolveu resposta vazia');
+  return { content, requestId: typeof data?.responseId === 'string' ? data.responseId : null };
+}
+
+async function chamarCaramelPrimario(
   model: 'caramelo-auto' | 'caramelo-baixinho',
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
 ) {
@@ -97,6 +138,21 @@ async function chamarCaramel(
     return { content, requestId: typeof data?.id === 'string' ? data.id : null };
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+/** Caramel é o provedor principal. Se estiver sem servidor, o copiloto do RH
+ * continua operacional via Gemini, já configurado como segredo do projeto. */
+async function chamarCaramel(
+  model: 'caramelo-auto' | 'caramelo-baixinho',
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+) {
+  try {
+    return await chamarCaramelPrimario(model, messages);
+  } catch (error) {
+    if (!GEMINI_API_KEY) throw error;
+    console.warn('[rh-agent] Caramel indisponível; usando fallback Gemini:', error);
+    return chamarGemini(messages);
   }
 }
 

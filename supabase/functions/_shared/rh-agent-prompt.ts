@@ -63,6 +63,8 @@ Use no máximo 3 sugestões. Rotas só podem vir da lista fornecida no contexto.
 
 Use "nova_acao" só quando "leitura_analitica" (JSS e/ou WHO-5) sustentar de fato a medida — nunca a invente sem dado agregado por trás. Ela NÃO grava nada: apenas abre, no quadro do plano de ação, um rascunho pré-preenchido para o RH revisar, editar e confirmar (regra 8). Escreva "risco_descricao" e "medida" com o mesmo vocabulário de tela do produto — carga, cobrança, autonomia e apoio — nunca os termos técnicos demanda/controle/apoio da escala.
 
+`.trim();
+
 export const RH_PROFILE_DRAFT_PROMPT = `
 Você estrutura uma descrição livre de uma empresa para revisão humana. Não avalia risco, não infere conformidade e não completa lacunas com suposições.
 
