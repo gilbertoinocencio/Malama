@@ -10,7 +10,7 @@ import {
   type LiderancaEtapa, type LiderancaVerificacaoResultado, type PlanoAcao, type PlanoFator,
   type PlanoNivel, type PlanoStatus, type PsychosocialSetor, type SetorEmpresa,
 } from '../../services/empresaService';
-import { gerarDiagnostico, type Sugestao } from '../../lib/planoSugestoes';
+import { gerarDiagnostico, type Diagnostico, type Sugestao } from '../../lib/planoSugestoes';
 import { FATOR_LABEL, FATORES, NIVEIS, NIVEL_LABEL, STATUS_INFO } from '../../lib/planoAcaoLabels';
 
 const ETAPAS: { id: LiderancaEtapa; label: string; curto: string }[] = [
@@ -217,8 +217,8 @@ export const PlanoAcaoKanban: React.FC<{
         onClose={() => setEscolhendo(false)}
       />}
 
-      {novo && <CicloForm setores={setores} jss={jss} setorInicial={setorInicial} onClose={() => setNovo(false)} onSaved={async id => { setNovo(false); await carregar(); setSelecionado(id); }} />}
-      {editando && ciclo && <PontosForm ciclo={ciclo} onClose={() => setEditando(false)} onSaved={() => { setEditando(false); void carregar(); }} />}
+      {novo && <CicloForm setores={setores} jss={jss} who5={who5} setorInicial={setorInicial} onClose={() => setNovo(false)} onSaved={async id => { setNovo(false); await carregar(); setSelecionado(id); }} />}
+      {editando && ciclo && <PontosForm ciclo={ciclo} jss={jss} who5={who5} onClose={() => setEditando(false)} onSaved={() => { setEditando(false); void carregar(); }} />}
       {acao && ciclo && <AcaoForm ciclo={ciclo} sugestao={acao} onClose={() => setAcao(null)} onSaved={() => { setAcao(null); void carregar(); }} />}
       {verificando && <VerificacaoForm ciclo={verificando} onClose={() => setVerificando(null)} onSaved={() => { setVerificando(null); void carregar(); }} />}
       {transicao && <PrazoMarcoForm ciclo={transicao.ciclo} destino={transicao.destino} onClose={() => setTransicao(null)} onSaved={() => { setTransicao(null); void carregar(); }} />}
@@ -611,16 +611,71 @@ const EscolhaTipo: React.FC<{ onMedida: () => void; onJornada: () => void; onClo
   </Modal>;
 };
 
-const CicloForm: React.FC<{ setores:SetorEmpresa[]; jss:Awaited<ReturnType<typeof rhService.getRelatorioJss>>; setorInicial?:string|null; onClose:()=>void; onSaved:(id:string)=>void }> = ({ setores,jss,setorInicial,onClose,onSaved }) => {
-  const fimPadrao=new Date();fimPadrao.setMonth(fimPadrao.getMonth()+3);
-  const [setor,setSetor]=useState(setorInicial??'');const [fim,setFim]=useState(fimPadrao.toISOString().slice(0,10));const [marcoPrazo,setMarcoPrazo]=useState(somarDias(7,fimPadrao.toISOString().slice(0,10)));const [rh,setRh]=useState('');const [fortes,setFortes]=useState('');const [atencao,setAtencao]=useState('');const [saving,setSaving]=useState(false);
-  const preencher=()=>{const d=gerarDiagnostico(jss?.setores.find(s=>s.setor===setor),jss?.cortes);setFortes(d.fortes.join('\n'));setAtencao(d.atencao.join('\n'));};
-  useEffect(()=>{if(!setorInicial)return;const d=gerarDiagnostico(jss?.setores.find(s=>s.setor===setorInicial),jss?.cortes);setFortes(d.fortes.join('\n'));setAtencao(d.atencao.join('\n'));},[jss,setorInicial]);
-  const salvar=async()=>{setSaving(true);const res=await rhService.criarLiderancaCiclo({setor,fim,marcoPrazo,responsavelRh:rh,pontosFortes:linhas(fortes),pontosAtencao:linhas(atencao)});setSaving(false);if(!res.ok||!res.id)return toast.error(res.error||'Não foi possível iniciar.');toast.success('Jornada iniciada.');onSaved(res.id);};
-  return <Modal title="Iniciar jornada de liderança" onClose={onClose}><div className="space-y-4 p-5"><label className="block text-sm font-medium">Setor<select className={`${input} mt-1`} value={setor} onChange={e=>setSetor(e.target.value)}><option value="">Escolha...</option>{setores.map(s=><option key={s.setor}>{s.setor}</option>)}</select></label>{setor&&<button onClick={preencher} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7d4a3c]"><RefreshCw className="h-3.5 w-3.5" /> Usar diagnóstico agregado atual</button>}<label className="block text-sm font-medium">O que está funcionando<textarea className={`${input} mt-1`} rows={3} value={fortes} onChange={e=>setFortes(e.target.value)} placeholder="Um ponto por linha" /></label><label className="block text-sm font-medium">O que precisa melhorar<textarea className={`${input} mt-1`} rows={3} value={atencao} onChange={e=>setAtencao(e.target.value)} placeholder="Um ponto por linha" /></label><div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm font-medium">Responsável do RH<input className={`${input} mt-1`} value={rh} onChange={e=>setRh(e.target.value)} /></label><label className="block text-sm font-medium">Fim do ciclo<input type="date" min={hojeIso()} className={`${input} mt-1`} value={fim} onChange={e=>setFim(e.target.value)} /></label><label className="block text-sm font-medium sm:col-span-2">Verificar o primeiro marco em<input type="date" min={hojeIso()} max={fim} className={`${input} mt-1`} value={marcoPrazo} onChange={e=>setMarcoPrazo(e.target.value)} /><span className="mt-1 block text-xs font-normal text-gray-500">Defina essa data junto com a liderança. O painel lembrará o RH de checar o combinado.</span></label></div><p className="text-xs text-gray-500">Esses textos podem ser ajustados junto com o gestor. Nenhuma nota ou quantidade de respostas será levada ao resumo.</p></div><div className="flex justify-end gap-2 border-t p-5"><button onClick={onClose} className="px-4 py-2 text-sm">Cancelar</button><button disabled={saving} onClick={salvar} className="rounded-lg bg-[#7d4a3c] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving?'Salvando...':'Iniciar jornada'}</button></div></Modal>;
+type RelatorioJss = Awaited<ReturnType<typeof rhService.getRelatorioJss>>;
+type RelatorioWho5 = Awaited<ReturnType<typeof rhService.getRelatorioPsicossocial>>;
+
+/** Leitura agregada de um setor, cruzando JSS (organização do trabalho) e
+ *  WHO-5 (bem-estar). Antes só a JSS era consultada aqui, então o termômetro
+ *  de bem-estar nunca chegava aos pontos da conversa. */
+const leituraDoSetor = (setor: string, jss: RelatorioJss, who5: RelatorioWho5): Diagnostico | null =>
+  setor
+    ? gerarDiagnostico(
+        jss?.setores.find(s => s.setor === setor),
+        jss?.cortes,
+        who5?.setores.find(s => s.setor === setor),
+      )
+    : null;
+
+/**
+ * Traz os pontos da conversa a partir dos relatórios. Fica sempre visível:
+ * antes era um link que só existia depois de escolher o setor, então quem
+ * abria o formulário não descobria que a opção existia.
+ */
+const PuxarDosRelatorios: React.FC<{ diagnostico: Diagnostico | null; onPuxar: () => void }> = ({ diagnostico, onPuxar }) => {
+  if (!diagnostico) {
+    return <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
+      Escolha o setor para puxar a leitura do WHO-5 e da JSS.
+    </p>;
+  }
+  const total = diagnostico.fortes.length + diagnostico.atencao.length;
+  if (total === 0) {
+    // Sem isso, o botão preenchia nada e o RH ficava sem saber se era falha
+    // da tela ou ausência de dado.
+    return <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
+      Sem recorte publicado para este setor no período — pode ser falta de respostas ou o piso de
+      anonimato. Preencha os pontos na conversa com o gestor.
+    </p>;
+  }
+  return <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#7d4a3c]/5 px-3 py-2">
+    <p className="text-xs text-gray-600">
+      Os relatórios trazem <strong>{diagnostico.fortes.length}</strong> ponto(s) que vão bem e{' '}
+      <strong>{diagnostico.atencao.length}</strong> de atenção.
+    </p>
+    <button type="button" onClick={onPuxar} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#7d4a3c] px-2.5 py-1 text-xs font-semibold text-[#7d4a3c] transition hover:bg-[#7d4a3c]/10">
+      <RefreshCw className="h-3.5 w-3.5" /> Puxar dos relatórios
+    </button>
+  </div>;
 };
 
-const PontosForm: React.FC<{ ciclo:LiderancaCiclo;onClose:()=>void;onSaved:()=>void }> = ({ciclo,onClose,onSaved}) => {const[fortes,setFortes]=useState(ciclo.pontos_fortes.join('\n'));const[atencao,setAtencao]=useState(ciclo.pontos_atencao.join('\n'));const[rh,setRh]=useState(ciclo.responsavel_rh);const[fim,setFim]=useState(ciclo.fim);const salvar=async()=>{const res=await rhService.atualizarLiderancaPontos({id:ciclo.id,fim,responsavelRh:rh,pontosFortes:linhas(fortes),pontosAtencao:linhas(atencao)});if(!res.ok)return toast.error(res.error||'Não foi possível salvar.');toast.success('Pontos atualizados.');onSaved();};return <Modal title="Pontos da conversa" onClose={onClose}><div className="space-y-4 p-5"><label className="block text-sm font-medium">O que está funcionando<textarea className={`${input} mt-1`} rows={4} value={fortes} onChange={e=>setFortes(e.target.value)} /></label><label className="block text-sm font-medium">O que precisa melhorar<textarea className={`${input} mt-1`} rows={4} value={atencao} onChange={e=>setAtencao(e.target.value)} /></label><div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm font-medium">Responsável do RH<input className={`${input} mt-1`} value={rh} onChange={e=>setRh(e.target.value)} /></label><label className="block text-sm font-medium">Fim do ciclo<input type="date" className={`${input} mt-1`} value={fim} onChange={e=>setFim(e.target.value)} /></label></div></div><div className="flex justify-end gap-2 border-t p-5"><button onClick={onClose} className="px-4 py-2 text-sm">Cancelar</button><button onClick={salvar} className="rounded-lg bg-[#7d4a3c] px-5 py-2 text-sm font-semibold text-white">Salvar</button></div></Modal>;};
+const CicloForm: React.FC<{ setores:SetorEmpresa[]; jss:RelatorioJss; who5:RelatorioWho5; setorInicial?:string|null; onClose:()=>void; onSaved:(id:string)=>void }> = ({ setores,jss,who5,setorInicial,onClose,onSaved }) => {
+  const fimPadrao=new Date();fimPadrao.setMonth(fimPadrao.getMonth()+3);
+  const [setor,setSetor]=useState(setorInicial??'');const [fim,setFim]=useState(fimPadrao.toISOString().slice(0,10));const [marcoPrazo,setMarcoPrazo]=useState(somarDias(7,fimPadrao.toISOString().slice(0,10)));const [rh,setRh]=useState('');const [fortes,setFortes]=useState('');const [atencao,setAtencao]=useState('');const [saving,setSaving]=useState(false);
+  const diagnostico = useMemo(() => leituraDoSetor(setor, jss, who5), [setor, jss, who5]);
+  const aplicar = (d: Diagnostico | null) => { setFortes(d?.fortes.join('\n') ?? ''); setAtencao(d?.atencao.join('\n') ?? ''); };
+  // Escolher o setor já traz a leitura: era o passo que ninguém descobria.
+  // Trocar de setor substitui os textos de propósito — eles descrevem AQUELE
+  // setor, e manter os do anterior seria pior do que limpar.
+  const escolherSetor = (novo: string) => { setSetor(novo); aplicar(leituraDoSetor(novo, jss, who5)); };
+  useEffect(()=>{if(setorInicial)aplicar(leituraDoSetor(setorInicial,jss,who5));},[jss,who5,setorInicial]);
+  const salvar=async()=>{setSaving(true);const res=await rhService.criarLiderancaCiclo({setor,fim,marcoPrazo,responsavelRh:rh,pontosFortes:linhas(fortes),pontosAtencao:linhas(atencao)});setSaving(false);if(!res.ok||!res.id)return toast.error(res.error||'Não foi possível iniciar.');toast.success('Jornada iniciada.');onSaved(res.id);};
+  return <Modal title="Iniciar jornada de liderança" onClose={onClose}><div className="space-y-4 p-5"><label className="block text-sm font-medium">Setor<select className={`${input} mt-1`} value={setor} onChange={e=>escolherSetor(e.target.value)}><option value="">Escolha...</option>{setores.map(s=><option key={s.setor}>{s.setor}</option>)}</select></label><PuxarDosRelatorios diagnostico={diagnostico} onPuxar={()=>aplicar(diagnostico)} /><label className="block text-sm font-medium">O que está funcionando<textarea className={`${input} mt-1`} rows={3} value={fortes} onChange={e=>setFortes(e.target.value)} placeholder="Um ponto por linha" /></label><label className="block text-sm font-medium">O que precisa melhorar<textarea className={`${input} mt-1`} rows={3} value={atencao} onChange={e=>setAtencao(e.target.value)} placeholder="Um ponto por linha" /></label><div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm font-medium">Responsável<input className={`${input} mt-1`} value={rh} onChange={e=>setRh(e.target.value)} /></label><label className="block text-sm font-medium">Fim do ciclo<input type="date" min={hojeIso()} className={`${input} mt-1`} value={fim} onChange={e=>setFim(e.target.value)} /></label><label className="block text-sm font-medium sm:col-span-2">Verificar o primeiro marco em<input type="date" min={hojeIso()} max={fim} className={`${input} mt-1`} value={marcoPrazo} onChange={e=>setMarcoPrazo(e.target.value)} /><span className="mt-1 block text-xs font-normal text-gray-500">Defina essa data junto com a liderança. O painel lembrará o RH de checar o combinado.</span></label></div><p className="text-xs text-gray-500">Esses textos podem ser ajustados junto com o gestor. Nenhuma nota ou quantidade de respostas será levada ao resumo.</p></div><div className="flex justify-end gap-2 border-t p-5"><button onClick={onClose} className="px-4 py-2 text-sm">Cancelar</button><button disabled={saving} onClick={salvar} className="rounded-lg bg-[#7d4a3c] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving?'Salvando...':'Iniciar jornada'}</button></div></Modal>;
+};
+
+const PontosForm: React.FC<{ ciclo:LiderancaCiclo;jss:RelatorioJss;who5:RelatorioWho5;onClose:()=>void;onSaved:()=>void }> = ({ciclo,jss,who5,onClose,onSaved}) => {const[fortes,setFortes]=useState(ciclo.pontos_fortes.join('\n'));const[atencao,setAtencao]=useState(ciclo.pontos_atencao.join('\n'));const[rh,setRh]=useState(ciclo.responsavel_rh);const[fim,setFim]=useState(ciclo.fim);
+  // Aqui o setor já está definido pela jornada. Puxar de novo é útil porque
+  // os relatórios mudam entre um ciclo e outro.
+  const diagnostico = useMemo(() => leituraDoSetor(ciclo.setor, jss, who5), [ciclo.setor, jss, who5]);
+  const salvar=async()=>{const res=await rhService.atualizarLiderancaPontos({id:ciclo.id,fim,responsavelRh:rh,pontosFortes:linhas(fortes),pontosAtencao:linhas(atencao)});if(!res.ok)return toast.error(res.error||'Não foi possível salvar.');toast.success('Pontos atualizados.');onSaved();};return <Modal title="Pontos da conversa" onClose={onClose}><div className="space-y-4 p-5"><PuxarDosRelatorios diagnostico={diagnostico} onPuxar={()=>{setFortes(diagnostico?.fortes.join('\n')??'');setAtencao(diagnostico?.atencao.join('\n')??'');}} /><label className="block text-sm font-medium">O que está funcionando<textarea className={`${input} mt-1`} rows={4} value={fortes} onChange={e=>setFortes(e.target.value)} /></label><label className="block text-sm font-medium">O que precisa melhorar<textarea className={`${input} mt-1`} rows={4} value={atencao} onChange={e=>setAtencao(e.target.value)} /></label><div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm font-medium">Responsável<input className={`${input} mt-1`} value={rh} onChange={e=>setRh(e.target.value)} /></label><label className="block text-sm font-medium">Fim do ciclo<input type="date" className={`${input} mt-1`} value={fim} onChange={e=>setFim(e.target.value)} /></label></div></div><div className="flex justify-end gap-2 border-t p-5"><button onClick={onClose} className="px-4 py-2 text-sm">Cancelar</button><button onClick={salvar} className="rounded-lg bg-[#7d4a3c] px-5 py-2 text-sm font-semibold text-white">Salvar</button></div></Modal>;};
 
 const AcaoForm: React.FC<{ciclo:LiderancaCiclo;sugestao:Sugestao;onClose:()=>void;onSaved:()=>void}> = ({ciclo,sugestao,onClose,onSaved}) => {const prazoPadrao=new Date();prazoPadrao.setMonth(prazoPadrao.getMonth()+1);const[objetivo,setObjetivo]=useState(sugestao.objetivo);const[medida,setMedida]=useState(sugestao.medida);const[responsavel,setResponsavel]=useState('Gestor do setor');const[prazo,setPrazo]=useState(prazoPadrao.toISOString().slice(0,10));const[saving,setSaving]=useState(false);const salvar=async()=>{setSaving(true);const res=await rhService.adicionarLiderancaAcao({cicloId:ciclo.id,fator:sugestao.fator,objetivo,medida,nivelControle:sugestao.nivel,responsavel,prazo});setSaving(false);if(!res.ok)return toast.error(res.error||'Não foi possível registrar.');toast.success('Combinado adicionado ao plano de ação.');onSaved();};return <Modal title={`Novo combinado — ${ciclo.setor}`} onClose={onClose}><div className="space-y-4 p-5"><label className="block text-sm font-medium">Objetivo<textarea className={`${input} mt-1`} rows={2} value={objetivo} onChange={e=>setObjetivo(e.target.value)} /></label><label className="block text-sm font-medium">Ação combinada<textarea className={`${input} mt-1`} rows={3} value={medida} onChange={e=>setMedida(e.target.value)} /></label><div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm font-medium">Responsável<input className={`${input} mt-1`} value={responsavel} onChange={e=>setResponsavel(e.target.value)} /></label><label className="block text-sm font-medium">Prazo<input type="date" className={`${input} mt-1`} value={prazo} onChange={e=>setPrazo(e.target.value)} /></label></div><p className="text-xs text-gray-500">O combinado também será registrado no Plano de Ação formal, com prazo e evidência.</p></div><div className="flex justify-end gap-2 border-t p-5"><button onClick={onClose} className="px-4 py-2 text-sm">Cancelar</button><button disabled={saving} onClick={salvar} className="rounded-lg bg-[#7d4a3c] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving?'Salvando...':'Adicionar combinado'}</button></div></Modal>;};
 
