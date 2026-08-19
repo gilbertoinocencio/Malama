@@ -182,7 +182,7 @@ export const PlanoAcaoKanban: React.FC<{
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-[#7d4a3c]/20 bg-[#7d4a3c]/5 p-4">
-        <div className="flex items-start gap-3"><UsersRound className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#7d4a3c]" /><div><p className="text-sm font-semibold text-gray-800">Um quadro só para o plano de ação</p><p className="mt-1 text-xs leading-relaxed text-gray-600">Ações gerais e jornadas de liderança convivem aqui. Não existe ranking entre setores — o RH usa este espaço para reconhecer o que está bom, combinar melhorias e acompanhar execução. Nenhuma resposta individual ou relato confidencial aparece aqui.</p></div></div>
+        <div className="flex items-start gap-3"><UsersRound className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#7d4a3c]" /><div><p className="text-sm font-semibold text-gray-800">Uma tela só, dois quadros</p><p className="mt-1 text-xs leading-relaxed text-gray-600">Ações gerais andam por status; jornadas de liderança andam por marco. São ciclos diferentes, por isso quadros separados — mas tudo alimenta o mesmo plano de ação. Não existe ranking entre setores, e nenhuma resposta individual ou relato confidencial aparece aqui.</p></div></div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -203,6 +203,7 @@ export const PlanoAcaoKanban: React.FC<{
         onSelecionar={setSelecionado}
         onSelecionarAcao={setAcaoSelecionada}
         onAvancar={avancar}
+        onStatusAcao={mudarStatusAcaoGeral}
       />
 
       {ciclo && <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={() => setSelecionado(null)}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}><div className="mb-3 flex items-center justify-end">
@@ -233,6 +234,81 @@ export const PlanoAcaoKanban: React.FC<{
   );
 };
 
+// Colunas do ciclo de vida de uma medida avulsa. É um eixo PRÓPRIO: uma ação
+// nunca vira marco de jornada (tabelas e ciclos de vida diferentes), então
+// misturar as duas coisas numa faixa só prometia um movimento impossível.
+const COLUNAS_ACAO: { id: PlanoStatus; label: string; vazio: string }[] = [
+  { id: 'planejada', label: 'Planejada', vazio: 'Nada planejado.' },
+  { id: 'em_andamento', label: 'Em andamento', vazio: 'Nada em execução.' },
+  { id: 'concluida', label: 'Concluída', vazio: 'Nada concluído ainda.' },
+];
+
+const QuadroAcoesGerais: React.FC<{
+  acoes: PlanoAcao[];
+  selecionadoAcao: string | null;
+  onSelecionarAcao: (id: string) => void;
+  onStatus: (item: PlanoAcao, status: PlanoStatus) => Promise<void>;
+}> = ({ acoes, selecionadoAcao, onSelecionarAcao, onStatus }) => {
+  const canceladas = acoes.filter(a => a.status === 'cancelada');
+  // A coluna de canceladas só existe quando há o que mostrar — some do
+  // caminho no caso comum, mas nunca esconde registro.
+  const colunas = canceladas.length > 0
+    ? [...COLUNAS_ACAO, { id: 'cancelada' as PlanoStatus, label: 'Cancelada', vazio: '—' }]
+    : COLUNAS_ACAO;
+
+  return <section>
+    <header className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <h3 className="flex items-center gap-1.5 text-sm font-semibold text-gray-800"><ClipboardList className="h-4 w-4 text-gray-400" /> Ações gerais</h3>
+      <p className="text-xs text-gray-500">Medidas avulsas, sem jornada de liderança. Andam por status, pelos botões do cartão.</p>
+    </header>
+    <div className="-mx-1 overflow-x-auto pb-2">
+      <div className="flex min-w-max gap-3 px-1">
+        {colunas.map(coluna => {
+          const itens = acoes.filter(a => a.status === coluna.id);
+          return <section key={coluna.id} className="w-[260px] rounded-xl border border-gray-200 bg-gray-100/70 p-3">
+            <header className="mb-3 flex items-center justify-between gap-2 px-1">
+              <p className="text-sm font-semibold text-gray-800">{coluna.label}</p>
+              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-gray-500 shadow-sm">{itens.length}</span>
+            </header>
+            <div className="min-h-24 space-y-2">
+              {itens.length === 0 && <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-gray-300 px-4 text-center text-xs text-gray-400">{coluna.vazio}</div>}
+              {itens.map(item => <div
+                key={item.id}
+                role="button"
+                tabIndex={0}
+                aria-pressed={selecionadoAcao === item.id}
+                onClick={() => onSelecionarAcao(item.id)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelecionarAcao(item.id); } }}
+                className={`w-full cursor-pointer rounded-lg border border-l-4 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow ${
+                  item.atrasada ? '!border-l-red-400 bg-red-50/40' : item.status === 'concluida' ? '!border-l-green-400 bg-green-50/40' : 'border-l-transparent bg-white'
+                } ${selecionadoAcao === item.id ? 'border-[#7d4a3c] ring-1 ring-[#7d4a3c]/20' : 'border-gray-200'}`}
+              >
+                <p className="truncate text-sm font-semibold text-gray-800">{item.setor ?? 'Toda a empresa'}</p>
+                <p className="mt-0.5 text-[11px] text-gray-500">{FATOR_LABEL[item.fator]} · {NIVEL_LABEL[item.nivel_controle]}</p>
+                <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-600">{item.risco_descricao}</p>
+                <p className={`mt-2 text-[11px] ${item.atrasada ? 'font-semibold text-red-600' : 'text-gray-400'}`}>
+                  {item.atrasada ? `Fora do prazo · ${dataBr(item.prazo)}` : `prazo ${dataBr(item.prazo)}`}
+                </p>
+                {item.status === 'planejada' && <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); void onStatus(item, 'em_andamento'); }}
+                  className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-[11px] font-semibold text-gray-600 transition hover:bg-gray-50"
+                >Iniciar <ArrowRight className="h-3 w-3" /></button>}
+                {item.status === 'em_andamento' && <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); void onStatus(item, 'concluida'); }}
+                  className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#7d4a3c] px-2 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#623a2f]"
+                >Concluir com evidência <ArrowRight className="h-3 w-3" /></button>}
+                {item.status === 'concluida' && item.evidencia && <p className="mt-2 line-clamp-2 border-t border-gray-100 pt-2 text-[11px] leading-relaxed text-green-700"><span className="font-semibold">Evidência:</span> {item.evidencia}</p>}
+              </div>)}
+            </div>
+          </section>;
+        })}
+      </div>
+    </div>
+  </section>;
+};
+
 const KanbanPlano: React.FC<{
   ciclos: LiderancaCiclo[];
   acoesGerais: PlanoAcao[];
@@ -241,49 +317,23 @@ const KanbanPlano: React.FC<{
   onSelecionar: (id: string) => void;
   onSelecionarAcao: (id: string) => void;
   onAvancar: (ciclo: LiderancaCiclo) => void;
-}> = ({ ciclos, acoesGerais, selecionado, selecionadoAcao, onSelecionar, onSelecionarAcao, onAvancar }) => {
-  return <div>
-    <div className="mb-2 flex items-start gap-2 text-xs text-gray-500">
-      <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
-      <span>
-        Cada cartão mostra o que ainda falta para avançar de marco. Quando nada faltar,
-        o botão “Avançar” aparece no próprio cartão.
-      </span>
-    </div>
-    <div className="-mx-1 overflow-x-auto pb-3">
-      <div className="flex min-w-max gap-3 px-1">
-        <section className="w-[270px] shrink-0 rounded-xl border border-gray-200 bg-gray-100/70 p-3">
-          <header className="mb-3 flex items-center justify-between gap-2 px-1">
-            <div className="flex items-center gap-1.5"><ClipboardList className="h-3.5 w-3.5 text-gray-400" /><div><p className="text-sm font-semibold text-gray-800">Ações gerais</p><p className="text-[11px] text-gray-400">Sem jornada de liderança</p></div></div>
-            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-gray-500 shadow-sm">{acoesGerais.length}</span>
-          </header>
-          <div className="min-h-32 space-y-2">
-            {acoesGerais.length === 0 && <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-gray-300 px-4 text-center text-xs text-gray-400">Nenhuma ação avulsa registrada.</div>}
-            {acoesGerais.map(item => {
-              const info = STATUS_INFO[item.status];
-              return <button
-                key={item.id}
-                type="button"
-                aria-pressed={selecionadoAcao === item.id}
-                onClick={() => onSelecionarAcao(item.id)}
-                className={`w-full rounded-lg border border-l-4 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow ${
-                  item.atrasada ? '!border-l-red-400 bg-red-50/40' : item.status === 'concluida' ? '!border-l-green-400 bg-green-50/40' : 'border-l-transparent bg-white'
-                } ${selecionadoAcao === item.id ? 'border-[#7d4a3c] ring-1 ring-[#7d4a3c]/20' : 'border-gray-200'}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="truncate text-sm font-semibold text-gray-800">{item.setor ?? 'Toda a empresa'}</p>
-                  <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${info.cls}`}>{info.label}</span>
-                </div>
-                <p className="mt-0.5 text-[11px] text-gray-500">{FATOR_LABEL[item.fator]}</p>
-                <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-600">{item.risco_descricao}</p>
-                <div className="mt-2 flex items-center justify-between gap-2 text-[11px]">
-                  <span className={item.atrasada ? 'font-semibold text-red-600' : 'text-gray-400'}>{item.atrasada ? 'Fora do prazo' : `prazo ${dataBr(item.prazo)}`}</span>
-                </div>
-              </button>;
-            })}
-          </div>
-        </section>
+  onStatusAcao: (item: PlanoAcao, status: PlanoStatus) => Promise<void>;
+}> = ({ ciclos, acoesGerais, selecionado, selecionadoAcao, onSelecionar, onSelecionarAcao, onAvancar, onStatusAcao }) => {
+  return <div className="space-y-6">
+    <QuadroAcoesGerais
+      acoes={acoesGerais}
+      selecionadoAcao={selecionadoAcao}
+      onSelecionarAcao={onSelecionarAcao}
+      onStatus={onStatusAcao}
+    />
 
+    <section>
+      <header className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold text-gray-800"><UsersRound className="h-4 w-4 text-gray-400" /> Jornadas de liderança</h3>
+        <p className="text-xs text-gray-500">Um setor por jornada. Cada cartão mostra o que falta para avançar de marco; quando nada faltar, o botão “Avançar” aparece nele.</p>
+      </header>
+      <div className="-mx-1 overflow-x-auto pb-3">
+        <div className="flex min-w-max gap-3 px-1">
         {ETAPAS.map((etapa, indice) => {
           const itens = ciclos.filter(c => c.etapa === etapa.id);
           return <section
@@ -354,8 +404,9 @@ const KanbanPlano: React.FC<{
             </div>
           </section>;
         })}
+        </div>
       </div>
-    </div>
+    </section>
   </div>;
 };
 
