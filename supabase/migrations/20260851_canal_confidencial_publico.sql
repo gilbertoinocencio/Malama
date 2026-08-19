@@ -20,6 +20,14 @@
 --    Cartaz com QR foi descartado de propósito. Escanear um QR de assédio é um
 --    ato público: quem faz fica visível para a câmera do corredor e para quem
 --    passa. O anonimato morreria antes do primeiro caractere.
+--
+-- DE QUEBRA, ISTO CONSERTA O CANAL DO APP, QUE NUNCA FUNCIONOU. A versão
+-- anterior de enviar_relato_confidencial chamava crypt()/gen_salt() do
+-- pgcrypto sob SET search_path = public, mas neste projeto a extensão está no
+-- schema "extensions" (ver 20260627_clinical_dataloop_foundation.sql). Os
+-- nomes não resolviam e todo envio morria com "function crypt(...) does not
+-- exist". Sem chave para gerar, o problema deixa de existir. Nada aqui pode
+-- voltar a depender de pgcrypto sem qualificar o schema.
 -- =====================================================
 
 -- ── 1. Fim do acompanhamento ───────────────────────────────────────────────
@@ -152,7 +160,11 @@ BEGIN
 
   IF v_empresa IS NULL THEN RAISE EXCEPTION 'Link inválido'; END IF;
 
-  v_hash := encode(digest(p_token, 'sha256'), 'hex');
+  -- sha256() nativa do Postgres, e NÃO digest() do pgcrypto: neste projeto a
+  -- extensão vive no schema "extensions", então sob SET search_path = public a
+  -- digest() não resolve e a função inteira morre com "function does not
+  -- exist". Foi assim que o canal do app nasceu quebrado (ver abaixo).
+  v_hash := encode(sha256(p_token::bytea), 'hex');
   INSERT INTO public.relatos_publicos_throttle(token_hash, dia, contagem)
   VALUES (v_hash, CURRENT_DATE, 1)
   ON CONFLICT (token_hash, dia)
