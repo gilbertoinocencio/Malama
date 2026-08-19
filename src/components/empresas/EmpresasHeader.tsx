@@ -87,6 +87,12 @@ export const EmpresasHeader: React.FC<{ aba: AbaEmpresas }> = ({ aba }) => {
             >
               Falar com especialista
             </button>
+            <Link
+              to="/empresas/cadastro"
+              className="rounded-full bg-Malama-main px-4 py-2 text-sm font-medium tracking-wide text-white transition-colors hover:bg-Malama-petrol"
+            >
+              Começar agora
+            </Link>
           </nav>
 
           <button
@@ -123,6 +129,9 @@ export const EmpresasHeader: React.FC<{ aba: AbaEmpresas }> = ({ aba }) => {
             <button onClick={irParaContato} className="text-left text-xl font-serif text-Malama-petrol">
               Falar com especialista
             </button>
+            <Link to="/empresas/cadastro" onClick={() => setIsMenuOpen(false)} className="text-xl font-serif text-Malama-main">
+              Começar agora
+            </Link>
           </motion.div>
         )}
       </AnimatePresence>

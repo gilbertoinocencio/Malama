@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { motion, type Variants } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   Stethoscope, Syringe, Salad, BarChart2,
@@ -128,11 +129,14 @@ export const EmpresasLandingPage: React.FC = () => {
                 ))}
               </motion.div>
 
-              <motion.div variants={fadeInUp}>
-                <button onClick={scrollToContato}
-                  className="group inline-flex items-center gap-3 bg-Malama-main text-white px-8 py-4 rounded-full font-medium text-base hover:bg-Malama-petrol transition-colors duration-300">
-                  Falar com um especialista
+              <motion.div variants={fadeInUp} className="flex flex-wrap gap-3">
+                <Link to="/empresas/cadastro" className="group inline-flex items-center gap-3 bg-Malama-main text-white px-8 py-4 rounded-full font-medium text-base hover:bg-Malama-petrol transition-colors duration-300">
+                  Começar agora
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <button onClick={scrollToContato}
+                  className="inline-flex items-center gap-3 border border-Malama-main/20 text-Malama-main px-8 py-4 rounded-full font-medium text-base hover:border-Malama-petrol hover:text-Malama-petrol transition-colors duration-300">
+                  Falar com um especialista
                 </button>
               </motion.div>
             </div>

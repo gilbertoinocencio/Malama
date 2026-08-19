@@ -7,7 +7,7 @@
 import { supabase } from './supabase';
 
 // ─── Tipos ─────────────────────────────────────────────
-export type EmpresaStatus = 'ativa' | 'pausada' | 'encerrada';
+export type EmpresaStatus = 'em_configuracao' | 'ativa' | 'pausada' | 'encerrada';
 
 export type Empresa = {
   id: string;
@@ -80,7 +80,7 @@ export type BillingEvento = {
   created_at: string;
 };
 
-export type ColaboradorStatus = 'convidado' | 'ativo' | 'removido';
+export type ColaboradorStatus = 'rascunho' | 'convidado' | 'ativo' | 'removido';
 
 export type EmpresaColaborador = {
   id: string;

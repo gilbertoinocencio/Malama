@@ -83,7 +83,8 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (empError || !empresa) return json({ error: 'Empresa não encontrada' }, 404);
-    if (empresa.status !== 'ativa') return json({ error: 'A conta da empresa não está ativa' }, 403);
+    const emConfiguracao = empresa.status === 'em_configuracao';
+    if (empresa.status !== 'ativa' && !emConfiguracao) return json({ error: 'A conta da empresa não está ativa' }, 403);
 
     // 2.1 Canonicalizar o setor contra o registro da empresa (migration
     // 20260824). O texto gravado aqui é a chave de junção dos relatórios por
@@ -121,6 +122,23 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (existing) return json({ error: 'Este colaborador já está vinculado à empresa' }, 409);
+
+    // Na configuração a lista é apenas um rascunho: não ocupa assento,
+    // não vincula conta e não envia convite antes de haver contrato.
+    if (emConfiguracao) {
+      const { error: draftError } = await supabaseAdmin
+        .from('empresa_colaboradores')
+        .insert([{
+          empresa_id: empresaId,
+          email: normalizedEmail,
+          status: 'rascunho',
+          setor: setorValue,
+          funcao: funcaoValue,
+          whatsapp: whatsappValue,
+        }]);
+      if (draftError) return json({ error: draftError.message }, 400);
+      return json({ status: 'rascunho', warning: 'Pessoa salva para convite após a ativação comercial.' });
+    }
 
     // 4. Validar limite de assentos (ativos + convidados ocupam assento)
     const { count } = await supabaseAdmin

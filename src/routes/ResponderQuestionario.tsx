@@ -144,17 +144,14 @@ export const ResponderQuestionario: React.FC = () => {
       );
     }
 
+    // Sem a porta do canal aqui, de propósito: quem chegou nesta tela já passou
+    // por ela na abertura. Repetir no fim não abre caminho novo — só insiste.
     if (concluido) {
       return (
-        <>
-          <Aviso icone="check" titulo="Respostas enviadas">
-            Obrigado. Sua resposta é anônima — a empresa recebe só um resumo do setor, e apenas
-            quando ele tem cinco pessoas ou mais.
-          </Aviso>
-          <div className="px-6 pb-8">
-            <PortaDoCanal onAbrir={() => setCanalAberto(true)} />
-          </div>
-        </>
+        <Aviso icone="check" titulo="Respostas enviadas">
+          Obrigado. Sua resposta é anônima — a empresa recebe só um resumo do setor, e apenas
+          quando ele tem cinco pessoas ou mais.
+        </Aviso>
       );
     }
 
@@ -257,9 +254,8 @@ export const ResponderQuestionario: React.FC = () => {
             Começar
           </button>
 
-          {/* Também na abertura, e não só no fim: quem abriu o link para
-              relatar assédio não deveria ter de responder cinco perguntas
-              antes de chegar ao canal. */}
+          {/* Na abertura, e só aqui: quem abriu o link para relatar assédio não
+              deveria ter de responder cinco perguntas antes de chegar ao canal. */}
           <div className="mt-4">
             <PortaDoCanal onAbrir={() => setCanalAberto(true)} />
           </div>

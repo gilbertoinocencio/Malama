@@ -29,11 +29,12 @@ const fmtDate = (d: string) =>
 // ─── Status badge ──────────────────────────────────────
 const StatusBadge: React.FC<{ status: Empresa['status'] }> = ({ status }) => {
   const map = {
+    em_configuracao: 'bg-blue-100 text-blue-700',
     ativa: 'bg-green-100 text-green-700',
     pausada: 'bg-yellow-100 text-yellow-700',
     encerrada: 'bg-red-100 text-red-700',
   };
-  const label = { ativa: 'Ativa', pausada: 'Pausada', encerrada: 'Encerrada' };
+  const label = { em_configuracao: 'Em configuração', ativa: 'Ativa', pausada: 'Pausada', encerrada: 'Encerrada' };
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[status]}`}>
       {label[status]}
@@ -457,6 +458,7 @@ const EmpresaModal: React.FC<{
                   value={form.status} onChange={e => set('status', e.target.value as Empresa['status'])}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
                 >
+                  <option value="em_configuracao">Em configuração</option>
                   <option value="ativa">Ativa</option>
                   <option value="pausada">Pausada</option>
                   <option value="encerrada">Encerrada</option>
@@ -980,6 +982,12 @@ export const AdminEmpresas: React.FC = () => {
                         {e.status === 'pausada' && (
                           <button onClick={() => handleStatus(e, 'ativa')} title="Reativar"
                             className="p-1 text-[#7d4a3c] hover:bg-green-50 rounded-lg transition">
+                            <Play className="w-4 h-4" />
+                          </button>
+                        )}
+                        {e.status === 'em_configuracao' && (
+                          <button onClick={() => handleStatus(e, 'ativa')} title="Ativar contrato"
+                            className="p-1 text-green-600 hover:bg-green-50 rounded-lg transition">
                             <Play className="w-4 h-4" />
                           </button>
                         )}

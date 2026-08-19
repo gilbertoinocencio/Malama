@@ -35,6 +35,13 @@ const fmtDate = (d: string | null) =>
 const DIAS_MARCO_URGENTE = 3;
 
 const ColabStatusBadge: React.FC<{ status: EmpresaColaborador['status'] }> = ({ status }) => {
+  if (status === 'rascunho') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+        <Clock className="w-3 h-3" /> Aguardando ativação
+      </span>
+    );
+  }
   if (status === 'ativo') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
@@ -387,7 +394,13 @@ export const RhDashboard: React.FC = () => {
       </div>
 
       {/* Acima do guia: é o motivo de o guia estar dizendo para parar. */}
-      {empresa.status !== 'ativa' && (
+      {empresa.status === 'em_configuracao' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-blue-800">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          Sua conta está em configuração. Você já pode organizar perfil, setores e a lista do time; os convites e serviços serão liberados após a ativação comercial.
+        </div>
+      )}
+      {empresa.status !== 'ativa' && empresa.status !== 'em_configuracao' && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-yellow-800">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           A conta da empresa está {empresa.status}. Novos colaboradores não podem ser adicionados no momento.
@@ -530,7 +543,7 @@ export const RhDashboard: React.FC = () => {
           A âncora #setores é o destino do atalho vindo da tela de campanha. */}
       <div id="setores" className="scroll-mt-6">
       <SetoresCard
-        disabled={empresa.status !== 'ativa'}
+        disabled={empresa.status !== 'ativa' && empresa.status !== 'em_configuracao'}
         // Renomear/unir setor reescreve o texto gravado em cada colaborador:
         // a lista precisa ser relida para não exibir o nome antigo.
         onMutacao={load}
@@ -562,7 +575,7 @@ export const RhDashboard: React.FC = () => {
               <input
                 type="text" value={nome} onChange={e => setNome(e.target.value)}
                 placeholder="Nome do colaborador"
-                disabled={cheio || empresa.status !== 'ativa'}
+                disabled={cheio || (empresa.status !== 'ativa' && empresa.status !== 'em_configuracao')}
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -571,7 +584,7 @@ export const RhDashboard: React.FC = () => {
               <input
                 type="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="email@colaborador.com"
-                disabled={cheio || empresa.status !== 'ativa'}
+                disabled={cheio || (empresa.status !== 'ativa' && empresa.status !== 'em_configuracao')}
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -581,13 +594,13 @@ export const RhDashboard: React.FC = () => {
                 type="tel" inputMode="tel" value={whatsapp}
                 onChange={e => setWhatsapp(e.target.value)}
                 placeholder="WhatsApp do colaborador"
-                disabled={cheio || empresa.status !== 'ativa'}
+                disabled={cheio || (empresa.status !== 'ativa' && empresa.status !== 'em_configuracao')}
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
               />
             </div>
             <select
               value={setor} onChange={e => setSetor(e.target.value)}
-              disabled={cheio || empresa.status !== 'ativa' || setoresAtivos.length === 0}
+              disabled={cheio || (empresa.status !== 'ativa' && empresa.status !== 'em_configuracao') || setoresAtivos.length === 0}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400"
             >
               <option value="">
@@ -600,22 +613,22 @@ export const RhDashboard: React.FC = () => {
             <input
               type="text" value={funcao} onChange={e => setFuncao(e.target.value)}
               placeholder="Função (ex.: Analista) — opcional"
-              disabled={cheio || empresa.status !== 'ativa'}
+              disabled={cheio || (empresa.status !== 'ativa' && empresa.status !== 'em_configuracao')}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
             />
             <input
               type="text" inputMode="numeric" value={cpf}
               onChange={e => setCpf(e.target.value)}
               placeholder="CPF — opcional, usado só para importar afastamentos"
-              disabled={cheio || empresa.status !== 'ativa'}
+              disabled={cheio || (empresa.status !== 'ativa' && empresa.status !== 'em_configuracao')}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
             />
           </div>
           <button
-            type="submit" disabled={adding || cheio || empresa.status !== 'ativa'}
+            type="submit" disabled={adding || cheio || (empresa.status !== 'ativa' && empresa.status !== 'em_configuracao')}
             className="self-start flex items-center justify-center gap-2 px-5 py-2.5 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50 whitespace-nowrap"
           >
-            {adding ? 'Adicionando...' : 'Adicionar'}
+            {adding ? 'Adicionando...' : empresa.status === 'em_configuracao' ? 'Salvar na lista' : 'Adicionar'}
           </button>
         </form>
         )}

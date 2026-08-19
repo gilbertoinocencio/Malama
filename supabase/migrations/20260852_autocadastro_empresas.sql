@@ -29,5 +29,3 @@ COMMENT ON COLUMN public.empresas.autocadastro_em IS
   'Momento em que a empresa criou a conta pelo fluxo público.';
 COMMENT ON COLUMN public.empresas.tamanho_empresa_informado IS
   'Faixa de colaboradores declarada no autocadastro; não substitui os assentos contratados.';
-COMMENT ON VALUE 'em_configuracao' IS
-  'Conta criada pelo autocadastro. O RH pode preparar dados, mas serviços e convites permanecem bloqueados até ativação comercial.';
