@@ -16,7 +16,7 @@ export const RhRelatos: React.FC = () => {
   const [relatos, setRelatos] = useState<RhRelatoLista[]>([]);
   const [detalhe, setDetalhe] = useState<RhRelatoDetalhe | null>(null);
   const [status, setStatus] = useState('novo');
-  const [retorno, setRetorno] = useState('');
+  const [registro, setRegistro] = useState('');
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -39,7 +39,7 @@ export const RhRelatos: React.FC = () => {
   const abrir = async (id: string) => {
     try {
       const r = await rhService.abrirRelato(id);
-      setDetalhe(r); setStatus(r.status); setRetorno(r.retorno_publico ?? '');
+      setDetalhe(r); setStatus(r.status); setRegistro(r.registro_apuracao ?? '');
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível abrir o relato.'); }
   };
 
@@ -47,7 +47,7 @@ export const RhRelatos: React.FC = () => {
     if (!detalhe) return;
     setSalvando(true);
     try {
-      await rhService.atualizarRelato(detalhe.id, status, retorno);
+      await rhService.atualizarRelato(detalhe.id, status, registro);
       toast.success('Andamento atualizado.');
       setDetalhe(null); setLoading(true); await carregar();
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível atualizar.'); }
@@ -62,7 +62,7 @@ export const RhRelatos: React.FC = () => {
       </div>
       <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex gap-3 text-sm text-red-900">
         <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-        <p>Um relato é um sinal grave que exige acolhimento e triagem, mas não deve ser apresentado como acusação comprovada. Preserve sigilo, imparcialidade e proteção contra retaliação.</p>
+        <p>Um relato é um sinal grave que exige acolhimento e triagem, mas não deve ser apresentado como acusação comprovada. Preserve sigilo, imparcialidade e proteção contra retaliação. O canal é anônimo e não tem via de volta: o protocolo é o número do caso para o seu arquivo, não um código do relator.</p>
       </div>
       <div className="bg-white border rounded-2xl overflow-hidden">
         {loading ? <div className="p-10 text-center text-gray-400">Carregando...</div> : erro ? (
@@ -92,7 +92,7 @@ export const RhRelatos: React.FC = () => {
             <div className="grid sm:grid-cols-3 gap-3 text-sm"><div><p className="text-xs text-gray-500">Urgência</p><p className="font-medium capitalize">{detalhe.urgencia}</p></div><div><p className="text-xs text-gray-500">Setor informado</p><p className="font-medium">{detalhe.setor || 'Não informado'}</p></div><div><p className="text-xs text-gray-500">Quando</p><p className="font-medium">{detalhe.quando_ocorreu || 'Não informado'}</p></div></div>
             <div><p className="text-xs text-gray-500 mb-1">Descrição</p><p className="text-sm whitespace-pre-wrap rounded-xl bg-gray-50 p-4">{detalhe.descricao}</p></div>
             {detalhe.envolvidos && <div><p className="text-xs text-gray-500 mb-1">Pessoas ou funções citadas</p><p className="text-sm whitespace-pre-wrap rounded-xl bg-gray-50 p-4">{detalhe.envolvidos}</p></div>}
-            <div className="border-t pt-5 space-y-3"><label className="block text-sm font-medium">Andamento<select value={status} onChange={e => setStatus(e.target.value)} className="mt-1 w-full border rounded-lg px-3 py-2 bg-white font-normal"><option value="novo">Novo</option><option value="acolhimento">Em acolhimento</option><option value="em_apuracao">Em apuração</option><option value="encaminhado">Encaminhado</option><option value="concluido">Concluído</option><option value="arquivado">Arquivado</option></select></label><label className="block text-sm font-medium">Retorno visível no protocolo<textarea rows={3} value={retorno} onChange={e => setRetorno(e.target.value)} placeholder="Informe somente o que pode ser comunicado com segurança ao relator..." className="mt-1 w-full border rounded-lg px-3 py-2 font-normal" /></label></div>
+            <div className="border-t pt-5 space-y-3"><label className="block text-sm font-medium">Andamento<select value={status} onChange={e => setStatus(e.target.value)} className="mt-1 w-full border rounded-lg px-3 py-2 bg-white font-normal"><option value="novo">Novo</option><option value="acolhimento">Em acolhimento</option><option value="em_apuracao">Em apuração</option><option value="encaminhado">Encaminhado</option><option value="concluido">Concluído</option><option value="arquivado">Arquivado</option></select></label><label className="block text-sm font-medium">Registro da apuração<textarea rows={3} value={registro} onChange={e => setRegistro(e.target.value)} placeholder="O que foi apurado e como se concluiu. Fica no arquivo do caso — o relator não lê isto." className="mt-1 w-full border rounded-lg px-3 py-2 font-normal" /></label></div>
           </div>
           <div className="p-5 border-t flex justify-end gap-3"><button onClick={() => setDetalhe(null)} className="px-4 py-2 text-sm">Fechar</button><button disabled={salvando} onClick={salvar} className="px-5 py-2 rounded-lg bg-[#7d4a3c] text-white text-sm font-semibold disabled:opacity-50">{salvando ? 'Salvando...' : 'Salvar andamento'}</button></div>
         </div>

@@ -25,12 +25,50 @@ import { useParams } from 'react-router-dom';
 import { PsychosocialService, type CampanhaPorToken } from '../services/psychosocialService';
 import { getInstrumento } from '../services/psychosocialInstruments';
 import { InstrumentoQuestionario } from '../components/InstrumentoQuestionario';
+import { RelatoConfidencialModal } from '../components/RelatoConfidencialModal';
 import { MalamaLogo } from '../components/MalamaLogo';
 
 const PETROL = '#7d4a3c';
 
 const fmtData = (d: string) =>
   new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+
+/**
+ * Porta do canal confidencial de assédio, dentro do questionário.
+ *
+ * Empresa em modo compliance não dá app ao colaborador: este link é a única
+ * porta que essa pessoa tem. Por isso o canal mora AQUI, como troca de estado,
+ * sem a URL mudar — para um colega ao lado, para o histórico do navegador e
+ * para o proxy da empresa num aparelho corporativo, tudo o que se vê é
+ * "abriu o questionário do RH", que é o que ela tem permissão de estar fazendo.
+ *
+ * Pelo mesmo motivo não existe cartaz com QR: escanear um QR de assédio é um
+ * ato público e entrega a pessoa antes do primeiro caractere.
+ *
+ * O texto é IGUAL para todo mundo e nunca condicionado à resposta. Convidar ao
+ * canal por causa de um escore baixo revelaria que a resposta foi lida
+ * individualmente — contradizendo a promessa da tela de abertura — e
+ * transformaria mal-estar em suspeita de assédio.
+ */
+const PortaDoCanal: React.FC<{ onAbrir: () => void }> = ({ onAbrir }) => (
+  <button
+    onClick={onAbrir}
+    className="w-full text-left rounded-2xl p-4 border border-amber-200 bg-amber-50/70 dark:bg-amber-900/10 dark:border-amber-800/40"
+  >
+    <div className="flex items-center gap-3">
+      <span className="material-symbols-outlined text-amber-700 flex-shrink-0">shield_lock</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-Malama-main dark:text-white">
+          Relatar assédio, violência ou discriminação
+        </p>
+        <p className="text-xs text-Malama-muted dark:text-slate-400 mt-0.5 leading-snug">
+          Canal confidencial, separado deste questionário.
+        </p>
+      </div>
+      <span className="material-symbols-outlined text-Malama-muted">chevron_right</span>
+    </div>
+  </button>
+);
 
 /** Casca comum das telas de aviso — mesmo enquadramento da tela de responder. */
 const Aviso: React.FC<{ icone: string; titulo: string; children: React.ReactNode }> = ({
@@ -58,6 +96,12 @@ export const ResponderQuestionario: React.FC = () => {
   const [enviando, setEnviando] = useState(false);
   const [concluido, setConcluido] = useState(false);
   const [erroEnvio, setErroEnvio] = useState<string | null>(null);
+  const [canalAberto, setCanalAberto] = useState(false);
+
+  // O canal continua aberto com a campanha encerrada ou fora do prazo: o link
+  // já está na conversa do WhatsApp e assédio não acontece só dentro da janela
+  // do questionário. Só não aparece quando nem sabemos de que empresa se trata.
+  const podeRelatar = !!campanha && campanha.estado !== 'invalido' && campanha.estado !== 'erro';
 
   // Lido uma vez no mount: se lesse depois do envio, o aviso apareceria para
   // quem acabou de responder.
@@ -102,25 +146,40 @@ export const ResponderQuestionario: React.FC = () => {
 
     if (concluido) {
       return (
-        <Aviso icone="check" titulo="Respostas enviadas">
-          Obrigado. Sua resposta é anônima — a empresa recebe só um resumo do setor, e apenas
-          quando ele tem cinco pessoas ou mais.
-        </Aviso>
+        <>
+          <Aviso icone="check" titulo="Respostas enviadas">
+            Obrigado. Sua resposta é anônima — a empresa recebe só um resumo do setor, e apenas
+            quando ele tem cinco pessoas ou mais.
+          </Aviso>
+          <div className="px-6 pb-8">
+            <PortaDoCanal onAbrir={() => setCanalAberto(true)} />
+          </div>
+        </>
       );
     }
 
     switch (campanha.estado) {
       case 'encerrada':
         return (
-          <Aviso icone="event_busy" titulo="Questionário encerrado">
-            O prazo para responder já terminou. Quando houver um novo, você recebe outro link.
-          </Aviso>
+          <>
+            <Aviso icone="event_busy" titulo="Questionário encerrado">
+              O prazo para responder já terminou. Quando houver um novo, você recebe outro link.
+            </Aviso>
+            <div className="px-6 pb-8">
+              <PortaDoCanal onAbrir={() => setCanalAberto(true)} />
+            </div>
+          </>
         );
       case 'fora_da_janela':
         return (
-          <Aviso icone="schedule" titulo="Fora do prazo">
-            Este questionário podia ser respondido até {fmtData(campanha.janela_fim)}.
-          </Aviso>
+          <>
+            <Aviso icone="schedule" titulo="Fora do prazo">
+              Este questionário podia ser respondido até {fmtData(campanha.janela_fim)}.
+            </Aviso>
+            <div className="px-6 pb-8">
+              <PortaDoCanal onAbrir={() => setCanalAberto(true)} />
+            </div>
+          </>
         );
       case 'invalido':
         return (
@@ -197,6 +256,13 @@ export const ResponderQuestionario: React.FC = () => {
           >
             Começar
           </button>
+
+          {/* Também na abertura, e não só no fim: quem abriu o link para
+              relatar assédio não deveria ter de responder cinco perguntas
+              antes de chegar ao canal. */}
+          <div className="mt-4">
+            <PortaDoCanal onAbrir={() => setCanalAberto(true)} />
+          </div>
         </div>
       );
     }
@@ -226,6 +292,15 @@ export const ResponderQuestionario: React.FC = () => {
           Em situação de crise, ligue <strong>188</strong> (CVV, 24h, gratuito).
         </p>
       </div>
+
+      {/* Sobreposto à mesma rota: a URL não muda em momento nenhum. */}
+      {canalAberto && podeRelatar && token && (
+        <RelatoConfidencialModal
+          tokenPublico={token}
+          rotuloFechar="Voltar ao questionário"
+          onClose={() => setCanalAberto(false)}
+        />
+      )}
     </div>
   );
 };

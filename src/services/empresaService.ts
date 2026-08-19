@@ -1205,7 +1205,13 @@ export type RhRelatoDetalhe = RhRelatoLista & {
   descricao: string;
   envolvidos: string | null;
   quando_ocorreu: string | null;
-  retorno_publico: string | null;
+  /**
+   * O que a apuração concluiu, para o arquivo do caso. NÃO é retorno ao
+   * relator: o canal é anônimo e não existe consulta por protocolo.
+   */
+  registro_apuracao: string | null;
+  /** 'link_publico' = veio do questionário, de quem não tem app. */
+  origem: 'app' | 'link_publico';
 };
 
 export const rhService = {
@@ -1265,9 +1271,9 @@ export const rhService = {
     return data as RhRelatoDetalhe;
   },
 
-  async atualizarRelato(id: string, status: string, retornoPublico: string): Promise<void> {
+  async atualizarRelato(id: string, status: string, registroApuracao: string): Promise<void> {
     const { data, error } = await supabase.rpc('rh_atualizar_relato', {
-      p_id: id, p_status: status, p_retorno_publico: retornoPublico || null,
+      p_id: id, p_status: status, p_registro_apuracao: registroApuracao || null,
     });
     if (error) throw error;
     if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Não foi possível atualizar o relato');
