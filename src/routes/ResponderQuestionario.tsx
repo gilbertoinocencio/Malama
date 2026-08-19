@@ -15,9 +15,18 @@
 // aparelho compartilhado, comum no chão de fábrica.
 //
 // Sem identidade não há como impedir a mesma pessoa de responder duas vezes.
-// O marcador de navegador é um freio de cortesia: AVISA e deixa continuar.
-// Bloquear seria pior — no tablet compartilhado impediria o segundo
-// respondente de verdade.
+// O marcador de navegador BLOQUEIA uma segunda resposta pelo mesmo aparelho:
+// o token é por campanha, então a marca vale para o questionário daquele mês e
+// cai sozinha no mês seguinte, quando o link é outro.
+//
+// O custo é conhecido e foi aceito: em tablet ou celular compartilhado — chão
+// de fábrica, cozinha, balcão — o segundo respondente legítimo fica de fora e
+// a adesão do setor cai sem explicação visível para o RH. Se isso aparecer no
+// número, é aqui que se mexe.
+//
+// O bloqueio vale só para RESPONDER. O canal confidencial continua alcançável
+// nessa tela: quem já respondeu não pode perder a única porta que tem para
+// relatar assédio.
 // =====================================================
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -201,6 +210,24 @@ export const ResponderQuestionario: React.FC = () => {
       );
     }
 
+    // ── Já respondeu neste aparelho: não abre de novo ──
+    // A marca é por token, e o token é por campanha — vale para o questionário
+    // deste mês e some sozinha quando o próximo link chegar. O canal fica de
+    // pé: bloquear a resposta não pode bloquear o relato de assédio.
+    if (jaRespondeuAqui) {
+      return (
+        <>
+          <Aviso icone="task_alt" titulo="Você já respondeu">
+            Este questionário já foi respondido neste aparelho. Quando houver um novo, você
+            recebe outro link.
+          </Aviso>
+          <div className="px-6 pb-8">
+            <PortaDoCanal onAbrir={() => setCanalAberto(true)} />
+          </div>
+        </>
+      );
+    }
+
     // ── Abertura: é o que decide se a pessoa responde ou fecha ──
     // Quem recebe um link no WhatsApp precisa saber, antes de começar, de
     // quem ele veio e quem vai ver a resposta.
@@ -235,16 +262,6 @@ export const ResponderQuestionario: React.FC = () => {
               </p>
             </div>
           </div>
-
-          {/* Freio suave: avisa e deixa passar. Ver cabeçalho do arquivo. */}
-          {jaRespondeuAqui && (
-            <div className="rounded-2xl p-4 mb-4 border border-amber-200 bg-amber-50 dark:bg-amber-900/10">
-              <p className="text-sm text-amber-800 dark:text-amber-300 leading-snug">
-                Já foi enviada uma resposta neste aparelho. Se não foi você, pode responder
-                normalmente.
-              </p>
-            </div>
-          )}
 
           <button
             onClick={() => setIniciado(true)}
