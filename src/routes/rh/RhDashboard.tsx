@@ -19,6 +19,7 @@ import { SetoresCard } from '../../components/rh/SetoresCard';
 import { LinkSuporte } from '../../components/rh/LinkSuporte';
 import { TrilhoDaJornada } from '../../components/rh/TrilhoDaJornada';
 import { RitmoDoCicloCard } from '../../components/rh/RitmoDoCicloCard';
+import { RhBriefing } from '../../components/rh/RhBriefing';
 import { CabecalhoColapsavel, ResumoRecolhido, useSecaoAberta } from '../../components/rh/SecaoColapsavel';
 import { useRhAccess } from '../../contexts/RhAccessContext';
 import { useRhJornada } from '../../contexts/RhJornadaContext';
@@ -411,6 +412,8 @@ export const RhDashboard: React.FC = () => {
           que a aba Documentos já comunica só por existir e ficar verde. No
           dashboard ele empurrava o próximo passo para baixo justamente quando
           não havia mais nada urgente a fazer. */}
+      <RhBriefing />
+
       <GuiaJornadaRh dados={dados} usuariosEquipe={usuariosEquipe} principal={acesso.principal} />
 
       {/* O calendário é o tabuleiro: a pergunta que o RH traz da reunião é

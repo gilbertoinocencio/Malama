@@ -29,6 +29,54 @@ export type RhAgentReply = {
   requestId?: string | null;
 };
 
+export type RhBriefingSeverity = 'critico' | 'atencao' | 'oportunidade' | 'positivo' | 'informativo';
+
+export type RhBriefingTrend = {
+  id: string;
+  label: string;
+  atual: number;
+  anterior: number;
+  delta: number;
+  direcao: 'melhorou' | 'piorou' | 'estavel';
+  favoravel_quando: 'sobe' | 'cai';
+  periodo_atual: { inicio?: string; fim?: string } | null;
+  periodo_anterior: { inicio?: string; fim?: string } | null;
+  n_atual: number;
+  n_anterior: number;
+};
+
+export type RhBriefingPriority = {
+  id: string;
+  severidade: RhBriefingSeverity;
+  titulo: string;
+  descricao: string;
+  evidencias: string[];
+  acao?: { label: string; target: string };
+  medida_sugerida?: {
+    setor?: string;
+    fator: string;
+    risco_descricao: string;
+    medida: string;
+    nivel_controle: string;
+    metrica_sucesso: string;
+    abordagem_lideranca: string;
+  };
+};
+
+export type RhBriefing = {
+  gerado_em: string;
+  situacao: 'critico' | 'atencao' | 'estavel';
+  resumo: string;
+  prioridades: RhBriefingPriority[];
+  tendencias: RhBriefingTrend[];
+  positivos: string[];
+  qualidade_dados: {
+    comparacoes_disponiveis: number;
+    dados_suprimidos: string[];
+    nota: string;
+  };
+};
+
 type FunctionError = { context?: Response; message?: string };
 
 async function mensagemDoErro(error: FunctionError, fallback: string) {
@@ -60,6 +108,11 @@ export const rhAgentService = {
       action: 'profile_draft', description,
     });
     return data.draft;
+  },
+
+  async obterBriefing(): Promise<RhBriefing> {
+    const data = await invoke<{ briefing: RhBriefing }>({ action: 'briefing' });
+    return data.briefing;
   },
 
   async conversar(params: {

@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { RH_AGENT_SYSTEM_PROMPT, RH_PROFILE_DRAFT_PROMPT } from '../_shared/rh-agent-prompt.ts';
+import { buildRhBriefing } from '../_shared/rh-briefing.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -343,21 +344,24 @@ async function leituraAnalitica(
 ) {
   const campanhas = podeSaude ? await rpcOpcional(supabase, 'rh_listar_campanhas') : null;
   const listaCampanhas = Array.isArray(campanhas) ? campanhas : [];
-  const maisRecente = (instrumento: string) => listaCampanhas
+  const encerradas = (instrumento: string) => listaCampanhas
     .filter((campanha: any) => campanha?.instrument === instrumento && campanha?.status === 'encerrada')
-    .sort((a: any, b: any) => String(b.encerrada_em ?? b.janela_fim).localeCompare(String(a.encerrada_em ?? a.janela_fim)))[0] ?? null;
-  const who5 = maisRecente('who5');
-  const jss = maisRecente('jss');
+    .sort((a: any, b: any) => String(b.encerrada_em ?? b.janela_fim).localeCompare(String(a.encerrada_em ?? a.janela_fim)));
+  const [who5, who5Anterior] = encerradas('who5');
+  const [jss, jssAnterior] = encerradas('jss');
+  const campanhasAbertas = listaCampanhas.filter((campanha: any) => campanha?.status === 'aberta').slice(0, 12);
   const inicioMatriz = [who5?.janela_inicio, jss?.janela_inicio].filter(Boolean).sort()[0]
     ?? new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const fimHoje = new Date().toISOString().slice(0, 10);
 
   const [
-    who5Relatorio, jssRelatorio, temasJss, matriz, planos, resumoPlanos, ciclos,
-    metricasPrograma, relatoriosEmitidos, documentosEvidencia,
+    who5Relatorio, who5RelatorioAnterior, jssRelatorio, jssRelatorioAnterior, temasJss, matriz, planos, resumoPlanos, ciclos,
+    metricasPrograma, relatoriosEmitidos, documentosEvidencia, participacoesAbertas,
   ] = await Promise.all([
     who5 ? rpcOpcional(supabase, 'rh_relatorio_psicossocial', { p_inicio: who5.janela_inicio, p_fim: who5.janela_fim }) : Promise.resolve(null),
+    who5Anterior ? rpcOpcional(supabase, 'rh_relatorio_psicossocial', { p_inicio: who5Anterior.janela_inicio, p_fim: who5Anterior.janela_fim }) : Promise.resolve(null),
     jss ? rpcOpcional(supabase, 'rh_relatorio_jss', { p_inicio: jss.janela_inicio, p_fim: jss.janela_fim }) : Promise.resolve(null),
+    jssAnterior ? rpcOpcional(supabase, 'rh_relatorio_jss', { p_inicio: jssAnterior.janela_inicio, p_fim: jssAnterior.janela_fim }) : Promise.resolve(null),
     jss ? rpcOpcional(supabase, 'rh_jss_teia_temas', { p_inicio: jss.janela_inicio, p_fim: jss.janela_fim }) : Promise.resolve(null),
     podeSaude ? rpcOpcional(supabase, 'rh_matriz_psicossocial', { p_inicio: inicioMatriz, p_fim: fimHoje }) : Promise.resolve(null),
     podePlano ? rpcOpcional(supabase, 'rh_listar_planos_acao') : Promise.resolve(null),
@@ -374,19 +378,40 @@ async function leituraAnalitica(
             return data ?? null;
           })
       : Promise.resolve(null),
+    podeSaude
+      ? Promise.all(campanhasAbertas.map((campanha: any) =>
+          rpcOpcional(supabase, 'rh_campanha_participacao', { p_campaign_id: campanha.id })))
+      : Promise.resolve([]),
   ]);
   const listaPlanos = Array.isArray(planos) ? planos : [];
   const listaMetricas = Array.isArray(metricasPrograma) ? metricasPrograma[0] : metricasPrograma;
 
   return {
-    campanhas_abertas: listaCampanhas.filter((campanha: any) => campanha?.status === 'aberta').slice(0, 12).map((campanha: any) => ({
-      instrumento: texto(campanha.instrument_nome, 100), inicio: texto(campanha.janela_inicio, 20), fim: texto(campanha.janela_fim, 20),
-      convidados: campanha.n_convidados ?? 0, respondentes: campanha.n_respondentes ?? 0,
-    })),
+    campanhas_abertas: campanhasAbertas.map((campanha: any, index: number) => {
+      const participacao = Array.isArray(participacoesAbertas) ? participacoesAbertas[index] : null;
+      return {
+        id: texto(campanha.id, 60),
+        instrumento: texto(campanha.instrument_nome, 100), inicio: texto(campanha.janela_inicio, 20), fim: texto(campanha.janela_fim, 20),
+        convidados: campanha.n_convidados ?? 0, respondentes: campanha.n_respondentes ?? 0,
+        min_coorte: participacao?.min_coorte ?? 5,
+        setores: Array.isArray(participacao?.setores) ? participacao.setores.slice(0, 50).map((setor: any) => ({
+          setor: texto(setor?.setor, 80), convidados: setor?.convidados ?? 0,
+          respondentes: setor?.respondentes ?? 0, taxa: setor?.taxa ?? 0,
+          agrupado: setor?.agrupado === true,
+        })) : [],
+        setores_ocultos: participacao?.ocultos_setores ?? 0,
+      };
+    }),
     ultimos_relatorios: {
       who5: resumoWho5(who5Relatorio),
       jss: resumoJss(jssRelatorio, temasJss),
       matriz: resumoMatriz(matriz),
+    },
+    relatorios_anteriores: {
+      // Usamos as mesmas RPCs agregadas e com k-anonimato dos relatórios
+      // atuais. O copiloto nunca recebe respostas individuais para comparar.
+      who5: resumoWho5(who5RelatorioAnterior),
+      jss: resumoJss(jssRelatorioAnterior, null),
     },
     plano_de_acao: podePlano ? {
       resumo: resumoPlanos,
@@ -432,9 +457,52 @@ function leituraVazia() {
   return {
     campanhas_abertas: [],
     ultimos_relatorios: { who5: null, jss: null, matriz: null },
+    relatorios_anteriores: { who5: null, jss: null },
     plano_de_acao: null,
     lideranca: [],
     evidencias: null,
+  };
+}
+
+function permissoesDeLeitura(contexto: any) {
+  const permissoes = new Set<string>(contexto?.usuario?.permissoes ?? []);
+  const principal = contexto?.usuario?.principal === true;
+  return {
+    podeVerSetores: principal || permissoes.has('colaboradores'),
+    podeVerSaude: principal || permissoes.has('saude_mental') || permissoes.has('compliance'),
+    podeVerPlano: principal || permissoes.has('plano_acao') || permissoes.has('compliance'),
+    podeVerCompliance: principal || permissoes.has('compliance'),
+  };
+}
+
+function estadoCicloDaLeitura(contexto: any, leitura: any) {
+  return {
+    onboarding: {
+      perfil_contextualizado: !!contexto?.perfil_operacional?.confirmado_em,
+      setores_cadastrados: contexto?.indicadores?.setores ?? null,
+      colaboradores_cadastrados: contexto?.indicadores?.colaboradores ?? null,
+    },
+    medicao: {
+      campanhas_abertas: leitura.campanhas_abertas.length,
+      relatorio_who5_disponivel: leitura.ultimos_relatorios.who5 !== null,
+      relatorio_jss_disponivel: leitura.ultimos_relatorios.jss !== null,
+      matriz_disponivel: leitura.ultimos_relatorios.matriz !== null,
+    },
+    plano_de_acao: leitura.plano_de_acao ? {
+      medidas_abertas: leitura.plano_de_acao.resumo?.abertas ?? leitura.plano_de_acao.medidas_abertas.length,
+      medidas_atrasadas: leitura.plano_de_acao.resumo?.atrasadas ?? 0,
+      medidas_concluidas_com_evidencia: leitura.plano_de_acao.medidas_concluidas_com_evidencia,
+      setores_sem_acao_na_fonte: leitura.plano_de_acao.resumo?.setores_sem_acao_na_fonte ?? [],
+    } : null,
+    lideranca: {
+      ciclos_ativos: leitura.lideranca.filter((ciclo: any) => ciclo.status === 'ativo').length,
+      marcos_pendentes: leitura.lideranca.filter((ciclo: any) =>
+        ciclo.status === 'ativo' && ciclo.marco_status === 'pendente').length,
+    },
+    evidencias: leitura.evidencias ? {
+      relatorios_psicossociais_emitidos: leitura.evidencias.relatorios_psicossociais_emitidos.length,
+      relatorios_programa_emitidos: leitura.evidencias.relatorios_evidencia_emitidos.length,
+    } : null,
   };
 }
 
@@ -471,6 +539,7 @@ function respostaDeterministica(
   leitura: any,
   estadoCiclo: any,
   pergunta: string,
+  briefing?: any,
 ) {
   const normalizada = pergunta.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const querPlano = /plano|medida|acao|prazo|atrasad|mitig/.test(normalizada);
@@ -491,6 +560,15 @@ function respostaDeterministica(
     linhas.push(`Evolução da liderança: ${lideranca?.ciclos_ativos ?? 0} ciclo(s) ativo(s) e ${lideranca?.marcos_pendentes ?? 0} marco(s) pendente(s) de verificação.`);
   } else {
     linhas.push(`Últimos resultados disponíveis: ${linhaResultados(leitura)}.`);
+    if (Array.isArray(briefing?.tendencias) && briefing.tendencias.length > 0) {
+      const tendencias = briefing.tendencias.map((item: any) => {
+        const variacao = item.delta > 0 ? `+${item.delta}` : String(item.delta);
+        return `${item.label}: ${item.anterior} → ${item.atual} (${variacao}; ${item.direcao})`;
+      });
+      linhas.push(`Tendência entre as duas últimas coletas comparáveis: ${tendencias.join('; ')}. Considere também a variação no número de respondentes.`);
+    } else {
+      linhas.push('Tendência: ainda não existem duas coletas agregadas comparáveis para calcular evolução com segurança.');
+    }
     linhas.push(plano
       ? `Plano de ação: ${plano.medidas_abertas ?? 0} aberta(s), ${plano.medidas_atrasadas ?? 0} atrasada(s) e ${plano.medidas_concluidas_com_evidencia ?? 0} concluída(s) com evidência.`
       : 'Plano de ação: sem leitura disponível para este perfil.');
@@ -515,12 +593,18 @@ function respostaDeterministica(
     if (titulo) linhas.push(`Próxima entrega calculada pelo Malama: ${titulo}. ${descricao}`);
   }
 
+  const prioridades = Array.isArray(briefing?.prioridades) ? briefing.prioridades.slice(0, 3) : [];
+  if (prioridades.length > 0) {
+    linhas.push(`Prioridades explicadas pelos dados:\n${prioridades.map((item: any, index: number) =>
+      `${index + 1}. ${texto(item?.titulo, 180)} — ${texto(item?.descricao, 500)}`).join('\n')}`);
+  }
+
   const suggestions = [
     sugestaoRota('Ver plano de ação', '/rh/plano-acao', permitidas),
     sugestaoRota('Ler últimos resultados', '/rh/saude-mental', permitidas),
   ].filter((item): item is Sugestao => item !== null);
 
-  return { message: linhas.join('\n\n'), suggestions, requestId: null, degraded: true };
+  return { message: linhas.join('\n\n'), suggestions, requestId: null, degraded: false };
 }
 
 async function consultarAgente(
@@ -573,7 +657,7 @@ Deno.serve(async (req: Request) => {
     }
     const body = JSON.parse(rawBody);
     const action = texto(body.action, 30);
-    if (!['warmup', 'chat', 'profile_draft'].includes(action)) {
+    if (!['warmup', 'chat', 'profile_draft', 'briefing'].includes(action)) {
       return json({ error: 'Ação não permitida' }, 400);
     }
 
@@ -583,11 +667,35 @@ Deno.serve(async (req: Request) => {
     if (contextoError || !contexto) return json({ error: 'Acesso do RH não encontrado' }, 403);
 
     if (action === 'warmup') {
+      if (GEMINI_API_KEY) return json({ status: 'ready' });
       if (!CARAMELO_API_URL || !CARAMELO_API_KEY) return json({ status: 'unavailable' }, 503);
-      const response = await fetch(`${CARAMELO_API_URL}/v1/models`, {
-        headers: { Authorization: `Bearer ${CARAMELO_API_KEY}` },
-      });
-      return json({ status: response.ok ? 'ready' : 'unavailable' }, response.ok ? 200 : 503);
+      try {
+        const response = await fetch(`${CARAMELO_API_URL}/v1/models`, {
+          headers: { Authorization: `Bearer ${CARAMELO_API_KEY}` },
+        });
+        return json({ status: response.ok ? 'ready' : 'unavailable' }, response.ok ? 200 : 503);
+      } catch {
+        return json({ status: 'unavailable' }, 503);
+      }
+    }
+
+    const permitidas = rotasPermitidas(contexto);
+    const { podeVerSetores, podeVerSaude, podeVerPlano, podeVerCompliance } = permissoesDeLeitura(contexto);
+
+    // O briefing é factual e não consome cota de IA: as prioridades são
+    // calculadas no servidor a partir dos agregados já protegidos por
+    // k-anonimato. Assim, alertas importantes continuam disponíveis mesmo se
+    // os provedores generativos estiverem temporariamente indisponíveis.
+    if (action === 'briefing') {
+      let leitura: any;
+      try {
+        leitura = await leituraAnalitica(supabase, podeVerSaude, podeVerPlano, podeVerCompliance);
+      } catch (error) {
+        console.error('[rh-agent] briefing analítico indisponível:', error);
+        leitura = leituraVazia();
+      }
+      const estadoCiclo = estadoCicloDaLeitura(contexto, leitura);
+      return json({ briefing: buildRhBriefing(leitura, estadoCiclo, permitidas) });
     }
 
     const { data: withinQuota } = await supabase.rpc('consume_edge_quota', {
@@ -620,7 +728,6 @@ Deno.serve(async (req: Request) => {
           return role && content ? [{ role, content } as Historico] : [];
         })
       : [];
-    const permitidas = rotasPermitidas(contexto);
     const tela = texto(body.screen, 180);
     const passo = body.visibleStep && typeof body.visibleStep === 'object' ? {
       titulo: texto(body.visibleStep.titulo, 160),
@@ -630,12 +737,6 @@ Deno.serve(async (req: Request) => {
     } : null;
     // A estrutura dos setores é contexto declaratório e agregado. O agente
     // recebe nomes, modalidades e turnos, mas nunca pessoas ou respostas.
-    const permissoes = new Set<string>(contexto?.usuario?.permissoes ?? []);
-    const principal = contexto?.usuario?.principal === true;
-    const podeVerSetores = principal || permissoes.has('colaboradores');
-    const podeVerSaude = principal || permissoes.has('saude_mental') || permissoes.has('compliance');
-    const podeVerPlano = principal || permissoes.has('plano_acao') || permissoes.has('compliance');
-    const podeVerCompliance = principal || permissoes.has('compliance');
     const { data: setores } = podeVerSetores
       ? await supabase.rpc('rh_setores_admin')
       : { data: null };
@@ -651,39 +752,14 @@ Deno.serve(async (req: Request) => {
       console.error('[rh-agent] leitura analítica indisponível:', error);
       leitura = leituraVazia();
     }
-    const estadoCiclo = {
-      onboarding: {
-        perfil_contextualizado: !!contexto?.perfil_operacional?.confirmado_em,
-        setores_cadastrados: contexto?.indicadores?.setores ?? null,
-        colaboradores_cadastrados: contexto?.indicadores?.colaboradores ?? null,
-      },
-      medicao: {
-        campanhas_abertas: leitura.campanhas_abertas.length,
-        relatorio_who5_disponivel: leitura.ultimos_relatorios.who5 !== null,
-        relatorio_jss_disponivel: leitura.ultimos_relatorios.jss !== null,
-        matriz_disponivel: leitura.ultimos_relatorios.matriz !== null,
-      },
-      plano_de_acao: leitura.plano_de_acao ? {
-        medidas_abertas: leitura.plano_de_acao.resumo?.abertas ?? leitura.plano_de_acao.medidas_abertas.length,
-        medidas_atrasadas: leitura.plano_de_acao.resumo?.atrasadas ?? 0,
-        medidas_concluidas_com_evidencia: leitura.plano_de_acao.medidas_concluidas_com_evidencia,
-        setores_sem_acao_na_fonte: leitura.plano_de_acao.resumo?.setores_sem_acao_na_fonte ?? [],
-      } : null,
-      lideranca: {
-        ciclos_ativos: leitura.lideranca.filter((ciclo: any) => ciclo.status === 'ativo').length,
-        marcos_pendentes: leitura.lideranca.filter((ciclo: any) =>
-          ciclo.status === 'ativo' && ciclo.marco_status === 'pendente').length,
-      },
-      evidencias: leitura.evidencias ? {
-        relatorios_psicossociais_emitidos: leitura.evidencias.relatorios_psicossociais_emitidos.length,
-        relatorios_programa_emitidos: leitura.evidencias.relatorios_evidencia_emitidos.length,
-      } : null,
-    };
+    const estadoCiclo = estadoCicloDaLeitura(contexto, leitura);
+    const briefing = buildRhBriefing(leitura, estadoCiclo, permitidas);
     const contextoSeguro = {
       ...contexto,
       perfil_operacional: perfilOperacionalSeguro(contexto?.perfil_operacional),
       estrutura_trabalho: estruturaTrabalho,
       leitura_analitica: leitura,
+      briefing_inteligente: briefing,
       estado_ciclo: estadoCiclo,
       tela_atual: tela.startsWith('/rh/') ? tela : null,
       passo_visivel: passo,
@@ -694,7 +770,7 @@ Deno.serve(async (req: Request) => {
     // resposta fique refém do destaque visual de uma única tela ou campanha.
     const perguntaNormalizada = message.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     if (/proximo passo|o que (devo|faco|fazer)|kpis?|indicadores|panorama|resumo|status|situacao|como est(a|ao)/.test(perguntaNormalizada)) {
-      return json(respostaDeterministica(passo, permitidas, leitura, estadoCiclo, message));
+      return json(respostaDeterministica(passo, permitidas, leitura, estadoCiclo, message, briefing));
     }
 
     // A primeira tentativa usa o contexto analítico completo. Se o roteador
@@ -716,7 +792,7 @@ Deno.serve(async (req: Request) => {
         return json(await consultarAgente(contextoCompacto, history.slice(-6), message, permitidas));
       } catch (errorCompacto) {
         console.error('[rh-agent] tentativa compacta falhou:', errorCompacto);
-        return json(respostaDeterministica(passo, permitidas, leitura, estadoCiclo, message));
+        return json(respostaDeterministica(passo, permitidas, leitura, estadoCiclo, message, briefing));
       }
     }
   } catch (error) {
