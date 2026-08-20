@@ -546,6 +546,7 @@ export const RhDashboard: React.FC = () => {
           A âncora #setores é o destino do atalho vindo da tela de campanha. */}
       <div id="setores" className="scroll-mt-6">
       <SetoresCard
+        limitePessoas={empresa.max_assentos}
         disabled={empresa.status !== 'ativa' && empresa.status !== 'em_configuracao'}
         // Renomear/unir setor reescreve o texto gravado em cada colaborador:
         // a lista precisa ser relida para não exibir o nome antigo.

@@ -890,6 +890,8 @@ export type SetorMutacao = {
   nome?: string;
   ativo?: boolean;
   efetivo?: number | null;
+  limite_contratado?: number | null;
+  efetivo_alocado?: number;
 };
 
 // ── Matriz de risco psicossocial por setor (migration 20260730) ──
@@ -1742,11 +1744,13 @@ export const rhService = {
 
   async criarSetor(
     nome: string,
+    efetivo: number,
     modelosTrabalho: ModeloTrabalhoSetor[] = [],
     turnos: TurnoSetor[] = [],
   ): Promise<SetorMutacao> {
     const { data, error } = await supabase.rpc('rh_setor_criar_configurado', {
-      p_nome: nome, p_modelos_trabalho: modelosTrabalho, p_turnos: turnos,
+      p_nome: nome, p_efetivo: efetivo,
+      p_modelos_trabalho: modelosTrabalho, p_turnos: turnos,
     });
     if (error) return { ok: false, error: error.message };
     return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;

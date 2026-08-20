@@ -37,7 +37,11 @@ export type PermissoesJornada = {
 
 export type DadosJornada = {
   empresaAtiva: boolean;
+  /** Compliance sem Mental/Metabólico distribui pesquisas por links
+   * anônimos de setor e não depende de cadastro individual. */
+  somenteCompliance: boolean;
   nSetores: number;
+  nSetoresSemEfetivo: number;
   nColaboradores: number;
   campanhas: PsychosocialCampanha[];
   ciclos: LiderancaCiclo[];
@@ -106,12 +110,23 @@ export function proximoPasso(d: DadosJornada, hoje = new Date()): PassoJornada {
       bloqueio: true,
     };
   }
-  if (pode.colaboradores && d.nSetores === 0) {
+  if (d.nSetores === 0) {
     return {
       titulo: 'Organize os setores da empresa',
-      descricao: 'Os setores permitem apresentar resultados úteis sem expor respostas individuais.',
-      destino: '/rh/dashboard#setores',
+      descricao: d.somenteCompliance
+        ? 'No modo somente Compliance, as pesquisas usam links anônimos por setor. Cadastre os setores para definir o público sem cadastrar pessoas individualmente.'
+        : 'Os setores permitem apresentar resultados úteis sem expor respostas individuais.',
+      destino: pode.colaboradores ? '/rh/dashboard#setores' : null,
       acao: 'Cadastrar setores',
+      etapa: 'setores',
+    };
+  }
+  if (d.somenteCompliance && d.nSetoresSemEfetivo > 0) {
+    return {
+      titulo: 'Informe quantas pessoas há em cada setor',
+      descricao: `${d.nSetoresSemEfetivo} setor(es) ainda não têm efetivo. Esse número define o alcance e a adesão dos links anônimos, sem identificar participantes.`,
+      destino: pode.colaboradores ? '/rh/dashboard#setores' : null,
+      acao: 'Completar setores',
       etapa: 'setores',
     };
   }
@@ -120,7 +135,7 @@ export function proximoPasso(d: DadosJornada, hoje = new Date()): PassoJornada {
   // descobrir isso depois de digitar quinze é uma péssima primeira hora de
   // produto. Quem não tem a permissão de importar continua vendo o
   // formulário como caminho, senão o passo aponta para uma porta fechada.
-  if (pode.colaboradores && d.nColaboradores === 0) {
+  if (!d.somenteCompliance && pode.colaboradores && d.nColaboradores === 0) {
     return {
       titulo: 'Traga as pessoas para o painel',
       descricao: pode.importar
@@ -266,8 +281,8 @@ export function passosPreparacao(d: DadosJornada): ItemPreparacao[] {
   return [
     { label: 'Empresa vinculada', ok: true },
     ...(d.pode.colaboradores ? [
-      { label: 'Setores organizados', ok: d.nSetores > 0 },
-      { label: 'Colaboradores adicionados', ok: d.nColaboradores > 0 },
+      { label: d.somenteCompliance ? 'Setores e efetivos informados' : 'Setores organizados', ok: d.nSetores > 0 && (!d.somenteCompliance || d.nSetoresSemEfetivo === 0) },
+      ...(!d.somenteCompliance ? [{ label: 'Colaboradores adicionados', ok: d.nColaboradores > 0 }] : []),
     ] : []),
     // "realizada", não "aberta": campanha encerrada também conta, e o item
     // ficava verde dizendo "aberta" depois que a janela fechava.
@@ -369,7 +384,7 @@ const ETAPAS: DefEtapa[] = [
 export function etapasDaJornada(d: DadosJornada): EtapaJornada[] {
   const atual = proximoPasso(d).etapa;
   return ETAPAS
-    .filter(e => e.visivel(d.pode))
+    .filter(e => e.visivel(d.pode) && !(d.somenteCompliance && e.chave === 'pessoas'))
     .map(e => ({
       chave: e.chave,
       nome: e.nome,

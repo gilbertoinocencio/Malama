@@ -61,6 +61,7 @@ export const RhJornadaProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [empresa, setEmpresa] = useState<RhEmpresa | null>(null);
   const [colaboradores, setColaboradores] = useState<EmpresaColaborador[]>([]);
   const [setores, setSetores] = useState<string[]>([]);
+  const [nSetoresSemEfetivo, setNSetoresSemEfetivo] = useState(0);
   const [campanhas, setCampanhas] = useState<PsychosocialCampanha[]>([]);
   const [ciclos, setCiclos] = useState<LiderancaCiclo[]>([]);
   const [planos, setPlanos] = useState<PlanoAcao[]>([]);
@@ -98,7 +99,10 @@ export const RhJornadaProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // Leitura que falhou não sobrescreve o estado: preferimos dado velho a
       // dado errado, porque a jornada dá instrução a partir daqui.
       if (colabs.ok) setColaboradores(colabs.dados);
-      if (sets.ok) setSetores(sets.dados.map(s => s.setor));
+      if (sets.ok) {
+        setSetores(sets.dados.map(s => s.setor));
+        setNSetoresSemEfetivo(sets.dados.filter(s => Math.max(s.n, s.efetivo ?? 0) <= 0).length);
+      }
       if (camps.ok) setCampanhas(camps.dados);
       if (cics.ok) setCiclos(cics.dados);
       if (plans.ok) setPlanos(plans.dados);
@@ -117,7 +121,9 @@ export const RhJornadaProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const dados: DadosJornada = useMemo(() => ({
     empresaAtiva: empresa?.status === 'ativa',
+    somenteCompliance: !!empresa?.modo_compliance && !empresa?.modo_mental && !empresa?.modo_metabolico,
     nSetores: setores.length,
+    nSetoresSemEfetivo,
     nColaboradores: colaboradores.length,
     campanhas,
     ciclos,
@@ -134,7 +140,7 @@ export const RhJornadaProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       veCampanhas: can('saude_mental') || can('compliance'),
       vePlanos: can('plano_acao') || can('compliance'),
     },
-  }), [empresa, setores, colaboradores, campanhas, ciclos, planos, documentos, can]);
+  }), [empresa, setores, nSetoresSemEfetivo, colaboradores, campanhas, ciclos, planos, documentos, can]);
 
   const value: JornadaValue = {
     empresa, colaboradores, setores, campanhas, ciclos, planos, documentos,

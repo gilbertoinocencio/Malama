@@ -92,11 +92,14 @@ export const SetoresCard: React.FC<{
    */
   onMutacao?: () => void;
   disabled?: boolean;
-}> = ({ onChange, onMutacao, disabled }) => {
+  /** Total de pessoas contratado pela empresa, distribuído entre os setores. */
+  limitePessoas?: number | null;
+}> = ({ onChange, onMutacao, disabled, limitePessoas }) => {
   const { acesso } = useRhAccess();
   const [setores, setSetores] = useState<SetorAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [novo, setNovo] = useState('');
+  const [novoEfetivo, setNovoEfetivo] = useState('');
   const [novosModelos, setNovosModelos] = useState<ModeloTrabalhoSetor[]>([]);
   const [novosTurnos, setNovosTurnos] = useState<TurnoSetor[]>([]);
   const [sugestoes, setSugestoes] = useState<string[]>([]);
@@ -154,13 +157,24 @@ export const SetoresCard: React.FC<{
     e.preventDefault();
     const nome = novo.trim();
     if (!nome) return;
+    const efetivo = Number(novoEfetivo);
+    if (!novoEfetivo.trim() || !Number.isInteger(efetivo) || efetivo <= 0) {
+      toast.error('Informe a quantidade de pessoas do setor.');
+      return;
+    }
+    const alocado = setores.filter(setor => setor.ativo).reduce((total, setor) => total + tamanhoSetor(setor), 0);
+    if (limitePessoas != null && alocado + efetivo > limitePessoas) {
+      toast.error(`Restam ${Math.max(0, limitePessoas - alocado)} pessoa(s) no limite contratado.`);
+      return;
+    }
     setSalvando(true);
     try {
-      const res = await rhService.criarSetor(nome, novosModelos, novosTurnos);
+      const res = await rhService.criarSetor(nome, efetivo, novosModelos, novosTurnos);
       if (!res.ok) { toast.error(res.error || 'Não foi possível criar o setor.'); return; }
       toast.success(res.reativado ? `Setor "${nome}" reativado.` : `Setor "${nome}" criado.`);
       rhSetorSugestoes.remover(acesso.empresa_id, nome);
       setNovo('');
+      setNovoEfetivo('');
       setNovosModelos([]);
       setNovosTurnos([]);
       await load();
@@ -259,10 +273,20 @@ export const SetoresCard: React.FC<{
       return;
     }
 
+    const totalAtual = setores.filter(item => item.ativo).reduce((total, item) => total + tamanhoSetor(item), 0);
+    const totalProjetado = totalAtual - (s.ativo ? tamanhoSetor(s) : 0)
+      + (s.ativo ? Math.max(s.n, valor ?? 0) : 0);
+    if (limitePessoas != null && totalProjetado > limitePessoas) {
+      toast.error(`O total dos setores não pode ultrapassar o limite contratado de ${limitePessoas} pessoas.`);
+      limparRascunho(s.id);
+      return;
+    }
+
     const res = await rhService.definirEfetivoSetor(s.id, valor);
     if (!res.ok) { toast.error(res.error || 'Não foi possível salvar o efetivo.'); limparRascunho(s.id); return; }
     limparRascunho(s.id);
     await load();
+    onMutacao?.();
   };
 
   const limparRascunho = (id: string) =>
@@ -294,6 +318,12 @@ export const SetoresCard: React.FC<{
   const sugestoesPendentes = sugestoes.filter(nome => !setores.some(
     setor => setor.nome.trim().toLocaleLowerCase('pt-BR') === nome.trim().toLocaleLowerCase('pt-BR'),
   ));
+  const totalAlocado = ativos.reduce((total, setor) => total + tamanhoSetor(setor), 0);
+  const saldoPessoas = limitePessoas == null ? null : Math.max(0, limitePessoas - totalAlocado);
+  const novoEfetivoNumero = Number(novoEfetivo);
+  const novoEfetivoValido = novoEfetivo.trim().length > 0
+    && Number.isInteger(novoEfetivoNumero) && novoEfetivoNumero > 0
+    && (saldoPessoas == null || novoEfetivoNumero <= saldoPessoas);
 
   return (
     <div className="bg-white rounded-xl shadow p-5">
@@ -342,6 +372,23 @@ export const SetoresCard: React.FC<{
         O campo <strong>efetivo</strong> é quantas pessoas trabalham no setor, incluindo quem ainda não
         tem acesso ao Malama; é ele que mostra a cobertura real de cada setor.
       </p>
+
+      {limitePessoas != null && (
+        <div className={`mb-4 rounded-lg border px-3 py-3 ${totalAlocado > limitePessoas ? 'border-red-200 bg-red-50' : 'border-[#7d4a3c]/15 bg-[#7d4a3c]/5'}`}>
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="font-semibold text-gray-700">Pessoas distribuídas nos setores</span>
+            <span className={`font-semibold tabular-nums ${totalAlocado > limitePessoas ? 'text-red-700' : 'text-[#7d4a3c]'}`}>{totalAlocado} de {limitePessoas}</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
+            <div className={`h-full rounded-full ${totalAlocado > limitePessoas ? 'bg-red-500' : 'bg-[#7d4a3c]'}`} style={{ width: `${Math.min(100, limitePessoas > 0 ? (totalAlocado / limitePessoas) * 100 : 0)}%` }} />
+          </div>
+          <p className="mt-1.5 text-[11px] text-gray-500">
+            {totalAlocado > limitePessoas
+              ? `A distribuição atual excede o contrato em ${totalAlocado - limitePessoas} pessoa(s). Reduza um setor para continuar.`
+              : `${saldoPessoas} pessoa(s) ainda podem ser distribuídas. A soma dos efetivos não pode ultrapassar o limite contratado.`}
+          </p>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-sm text-gray-400">Carregando...</p>
@@ -398,7 +445,7 @@ export const SetoresCard: React.FC<{
                       quem não usa o Malama. É outro número, não a contagem de
                       cadastrados — e só a empresa sabe qual é. */}
                   <input
-                    type="number" min={s.n} max={100000}
+                    type="number" min={s.n} max={limitePessoas ?? 100000}
                     value={efetivoEdit[s.id] ?? (s.efetivo != null ? String(s.efetivo) : '')}
                     onChange={e => setEfetivoEdit(prev => ({ ...prev, [s.id]: e.target.value }))}
                     onBlur={() => handleEfetivo(s)}
@@ -540,25 +587,45 @@ export const SetoresCard: React.FC<{
       )}
 
       <form onSubmit={handleCriar} className="space-y-3 rounded-lg border border-gray-100 p-3">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={novo}
-            onChange={e => setNovo(e.target.value)}
-            placeholder="Novo setor (ex.: Operações)"
-            maxLength={60}
-            disabled={disabled || salvando}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
-          />
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_13rem_auto] sm:items-end">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-gray-600">Nome do setor</span>
+            <input
+              type="text"
+              value={novo}
+              onChange={e => setNovo(e.target.value)}
+              placeholder="Ex.: Operações"
+              maxLength={60}
+              disabled={disabled || salvando}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-gray-600">Quantidade de pessoas</span>
+            <input
+              type="number"
+              min={1}
+              max={saldoPessoas ?? 100000}
+              value={novoEfetivo}
+              onChange={e => setNovoEfetivo(e.target.value)}
+              placeholder={saldoPessoas == null ? 'Efetivo' : `Até ${saldoPessoas}`}
+              disabled={disabled || salvando || saldoPessoas === 0}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent disabled:bg-gray-50"
+            />
+          </label>
           <button
             type="submit"
-            disabled={disabled || salvando || !novo.trim()}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50 whitespace-nowrap"
+            disabled={disabled || salvando || !novo.trim() || !novoEfetivoValido}
+            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50 whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             Adicionar
           </button>
         </div>
+        {limitePessoas != null && (
+          <p className="text-[11px] text-gray-500">Disponível no contrato: {saldoPessoas} de {limitePessoas} pessoa(s).</p>
+        )}
         <GrupoCheckbox
           titulo="Modelo de trabalho · selecione os que se aplicam"
           opcoes={MODELOS}

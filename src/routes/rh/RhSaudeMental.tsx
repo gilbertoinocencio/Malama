@@ -194,11 +194,9 @@ const NovaCampanha: React.FC<{
   instrumentos: PsychosocialInstrumento[];
   setores: SetorEmpresa[];
   instrumentoInicial?: string | null;
-  /** Total real de colaboradores ativos/convidados — ver `alvoCount`. */
-  alvoTotal: number;
   onCriada: () => void;
   onCancelar: () => void;
-}> = ({ instrumentos, setores, instrumentoInicial, alvoTotal, onCriada, onCancelar }) => {
+}> = ({ instrumentos, setores, instrumentoInicial, onCriada, onCancelar }) => {
   const disponiveis = instrumentos.filter(i => i.ativo);
   const codigoInicial = disponiveis.some(i => i.code === instrumentoInicial)
     ? instrumentoInicial as string
@@ -238,19 +236,18 @@ const NovaCampanha: React.FC<{
   const toggleSetor = (s: string) =>
     setSelecionados(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
-  // "Toda a empresa" NÃO pode ser a soma dos setores: `rh_setores` só devolve
-  // quem tem setor preenchido, então numa empresa que ainda não classificou o
-  // quadro o número saía muito menor que o público real (1 em vez de 3, no
-  // caso que apareceu) — e o RH abria a campanha achando que ela não cobria
-  // quase ninguém. Por setor a soma vale, porque ali só entra quem tem setor.
-  // O tamanho do setor é o EFETIVO declarado, não o número de cadastrados:
-  // quem não tem app responde pelo link do setor, e contar só assentos fazia
-  // um setor de 5 pessoas sem app aparecer como zero.
+  // Toda campanha precisa nascer com recorte e denominador válidos. Mesmo
+  // "Toda a empresa" é a soma dos setores cadastrados: pessoa sem setor não
+  // pode ganhar um link anônimo solto, porque a resposta perderia o recorte
+  // que sustenta a leitura agregada. O tamanho é o efetivo declarado, nunca
+  // menor que o número já cadastrado.
   const tamanho = (s: SetorEmpresa) => Math.max(s.n, s.efetivo ?? 0);
 
-  const alvoCount = alvo === 'todos'
-    ? alvoTotal
-    : setores.filter(s => selecionados.includes(s.setor)).reduce((acc, s) => acc + tamanho(s), 0);
+  const setoresAlvo = alvo === 'todos'
+    ? setores
+    : setores.filter(s => selecionados.includes(s.setor));
+  const setoresSemTamanho = setoresAlvo.filter(s => tamanho(s) <= 0);
+  const alvoCount = setoresAlvo.reduce((acc, s) => acc + tamanho(s), 0);
 
   // Quantos, dentro do alvo, recebem pelo app. O restante só chega por link —
   // e é isso que decide se vale imprimir cartaz.
@@ -264,13 +261,19 @@ const NovaCampanha: React.FC<{
     if (alvo === 'setores' && selecionados.length === 0) {
       toast.error('Selecione ao menos um setor.'); return;
     }
+    if (setores.length === 0) {
+      toast.error('Cadastre ao menos um setor antes de abrir a campanha.'); return;
+    }
+    if (setoresSemTamanho.length > 0) {
+      toast.error(`Informe quantas pessoas há em: ${setoresSemTamanho.map(s => s.setor).join(', ')}.`); return;
+    }
     setSalvando(true);
     try {
       const res = await rhService.criarCampanha(
         code, inicio, fim, alvo === 'setores' ? selecionados : null,
       );
       if (!res.ok) { toast.error(res.error || 'Não foi possível criar a campanha.'); return; }
-      toast.success('Campanha aberta. Os colaboradores serão convidados no app.');
+      toast.success('Campanha aberta. Agora distribua os links anônimos de cada setor.');
       onCriada();
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao criar campanha.');
@@ -414,6 +417,12 @@ const NovaCampanha: React.FC<{
           )}
           {setores.length === 0 && ' Nenhum setor cadastrado — sem eles, o resultado não pode ser separado por setor.'}
         </p>
+        {setoresSemTamanho.length > 0 && (
+          <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+            Informe o número de pessoas em {setoresSemTamanho.map(s => s.setor).join(', ')} antes de abrir a campanha. Esse total é o denominador da adesão anônima.
+            {' '}<Link to="/rh/dashboard#setores" className="font-semibold underline">Completar setores</Link>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2 pt-1">
@@ -424,7 +433,7 @@ const NovaCampanha: React.FC<{
           Cancelar
         </button>
         <button
-          type="submit" disabled={salvando}
+          type="submit" disabled={salvando || setores.length === 0 || setoresSemTamanho.length > 0 || (alvo === 'setores' && selecionados.length === 0)}
           className="inline-flex items-center gap-2 px-5 py-2 bg-[#7d4a3c] hover:bg-[#623a2f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
         >
           <Play className="w-3.5 h-3.5" />
@@ -513,7 +522,6 @@ export const RhSaudeMental: React.FC = () => {
   const [campanhas, setCampanhas] = useState<PsychosocialCampanha[]>([]);
   const [instrumentos, setInstrumentos] = useState<PsychosocialInstrumento[]>([]);
   const [setores, setSetores] = useState<SetorEmpresa[]>([]);
-  const [alvoTotal, setAlvoTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [criando, setCriando] = useState(() => parametrosIniciais.get('nova') === '1');
   const [campanhaEncerrada, setCampanhaEncerrada] = useState<PsychosocialCampanha | null>(null);
@@ -544,16 +552,14 @@ export const RhSaudeMental: React.FC = () => {
     setLoading(true);
     setLoadError('');
     try {
-      const [c, i, s, total] = await Promise.all([
+      const [c, i, s] = await Promise.all([
         rhService.getCampanhas(),
         rhService.getInstrumentos(),
         rhService.getSetores(),
-        rhService.getAlvoTotal(),
       ]);
       setCampanhas(c);
       setInstrumentos(i);
       setSetores(s);
-      setAlvoTotal(total);
     } catch (err) {
       console.error('Erro ao carregar saúde mental:', err);
       setLoadError('Não foi possível atualizar campanhas e instrumentos. Os dados anteriores foram mantidos.');
@@ -673,8 +679,8 @@ export const RhSaudeMental: React.FC = () => {
           )}
         </div>
         <p className="text-sm text-gray-500 mb-1">
-          Aplique questionários validados aos colaboradores e acompanhe a adesão. As respostas são
-          individuais e sigilosas — você vê quantos responderam, nunca quem respondeu o quê.
+          Distribua questionários validados às equipes e acompanhe a adesão. No modo somente Compliance,
+          não é preciso cadastrar cada colaborador: a distribuição acontece por links anônimos de setor.
         </p>
         <p className="text-xs text-gray-500 mb-4 leading-relaxed">
           A barra mostra quantos responderam de quantos foram convidados. A cor tem significado:
@@ -689,7 +695,6 @@ export const RhSaudeMental: React.FC = () => {
               instrumentos={instrumentos}
               setores={setores}
               instrumentoInicial={instrumentoSugerido}
-              alvoTotal={alvoTotal}
               onCriada={() => { setCriando(false); load(); }}
               onCancelar={() => setCriando(false)}
             />

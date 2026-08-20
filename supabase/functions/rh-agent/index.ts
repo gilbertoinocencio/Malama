@@ -607,6 +607,47 @@ function respostaDeterministica(
   return { message: linhas.join('\n\n'), suggestions, requestId: null, degraded: false };
 }
 
+function respostaRegraCampanha(
+  contexto: any,
+  estruturaTrabalho: Array<{ nome: string; efetivo: number | null; colaboradores_cadastrados: number }>,
+  permitidas: string[],
+) {
+  const empresa = contexto?.empresa ?? {};
+  const somenteCompliance = empresa.modo_compliance === true
+    && empresa.modo_mental !== true && empresa.modo_metabolico !== true;
+  const semNumero = estruturaTrabalho.filter(setor =>
+    Math.max(setor.colaboradores_cadastrados ?? 0, setor.efetivo ?? 0) <= 0);
+  const colaboradores = Number(contexto?.indicadores?.colaboradores ?? 0);
+  const linhas: string[] = [];
+
+  if (somenteCompliance) {
+    linhas.push('Sim. No modo somente Compliance, você pode abrir a campanha sem cadastrar colaboradores individualmente. A pesquisa é distribuída por links anônimos de cada setor.');
+  } else {
+    linhas.push('Sem colaboradores cadastrados, essa exceção vale para empresas no modo somente Compliance. Como esta empresa também possui módulo de cuidado, o cadastro das pessoas continua fazendo parte da preparação do serviço.');
+  }
+
+  if (estruturaTrabalho.length === 0) {
+    linhas.push('O bloqueio real agora é a estrutura: cadastre ao menos um setor antes de abrir a campanha.');
+  } else if (semNumero.length > 0) {
+    linhas.push(`Antes de abrir, informe quantas pessoas trabalham em: ${semNumero.map(setor => setor.nome).join(', ')}. Esse número define o público e o denominador da adesão sem identificar participantes; a soma dos setores deve respeitar o limite contratado.`);
+  } else if (!somenteCompliance && colaboradores === 0) {
+    linhas.push('Depois de cadastrar as pessoas, a campanha poderá combinar convite pelo app e link anônimo por setor.');
+  } else {
+    linhas.push('Os setores e seus efetivos estão informados; a campanha já tem um público agregado válido. Nenhuma resposta individual fica disponível ao RH.');
+  }
+
+  const suggestions = [
+    (estruturaTrabalho.length === 0 || semNumero.length > 0)
+      ? sugestaoRota('Completar setores e efetivos', '/rh/dashboard#setores', permitidas)
+      : null,
+    (somenteCompliance || colaboradores > 0) && estruturaTrabalho.length > 0 && semNumero.length === 0
+      ? sugestaoRota('Abrir campanha', '/rh/saude-mental?nova=1', permitidas)
+      : null,
+  ].filter((item): item is Sugestao => item !== null);
+
+  return { message: linhas.join('\n\n'), suggestions, requestId: null, degraded: false };
+}
+
 async function consultarAgente(
   contextoSeguro: Record<string, unknown>,
   history: Historico[],
@@ -740,8 +781,12 @@ Deno.serve(async (req: Request) => {
     const { data: setores } = podeVerSetores
       ? await supabase.rpc('rh_setores_admin')
       : { data: null };
-    const estruturaTrabalho = Array.isArray(setores) ? setores.slice(0, 100).map((setor: any) => ({
+    const estruturaTrabalho = Array.isArray(setores) ? setores
+      .filter((setor: any) => setor?.ativo !== false)
+      .slice(0, 100).map((setor: any) => ({
       nome: texto(setor?.nome, 60),
+      efetivo: typeof setor?.efetivo === 'number' ? setor.efetivo : null,
+      colaboradores_cadastrados: typeof setor?.n === 'number' ? setor.n : 0,
       modelos_trabalho: lista(setor?.modelos_trabalho, 3),
       turnos: lista(setor?.turnos, 6),
     })).filter((setor: { nome: string }) => setor.nome) : [];
@@ -769,6 +814,9 @@ Deno.serve(async (req: Request) => {
     // Perguntas de status usam fatos do banco diretamente. Isso evita que a
     // resposta fique refém do destaque visual de uma única tela ou campanha.
     const perguntaNormalizada = message.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (/campanh/.test(perguntaNormalizada) && /(colaborador|pessoa|setor|anonim)/.test(perguntaNormalizada)) {
+      return json(respostaRegraCampanha(contexto, estruturaTrabalho, permitidas));
+    }
     if (/proximo passo|o que (devo|faco|fazer)|kpis?|indicadores|panorama|resumo|status|situacao|como est(a|ao)/.test(perguntaNormalizada)) {
       return json(respostaDeterministica(passo, permitidas, leitura, estadoCiclo, message, briefing));
     }
