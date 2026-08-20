@@ -10,7 +10,7 @@
 // a conta: duas cópias divergiam assim que alguém adicionava alguém.
 // =====================================================
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   rhService,
   type DocumentoLegal, type EmpresaColaborador, type LiderancaCiclo,
@@ -68,10 +68,14 @@ export const RhJornadaProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [documentos, setDocumentos] = useState<DocumentoLegal[]>([]);
   const [usuariosEquipe, setUsuariosEquipe] = useState<RhUsuarioEquipe[]>([]);
   const [loading, setLoading] = useState(true);
+  // Depois da primeira carga, atualizar setores/colaboradores não deve
+  // desmontar o dashboard inteiro. Desmontar fechava o card logo após salvar
+  // o primeiro setor, fazendo o cadastro bem-sucedido parecer perdido.
+  const carregouUmaVez = useRef(false);
   const [parcial, setParcial] = useState(false);
 
   const recarregar = useCallback(async () => {
-    setLoading(true);
+    if (!carregouUmaVez.current) setLoading(true);
     try {
       const emp = await rhService.getMyEmpresa();
       setEmpresa(emp);
@@ -113,6 +117,7 @@ export const RhJornadaProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.error('[jornada] falha ao carregar:', err);
       setParcial(true);
     } finally {
+      carregouUmaVez.current = true;
       setLoading(false);
     }
   }, [acesso.principal, can]);
