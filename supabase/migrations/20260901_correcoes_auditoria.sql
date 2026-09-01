@@ -3,109 +3,88 @@
 -- Relatório: docs/security-audit/relatorio-auditoria-seguranca.pdf
 --
 -- COMO APLICAR
--- Este arquivo tem 4 BLOCOS independentes, cada um com seu BEGIN/COMMIT.
--- Rode UM BLOCO POR VEZ no SQL Editor. O editor aborta tudo no primeiro
--- erro; colar o arquivo inteiro faria um erro no bloco 3 desfazer os
--- blocos 1 e 2 junto.
+-- Quatro BLOCOS independentes, cada um com seu BEGIN/COMMIT. Rode UM
+-- BLOCO POR VEZ no SQL Editor: o editor aborta tudo no primeiro erro, e
+-- colar o arquivo inteiro faria uma falha no bloco 3 desfazer os blocos
+-- 1 e 2 junto.
 --
---   Bloco 1 (P1) — F1: exames clínicos de outro paciente
+--   Bloco 1 (P1) — F1: leitura do bucket de exames
 --   Bloco 2 (P2) — F6: notificações forjadas na caixa do paciente
 --   Bloco 3 (P2) — F2/F3: permissões por módulo do RH no servidor
 --   Bloco 4 (P3) — F9: migrations legadas com user_metadata
 --
--- Os blocos 1, 2 e 4 são idempotentes. O bloco 3 também, mas por um
--- caminho menos óbvio — ver o comentário lá.
+-- ESTE BANCO NÃO É IGUAL AO REPOSITÓRIO
+-- A primeira execução mostrou isso: public.patient_exams não existe, e
+-- rh_campanha_links(uuid) também não. As migrations aqui são aplicadas à
+-- mão pelo SQL Editor, sem registro do que rodou, então cada ambiente tem
+-- um subconjunto diferente — que é o próprio achado F9.
+--
+-- Por isso os blocos 1 e 3 checam o que existe antes de agir:
+--   • objeto AUSENTE  → pula e avisa por NOTICE (não há o que proteger);
+--   • objeto PRESENTE com assinatura DIFERENTE da esperada → ABORTA, e
+--     diz qual. Esse caso não é pulável: a função ficaria viva e sem
+--     gate, que é exatamente o buraco a fechar.
+--
+-- Leia os NOTICEs ao final de cada bloco. Eles são a lista do que este
+-- banco não tem.
 -- =====================================================================
 
 
 -- =====================================================================
 -- BLOCO 1 (P1) — F1: médico lia o bucket inteiro de exames
 --
--- A policy viva é a de 20260802_acesso_por_tipo_profissional.sql:175-186
--- (ela substituiu a de 20260422_storage_buckets.sql:43). O trecho:
+-- A policy vulnerável é a de 20260802_acesso_por_tipo_profissional.sql:175
+-- (substituiu a de 20260422_storage_buckets.sql:43):
 --
---     AND EXISTS (
---       SELECT 1 FROM public.patient_exams pe
---         JOIN public.doctors d ON d.id = pe.doctor_id
---       WHERE d.user_id = auth.uid()
---         AND pe.file_url LIKE '%' || name      -- <= aqui
---     )
+--     AND pe.file_url LIKE '%' || name      -- <= `name` NU
 --
--- `name` está NU. E `doctors` TEM uma coluna `name`. Em SQL, um nome de
--- coluna não qualificado se liga primeiro ao FROM da própria subquery,
--- então isto NÃO compara com storage.objects.name: compara com o nome do
--- médico. Verificado em PostgreSQL 16, não deduzido.
+-- `name` está sem qualificação, e `doctors` — que está no FROM da própria
+-- subquery — TEM uma coluna `name`. Em SQL a referência nua se liga ao
+-- FROM mais interno, então isto não compara com storage.objects.name:
+-- compara com o NOME DO MÉDICO. Verificado em PostgreSQL 16.
 --
--- As duas consequências:
+-- Duas consequências:
 --
---   1. Com um nome normal ("Dra Ana Souza"), a condição nunca casa e o
---      médico não abre exame NENHUM, nem dos próprios pacientes. A
---      visualização de exames do portal está quebrada hoje — em silêncio,
---      porque signStoragePaths engole o erro e devolve file_url = null.
+--   1. Com nome normal a condição nunca casa: o médico não abre exame
+--      NENHUM, nem dos próprios pacientes. Quebrado, e em silêncio —
+--      signStoragePaths engole o erro e devolve file_url = null.
 --
---   2. Pior: o EXISTS deixou de ser correlacionado ao objeto. Se o médico
---      puser em `doctors.name` um sufixo qualquer de um file_url dele
---      (basta "pdf"), a subquery vira constante verdadeira e a policy
---      libera TODOS os objetos do bucket. `doctors_own_update` deixa o
---      médico editar o próprio nome, e protect_doctor_privileged_fields
---      protege status/nivel/rating mas não o nome. Um UPDATE no próprio
---      perfil abre os exames de toda a base.
+--   2. O EXISTS deixou de ser correlacionado ao objeto. Se o médico puser
+--      em doctors.name um sufixo de um file_url dele (basta "pdf"), a
+--      subquery vira constante verdadeira e libera TODOS os objetos do
+--      bucket. doctors_own_update permite editar o próprio nome, e
+--      protect_doctor_privileged_fields não protege o nome.
 --
--- A correção qualifica a coluna e, além disso, ancora o objeto na PASTA
--- do paciente da linha. A âncora é o que importa: o upload sempre grava
--- em `<patient_id>/...` (patientExamService.uploadExam) e a policy de
--- INSERT obriga a pasta a ser o auth.uid() do paciente, então é um
--- vínculo que o médico não consegue mover.
+-- A correção qualifica a coluna e ancora o objeto na PASTA do paciente da
+-- linha — o upload sempre grava em `<patient_id>/...` e a policy de INSERT
+-- obriga a pasta a ser o auth.uid(), então é um vínculo que o médico não
+-- move. Preserva `tipo_profissional = 'medico'` de 20260802; sem isso a
+-- correção ALARGARIA o acesso a psicólogos.
 --
--- Junto vem `patient_exams_doctor_update`, que valida a posse no USING
--- mas termina em WITH CHECK (true) — o USING filtra a linha ANTES da
--- escrita, o WITH CHECK valida DEPOIS. Sem isso o médico reatribui uma
--- linha sua para outro paciente ou outro profissional; e seria o vetor
--- de leitura se alguém corrigisse a policy de storage só qualificando a
--- coluna, sem a âncora de pasta.
+-- Junto vem patient_exams_doctor_update, que valida a posse no USING mas
+-- termina em WITH CHECK (true) — o USING filtra ANTES da escrita, o WITH
+-- CHECK valida DEPOIS.
 --
--- ATENÇÃO — MUDANÇA DE COMPORTAMENTO VISÍVEL: depois deste bloco os
--- médicos voltam a abrir os exames dos próprios pacientes. Isso é a
--- correção do item 1, não um efeito colateral.
+-- MUDANÇA DE COMPORTAMENTO VISÍVEL: onde a tabela existir, os médicos
+-- voltam a abrir os exames dos próprios pacientes. É a correção do item
+-- 1, não efeito colateral.
 -- =====================================================================
 
 BEGIN;
 
--- ── 1.1 WITH CHECK igual ao USING ────────────────────────────────────
-DROP POLICY IF EXISTS "patient_exams_doctor_update" ON public.patient_exams;
-CREATE POLICY "patient_exams_doctor_update" ON public.patient_exams
-  FOR UPDATE TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.doctors d
-      WHERE d.id = patient_exams.doctor_id
-        AND d.user_id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.doctors d
-      WHERE d.id = patient_exams.doctor_id
-        AND d.user_id = auth.uid()
-    )
-  );
-
--- ── 1.2 Trigger: congela o que nenhum dos dois lados pode reescrever ──
--- Mesmo padrão de protect_chat_message (20260815_security_hardening.sql:415).
--- A policy sozinha não basta: sem congelar doctor_id, o médico ainda
--- poderia reatribuir a linha para outro profissional e continuar
--- satisfazendo o WITH CHECK acima na ida.
+-- A função do trigger pode ser criada sempre: plpgsql não resolve a
+-- tabela no momento da criação.
 CREATE OR REPLACE FUNCTION public.protect_patient_exam()
 RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$
 BEGIN
   -- service_role e triggers internos passam direto.
   IF auth.uid() IS NULL THEN RETURN NEW; END IF;
 
   IF TG_OP = 'INSERT' THEN
     -- Só o paciente cria exame, e sempre para si. Espelha a policy
-    -- patient_exams_patient_crud, mas fecha também o caminho do arquivo:
-    -- sem isto a linha pode nascer já apontando para a pasta de outro.
+    -- patient_exams_patient_crud e fecha também o caminho do arquivo:
+    -- sem isto a linha pode nascer apontando para a pasta de outro.
     IF NEW.patient_id IS DISTINCT FROM auth.uid() THEN
       RAISE EXCEPTION 'Exame só pode ser criado pelo próprio paciente';
     END IF;
@@ -117,18 +96,18 @@ BEGIN
   END IF;
 
   -- ── UPDATE ────────────────────────────────────────────────────────
-  -- Identidade da linha e ponteiro do arquivo nunca mudam, para ninguém.
+  -- Identidade da linha e ponteiro do arquivo não mudam, para ninguém.
   NEW.patient_id := OLD.patient_id;
   NEW.file_url   := OLD.file_url;
   NEW.created_at := OLD.created_at;
 
-  -- O dono continua editando os metadados do próprio exame.
+  -- O dono segue editando os metadados do próprio exame.
   IF OLD.patient_id = auth.uid() THEN
     RETURN NEW;
   END IF;
 
   -- Médico: só a revisão clínica. reviewExam() grava exatamente
-  -- doctor_note / reviewed_at / reviewed_by — nada mais precisa passar.
+  -- doctor_note / reviewed_at / reviewed_by.
   NEW.doctor_id       := OLD.doctor_id;
   NEW.consultation_id := OLD.consultation_id;
   NEW.chat_id         := OLD.chat_id;
@@ -140,34 +119,69 @@ BEGIN
   NEW.file_size_kb    := OLD.file_size_kb;
   RETURN NEW;
 END;
-$$;
+$fn$;
 
-DROP TRIGGER IF EXISTS protect_patient_exam ON public.patient_exams;
-CREATE TRIGGER protect_patient_exam
-  BEFORE INSERT OR UPDATE ON public.patient_exams
-  FOR EACH ROW EXECUTE FUNCTION public.protect_patient_exam();
+-- O resto do bloco depende da tabela existir neste banco.
+DO $b1$
+BEGIN
+  IF to_regclass('public.patient_exams') IS NULL THEN
+    RAISE NOTICE '[1] public.patient_exams NAO existe neste banco — F1 nao se aplica aqui.';
+    RAISE NOTICE '[1] Nada foi alterado. Se o portal medico deveria ter exames, o que falta';
+    RAISE NOTICE '[1] e a migration 20260422_doctor_panel_v2.sql, nao esta correcao.';
+    RETURN;
+  END IF;
 
--- ── 1.3 Storage: qualifica a coluna e ancora na pasta do paciente ─────
--- A restrição `tipo_profissional = 'medico'` vem de 20260802 e é mantida:
--- psicólogo não abre exame. Sem ela esta migration ALARGARIA o acesso.
-DROP POLICY IF EXISTS "doctor_exams_read" ON storage.objects;
-CREATE POLICY "doctor_exams_read" ON storage.objects
-  FOR SELECT TO authenticated
-  USING (
-    bucket_id = 'patient-exams'
-    AND EXISTS (
-      SELECT 1
-      FROM public.patient_exams pe
-      JOIN public.doctors d ON d.id = pe.doctor_id
-      WHERE d.user_id = auth.uid()
-        AND COALESCE(d.tipo_profissional, 'medico') = 'medico'
-        -- QUALIFICADO. Nu, `name` se ligava a d.name (doctors.name).
-        -- Igualdade, não LIKE: o sufixo tornava a comparação frouxa.
-        AND pe.file_url = storage.objects.name
-        -- Âncora: a pasta do objeto tem que ser o paciente DA LINHA.
-        AND (storage.foldername(storage.objects.name))[1] = pe.patient_id::text
-    )
-  );
+  -- 1.1 WITH CHECK igual ao USING
+  EXECUTE $ddl$
+    DROP POLICY IF EXISTS "patient_exams_doctor_update" ON public.patient_exams
+  $ddl$;
+  EXECUTE $ddl$
+    CREATE POLICY "patient_exams_doctor_update" ON public.patient_exams
+      FOR UPDATE TO authenticated
+      USING (
+        EXISTS (SELECT 1 FROM public.doctors d
+                WHERE d.id = patient_exams.doctor_id AND d.user_id = auth.uid())
+      )
+      WITH CHECK (
+        EXISTS (SELECT 1 FROM public.doctors d
+                WHERE d.id = patient_exams.doctor_id AND d.user_id = auth.uid())
+      )
+  $ddl$;
+
+  -- 1.2 Trigger congelando o que nenhum dos dois lados reescreve
+  EXECUTE $ddl$
+    DROP TRIGGER IF EXISTS protect_patient_exam ON public.patient_exams
+  $ddl$;
+  EXECUTE $ddl$
+    CREATE TRIGGER protect_patient_exam
+      BEFORE INSERT OR UPDATE ON public.patient_exams
+      FOR EACH ROW EXECUTE FUNCTION public.protect_patient_exam()
+  $ddl$;
+
+  -- 1.3 Storage: qualifica a coluna e ancora na pasta do paciente
+  EXECUTE $ddl$
+    DROP POLICY IF EXISTS "doctor_exams_read" ON storage.objects
+  $ddl$;
+  EXECUTE $ddl$
+    CREATE POLICY "doctor_exams_read" ON storage.objects
+      FOR SELECT TO authenticated
+      USING (
+        bucket_id = 'patient-exams'
+        AND EXISTS (
+          SELECT 1
+          FROM public.patient_exams pe
+          JOIN public.doctors d ON d.id = pe.doctor_id
+          WHERE d.user_id = auth.uid()
+            AND COALESCE(d.tipo_profissional, 'medico') = 'medico'
+            AND pe.file_url = storage.objects.name
+            AND (storage.foldername(storage.objects.name))[1] = pe.patient_id::text
+        )
+      )
+  $ddl$;
+
+  RAISE NOTICE '[1] F1 corrigido: policy de UPDATE, trigger e policy de storage.';
+END
+$b1$;
 
 COMMIT;
 
@@ -176,34 +190,49 @@ COMMIT;
 -- BLOCO 2 (P2) — F6: qualquer autenticado inseria notificação na caixa
 --                    de qualquer paciente
 --
--- A policy dizia, no comentário, "service role pode inserir". O SQL
--- escrito não dizia isso: sem cláusula TO, `FOR INSERT WITH CHECK (true)`
--- vale para authenticated e anon, e o Supabase concede INSERT por padrão.
--- Dava para forjar title/body/data de uma notificação exibida ao paciente
--- com a credibilidade da plataforma.
+-- A policy dizia, no comentário, "service role pode inserir". O SQL não
+-- dizia isso: sem cláusula TO, `FOR INSERT WITH CHECK (true)` vale para
+-- authenticated e anon, e o Supabase concede INSERT por padrão. Dava para
+-- forjar title/body/data de uma notificação exibida ao paciente com a
+-- credibilidade da plataforma.
 --
 -- A tabela irmã já fazia certo desde o início — ver
 -- 20260422_doctor_panel_notifications.sql:60, `WITH CHECK (false)`.
--- Aqui é a mesma regra. Os triggers que justificavam a policy
--- (notify_patient_on_chat_opened) são SECURITY DEFINER e escrevem como
--- o dono da função, então não dependem dela.
+-- Os triggers que justificavam a policy são SECURITY DEFINER e escrevem
+-- como o dono da função, então não dependem dela.
 -- =====================================================================
 
 BEGIN;
 
-DROP POLICY IF EXISTS "patient_notifications_insert_service"
-  ON public.patient_notifications;
+DO $b2$
+BEGIN
+  IF to_regclass('public.patient_notifications') IS NULL THEN
+    RAISE NOTICE '[2] public.patient_notifications NAO existe neste banco — F6 nao se aplica.';
+    RETURN;
+  END IF;
 
-CREATE POLICY "patient_notifications_insert_service"
-  ON public.patient_notifications
-  FOR INSERT TO authenticated
-  WITH CHECK (false);
+  EXECUTE $ddl$
+    DROP POLICY IF EXISTS "patient_notifications_insert_service"
+      ON public.patient_notifications
+  $ddl$;
+  EXECUTE $ddl$
+    CREATE POLICY "patient_notifications_insert_service"
+      ON public.patient_notifications
+      FOR INSERT TO authenticated
+      WITH CHECK (false)
+  $ddl$;
+  EXECUTE $ddl$
+    REVOKE INSERT ON public.patient_notifications FROM anon, authenticated
+  $ddl$;
+  EXECUTE $ddl$
+    COMMENT ON POLICY "patient_notifications_insert_service"
+      ON public.patient_notifications IS
+      'Ninguem insere por PostgREST. Notificacao nasce so nos triggers/RPCs SECURITY DEFINER.'
+  $ddl$;
 
-REVOKE INSERT ON public.patient_notifications FROM anon, authenticated;
-
-COMMENT ON POLICY "patient_notifications_insert_service"
-  ON public.patient_notifications IS
-  'Ninguém insere por PostgREST. Notificação nasce só nos triggers/RPCs SECURITY DEFINER.';
+  RAISE NOTICE '[2] F6 corrigido.';
+END
+$b2$;
 
 COMMIT;
 
@@ -218,30 +247,27 @@ COMMIT;
 -- Ele foi aplicado em empresa_colaboradores, nos relatos confidenciais,
 -- na liderança e nas duas RPCs financeiras — e em mais nada. No resto, o
 -- servidor só perguntava "é um rh_usuarios desta empresa?", e quem tinha
--- sessão do portal chamava a RPC direto do console.
+-- sessão do portal chamava a RPC direto do console do navegador.
 --
 -- POR QUE WRAPPER, E NÃO REESCRITA DO CORPO
 -- Várias destas funções foram redefinidas 2 ou 3 vezes (rh_relatorio_jss
 -- em 20260803 e 20260835; rh_relatorio_psicossocial em 20260723, 20260727
 -- e 20260803). Colar um corpo aqui significaria escolher uma dessas
--- versões — e escolher a errada regride o relatório em silêncio, sem
--- erro nenhum. Renomear para __base e criar um wrapper preserva o corpo
--- vigente byte a byte, seja ele qual for. O diff fica pequeno e
--- reversível: para desfazer, dropa o wrapper e renomeia de volta.
+-- versões — e escolher a errada regride o relatório em silêncio. Renomear
+-- para __base e criar um wrapper preserva o corpo vigente byte a byte,
+-- seja ele qual for. Para desfazer: dropa o wrapper e renomeia de volta.
 --
--- IDEMPOTÊNCIA
--- O DO abaixo só renomeia se `<nome>__base` ainda não existir. Rodar o
--- bloco duas vezes não empilha wrapper sobre wrapper.
---
--- O MÓDULO DE CADA RPC saiu de qual tela a consome, não de palpite.
--- Três casos que contrariam a intuição e foram conferidos no código:
+-- O MÓDULO DE CADA RPC saiu de qual tela a consome, não de palpite. Três
+-- casos que contrariam a intuição e foram conferidos no código:
 --   • rh_certificado_colaboradores devolve a nominata, mas vive em
 --     RhDocumentos → o gate é 'compliance', não 'colaboradores';
 --   • rh_metricas_bemestar / rh_evolucao_bemestar estão em RhCompliance
 --     → 'compliance', não 'saude_mental';
 --   • rh_relatorio_jss e rh_relatorio_psicossocial são lidas por
---     RhSaudeMental, RhDocumentos E PlanoAcaoKanban → aceitam qualquer
---     um dos três módulos, senão duas telas legítimas quebram.
+--     RhSaudeMental, RhDocumentos E PlanoAcaoKanban → aceitam qualquer um
+--     dos três módulos, senão duas telas legítimas quebram.
+--
+-- IDEMPOTÊNCIA: só renomeia se `<nome>__base` ainda não existir.
 -- =====================================================================
 
 BEGIN;
@@ -251,6 +277,16 @@ BEGIN;
 -- rh_tem_permissao() já exige conta ativa e trata `principal` como
 -- coringa, então isto também fecha a falta de `AND ativo` que várias
 -- RPCs tinham.
+DO $pre$
+BEGIN
+  IF to_regprocedure('public.rh_tem_permissao(text)') IS NULL THEN
+    RAISE EXCEPTION 'rh_tem_permissao(text) nao existe neste banco. Aplique antes a '
+                    'migration 20260836_rh_permissoes_e_relatos_confidenciais.sql — '
+                    'sem ela o bloco 3 nao tem em que se apoiar.';
+  END IF;
+END
+$pre$;
+
 CREATE OR REPLACE FUNCTION public.rh_exige_modulo(VARIADIC p_modulos TEXT[])
 RETURNS void
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
@@ -269,657 +305,395 @@ REVOKE ALL ON FUNCTION public.rh_exige_modulo(TEXT[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rh_exige_modulo(TEXT[]) TO authenticated;
 
 -- ── 3.2 Policies das tabelas empresa_* ───────────────────────────────
--- Todas ganham o módulo E o `AND ativo` que faltava. As policies de
--- super_admin já existentes não são tocadas: o painel admin (que lê
--- empresa_faturas e empresa_colaboradores em doctorPortalService) segue
--- passando por is_super_admin().
-
--- Absenteísmo: CID e dias de afastamento são dado de saúde.
-DROP POLICY IF EXISTS "rh reads own afastamentos" ON empresa_afastamentos;
-CREATE POLICY "rh reads own afastamentos"
-  ON empresa_afastamentos FOR SELECT TO authenticated
-  USING (
-    public.rh_tem_permissao('absenteismo')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
-DROP POLICY IF EXISTS "rh inserts own afastamentos" ON empresa_afastamentos;
-CREATE POLICY "rh inserts own afastamentos"
-  ON empresa_afastamentos FOR INSERT TO authenticated
-  WITH CHECK (
-    public.rh_tem_permissao('absenteismo')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
-DROP POLICY IF EXISTS "rh deletes own afastamentos" ON empresa_afastamentos;
-CREATE POLICY "rh deletes own afastamentos"
-  ON empresa_afastamentos FOR DELETE TO authenticated
-  USING (
-    public.rh_tem_permissao('absenteismo')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
-DROP POLICY IF EXISTS "rh reads own ambulatorio" ON empresa_ambulatorio;
-CREATE POLICY "rh reads own ambulatorio"
-  ON empresa_ambulatorio FOR SELECT TO authenticated
-  USING (
-    public.rh_tem_permissao('absenteismo')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
-DROP POLICY IF EXISTS "rh inserts own ambulatorio" ON empresa_ambulatorio;
-CREATE POLICY "rh inserts own ambulatorio"
-  ON empresa_ambulatorio FOR INSERT TO authenticated
-  WITH CHECK (
-    public.rh_tem_permissao('absenteismo')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
-DROP POLICY IF EXISTS "rh deletes own ambulatorio" ON empresa_ambulatorio;
-CREATE POLICY "rh deletes own ambulatorio"
-  ON empresa_ambulatorio FOR DELETE TO authenticated
-  USING (
-    public.rh_tem_permissao('absenteismo')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
--- Financeiro.
-DROP POLICY IF EXISTS "rh reads own empresa faturas" ON empresa_faturas;
-CREATE POLICY "rh reads own empresa faturas"
-  ON empresa_faturas FOR SELECT TO authenticated
-  USING (
-    public.rh_tem_permissao('financeiro')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
--- Compliance.
-DROP POLICY IF EXISTS "rh reads own compliance docs" ON empresa_compliance_docs;
-CREATE POLICY "rh reads own compliance docs"
-  ON empresa_compliance_docs FOR SELECT TO authenticated
-  USING (
-    public.rh_tem_permissao('compliance')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
-DROP POLICY IF EXISTS "rh inserts own compliance docs" ON empresa_compliance_docs;
-CREATE POLICY "rh inserts own compliance docs"
-  ON empresa_compliance_docs FOR INSERT TO authenticated
-  WITH CHECK (
-    public.rh_tem_permissao('compliance')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
-DROP POLICY IF EXISTS "rh reads own certificados" ON empresa_certificados_esg;
-CREATE POLICY "rh reads own certificados"
-  ON empresa_certificados_esg FOR SELECT TO authenticated
-  USING (
-    public.rh_tem_permissao('compliance')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
-DROP POLICY IF EXISTS "rh reads own relatorios emitidos" ON empresa_relatorios_emitidos;
-CREATE POLICY "rh reads own relatorios emitidos"
-  ON empresa_relatorios_emitidos FOR SELECT TO authenticated
-  USING (
-    public.rh_tem_permissao('compliance')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
--- Importação (eSocial).
-DROP POLICY IF EXISTS "rh reads own ingestao_lotes" ON public.empresa_ingestao_lotes;
-CREATE POLICY "rh reads own ingestao_lotes"
-  ON public.empresa_ingestao_lotes FOR SELECT TO authenticated
-  USING (
-    public.rh_tem_permissao('importar')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
--- Saúde mental.
-DROP POLICY IF EXISTS "rh reads own empresa campaigns" ON psychosocial_campaigns;
-CREATE POLICY "rh reads own empresa campaigns"
-  ON psychosocial_campaigns FOR SELECT TO authenticated
-  USING (
-    public.rh_tem_permissao('saude_mental')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
--- Plano de ação.
-DROP POLICY IF EXISTS "rh reads own planos acao" ON empresa_planos_acao;
-CREATE POLICY "rh reads own planos acao"
-  ON empresa_planos_acao FOR SELECT TO authenticated
-  USING (
-    public.rh_tem_permissao('plano_acao')
-    AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)
-  );
-
--- ── 3.3 RPCs: wrapper com o gate, corpo original intacto ─────────────
--- Renomeia cada original para <nome>__base, preservando o corpo byte a byte,
--- e recria o nome publico como um wrapper que so checa a permissao.
-DO $rename$
-DECLARE r record; v_faltando TEXT[] := ARRAY[]::TEXT[];
+-- Em loop, e nao 14 blocos soltos, para poder PULAR tabela que nao
+-- existe neste banco em vez de abortar o bloco inteiro. As policies de
+-- super_admin nao sao tocadas: o painel admin segue por is_super_admin().
+DO $pol$
+DECLARE
+  r record;
+  v_cond TEXT;
+  v_pulados TEXT[] := ARRAY[]::TEXT[];
+  v_feitos INT := 0;
 BEGIN
   FOR r IN SELECT * FROM (VALUES
-    ('rh_absenteismo_resumo', 'date,date'),
-    ('rh_ambulatorio_resumo', 'date,date'),
-    ('rh_lancar_afastamento', 'text,character,integer,date'),
-    ('rh_lancar_ambulatorio', 'text,text,date'),
-    ('rh_matriz_psicossocial', 'date,date'),
-    ('rh_criar_campanha', 'text,date,date,text[]'),
-    ('rh_encerrar_campanha', 'uuid,boolean'),
-    ('rh_campanha_participacao', 'uuid'),
-    ('rh_campanha_links_setor', 'uuid'),
-    ('rh_campanha_links', 'uuid'),
-    ('rh_alvo_total', ''),
-    ('rh_criar_plano_acao', 'text,text,text,text,text,text,text,date'),
-    ('rh_atualizar_plano_acao', 'uuid,text,text'),
-    ('rh_excluir_plano_acao', 'uuid'),
-    ('rh_planos_acao_resumo', 'date,date'),
-    ('rh_vincular_cpfs', 'jsonb'),
-    ('rh_ingerir_afastamentos', 'jsonb,text,text,integer,integer'),
-    ('rh_lotes_ingestao', 'integer'),
-    ('rh_cobertura_cpf', ''),
-    ('rh_alocar_psicologo', 'uuid,boolean'),
-    ('rh_definir_setor_colaborador', 'uuid,text'),
-    ('rh_relatorio_psicossocial', 'date,date'),
-    ('rh_relatorio_jss', 'date,date'),
-    ('rh_registrar_relatorio', 'text,date,date,jsonb,text'),
-    ('rh_obter_relatorio_emitido', 'uuid'),
-    ('rh_metricas_bemestar', ''),
-    ('rh_evolucao_bemestar', ''),
-    ('rh_compliance_metricas', ''),
-    ('rh_certificado_colaboradores', ''),
-    ('rh_listar_relatorios_emitidos', ''),
-    ('rh_listar_campanhas', ''),
-    ('rh_listar_planos_acao', ''),
-    ('rh_resumo_psicologico', '')
-  ) AS t(nome, args)
+    ('empresa_afastamentos', 'rh reads own afastamentos', 'SELECT', 'absenteismo'),
+    ('empresa_afastamentos', 'rh inserts own afastamentos', 'INSERT', 'absenteismo'),
+    ('empresa_afastamentos', 'rh deletes own afastamentos', 'DELETE', 'absenteismo'),
+    ('empresa_ambulatorio', 'rh reads own ambulatorio', 'SELECT', 'absenteismo'),
+    ('empresa_ambulatorio', 'rh inserts own ambulatorio', 'INSERT', 'absenteismo'),
+    ('empresa_ambulatorio', 'rh deletes own ambulatorio', 'DELETE', 'absenteismo'),
+    ('empresa_faturas', 'rh reads own empresa faturas', 'SELECT', 'financeiro'),
+    ('empresa_compliance_docs', 'rh reads own compliance docs', 'SELECT', 'compliance'),
+    ('empresa_compliance_docs', 'rh inserts own compliance docs', 'INSERT', 'compliance'),
+    ('empresa_certificados_esg', 'rh reads own certificados', 'SELECT', 'compliance'),
+    ('empresa_relatorios_emitidos', 'rh reads own relatorios emitidos', 'SELECT', 'compliance'),
+    ('empresa_ingestao_lotes', 'rh reads own ingestao_lotes', 'SELECT', 'importar'),
+    ('psychosocial_campaigns', 'rh reads own empresa campaigns', 'SELECT', 'saude_mental'),
+    ('empresa_planos_acao', 'rh reads own planos acao', 'SELECT', 'plano_acao')
+  ) AS t(tabela, policy, cmd, modulo)
   LOOP
-    -- Ja renomeada numa execucao anterior: nada a fazer.
-    IF to_regprocedure(format('public.%s__base(%s)', r.nome, r.args)) IS NOT NULL THEN
+    IF to_regclass('public.' || r.tabela) IS NULL THEN
+      IF NOT (r.tabela = ANY(v_pulados)) THEN
+        v_pulados := v_pulados || r.tabela;   -- uma vez por tabela, nao por policy
+      END IF;
       CONTINUE;
     END IF;
-    IF to_regprocedure(format('public.%s(%s)', r.nome, r.args)) IS NULL THEN
-      v_faltando := v_faltando || format('%s(%s)', r.nome, r.args);
-      CONTINUE;
+    v_cond := format(
+      'public.rh_tem_permissao(%L) AND empresa_id IN (SELECT empresa_id FROM rh_usuarios WHERE user_id = auth.uid() AND ativo)',
+      r.modulo);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', r.policy, r.tabela);
+    IF r.cmd = 'INSERT' THEN
+      EXECUTE format('CREATE POLICY %I ON public.%I FOR INSERT TO authenticated WITH CHECK (%s)', r.policy, r.tabela, v_cond);
+    ELSE
+      EXECUTE format('CREATE POLICY %I ON public.%I FOR %s TO authenticated USING (%s)', r.policy, r.tabela, r.cmd, v_cond);
     END IF;
-    EXECUTE format('ALTER FUNCTION public.%I(%s) RENAME TO %I',
-                   r.nome, r.args, r.nome || '__base');
+    v_feitos := v_feitos + 1;
   END LOOP;
 
-  -- Falha alto em vez de criar um wrapper que aponta para o vazio.
-  IF cardinality(v_faltando) > 0 THEN
-    RAISE EXCEPTION 'Nao encontrei estas funcoes neste banco (assinatura mudou ou a migration de origem nao foi aplicada): %', array_to_string(v_faltando, ', ');
+  RAISE NOTICE '[3.2] % policies aplicadas.', v_feitos;
+  IF cardinality(v_pulados) > 0 THEN
+    RAISE NOTICE '[3.2] PULADAS (tabela nao existe neste banco): %',
+      array_to_string(v_pulados, ', ');
   END IF;
 END
-$rename$;
+$pol$;
 
-CREATE OR REPLACE FUNCTION public.rh_absenteismo_resumo(p_inicio DATE, p_fim DATE)
+-- ── 3.3 RPCs: wrapper com o gate, corpo original intacto ─────────────
+-- Cada entrada carrega o DDL do proprio wrapper, para que a criacao possa
+-- ser condicional: funcao que nao existe neste banco e PULADA (nao ha o
+-- que proteger), e nao derruba as outras 32.
+--
+-- A distincao que importa: "nao existe com nenhuma assinatura" e pulada em
+-- silencio util (NOTICE). Mas se existir uma funcao com o MESMO NOME e
+-- assinatura DIFERENTE, o bloco ABORTA — essa ficaria viva e sem gate, que
+-- e exatamente o buraco que esta migracao veio fechar.
+DO $fn$
+DECLARE
+  r record;
+  v_ausentes TEXT[] := ARRAY[]::TEXT[];
+  v_divergentes TEXT[] := ARRAY[]::TEXT[];
+  v_feitos INT := 0;
+BEGIN
+  FOR r IN SELECT * FROM (VALUES
+    ('rh_absenteismo_resumo', 'date,date', $ddl$CREATE OR REPLACE FUNCTION public.rh_absenteismo_resumo(p_inicio DATE, p_fim DATE)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('absenteismo');
   RETURN public.rh_absenteismo_resumo__base(p_inicio, p_fim);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_absenteismo_resumo__base(date,date) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_absenteismo_resumo(date,date) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_absenteismo_resumo(date,date) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_ambulatorio_resumo(p_inicio DATE, p_fim DATE)
+$wrap$;$ddl$),
+    ('rh_ambulatorio_resumo', 'date,date', $ddl$CREATE OR REPLACE FUNCTION public.rh_ambulatorio_resumo(p_inicio DATE, p_fim DATE)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('absenteismo');
   RETURN public.rh_ambulatorio_resumo__base(p_inicio, p_fim);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_ambulatorio_resumo__base(date,date) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_ambulatorio_resumo(date,date) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_ambulatorio_resumo(date,date) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_lancar_afastamento(p_setor TEXT, p_cid_grupo CHAR, p_dias INTEGER, p_data_inicio DATE)
+$wrap$;$ddl$),
+    ('rh_lancar_afastamento', 'text,character,integer,date', $ddl$CREATE OR REPLACE FUNCTION public.rh_lancar_afastamento(p_setor TEXT, p_cid_grupo CHAR, p_dias INTEGER, p_data_inicio DATE)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('absenteismo');
   RETURN public.rh_lancar_afastamento__base(p_setor, p_cid_grupo, p_dias, p_data_inicio);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_lancar_afastamento__base(text,character,integer,date) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_lancar_afastamento(text,character,integer,date) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_lancar_afastamento(text,character,integer,date) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_lancar_ambulatorio(p_setor TEXT, p_categoria TEXT, p_data DATE)
+$wrap$;$ddl$),
+    ('rh_lancar_ambulatorio', 'text,text,date', $ddl$CREATE OR REPLACE FUNCTION public.rh_lancar_ambulatorio(p_setor TEXT, p_categoria TEXT, p_data DATE)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('absenteismo');
   RETURN public.rh_lancar_ambulatorio__base(p_setor, p_categoria, p_data);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_lancar_ambulatorio__base(text,text,date) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_lancar_ambulatorio(text,text,date) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_lancar_ambulatorio(text,text,date) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_matriz_psicossocial(p_inicio DATE, p_fim DATE)
+$wrap$;$ddl$),
+    ('rh_matriz_psicossocial', 'date,date', $ddl$CREATE OR REPLACE FUNCTION public.rh_matriz_psicossocial(p_inicio DATE, p_fim DATE)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('saude_mental');
   RETURN public.rh_matriz_psicossocial__base(p_inicio, p_fim);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_matriz_psicossocial__base(date,date) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_matriz_psicossocial(date,date) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_matriz_psicossocial(date,date) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_criar_campanha(p_instrument TEXT, p_janela_inicio DATE, p_janela_fim DATE, p_setores TEXT[] DEFAULT NULL)
+$wrap$;$ddl$),
+    ('rh_criar_campanha', 'text,date,date,text[]', $ddl$CREATE OR REPLACE FUNCTION public.rh_criar_campanha(p_instrument TEXT, p_janela_inicio DATE, p_janela_fim DATE, p_setores TEXT[] DEFAULT NULL)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('saude_mental');
   RETURN public.rh_criar_campanha__base(p_instrument, p_janela_inicio, p_janela_fim, p_setores);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_criar_campanha__base(text,date,date,text[]) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_criar_campanha(text,date,date,text[]) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_criar_campanha(text,date,date,text[]) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_encerrar_campanha(p_campaign_id UUID, p_cancelar BOOLEAN DEFAULT false)
+$wrap$;$ddl$),
+    ('rh_encerrar_campanha', 'uuid,boolean', $ddl$CREATE OR REPLACE FUNCTION public.rh_encerrar_campanha(p_campaign_id UUID, p_cancelar BOOLEAN DEFAULT false)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('saude_mental');
   RETURN public.rh_encerrar_campanha__base(p_campaign_id, p_cancelar);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_encerrar_campanha__base(uuid,boolean) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_encerrar_campanha(uuid,boolean) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_encerrar_campanha(uuid,boolean) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_campanha_participacao(p_campaign_id UUID)
+$wrap$;$ddl$),
+    ('rh_campanha_participacao', 'uuid', $ddl$CREATE OR REPLACE FUNCTION public.rh_campanha_participacao(p_campaign_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('saude_mental');
   RETURN public.rh_campanha_participacao__base(p_campaign_id);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_campanha_participacao__base(uuid) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_campanha_participacao(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_campanha_participacao(uuid) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_campanha_links_setor(p_campaign_id UUID)
+$wrap$;$ddl$),
+    ('rh_campanha_links_setor', 'uuid', $ddl$CREATE OR REPLACE FUNCTION public.rh_campanha_links_setor(p_campaign_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('saude_mental');
   RETURN public.rh_campanha_links_setor__base(p_campaign_id);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_campanha_links_setor__base(uuid) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_campanha_links_setor(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_campanha_links_setor(uuid) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_campanha_links(p_campaign_id UUID)
+$wrap$;$ddl$),
+    ('rh_campanha_links', 'uuid', $ddl$CREATE OR REPLACE FUNCTION public.rh_campanha_links(p_campaign_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('saude_mental');
   RETURN public.rh_campanha_links__base(p_campaign_id);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_campanha_links__base(uuid) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_campanha_links(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_campanha_links(uuid) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_alvo_total()
+$wrap$;$ddl$),
+    ('rh_alvo_total', '', $ddl$CREATE OR REPLACE FUNCTION public.rh_alvo_total()
 RETURNS INT
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('saude_mental');
   RETURN public.rh_alvo_total__base();
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_alvo_total__base() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_alvo_total() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_alvo_total() TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_criar_plano_acao(p_setor TEXT, p_origem TEXT, p_fator TEXT, p_risco_descricao TEXT, p_medida TEXT, p_nivel_controle TEXT, p_responsavel TEXT, p_prazo DATE)
+$wrap$;$ddl$),
+    ('rh_criar_plano_acao', 'text,text,text,text,text,text,text,date', $ddl$CREATE OR REPLACE FUNCTION public.rh_criar_plano_acao(p_setor TEXT, p_origem TEXT, p_fator TEXT, p_risco_descricao TEXT, p_medida TEXT, p_nivel_controle TEXT, p_responsavel TEXT, p_prazo DATE)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('plano_acao');
   RETURN public.rh_criar_plano_acao__base(p_setor, p_origem, p_fator, p_risco_descricao, p_medida, p_nivel_controle, p_responsavel, p_prazo);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_criar_plano_acao__base(text,text,text,text,text,text,text,date) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_criar_plano_acao(text,text,text,text,text,text,text,date) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_criar_plano_acao(text,text,text,text,text,text,text,date) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_atualizar_plano_acao(p_id UUID, p_status TEXT, p_evidencia TEXT DEFAULT NULL)
+$wrap$;$ddl$),
+    ('rh_atualizar_plano_acao', 'uuid,text,text', $ddl$CREATE OR REPLACE FUNCTION public.rh_atualizar_plano_acao(p_id UUID, p_status TEXT, p_evidencia TEXT DEFAULT NULL)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('plano_acao');
   RETURN public.rh_atualizar_plano_acao__base(p_id, p_status, p_evidencia);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_atualizar_plano_acao__base(uuid,text,text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_atualizar_plano_acao(uuid,text,text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_atualizar_plano_acao(uuid,text,text) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_excluir_plano_acao(p_id UUID)
+$wrap$;$ddl$),
+    ('rh_excluir_plano_acao', 'uuid', $ddl$CREATE OR REPLACE FUNCTION public.rh_excluir_plano_acao(p_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('plano_acao');
   RETURN public.rh_excluir_plano_acao__base(p_id);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_excluir_plano_acao__base(uuid) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_excluir_plano_acao(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_excluir_plano_acao(uuid) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_planos_acao_resumo(p_inicio DATE, p_fim DATE)
+$wrap$;$ddl$),
+    ('rh_planos_acao_resumo', 'date,date', $ddl$CREATE OR REPLACE FUNCTION public.rh_planos_acao_resumo(p_inicio DATE, p_fim DATE)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('plano_acao');
   RETURN public.rh_planos_acao_resumo__base(p_inicio, p_fim);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_planos_acao_resumo__base(date,date) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_planos_acao_resumo(date,date) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_planos_acao_resumo(date,date) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_vincular_cpfs(p_pares JSONB)
+$wrap$;$ddl$),
+    ('rh_vincular_cpfs', 'jsonb', $ddl$CREATE OR REPLACE FUNCTION public.rh_vincular_cpfs(p_pares JSONB)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('importar');
   RETURN public.rh_vincular_cpfs__base(p_pares);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_vincular_cpfs__base(jsonb) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_vincular_cpfs(jsonb) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_vincular_cpfs(jsonb) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_ingerir_afastamentos(p_eventos JSONB, p_arquivo TEXT DEFAULT NULL, p_arquivo_hash TEXT DEFAULT NULL, p_sem_destino INT DEFAULT 0, p_eventos_lidos INT DEFAULT NULL)
+$wrap$;$ddl$),
+    ('rh_ingerir_afastamentos', 'jsonb,text,text,integer,integer', $ddl$CREATE OR REPLACE FUNCTION public.rh_ingerir_afastamentos(p_eventos JSONB, p_arquivo TEXT DEFAULT NULL, p_arquivo_hash TEXT DEFAULT NULL, p_sem_destino INT DEFAULT 0, p_eventos_lidos INT DEFAULT NULL)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('importar');
   RETURN public.rh_ingerir_afastamentos__base(p_eventos, p_arquivo, p_arquivo_hash, p_sem_destino, p_eventos_lidos);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_ingerir_afastamentos__base(jsonb,text,text,integer,integer) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_ingerir_afastamentos(jsonb,text,text,integer,integer) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_ingerir_afastamentos(jsonb,text,text,integer,integer) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_lotes_ingestao(p_limite INT DEFAULT 20)
+$wrap$;$ddl$),
+    ('rh_lotes_ingestao', 'integer', $ddl$CREATE OR REPLACE FUNCTION public.rh_lotes_ingestao(p_limite INT DEFAULT 20)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('importar');
   RETURN public.rh_lotes_ingestao__base(p_limite);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_lotes_ingestao__base(integer) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_lotes_ingestao(integer) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_lotes_ingestao(integer) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_cobertura_cpf()
+$wrap$;$ddl$),
+    ('rh_cobertura_cpf', '', $ddl$CREATE OR REPLACE FUNCTION public.rh_cobertura_cpf()
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('importar');
   RETURN public.rh_cobertura_cpf__base();
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_cobertura_cpf__base() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_cobertura_cpf() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_cobertura_cpf() TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_alocar_psicologo(p_colaborador_id UUID, p_ativar BOOLEAN)
+$wrap$;$ddl$),
+    ('rh_alocar_psicologo', 'uuid,boolean', $ddl$CREATE OR REPLACE FUNCTION public.rh_alocar_psicologo(p_colaborador_id UUID, p_ativar BOOLEAN)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('colaboradores');
   RETURN public.rh_alocar_psicologo__base(p_colaborador_id, p_ativar);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_alocar_psicologo__base(uuid,boolean) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_alocar_psicologo(uuid,boolean) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_alocar_psicologo(uuid,boolean) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_definir_setor_colaborador(p_colaborador_id UUID, p_setor TEXT)
+$wrap$;$ddl$),
+    ('rh_definir_setor_colaborador', 'uuid,text', $ddl$CREATE OR REPLACE FUNCTION public.rh_definir_setor_colaborador(p_colaborador_id UUID, p_setor TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('colaboradores');
   RETURN public.rh_definir_setor_colaborador__base(p_colaborador_id, p_setor);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_definir_setor_colaborador__base(uuid,text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_definir_setor_colaborador(uuid,text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_definir_setor_colaborador(uuid,text) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_relatorio_psicossocial(p_inicio DATE, p_fim DATE)
+$wrap$;$ddl$),
+    ('rh_relatorio_psicossocial', 'date,date', $ddl$CREATE OR REPLACE FUNCTION public.rh_relatorio_psicossocial(p_inicio DATE, p_fim DATE)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('saude_mental', 'compliance', 'plano_acao');
   RETURN public.rh_relatorio_psicossocial__base(p_inicio, p_fim);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_relatorio_psicossocial__base(date,date) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_relatorio_psicossocial(date,date) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_relatorio_psicossocial(date,date) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_relatorio_jss(p_inicio DATE, p_fim DATE)
+$wrap$;$ddl$),
+    ('rh_relatorio_jss', 'date,date', $ddl$CREATE OR REPLACE FUNCTION public.rh_relatorio_jss(p_inicio DATE, p_fim DATE)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('saude_mental', 'compliance', 'plano_acao');
   RETURN public.rh_relatorio_jss__base(p_inicio, p_fim);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_relatorio_jss__base(date,date) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_relatorio_jss(date,date) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_relatorio_jss(date,date) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_registrar_relatorio(p_tipo TEXT, p_periodo_inicio DATE, p_periodo_fim DATE, p_payload JSONB, p_hash TEXT)
+$wrap$;$ddl$),
+    ('rh_registrar_relatorio', 'text,date,date,jsonb,text', $ddl$CREATE OR REPLACE FUNCTION public.rh_registrar_relatorio(p_tipo TEXT, p_periodo_inicio DATE, p_periodo_fim DATE, p_payload JSONB, p_hash TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('compliance', 'saude_mental');
   RETURN public.rh_registrar_relatorio__base(p_tipo, p_periodo_inicio, p_periodo_fim, p_payload, p_hash);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_registrar_relatorio__base(text,date,date,jsonb,text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_registrar_relatorio(text,date,date,jsonb,text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_registrar_relatorio(text,date,date,jsonb,text) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_obter_relatorio_emitido(p_id UUID)
+$wrap$;$ddl$),
+    ('rh_obter_relatorio_emitido', 'uuid', $ddl$CREATE OR REPLACE FUNCTION public.rh_obter_relatorio_emitido(p_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('compliance', 'saude_mental');
   RETURN public.rh_obter_relatorio_emitido__base(p_id);
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_obter_relatorio_emitido__base(uuid) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_obter_relatorio_emitido(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_obter_relatorio_emitido(uuid) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_metricas_bemestar()
+$wrap$;$ddl$),
+    ('rh_metricas_bemestar', '', $ddl$CREATE OR REPLACE FUNCTION public.rh_metricas_bemestar()
 RETURNS TABLE (
-  agua_com_dados       INT,
-  agua_melhoraram      INT,
-  proteina_com_dados   INT,
-  proteina_melhoraram  INT,
-  atividade_com_dados  INT,
-  atividade_melhoraram INT,
-  ativos_total         INT,
-  ativos_engajados     INT,
-  dias_em_flow         INT
+  agua_com_dados INT, agua_melhoraram INT, proteina_com_dados INT, proteina_melhoraram INT, atividade_com_dados INT, atividade_melhoraram INT, ativos_total INT, ativos_engajados INT, dias_em_flow INT
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('compliance');
   RETURN QUERY SELECT * FROM public.rh_metricas_bemestar__base();
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_metricas_bemestar__base() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_metricas_bemestar() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_metricas_bemestar() TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_evolucao_bemestar()
+$wrap$;$ddl$),
+    ('rh_evolucao_bemestar', '', $ddl$CREATE OR REPLACE FUNCTION public.rh_evolucao_bemestar()
 RETURNS TABLE (
-  mes             DATE,
-  n_contribuintes INT,
-  media_agua      NUMERIC,
-  media_proteina  NUMERIC,
-  media_minutos   NUMERIC
+  mes DATE, n_contribuintes INT, media_agua NUMERIC, media_proteina NUMERIC, media_minutos NUMERIC
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('compliance');
   RETURN QUERY SELECT * FROM public.rh_evolucao_bemestar__base();
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_evolucao_bemestar__base() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_evolucao_bemestar() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_evolucao_bemestar() TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_compliance_metricas()
+$wrap$;$ddl$),
+    ('rh_compliance_metricas', '', $ddl$CREATE OR REPLACE FUNCTION public.rh_compliance_metricas()
 RETURNS TABLE (
-  empresa_id              UUID,
-  nome                    TEXT,
-  cnpj                    TEXT,
-  data_inicio             DATE,
-  colaboradores_elegiveis INT,
-  colaboradores_ativos    INT,
-  consultas_realizadas    INT,
-  modo_mental             BOOLEAN,
-  modo_metabolico         BOOLEAN,
-  consultas_psicologo     INT,
-  consultas_medico        INT
+  empresa_id UUID, nome TEXT, cnpj TEXT, data_inicio DATE, colaboradores_elegiveis INT, colaboradores_ativos INT, consultas_realizadas INT, modo_mental BOOLEAN, modo_metabolico BOOLEAN, consultas_psicologo INT, consultas_medico INT
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('compliance');
   RETURN QUERY SELECT * FROM public.rh_compliance_metricas__base();
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_compliance_metricas__base() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_compliance_metricas() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_compliance_metricas() TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_certificado_colaboradores()
+$wrap$;$ddl$),
+    ('rh_certificado_colaboradores', '', $ddl$CREATE OR REPLACE FUNCTION public.rh_certificado_colaboradores()
 RETURNS TABLE (
-  colaborador_id UUID,
-  nome           TEXT,
-  setor          TEXT,
-  funcao         TEXT,
-  data_adicao    TIMESTAMPTZ,
-  data_ativacao  TIMESTAMPTZ,
-  data_saida     TIMESTAMPTZ,
-  status         TEXT
+  colaborador_id UUID, nome TEXT, setor TEXT, funcao TEXT, data_adicao TIMESTAMPTZ, data_ativacao TIMESTAMPTZ, data_saida TIMESTAMPTZ, status TEXT
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('compliance');
   RETURN QUERY SELECT * FROM public.rh_certificado_colaboradores__base();
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_certificado_colaboradores__base() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_certificado_colaboradores() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_certificado_colaboradores() TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_listar_relatorios_emitidos()
+$wrap$;$ddl$),
+    ('rh_listar_relatorios_emitidos', '', $ddl$CREATE OR REPLACE FUNCTION public.rh_listar_relatorios_emitidos()
 RETURNS TABLE (
-  id                UUID,
-  tipo              TEXT,
-  numero_doc        TEXT,
-  periodo_inicio    DATE,
-  periodo_fim       DATE,
-  hash_verificacao  TEXT,
-  emitido_por_nome  TEXT,
-  emitido_em        TIMESTAMPTZ
+  id UUID, tipo TEXT, numero_doc TEXT, periodo_inicio DATE, periodo_fim DATE, hash_verificacao TEXT, emitido_por_nome TEXT, emitido_em TIMESTAMPTZ
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('compliance');
   RETURN QUERY SELECT * FROM public.rh_listar_relatorios_emitidos__base();
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_listar_relatorios_emitidos__base() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_listar_relatorios_emitidos() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_listar_relatorios_emitidos() TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_listar_campanhas()
+$wrap$;$ddl$),
+    ('rh_listar_campanhas', '', $ddl$CREATE OR REPLACE FUNCTION public.rh_listar_campanhas()
 RETURNS TABLE (
-  id UUID, instrument TEXT, instrument_nome TEXT, eixo TEXT,
-  janela_inicio DATE, janela_fim DATE, setores TEXT[], status TEXT,
-  encerrada_em TIMESTAMPTZ, created_at TIMESTAMPTZ,
-  n_convidados INT, n_respondentes INT
+  id UUID, instrument TEXT, instrument_nome TEXT, eixo TEXT, janela_inicio DATE, janela_fim DATE, setores TEXT[], status TEXT, encerrada_em TIMESTAMPTZ, created_at TIMESTAMPTZ, n_convidados INT, n_respondentes INT
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('saude_mental');
   RETURN QUERY SELECT * FROM public.rh_listar_campanhas__base();
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_listar_campanhas__base() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_listar_campanhas() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_listar_campanhas() TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_listar_planos_acao()
+$wrap$;$ddl$),
+    ('rh_listar_planos_acao', '', $ddl$CREATE OR REPLACE FUNCTION public.rh_listar_planos_acao()
 RETURNS TABLE (
-  id                 UUID,
-  setor              TEXT,
-  origem             TEXT,
-  fator              TEXT,
-  risco_descricao    TEXT,
-  medida             TEXT,
-  nivel_controle     TEXT,
-  responsavel        TEXT,
-  prazo              DATE,
-  status             TEXT,
-  evidencia          TEXT,
-  concluida_em       DATE,
-  atrasada           BOOLEAN,
-  created_at         TIMESTAMPTZ,
-  lideranca_ciclo_id UUID,
-  lideranca_setor    TEXT
+  id UUID, setor TEXT, origem TEXT, fator TEXT, risco_descricao TEXT, medida TEXT, nivel_controle TEXT, responsavel TEXT, prazo DATE, status TEXT, evidencia TEXT, concluida_em DATE, atrasada BOOLEAN, created_at TIMESTAMPTZ, lideranca_ciclo_id UUID, lideranca_setor TEXT
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('plano_acao');
   RETURN QUERY SELECT * FROM public.rh_listar_planos_acao__base();
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_listar_planos_acao__base() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_listar_planos_acao() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_listar_planos_acao() TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.rh_resumo_psicologico()
+$wrap$;$ddl$),
+    ('rh_resumo_psicologico', '', $ddl$CREATE OR REPLACE FUNCTION public.rh_resumo_psicologico()
 RETURNS TABLE (
-  plano_ativo     BOOLEAN,
-  max_assentos    INT,
-  assentos_em_uso INT
+  plano_ativo BOOLEAN, max_assentos INT, assentos_em_uso INT
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('colaboradores');
   RETURN QUERY SELECT * FROM public.rh_resumo_psicologico__base();
 END;
-$wrap$;
-REVOKE ALL ON FUNCTION public.rh_resumo_psicologico__base() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.rh_resumo_psicologico() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rh_resumo_psicologico() TO authenticated;
+$wrap$;$ddl$)
+  ) AS t(nome, args, ddl)
+  LOOP
+    -- Ja renomeada numa execucao anterior: so recria o wrapper.
+    IF to_regprocedure(format('public.%s__base(%s)', r.nome, r.args)) IS NULL THEN
+      IF to_regprocedure(format('public.%s(%s)', r.nome, r.args)) IS NULL THEN
+        IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+                   WHERE n.nspname = 'public' AND p.proname = r.nome) THEN
+          v_divergentes := v_divergentes || format('%s(%s)', r.nome, r.args);
+        ELSE
+          v_ausentes := v_ausentes || r.nome;
+        END IF;
+        CONTINUE;
+      END IF;
+      EXECUTE format('ALTER FUNCTION public.%I(%s) RENAME TO %I',
+                     r.nome, r.args, r.nome || '__base');
+    END IF;
+
+    EXECUTE r.ddl;
+    EXECUTE format('REVOKE ALL ON FUNCTION public.%I__base(%s) FROM PUBLIC, anon, authenticated', r.nome, r.args);
+    EXECUTE format('REVOKE ALL ON FUNCTION public.%I(%s) FROM PUBLIC, anon',
+                   r.nome, r.args);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION public.%I(%s) TO authenticated',
+                   r.nome, r.args);
+    v_feitos := v_feitos + 1;
+  END LOOP;
+
+  RAISE NOTICE '[3.3] % RPCs protegidas.', v_feitos;
+  IF cardinality(v_ausentes) > 0 THEN
+    RAISE NOTICE '[3.3] PULADAS (nao existem neste banco, nada a proteger): %',
+      array_to_string(v_ausentes, ', ');
+  END IF;
+
+  -- Divergencia de assinatura NAO e pulavel: a funcao esta viva e
+  -- continuaria sem gate. Aborta e mostra qual.
+  IF cardinality(v_divergentes) > 0 THEN
+    RAISE EXCEPTION 'Estas funcoes existem com assinatura DIFERENTE da esperada e ficariam sem gate: %. Rode docs/security-audit/descoberta.sql (consulta 2) e ajuste a lista.', array_to_string(v_divergentes, ', ');
+  END IF;
+END
+$fn$;
 COMMIT;
 
 
@@ -930,14 +704,19 @@ COMMIT;
 -- user_metadata é gravável pelo próprio usuário
 -- (supabase.auth.updateUser({ data: { role: 'super_admin' } })), então
 -- toda checagem de privilégio que o lê é auto-promoção.
--- 20260626_rbac_app_metadata.sql fechou isso e o banco de produção está
--- correto HOJE. O risco é de reintrodução: os quatro arquivos vulneráveis
--- continuam executáveis em supabase/migrations/, e aqui as migrations são
--- aplicadas à mão pelo SQL Editor, sem registro do que já rodou. Rodar um
--- deles de novo — num ambiente novo, num restore, por engano de ordem —
--- recria a policy vulnerável sem erro nenhum.
+-- 20260626_rbac_app_metadata.sql fechou isso e o banco está correto HOJE.
+-- O risco é de reintrodução: CINCO arquivos vulneráveis continuavam
+-- executáveis em supabase/migrations/, e aqui as migrations são aplicadas
+-- à mão, sem registro do que já rodou. Rodar um deles de novo — num
+-- ambiente novo, num restore, por engano de ordem — recriava a falha sem
+-- erro nenhum. (A execução desta migração provou o ponto: este banco tem
+-- um conjunto de migrations diferente do repositório.)
 --
--- Os quatro arquivos foram reescritos para chamar is_super_admin(), de
+-- O pior dos cinco era 20260601_empresas_b2b.sql:21-24: ali não é uma
+-- policy, é a DEFINIÇÃO de is_super_admin() — o ponto único que todas as
+-- policies administrativas consultam.
+--
+-- Os cinco arquivos foram reescritos para chamar is_super_admin(), de
 -- modo que reaplicá-los em qualquer ordem passou a ser inofensivo. Este
 -- bloco é a rede de baixo: reafirma o estado correto e falha alto se
 -- alguma policy ou função ainda referenciar user_metadata.
@@ -946,20 +725,42 @@ COMMIT;
 BEGIN;
 
 -- ── 4.1 Reafirma as definições corretas (idempotente) ────────────────
-DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
-CREATE POLICY "Admins can view all profiles"
-  ON profiles FOR SELECT TO authenticated
-  USING (is_super_admin() OR auth.uid() = id);
+DO $b4$
+DECLARE v_pulados TEXT[] := ARRAY[]::TEXT[];
+BEGIN
+  IF to_regclass('public.profiles') IS NOT NULL THEN
+    EXECUTE $ddl$DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles$ddl$;
+    EXECUTE $ddl$CREATE POLICY "Admins can view all profiles"
+      ON profiles FOR SELECT TO authenticated
+      USING (is_super_admin() OR auth.uid() = id)$ddl$;
+  ELSE
+    v_pulados := v_pulados || 'profiles';
+  END IF;
 
-DROP POLICY IF EXISTS "Admins manage payouts" ON payouts;
-CREATE POLICY "Admins manage payouts"
-  ON payouts FOR ALL TO authenticated
-  USING (is_super_admin()) WITH CHECK (is_super_admin());
+  IF to_regclass('public.payouts') IS NOT NULL THEN
+    EXECUTE $ddl$DROP POLICY IF EXISTS "Admins manage payouts" ON payouts$ddl$;
+    EXECUTE $ddl$CREATE POLICY "Admins manage payouts"
+      ON payouts FOR ALL TO authenticated
+      USING (is_super_admin()) WITH CHECK (is_super_admin())$ddl$;
+  ELSE
+    v_pulados := v_pulados || 'payouts';
+  END IF;
 
-DROP POLICY IF EXISTS "Admins can manage settings" ON platform_settings;
-CREATE POLICY "Admins can manage settings"
-  ON platform_settings FOR ALL TO authenticated
-  USING (is_super_admin()) WITH CHECK (is_super_admin());
+  IF to_regclass('public.platform_settings') IS NOT NULL THEN
+    EXECUTE $ddl$DROP POLICY IF EXISTS "Admins can manage settings" ON platform_settings$ddl$;
+    EXECUTE $ddl$CREATE POLICY "Admins can manage settings"
+      ON platform_settings FOR ALL TO authenticated
+      USING (is_super_admin()) WITH CHECK (is_super_admin())$ddl$;
+  ELSE
+    v_pulados := v_pulados || 'platform_settings';
+  END IF;
+
+  IF cardinality(v_pulados) > 0 THEN
+    RAISE NOTICE '[4.1] PULADAS (tabela nao existe neste banco): %',
+      array_to_string(v_pulados, ', ');
+  END IF;
+END
+$b4$;
 
 -- ── 4.2 Teste de smoke: nada de privilégio pode ler user_metadata ────
 -- Roda dentro da transação: se achar algo, o bloco inteiro volta atrás e
@@ -995,6 +796,8 @@ BEGIN
     RAISE EXCEPTION 'Função ainda lendo user_metadata para decidir privilégio: %',
       array_to_string(v_achados, '; ');
   END IF;
+
+  RAISE NOTICE '[4.2] Nenhuma policy ou funcao decide privilegio por user_metadata.';
 END
 $smoke$;
 
@@ -1005,16 +808,7 @@ COMMIT;
 -- VERIFICAÇÃO PÓS-APLICAÇÃO (não altera nada — pode rodar solto)
 -- =====================================================================
 --
--- 1. Nenhuma policy permissiva sobrou nas tabelas corrigidas:
---
---   SELECT tablename, policyname, cmd, qual, with_check
---   FROM pg_policies
---   WHERE schemaname = 'public'
---     AND tablename IN ('patient_exams','patient_notifications',
---                       'empresa_afastamentos','empresa_faturas')
---   ORDER BY tablename, policyname;
---
--- 2. Os 33 wrappers estão no ar e os __base ficaram sem GRANT:
+-- 1. Os wrappers estão no ar e os __base ficaram sem GRANT:
 --
 --   SELECT p.proname,
 --          has_function_privilege('authenticated', p.oid, 'EXECUTE') AS authenticated_executa
@@ -1023,6 +817,15 @@ COMMIT;
 --   ORDER BY p.proname;
 --
 --   Esperado: toda linha terminada em __base com authenticated_executa = false.
+--
+-- 2. Policies das tabelas corrigidas:
+--
+--   SELECT tablename, policyname, cmd, qual, with_check
+--   FROM pg_policies
+--   WHERE schemaname = 'public'
+--     AND tablename IN ('patient_exams','patient_notifications',
+--                       'empresa_afastamentos','empresa_faturas')
+--   ORDER BY tablename, policyname;
 --
 -- 3. Teste funcional do gate (com a sessão de um RH sem o módulo):
 --
