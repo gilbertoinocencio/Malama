@@ -47,3 +47,37 @@ SELECT policyname, cmd, qual
 FROM pg_policies
 WHERE schemaname = 'storage' AND tablename = 'objects'
 ORDER BY policyname;
+
+
+-- =====================================================================
+-- 5) Definição exata das 3 policies que o smoke test do bloco 4 achou
+--    com user_metadata, mas que NÃO existem em nenhum arquivo do
+--    repositório (nem migrations/, nem os supabase-*.sql antigos —
+--    "plan_prices" não aparece em lugar nenhum do código-fonte).
+--    Preciso do texto exato para escrever a correção sem adivinhar.
+-- =====================================================================
+SELECT schemaname, tablename, policyname, cmd, roles, qual, with_check
+FROM pg_policies
+WHERE (tablename, policyname) IN (
+  ('consultations', 'Admin can view all consultations'),
+  ('consultations', 'Admin can update all consultations'),
+  ('plan_prices',   'plan_prices_admin_write')
+)
+ORDER BY tablename, policyname;
+
+-- Enquanto estamos nisso: existe MAIS alguma policy com user_metadata
+-- fora dessas 3? O smoke test já disse que não, mas quero ver o texto
+-- completo de qualquer uma que exista em QUALQUER schema (não só
+-- public/storage), para não haver surpresa depois.
+SELECT schemaname, tablename, policyname, cmd, qual, with_check
+FROM pg_policies
+WHERE coalesce(qual, '') LIKE '%user_metadata%'
+   OR coalesce(with_check, '') LIKE '%user_metadata%'
+ORDER BY schemaname, tablename, policyname;
+
+-- E a tabela plan_prices em si: quais colunas ela tem? (não vi em
+-- nenhum arquivo do repo, então não sei o schema)
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'plan_prices'
+ORDER BY ordinal_position;

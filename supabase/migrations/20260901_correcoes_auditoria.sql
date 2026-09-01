@@ -722,6 +722,17 @@ COMMIT;
 -- modo que reaplicá-los em qualquer ordem passou a ser inofensivo. Este
 -- bloco é a rede de baixo: reafirma o estado correto e falha alto se
 -- alguma policy ou função ainda referenciar user_metadata.
+--
+-- ATUALIZAÇÃO (rodada em produção, 01/09/2026): o smoke test achou MAIS
+-- três policies com o mesmo problema, que não estão em NENHUM arquivo do
+-- repositório — nem em supabase/migrations/, nem nos supabase-*.sql
+-- antigos. "Admin can view/update all consultations" e
+-- "plan_prices_admin_write" só existiam no banco, aplicadas por fora do
+-- controle de versão em algum momento não documentado. Texto confirmado
+-- ao vivo via docs/security-audit/descoberta.sql (consulta 5): as três
+-- são idênticas — só `(auth.jwt() -> 'user_metadata' ->> 'role') =
+-- 'super_admin'`, sem lógica extra combinada, então a correção é trocar
+-- pelo predicado padrão do projeto sem perder nenhuma regra.
 -- =====================================================================
 
 BEGIN;
@@ -755,6 +766,31 @@ BEGIN
       USING (is_super_admin()) WITH CHECK (is_super_admin())$ddl$;
   ELSE
     v_pulados := v_pulados || 'platform_settings';
+  END IF;
+
+  -- Achadas pelo smoke test, não catalogadas em nenhum arquivo (ver nota
+  -- no cabeçalho do bloco). Texto original idêntico nas três: só o
+  -- predicado de papel, sem lógica extra a preservar.
+  IF to_regclass('public.consultations') IS NOT NULL THEN
+    EXECUTE $ddl$DROP POLICY IF EXISTS "Admin can view all consultations" ON consultations$ddl$;
+    EXECUTE $ddl$CREATE POLICY "Admin can view all consultations"
+      ON consultations FOR SELECT TO authenticated
+      USING (is_super_admin())$ddl$;
+    EXECUTE $ddl$DROP POLICY IF EXISTS "Admin can update all consultations" ON consultations$ddl$;
+    EXECUTE $ddl$CREATE POLICY "Admin can update all consultations"
+      ON consultations FOR UPDATE TO authenticated
+      USING (is_super_admin())$ddl$;
+  ELSE
+    v_pulados := v_pulados || 'consultations';
+  END IF;
+
+  IF to_regclass('public.plan_prices') IS NOT NULL THEN
+    EXECUTE $ddl$DROP POLICY IF EXISTS "plan_prices_admin_write" ON plan_prices$ddl$;
+    EXECUTE $ddl$CREATE POLICY "plan_prices_admin_write"
+      ON plan_prices FOR ALL TO authenticated
+      USING (is_super_admin()) WITH CHECK (is_super_admin())$ddl$;
+  ELSE
+    v_pulados := v_pulados || 'plan_prices';
   END IF;
 
   IF cardinality(v_pulados) > 0 THEN

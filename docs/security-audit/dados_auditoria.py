@@ -599,13 +599,14 @@ ACHADOS = [
         "id": "F9",
         "sev": "baixa",
         "cat": "C2",
-        "titulo": "Migrations antigas ainda contêm a checagem de papel por user_metadata",
+        "titulo": "user_metadata decidia privilégio — em migrations antigas E em 3 policies vivas sem arquivo",
         "arquivos": [
             "supabase/migrations/20260601_empresas_b2b.sql:21-24",
             "supabase/migrations/20260504_admin_profiles_policy.sql:6,30",
             "supabase/migrations/20260621_admin_update_setting_rpc.sql:11",
             "supabase/migrations/20260621_payouts_doctor_policy.sql:29-30",
             "supabase/migrations/20260621_platform_settings_admin_policy.sql:35,38",
+            "(sem arquivo — 3 policies vivas, achadas só em produção)",
         ],
         "evidencia": [
             ("supabase/migrations/20260621_payouts_doctor_policy.sql:27-30",
@@ -620,6 +621,13 @@ ACHADOS = [
              "-- usuário altera via supabase.auth.updateUser({ data: { role } }) no navegador.\n"
              "-- Isso permitia auto-promoção a super_admin (acesso a todos os dados).\n"
              "-- app_metadata (raw_app_meta_data) só é gravável por service_role / admin API."),
+            ("pg_policies em produção — sem arquivo correspondente em nenhum lugar do repo",
+             "CREATE POLICY \"Admin can view all consultations\" ON consultations FOR SELECT\n"
+             "  USING (((auth.jwt() -> 'user_metadata') ->> 'role') = 'super_admin');\n"
+             "CREATE POLICY \"Admin can update all consultations\" ON consultations FOR UPDATE\n"
+             "  USING (((auth.jwt() -> 'user_metadata') ->> 'role') = 'super_admin');\n"
+             "CREATE POLICY plan_prices_admin_write ON plan_prices FOR ALL\n"
+             "  USING (((auth.jwt() -> 'user_metadata') ->> 'role') = 'super_admin');"),
         ],
         "porque": (
             "user_metadata é gravável pelo próprio usuário (supabase.auth.updateUser). "
@@ -635,7 +643,21 @@ ACHADOS = [
             "migrations manualmente pelo SQL Editor, arquivo a arquivo, sem tabela de controle "
             "de versão aplicada. Executar qualquer um deles depois de 20260626 — num "
             "ambiente novo, num restore, ou por engano de ordenação — recria a policy "
-            "vulnerável em silêncio, sem erro."
+            "vulnerável em silêncio, sem erro.\n\n"
+            "CONFIRMADO NA PRÁTICA em 01/09/2026: ao aplicar a correção deste "
+            "relatório, o teste de smoke do bloco 4 (que varre pg_policies e pg_proc "
+            "inteiros, não só os cinco arquivos catalogados) achou TRÊS policies "
+            "vivas com o mesmo predicado — 'Admin can view all consultations', "
+            "'Admin can update all consultations' e 'plan_prices_admin_write' — que "
+            "não existem em NENHUM arquivo do repositório, nem em "
+            "supabase/migrations/, nem nos supabase-*.sql anteriores à pasta de "
+            "migrations. Foram aplicadas diretamente no banco em algum momento não "
+            "documentado. Ou seja: a classificação original — 'risco de "
+            "reintrodução, não brecha ativa' — estava certa para os cinco arquivos "
+            "catalogados, mas incompleta: para consultations e plan_prices, a "
+            "auto-promoção via user_metadata era EXPLORÁVEL AGORA, não uma "
+            "possibilidade futura. As três foram corrigidas na mesma migração "
+            "(bloco 4) e o smoke test hoje passa limpo."
         ),
         "impacto": (
             "O pior dos cinco é 20260601_empresas_b2b.sql:21-24: ali não é uma policy, é a "
@@ -644,13 +666,20 @@ ACHADOS = [
             "payouts, platform_settings e profiles de uma vez só, sem erro nenhum.\n\n"
             "Se reintroduzido: escalada a super_admin por qualquer usuário do app, com "
             "controle sobre platform_settings (valores de repasse por nível, taxa de "
-            "transação) e sobre a tabela payouts. Hoje, o risco é de processo, não de "
-            "estado corrente."
+            "transação) e sobre a tabela payouts. Para os cinco arquivos catalogados, o "
+            "risco era de processo, não de estado corrente — mas ver a nota acima: "
+            "para consultations (dados de consulta/telemedicina) e plan_prices "
+            "(preços dos planos), o mesmo problema era estado corrente, não "
+            "hipótese, até ser corrigido nesta rodada."
         ),
         "explorabilidade": (
-            "Não explorável no estado atual do banco, desde que 20260626 tenha sido a última "
-            "a rodar sobre esses objetos. Torna-se explorável em qualquer reaplicação fora de "
-            "ordem."
+            "Para os cinco arquivos catalogados: não explorável no estado em que a "
+            "auditoria original encontrou o banco, desde que 20260626 tenha sido a "
+            "última a rodar sobre esses objetos — torna-se explorável em qualquer "
+            "reaplicação fora de ordem. Para as três policies descobertas depois "
+            "(consultations x2, plan_prices x1): eram exploráveis sem nenhuma "
+            "condição — bastava supabase.auth.updateUser({ data: { role: "
+            "'super_admin' } }) no navegador. Corrigido nesta migração."
         ),
         "correcao": (
             "Reescrever os quatro arquivos legados para chamar is_super_admin() (tornando-os "
@@ -662,9 +691,11 @@ ACHADOS = [
         ),
         "aceite": [
             "Nenhum arquivo em supabase/migrations/ contém checagem de papel via user_metadata.",
-            "Query sobre pg_policies não retorna nenhuma policy que referencie user_metadata.",
+            "Query sobre pg_policies não retorna nenhuma policy que referencie user_metadata — confirmado (consulta rodada em produção, 01/09/2026).",
+            "consultations e plan_prices usam is_super_admin(), como o resto do projeto — confirmado.",
             "Existe controle de migrations aplicadas (tabela ou ferramenta), não só ordem de nome de arquivo.",
             "Teste de smoke no CI verifica a ausência de user_metadata em policies e funções.",
+            "Auditoria de schema completo (pg_dump --schema-only ou equivalente) para achar outros objetos vivos sem arquivo correspondente no repositório — este achado mostrou que existem.",
         ],
     },
 ]
@@ -846,9 +877,19 @@ RECOMENDACOES = [
      "Aplicar o guard de expire-credits em send-consultation-reminders, "
      "send-glp1-notifications e send-rh-reminders, e condicionar ?forcar=1 ao SERVICE_KEY. (F8)"),
 
-    ("P3", "Neutralizar as migrations legadas com user_metadata",
-     "Reescrever os quatro arquivos para chamar is_super_admin(), adotar controle de "
-     "migrations aplicadas e criar um teste de smoke que verifique pg_policies. (F9)"),
+    ("Feito", "user_metadata eliminado de toda policy e função em produção",
+     "Os 5 arquivos legados reescritos para chamar is_super_admin(). O smoke test do "
+     "bloco 4, rodado em produção, achou mais 3 policies vivas com o mesmo problema "
+     "SEM ARQUIVO correspondente no repositório (consultations x2, plan_prices x1) — "
+     "essas eram exploráveis de fato, não risco futuro. Corrigidas na mesma migração; "
+     "hoje nenhuma policy ou função em pg_policies/pg_proc lê user_metadata. (F9)"),
+
+    ("P3", "Controle de migrations aplicadas + smoke test no CI",
+     "A causa raiz de F9 segue de pé: migrations aplicadas à mão pelo SQL Editor, sem "
+     "registro do que já rodou — foi assim que consultations/plan_prices ficaram sem "
+     "arquivo por tempo indeterminado. Adotar uma tabela de controle de migrations e "
+     "levar o teste de smoke (já escrito, bloco 4.2) para rodar no CI, não só quando "
+     "alguém lembra de colar manualmente. (F9)"),
 
     ("P3", "Automatizar a detecção no CI",
      "Scanner de segredo (gitleaks) no pipeline e um teste que consulte pg_policies "
