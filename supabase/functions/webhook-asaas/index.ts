@@ -249,7 +249,7 @@ async function handleEmpresaPaid(payment: any): Promise<void> {
         html: brandedEmailHtml({
           heading: `Acesso <em style="font-style:italic;color:#8c473e;">reativado</em>.`,
           bodyParagraphs: [
-            `Recebemos o pagamento da <strong>${empresa.nome}</strong>.`,
+            `Recebemos o pagamento da <strong>${escapeHtml(empresa.nome)}</strong>.`,
             `O acesso dos seus colaboradores ao benefício Malama foi restabelecido automaticamente.`,
           ],
         }),

@@ -1,121 +1,88 @@
-# Aplicar as correções — passo a passo
+# Estado do deploy — histórico
 
-Siga na ordem. Cada passo diz o que fazer e como confirmar que deu certo antes
-de ir pro próximo.
+Este arquivo era o checklist passo-a-passo original. Todos os passos abaixo
+**já foram executados** (SQL rodado, functions deployadas, testado ao vivo).
+Fica como registro de auditoria de infraestrutura, não como pendência.
 
-Projeto: `agstaiizemtngcgmliju` · CLI instalada nesta máquina, já logada e
-linkada — os passos marcados **[eu rodo]** foram executados diretamente.
-
-**Atualização (01/09/2026):** a integração com o Strava foi desativada em
-vez de corrigida — o app cobre atividade física por Apple HealthKit e
-Google Health Connect, então proteger um endpoint que ninguém mais deveria
-chamar deixou de fazer sentido. `strava-webhook`, `strava-oauth` e
-`strava-oauth-callback` agora só devolvem `410 Gone`, sem tocar em banco
-nem em API externa. Isso eliminou os passos de gerar segredo e recriar
-assinatura — o checklist abaixo já reflete isso.
+Projeto: `agstaiizemtngcgmliju`.
 
 ---
 
-## Passo 1 — a migração SQL
+## SQL aplicado (nesta ordem)
 
-Você já validou os 4 blocos contra o schema real (32 RPCs protegidas, 14
-policies aplicadas, gate funcional testado). Se algum bloco ainda não
-rodou nesse banco, ou você quer rodar de novo — é seguro, os blocos são
-idempotentes — abra:
+1. `supabase/migrations/20260901_correcoes_auditoria.sql` — 4 blocos
+   (F1, F6, F2/F3, F9). Aplicado; achou e corrigiu 3 policies extras
+   (`consultations` x2, `plan_prices`) que nem constavam no relatório
+   original.
+2. `supabase/migrations/20260901_remove_strava_integration.sql` — aperta
+   o `CHECK` de `user_integrations.service`.
+3. `supabase/migrations/20260901_corrige_patient_notifications_insert.sql`
+   — corrige regressão que o bloco F6 do item 1 introduziu (ver "Revisão
+   pós-deploy" abaixo). **Este é o único que pode ainda não ter rodado —
+   confira antes de seguir.**
 
+## Edge Functions deployadas (nesta ordem)
+
+**Rodada 1 — correções de segurança + desativação inicial do Strava (12):**
 ```
-supabase/migrations/20260901_correcoes_auditoria.sql
+strava-webhook, strava-oauth, strava-oauth-callback,
+send-consultation-reminders, send-glp1-notifications, send-rh-reminders,
+webhook-asaas, create-influencer-user, self-register-empresa,
+invite-colaborador, invite-lead, resend-invite
 ```
 
-e cole **um bloco por vez** no SQL Editor. Leia os `NOTICE` depois de cada
-um.
+**Rodada 2 — remoção completa do Strava (2):**
+```
+strava-sync, strava-refresh-token
+```
 
-Se já rodou tudo sem erro, pule este passo.
+**Rodada 3 — correção do `safeCtaUrl` e do escape de `empresa.nome`
+faltando em dois e-mails (6, todas que importam `_shared/emails.ts`):**
+```
+create-influencer-user, invite-colaborador, invite-lead, resend-invite,
+send-rh-reminders, webhook-asaas
+```
+
+Todas confirmadas `ACTIVE` via `supabase functions list`. As 5 `strava-*`
+testadas ao vivo com `curl` — devolvem `410` (as com `verify_jwt=true`
+barram antes até no gateway, sem anon key).
 
 ---
 
-## Passo 2 — conferir a migração
+## Revisão pós-deploy (code-review, mesmo dia)
 
-Roda no SQL Editor (não altera nada):
+Depois do deploy, rodei o skill de code review no diff completo da sessão.
+Achou uma regressão real e duas correções incompletas:
 
-```sql
-SELECT p.proname,
-       has_function_privilege('authenticated', p.oid, 'EXECUTE') AS authenticated_executa
-FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-WHERE n.nspname = 'public' AND p.proname LIKE 'rh\_%'
-ORDER BY p.proname;
-```
+1. **`patient_notifications` INSERT quebrou 3 funcionalidades.** O bloco
+   F6 assumiu que toda notificação nasce de trigger — errado: reagendar
+   consulta, responder ticket de suporte e emitir receita inserem direto
+   do cliente. Ficaram silenciosamente sem notificar o paciente. Corrigido
+   na migração 3 acima (exige vínculo médico↔paciente ou admin, não
+   reabre o forjamento que o F6 fechou — testado contra 6 cenários).
+2. **`safeCtaUrl` devolvia a URL crua**, não a normalizada — uma
+   `redirect_to` maliciosa em `invite-lead` ainda injetava HTML no botão
+   do e-mail. Corrigido: agora devolve `parsed.href`.
+3. **Duas interpolações de `empresa.nome` sem escape** sobraram do F7 —
+   uma em `webhook-asaas` (e-mail de reativação), duas em
+   `send-rh-reminders` (dígest semanal). Corrigidas.
 
-Esperado: toda função terminada em `__base` aparece com
-`authenticated_executa = false`.
+## Pendente — precisa de você
 
----
+**`send-glp1-notifications` não tem `cron.schedule` em nenhuma migração
+do repositório**, diferente de `send-consultation-reminders` e
+`send-rh-reminders` (que têm, e usam a `service_role_key` do Vault —
+essas duas eu confirmei seguras). Se o disparo de lembrete de dose GLP-1
+vier de outro lugar (Cron Jobs do painel Supabase, por exemplo) com um
+token diferente da service_role_key, o guard novo (`autorizado()`) vai
+bloquear silenciosamente. **Confira em Database → Cron Jobs no painel do
+Supabase, ou nos logs da function, se ela ainda está disparando** depois
+do deploy da Rodada 1.
 
-## Passo 3 — deploy das Edge Functions **[eu rodo]**
+## Pendente — tarefa separada, não bloqueia nada acima
 
-12 functions no total.
-
-**7 editadas para as correções de segurança:**
-```
-send-consultation-reminders
-send-glp1-notifications
-send-rh-reminders
-webhook-asaas
-create-influencer-user
-self-register-empresa
-strava-webhook            (agora: desativada, devolve 410)
-```
-
-**3 que importam `_shared/emails.ts`** (ganhou `escapeHtml`/`safeCtaUrl` —
-o `_shared` é empacotado dentro de cada function, quem não republicar
-continua com a versão antiga):
-```
-invite-colaborador
-invite-lead
-resend-invite
-```
-
-**2 novas — desativadas junto com o webhook:**
-```
-strava-oauth
-strava-oauth-callback
-```
-
-`strava-sync` e `strava-refresh-token` **não foram tocadas** — quem já
-tinha o Strava conectado continua sincronizando normalmente até a remoção
-completa da integração (tarefa separada).
-
----
-
-## Passo 4 — teste manual rápido
-
-- **Portal médico**: abra o prontuário de um paciente, confira se os
-  exames aparecem (estava quebrado antes da correção do F1).
-- **Portal RH**: com uma conta que só tem o módulo "Colaboradores"
-  liberado, confirme que os outros módulos continuam bloqueados (agora
-  também no servidor, não só escondidos na tela).
-- **Cadastro público** (`/empresas`): preencha até o fim, confirma que não
-  trava.
-- **Botão "Conectar Strava"** (se existir na tela de integrações): vai
-  mostrar erro agora — **esperado**. A remoção do botão em si é parte da
-  tarefa de remoção completa, ainda não feita.
-
----
-
-## Se algo der errado
-
-- **Deploy falhou**: me manda a mensagem exata.
-- **RH perdeu acesso a algo que deveria ter**: me diga qual tela e qual é
-  o papel/módulo do usuário — pode ser um módulo mapeado errado na
-  migração.
-
----
-
-## Pendente — tarefa separada (não bloqueia nada acima)
-
-Remoção completa da integração Strava: os 18 arquivos de frontend que
-mencionam Strava (`Integrations.tsx` tem o botão), as 5 Edge Functions,
-as migrations, e uma decisão sobre `strava_connections` e as `activities`
-já sincronizadas de quem já conectou (histórico de treino — dado do
-usuário, não credencial; provavelmente vale manter, só parar de
-alimentar).
+`strava_connections` (tokens OAuth de quem já conectou) não foi tocada —
+`delete-account` ainda usa para revogar no Strava quando alguém apaga a
+conta. Pra invalidar de vez, desative o app da Malama no painel de
+desenvolvedor do Strava (ou gire o client secret) — isso não dá pra fazer
+por código.

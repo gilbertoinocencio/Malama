@@ -47,7 +47,16 @@ const ORIGENS_PERMITIDAS = [
   'https://www.soumalama.com.br',
 ];
 
-/** Devolve a URL se a origem for conhecida; senão, cai no site. */
+/** Devolve a URL se a origem for conhecida; senão, cai no site.
+ *
+ * Devolve `parsed.href` (normalizado/percent-encoded pelo parser de URL do
+ * runtime), NUNCA a string crua de entrada: `new URL()` só valida a forma
+ * da URL, não escapa aspas/ângulos no seu interior. Devolver o `bruto`
+ * original deixava passar algo como
+ * `https://site/x?a="><script>...` — origem válida, injeção HTML intacta
+ * dentro do atributo href de brandedEmailHtml. É exatamente a classe de
+ * falha que esta função existe para fechar (F7).
+ */
 export function safeCtaUrl(url: unknown): string {
   const bruto = String(url ?? '').trim();
   try {
@@ -56,7 +65,7 @@ export function safeCtaUrl(url: unknown): string {
     const origem = parsed.origin;
     return ORIGENS_PERMITIDAS.some(o => {
       try { return new URL(o).origin === origem; } catch { return false; }
-    }) ? bruto : SITE_URL;
+    }) ? parsed.href : SITE_URL;
   } catch {
     return SITE_URL;
   }

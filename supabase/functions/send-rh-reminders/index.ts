@@ -24,7 +24,7 @@
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { brandedEmailHtml, sendEmail } from '../_shared/emails.ts';
+import { brandedEmailHtml, escapeHtml, sendEmail } from '../_shared/emails.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -135,7 +135,7 @@ function corpoDigest(p: Pendencias, linhas: string[]) {
   const itens = linhas.map(l => `<li style="margin:0 0 10px;">${l}</li>`).join('');
   return brandedEmailHtml({
     eyebrow: 'Malama · Portal do RH',
-    heading: `O que <em>${p.empresa_nome}</em> tem em aberto`,
+    heading: `O que <em>${escapeHtml(p.empresa_nome)}</em> tem em aberto`,
     bodyParagraphs: [
       'Um resumo do que está com data marcada esta semana. Nada aqui exige resposta a este e-mail — tudo se resolve no painel.',
       `<ul style="margin:0 0 18px;padding-left:20px;">${itens}</ul>`,
@@ -155,7 +155,7 @@ function corpoCampanhaFechando(p: Pendencias, c: Fechando) {
     eyebrow: 'Malama · Portal do RH',
     heading: `A janela do <em>${c.instrumento}</em> fecha ${faltam}`,
     bodyParagraphs: [
-      `Na ${p.empresa_nome}, ${c.respondentes} de ${c.convidados} responderam até agora. `
+      `Na ${escapeHtml(p.empresa_nome)}, ${c.respondentes} de ${c.convidados} responderam até agora. `
       + `Depois de ${fmt(c.janela_fim)} não é mais possível receber resposta deste ciclo.`,
       'Se ainda quiser alcançar mais gente, o painel gera o link e o cartaz com QR de cada setor, '
       + 'além do texto pronto para o grupo. Reenviar o convite ao setor inteiro funciona; '
