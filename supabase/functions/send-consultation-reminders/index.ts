@@ -26,6 +26,16 @@ const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') || 'mailto:noreply@soumalama
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
+// Só a service role dispara — o pg_cron manda o SERVICE_KEY no Authorization.
+// Mesmo padrão de expire-credits/index.ts:19-22 e process-payouts:360-368.
+// Sem isto, a postura dependia inteiramente da flag verify_jwt do deploy,
+// que não estava versionada em lugar nenhum.
+function autorizado(req: Request): boolean {
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  return token.length > 0 && token === SERVICE_KEY;
+}
+
+
 type Kind = '24h' | '3h' | '30min';
 const KINDS: Kind[] = ['24h', '3h', '30min'];
 const OFFSET_MS: Record<Kind, number> = {
@@ -244,7 +254,12 @@ async function processNoShows(nowMs: number): Promise<number> {
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  if (!autorizado(req)) {
+    return new Response(JSON.stringify({ error: 'Nao autorizado' }), {
+      status: 403, headers: { 'Content-Type': 'application/json' },
+    });
+  }
   try {
     const nowMs = Date.now();
     const nowIso = new Date(nowMs).toISOString();

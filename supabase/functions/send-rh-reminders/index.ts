@@ -34,6 +34,16 @@ const DIA_DO_DIGEST = Number(Deno.env.get('RH_DIGEST_DIA_SEMANA') ?? '1');
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
+// Só a service role dispara — o pg_cron manda o SERVICE_KEY no Authorization.
+// Mesmo padrão de expire-credits/index.ts:19-22 e process-payouts:360-368.
+// Sem isto, a postura dependia inteiramente da flag verify_jwt do deploy,
+// que não estava versionada em lugar nenhum.
+function autorizado(req: Request): boolean {
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  return token.length > 0 && token === SERVICE_KEY;
+}
+
+
 type Fechando = {
   campanha_id: string; instrumento: string; janela_fim: string;
   dias: number; respondentes: number; convidados: number;
@@ -208,7 +218,14 @@ async function liberarReserva(empresaId: string, tipo: string, referencia: strin
 }
 
 Deno.serve(async (req) => {
+  if (!autorizado(req)) {
+    return new Response(JSON.stringify({ error: 'Nao autorizado' }), {
+      status: 403, headers: { 'Content-Type': 'application/json' },
+    });
+  }
   // `?forcar=1` ignora o dia da semana — para testar sem esperar a segunda.
+  // Só chega aqui quem provou o SERVICE_KEY: antes, qualquer um forçava o
+  // digest fora do dia.
   // Não ignora o dedupe: reenviar de verdade exige apagar a linha do log.
   const url = new URL(req.url);
   const forcar = url.searchParams.get('forcar') === '1';

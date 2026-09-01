@@ -5,6 +5,33 @@ const STRAVA_VERIFY_TOKEN       = Deno.env.get('STRAVA_VERIFY_TOKEN')!;
 const SUPABASE_URL              = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+// O Strava NÃO assina o corpo do webhook: não há HMAC nem header secreto
+// para conferir. O que ele garante é entregar exatamente na callback URL
+// registrada na assinatura, query string inclusive. Então o segredo vai na
+// URL, e é ele que autentica o POST.
+//
+// Sem isto, qualquer POST anônimo executava processEvent() com o cliente
+// service_role: mandar { object_type: 'athlete', owner_id: N,
+// updates: { authorized: 'false' } } apagava a conexão Strava do usuário N,
+// e iterar N apagava todas.
+//
+// AO PUBLICAR: registre a assinatura no Strava com a URL já contendo o
+// segredo — .../functions/v1/strava-webhook?token=<STRAVA_WEBHOOK_SECRET>.
+// A assinatura antiga, sem o token, passa a receber 401 e precisa ser
+// recriada.
+const STRAVA_WEBHOOK_SECRET = Deno.env.get('STRAVA_WEBHOOK_SECRET') ?? '';
+
+/** Comparação em tempo constante — não vaza o segredo por timing. */
+function segredoConfere(recebido: string, esperado: string): boolean {
+  // Fecha por padrão: segredo não configurado nunca vira "qualquer um passa".
+  if (!esperado || !recebido || recebido.length !== esperado.length) return false;
+  let diff = 0;
+  for (let i = 0; i < esperado.length; i++) {
+    diff |= recebido.charCodeAt(i) ^ esperado.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 serve(async (req) => {
   // ── GET: Handshake de validação do Strava ────────────────────────────
   if (req.method === 'GET') {
@@ -22,6 +49,14 @@ serve(async (req) => {
 
   // ── POST: Evento de atividade ou deauthorização ──────────────────────
   if (req.method === 'POST') {
+    // Autentica ANTES de ler o corpo: quem não prova o segredo não chega
+    // a tocar no banco. O owner_id do payload só tem poder depois daqui.
+    const token = new URL(req.url).searchParams.get('token') ?? '';
+    if (!segredoConfere(token, STRAVA_WEBHOOK_SECRET)) {
+      console.warn('[strava-webhook] POST recusado: token ausente ou inválido');
+      return new Response('Unauthorized', { status: 401 });
+    }
+
     // Strava exige resposta em 2 segundos — processamento em background
     const payload = await req.json();
 

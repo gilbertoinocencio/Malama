@@ -18,9 +18,19 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Helper: o JWT do chamador é de um super_admin?
+--
+-- Lê app_metadata, NUNCA user_metadata. user_metadata é gravável pelo
+-- próprio usuário (supabase.auth.updateUser({ data: { role } })), e esta
+-- função é o ponto único que todas as policies administrativas consultam:
+-- com user_metadata aqui, qualquer usuário do app se promovia a
+-- super_admin e abria empresas, payouts, platform_settings e profiles de
+-- uma vez só. Corrigido em 20260626_rbac_app_metadata.sql; a definição
+-- foi alinhada aqui também porque este arquivo continua executável e
+-- reaplicá-lo reintroduziria a falha em silêncio.
+-- Auditoria de segurança, 01/09/2026 — achado F9.
 CREATE OR REPLACE FUNCTION is_super_admin()
 RETURNS BOOLEAN AS $$
-  SELECT (auth.jwt() -> 'user_metadata' ->> 'role') = 'super_admin';
+  SELECT coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'super_admin', false);
 $$ LANGUAGE sql STABLE;
 
 -- Helper: resolve o user_id de um e-mail (usado pela edge function invite-colaborador

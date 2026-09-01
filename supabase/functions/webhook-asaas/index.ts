@@ -5,7 +5,7 @@
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { brandedEmailHtml, sendEmail } from '../_shared/emails.ts';
+import { brandedEmailHtml, escapeHtml, sendEmail } from '../_shared/emails.ts';
 
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY           = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -292,7 +292,7 @@ async function handleEmpresaOverdue(payment: any): Promise<void> {
         eyebrow: 'Malama Admin',
         heading: `Fatura <em style="font-style:italic;color:#8c473e;">vencida</em>.`,
         bodyParagraphs: [
-          `A empresa <strong>${empresa?.nome ?? ''}</strong> está com fatura vencida (R$ ${Number(fatura.valor).toFixed(2)}, venc. ${fatura.vencimento}).`,
+          `A empresa <strong>${escapeHtml(empresa?.nome ?? '')}</strong> está com fatura vencida (R$ ${Number(fatura.valor).toFixed(2)}, venc. ${fatura.vencimento}).`,
           `Nenhuma ação automática foi tomada. Decida no painel: bloquear acesso ou manter ativo.`,
         ],
       }),

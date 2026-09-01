@@ -18,6 +18,50 @@ const SITE_URL = (Deno.env.get('SITE_URL') || 'https://soumalama.com.br').replac
 const LOGO_URL = `${SITE_URL}/malama-passaro.png`;
 const SERIF = "'Cormorant Garamond', Georgia, 'Times New Roman', serif";
 
+// ─── Escape de dado dinâmico ───────────────────────────────────────────
+// O template abaixo CARREGA markup de propósito (o <em> do heading, o
+// <strong> dos parágrafos), então escapar a string inteira quebraria o
+// layout. O escape vai no ponto onde o dado externo entra — cada função
+// de e-mail aplica em suas variáveis antes de compor.
+//
+// Por que importa: `empresas.nome` é gravado por self-register-empresa,
+// que é uma função PÚBLICA e não autenticada. Sem escape, o nome escolhido
+// no autocadastro vira markup dentro de um e-mail com a marca Malama,
+// enviado pela infraestrutura da Malama — âncora para o site do atacante
+// inclusive.
+export function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Origens que podem aparecer em href de CTA. `redirect_to` chega do corpo
+// da requisição em invite-lead; sem allowlist, um convite legítimo do admin
+// vira porta de phishing se o parâmetro for adulterado.
+const ORIGENS_PERMITIDAS = [
+  SITE_URL,
+  'https://soumalama.com.br',
+  'https://www.soumalama.com.br',
+];
+
+/** Devolve a URL se a origem for conhecida; senão, cai no site. */
+export function safeCtaUrl(url: unknown): string {
+  const bruto = String(url ?? '').trim();
+  try {
+    const parsed = new URL(bruto);
+    if (parsed.protocol !== 'https:') return SITE_URL;
+    const origem = parsed.origin;
+    return ORIGENS_PERMITIDAS.some(o => {
+      try { return new URL(o).origin === origem; } catch { return false; }
+    }) ? bruto : SITE_URL;
+  } catch {
+    return SITE_URL;
+  }
+}
+
 // ─── Builder do layout de e-mail (banner + corpo) ──────
 // heading aceita <em>…</em> para o acento itálico em petrol.
 export function brandedEmailHtml(opts: {
@@ -143,11 +187,13 @@ export function activationEmailText(empresaNome: string, ctaUrl: string): string
 
 // ─── E-mail de ATIVAÇÃO (colaborador que já tem conta Malama) ──
 export function activationEmailHtml(empresaNome: string, ctaUrl: string): string {
+  // O nome da empresa vem do autocadastro público — escapa antes de compor.
+  const nome = escapeHtml(empresaNome);
   return brandedEmailHtml({
-    preheader: `${empresaNome} liberou o benefício Malama para você.`,
+    preheader: `${nome} liberou o benefício Malama para você.`,
     heading: `Seu benefício Malama foi <em style="font-style:italic;color:${COLOR.petrol};">liberado</em>.`,
     bodyParagraphs: [
-      `A <strong>${empresaNome}</strong> adicionou você ao benefício de saúde Malama.`,
+      `A <strong>${nome}</strong> adicionou você ao benefício de saúde Malama.`,
       `Você já tem conta — é só abrir o app para ativar o acesso e continuar sua jornada de cuidado, agora pela sua empresa.`,
     ],
     ctaText: 'Acessar o app e ativar',
@@ -163,6 +209,7 @@ export function activationEmailHtml(empresaNome: string, ctaUrl: string): string
 // vista. Sem isso o aprovado ficava em limbo: liberado, mas sem senha nem dados.
 export function professionalSignupEmailText(tipo: 'medico' | 'psicologo', ctaUrl: string): string {
   const papel = tipo === 'psicologo' ? 'psicólogo(a)' : 'médico(a)';
+  ctaUrl = safeCtaUrl(ctaUrl);
   return [
     `Sua vaga de ${papel} na Malama foi liberada.`,
     ``,
@@ -179,6 +226,9 @@ export function professionalSignupEmailText(tipo: 'medico' | 'psicologo', ctaUrl
 export function professionalSignupEmailHtml(tipo: 'medico' | 'psicologo', ctaUrl: string): string {
   const papel = tipo === 'psicologo' ? 'psicólogo(a)' : 'médico(a)';
   const conselho = tipo === 'psicologo' ? 'CRP e e-Psi' : 'CRM';
+  // Único CTA cuja URL chega no corpo da requisição (invite-lead.redirect_to):
+  // passa pela allowlist de origem antes de virar href.
+  ctaUrl = safeCtaUrl(ctaUrl);
   return brandedEmailHtml({
     eyebrow: 'Malama Profissionais',
     preheader: `Sua vaga no portal profissional da Malama foi liberada.`,

@@ -62,6 +62,13 @@ Deno.serve(async (req: Request) => {
     if (!nomeEmpresa || !nome || !cargo || !telefone || !tamanho) {
       return json({ error: 'Preencha todos os dados obrigatórios.' }, 400);
     }
+    // Esta função é pública. O nome gravado aqui é reimpresso depois em
+    // e-mails transacionais (activationEmailHtml, alerta de inadimplência
+    // ao admin). O escape já é feito na composição do e-mail; recusar
+    // markup na entrada evita guardar a carga no banco em primeiro lugar.
+    if (/[<>]/.test(nomeEmpresa) || /[<>]/.test(nome) || /[<>]/.test(cargo)) {
+      return json({ error: 'Nome, cargo e empresa não podem conter os caracteres < ou >.' }, 400);
+    }
     if (!cnpjValido(cnpj)) return json({ error: 'Informe um CNPJ válido.' }, 400);
     if (!emailValido(email)) return json({ error: 'Informe um e-mail corporativo válido.' }, 400);
     if (senha.length < 8) return json({ error: 'A senha deve ter ao menos 8 caracteres.' }, 400);

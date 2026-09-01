@@ -5,7 +5,7 @@
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendEmail, brandedEmailHtml } from '../_shared/emails.ts';
+import { sendEmail, brandedEmailHtml, escapeHtml } from '../_shared/emails.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,7 +21,11 @@ const supabaseAdmin = createClient(
 const SITE_URL = (Deno.env.get('SITE_URL') || 'https://soumalama.com.br').replace(/\/$/, '');
 const COLOR_PETROL = '#8c473e';
 
-function welcomeHtml(name: string, email: string, passwordSetupLink: string, referralLink: string): string {
+function welcomeHtml(rawName: string, rawEmail: string, passwordSetupLink: string, referralLink: string): string {
+  // name/email vêm do corpo da requisição do admin. Escapa mesmo assim: o
+  // e-mail é montado como HTML e a origem do dado não é o template.
+  const name = escapeHtml(rawName);
+  const email = escapeHtml(rawEmail);
   return brandedEmailHtml({
     eyebrow: 'Rede de Afiliados',
     preheader: `Bem-vindo à rede Malama, ${name}! Seu acesso está pronto.`,

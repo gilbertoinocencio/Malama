@@ -1,0 +1,88 @@
+# =====================================================================
+# Malama — configuração das Edge Functions
+#
+# Este arquivo existe por causa do achado F8 da auditoria de 01/09/2026:
+# `verify_jwt` era decidido na linha de comando do deploy e não ficava
+# registrado em lugar nenhum. Não dava para auditar, revisar em PR nem
+# reproduzir o ambiente — e duas funções que escrevem no banco dependiam
+# dessa flag para não ficarem abertas.
+#
+# A regra deste projeto:
+#
+#   verify_jwt = true   → a função é chamada pelo app com a sessão do
+#                         usuário. É o padrão e vale para quase tudo.
+#
+#   verify_jwt = false  → a função é chamada por um TERCEIRO que não tem
+#                         JWT do Supabase (gateway de pagamento, Strava).
+#                         Nesses casos o gateway não filtra nada, e a
+#                         autenticação TEM que estar escrita dentro da
+#                         própria função — segredo compartilhado conferido
+#                         no início do handler, falhando fechado.
+#
+# Se você marcar uma função como false aqui, a revisão do PR deve exigir
+# ver onde está a checagem de segredo dentro dela.
+# =====================================================================
+
+project_id = "agstaiizemtngcgmliju"
+
+# ── Chamadas por terceiros sem JWT ───────────────────────────────────
+# A autenticação real destas duas está no corpo da função.
+
+[functions.webhook-asaas]
+# Confere o header `asaas-access-token` contra ASAAS_WEBHOOK_SECRET
+# (webhook-asaas/index.ts:340-347). O ramo GET, usado pelo painel admin
+# como health check, exige app_metadata.role = 'super_admin'.
+verify_jwt = false
+
+[functions.strava-webhook]
+# GET  → handshake da assinatura, confere STRAVA_VERIFY_TOKEN.
+# POST → confere STRAVA_WEBHOOK_SECRET vindo da query string da callback
+#        URL registrada no Strava, em comparação de tempo constante.
+# Antes da correção o POST não conferia nada e rodava com service_role.
+verify_jwt = false
+
+# ── Rotinas de cron (pg_cron manda o SERVICE_KEY) ────────────────────
+# Ficam com verify_jwt = true E com a checagem explícita de SERVICE_KEY
+# dentro da função. As duas camadas: o gateway barra anônimo, a função
+# barra usuário logado comum.
+
+[functions.expire-credits]
+verify_jwt = true
+
+[functions.compute-clinical-outcomes]
+verify_jwt = true
+
+[functions.generate-empirical-cases]
+verify_jwt = true
+
+[functions.process-payouts]
+verify_jwt = true
+
+[functions.send-consultation-reminders]
+verify_jwt = true
+
+[functions.send-glp1-notifications]
+verify_jwt = true
+
+[functions.send-rh-reminders]
+verify_jwt = true
+
+# ── Chamadas sem usuário logado, mas pelo nosso próprio cliente ──────
+# Ficam em `true` de propósito. `verify_jwt = true` NÃO significa "usuário
+# logado": significa "JWT válido assinado por este projeto", e a anon key
+# é um desses JWTs. Então o formulário público continua funcionando e a
+# função segue fora do alcance de quem não tem nem a anon key.
+
+[functions.self-register-empresa]
+# Autocadastro de empresa a partir da landing /empresas.
+verify_jwt = true
+
+[functions.validate-email]
+# Consulta DNS do domínio, usada no formulário antes de haver conta.
+verify_jwt = true
+
+[functions.validate-crm]
+# Consulta a API pública do CFM.
+verify_jwt = true
+
+# Todas as demais funções usam o padrão verify_jwt = true.

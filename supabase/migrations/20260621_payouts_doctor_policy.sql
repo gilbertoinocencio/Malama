@@ -1,3 +1,19 @@
+-- =====================================================================
+-- SUPERADA por 20260626_rbac_app_metadata.sql
+--
+-- A versão original deste arquivo checava o papel em
+-- `auth.jwt() -> 'user_metadata' ->> 'role'`. user_metadata é gravável
+-- pelo próprio usuário (supabase.auth.updateUser), então aquilo era
+-- auto-promoção a super_admin.
+--
+-- O arquivo foi reescrito para chamar is_super_admin() (que lê
+-- app_metadata) e ficou seguro em qualquer ordem de execução. Mantido
+-- executável de propósito: aqui as migrations são aplicadas à mão pelo
+-- SQL Editor, sem registro do que já rodou, e um arquivo que reintroduz
+-- a falha ao ser reaplicado é uma armadilha.
+-- Auditoria de segurança, 01/09/2026 — achado F9.
+-- =====================================================================
+
 -- Médicos não conseguiam ver seus próprios repasses no Financeiro.
 -- Causa raiz: política "Admin can manage all payouts" (FOR ALL) usava
 -- `FROM auth.users` inline sem SECURITY DEFINER — o role authenticated
@@ -26,5 +42,5 @@ CREATE POLICY "Doctors view own payouts"
 
 CREATE POLICY "Admins manage payouts"
   ON payouts FOR ALL
-  USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'super_admin')
-  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'super_admin');
+  USING (is_super_admin())
+  WITH CHECK (is_super_admin());

@@ -97,79 +97,31 @@ ACHADOS = [
         "id": "F1",
         "sev": "alta",
         "cat": "C3",
-        "titulo": "Médico consegue baixar o exame de qualquer paciente da plataforma",
+        "titulo": "Médico libera o bucket inteiro de exames renomeando o próprio perfil",
         "arquivos": [
+            "supabase/migrations/20260802_acesso_por_tipo_profissional.sql:175-186",
             "supabase/migrations/20260422_doctor_panel_v2.sql:357-366",
-            "supabase/migrations/20260422_storage_buckets.sql:43-53",
             "src/services/doctorPortalService.ts:50-71",
         ],
         "evidencia": [
+            ("supabase/migrations/20260802_acesso_por_tipo_profissional.sql:175-186",
+             "CREATE POLICY \"doctor_exams_read\" ON storage.objects\n  FOR SELECT TO authenticated\n  USING (\n    bucket_id = 'patient-exams'\n    AND EXISTS (\n      SELECT 1 FROM public.patient_exams pe\n        JOIN public.doctors d ON d.id = pe.doctor_id\n      WHERE d.user_id = auth.uid()\n        AND COALESCE(d.tipo_profissional, 'medico') = 'medico'\n        AND pe.file_url LIKE '%' || name      — <= `name` NU\n    )\n  );"),
             ("supabase/migrations/20260422_doctor_panel_v2.sql:357-366",
-             'CREATE POLICY "patient_exams_doctor_update" ON public.patient_exams\n'
-             '  FOR UPDATE TO authenticated\n'
-             '  USING (\n'
-             '    EXISTS (\n'
-             '      SELECT 1 FROM public.doctors d\n'
-             '      WHERE d.id = patient_exams.doctor_id\n'
-             '        AND d.user_id = auth.uid()\n'
-             '    )\n'
-             '  )\n'
-             '  WITH CHECK (true);'),
-            ("supabase/migrations/20260422_storage_buckets.sql:43-53",
-             'CREATE POLICY "doctor_exams_read" ON storage.objects\n'
-             '  FOR SELECT TO authenticated\n'
-             '  USING (\n'
-             "    bucket_id = 'patient-exams'\n"
-             '    AND EXISTS (\n'
-             '      SELECT 1 FROM public.patient_exams pe\n'
-             '        JOIN public.doctors d ON d.id = pe.doctor_id\n'
-             '      WHERE d.user_id = auth.uid()\n'
-             "        AND pe.file_url LIKE '%' || name\n"
-             '    )\n'
-             '  );'),
+             "CREATE POLICY \"patient_exams_doctor_update\" ON public.patient_exams\n  FOR UPDATE TO authenticated\n  USING (\n    EXISTS (SELECT 1 FROM public.doctors d\n            WHERE d.id = patient_exams.doctor_id AND d.user_id = auth.uid())\n  )\n  WITH CHECK (true);"),
         ],
-        "porque": (
-            "A policy de UPDATE valida quem é o dono na cláusula USING (linha de origem), "
-            "mas o WITH CHECK é literalmente `true`: nada valida a linha depois da escrita. "
-            "O médico pode, então, pegar uma linha de patient_exams que é legitimamente dele "
-            "e trocar o campo file_url por um caminho de storage arbitrário — por exemplo "
-            "'<uuid-de-outro-paciente>/hemograma.pdf'.\n\n"
-            "A policy de leitura no storage não confere pasta nem vínculo: ela concede SELECT "
-            "sobre qualquer objeto do bucket 'patient-exams' desde que EXISTA alguma linha de "
-            "patient_exams do médico cujo file_url case com o nome do objeto. Como o médico "
-            "acabou de escrever esse file_url, a condição casa por construção.\n\n"
-            "Na sequência, doctorPortalService.signStoragePaths chama createSignedUrls com a "
-            "sessão do próprio médico e devolve uma URL assinada válida por 1 hora para o "
-            "arquivo do paciente alheio. Não há nenhum passo administrativo no caminho."
-        ),
-        "impacto": (
-            "Leitura de exames clínicos (PHI) de pacientes sem qualquer vínculo com o médico "
-            "atacante. Um único profissional aprovado, agindo sozinho, exfiltra o bucket "
-            "inteiro iterando caminhos. Violação direta de LGPD art. 11 (dado de saúde) e do "
-            "sigilo profissional."
-        ),
-        "explorabilidade": (
-            "Requer conta de profissional com status 'approved' e pelo menos uma linha em "
-            "patient_exams com seu doctor_id (o fluxo normal do portal já cria isso). Requer "
-            "conhecer o UUID do paciente-alvo e o nome do arquivo — ambos obtíveis por "
-            "enumeração, já que o SELECT no storage é concedido antes de qualquer verificação "
-            "de pasta. Sem feature flag e sem config insegura necessária."
-        ),
-        "correcao": (
-            "1) Trocar WITH CHECK (true) por um WITH CHECK que repita a condição do USING e, "
-            "além disso, congele as colunas estruturais. 2) Melhor ainda: adotar aqui o mesmo "
-            "padrão já usado em chat_messages (trigger protect_chat_message, "
-            "20260815_security_hardening.sql:415-456), que devolve NEW.<coluna> := OLD.<coluna> "
-            "para tudo que não seja a nota do médico. 3) Reescrever doctor_exams_read para "
-            "amarrar a pasta do objeto ao patient_id da linha, em vez de casar por sufixo de "
-            "file_url."
-        ),
+        "porque": "`name` está sem qualificação, e a tabela `doctors` — que está no FROM da própria subquery — TEM uma coluna `name`. Em SQL, um nome de coluna não qualificado se liga primeiro ao FROM do nível mais interno. Logo, a policy não compara com `storage.objects.name`: compara com o NOME DO MÉDICO.\n\nVerificado em PostgreSQL 16, não deduzido. Com o mesmo dado, a versão com `name` nu devolve 0 objetos e a versão com `objects.name` qualificado devolve 1.\n\nDaí saem duas consequências, e a segunda é a grave:\n\n1. Com um nome normal (\"Dra Ana Souza\"), a condição nunca casa. O médico não abre exame NENHUM — nem dos próprios pacientes. A visualização de exames do portal está quebrada hoje, e em silêncio: signStoragePaths engole o erro de createSignedUrls e devolve file_url = null, então a tela mostra um link inerte em vez de um erro.\n\n2. O EXISTS deixou de ser correlacionado ao objeto. A condição virou \"existe algum exame meu cujo file_url termina com o meu próprio nome\" — uma pergunta que não fala do arquivo sendo pedido. Se ela for verdadeira, é verdadeira para TODOS os objetos do bucket. E o médico controla os dois lados: basta pôr em `doctors.name` um sufixo de qualquer arquivo dele — \"pdf\" serve. A policy doctors_own_update (20260815:31-33) permite editar o próprio nome, e protect_doctor_privileged_fields (20260815:38-66) protege user_id, status, nivel, rating e platform_fee_percent — mas não o nome.\n\nConfirmado no mesmo teste: com o nome \"Dra Ana Souza\", 0 de 3 objetos visíveis; após UPDATE do nome para \"pdf\", 3 de 3.\n\nSeparadamente, patient_exams_doctor_update termina em WITH CHECK (true): o USING filtra a linha ANTES da escrita, o WITH CHECK valida DEPOIS. O médico reatribui uma linha sua para outro paciente ou outro profissional. Não é o vetor de leitura, mas passa a ser se alguém corrigir a policy de storage só qualificando a coluna, sem ancorar na pasta.",
+        "impacto": "Leitura de todos os exames clínicos (PHI) da plataforma por qualquer médico aprovado, ao custo de um UPDATE no próprio perfil. Não é preciso conhecer UUID de vítima nem nome de arquivo: a policy libera o bucket e o storage lista. Violação de LGPD art. 11 e do sigilo profissional. Em paralelo, uma funcionalidade do portal está inoperante desde 20260802.",
+        "explorabilidade": "Conta de profissional com status approved, tipo_profissional medico e ao menos um exame vinculado — o fluxo normal do portal já produz isso. Depois, um único UPDATE em doctors.name. Sem feature flag e sem config insegura necessária.",
+        "correcao": "1) Qualificar a coluna (storage.objects.name) e trocar o LIKE de sufixo por igualdade. 2) Ancorar o objeto na pasta do paciente da linha: (storage.foldername(storage.objects.name))[1] = pe.patient_id::text — o upload sempre grava em <patient_id>/... e a policy de INSERT obriga a pasta a ser o auth.uid(), então é um vínculo que o médico não move. 3) Preservar a restrição tipo_profissional = 'medico' de 20260802, senão a correção alarga o acesso a psicólogos. 4) WITH CHECK igual ao USING em patient_exams_doctor_update, mais trigger congelando patient_id/doctor_id/file_url. 5) Varrer as demais policies de storage.objects pelo mesmo padrão de sombreamento de coluna.",
         "aceite": [
+            "Policy doctor_exams_read qualifica storage.objects.name e usa igualdade, não LIKE.",
+            "Policy doctor_exams_read exige que a pasta do objeto seja o patient_id da linha.",
+            "Restrição tipo_profissional = 'medico' preservada (psicólogo não abre exame).",
             "Policy patient_exams_doctor_update tem WITH CHECK equivalente ao USING.",
-            "Trigger BEFORE UPDATE em patient_exams impede alteração de patient_id, doctor_id e file_url pelo médico.",
-            "Policy doctor_exams_read exige que (storage.foldername(name))[1] seja o patient_id de uma linha vinculada ao médico.",
-            "Teste de regressão: médico A altera file_url para o caminho de um paciente de B → UPDATE recusado.",
-            "Teste de regressão: createSignedUrls com a sessão do médico A para objeto de paciente de B → erro de autorização.",
+            "Trigger BEFORE UPDATE impede alteração de patient_id, doctor_id e file_url.",
+            "Teste: médico com doctors.name = 'pdf' enxerga só os objetos dos próprios pacientes.",
+            "Teste: médico volta a abrir o exame de um paciente seu (a funcionalidade estava quebrada).",
+            "Varredura confirma que nenhuma outra policy de storage.objects referencia coluna não qualificada.",
         ],
     },
     {
@@ -640,6 +592,7 @@ ACHADOS = [
         "cat": "C2",
         "titulo": "Migrations antigas ainda contêm a checagem de papel por user_metadata",
         "arquivos": [
+            "supabase/migrations/20260601_empresas_b2b.sql:21-24",
             "supabase/migrations/20260504_admin_profiles_policy.sql:6,30",
             "supabase/migrations/20260621_admin_update_setting_rpc.sql:11",
             "supabase/migrations/20260621_payouts_doctor_policy.sql:29-30",
@@ -651,6 +604,8 @@ ACHADOS = [
              "  ON payouts FOR ALL\n"
              "  USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'super_admin')\n"
              "  WITH CHECK ((auth.jwt() -> 'user_metadata' ->> 'role') = 'super_admin');"),
+            ("supabase/migrations/20260601_empresas_b2b.sql:21-24",
+             "-- Helper: o JWT do chamador é de um super_admin?\nCREATE OR REPLACE FUNCTION is_super_admin()\nRETURNS BOOLEAN AS $$\n  SELECT (auth.jwt() -> 'user_metadata' ->> 'role') = 'super_admin';\n$$ LANGUAGE sql STABLE;"),
             ("supabase/migrations/20260626_rbac_app_metadata.sql:5-8 (a correção)",
              "-- PROBLEMA: o papel (super_admin/rh) era lido de user_metadata, que o próprio\n"
              "-- usuário altera via supabase.auth.updateUser({ data: { role } }) no navegador.\n"
@@ -666,7 +621,7 @@ ACHADOS = [
             "'Admins manage payouts' (linha 96-99), 'Admins can manage settings' (90-93), "
             "'Admins can view all profiles' (31-34), admin_get_all_users() (37-66) e "
             "admin_update_setting() (70-87).\n\n"
-            "O achado não é uma brecha aberta hoje: é o risco de reintrodução. Os quatro "
+            "O achado não é uma brecha aberta hoje: é o risco de reintrodução. Os CINCO "
             "arquivos vulneráveis continuam no diretório de migrations, e este projeto aplica "
             "migrations manualmente pelo SQL Editor, arquivo a arquivo, sem tabela de controle "
             "de versão aplicada. Executar qualquer um deles depois de 20260626 — num "
@@ -674,6 +629,10 @@ ACHADOS = [
             "vulnerável em silêncio, sem erro."
         ),
         "impacto": (
+            "O pior dos cinco é 20260601_empresas_b2b.sql:21-24: ali não é uma policy, é a "
+            "DEFINIÇÃO de is_super_admin() — o ponto único que todas as policies "
+            "administrativas consultam. Reaplicar aquele arquivo reabre empresas, "
+            "payouts, platform_settings e profiles de uma vez só, sem erro nenhum.\n\n"
             "Se reintroduzido: escalada a super_admin por qualquer usuário do app, com "
             "controle sobre platform_settings (valores de repasse por nível, taxa de "
             "transação) e sobre a tabela payouts. Hoje, o risco é de processo, não de "
