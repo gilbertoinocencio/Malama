@@ -121,9 +121,22 @@ def chip(sev):
     return t
 
 
+# O código-fonte deste projeto usa divisores de comentário em box-drawing
+# (──, ═, │...). A fonte Courier padrão do PDF (WinAnsi, base-14) não tem
+# esses glifos: cada ocorrência rende como um bloco preto ilegível — visto
+# nas evidências de F4, que citam "// ── POST: ... ───" verbatim. Sanitiza
+# antes de desenhar, sem alterar o Python-string original em dados_auditoria.
+_BOX_DRAWING = str.maketrans({
+    "─": "-", "━": "-", "═": "=", "│": "|", "┃": "|",
+    "┌": "+", "┐": "+", "└": "+", "┘": "+", "├": "+", "┤": "+",
+    "┬": "+", "┴": "+", "┼": "+", "╌": "-", "╍": "-",
+    "╔": "+", "╗": "+", "╚": "+", "╝": "+", "╠": "+", "╣": "+",
+})
+
+
 def bloco_codigo(rotulo, codigo, largura=LARGURA_UTIL):
     """Caixa de evidência: caminho:linha em destaque + trecho monoespaçado."""
-    linhas = codigo.replace("\t", "    ").split("\n")
+    linhas = codigo.translate(_BOX_DRAWING).replace("\t", "    ").split("\n")
     corpo = "<br/>".join(
         l.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace(" ", "&nbsp;")
         or "&nbsp;" for l in linhas
@@ -551,7 +564,8 @@ def construir():
         "clínico de terceiros e escrita não autenticada. P2 restaura garantias que o produto "
         "já promete na interface. P3 é endurecimento e prevenção de regressão.", S["p"]))
 
-    cor_p = {"P1": D.CORES["critica"], "P2": D.CORES["alta"], "P3": D.CORES["baixa"]}
+    cor_p = {"P1": D.CORES["critica"], "P2": D.CORES["alta"], "P3": D.CORES["baixa"],
+             "Feito": D.CORES["forte"]}
     linhas = [[Paragraph("Prio", S["cel_h"]), Paragraph("Ação", S["cel_h"]),
                Paragraph("Detalhe", S["cel_h"])]]
     for prio, acao, detalhe in D.RECOMENDACOES:
@@ -703,7 +717,7 @@ def bloco_issue(n, md):
         return (txt.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 .replace(" ", "&nbsp;")) or "&nbsp;"
 
-    linhas_md = quebrar_linhas(md.split("\n"))
+    linhas_md = quebrar_linhas(md.translate(_BOX_DRAWING).split("\n"))
     pedacos = [linhas_md[i:i + LINHAS_POR_BLOCO]
                for i in range(0, len(linhas_md), LINHAS_POR_BLOCO)]
 

@@ -329,19 +329,24 @@ ACHADOS = [
             "O apagamento de conexões (object_type 'athlete') não requer nem token do Strava."
         ),
         "correcao": (
-            "Exigir no POST o mesmo segredo compartilhado do handshake — o Strava reenvia o "
-            "subscription id, mas o caminho robusto é publicar a URL da função com um "
-            "path-secret ou validar um header combinado, exatamente como webhook-asaas faz "
-            "com asaas-access-token (webhook-asaas/index.ts:340-347). Independentemente disso: "
-            "nunca deletar por owner_id sem confirmar contra a API do Strava que a "
-            "desautorização de fato ocorreu."
+            "RESOLVIDO POR DESCOMISSIONAMENTO, não por autenticação (decisão de produto de "
+            "01/09/2026): a plataforma passou a cobrir atividade física por Apple HealthKit e "
+            "Google Health Connect, então proteger um endpoint que ninguém mais deveria chamar "
+            "deixou de fazer sentido — desligar é mais seguro que autenticar algo obsoleto. "
+            "strava-webhook agora devolve 410 Gone incondicionalmente, sem ler o corpo da "
+            "requisição nem tocar em strava_connections/activities. strava-oauth e "
+            "strava-oauth-callback (que abririam novas conexões) foram desativadas junto, pelo "
+            "mesmo motivo. strava-sync e strava-refresh-token permanecem ativas apenas para "
+            "quem já tinha o Strava conectado, até a remoção completa da integração (tarefa "
+            "separada: 18 arquivos de frontend, as 5 Edge Functions, migrations e a decisão "
+            "sobre o destino de strava_connections e das activities já sincronizadas)."
         ),
         "aceite": [
-            "POST sem o segredo compartilhado responde 401 e não executa processEvent.",
-            "Existe supabase/config.toml versionando verify_jwt de cada função.",
-            "A deauthorização só apaga a conexão após confirmação junto à API do Strava.",
-            "Teste: POST forjado com owner_id de terceiro não altera strava_connections.",
-            "Teste: o handshake GET de subscription do Strava continua funcionando.",
+            "strava-webhook devolve 410 para GET e POST, sem exceção.",
+            "strava-oauth e strava-oauth-callback devolvem 410, sem executar troca de OAuth.",
+            "Nenhuma das três funções acima lê strava_connections, activities ou flow_stats.",
+            "strava-sync e strava-refresh-token continuam funcionando para conexões existentes.",
+            "Teste: POST arbitrário em strava-webhook não altera nenhuma tabela.",
         ],
     },
     {
@@ -385,15 +390,19 @@ ACHADOS = [
             "condição de configuração."
         ),
         "correcao": (
-            "Rotacionar STRAVA_VERIFY_TOKEN no portal do Strava e no `supabase secrets set`. "
-            "Substituir o valor no .env.example por um placeholder explícito "
-            "(`STRAVA_VERIFY_TOKEN=<gerar-e-nao-committar>`), como já foi feito com o "
-            "CLIENT_SECRET. Adicionar guard de inicialização nas Edge Functions que recusa "
-            "segredo ausente ou igual a um valor conhecido de exemplo."
+            "Ficou parcialmente superado pela decisão de descomissionar o webhook (ver F4): "
+            "o segredo que vazou não protege mais nada, porque strava-webhook não lê "
+            "STRAVA_VERIFY_TOKEN em nenhuma circunstância — a função devolve 410 antes de "
+            "examinar qualquer header ou query string. O valor não precisa mais ser "
+            "rotacionado por urgência de segurança. .env.example foi limpo (não cita mais "
+            "STRAVA_VERIFY_TOKEN nem STRAVA_WEBHOOK_SECRET). Continua valendo, como "
+            "prevenção geral: guard de inicialização nas Edge Functions que recusa segredo "
+            "igual a um valor conhecido de exemplo, e scanner de segredo no CI (P3)."
         ),
         "aceite": [
-            "STRAVA_VERIFY_TOKEN rotacionado no Strava e no Supabase.",
+            "strava-webhook não lê STRAVA_VERIFY_TOKEN em nenhum caminho de código (verificado).",
             ".env.example não contém nenhum valor de segredo real (só placeholders).",
+            "Rotacionar STRAVA_VERIFY_TOKEN deixou de ser urgência; opcional, útil só se a integração for reativada antes da remoção completa.",
             "Existe checagem de startup que falha alto se um segredo estiver ausente ou for o default de exemplo.",
             "Scanner de segredo (gitleaks ou equivalente) rodando no CI.",
         ],
@@ -806,13 +815,15 @@ RECOMENDACOES = [
      "patient_id/doctor_id/file_url, e reescrita de doctor_exams_read para amarrar a pasta do "
      "objeto ao paciente. É o único achado que expõe PHI de terceiros. (F1)"),
 
-    ("P1", "Autenticar o POST do strava-webhook",
-     "Exigir segredo compartilhado no ramo POST e parar de apagar conexões com base em "
-     "owner_id não verificado. Escrita não autenticada com service_role. (F4)"),
+    ("Feito", "strava-webhook descomissionado, não autenticado",
+     "Decisão de produto (01/09/2026): a plataforma cobre atividade física por Apple HealthKit "
+     "e Google Health Connect, então o webhook foi desligado (410 incondicional) em vez de "
+     "ganhar autenticação. strava-oauth e strava-oauth-callback desligados junto. (F4)"),
 
-    ("P1", "Rotacionar STRAVA_VERIFY_TOKEN e limpar o .env.example",
-     "Segredo real versionado desde março de 2026. Rotacionar antes de qualquer outra coisa, "
-     "porque a correção de F4 depende de um segredo que ainda seja secreto. (F5)"),
+    ("Feito", "STRAVA_VERIFY_TOKEN — urgência de rotação superada",
+     "O segredo versionado desde março de 2026 não é mais lido por nenhum código: "
+     "strava-webhook devolve 410 antes de examinar qualquer header. .env.example já foi "
+     "limpo. Rotação no portal Strava segue recomendada, mas não é mais P1. (F5)"),
 
     ("P2", "Levar as permissões por módulo do RH para o servidor",
      "Aplicar rh_tem_permissao() em todas as policies empresa_* e em todas as RPCs rh_* de "
@@ -823,9 +834,9 @@ RECOMENDACOES = [
      "Trocar WITH CHECK (true) por (false), espelhando doctor_notifications, e revogar INSERT "
      "de anon/authenticated. Correção de uma linha. (F6)"),
 
-    ("P2", "Versionar supabase/config.toml com verify_jwt por função",
-     "Sem isso, a postura de autenticação de 34 funções não é auditável nem revisável. "
-     "Pré-requisito para avaliar F4 e F8 com precisão. (F4, F8)"),
+    ("Feito", "supabase/config.toml versionado com verify_jwt por função",
+     "Criado durante esta rodada de correções — a postura de autenticação das 34 funções "
+     "passou a ser revisável em PR. (F4, F8)"),
 
     ("P3", "Escapar HTML nos e-mails transacionais",
      "escapeHtml compartilhado em _shared, aplicado a todo valor dinâmico, com allowlist de "
@@ -853,11 +864,11 @@ ISSUES = [
     {"titulo": "[Segurança] Permissões por módulo do portal RH não são verificadas no servidor",
      "labels": ["security", "severidade:alta", "database", "rls", "rh"],
      "achados": ["F2", "F3"]},
-    {"titulo": "[Segurança] strava-webhook aceita POST sem autenticação e apaga conexões pelo owner_id do corpo",
-     "labels": ["security", "severidade:alta", "edge-functions"],
+    {"titulo": "[Segurança][Resolvido] strava-webhook — descomissionado em vez de autenticado",
+     "labels": ["security", "severidade:alta", "edge-functions", "resolvido"],
      "achados": ["F4"]},
-    {"titulo": "[Segurança] STRAVA_VERIFY_TOKEN de produção versionado em .env.example",
-     "labels": ["security", "severidade:media", "secrets"],
+    {"titulo": "[Segurança][Resolvido] STRAVA_VERIFY_TOKEN — urgência de rotação superada pelo descomissionamento",
+     "labels": ["security", "severidade:media", "secrets", "resolvido"],
      "achados": ["F5"]},
     {"titulo": "[Segurança] Qualquer usuário autenticado insere notificações na caixa de outro paciente",
      "labels": ["security", "severidade:media", "database", "rls"],

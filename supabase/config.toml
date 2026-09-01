@@ -35,10 +35,10 @@ project_id = "agstaiizemtngcgmliju"
 verify_jwt = false
 
 [functions.strava-webhook]
-# GET  → handshake da assinatura, confere STRAVA_VERIFY_TOKEN.
-# POST → confere STRAVA_WEBHOOK_SECRET vindo da query string da callback
-#        URL registrada no Strava, em comparação de tempo constante.
-# Antes da correção o POST não conferia nada e rodava com service_role.
+# DESATIVADA em 01/09/2026 — a função hoje só devolve 410, sem ler nem
+# escrever nada. verify_jwt = false porque o Strava chama sem JWT; não
+# importa mais, já que a função não confia em quem chama para decidir
+# nada (ver comentário no topo do index.ts).
 verify_jwt = false
 
 # ── Rotinas de cron (pg_cron manda o SERVICE_KEY) ────────────────────

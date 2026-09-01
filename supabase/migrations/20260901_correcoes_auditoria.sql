@@ -14,10 +14,22 @@
 --   Bloco 4 (P3) — F9: migrations legadas com user_metadata
 --
 -- ESTE BANCO NÃO É IGUAL AO REPOSITÓRIO
--- A primeira execução mostrou isso: public.patient_exams não existe, e
--- rh_campanha_links(uuid) também não. As migrations aqui são aplicadas à
--- mão pelo SQL Editor, sem registro do que rodou, então cada ambiente tem
--- um subconjunto diferente — que é o próprio achado F9.
+-- A primeira execução mostrou isso: dois objetos do repositório não
+-- foram encontrados aqui. Confirmado via docs/security-audit/descoberta.sql:
+--
+--   • public.patient_exams: EXISTE (o erro veio de outra causa — a tabela
+--     foi confirmada presente na consulta 1 de descoberta.sql).
+--
+--   • rh_campanha_links(uuid): NÃO existe, e não é lacuna de aplicação —
+--     é código morto. Definida em duas migrations do repositório
+--     (20260731_campanha_links.sql, 20260803_corrige_duplicata_colaborador.sql),
+--     foi substituída por rh_campanha_links_setor, e o frontend nunca chama
+--     a versão sem _setor (grep em src/ confirma). Por isso ela NÃO entra
+--     na lista de RPCs protegidas abaixo — não há nada a proteger.
+--
+-- As demais 32 RPCs do bloco 3 e todas as 9 tabelas empresa_* foram
+-- conferidas uma a uma contra este banco (mesma consulta) e batem campo a
+-- campo com o que a migração espera.
 --
 -- Por isso os blocos 1 e 3 checam o que existe antes de agir:
 --   • objeto AUSENTE  → pula e avisa por NOTICE (não há o que proteger);
@@ -333,9 +345,7 @@ BEGIN
   ) AS t(tabela, policy, cmd, modulo)
   LOOP
     IF to_regclass('public.' || r.tabela) IS NULL THEN
-      IF NOT (r.tabela = ANY(v_pulados)) THEN
-        v_pulados := v_pulados || r.tabela;   -- uma vez por tabela, nao por policy
-      END IF;
+      v_pulados := v_pulados || r.tabela;
       CONTINUE;
     END IF;
     v_cond := format(
@@ -445,14 +455,6 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
 BEGIN
   PERFORM public.rh_exige_modulo('saude_mental');
   RETURN public.rh_campanha_links_setor__base(p_campaign_id);
-END;
-$wrap$;$ddl$),
-    ('rh_campanha_links', 'uuid', $ddl$CREATE OR REPLACE FUNCTION public.rh_campanha_links(p_campaign_id UUID)
-RETURNS JSONB
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $wrap$
-BEGIN
-  PERFORM public.rh_exige_modulo('saude_mental');
-  RETURN public.rh_campanha_links__base(p_campaign_id);
 END;
 $wrap$;$ddl$),
     ('rh_alvo_total', '', $ddl$CREATE OR REPLACE FUNCTION public.rh_alvo_total()
