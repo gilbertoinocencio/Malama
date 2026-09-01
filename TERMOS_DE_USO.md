@@ -64,7 +64,7 @@ A anonimização abrange:
 - Dados de evolução física (variação de peso, composição corporal, percentual de gordura e silhuetas de *Body Scan*);
 - Histórico de adesão alimentar, macronutrientes consumidos e respostas a planos nutricionais;
 - Registros de sintomas, efeitos colaterais relatados e padrão de evolução em tratamentos (incluindo uso de GLP-1);
-- Indicadores de hábitos de vida, nível de atividade física e dados agregados de dispositivos integrados (ex: Strava).
+- Indicadores de hábitos de vida, nível de atividade física e dados agregados de dispositivos integrados (ex: Apple Health, Google Health Connect).
 
 ### 5.2. Finalidade Científica, Tecnológica e Estatística
 Os dados anonimizados serão utilizados para:

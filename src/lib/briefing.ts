@@ -94,7 +94,6 @@ export async function generateConsultationBriefing(patientId: string): Promise<C
     .sort((a, b) => b[1].count - a[1].count)
     .map(([name, { count, avgCal }]) => `${name} (${count}x, ~${avgCal}kcal)`);
 
-  // 4. Integrações de fitness (Strava / Google Fit)
   // Diário pessoal: notas + energia (últimos 30 dias)
   const since30 = new Date();
   since30.setDate(since30.getDate() - 30);

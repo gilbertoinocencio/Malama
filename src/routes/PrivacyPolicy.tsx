@@ -37,7 +37,7 @@ export const PrivacyPolicy: React.FC = () => {
             <li><strong>Imagens e escaneamento corporal:</strong> fotos de refeições e modelos de silhueta corporal de <em>Body Scan</em> com remoção automatizada de face.</li>
             <li><strong>Dados de consultas:</strong> agendamentos e registros de atendimento de telemedicina.</li>
             <li><strong>Dados de uso e dispositivos:</strong> logs de segurança, dados de navegação e identificadores técnicos.</li>
-            <li><strong>Integrações (opcionais):</strong> sincronização de treinos via Strava mediante permissão do Usuário.</li>
+            <li><strong>Integrações (opcionais):</strong> sincronização de dados de atividade física via Apple Health ou Google Health Connect mediante permissão do Usuário.</li>
           </ul>
         </section>
 

@@ -58,13 +58,6 @@ function estimateCaloriesFromActivity(activity: Activity, weightKg = 70): number
 
 /** Badge visual por serviço */
 function ServiceBadge({ service }: { service: Activity['service'] }) {
-  if (service === 'strava') {
-    return (
-      <div className="bg-[#fc4c02] text-white p-1.5 rounded-lg flex items-center justify-center shadow-lg">
-        <span className="text-[10px] font-bold tracking-tighter">STRAVA</span>
-      </div>
-    );
-  }
   if (service === 'google_fit') {
     return (
       <div className="bg-white text-blue-600 p-1.5 rounded-lg flex items-center justify-center shadow-lg border border-blue-100">

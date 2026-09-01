@@ -561,7 +561,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold text-Malama-main dark:text-white">{t.profile.integrations}</span>
-                <span className="text-xs text-Malama-muted dark:text-gray-400">Strava, Apple Health, Garmin...</span>
+                <span className="text-xs text-Malama-muted dark:text-gray-400">Apple Health, Google Health Connect</span>
               </div>
             </div>
             <span className="material-symbols-outlined text-Malama-petrol dark:text-primary group-hover:translate-x-1 transition-transform">chevron_right</span>

@@ -571,7 +571,7 @@ export const PitchDeck: React.FC = () => {
                     'Módulo B2B: painel de RH, gestão de colaboradores e relatório mensal',
                     'Módulo de saúde mental: questionário WHO-5, matriz de risco por setor e relatório para o PGR',
                     'Body Scan para monitoramento de composição corporal',
-                    'Integração com Strava para dados de atividade física',
+                    'Integração com Apple Health e Google Health Connect para dados de atividade física',
                     'Gestão segura de tratamentos GLP-1',
                   ].map(item => (
                     <motion.div key={item} variants={fadeInUp} className="flex items-start gap-3">

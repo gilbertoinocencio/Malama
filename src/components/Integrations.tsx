@@ -6,7 +6,7 @@ import { IntegrationService } from '../services/integrationService';
 import { HealthConnectService, isHCFailure } from '../services/healthConnectService';
 import type { HCConnectResult } from '../services/healthConnectService';
 import { AppleHealthService } from '../services/appleHealthService';
-import type { FitnessService, ConnectedIntegration } from '../types';
+import type { FitnessService } from '../types';
 
 interface IntegrationsProps {
   onBack: () => void;
@@ -33,19 +33,14 @@ interface IntegrationItem {
   color: string;
   iconBg: string;
   darkIconBg: string;
-  /** Se true, o card é apenas UI — sem OAuth real */
-  uiOnly?: boolean;
-  /** Se true, mostra "Em breve" e desativa o toggle */
-  comingSoon?: boolean;
 }
 
+// Strava, Garmin, Polar e Samsung Health saíram (decisão de produto,
+// 01/09/2026): a cobertura de atividade física é só HealthKit/Health
+// Connect agora — on-device, sem OAuth de terceiro.
 const INTEGRATION_DEFS: IntegrationItem[] = [
-  { id: 'strava',        name: 'Strava',         icon: 'directions_run',  color: 'text-[#FC4C02]',               iconBg: 'bg-[#FC4C02]/10',  darkIconBg: 'dark:bg-[#FC4C02]/20' },
   { id: 'apple_health', name: 'Apple Health',   icon: 'favorite',        color: 'text-Malama-main dark:text-white', iconBg: 'bg-Malama-bg',  darkIconBg: 'dark:bg-[#363330]' },
   { id: 'health_connect', name: 'Health Connect', icon: 'ecg_heart',     color: 'text-green-600 dark:text-green-400', iconBg: 'bg-green-50', darkIconBg: 'dark:bg-green-900/30' },
-  { id: 'garmin',     name: 'Garmin',         icon: 'watch',           color: 'text-[#007cc3]',               iconBg: 'bg-blue-100',      darkIconBg: 'dark:bg-blue-800/30',  uiOnly: true },
-  { id: 'polar',      name: 'Polar',          icon: 'monitor_heart',   color: 'text-[#E60012]',               iconBg: 'bg-red-50',        darkIconBg: 'dark:bg-red-900/20',   uiOnly: true },
-  { id: 'samsung',    name: 'Samsung Health', icon: 'vital_signs',     color: 'text-[#1428a0] dark:text-indigo-400', iconBg: 'bg-indigo-50', darkIconBg: 'dark:bg-indigo-900/20', uiOnly: true },
 ];
 
 export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
@@ -53,31 +48,18 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
   const ig = t.integrations;
   const { user } = useAuth();
 
-  // Mapa service → is_connected (derivado do banco)
-  const [connected, setConnected] = useState<Partial<Record<FitnessService, boolean>>>({});
-  const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
 
   const isAndroid = Capacitor.getPlatform() === 'android';
   const isIOS = Capacitor.getPlatform() === 'ios';
 
-  // Health Connect (Android) e Apple Health (iOS) são on-device — estado de
-  // conexão vem do aparelho em runtime, não de um flag no banco.
+  // As duas integrações que restam são on-device — estado de conexão vem do
+  // aparelho em runtime, não de um flag no banco (não há mais OAuth de
+  // terceiro para buscar via IntegrationService.getConnectedIntegrations).
   const [hcConnected, setHcConnected] = useState(false);
   const [ahConnected, setAhConnected] = useState(false);
   // Mensagem de falha ao conectar o Health Connect (orientação + diagnóstico).
   const [hcMessage, setHcMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    IntegrationService.getConnectedIntegrations(user.id)
-      .then((rows: ConnectedIntegration[]) => {
-        const map: Partial<Record<FitnessService, boolean>> = {};
-        rows.forEach(r => { map[r.service] = r.is_connected; });
-        setConnected(map);
-      })
-      .finally(() => setLoading(false));
-  }, [user?.id]);
 
   useEffect(() => {
     if (!isAndroid) return;
@@ -93,17 +75,15 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
       .catch(() => {});
   }, [isIOS]);
 
-  const isConnected = (id: FitnessService): boolean => {
-    if (id === 'apple_health') return ahConnected;
-    if (id === 'health_connect') return hcConnected;
-    return connected[id] ?? false;
-  };
+  // As duas integrações que restam são on-device, então isto é só um
+  // despacho por id — sem fallback genérico, porque não sobrou nenhum
+  // serviço via OAuth/banco para cair nele.
+  const isConnected = (id: FitnessService): boolean =>
+    id === 'apple_health' ? ahConnected : hcConnected;
 
   const handleToggle = async (item: IntegrationItem) => {
-    if (!user || item.comingSoon || item.uiOnly) return;
-    if (toggling) return; // evitar double-tap
+    if (!user || toggling) return; // evitar double-tap
 
-    const service = item.id;
     setToggling(item.id);
 
     // Health Connect (Android): diálogo nativo de permissões (sem redirect OAuth).
@@ -121,12 +101,8 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
           setHcConnected(true);
         }
       }
-      setToggling(null);
-      return;
-    }
-
-    // Apple Health (iOS): diálogo nativo de permissões (sem redirect OAuth).
-    if (item.id === 'apple_health') {
+    } else if (item.id === 'apple_health') {
+      // Apple Health (iOS): diálogo nativo de permissões (sem redirect OAuth).
       if (ahConnected) {
         await IntegrationService.disconnectService('apple_health', user.id);
         setAhConnected(false);
@@ -134,36 +110,20 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
         const ok = await AppleHealthService.requestPermissions();
         setAhConnected(ok);
       }
-      setToggling(null);
-      return;
-    }
-
-    if (isConnected(item.id)) {
-      // Desconectar
-      await IntegrationService.disconnectService(service, user.id);
-      setConnected(prev => ({ ...prev, [service]: false }));
-    } else {
-      // Iniciar OAuth — o usuário será redirecionado
-      IntegrationService.initiateOAuth(service as 'strava');
-      // A função redirect não retorna; o estado será atualizado ao voltar do OAuth
     }
 
     setToggling(null);
   };
 
   const getStatusText = (item: IntegrationItem): string => {
-    if (item.comingSoon) return 'Em breve';
-    if (item.uiOnly)     return ig.disconnected;
     if (toggling === item.id) return '...';
     return isConnected(item.id) ? ig.connected : ig.disconnected;
   };
 
-  const getStatusColor = (item: IntegrationItem): string => {
-    if (item.comingSoon || item.uiOnly) return 'text-Malama-muted/70 dark:text-slate-600';
-    return isConnected(item.id)
+  const getStatusColor = (item: IntegrationItem): string =>
+    isConnected(item.id)
       ? 'text-Malama-petrol dark:text-primary'
       : 'text-Malama-muted/70 dark:text-slate-600';
-  };
 
   const renderHeadline = (text: string) => {
     const parts = text.split(/<accent>(.*?)<\/accent>/);
@@ -198,11 +158,7 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
 
       {/* Integration List */}
       <div className="flex-1 px-4 pb-8 space-y-4">
-        {loading ? (
-          <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-Malama-petrol dark:border-primary" />
-          </div>
-        ) : (
+        {
           INTEGRATION_DEFS
             // Health Connect só no Android; Apple Health só no iOS.
             // Cada um some na plataforma onde não funciona.
@@ -213,12 +169,11 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
             })
             .map((item) => {
             const connected_ = isConnected(item.id);
-            const disabled = item.comingSoon || item.uiOnly;
 
             return (
               <div
                 key={item.id}
-                className={`flex items-center gap-4 bg-white dark:bg-surface-dark px-4 py-4 rounded-xl shadow-sm dark:shadow-none border border-Malama-border dark:border-white/5 transition-all ${disabled ? 'opacity-50' : 'hover:shadow-md'}`}
+                className="flex items-center gap-4 bg-white dark:bg-surface-dark px-4 py-4 rounded-xl shadow-sm dark:shadow-none border border-Malama-border dark:border-white/5 transition-all hover:shadow-md"
               >
                 <div className="flex items-center gap-4 flex-1">
                   <div className={`flex items-center justify-center rounded-xl shrink-0 size-12 ${item.iconBg} ${item.darkIconBg} ${item.color}`}>
@@ -232,11 +187,6 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
                           iOS
                         </span>
                       )}
-                      {item.comingSoon && item.id !== 'apple_health' && (
-                        <span className="text-[10px] font-bold uppercase tracking-wide bg-Malama-muted/15 dark:bg-white/10 text-Malama-muted dark:text-slate-400 px-1.5 py-0.5 rounded-full">
-                          Em breve
-                        </span>
-                      )}
                     </div>
                     <p className={`text-xs font-medium ${getStatusColor(item)}`}>{getStatusText(item)}</p>
                   </div>
@@ -244,26 +194,19 @@ export const Integrations: React.FC<IntegrationsProps> = ({ onBack }) => {
 
                 {/* Toggle */}
                 <div className="shrink-0">
-                  {item.comingSoon ? (
-                    /* Apple Health — sem toggle, apenas badge */
-                    <span className="text-xs font-semibold text-Malama-muted dark:text-slate-500 bg-Malama-bg dark:bg-white/5 px-2 py-1 rounded-lg border border-Malama-border dark:border-white/10">
-                      Em breve
-                    </span>
-                  ) : (
-                    <button
-                      disabled={!!disabled || toggling === item.id}
-                      onClick={() => handleToggle(item)}
-                      aria-label={connected_ ? 'Desconectar' : 'Conectar'}
-                      className={`relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full border-none p-0.5 transition-colors duration-200 ease-in-out disabled:cursor-not-allowed ${connected_ ? 'justify-end bg-Malama-petrol dark:bg-primary' : 'justify-start bg-Malama-petrol/20 dark:bg-primary/20'}`}
-                    >
-                      <div className="h-[27px] w-[27px] rounded-full bg-white shadow-sm transform transition-transform duration-200" />
-                    </button>
-                  )}
+                  <button
+                    disabled={toggling === item.id}
+                    onClick={() => handleToggle(item)}
+                    aria-label={connected_ ? 'Desconectar' : 'Conectar'}
+                    className={`relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full border-none p-0.5 transition-colors duration-200 ease-in-out disabled:cursor-not-allowed ${connected_ ? 'justify-end bg-Malama-petrol dark:bg-primary' : 'justify-start bg-Malama-petrol/20 dark:bg-primary/20'}`}
+                  >
+                    <div className="h-[27px] w-[27px] rounded-full bg-white shadow-sm transform transition-transform duration-200" />
+                  </button>
                 </div>
               </div>
             );
           })
-        )}
+        }
 
         {/* Aviso de falha ao conectar o Health Connect */}
         {hcMessage && (

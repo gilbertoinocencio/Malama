@@ -3,74 +3,25 @@ import { HealthConnectService } from './healthConnectService';
 import { AppleHealthService } from './appleHealthService';
 import type { FitnessService, ConnectedIntegration, Activity } from '../types';
 
-const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
-const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID as string;
-
 export const IntegrationService = {
 
-  // Retorna todas as integrações ativas do usuário no banco
-  // Combina user_integrations (Google Fit, etc.) + strava_connections (Strava)
+  // Retorna todas as integrações ativas do usuário no banco.
+  // Strava saiu (decisão de produto, 01/09/2026): a cobertura de atividade
+  // física é só HealthKit/Health Connect agora, e essas duas são on-device
+  // (estado vem do aparelho em runtime — ver Integrations.tsx), não desta
+  // tabela. O que resta aqui é o que sobrar em user_integrations por outro
+  // canal (histórico de google_fit).
   async getConnectedIntegrations(userId: string): Promise<ConnectedIntegration[]> {
-    const [{ data: intRows }, { data: stravaRow }] = await Promise.all([
-      supabase
-        .from('user_integrations')
-        .select('service, is_connected, last_sync, external_user_id')
-        .eq('user_id', userId),
-      supabase
-        .from('strava_connections')
-        .select('strava_athlete_id, connected_at')
-        .eq('user_id', userId)
-        .maybeSingle(),
-    ]);
-
-    const result: ConnectedIntegration[] = (intRows ?? []) as ConnectedIntegration[];
-
-    // Adicionar Strava vindo de strava_connections (evitar duplicata se já existir em user_integrations)
-    const hasStravaInUserIntegrations = result.some(r => r.service === 'strava');
-    if (stravaRow && !hasStravaInUserIntegrations) {
-      result.push({
-        service: 'strava',
-        is_connected: true,
-        last_sync: stravaRow.connected_at ?? null,
-        external_user_id: String(stravaRow.strava_athlete_id),
-      });
-    }
-
-    return result;
-  },
-
-  // Inicia o fluxo OAuth redirecionando o usuário para a plataforma
-  initiateOAuth(service: 'strava'): void {
-    if (service === 'strava') {
-      const redirectUri = `${APP_URL}/strava/callback`;
-      const params = new URLSearchParams({
-        client_id: STRAVA_CLIENT_ID,
-        response_type: 'code',
-        redirect_uri: redirectUri,
-        scope: 'activity:read_all',
-        approval_prompt: 'auto',
-      });
-      window.location.href = `https://www.strava.com/oauth/authorize?${params}`;
-    }
-  },
-
-  // Envia o code para a edge function que faz o token exchange server-side (Strava)
-  async handleStravaCallback(code: string, _userId: string): Promise<boolean> {
-    const { error } = await supabase.functions.invoke('strava-oauth', {
-      body: { code },
-    });
-    return !error;
+    const { data } = await supabase
+      .from('user_integrations')
+      .select('service, is_connected, last_sync, external_user_id')
+      .eq('user_id', userId);
+    return (data ?? []) as ConnectedIntegration[];
   },
 
   // Marca o serviço como desconectado e limpa os tokens
   async disconnectService(service: FitnessService, userId: string): Promise<void> {
-    if (service === 'strava') {
-      // Strava usa a tabela strava_connections
-      await supabase
-        .from('strava_connections')
-        .delete()
-        .eq('user_id', userId);
-    } else if (service === 'health_connect') {
+    if (service === 'health_connect') {
       // Health Connect é on-device: revoga as permissões no aparelho + marca inativo
       await HealthConnectService.disconnect(userId);
     } else if (service === 'apple_health') {
@@ -89,7 +40,6 @@ export const IntegrationService = {
   // Health Connect (Android) lê on-device e grava direto; auto-gateia em web/iOS.
   async syncActivities(): Promise<void> {
     await Promise.allSettled([
-      supabase.functions.invoke('strava-sync'),
       HealthConnectService.sync(),   // no-op fora do Android
       AppleHealthService.sync(),     // no-op fora do iOS
     ]);
