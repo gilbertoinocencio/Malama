@@ -1,0 +1,5 @@
+# Ambiente isolado do gerador e artefatos intermediários
+.venv/
+graficos/
+_preview/
+__pycache__/
