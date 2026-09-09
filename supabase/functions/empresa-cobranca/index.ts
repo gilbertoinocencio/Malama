@@ -104,7 +104,13 @@ Deno.serve(async (req: Request) => {
     if (assentos === 0) {
       return json({ error: 'Defina a quantidade de assentos contratados (máx. de assentos) antes de cobrar' }, 422);
     }
-    const valor = Number((assentos * Number(empresa.valor_por_assento)).toFixed(2));
+    // `valorAssento` (soma das modalidades), e NÃO a coluna legada
+    // valor_por_assento: a RPC acima era consultada só como porteiro e o
+    // valor dela era jogado fora na hora de calcular, que é exatamente a
+    // "fatura silenciosamente menor do que o contratado" que o comentário
+    // dela diz evitar. Em contrato com duas modalidades a diferença é o
+    // preço inteiro da segunda.
+    const valor = Number((assentos * Number(valorAssento)).toFixed(2));
 
     // 3. Garantir customer Asaas
     let customerId = empresa.asaas_customer_id;
