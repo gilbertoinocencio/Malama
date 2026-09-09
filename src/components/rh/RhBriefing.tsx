@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, ChevronDown,
-  ClipboardCheck, Clock, RefreshCw, ShieldAlert, Sparkles, TrendingDown, TrendingUp,
+  AlertTriangle, ArrowRight, CalendarClock, ChevronDown,
+  ClipboardCheck, Clock, RefreshCw, ShieldAlert, Sparkles,
 } from 'lucide-react';
 import {
   rhAgentService, type RhBriefing as RhBriefingData,
@@ -383,39 +383,6 @@ export const RhBriefing: React.FC<{
             ))}
           </ul>
         </section>
-      )}
-
-      {briefing && (briefing.tendencias.length > 0 || briefing.positivos.length > 0) && (
-        <details className="group mt-4 rounded-lg border border-gray-100 bg-gray-50/70 px-4 py-3">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-gray-700 [&::-webkit-details-marker]:hidden">
-            <span>Ver evolução dos indicadores e sinais positivos</span>
-            <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
-          </summary>
-          {briefing.tendencias.length > 0 && (
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              {briefing.tendencias.map(item => (
-                <div key={item.id} className="rounded-lg border border-gray-200 bg-white px-3 py-3">
-                  <p className="text-xs font-medium text-gray-500">{item.label}</p>
-                  <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-                    {item.anterior} <ArrowRight className="h-3 w-3 text-gray-400" /> {item.atual}
-                    {item.direcao === 'melhorou'
-                      ? <TrendingUp className="h-4 w-4 text-emerald-600" />
-                      : item.direcao === 'piorou' ? <TrendingDown className="h-4 w-4 text-red-600" /> : null}
-                  </p>
-                  <p className={`mt-1 text-[11px] font-semibold ${item.direcao === 'melhorou' ? 'text-emerald-700' : item.direcao === 'piorou' ? 'text-red-700' : 'text-gray-500'}`}>
-                    {item.direcao === 'estavel' ? 'Sem variação relevante' : `${item.direcao} ${Math.abs(item.delta)} pontos`}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-          {briefing.positivos.length > 0 && (
-            <ul className="mt-3 space-y-1.5 text-xs text-emerald-800">
-              {briefing.positivos.map(item => <li key={item} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />{item}</li>)}
-            </ul>
-          )}
-          <p className="mt-3 text-[11px] leading-relaxed text-gray-500">{briefing.qualidade_dados.nota}</p>
-        </details>
       )}
     </section>
   );
