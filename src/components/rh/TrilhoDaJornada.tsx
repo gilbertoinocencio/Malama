@@ -12,10 +12,12 @@
 // leva para a reunião com a diretoria.
 // =====================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ChevronRight } from 'lucide-react';
-import { etapasDaJornada, type DadosJornada, type EtapaJornada } from '../../lib/rhJornada';
+import { Check, ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  cicloCompleto, etapasDaJornada, type DadosJornada, type EtapaJornada,
+} from '../../lib/rhJornada';
 
 /** Cumprida vira ✓; pendente vira o número. O destaque de "é aqui que você
  *  está" é o anel, aplicado por fora — uma etapa pode estar cumprida E ser
@@ -36,20 +38,38 @@ const Marcador: React.FC<{ etapa: EtapaJornada; numero: number }> = ({ etapa, nu
 
 export const TrilhoDaJornada: React.FC<{ dados: DadosJornada }> = ({ dados }) => {
   const etapas = etapasDaJornada(dados);
+  // Depois que todas as etapas foram cumpridas ao menos uma vez, o trilho
+  // vira uma fileira permanente de ✓ verdes — e pior: dá visto em "Medidas"
+  // no mesmo painel em que o Ritmo do ciclo sinaliza medida fora do prazo.
+  // Ele parabeniza no exato tópico em que os outros blocos avisam atraso.
+  //
+  // Então ele se recolhe. O que ele respondia daí em diante ("onde estou no
+  // ciclo") passou a ser respondido melhor pelo Ritmo do ciclo, que está no
+  // mesmo card e tem datas. Enquanto o primeiro ciclo não fecha, o trilho
+  // continua aberto: ali ele mostra o que FALTA, que é informação de fato.
+  const completo = cicloCompleto(dados);
+  const [aberto, setAberto] = useState(!completo);
   if (etapas.length === 0) return null;
 
   const concluidas = etapas.filter(e => e.ok).length;
 
   return (
-    <section aria-labelledby="trilho-titulo" className="border-t border-gray-100 pt-3">
-      <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
-        <h3 id="trilho-titulo" className="text-sm font-medium text-gray-700">
+    <section aria-labelledby="trilho-titulo">
+      <button
+        type="button"
+        onClick={() => setAberto(a => !a)}
+        aria-expanded={aberto}
+        className="mb-2.5 flex w-full flex-wrap items-baseline justify-between gap-2 text-left"
+      >
+        <h3 id="trilho-titulo" className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
           O ciclo da sua empresa
+          <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition ${aberto ? 'rotate-180' : ''}`} />
         </h3>
         <span className="text-xs text-gray-500">
           {concluidas} de {etapas.length} etapas cumpridas
         </span>
-      </div>
+      </button>
+      {aberto && (<>
 
       {/* Rolagem horizontal no celular: oito etapas não cabem em 390px, e
           quebrar em duas linhas desfaz a leitura de sequência. */}
@@ -90,6 +110,7 @@ export const TrilhoDaJornada: React.FC<{ dados: DadosJornada }> = ({ dados }) =>
         O ciclo não termina na última etapa: ele recomeça na próxima janela de medição. É a
         repetição que comprova que a medida funcionou.
       </p>
+      </>)}
     </section>
   );
 };

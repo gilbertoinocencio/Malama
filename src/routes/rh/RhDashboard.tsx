@@ -124,6 +124,11 @@ const GuiaJornadaRh: React.FC<{
         marcosVencendo={{ urgentes: marcosParaVerificar.length, dias: DIAS_MARCO_URGENTE }}
       />
 
+      {/* O calendário é o tabuleiro: a pergunta que o RH traz da reunião é
+          "estou atrasado?", não "qual é a minha nota". Vem depois da leitura
+          porque responde "quando isso se repete", não "o que fazer agora". */}
+      <RitmoDoCicloCard dados={dados} />
+
       {progresso < 100 && (
         <details className="group mt-3 border-t border-gray-100 pt-3">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm [&::-webkit-details-marker]:hidden">
@@ -409,10 +414,6 @@ export const RhDashboard: React.FC = () => {
           tela — inclusive repetindo o mesmo fato nos dois lugares de maior
           destaque do painel. */}
       <GuiaJornadaRh dados={dados} usuariosEquipe={usuariosEquipe} principal={acesso.principal} />
-
-      {/* O calendário é o tabuleiro: a pergunta que o RH traz da reunião é
-          "estou atrasado?", não "qual é a minha nota". */}
-      <RitmoDoCicloCard dados={dados} />
 
       {/* ── Dados da empresa ──
           Some enquanto não há ninguém cadastrado: no estado zero, tudo que

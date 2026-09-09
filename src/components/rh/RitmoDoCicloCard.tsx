@@ -68,13 +68,16 @@ export const RitmoDoCicloCard: React.FC<{ dados: DadosJornada }> = ({ dados }) =
 
   const atencao = itens.filter(i => i.situacao === 'vencido' || i.situacao === 'pendente').length;
 
+  // Deixou de ser card próprio: mora dentro do card do ciclo, logo abaixo
+  // da leitura inteligente. Dois cartões com "ciclo" no título, um embaixo
+  // do outro, faziam o RH procurar a diferença entre eles em vez de ler
+  // qualquer um dos dois.
   return (
-    <section className="rounded-xl bg-white p-5 shadow" aria-labelledby="ritmo-titulo">
-      <div className="mb-1 flex items-center gap-2">
-        <CalendarClock className="h-5 w-5 text-[#7d4a3c]" />
-        <h2 id="ritmo-titulo" className="font-semibold text-gray-800">Ritmo do ciclo</h2>
-      </div>
-      <p className="mb-4 text-sm leading-relaxed text-gray-500">
+    <section className="mt-5 border-t border-gray-100 pt-4" aria-labelledby="ritmo-titulo">
+      <h3 id="ritmo-titulo" className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">
+        <CalendarClock className="h-3.5 w-3.5" /> Ritmo do ciclo
+      </h3>
+      <p className="mb-4 mt-1 text-sm leading-relaxed text-gray-500">
         A NR-1 não é um documento que se entrega uma vez: é um ciclo que se repete. Aqui está o
         que a sua empresa combinou de fazer e quando cada coisa é esperada de novo.{' '}
         {atencao > 0
