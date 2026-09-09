@@ -82,29 +82,26 @@ const GuiaJornadaRh: React.FC<{
   // "pronto para avançar", e quem cobra isso é o próprio "seu próximo
   // passo" ("Acompanhe os combinados de X"), sem precisar de âmbar.
   //
-  // A leitura inteligente, mais abaixo NESTE MESMO card, conta TODOS os
-  // marcos pendentes. Esta faixa conta só os que vencem agora — é um
-  // recorte do mesmo conjunto, e o texto precisa dizer isso. Dois números
-  // parecidos com redações sinônimas ("pendentes" / "pedem acompanhamento")
-  // leem como contradição, e num painel de compliance isso custa confiança.
+  // Este recorte NÃO tem faixa própria. Ele entra dentro do card de
+  // prioridade da liderança, na leitura inteligente: o card já é sobre
+  // marcos pendentes, e uma faixa separada logo acima dele repetia o
+  // assunto com um número diferente do título — dois números sinônimos na
+  // mesma tela leem como contradição, e num painel de compliance isso
+  // custa confiança. Aqui só se calcula "quantos vencem agora"; o total
+  // pendente já é o título do card.
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  const marcosPendentes = dados.ciclos.filter(c =>
-    c.status === 'ativo' && c.marco_status !== 'verificado');
-  const marcosParaVerificar = marcosPendentes.filter(c => {
+  const marcosParaVerificar = dados.ciclos.filter(c => {
+    if (c.status !== 'ativo' || c.marco_status === 'verificado') return false;
     const prazo = new Date(`${c.marco_prazo || c.fim}T00:00:00`);
     return Math.ceil((prazo.getTime() - hoje.getTime()) / 86400000) <= DIAS_MARCO_URGENTE;
   });
 
   return (
     <section className="rounded-xl border border-[#7d4a3c]/20 bg-white p-5 shadow-sm" aria-labelledby="guia-rh-titulo">
-      {/* Sem faixa de baixa adesão aqui: a leitura inteligente, abaixo,
-          mostra o mesmo alerta ABERTO POR SETOR e com o piso de anonimato
-          aplicado — mesma regra (campanha aberta, passada a metade, abaixo
-          de 30%), leitura melhor. Repetir a versão pior logo acima da melhor
-          só disputava atenção com o próximo passo. */}
-      {marcosParaVerificar.length > 0 && <Link to="/rh/plano-acao?visao=lideranca" className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-amber-900">
-        <span className="flex min-w-0 gap-2"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" /><span><span className="block text-sm font-semibold">{marcosParaVerificar.length} de {marcosPendentes.length} marco(s) de liderança vencem em até {DIAS_MARCO_URGENTE} dias</span><span className="mt-0.5 block text-xs text-amber-800">Confira o combinado, registre o resultado ou agende uma nova data.</span></span></span><ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
-      </Link>}
+      {/* Nenhuma faixa de alerta aqui em cima. Baixa adesão e prazo de
+          liderança já são cards da leitura inteligente, abaixo — e lá a
+          adesão ainda vem aberta por setor, com o piso de anonimato
+          aplicado. Faixa separada só disputava atenção com o próximo passo. */}
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div className="flex min-w-0 gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#7d4a3c]/10 text-[#7d4a3c]">
@@ -140,7 +137,10 @@ const GuiaJornadaRh: React.FC<{
           o que falta configurar. A leitura entra depois do trilho porque
           explica o passo, não compete com ele; e recebe a etapa atual para
           não repetir como "prioridade" o que o passo já enunciou acima. */}
-      <RhBriefing etapaAtual={passoAtual.etapa} />
+      <RhBriefing
+        etapaAtual={passoAtual.etapa}
+        marcosVencendo={{ urgentes: marcosParaVerificar.length, dias: DIAS_MARCO_URGENTE }}
+      />
 
       {progresso < 100 && (
         <details className="group mt-3 border-t border-gray-100 pt-3">

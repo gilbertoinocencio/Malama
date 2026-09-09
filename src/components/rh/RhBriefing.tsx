@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle, ArrowRight, CheckCircle2, ChevronDown, RefreshCw,
+  AlertTriangle, ArrowRight, CheckCircle2, ChevronDown, Clock, RefreshCw,
   ShieldAlert, Sparkles, TrendingDown, TrendingUp,
 } from 'lucide-react';
 import {
@@ -89,7 +89,7 @@ function actionTarget(priority: RhBriefingPriority) {
   return `/rh/plano-acao?${params.toString()}`;
 }
 
-const PriorityCard: React.FC<{ priority: RhBriefingPriority }> = ({ priority }) => {
+const PriorityCard: React.FC<{ priority: RhBriefingPriority; urgencia?: string }> = ({ priority, urgencia }) => {
   const target = actionTarget(priority);
   const Icon = priority.severidade === 'critico' ? ShieldAlert : AlertTriangle;
   return (
@@ -98,6 +98,14 @@ const PriorityCard: React.FC<{ priority: RhBriefingPriority }> = ({ priority }) 
         <Icon className="h-3.5 w-3.5" /> {severityLabel[priority.severidade]}
       </p>
       <h3 className="mt-2 text-sm font-semibold leading-snug">{priority.titulo}</h3>
+      {/* O prazo vem logo abaixo do título porque é a única parte do card
+          com data marcada: é o que decide se isso é para hoje ou para a
+          semana que vem. */}
+      {urgencia && (
+        <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold">
+          <Clock className="h-3.5 w-3.5 shrink-0" /> {urgencia}
+        </p>
+      )}
       <p className="mt-1.5 flex-1 text-xs leading-relaxed opacity-80">{priority.descricao}</p>
       {priority.evidencias.length > 0 && (
         <p className="mt-3 border-t border-current/10 pt-2 text-[11px] font-medium opacity-75">
@@ -159,14 +167,32 @@ const PriorityCard: React.FC<{ priority: RhBriefingPriority }> = ({ priority }) 
  * `etapaAtual` vem de quem já calculou o passo (a jornada é a fonte única);
  * este componente não recalcula nem discorda dela.
  */
-export const RhBriefing: React.FC<{ etapaAtual?: EtapaChave }> = ({ etapaAtual }) => {
+export const RhBriefing: React.FC<{
+  etapaAtual?: EtapaChave;
+  /** Marcos de liderança com prazo em cima, calculados pela jornada. Entram
+   *  DENTRO do card de prioridade correspondente — antes eram uma faixa
+   *  âmbar separada, que repetia o assunto do card logo abaixo dela. */
+  marcosVencendo?: { urgentes: number; dias: number };
+}> = ({ etapaAtual, marcosVencendo }) => {
   const [briefing, setBriefing] = useState<RhBriefingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const prioridadeJaDita = etapaAtual
+  // Concorda com o título do card ("5 marco(s) pendente(s)"), então aqui
+  // basta dizer quantos DESSES estão com a data em cima.
+  const urgencia = marcosVencendo && marcosVencendo.urgentes > 0
+    ? marcosVencendo.urgentes === 1
+      ? `1 deles vence em até ${marcosVencendo.dias} dias`
+      : `${marcosVencendo.urgentes} deles vencem em até ${marcosVencendo.dias} dias`
+    : null;
+
+  let prioridadeJaDita = etapaAtual
     ? PRIORIDADE_JA_DITA_PELO_PASSO[etapaAtual] ?? null
     : null;
+  // Exceção à dedução: com prazo em cima, o card de liderança carrega uma
+  // informação que o passo da jornada NÃO tem — a data. Esconder aqui
+  // apagaria o único aviso de vencimento da tela.
+  if (prioridadeJaDita === 'lideranca_pendente' && urgencia) prioridadeJaDita = null;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -195,11 +221,21 @@ export const RhBriefing: React.FC<{ etapaAtual?: EtapaChave }> = ({ etapaAtual }
 
   if (error && !briefing) {
     return (
-      <section className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 text-sm">
-        <span className="text-gray-500">A leitura dos dados não pôde ser atualizada agora. O próximo passo acima continua valendo.</span>
-        <button onClick={() => void load()} className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-[#7d4a3c]">
-          <RefreshCw className="h-4 w-4" /> Tentar novamente
-        </button>
+      <section className="mt-5 border-t border-gray-100 pt-4 text-sm">
+        {/* O prazo é calculado no cliente, a leitura vem da Edge Function.
+            Se a função cair, o aviso de vencimento NÃO pode cair junto: ele
+            tem data e some sozinho quando o marco é verificado. */}
+        {urgencia && (
+          <p className="mb-3 flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+            <Clock className="h-3.5 w-3.5 shrink-0" /> Marcos de liderança pendentes: {urgencia?.replace('deles ', '')}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-gray-500">A leitura dos dados não pôde ser atualizada agora. O próximo passo acima continua valendo.</span>
+          <button onClick={() => void load()} className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-[#7d4a3c]">
+            <RefreshCw className="h-4 w-4" /> Tentar novamente
+          </button>
+        </div>
       </section>
     );
   }
@@ -229,7 +265,13 @@ export const RhBriefing: React.FC<{ etapaAtual?: EtapaChave }> = ({ etapaAtual }
 
       {priorities.length > 0 && (
         <div className="mt-4 grid gap-3 lg:grid-cols-3">
-          {priorities.map(priority => <PriorityCard key={priority.id} priority={priority} />)}
+          {priorities.map(priority => (
+            <PriorityCard
+              key={priority.id}
+              priority={priority}
+              urgencia={priority.id === 'lideranca_pendente' ? urgencia ?? undefined : undefined}
+            />
+          ))}
         </div>
       )}
 
