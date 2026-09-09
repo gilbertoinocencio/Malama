@@ -7,7 +7,33 @@ import {
 import {
   rhAgentService, type RhBriefing as RhBriefingData,
   type RhBriefingPriority, type RhBriefingSeverity,
+  type RhForcaEvidencia, type RhReavaliacao,
 } from '../../services/rhAgentService';
+
+// Categoria, nunca porcentagem: o sistema não tem base para atribuir
+// probabilidade a uma hipótese, e um número inventado viraria a parte mais
+// citada do relatório.
+const FORCA_LABEL: Record<RhForcaEvidencia, string> = {
+  evidencia_insuficiente: 'Evidência insuficiente',
+  sinal_inicial: 'Sinal inicial',
+  padrao_recorrente: 'Padrão recorrente',
+  padrao_consistente: 'Padrão consistente',
+};
+
+// Descreve o movimento do indicador no período — nunca o efeito da medida.
+const RESULTADO_LABEL: Record<RhReavaliacao['classificacao'], string> = {
+  favoravel: 'Indicador no sentido desejado',
+  estavel: 'Indicador estável',
+  desfavoravel: 'Indicador no sentido oposto',
+  inconclusivo: 'Sem comparação possível',
+};
+
+const RESULTADO_CLS: Record<RhReavaliacao['classificacao'], string> = {
+  favoravel: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  estavel: 'bg-gray-50 text-gray-700 border-gray-200',
+  desfavoravel: 'bg-red-50 text-red-800 border-red-200',
+  inconclusivo: 'bg-gray-50 text-gray-500 border-gray-200',
+};
 
 const severityStyles: Record<RhBriefingSeverity, string> = {
   critico: 'border-red-200 bg-red-50 text-red-950',
@@ -33,6 +59,9 @@ function actionTarget(priority: RhBriefingPriority) {
     nivel: measure.nivel_controle, risco: measure.risco_descricao,
   });
   if (measure.setor) params.set('setor', measure.setor);
+  // Sem hipótese o rascunho segue funcionando: a medida só nasce sem linha
+  // de base, que é o comportamento correto para vínculo não inequívoco.
+  if (measure.hipotese_id) params.set('hipotese', measure.hipotese_id);
   return `/rh/plano-acao?${params.toString()}`;
 }
 
@@ -50,6 +79,43 @@ const PriorityCard: React.FC<{ priority: RhBriefingPriority }> = ({ priority }) 
         <p className="mt-3 border-t border-current/10 pt-2 text-[11px] font-medium opacity-75">
           Base: {priority.evidencias.join(' · ')}
         </p>
+      )}
+      {priority.hipotese && (
+        <details className="group/hip mt-2 border-t border-current/10 pt-2">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[11px] font-semibold opacity-80 [&::-webkit-details-marker]:hidden">
+            <span>O que vale investigar</span>
+            <span className="flex items-center gap-1">
+              <span className="rounded-full border border-current/20 px-1.5 py-px text-[10px] font-medium">
+                {FORCA_LABEL[priority.hipotese.forca_evidencia]}
+              </span>
+              <ChevronDown className="h-3 w-3 transition group-open/hip:rotate-180" />
+            </span>
+          </summary>
+          <p className="mt-1.5 text-[11px] leading-relaxed opacity-80">{priority.hipotese.descricao}</p>
+          <p className="mt-1.5 text-[11px] leading-relaxed opacity-70">
+            <span className="font-semibold">Por que apareceu:</span> {priority.hipotese.por_que_foi_sugerida}
+          </p>
+          {priority.hipotese.perguntas_validacao.length > 0 && (
+            <>
+              <p className="mt-2 text-[11px] font-semibold opacity-80">Perguntas para validar com a equipe</p>
+              <ul className="mt-1 space-y-1 text-[11px] leading-relaxed opacity-75">
+                {priority.hipotese.perguntas_validacao.map(pergunta => (
+                  <li key={pergunta} className="flex gap-1.5"><span aria-hidden>·</span>{pergunta}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {priority.hipotese.caminhos_possiveis.length > 0 && (
+            <>
+              <p className="mt-2 text-[11px] font-semibold opacity-80">Caminhos possíveis</p>
+              <ul className="mt-1 space-y-1 text-[11px] leading-relaxed opacity-75">
+                {priority.hipotese.caminhos_possiveis.map(caminho => (
+                  <li key={caminho.medida} className="flex gap-1.5"><span aria-hidden>·</span>{caminho.medida}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </details>
       )}
       {target && priority.acao && (
         <Link to={target} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold underline-offset-2 hover:underline">
@@ -103,6 +169,10 @@ export const RhBriefing: React.FC = () => {
 
   if (!briefing) return null;
   const priorities = briefing.prioridades.slice(0, 3);
+  // O bundle do app e as Edge Functions são publicados separadamente: uma
+  // versão nova da tela pode conversar com uma função ainda sem estes
+  // campos. Ausência vira lista vazia, não tela quebrada.
+  const reavaliacoes = briefing.reavaliacoes ?? [];
 
   return (
     <section className="rounded-xl border border-[#7d4a3c]/20 bg-white p-5 shadow-sm" aria-labelledby="briefing-rh-title">
@@ -126,6 +196,31 @@ export const RhBriefing: React.FC = () => {
         <div className="mt-5 grid gap-3 lg:grid-cols-3">
           {priorities.map(priority => <PriorityCard key={priority.id} priority={priority} />)}
         </div>
+      )}
+
+      {reavaliacoes.length > 0 && (
+        <section className="mt-4 rounded-lg border border-gray-200 bg-white p-4" aria-labelledby="reavaliacao-titulo">
+          <h3 id="reavaliacao-titulo" className="text-sm font-semibold text-gray-800">
+            O que aconteceu na reavaliação
+          </h3>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-gray-500">
+            Comparação entre a medição que originou cada medida e o ciclo seguinte. É uma leitura
+            descritiva do período: mostra como o indicador agregado se moveu, não que a medida
+            tenha produzido o movimento.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {reavaliacoes.slice(0, 4).map(item => (
+              <li key={`${item.plano_acao_id}-${item.indicador}`}
+                  className={`rounded-lg border px-3 py-2 ${RESULTADO_CLS[item.classificacao]}`}>
+                <p className="text-[11px] font-semibold uppercase tracking-wide opacity-75">
+                  {RESULTADO_LABEL[item.classificacao]}
+                </p>
+                {item.medida && <p className="mt-0.5 text-xs font-medium">{item.medida}</p>}
+                <p className="mt-1 text-[11px] leading-relaxed opacity-80">{item.narrativa}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {(briefing.tendencias.length > 0 || briefing.positivos.length > 0) && (

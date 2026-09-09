@@ -23,6 +23,46 @@ type SuggestedMeasure = {
   nivel_controle: 'fonte' | 'organizacional' | 'individual';
   metrica_sucesso: string;
   abordagem_lideranca: string;
+  /**
+   * Hipótese que sustenta este rascunho. Viaja até o formulário de nova
+   * ação e é o que liga a medida escolhida ao ciclo de medição que a
+   * originou — sem ele a medida nasce sem linha de base e fica fora do
+   * aprendizado, por decisão de produto (ver a migration da memória).
+   */
+  hipotese_id?: string;
+};
+
+/**
+ * Hipótese como o briefing a expõe. Calculada pelo motor determinístico
+ * (_shared/psicossocial-hipoteses.ts) e já persistida quando chega aqui.
+ */
+export type HipoteseDoBriefing = {
+  id?: string;
+  setor: string | null;
+  indicador: string;
+  fator: string;
+  descricao: string;
+  por_que_foi_sugerida: string;
+  perguntas_validacao: string[];
+  caminhos_possiveis: { medida: string; nivel_controle: string }[];
+  forca_evidencia: string;
+  origem: string;
+};
+
+/** Resultado observado de uma medida num ciclo posterior. */
+export type ReavaliacaoDoBriefing = {
+  plano_acao_id: string;
+  setor: string | null;
+  indicador: string;
+  classificacao: string;
+  comparabilidade: string;
+  narrativa: string;
+  medida?: string;
+};
+
+export type MemoriaDoCiclo = {
+  hipoteses: HipoteseDoBriefing[];
+  reavaliacoes: ReavaliacaoDoBriefing[];
 };
 
 type Priority = {
@@ -33,6 +73,8 @@ type Priority = {
   evidencias: string[];
   acao?: { label: string; target: string };
   medida_sugerida?: SuggestedMeasure;
+  /** O que vale investigar por trás desta prioridade. */
+  hipotese?: HipoteseDoBriefing;
 };
 
 const num = (value: unknown): number | null =>
@@ -102,10 +144,13 @@ function measureFor(metric: string): SuggestedMeasure | undefined {
   return undefined;
 }
 
-function priorityFromTrend(item: Trend): Priority | null {
+function priorityFromTrend(item: Trend, hipotese?: HipoteseDoBriefing): Priority | null {
   if (item.direcao !== 'piorou') return null;
   const sentido = item.delta > 0 ? `subiu ${Math.abs(item.delta)}` : `caiu ${Math.abs(item.delta)}`;
-  const medida = measureFor(item.id);
+  const base = measureFor(item.id);
+  // O rascunho só carrega a hipótese quando ela existe e foi gravada: um id
+  // ausente vira medida sem linha de base, nunca vínculo adivinhado.
+  const medida = base && hipotese?.id ? { ...base, hipotese_id: hipotese.id } : base;
   return {
     id: `tendencia_${item.id}`,
     severidade: 'atencao',
@@ -119,6 +164,7 @@ function priorityFromTrend(item: Trend): Priority | null {
       ? { label: 'Preparar medida de controle', target: '/rh/plano-acao' }
       : { label: 'Analisar resultados', target: '/rh/saude-mental' },
     ...(medida ? { medida_sugerida: medida } : {}),
+    ...(hipotese ? { hipotese } : {}),
   };
 }
 
@@ -126,12 +172,20 @@ function routeAllowed(target: string, allowedRoutes: string[]) {
   return allowedRoutes.some(route => target === route || target.startsWith(`${route}?`) || target.startsWith(`${route}#`));
 }
 
-export function buildRhBriefing(reading: any, cycle: any, allowedRoutes: string[]) {
+/**
+ * Tendências entre as duas últimas coletas comparáveis.
+ *
+ * Extraído de buildRhBriefing porque o motor de hipóteses precisa das
+ * MESMAS tendências: duas implementações da mesma comparação acabariam
+ * divergindo, e a tela mostraria uma variação enquanto a hipótese gravada
+ * citaria outra.
+ */
+export function calcularTendencias(reading: any): Trend[] {
   const currentWho5 = reading?.ultimos_relatorios?.who5;
   const previousWho5 = reading?.relatorios_anteriores?.who5;
   const currentJss = reading?.ultimos_relatorios?.jss;
   const previousJss = reading?.relatorios_anteriores?.jss;
-  const trends: Trend[] = [
+  return [
     trend({
       id: 'who5_score', label: 'Bem-estar WHO-5',
       atual: currentWho5?.geral?.score_medio, anterior: previousWho5?.geral?.score_medio,
@@ -157,6 +211,27 @@ export function buildRhBriefing(reading: any, cycle: any, allowedRoutes: string[
       nAtual: currentJss?.geral?.n_respondentes, nAnterior: previousJss?.geral?.n_respondentes,
     }),
   ].filter((item): item is Trend => item !== null);
+}
+
+export function buildRhBriefing(
+  reading: any,
+  cycle: any,
+  allowedRoutes: string[],
+  memoria?: MemoriaDoCiclo,
+) {
+  const currentWho5 = reading?.ultimos_relatorios?.who5;
+  const previousWho5 = reading?.relatorios_anteriores?.who5;
+  const currentJss = reading?.ultimos_relatorios?.jss;
+  const previousJss = reading?.relatorios_anteriores?.jss;
+  const trends = calcularTendencias(reading);
+  // Hipótese geral (setor null) por indicador — é ela que o card da
+  // prioridade explica e que o rascunho de medida carrega no deep link.
+  const hipotesePorIndicador = new Map<string, HipoteseDoBriefing>();
+  for (const hipotese of memoria?.hipoteses ?? []) {
+    if (hipotese.setor === null && !hipotesePorIndicador.has(hipotese.indicador)) {
+      hipotesePorIndicador.set(hipotese.indicador, hipotese);
+    }
+  }
 
   const priorities: Priority[] = [];
   const overdue = Number(cycle?.plano_de_acao?.medidas_atrasadas ?? 0);
@@ -187,7 +262,9 @@ export function buildRhBriefing(reading: any, cycle: any, allowedRoutes: string[
     acao: { label: 'Apoiar lideranças', target: '/rh/plano-acao?visao=lideranca' },
   });
 
-  priorities.push(...trends.map(priorityFromTrend).filter((item): item is Priority => item !== null));
+  priorities.push(...trends
+    .map(item => priorityFromTrend(item, hipotesePorIndicador.get(item.id)))
+    .filter((item): item is Priority => item !== null));
 
   const campaigns = Array.isArray(reading?.campanhas_abertas) ? reading.campanhas_abertas : [];
   const now = Date.now();
@@ -260,6 +337,11 @@ export function buildRhBriefing(reading: any, cycle: any, allowedRoutes: string[
         : 'Ainda não há duas coletas agregadas comparáveis; o briefing prioriza o andamento do ciclo.',
     prioridades: filteredPriorities.slice(0, 6),
     tendencias: trends,
+    // "O que vale investigar" e "o que aconteceu na reavaliação": as duas
+    // pontas da memória do ciclo. Vêm calculadas e já persistidas; aqui só
+    // são repassadas para a tela e para o Copiloto.
+    hipoteses: memoria?.hipoteses ?? [],
+    reavaliacoes: memoria?.reavaliacoes ?? [],
     positivos: positives.slice(0, 4),
     qualidade_dados: {
       comparacoes_disponiveis: trends.length,

@@ -84,10 +84,13 @@ export const PlanoAcaoKanban: React.FC<{
   novaAcaoRiscoInicial?: string | null;
   novaAcaoMedidaInicial?: string | null;
   novaAcaoNivelInicial?: PlanoNivel | null;
+  /** Hipótese de origem, quando a medida nasceu de uma leitura concreta. */
+  novaAcaoHipoteseInicial?: string | null;
 }> = ({
   setores, abrirNovo = false, setorInicial = null, cicloFoco = null,
   novaAcaoInicial = false, novaAcaoSetorInicial = null, novaAcaoFatorInicial = null,
   novaAcaoRiscoInicial = null, novaAcaoMedidaInicial = null, novaAcaoNivelInicial = null,
+  novaAcaoHipoteseInicial = null,
 }) => {
   const [ciclos, setCiclos] = useState<LiderancaCiclo[]>([]);
   const [planos, setPlanos] = useState<PlanoAcao[]>([]);
@@ -227,6 +230,7 @@ export const PlanoAcaoKanban: React.FC<{
         setorInicial={novaAcaoSetorInicial} fatorInicial={novaAcaoFatorInicial}
         riscoInicial={novaAcaoRiscoInicial} medidaInicial={novaAcaoMedidaInicial}
         nivelInicial={novaAcaoNivelInicial}
+        hipoteseId={novaAcaoHipoteseInicial}
         onClose={() => setNovaAcao(false)}
         onSaved={async () => { setNovaAcao(false); await carregar(); }}
       />}
@@ -688,9 +692,16 @@ const NovaAcaoGeralForm: React.FC<{
   riscoInicial?: string | null;
   medidaInicial?: string | null;
   nivelInicial?: PlanoNivel | null;
+  /**
+   * Hipótese que originou o rascunho. Viaja intacta até a gravação e é o
+   * que dá linha de base à medida. Quando o RH abre "Nova ação" direto no
+   * quadro ela é null, e a medida fica fora do motor de aprendizado — por
+   * decisão de produto: vínculo inequívoco ou nenhum vínculo.
+   */
+  hipoteseId?: string | null;
   onClose: () => void;
   onSaved: () => void;
-}> = ({ setores, jss, who5, setorInicial, fatorInicial, riscoInicial, medidaInicial, nivelInicial, onClose, onSaved }) => {
+}> = ({ setores, jss, who5, setorInicial, fatorInicial, riscoInicial, medidaInicial, nivelInicial, hipoteseId = null, onClose, onSaved }) => {
   const prazoPadrao = new Date(); prazoPadrao.setMonth(prazoPadrao.getMonth() + 3);
   const [setor, setSetor] = useState(setorInicial ?? '');
   const [fator, setFator] = useState<PlanoFator>(fatorInicial ?? 'demanda');
@@ -719,8 +730,10 @@ const NovaAcaoGeralForm: React.FC<{
     if (!responsavel.trim()) return toast.error('Informe o responsável pela medida.');
     setSaving(true);
     const res = await rhService.criarPlanoAcao({
-      setor, origem: 'manual', fator, risco_descricao: risco.trim(), medida: medida.trim(),
+      setor, origem: hipoteseId ? 'campanha' : 'manual',
+      fator, risco_descricao: risco.trim(), medida: medida.trim(),
       nivel_controle: nivel, responsavel: responsavel.trim(), prazo,
+      hipoteseId,
     });
     setSaving(false);
     if (!res.ok) return toast.error(res.error || 'Não foi possível criar o item.');

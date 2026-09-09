@@ -1,6 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { RH_AGENT_SYSTEM_PROMPT, RH_PROFILE_DRAFT_PROMPT } from '../_shared/rh-agent-prompt.ts';
-import { buildRhBriefing } from '../_shared/rh-briefing.ts';
+import { buildRhBriefing, calcularTendencias } from '../_shared/rh-briefing.ts';
+import { gerarHipoteses, type Hipotese } from '../_shared/psicossocial-hipoteses.ts';
+import {
+  calcularResultadoObservado, execucaoDaMedida, type ResultadoObservado,
+} from '../_shared/psicossocial-resultado.ts';
+import { ehIndicadorConhecido, type IndicadorId } from '../_shared/psicossocial-logica.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -402,6 +407,14 @@ async function leituraAnalitica(
         setores_ocultos: participacao?.ocultos_setores ?? 0,
       };
     }),
+    // Identidade do ciclo encerrado mais recente por instrumento. É o que
+    // liga hipótese e resultado observado a uma campanha concreta — sem
+    // isso o vínculo teria que ser adivinhado por data, que é exatamente o
+    // tipo de inferência que não queremos no aprendizado.
+    campanhas_encerradas: {
+      who5: who5 ? { id: texto(who5.id, 60), janela_fim: texto(who5.janela_fim, 20) } : null,
+      jss: jss ? { id: texto(jss.id, 60), janela_fim: texto(jss.janela_fim, 20) } : null,
+    },
     ultimos_relatorios: {
       who5: resumoWho5(who5Relatorio),
       jss: resumoJss(jssRelatorio, temasJss),
@@ -456,11 +469,177 @@ async function leituraAnalitica(
 function leituraVazia() {
   return {
     campanhas_abertas: [],
+    campanhas_encerradas: { who5: null, jss: null },
     ultimos_relatorios: { who5: null, jss: null, matriz: null },
     relatorios_anteriores: { who5: null, jss: null },
     plano_de_acao: null,
     lideranca: [],
     evidencias: null,
+  };
+}
+
+// =====================================================
+// Memória do ciclo
+//
+// Fecha o laço que faltava: o que vimos → por que sugerimos → o que a
+// empresa escolheu → o que foi observado no ciclo seguinte.
+//
+// Tudo aqui é determinístico e roda no servidor a partir de agregados que
+// já passaram pelo piso de anonimato do banco. O modelo de linguagem não
+// participa: ele só recebe o resultado pronto no contexto seguro.
+// =====================================================
+
+/**
+ * Valor agregado de um indicador num recorte, lido do relatório do ciclo.
+ * Recorte suprimido pelo piso de k devolve `{ valor: null, n: null }` — e é
+ * assim que o motor de resultado chega a 'inconclusivo' em vez de inventar.
+ */
+function valorAgregado(
+  leitura: any, indicador: IndicadorId, setor: string | null,
+): { valor: number | null; n: number | null } {
+  const vazio = { valor: null, n: null };
+  if (indicador === 'who5_score') {
+    const relatorio = leitura?.ultimos_relatorios?.who5;
+    if (!relatorio) return vazio;
+    if (setor === null) {
+      const geral = relatorio.geral;
+      if (!geral || geral.dados_suprimidos) return vazio;
+      return { valor: geral.score_medio ?? null, n: geral.n_respondentes ?? null };
+    }
+    // Setor ausente da lista = suprimido pelo piso; não se reconstrói.
+    const linha = (relatorio.setores ?? []).find((s: any) => s?.setor === setor);
+    return linha ? { valor: linha.score_medio ?? null, n: linha.n_respondentes ?? null } : vazio;
+  }
+
+  const relatorio = leitura?.ultimos_relatorios?.jss;
+  if (!relatorio) return vazio;
+  const campo = indicador === 'jss_demanda' ? 'demanda'
+    : indicador === 'jss_controle' ? 'controle' : 'apoio';
+  if (setor === null) {
+    const geral = relatorio.geral;
+    if (!geral || geral.dados_suprimidos) return vazio;
+    return { valor: geral[`${campo}_medio`] ?? null, n: geral.n_respondentes ?? null };
+  }
+  const linha = (relatorio.setores ?? []).find((s: any) => s?.setor === setor);
+  return linha ? { valor: linha[campo] ?? null, n: linha.n_respondentes ?? null } : vazio;
+}
+
+/**
+ * Resultados observados das medidas que TÊM linha de base.
+ *
+ * Medida sem `campanha_baseline_id` nunca chega aqui: a RPC de memória já
+ * a exclui. É a decisão de produto que evita histórico falso — vínculo
+ * inequívoco ou nenhum vínculo.
+ */
+function calcularReavaliacoes(leitura: any, memoria: any): ResultadoObservado[] {
+  const medidas = Array.isArray(memoria?.medidas_com_linha_de_base)
+    ? memoria.medidas_com_linha_de_base : [];
+  const resultados: ResultadoObservado[] = [];
+
+  for (const medida of medidas) {
+    const instrumento = medida?.baseline_instrumento === 'who5' ? 'who5' : 'jss';
+    const ciclo = leitura?.campanhas_encerradas?.[instrumento];
+    // Sem ciclo encerrado posterior não há reavaliação — e comparar a
+    // campanha consigo mesma seria pior que não comparar.
+    if (!ciclo?.id || ciclo.id === medida.campanha_baseline_id) continue;
+
+    const indicador = medida?.baseline_metricas?.indicador;
+    if (!ehIndicadorConhecido(indicador)) continue;
+
+    const baseline = medida?.baseline_metricas?.metricas ?? {};
+    const setor = medida?.setor ?? null;
+    const followup = valorAgregado(leitura, indicador, setor);
+
+    resultados.push(calcularResultadoObservado({
+      planoAcaoId: String(medida.plano_acao_id),
+      campanhaFollowupId: String(ciclo.id),
+      indicador,
+      setor,
+      baseline: {
+        valor: typeof baseline.valor === 'number' ? baseline.valor : null,
+        n: typeof baseline.n === 'number' ? baseline.n : null,
+        data: baseline.periodo_fim ?? medida.baseline_janela_fim ?? null,
+      },
+      followup: { ...followup, data: ciclo.janela_fim ?? null },
+      execucao: execucaoDaMedida(String(medida.status ?? ''), medida.concluida_em ?? null),
+    }));
+  }
+  return resultados;
+}
+
+/**
+ * Calcula, persiste e devolve a memória do ciclo. Falha aqui NUNCA derruba
+ * o briefing: a leitura agregada é o que o RH precisa ver, e a memória é
+ * acessória a ela.
+ */
+async function montarMemoriaDoCiclo(supabase: any, leitura: any) {
+  const vazia = { hipoteses: [], reavaliacoes: [] };
+  const memoria = await rpcOpcional(supabase, 'rh_memoria_ciclo');
+  if (!memoria) return vazia;
+
+  const campanhaPorInstrumento = {
+    who5: leitura?.campanhas_encerradas?.who5?.id ?? null,
+    jss: leitura?.campanhas_encerradas?.jss?.id ?? null,
+  };
+
+  let hipoteses: Hipotese[] = [];
+  try {
+    hipoteses = gerarHipoteses({
+      tendencias: calcularTendencias(leitura),
+      leitura,
+      campanhaPorInstrumento,
+      recorrencia: Array.isArray(memoria.recorrencia) ? memoria.recorrencia : [],
+    });
+  } catch (error) {
+    console.warn('[rh-agent] motor de hipóteses indisponível:', error);
+  }
+
+  // Upsert idempotente por (empresa, ciclo, setor, indicador): regerar o
+  // briefing dez vezes no mesmo dia não cria dez registros.
+  if (hipoteses.length > 0) {
+    const registro = await rpcOpcional(supabase, 'rh_registrar_hipoteses', { p_hipoteses: hipoteses });
+    const gravadas = Array.isArray(registro?.hipoteses) ? registro.hipoteses : [];
+    const idPorChave = new Map<string, string>(gravadas.map((h: any) =>
+      [`${h.setor ?? ''}|${h.indicador}|${h.campanha_baseline_id}`, h.id]));
+    hipoteses = hipoteses.map(h => ({
+      ...h,
+      id: idPorChave.get(`${h.setor ?? ''}|${h.indicador}|${h.campanha_baseline_id}`),
+    }));
+  }
+
+  let reavaliacoes: ResultadoObservado[] = [];
+  try {
+    reavaliacoes = calcularReavaliacoes(leitura, memoria);
+    if (reavaliacoes.length > 0) {
+      await rpcOpcional(supabase, 'rh_registrar_resultados_observados', { p_resultados: reavaliacoes });
+    }
+  } catch (error) {
+    console.warn('[rh-agent] motor de resultado indisponível:', error);
+  }
+
+  const medidaPorId = new Map<string, { medida: string; setor: string | null }>(
+    (Array.isArray(memoria.medidas_com_linha_de_base) ? memoria.medidas_com_linha_de_base : [])
+      .map((m: any) => [String(m.plano_acao_id), {
+        medida: texto(m.medida, 180),
+        setor: texto(m.setor, 80) || null,
+      }]));
+
+  return {
+    hipoteses: hipoteses.map(h => ({
+      id: h.id, setor: h.setor, indicador: h.indicador, fator: h.fator,
+      descricao: h.descricao, por_que_foi_sugerida: h.por_que_foi_sugerida,
+      perguntas_validacao: h.perguntas_validacao, caminhos_possiveis: h.caminhos_possiveis,
+      forca_evidencia: h.forca_evidencia, origem: h.origem,
+    })),
+    reavaliacoes: reavaliacoes.map(r => ({
+      plano_acao_id: r.plano_acao_id,
+      setor: medidaPorId.get(r.plano_acao_id)?.setor ?? null,
+      indicador: r.indicador,
+      classificacao: r.classificacao,
+      comparabilidade: r.comparabilidade,
+      narrativa: r.narrativa,
+      medida: medidaPorId.get(r.plano_acao_id)?.medida,
+    })),
   };
 }
 
@@ -591,6 +770,26 @@ function respostaDeterministica(
     const titulo = texto(passo?.titulo, 160);
     const descricao = texto(passo?.descricao, 600);
     if (titulo) linhas.push(`Próxima entrega calculada pelo Malama: ${titulo}. ${descricao}`);
+  }
+
+  // Reavaliação entra no caminho determinístico porque é o fecho do ciclo:
+  // se o provedor de IA estiver fora, o RH ainda precisa saber o que foi
+  // observado depois das medidas que ele registrou.
+  const reavaliacoes = Array.isArray(briefing?.reavaliacoes) ? briefing.reavaliacoes.slice(0, 3) : [];
+  if (reavaliacoes.length > 0) {
+    const linhasReavaliacao = reavaliacoes
+      .map((item: any) => `- ${texto(item?.narrativa, 500)}`)
+      .join('\n');
+    linhas.push(`O que aconteceu na reavaliação:\n${linhasReavaliacao}`);
+  }
+
+  const hipoteses = Array.isArray(briefing?.hipoteses) ? briefing.hipoteses.slice(0, 2) : [];
+  if (hipoteses.length > 0) {
+    const linhasHipotese = hipoteses.map((item: any) => {
+      const perguntas = (item?.perguntas_validacao ?? []).slice(0, 2).join(' ');
+      return `- ${texto(item?.descricao, 400)} Perguntas para validar: ${perguntas}`;
+    }).join('\n');
+    linhas.push(`O que vale investigar:\n${linhasHipotese}`);
   }
 
   const prioridades = Array.isArray(briefing?.prioridades) ? briefing.prioridades.slice(0, 3) : [];
@@ -736,7 +935,12 @@ Deno.serve(async (req: Request) => {
         leitura = leituraVazia();
       }
       const estadoCiclo = estadoCicloDaLeitura(contexto, leitura);
-      return json({ briefing: buildRhBriefing(leitura, estadoCiclo, permitidas) });
+      // A memória do ciclo só faz sentido para quem enxerga o plano de
+      // ação: é lá que a hipótese vira medida e que a reavaliação aparece.
+      const memoria = podeVerPlano
+        ? await montarMemoriaDoCiclo(supabase, leitura)
+        : { hipoteses: [], reavaliacoes: [] };
+      return json({ briefing: buildRhBriefing(leitura, estadoCiclo, permitidas, memoria) });
     }
 
     const { data: withinQuota } = await supabase.rpc('consume_edge_quota', {
@@ -798,7 +1002,10 @@ Deno.serve(async (req: Request) => {
       leitura = leituraVazia();
     }
     const estadoCiclo = estadoCicloDaLeitura(contexto, leitura);
-    const briefing = buildRhBriefing(leitura, estadoCiclo, permitidas);
+    const memoria = podeVerPlano
+      ? await montarMemoriaDoCiclo(supabase, leitura)
+      : { hipoteses: [], reavaliacoes: [] };
+    const briefing = buildRhBriefing(leitura, estadoCiclo, permitidas, memoria);
     const contextoSeguro = {
       ...contexto,
       perfil_operacional: perfilOperacionalSeguro(contexto?.perfil_operacional),

@@ -14,7 +14,8 @@
     "open:ios": "npx cap open ios",
     "rag:curadoria": "node scripts/sync-curadoria.js",
     "rag:casos": "node scripts/trigger-empirical-cases.js",
-    "postinstall": "node scripts/fix-apple-signin-spm.cjs"
+    "postinstall": "node scripts/fix-apple-signin-spm.cjs",
+    "test:unit": "playwright test --config playwright.unit.config.ts"
   },
   "dependencies": {
     "@aparajita/capacitor-secure-storage": "^8.0.0",

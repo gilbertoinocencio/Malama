@@ -1032,6 +1032,10 @@ export type PlanoAcao = {
   lideranca_ciclo_id?: string | null;
   /** Setor do ciclo de origem, para a tela rotular sem buscar os ciclos. */
   lideranca_setor?: string | null;
+  /** Hipótese que originou a medida. NULL = criada sem leitura de origem. */
+  hipotese_id?: string | null;
+  /** Ciclo de medição que serve de linha de base para a reavaliação. */
+  campanha_baseline_id?: string | null;
 };
 
 export type RhPlanosResumo = {
@@ -1934,11 +1938,22 @@ export const rhService = {
     return (data ?? null) as RhPlanosResumo | null;
   },
 
+  /**
+   * `hipoteseId` liga a medida ao ciclo de medição que a originou. Só vem
+   * preenchido quando a medida nasceu de uma leitura concreta (briefing,
+   * Copiloto ou tela de resultado); medida criada manualmente fora desse
+   * contexto fica sem linha de base DE PROPÓSITO e não entra no motor de
+   * aprendizado. Inferir o vínculo por coincidência de setor e fator
+   * criaria histórico falso — perder um caso é melhor.
+   *
+   * Quem resolve a campanha de base é o servidor, a partir da hipótese: o
+   * cliente não escolhe a que ciclo a medida pertence.
+   */
   async criarPlanoAcao(p: {
     setor: string; origem: PlanoOrigem; fator: PlanoFator;
     risco_descricao: string; medida: string; nivel_controle: PlanoNivel;
-    responsavel: string; prazo: string;
-  }): Promise<{ ok: boolean; error?: string }> {
+    responsavel: string; prazo: string; hipoteseId?: string | null;
+  }): Promise<{ ok: boolean; error?: string; vinculada_ao_ciclo?: boolean }> {
     const { data, error } = await supabase.rpc('rh_criar_plano_acao', {
       p_setor: p.setor,
       p_origem: p.origem,
@@ -1948,9 +1963,11 @@ export const rhService = {
       p_nivel_controle: p.nivel_controle,
       p_responsavel: p.responsavel,
       p_prazo: p.prazo,
+      p_hipotese_id: p.hipoteseId ?? null,
     });
     if (error) return { ok: false, error: error.message };
-    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as
+      { ok: boolean; error?: string; vinculada_ao_ciclo?: boolean };
   },
 
   // Concluir exige evidência — validado no banco, não só na tela.

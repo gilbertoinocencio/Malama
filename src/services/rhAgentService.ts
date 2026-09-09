@@ -45,6 +45,46 @@ export type RhBriefingTrend = {
   n_anterior: number;
 };
 
+/**
+ * Força da evidência em CATEGORIA, nunca em porcentagem — não há método
+ * defensável para uma probabilidade aqui. A definição determinística de
+ * cada uma vive em supabase/functions/_shared/psicossocial-logica.ts.
+ */
+export type RhForcaEvidencia =
+  'evidencia_insuficiente' | 'sinal_inicial' | 'padrao_recorrente' | 'padrao_consistente';
+
+/**
+ * Hipótese sobre fatores que vale investigar. NÃO é diagnóstico e não
+ * afirma causa: descreve com o que o padrão observado é compatível e traz
+ * as perguntas que validam isso com as equipes.
+ */
+export type RhHipotese = {
+  id?: string;
+  setor: string | null;
+  indicador: string;
+  fator: string;
+  descricao: string;
+  por_que_foi_sugerida: string;
+  perguntas_validacao: string[];
+  caminhos_possiveis: { medida: string; nivel_controle: string }[];
+  forca_evidencia: RhForcaEvidencia;
+  origem: string;
+};
+
+/**
+ * Resultado observado de uma medida num ciclo posterior. `classificacao`
+ * descreve o movimento do indicador no período, nunca o efeito da medida.
+ */
+export type RhReavaliacao = {
+  plano_acao_id: string;
+  setor: string | null;
+  indicador: string;
+  classificacao: 'favoravel' | 'estavel' | 'desfavoravel' | 'inconclusivo';
+  comparabilidade: string;
+  narrativa: string;
+  medida?: string;
+};
+
 export type RhBriefingPriority = {
   id: string;
   severidade: RhBriefingSeverity;
@@ -60,7 +100,10 @@ export type RhBriefingPriority = {
     nivel_controle: string;
     metrica_sucesso: string;
     abordagem_lideranca: string;
+    /** Liga a medida ao ciclo que a originou. Ausente = sem linha de base. */
+    hipotese_id?: string;
   };
+  hipotese?: RhHipotese;
 };
 
 export type RhBriefing = {
@@ -69,6 +112,10 @@ export type RhBriefing = {
   resumo: string;
   prioridades: RhBriefingPriority[];
   tendencias: RhBriefingTrend[];
+  /** O que vale investigar neste ciclo. */
+  hipoteses: RhHipotese[];
+  /** O que aconteceu na reavaliação das medidas com linha de base. */
+  reavaliacoes: RhReavaliacao[];
   positivos: string[];
   qualidade_dados: {
     comparacoes_disponiveis: number;

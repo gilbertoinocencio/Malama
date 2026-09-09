@@ -47,6 +47,9 @@ export const RhPlanoAcao: React.FC = () => {
   const novaAcaoNivelInicial = NIVEIS_VALIDOS.includes(nivelParam as PlanoNivel) ? (nivelParam as PlanoNivel) : null;
   const novaAcaoRiscoInicial = parametrosIniciais.get('risco');
   const novaAcaoMedidaInicial = parametrosIniciais.get('medida');
+  // Vínculo com o ciclo de medição. Só existe quando a medida veio de uma
+  // leitura concreta; ausente, a medida é criada sem linha de base.
+  const novaAcaoHipoteseInicial = parametrosIniciais.get('hipotese');
 
   const load = useCallback(async () => {
     const fim = new Date();
@@ -163,6 +166,7 @@ export const RhPlanoAcao: React.FC = () => {
         novaAcaoRiscoInicial={novaAcaoRiscoInicial}
         novaAcaoMedidaInicial={novaAcaoMedidaInicial}
         novaAcaoNivelInicial={novaAcaoNivelInicial}
+        novaAcaoHipoteseInicial={novaAcaoHipoteseInicial}
       />
 
       <div className="flex items-start gap-2 text-xs text-gray-400 px-1">
