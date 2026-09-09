@@ -8,7 +8,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Users, UserPlus, Trash2, Download, Mail, AlertCircle,
-  CheckCircle2, Clock, Building2, Calendar, Send, Brain, Phone,
+  CheckCircle2, Clock, Send, Brain, Phone,
   ArrowRight, Circle, UserCog,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -415,85 +415,43 @@ export const RhDashboard: React.FC = () => {
           destaque do painel. */}
       <GuiaJornadaRh dados={dados} usuariosEquipe={usuariosEquipe} principal={acesso.principal} />
 
-      {/* ── Dados da empresa ──
-          Some enquanto não há ninguém cadastrado: no estado zero, tudo que
-          não é o próximo passo empurra o formulário para fora da tela. É
-          consulta, não ação, e continua a um clique pelo cabeçalho. */}
-      {colaboradores.length > 0 && (
-      <div className="bg-white rounded-xl shadow p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Building2 className="w-5 h-5 text-[#7d4a3c]" />
-          <h2 className="font-semibold text-gray-800">Dados da empresa</h2>
-        </div>
-        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {empresa.cnpj && (
-            <div>
-              <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">CNPJ</dt>
-              <dd className="mt-1 text-sm text-gray-700">{empresa.cnpj}</dd>
-            </div>
-          )}
-          {empresa.responsavel_nome && (
-            <div>
-              <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">Responsável</dt>
-              <dd className="mt-1 text-sm text-gray-700">{empresa.responsavel_nome}</dd>
-            </div>
-          )}
-          {empresa.data_inicio && (
-            <div className="flex flex-col">
-              <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> Início do contrato
-              </dt>
-              <dd className="mt-1 text-sm text-gray-700">{fmtDate(empresa.data_inicio)}</dd>
-            </div>
-          )}
-        </dl>
-      </div>
-      )}
+      {/* ── Ocupação de assentos ──
+          Os DADOS da empresa (CNPJ, responsável, início do contrato) saíram
+          daqui: já estão no perfil da empresa, que é onde se consulta e se
+          edita contato. No dashboard eram consulta pura, sem ação possível.
 
-      {/* ── Breakdown de assentos ── */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">{ativos}</p>
-          <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">
-            <CheckCircle2 className="w-3 h-3" /> Ativos
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow p-4 text-center">
-          <p className="text-2xl font-bold text-yellow-500">{convidados}</p>
-          <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">
-            <Clock className="w-3 h-3" /> Convidados
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow p-4 text-center">
-          <p className="text-2xl font-bold text-gray-800">
-            {usados}{limite != null && <span className="text-gray-400 text-lg"> / {limite}</span>}
-          </p>
-          <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">
-            <Users className="w-3 h-3" /> Assentos
-          </p>
-        </div>
-      </div>
+          A OCUPAÇÃO fica, e fica aqui: é neste painel que se convida gente,
+          e é este número que explica por que o botão de adicionar aparece
+          bloqueado. O perfil diz quantos assentos foram contratados; quantos
+          estão em uso é operação, não cadastro.
 
-      {/* Barra de progresso de assentos */}
-      {limite != null && (
-        <div className="bg-white rounded-xl shadow px-5 py-3">
-          <div className="flex items-center justify-between mb-2 text-xs text-gray-500">
-            <span>Ocupação dos assentos contratados</span>
-            <span>{Math.round(pct)}%</span>
-          </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+          Quatro cartões brancos para quatro números viraram um. A barra
+          sozinha não responde "quantos", e os cartões sozinhos não mostram
+          o quanto falta — separados, ocupavam uma tela para dizer uma linha. */}
+      <div className="rounded-xl bg-white px-5 py-4 shadow">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="text-sm text-gray-700">
+            <span className="text-lg font-bold text-gray-900">{usados}</span>
+            {limite != null && <span className="text-gray-400"> de {limite}</span>}
+            {' '}assento(s) em uso
+            <span className="text-gray-500"> · {ativos} ativo(s) · {convidados} convidado(s)</span>
+          </p>
+          {limite != null && <span className="text-xs text-gray-500">{Math.round(pct)}% ocupado</span>}
+        </div>
+        {limite != null && (
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{ width: `${pct}%`, background: cheio ? '#DC2626' : '#7d4a3c' }}
             />
           </div>
-          {cheio && (
-            <p className="text-xs text-red-500 mt-2">
-              Limite atingido. Remova um colaborador ou fale com a Malama para ampliar.
-            </p>
-          )}
-        </div>
-      )}
+        )}
+        {cheio && (
+          <p className="mt-2 text-xs text-red-500">
+            Limite atingido. Remova um colaborador ou fale com a Malama para ampliar.
+          </p>
+        )}
+      </div>
 
       {/* ── Acompanhamento psicológico ──
           Modo Mental: universal, todo colaborador com assento tem direito.
