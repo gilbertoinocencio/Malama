@@ -82,11 +82,11 @@ const GuiaJornadaRh: React.FC<{
   // "pronto para avançar", e quem cobra isso é o próprio "seu próximo
   // passo" ("Acompanhe os combinados de X"), sem precisar de âmbar.
   //
-  // O Briefing do RH, logo abaixo, já conta TODOS os marcos pendentes. Esta
-  // faixa conta só os que vencem agora — é um recorte do mesmo conjunto, e
-  // o texto precisa dizer isso. Dois números parecidos com redações
-  // sinônimas ("pendentes" / "pedem acompanhamento") leem como contradição
-  // na mesma tela, e num painel de compliance isso custa confiança.
+  // A leitura inteligente, mais abaixo NESTE MESMO card, conta TODOS os
+  // marcos pendentes. Esta faixa conta só os que vencem agora — é um
+  // recorte do mesmo conjunto, e o texto precisa dizer isso. Dois números
+  // parecidos com redações sinônimas ("pendentes" / "pedem acompanhamento")
+  // leem como contradição, e num painel de compliance isso custa confiança.
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
   const marcosPendentes = dados.ciclos.filter(c =>
     c.status === 'ativo' && c.marco_status !== 'verificado');
@@ -97,11 +97,11 @@ const GuiaJornadaRh: React.FC<{
 
   return (
     <section className="rounded-xl border border-[#7d4a3c]/20 bg-white p-5 shadow-sm" aria-labelledby="guia-rh-titulo">
-      {/* Sem faixa de baixa adesão aqui: o Briefing do RH já mostra o mesmo
-          alerta ABERTO POR SETOR e com o piso de anonimato aplicado — mesma
-          regra (campanha aberta, passada a metade, abaixo de 30%), leitura
-          melhor. Repetir a versão pior ao lado da melhor só disputava
-          atenção com o próximo passo. */}
+      {/* Sem faixa de baixa adesão aqui: a leitura inteligente, abaixo,
+          mostra o mesmo alerta ABERTO POR SETOR e com o piso de anonimato
+          aplicado — mesma regra (campanha aberta, passada a metade, abaixo
+          de 30%), leitura melhor. Repetir a versão pior logo acima da melhor
+          só disputava atenção com o próximo passo. */}
       {marcosParaVerificar.length > 0 && <Link to="/rh/plano-acao?visao=lideranca" className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-amber-900">
         <span className="flex min-w-0 gap-2"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" /><span><span className="block text-sm font-semibold">{marcosParaVerificar.length} de {marcosPendentes.length} marco(s) de liderança vencem em até {DIAS_MARCO_URGENTE} dias</span><span className="mt-0.5 block text-xs text-amber-800">Confira o combinado, registre o resultado ou agende uma nova data.</span></span></span><ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
       </Link>}
@@ -134,6 +134,13 @@ const GuiaJornadaRh: React.FC<{
           continua existindo, recolhido, porque no estado zero ele responde
           uma pergunta que o trilho não responde: "o que falta configurar". */}
       <TrilhoDaJornada dados={dados} />
+
+      {/* Ordem do card, e é ela que carrega o sentido:
+          o que fazer agora → onde estou no ciclo → o que os dados mostram →
+          o que falta configurar. A leitura entra depois do trilho porque
+          explica o passo, não compete com ele; e recebe a etapa atual para
+          não repetir como "prioridade" o que o passo já enunciou acima. */}
+      <RhBriefing etapaAtual={passoAtual.etapa} />
 
       {progresso < 100 && (
         <details className="group mt-3 border-t border-gray-100 pt-3">
@@ -412,9 +419,13 @@ export const RhDashboard: React.FC = () => {
       {/* O card "ciclo completo" saiu daqui: ele repetia, em quatro linhas, o
           que a aba Documentos já comunica só por existir e ficar verde. No
           dashboard ele empurrava o próximo passo para baixo justamente quando
-          não havia mais nada urgente a fazer. */}
-      <RhBriefing />
+          não havia mais nada urgente a fazer.
 
+          A leitura inteligente também deixou de ser card próprio: ela agora
+          vive DENTRO do card da jornada (GuiaJornadaRh). Dois cartões
+          separados diziam partes da mesma conversa e competiam pelo topo da
+          tela — inclusive repetindo o mesmo fato nos dois lugares de maior
+          destaque do painel. */}
       <GuiaJornadaRh dados={dados} usuariosEquipe={usuariosEquipe} principal={acesso.principal} />
 
       {/* O calendário é o tabuleiro: a pergunta que o RH traz da reunião é

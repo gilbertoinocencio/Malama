@@ -9,8 +9,7 @@ import {
   type RhBriefingPriority, type RhBriefingSeverity,
   type RhForcaEvidencia, type RhReavaliacao,
 } from '../../services/rhAgentService';
-import { useRhJornada } from '../../contexts/RhJornadaContext';
-import { proximoPasso, type PassoJornada } from '../../lib/rhJornada';
+import type { EtapaChave } from '../../lib/rhJornada';
 
 // A JORNADA MANDA; O BRIEFING COMPLEMENTA.
 //
@@ -29,7 +28,7 @@ import { proximoPasso, type PassoJornada } from '../../lib/rhJornada';
 // num usuário só-compliance o passo não aparece, e cortar no servidor
 // deixaria a medida atrasada invisível para ele. Escondendo só quando o
 // passo está de fato na tela, esse caso continua coberto.
-const PRIORIDADE_JA_DITA_PELO_PASSO: Partial<Record<NonNullable<PassoJornada['etapa']>, string>> = {
+const PRIORIDADE_JA_DITA_PELO_PASSO: Partial<Record<EtapaChave, string>> = {
   comprovar: 'medidas_atrasadas',
   conversar: 'lideranca_pendente',
   medir: 'sem_linha_base',
@@ -151,17 +150,23 @@ const PriorityCard: React.FC<{ priority: RhBriefingPriority }> = ({ priority }) 
   );
 };
 
-export const RhBriefing: React.FC = () => {
+/**
+ * Bloco da leitura inteligente. NÃO é um card: mora dentro do card do
+ * próximo passo, porque leitura e condução são a mesma conversa — dois
+ * cartões lado a lado obrigavam o RH a descobrir sozinho que falavam do
+ * mesmo ciclo.
+ *
+ * `etapaAtual` vem de quem já calculou o passo (a jornada é a fonte única);
+ * este componente não recalcula nem discorda dela.
+ */
+export const RhBriefing: React.FC<{ etapaAtual?: EtapaChave }> = ({ etapaAtual }) => {
   const [briefing, setBriefing] = useState<RhBriefingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { dados: dadosJornada, loading: jornadaLoading } = useRhJornada();
 
-  // Enquanto a jornada carrega não escondemos nada: sumir com uma prioridade
-  // e trazê-la de volta um instante depois seria pior que a repetição.
-  const prioridadeJaDita = jornadaLoading
-    ? null
-    : PRIORIDADE_JA_DITA_PELO_PASSO[proximoPasso(dadosJornada).etapa ?? 'setores'] ?? null;
+  const prioridadeJaDita = etapaAtual
+    ? PRIORIDADE_JA_DITA_PELO_PASSO[etapaAtual] ?? null
+    : null;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -179,10 +184,10 @@ export const RhBriefing: React.FC = () => {
 
   if (loading && !briefing) {
     return (
-      <section className="rounded-xl border border-[#7d4a3c]/15 bg-white p-5 shadow-sm" aria-label="Carregando briefing do RH">
-        <div className="flex animate-pulse items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-[#7d4a3c]/10" />
-          <div className="flex-1"><div className="h-4 w-40 rounded bg-gray-200" /><div className="mt-2 h-3 w-2/3 rounded bg-gray-100" /></div>
+      <section className="mt-5 border-t border-gray-100 pt-4" aria-label="Carregando a leitura dos dados">
+        <div className="flex animate-pulse flex-col gap-2">
+          <div className="h-3 w-48 rounded bg-gray-200" />
+          <div className="h-3 w-2/3 rounded bg-gray-100" />
         </div>
       </section>
     );
@@ -190,8 +195,8 @@ export const RhBriefing: React.FC = () => {
 
   if (error && !briefing) {
     return (
-      <section className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 text-sm shadow-sm">
-        <span className="text-gray-600">O briefing inteligente não pôde ser atualizado agora. O restante do painel continua disponível.</span>
+      <section className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 text-sm">
+        <span className="text-gray-500">A leitura dos dados não pôde ser atualizada agora. O próximo passo acima continua valendo.</span>
         <button onClick={() => void load()} className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-[#7d4a3c]">
           <RefreshCw className="h-4 w-4" /> Tentar novamente
         </button>
@@ -209,25 +214,21 @@ export const RhBriefing: React.FC = () => {
   const reavaliacoes = briefing.reavaliacoes ?? [];
 
   return (
-    <section className="rounded-xl border border-[#7d4a3c]/20 bg-white p-5 shadow-sm" aria-labelledby="briefing-rh-title">
+    <section className="mt-5 border-t border-gray-100 pt-4" aria-labelledby="briefing-rh-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#7d4a3c] text-white">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">Leitura inteligente dos dados</p>
-            <h2 id="briefing-rh-title" className="mt-0.5 text-lg font-semibold text-gray-900">Briefing do RH</h2>
-            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-gray-600">{briefing.resumo}</p>
-          </div>
+        <div className="min-w-0">
+          <h3 id="briefing-rh-title" className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">
+            <Sparkles className="h-3.5 w-3.5" /> Leitura inteligente dos dados
+          </h3>
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-gray-600">{briefing.resumo}</p>
         </div>
-        <button onClick={() => void load()} disabled={loading} title="Atualizar briefing" className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50">
+        <button onClick={() => void load()} disabled={loading} title="Atualizar leitura" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50">
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Atualizar
         </button>
       </div>
 
       {priorities.length > 0 && (
-        <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        <div className="mt-4 grid gap-3 lg:grid-cols-3">
           {priorities.map(priority => <PriorityCard key={priority.id} priority={priority} />)}
         </div>
       )}
