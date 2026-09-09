@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
 
-const IDLE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutos
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutos
 const CHECK_HIDDEN_TAB_MS = 60 * 1000;
 const ACTIVITY_KEY_PREFIX = 'malama.auth.lastActivity.';
 
