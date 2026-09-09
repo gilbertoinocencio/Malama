@@ -155,29 +155,25 @@ export function proximoPasso(d: DadosJornada, hoje = new Date()): PassoJornada {
   // interrompia o ciclo em nome de uma "base legal da coleta" que o contrato
   // de adesão não estabelece. Documento realmente pendente continua sinalizado
   // pelo ponto âmbar ao lado do nome da empresa, no cabeçalho.
-  // Coleta que terminou e não foi encerrada vem ANTES de tudo, e não é
-  // preciosismo de ordenação: enquanto a campanha não é fechada, nenhuma
-  // leitura agregada existe. O relatório não sai, a comparação entre
-  // ciclos não acontece e o motor de hipóteses não roda — tudo isso só
-  // considera campanha com status 'encerrada'. O ciclo fica parado em
-  // silêncio, exibindo um selo verde de "em andamento".
-  //
-  // Isso NÃO contradiz a regra abaixo, que dá precedência à medida vencida
-  // sobre "abrir avaliação NOVA": aqui não se abre nada, se fecha o que a
-  // empresa já coletou. São dez segundos de clique que destravam a leitura
-  // que sustenta, inclusive, a discussão sobre a medida atrasada.
+  // Coleta vencida e ainda aberta. Desde o ciclo automático
+  // (20260903_ciclo_psicossocial_automatico) o cron diário fecha isso
+  // sozinho, então este passo é rede de segurança, não rotina — e por isso
+  // NÃO leva `bloqueio`: travar a jornada inteira por algo que se resolve
+  // em horas seria alarme falso. Ele existe porque, se o agendamento
+  // falhar, nenhuma leitura agregada nova aparece (relatório, tendência e
+  // hipótese só consideram campanha encerrada) e o painel não pode
+  // continuar exibindo "em andamento" sobre um ciclo parado.
   if (pode.saudeMental && campanhaAberta && diasAte(campanhaAberta.janela_fim, hoje) < 0) {
     const nome = campanhaAberta.instrument === 'jss' ? 'carga de trabalho' : 'bem-estar';
     return {
       titulo: `Encerre a coleta de ${nome}`,
       descricao: `A janela fechou em ${fmt(campanhaAberta.janela_fim)} com `
-        + `${campanhaAberta.n_respondentes} de ${campanhaAberta.n_convidados} respostas, e a campanha `
-        + 'continua aberta. Encerrar é o que libera o relatório agregado — sem isso o ciclo não avança '
-        + 'e nenhuma leitura nova aparece no painel.',
+        + `${campanhaAberta.n_respondentes} de ${campanhaAberta.n_convidados} respostas. `
+        + 'O encerramento é automático e é ele que libera o relatório agregado; se ainda não '
+        + 'tiver acontecido, encerre por aqui para o ciclo seguir.',
       destino: '/rh/saude-mental#campanhas',
       acao: 'Encerrar coleta',
       etapa: 'medir',
-      bloqueio: true,
     };
   }
 
@@ -455,10 +451,11 @@ export type SituacaoRitmo =
    * está aí. Tratá-lo como 'vencido' mandaria o RH criar uma segunda
    * campanha do mesmo instrumento, que o banco recusa por sobreposição.
    *
-   * E ele não se resolve sozinho: NADA encerra campanha automaticamente.
-   * Enquanto ninguém clicar, `status` continua 'aberta' — e como toda a
-   * leitura agregada (relatório, tendência, hipótese) só considera
-   * campanhas encerradas, o ciclo inteiro fica parado em silêncio.
+   * Desde 20260903_ciclo_psicossocial_automatico este estado é RARO: um
+   * cron diário encerra a janela vencida e abre o ciclo seguinte sozinho.
+   * Ele continua existindo como rede de segurança — se o agendamento
+   * falhar, o painel precisa dizer a verdade em vez de exibir selo verde
+   * sobre um ciclo parado. Foi assim que o problema apareceu.
    */
   | 'aguardando_encerramento';
 
@@ -515,7 +512,8 @@ export function ritmoInstrumento(
       return {
         situacao: 'aguardando_encerramento',
         detalhe: `A coleta terminou em ${fmt(aberta.janela_fim)} com ${respostas} respostas. `
-          + 'Encerre a campanha para liberar o relatório e o próximo passo do ciclo.',
+          + 'O encerramento é automático e libera o relatório; se ainda não tiver acontecido, '
+          + 'você pode encerrar agora.',
         proxima: null,
       };
     }

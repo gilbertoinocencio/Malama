@@ -5,10 +5,15 @@
 // 31/08 aparecia em 09/09 como "Em andamento", com a frase "Janela aberta
 // até 31/08/2026" — futuro do pretérito na mesma linha.
 //
-// O rótulo errado era o sintoma. O problema é que NADA encerra campanha
-// automaticamente e toda leitura agregada (relatório, tendência, hipótese)
-// só considera campanha ENCERRADA: enquanto ninguém clica, o ciclo fica
-// parado exibindo selo verde.
+// O rótulo errado era o sintoma. O problema é que toda leitura agregada
+// (relatório, tendência, hipótese) só considera campanha ENCERRADA: com a
+// janela vencida e o status ainda 'aberta', o ciclo fica parado exibindo
+// selo verde.
+//
+// Desde 20260903_ciclo_psicossocial_automatico um cron diário encerra e
+// reabre sozinho, então este estado é RARO. Estes testes seguem valendo
+// como rede de segurança: se o agendamento falhar, o painel tem que dizer
+// a verdade em vez de mentir em verde.
 //
 //   npx playwright test --config playwright.unit.config.ts
 // =====================================================
@@ -65,7 +70,7 @@ test.describe('janela vencida com campanha ainda aberta', () => {
     expect(detalhe).not.toMatch(/aberta at[ée]/i);
     expect(detalhe).toContain('terminou em 31/08/2026');
     // Diz o que destrava o ciclo, não só que acabou.
-    expect(detalhe).toMatch(/encerre a campanha/i);
+    expect(detalhe).toMatch(/libera o relat[óo]rio/i);
   });
 
   test('janela ainda válida continua em andamento', () => {
@@ -96,8 +101,9 @@ test.describe('a jornada conduz para encerrar', () => {
     expect(passo.titulo).toMatch(/encerre a coleta/i);
     expect(passo.acao).toBe('Encerrar coleta');
     expect(passo.etapa).toBe('medir');
-    // Bloqueia: sem encerrar, nenhuma leitura nova existe.
-    expect(passo.bloqueio).toBe(true);
+    // NÃO bloqueia a jornada: o cron resolve isso em horas, e travar tudo
+    // por algo que se corrige sozinho seria alarme falso.
+    expect(passo.bloqueio).toBeFalsy();
   });
 
   test('passa na frente de medida atrasada', () => {
