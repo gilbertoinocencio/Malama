@@ -240,7 +240,11 @@ export const RhLayout: React.FC = () => {
   // pessoas → medir → agir → comprovar. Ler a barra da esquerda para a
   // direita passou a ser ler o processo.
   const todasAsTabs: Tab[] = [
-    { to: '/rh/dashboard', label: 'Colaboradores', icon: <Users className="w-4 h-4" />, permissao: 'colaboradores', grupo: 'ciclo' },
+    // Aba renomeada: dashboard virou o hub do ciclo (próximo passo, leitura
+    // inteligente, ritmo), não só cadastro de gente. "Colaboradores" descrevia
+    // cada vez menos o que a tela mostra. A permissão que a controla continua
+    // 'colaboradores' — é a mesma tela, só o nome na aba mudou.
+    { to: '/rh/dashboard', label: 'Início', icon: <Users className="w-4 h-4" />, permissao: 'colaboradores', grupo: 'ciclo' },
     { to: '/rh/saude-mental', label: 'Saúde Mental', icon: <Brain className="w-4 h-4" />, permissao: 'saude_mental', grupo: 'ciclo' },
     { to: '/rh/plano-acao', label: 'Plano de ação', icon: <ClipboardList className="w-4 h-4" />, permissao: 'plano_acao', grupo: 'ciclo' },
     { to: '/rh/compliance', label: 'Compliance', icon: <ShieldCheck className="w-4 h-4" />, permissao: 'compliance', grupo: 'ciclo' },

@@ -31,6 +31,10 @@ import { PerfilEmpresaForm } from '../../components/rh/PerfilEmpresaForm';
 import {
   rhService, type EmpresaPerfil, type DocumentoLegal,
 } from '../../services/empresaService';
+// Colaboradores já vêm carregados pelo layout (RhJornadaProvider envolve
+// todas as rotas do portal) — reusar evita uma segunda chamada para o
+// mesmo dado que o dashboard também usa.
+import { useRhJornada } from '../../contexts/RhJornadaContext';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
@@ -306,6 +310,7 @@ const AcessoCard: React.FC<{ emailLogin: string | null }> = ({ emailLogin }) => 
 };
 
 export const RhEmpresa: React.FC = () => {
+  const { colaboradores } = useRhJornada();
   const [perfil, setPerfil] = useState<EmpresaPerfil | null>(null);
   const [docs, setDocs] = useState<DocumentoLegal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -407,6 +412,40 @@ export const RhEmpresa: React.FC = () => {
               .filter(Boolean).join(' · ') || '—'}
           </Campo>
         </dl>
+
+        {/* Ocupação: veio do dashboard, onde disputava tela com o trabalho
+            do dia a dia sem servir a nenhuma ação ali. Aqui é vizinha do
+            número que a explica ("Assentos contratados"), que é o lugar
+            certo para uma leitura de conta. */}
+        {perfil.max_assentos != null && (() => {
+          const usados = colaboradores.length;
+          const pct = Math.min(100, (usados / perfil.max_assentos) * 100);
+          const ativos = colaboradores.filter(c => c.status === 'ativo').length;
+          const convidados = colaboradores.filter(c => c.status === 'convidado').length;
+          const cheio = usados >= perfil.max_assentos;
+          return (
+            <div className="mb-5 rounded-lg bg-gray-50 px-4 py-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm text-gray-700">
+                <span>
+                  <strong className="text-gray-900">{usados}</strong> de {perfil.max_assentos} assento(s) em uso
+                  <span className="text-gray-500"> · {ativos} ativo(s) · {convidados} convidado(s)</span>
+                </span>
+                <span className="text-xs text-gray-500">{Math.round(pct)}% ocupado</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${pct}%`, background: cheio ? '#DC2626' : '#7d4a3c' }}
+                />
+              </div>
+              {cheio && (
+                <p className="mt-2 text-xs text-red-500">
+                  Limite atingido. Remova um colaborador ou fale com a Malama para ampliar.
+                </p>
+              )}
+            </div>
+          );
+        })()}
 
         <p className="text-xs text-gray-400 mb-4">
           Razão social, CNPJ, assentos e vigência fazem parte do contrato — para alterá-los,

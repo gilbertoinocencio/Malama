@@ -199,12 +199,12 @@ export const RhDashboard: React.FC = () => {
   // que apontam para âncoras desta mesma página.
   useScrollParaHash(!loading);
 
-  const ativos = colaboradores.filter(c => c.status === 'ativo').length;
-  const convidados = colaboradores.filter(c => c.status === 'convidado').length;
+  // Ativos/convidados e a barra de ocupação saíram: viviam só do card de
+  // assentos que foi para o perfil da empresa. Aqui sobra o que decide o
+  // formulário — quantos assentos existem e quantos já foram usados.
   const usados = colaboradores.length;
   const limite = empresa?.max_assentos ?? null;
   const cheio = limite != null && usados >= limite;
-  const pct = limite ? Math.min(100, (usados / limite) * 100) : 0;
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -415,43 +415,9 @@ export const RhDashboard: React.FC = () => {
           destaque do painel. */}
       <GuiaJornadaRh dados={dados} usuariosEquipe={usuariosEquipe} principal={acesso.principal} />
 
-      {/* ── Ocupação de assentos ──
-          Os DADOS da empresa (CNPJ, responsável, início do contrato) saíram
-          daqui: já estão no perfil da empresa, que é onde se consulta e se
-          edita contato. No dashboard eram consulta pura, sem ação possível.
-
-          A OCUPAÇÃO fica, e fica aqui: é neste painel que se convida gente,
-          e é este número que explica por que o botão de adicionar aparece
-          bloqueado. O perfil diz quantos assentos foram contratados; quantos
-          estão em uso é operação, não cadastro.
-
-          Quatro cartões brancos para quatro números viraram um. A barra
-          sozinha não responde "quantos", e os cartões sozinhos não mostram
-          o quanto falta — separados, ocupavam uma tela para dizer uma linha. */}
-      <div className="rounded-xl bg-white px-5 py-4 shadow">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <p className="text-sm text-gray-700">
-            <span className="text-lg font-bold text-gray-900">{usados}</span>
-            {limite != null && <span className="text-gray-400"> de {limite}</span>}
-            {' '}assento(s) em uso
-            <span className="text-gray-500"> · {ativos} ativo(s) · {convidados} convidado(s)</span>
-          </p>
-          {limite != null && <span className="text-xs text-gray-500">{Math.round(pct)}% ocupado</span>}
-        </div>
-        {limite != null && (
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${pct}%`, background: cheio ? '#DC2626' : '#7d4a3c' }}
-            />
-          </div>
-        )}
-        {cheio && (
-          <p className="mt-2 text-xs text-red-500">
-            Limite atingido. Remova um colaborador ou fale com a Malama para ampliar.
-          </p>
-        )}
-      </div>
+      {/* Assentos saíram do dashboard: contratados e ocupação vivem no
+          perfil da empresa. Aqui sobrou só o que é AÇÃO — o formulário de
+          convite avisa, ele mesmo, quando não há assento livre. */}
 
       {/* ── Acompanhamento psicológico ──
           Modo Mental: universal, todo colaborador com assento tem direito.
@@ -521,10 +487,18 @@ export const RhDashboard: React.FC = () => {
         />
         {!formAberto ? (
           <ResumoRecolhido onAbrir={() => setFormAberto(true)}>
-            Convidar mais alguém para o benefício
-            {limite != null && ` — ${Math.max(0, limite - usados)} assento(s) livre(s)`}.
+            {cheio
+              ? 'Nenhum assento livre no momento.'
+              : <>Convidar mais alguém para o benefício
+                  {limite != null && ` — ${Math.max(0, limite - usados)} assento(s) livre(s)`}.</>}
           </ResumoRecolhido>
-        ) : (
+        ) : (<>
+          {cheio && (
+            <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              Limite de {limite} assento(s) atingido — por isso os campos abaixo estão
+              bloqueados. Remova um colaborador ou fale com a Malama para ampliar.
+            </p>
+          )}
         <form onSubmit={handleAdd} className="mt-3 flex flex-col gap-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="relative">
@@ -588,7 +562,7 @@ export const RhDashboard: React.FC = () => {
             {adding ? 'Adicionando...' : empresa.status === 'em_configuracao' ? 'Salvar na lista' : 'Adicionar'}
           </button>
         </form>
-        )}
+        </>)}
         {formAberto && (
           <p className="text-xs text-gray-500 mt-2">
             Se o colaborador já tem conta Malama, o acesso é vinculado na hora. Caso contrário, ele recebe um convite por e-mail.
