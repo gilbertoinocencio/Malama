@@ -11,6 +11,7 @@ const statusLabel: Record<string, string> = {
   novo: 'Novo', acolhimento: 'Em acolhimento', em_apuracao: 'Em apuração',
   encaminhado: 'Encaminhado', concluido: 'Concluído', arquivado: 'Arquivado',
 };
+const acaoHistoricoLabel: Record<string, string> = { abriu: 'Abriu o relato', alterou_status: 'Mudou o andamento' };
 
 export const RhRelatos: React.FC = () => {
   const [relatos, setRelatos] = useState<RhRelatoLista[]>([]);
@@ -93,6 +94,25 @@ export const RhRelatos: React.FC = () => {
             <div><p className="text-xs text-gray-500 mb-1">Descrição</p><p className="text-sm whitespace-pre-wrap rounded-xl bg-gray-50 p-4">{detalhe.descricao}</p></div>
             {detalhe.envolvidos && <div><p className="text-xs text-gray-500 mb-1">Pessoas ou funções citadas</p><p className="text-sm whitespace-pre-wrap rounded-xl bg-gray-50 p-4">{detalhe.envolvidos}</p></div>}
             <div className="border-t pt-5 space-y-3"><label className="block text-sm font-medium">Andamento<select value={status} onChange={e => setStatus(e.target.value)} className="mt-1 w-full border rounded-lg px-3 py-2 bg-white font-normal"><option value="novo">Novo</option><option value="acolhimento">Em acolhimento</option><option value="em_apuracao">Em apuração</option><option value="encaminhado">Encaminhado</option><option value="concluido">Concluído</option><option value="arquivado">Arquivado</option></select></label><label className="block text-sm font-medium">Registro da apuração<textarea rows={3} value={registro} onChange={e => setRegistro(e.target.value)} placeholder="O que foi apurado e como se concluiu. Fica no arquivo do caso — o relator não lê isto." className="mt-1 w-full border rounded-lg px-3 py-2 font-normal" /></label></div>
+            {detalhe.historico.length > 0 && (
+              <div className="border-t pt-5">
+                <p className="text-xs font-medium text-gray-500 mb-2">Trilha de auditoria</p>
+                <ul className="space-y-2">
+                  {detalhe.historico.map((h, i) => (
+                    <li key={i} className="text-xs text-gray-600 flex flex-wrap gap-x-1.5">
+                      <span className="font-medium text-gray-800">{acaoHistoricoLabel[h.acao] ?? h.acao}</span>
+                      <span>— {h.autor_nome}</span>
+                      <span className="text-gray-400">· {new Date(h.criado_em).toLocaleString('pt-BR')}</span>
+                      {h.acao === 'alterou_status' && h.detalhes?.de != null && h.detalhes?.para != null && (
+                        <span className="text-gray-400">
+                          ({statusLabel[String(h.detalhes.de)] ?? String(h.detalhes.de)} → {statusLabel[String(h.detalhes.para)] ?? String(h.detalhes.para)})
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           <div className="p-5 border-t flex justify-end gap-3"><button onClick={() => setDetalhe(null)} className="px-4 py-2 text-sm">Fechar</button><button disabled={salvando} onClick={salvar} className="px-5 py-2 rounded-lg bg-[#7d4a3c] text-white text-sm font-semibold disabled:opacity-50">{salvando ? 'Salvando...' : 'Salvar andamento'}</button></div>
         </div>

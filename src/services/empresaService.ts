@@ -1207,6 +1207,13 @@ export type RhRelatoLista = {
   atualizado_em: string;
 };
 
+export type RhRelatoHistoricoItem = {
+  acao: 'abriu' | 'alterou_status';
+  detalhes: Record<string, unknown>;
+  criado_em: string;
+  autor_nome: string;
+};
+
 export type RhRelatoDetalhe = RhRelatoLista & {
   descricao: string;
   envolvidos: string | null;
@@ -1218,6 +1225,18 @@ export type RhRelatoDetalhe = RhRelatoLista & {
   registro_apuracao: string | null;
   /** 'link_publico' = veio do questionário, de quem não tem app. */
   origem: 'app' | 'link_publico';
+  /** Quem abriu e quem mudou status, na ordem em que aconteceu. */
+  historico: RhRelatoHistoricoItem[];
+};
+
+/** Registro de alterações sensíveis (versão focada — não é log de tudo). */
+export type RhAuditoriaItem = {
+  id: string;
+  acao: 'setor.efetivo_alterado' | 'equipe.acesso_alterado' | string;
+  detalhes: Record<string, unknown>;
+  criado_em: string;
+  autor_nome: string | null;
+  autor_email: string | null;
 };
 
 export const rhService = {
@@ -1283,6 +1302,13 @@ export const rhService = {
     });
     if (error) throw error;
     if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Não foi possível atualizar o relato');
+  },
+
+  /** Registro de alterações sensíveis (efetivo de setor, acesso da equipe). Só o usuário principal enxerga. */
+  async getAuditoria(limite = 200): Promise<RhAuditoriaItem[]> {
+    const { data, error } = await supabase.rpc('rh_listar_auditoria', { p_limite: limite });
+    if (error) throw error;
+    return (data ?? []) as RhAuditoriaItem[];
   },
 
   /**

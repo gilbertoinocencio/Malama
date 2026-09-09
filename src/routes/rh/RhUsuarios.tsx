@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Check, MailPlus, Pencil, Shield, UserRoundCheck, X } from 'lucide-react';
+import { Check, ClipboardList, MailPlus, Pencil, Shield, UserRoundCheck, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-  rhService, type RhPapel, type RhPermissao, type RhUsuarioEquipe,
+  rhService, type RhAuditoriaItem, type RhPapel, type RhPermissao, type RhUsuarioEquipe,
 } from '../../services/empresaService';
 
 const permissoes: { id: RhPermissao; label: string; detalhe: string }[] = [
@@ -36,17 +36,41 @@ type FormState = {
 };
 const vazio: FormState = { nome: '', email: '', papel: 'gestor_rh', permissoes: templates.gestor_rh, ativo: true };
 
+/** Descrição legível de um item do registro de alterações. Só cobre as ações
+ * que hoje geram entrada (efetivo de setor e acesso da equipe) — ver
+ * migration 20260905_auditoria_focada.sql. */
+const descreverAuditoria = (item: RhAuditoriaItem): string => {
+  const d = item.detalhes;
+  if (item.acao === 'setor.efetivo_alterado') {
+    return `Efetivo de "${d.setor_nome}": ${d.de ?? 'não informado'} → ${d.para ?? 'não informado'}`;
+  }
+  if (item.acao === 'equipe.acesso_alterado') {
+    const partes = [`Acesso de ${d.usuario_nome}: ${papelLabel[d.papel_de as RhPapel] ?? d.papel_de} → ${papelLabel[d.papel_para as RhPapel] ?? d.papel_para}`];
+    if (d.ativo_de !== d.ativo_para) partes.push(d.ativo_para ? 'reativado' : 'desativado');
+    return partes.join(' · ');
+  }
+  return item.acao;
+};
+
 export const RhUsuarios: React.FC = () => {
   const [usuarios, setUsuarios] = useState<RhUsuarioEquipe[]>([]);
   const [form, setForm] = useState<FormState | null>(null);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [auditoria, setAuditoria] = useState<RhAuditoriaItem[]>([]);
+  const [loadingAuditoria, setLoadingAuditoria] = useState(true);
 
   const carregar = () => rhService.getUsuariosEquipe()
     .then(setUsuarios)
     .catch(e => { toast.error(e.message); })
     .finally(() => setLoading(false));
   useEffect(() => { void carregar(); }, []);
+  useEffect(() => {
+    rhService.getAuditoria()
+      .then(setAuditoria)
+      .catch(() => { /* silencioso: não é o foco da tela */ })
+      .finally(() => setLoadingAuditoria(false));
+  }, []);
 
   const selecionarPapel = (papel: FormState['papel']) => {
     setForm(f => f ? { ...f, papel, permissoes: templates[papel] } : f);
@@ -116,6 +140,30 @@ export const RhUsuarios: React.FC = () => {
             {!u.principal && <button onClick={() => setForm({ id: u.id, nome: u.nome ?? '', email: u.email, papel: u.papel === 'proprietario' ? 'personalizado' : u.papel, permissoes: [...u.permissoes], ativo: u.ativo })} className="p-2 text-gray-500 hover:text-[#7d4a3c]" title="Editar"><Pencil className="w-4 h-4" /></button>}
           </div>
         ))}
+      </div>
+
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <ClipboardList className="w-4 h-4 text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-900">Registro de alterações</h2>
+        </div>
+        <p className="text-xs text-gray-500 mb-3">
+          Visível só para você, o usuário principal. Cobre mudanças de acesso da equipe e de efetivo de setor — não é um log de tudo que acontece no painel.
+        </p>
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          {loadingAuditoria ? (
+            <div className="p-6 text-center text-gray-400 text-sm">Carregando...</div>
+          ) : auditoria.length === 0 ? (
+            <div className="p-6 text-center text-gray-400 text-sm">Nenhuma alteração registrada ainda.</div>
+          ) : auditoria.map(item => (
+            <div key={item.id} className="p-3 border-b border-gray-100 last:border-0 text-sm">
+              <p className="text-gray-800">{descreverAuditoria(item)}</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {item.autor_nome || item.autor_email || 'Usuário removido'} · {new Date(item.criado_em).toLocaleString('pt-BR')}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {form && (
