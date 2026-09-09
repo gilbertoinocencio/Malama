@@ -155,6 +155,32 @@ export function proximoPasso(d: DadosJornada, hoje = new Date()): PassoJornada {
   // interrompia o ciclo em nome de uma "base legal da coleta" que o contrato
   // de adesão não estabelece. Documento realmente pendente continua sinalizado
   // pelo ponto âmbar ao lado do nome da empresa, no cabeçalho.
+  // Coleta que terminou e não foi encerrada vem ANTES de tudo, e não é
+  // preciosismo de ordenação: enquanto a campanha não é fechada, nenhuma
+  // leitura agregada existe. O relatório não sai, a comparação entre
+  // ciclos não acontece e o motor de hipóteses não roda — tudo isso só
+  // considera campanha com status 'encerrada'. O ciclo fica parado em
+  // silêncio, exibindo um selo verde de "em andamento".
+  //
+  // Isso NÃO contradiz a regra abaixo, que dá precedência à medida vencida
+  // sobre "abrir avaliação NOVA": aqui não se abre nada, se fecha o que a
+  // empresa já coletou. São dez segundos de clique que destravam a leitura
+  // que sustenta, inclusive, a discussão sobre a medida atrasada.
+  if (pode.saudeMental && campanhaAberta && diasAte(campanhaAberta.janela_fim, hoje) < 0) {
+    const nome = campanhaAberta.instrument === 'jss' ? 'carga de trabalho' : 'bem-estar';
+    return {
+      titulo: `Encerre a coleta de ${nome}`,
+      descricao: `A janela fechou em ${fmt(campanhaAberta.janela_fim)} com `
+        + `${campanhaAberta.n_respondentes} de ${campanhaAberta.n_convidados} respostas, e a campanha `
+        + 'continua aberta. Encerrar é o que libera o relatório agregado — sem isso o ciclo não avança '
+        + 'e nenhuma leitura nova aparece no painel.',
+      destino: '/rh/saude-mental#campanhas',
+      acao: 'Encerrar coleta',
+      etapa: 'medir',
+      bloqueio: true,
+    };
+  }
+
   // Medida vencida passa na frente de abrir avaliação nova: diagnóstico que
   // não vira medida executada é o que a fiscalização enxerga como omissão.
   if (pode.planoAcao && atrasadas.length > 0) {
@@ -415,7 +441,26 @@ export function cicloCompleto(d: DadosJornada): boolean {
 // A angústia real do RH com a NR-1 não é "qual é a minha nota", é "estou
 // atrasado?". O tabuleiro, então, é o calendário — não um placar.
 
-export type SituacaoRitmo = 'em_andamento' | 'pendente' | 'vencido' | 'em_dia';
+export type SituacaoRitmo =
+  | 'em_andamento'
+  | 'pendente'
+  | 'vencido'
+  | 'em_dia'
+  /**
+   * A janela de resposta terminou e a campanha continua aberta no banco.
+   *
+   * É um estado próprio, e não um sabor de 'em_andamento' ou de 'vencido',
+   * porque a ação é DIFERENTE das duas: não é acompanhar (acabou) nem abrir
+   * uma nova medição (a atual ainda não foi fechada) — é encerrar a que
+   * está aí. Tratá-lo como 'vencido' mandaria o RH criar uma segunda
+   * campanha do mesmo instrumento, que o banco recusa por sobreposição.
+   *
+   * E ele não se resolve sozinho: NADA encerra campanha automaticamente.
+   * Enquanto ninguém clicar, `status` continua 'aberta' — e como toda a
+   * leitura agregada (relatório, tendência, hipótese) só considera
+   * campanhas encerradas, o ciclo inteiro fica parado em silêncio.
+   */
+  | 'aguardando_encerramento';
 
 export type CompromissoRitmo = {
   chave: 'who5' | 'jss' | 'lideranca' | 'plano';
@@ -461,9 +506,22 @@ export function ritmoInstrumento(
 
   const aberta = relacionadas.find(c => c.status === 'aberta');
   if (aberta) {
+    // Só olhar `status === 'aberta'` produzia "Janela aberta até 31/08"
+    // sendo exibido em setembro: a frase se contradizia sozinha, e o badge
+    // verde dizia que estava tudo correndo enquanto o ciclo estava parado.
+    const respostas = `${aberta.n_respondentes} de ${aberta.n_convidados}`;
+    const venceu = diasAte(aberta.janela_fim, hoje) < 0;
+    if (venceu) {
+      return {
+        situacao: 'aguardando_encerramento',
+        detalhe: `A coleta terminou em ${fmt(aberta.janela_fim)} com ${respostas} respostas. `
+          + 'Encerre a campanha para liberar o relatório e o próximo passo do ciclo.',
+        proxima: null,
+      };
+    }
     return {
       situacao: 'em_andamento',
-      detalhe: `Janela aberta até ${fmt(aberta.janela_fim)} · ${aberta.n_respondentes} de ${aberta.n_convidados} responderam`,
+      detalhe: `Janela aberta até ${fmt(aberta.janela_fim)} · ${respostas} responderam`,
       proxima: null,
     };
   }
@@ -521,8 +579,15 @@ export function ritmoDoCiclo(d: DadosJornada, hoje = new Date()): CompromissoRit
       cadencia: 'Mensal',
       situacao: who5.situacao,
       detalhe: who5.detalhe,
-      destino: who5.situacao === 'em_andamento' ? '/rh/saude-mental#campanhas' : '/rh/saude-mental?nova=1&instrumento=who5',
-      acao: who5.situacao === 'em_andamento' ? 'Acompanhar' : 'Preparar',
+      // 'aguardando_encerramento' vai para a lista de campanhas, como
+      // 'em_andamento': mandar para ?nova=1 faria o RH tentar criar uma
+      // segunda campanha do mesmo instrumento, que o banco recusa por
+      // sobreposição de janela.
+      destino: who5.situacao === 'em_andamento' || who5.situacao === 'aguardando_encerramento'
+        ? '/rh/saude-mental#campanhas'
+        : '/rh/saude-mental?nova=1&instrumento=who5',
+      acao: who5.situacao === 'aguardando_encerramento' ? 'Encerrar coleta'
+        : who5.situacao === 'em_andamento' ? 'Acompanhar' : 'Preparar',
       pronto: prontoParaPreparar(who5, hoje),
     });
 
@@ -534,8 +599,15 @@ export function ritmoDoCiclo(d: DadosJornada, hoje = new Date()): CompromissoRit
       cadencia: 'Trimestral',
       situacao: jss.situacao,
       detalhe: jss.detalhe,
-      destino: jss.situacao === 'em_andamento' ? '/rh/saude-mental#campanhas' : '/rh/saude-mental?nova=1&instrumento=jss',
-      acao: jss.situacao === 'em_andamento' ? 'Acompanhar' : 'Preparar',
+      // 'aguardando_encerramento' vai para a lista de campanhas, como
+      // 'em_andamento': mandar para ?nova=1 faria o RH tentar criar uma
+      // segunda campanha do mesmo instrumento, que o banco recusa por
+      // sobreposição de janela.
+      destino: jss.situacao === 'em_andamento' || jss.situacao === 'aguardando_encerramento'
+        ? '/rh/saude-mental#campanhas'
+        : '/rh/saude-mental?nova=1&instrumento=jss',
+      acao: jss.situacao === 'aguardando_encerramento' ? 'Encerrar coleta'
+        : jss.situacao === 'em_andamento' ? 'Acompanhar' : 'Preparar',
       pronto: prontoParaPreparar(jss, hoje),
     });
   }

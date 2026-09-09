@@ -21,6 +21,12 @@ const ESTILO: Record<SituacaoRitmo, { rotulo: string; classe: string; Icone: Rea
   em_dia:       { rotulo: 'Em dia',       classe: 'text-gray-600 bg-gray-50 border-gray-100',    Icone: CheckCircle2 },
   pendente:     { rotulo: 'Ainda não começou', classe: 'text-[#7d4a3c] bg-[#7d4a3c]/5 border-[#7d4a3c]/15', Icone: Clock },
   vencido:      { rotulo: 'Passou do prazo',   classe: 'text-amber-800 bg-amber-50 border-amber-200', Icone: AlertTriangle },
+  // Vermelho, e não âmbar: aqui o ciclo está PARADO, não atrasado. Enquanto
+  // a campanha não for encerrada não há relatório, nem tendência, nem
+  // hipótese — e é um clique que destrava tudo isso.
+  aguardando_encerramento: {
+    rotulo: 'Coleta encerrada — falta fechar', classe: 'text-red-700 bg-red-50 border-red-200', Icone: AlertTriangle,
+  },
 };
 
 const Linha: React.FC<{ item: CompromissoRitmo }> = ({ item }) => {

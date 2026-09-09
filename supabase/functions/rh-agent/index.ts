@@ -663,6 +663,13 @@ function estadoCicloDaLeitura(contexto: any, leitura: any) {
     },
     medicao: {
       campanhas_abertas: leitura.campanhas_abertas.length,
+      // Campanha com janela vencida e status ainda 'aberta'. Nada encerra
+      // campanha automaticamente, e toda leitura agregada (relatório,
+      // tendência, hipótese) só considera campanha ENCERRADA — então isto
+      // não é um detalhe de calendário, é o ciclo parado. Sem este campo o
+      // copiloto lê "1 campanha aberta" e responde que está tudo correndo.
+      campanhas_a_encerrar: leitura.campanhas_abertas
+        .filter((campanha: any) => janelaVencida(campanha?.fim)).length,
       relatorio_who5_disponivel: leitura.ultimos_relatorios.who5 !== null,
       relatorio_jss_disponivel: leitura.ultimos_relatorios.jss !== null,
       matriz_disponivel: leitura.ultimos_relatorios.matriz !== null,
@@ -683,6 +690,12 @@ function estadoCicloDaLeitura(contexto: any, leitura: any) {
       relatorios_programa_emitidos: leitura.evidencias.relatorios_evidencia_emitidos.length,
     } : null,
   };
+}
+
+/** A janela de resposta desta campanha já terminou? */
+function janelaVencida(fim: unknown): boolean {
+  const alvo = Date.parse(`${texto(fim, 20)}T23:59:59Z`);
+  return Number.isFinite(alvo) && alvo < Date.now();
 }
 
 function dataPt(value: unknown) {
@@ -753,8 +766,19 @@ function respostaDeterministica(
       : 'Plano de ação: sem leitura disponível para este perfil.');
     linhas.push(`Evolução da liderança: ${lideranca?.ciclos_ativos ?? 0} ciclo(s) ativo(s) e ${lideranca?.marcos_pendentes ?? 0} marco(s) pendente(s).`);
     if (campanhas.length > 0) {
-      linhas.push(`Alerta secundário de adesão: ${campanhas.map((campanha: any) =>
-        `${campanha.instrumento} está com ${campanha.respondentes}/${campanha.convidados} respostas e fecha em ${dataPt(campanha.fim)}`).join('; ')}. Mantenha apenas a divulgação coletiva.`);
+      const vencidas = campanhas.filter((campanha: any) => janelaVencida(campanha?.fim));
+      const emCurso = campanhas.filter((campanha: any) => !janelaVencida(campanha?.fim));
+      if (vencidas.length > 0) {
+        // Prioridade, não alerta secundário: aqui a coleta acabou e a
+        // leitura está travada até alguém encerrar a campanha.
+        linhas.push(`Coleta encerrada e campanha ainda aberta: ${vencidas.map((campanha: any) =>
+          `${campanha.instrumento} fechou a janela em ${dataPt(campanha.fim)} com ${campanha.respondentes}/${campanha.convidados} respostas`).join('; ')}. `
+          + 'Encerre a campanha para liberar o relatório agregado — enquanto isso não acontece, o ciclo não avança e nenhuma leitura nova aparece.');
+      }
+      if (emCurso.length > 0) {
+        linhas.push(`Alerta secundário de adesão: ${emCurso.map((campanha: any) =>
+          `${campanha.instrumento} está com ${campanha.respondentes}/${campanha.convidados} respostas e fecha em ${dataPt(campanha.fim)}`).join('; ')}. Mantenha apenas a divulgação coletiva.`);
+      }
     }
   }
 
