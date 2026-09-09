@@ -9,6 +9,31 @@ import {
   type RhBriefingPriority, type RhBriefingSeverity,
   type RhForcaEvidencia, type RhReavaliacao,
 } from '../../services/rhAgentService';
+import { useRhJornada } from '../../contexts/RhJornadaContext';
+import { proximoPasso, type PassoJornada } from '../../lib/rhJornada';
+
+// A JORNADA MANDA; O BRIEFING COMPLEMENTA.
+//
+// "Seu próximo passo" (lib/rhJornada) é a fonte única do que fazer agora.
+// Quando o briefing repete o mesmo fato como prioridade, os dois lugares de
+// maior destaque do painel dizem a mesma coisa e o RH tem que descobrir
+// sozinho que é uma coisa só. Aqui a prioridade que o passo atual JÁ
+// enuncia sai do card, e sobra o que só o briefing sabe: tendência entre
+// coletas, o que vale investigar e o que aconteceu na reavaliação.
+//
+// A filtragem é de TELA, não de dados: o payload completo continua indo
+// para o Copiloto, que precisa do quadro inteiro para responder.
+//
+// E é feita no cliente de propósito. O gate do briefing no servidor aceita
+// 'plano_acao' OU 'compliance', enquanto a jornada exige 'plano_acao' —
+// num usuário só-compliance o passo não aparece, e cortar no servidor
+// deixaria a medida atrasada invisível para ele. Escondendo só quando o
+// passo está de fato na tela, esse caso continua coberto.
+const PRIORIDADE_JA_DITA_PELO_PASSO: Partial<Record<NonNullable<PassoJornada['etapa']>, string>> = {
+  comprovar: 'medidas_atrasadas',
+  conversar: 'lideranca_pendente',
+  medir: 'sem_linha_base',
+};
 
 // Categoria, nunca porcentagem: o sistema não tem base para atribuir
 // probabilidade a uma hipótese, e um número inventado viraria a parte mais
@@ -130,6 +155,13 @@ export const RhBriefing: React.FC = () => {
   const [briefing, setBriefing] = useState<RhBriefingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { dados: dadosJornada, loading: jornadaLoading } = useRhJornada();
+
+  // Enquanto a jornada carrega não escondemos nada: sumir com uma prioridade
+  // e trazê-la de volta um instante depois seria pior que a repetição.
+  const prioridadeJaDita = jornadaLoading
+    ? null
+    : PRIORIDADE_JA_DITA_PELO_PASSO[proximoPasso(dadosJornada).etapa ?? 'setores'] ?? null;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -168,7 +200,9 @@ export const RhBriefing: React.FC = () => {
   }
 
   if (!briefing) return null;
-  const priorities = briefing.prioridades.slice(0, 3);
+  const priorities = briefing.prioridades
+    .filter(item => item.id !== prioridadeJaDita)
+    .slice(0, 3);
   // O bundle do app e as Edge Functions são publicados separadamente: uma
   // versão nova da tela pode conversar com uma função ainda sem estes
   // campos. Ausência vira lista vazia, não tela quebrada.
