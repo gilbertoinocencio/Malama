@@ -81,28 +81,29 @@ const GuiaJornadaRh: React.FC<{
   // O marco 'verificado' saiu da conta porque não tem prazo: ele significa
   // "pronto para avançar", e quem cobra isso é o próprio "seu próximo
   // passo" ("Acompanhe os combinados de X"), sem precisar de âmbar.
+  //
+  // O Briefing do RH, logo abaixo, já conta TODOS os marcos pendentes. Esta
+  // faixa conta só os que vencem agora — é um recorte do mesmo conjunto, e
+  // o texto precisa dizer isso. Dois números parecidos com redações
+  // sinônimas ("pendentes" / "pedem acompanhamento") leem como contradição
+  // na mesma tela, e num painel de compliance isso custa confiança.
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  const marcosParaVerificar = dados.ciclos.filter(c => {
-    if (c.status !== 'ativo' || c.marco_status === 'verificado') return false;
+  const marcosPendentes = dados.ciclos.filter(c =>
+    c.status === 'ativo' && c.marco_status !== 'verificado');
+  const marcosParaVerificar = marcosPendentes.filter(c => {
     const prazo = new Date(`${c.marco_prazo || c.fim}T00:00:00`);
     return Math.ceil((prazo.getTime() - hoje.getTime()) / 86400000) <= DIAS_MARCO_URGENTE;
   });
-  const campanhasComBaixaAdesao = dados.campanhas.filter(c => {
-    if (c.status !== 'aberta' || c.n_convidados <= 0) return false;
-    const inicio = new Date(`${c.janela_inicio}T12:00:00`).getTime();
-    const fim = new Date(`${c.janela_fim}T12:00:00`).getTime();
-    const passouMetade = hoje.getTime() >= inicio + (fim - inicio) / 2;
-    return passouMetade && c.n_respondentes / c.n_convidados < 0.3;
-  });
-  const mostrarAlertaAdesao = passoAtual.etapa !== 'medir' && campanhasComBaixaAdesao.length > 0;
 
   return (
     <section className="rounded-xl border border-[#7d4a3c]/20 bg-white p-5 shadow-sm" aria-labelledby="guia-rh-titulo">
+      {/* Sem faixa de baixa adesão aqui: o Briefing do RH já mostra o mesmo
+          alerta ABERTO POR SETOR e com o piso de anonimato aplicado — mesma
+          regra (campanha aberta, passada a metade, abaixo de 30%), leitura
+          melhor. Repetir a versão pior ao lado da melhor só disputava
+          atenção com o próximo passo. */}
       {marcosParaVerificar.length > 0 && <Link to="/rh/plano-acao?visao=lideranca" className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-amber-900">
-        <span className="flex min-w-0 gap-2"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" /><span><span className="block text-sm font-semibold">{marcosParaVerificar.length} marco(s) de liderança pedem acompanhamento</span><span className="mt-0.5 block text-xs text-amber-800">Confira o combinado, registre o resultado ou agende uma nova data.</span></span></span><ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
-      </Link>}
-      {mostrarAlertaAdesao && <Link to="/rh/saude-mental#campanhas" className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-3 text-orange-900">
-        <span className="flex min-w-0 gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" /><span><span className="block text-sm font-semibold">Alerta de baixa adesão em campanha aberta</span><span className="mt-0.5 block text-xs text-orange-800">Mantenha a divulgação coletiva, sem cobrança individual. O plano de ação e a evolução das lideranças continuam sendo o trabalho principal.</span></span></span><ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
+        <span className="flex min-w-0 gap-2"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" /><span><span className="block text-sm font-semibold">{marcosParaVerificar.length} de {marcosPendentes.length} marco(s) de liderança vencem em até {DIAS_MARCO_URGENTE} dias</span><span className="mt-0.5 block text-xs text-amber-800">Confira o combinado, registre o resultado ou agende uma nova data.</span></span></span><ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
       </Link>}
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div className="flex min-w-0 gap-3">
