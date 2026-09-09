@@ -445,7 +445,7 @@ export const SetoresCard: React.FC<{
                       quem não usa o Malama. É outro número, não a contagem de
                       cadastrados — e só a empresa sabe qual é. */}
                   <input
-                    type="number" min={s.n} max={limitePessoas ?? 100000}
+                    type="number" min={0} max={limitePessoas ?? 100000}
                     value={efetivoEdit[s.id] ?? (s.efetivo != null ? String(s.efetivo) : '')}
                     onChange={e => setEfetivoEdit(prev => ({ ...prev, [s.id]: e.target.value }))}
                     onBlur={() => handleEfetivo(s)}
