@@ -1,15 +1,37 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle, ArrowRight, CheckCircle2, ChevronDown, ClipboardCheck, Clock,
-  RefreshCw, ShieldAlert, Sparkles, TrendingDown, TrendingUp,
+  AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, ChevronDown,
+  ClipboardCheck, Clock, RefreshCw, ShieldAlert, Sparkles, TrendingDown, TrendingUp,
 } from 'lucide-react';
 import {
   rhAgentService, type RhBriefing as RhBriefingData,
   type RhBriefingPriority, type RhBriefingSeverity,
   type RhForcaEvidencia, type RhReavaliacao,
 } from '../../services/rhAgentService';
-import type { EtapaChave, PassoJornada } from '../../lib/rhJornada';
+import type { CompromissoRitmo, EtapaChave, PassoJornada } from '../../lib/rhJornada';
+
+// ONDE CADA CARD BUSCA A SUA DATA.
+//
+// O ritmo do ciclo era um paredão separado, com quatro linhas gordas
+// repetindo assuntos que os cards acima já tratavam. A informação que só
+// ele tinha era a DATA — então é a data que se muda de lugar, e o paredão
+// encolhe.
+//
+// Uma prioridade sem compromisso correspondente simplesmente não mostra
+// data: melhor um card sem linha do que uma data que não é daquilo.
+const COMPROMISSO_DA_PRIORIDADE: Record<string, CompromissoRitmo['chave']> = {
+  medidas_atrasadas: 'plano',
+  lacuna_fonte: 'plano',
+  lideranca_pendente: 'lideranca',
+};
+
+/** Compromisso que corresponde à etapa em que o passo da jornada está. */
+const COMPROMISSO_DA_ETAPA: Partial<Record<EtapaChave, CompromissoRitmo['chave']>> = {
+  conversar: 'lideranca',
+  medidas: 'plano',
+  comprovar: 'plano',
+};
 
 // A JORNADA MANDA; O BRIEFING COMPLEMENTA.
 //
@@ -102,12 +124,17 @@ function actionTarget(priority: RhBriefingPriority) {
  * não depende de a Edge Function estar no ar; se dependesse, uma queda do
  * provedor apagaria a ação principal do painel.
  */
-const ProximoPassoCard: React.FC<{ passo: PassoJornada }> = ({ passo }) => (
+const ProximoPassoCard: React.FC<{ passo: PassoJornada; quando?: string | null }> = ({ passo, quando }) => (
   <article className="flex min-h-full flex-col rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
     <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide opacity-75">
       <ClipboardCheck className="h-3.5 w-3.5" /> Seu próximo passo
     </p>
     <h2 id="guia-rh-titulo" className="mt-2 text-sm font-semibold leading-snug">{passo.titulo}</h2>
+    {quando && (
+      <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium opacity-75">
+        <CalendarClock className="h-3.5 w-3.5 shrink-0" /> {quando}
+      </p>
+    )}
     <p className="mt-1.5 flex-1 text-xs leading-relaxed opacity-80">{passo.descricao}</p>
     {passo.atalho && (
       <Link to={passo.atalho.to} className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold underline-offset-2 hover:underline">
@@ -122,7 +149,13 @@ const ProximoPassoCard: React.FC<{ passo: PassoJornada }> = ({ passo }) => (
   </article>
 );
 
-const PriorityCard: React.FC<{ priority: RhBriefingPriority; urgencia?: string }> = ({ priority, urgencia }) => {
+const PriorityCard: React.FC<{
+  priority: RhBriefingPriority;
+  /** Prazo em cima (marcos vencendo). Tem precedência sobre `quando`. */
+  urgencia?: string;
+  /** A data do compromisso correspondente, vinda do ritmo do ciclo. */
+  quando?: string | null;
+}> = ({ priority, urgencia, quando }) => {
   const target = actionTarget(priority);
   const Icon = priority.severidade === 'critico' ? ShieldAlert : AlertTriangle;
   return (
@@ -134,11 +167,17 @@ const PriorityCard: React.FC<{ priority: RhBriefingPriority; urgencia?: string }
       {/* O prazo vem logo abaixo do título porque é a única parte do card
           com data marcada: é o que decide se isso é para hoje ou para a
           semana que vem. */}
-      {urgencia && (
+      {/* Urgência ganha de data: quando há marco vencendo em três dias, a
+          data do ciclo é a informação menos útil das duas. */}
+      {urgencia ? (
         <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold">
           <Clock className="h-3.5 w-3.5 shrink-0" /> {urgencia}
         </p>
-      )}
+      ) : quando ? (
+        <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium opacity-75">
+          <CalendarClock className="h-3.5 w-3.5 shrink-0" /> {quando}
+        </p>
+      ) : null}
       <p className="mt-1.5 flex-1 text-xs leading-relaxed opacity-80">{priority.descricao}</p>
       {priority.evidencias.length > 0 && (
         <p className="mt-3 border-t border-current/10 pt-2 text-[11px] font-medium opacity-75">
@@ -208,13 +247,24 @@ export const RhBriefing: React.FC<{
   marcosVencendo?: { urgentes: number; dias: number };
   /** O passo calculado pela jornada. Vira o primeiro card, em verde. */
   passo?: PassoJornada;
-}> = ({ etapaAtual, marcosVencendo, passo }) => {
+  /** Compromissos do ciclo. Entram como DATA dentro dos cards. */
+  ritmo?: CompromissoRitmo[];
+}> = ({ etapaAtual, marcosVencendo, passo, ritmo = [] }) => {
   const [briefing, setBriefing] = useState<RhBriefingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   // Concorda com o título do card ("5 marco(s) pendente(s)"), então aqui
   // basta dizer quantos DESSES estão com a data em cima.
+  const dataDe = (chave?: CompromissoRitmo['chave']) =>
+    chave ? ritmo.find(item => item.chave === chave)?.quando ?? null : null;
+  // Medição em curso: o instrumento que está com coleta aberta agora. É a
+  // data que interessa a qualquer card sobre medir, seja ele o passo verde
+  // ou o alerta de adesão.
+  const medicaoEmCurso = ritmo.find(item =>
+    (item.chave === 'who5' || item.chave === 'jss')
+    && (item.situacao === 'em_andamento' || item.situacao === 'aguardando_encerramento'));
+
   const urgencia = marcosVencendo && marcosVencendo.urgentes > 0
     ? marcosVencendo.urgentes === 1
       ? `1 deles vence em até ${marcosVencendo.dias} dias`
@@ -287,12 +337,24 @@ export const RhBriefing: React.FC<{
 
       {(passo || prioridades.length > 0) && (
         <div className="mt-4 grid gap-3 lg:grid-cols-3">
-          {passo && <ProximoPassoCard passo={passo} />}
+          {passo && (
+            <ProximoPassoCard
+              passo={passo}
+              quando={passo.etapa === 'medir'
+                ? medicaoEmCurso?.quando ?? null
+                : dataDe(COMPROMISSO_DA_ETAPA[passo.etapa ?? 'setores'])}
+            />
+          )}
           {prioridades.map(priority => (
             <PriorityCard
               key={priority.id}
               priority={priority}
               urgencia={priority.id === 'lideranca_pendente' ? urgencia ?? undefined : undefined}
+              quando={COMPROMISSO_DA_PRIORIDADE[priority.id]
+                ? dataDe(COMPROMISSO_DA_PRIORIDADE[priority.id])
+                // Cards de adesão e de linha de base falam da medição que
+                // está rodando agora.
+                : medicaoEmCurso?.quando ?? null}
             />
           ))}
         </div>

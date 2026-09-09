@@ -24,7 +24,9 @@ import { CabecalhoColapsavel, ResumoRecolhido, useSecaoAberta } from '../../comp
 import { useRhAccess } from '../../contexts/RhAccessContext';
 import { useRhJornada } from '../../contexts/RhJornadaContext';
 import { useScrollParaHash } from '../../hooks/useScrollParaHash';
-import { passosPreparacao, proximoPasso, type DadosJornada } from '../../lib/rhJornada';
+import {
+  passosPreparacao, proximoPasso, ritmoDoCiclo, type DadosJornada,
+} from '../../lib/rhJornada';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
@@ -89,6 +91,10 @@ const GuiaJornadaRh: React.FC<{
   // custa confiança. Aqui só se calcula "quantos vencem agora"; o total
   // pendente já é o título do card.
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  // Calculado uma vez e compartilhado: as datas vão para dentro dos cards
+  // da leitura inteligente, e a agenda logo abaixo lê a mesma lista. Duas
+  // chamadas dariam duas verdades sobre a mesma data.
+  const ritmo = ritmoDoCiclo(dados);
   const marcosParaVerificar = dados.ciclos.filter(c => {
     if (c.status !== 'ativo' || c.marco_status === 'verificado') return false;
     const prazo = new Date(`${c.marco_prazo || c.fim}T00:00:00`);
@@ -122,12 +128,13 @@ const GuiaJornadaRh: React.FC<{
         passo={passoAtual}
         etapaAtual={passoAtual.etapa}
         marcosVencendo={{ urgentes: marcosParaVerificar.length, dias: DIAS_MARCO_URGENTE }}
+        ritmo={ritmo}
       />
 
       {/* O calendário é o tabuleiro: a pergunta que o RH traz da reunião é
           "estou atrasado?", não "qual é a minha nota". Vem depois da leitura
           porque responde "quando isso se repete", não "o que fazer agora". */}
-      <RitmoDoCicloCard dados={dados} />
+      <RitmoDoCicloCard dados={dados} itens={ritmo} />
 
       {progresso < 100 && (
         <details className="group mt-3 border-t border-gray-100 pt-3">

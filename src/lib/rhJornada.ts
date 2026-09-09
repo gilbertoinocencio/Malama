@@ -468,6 +468,13 @@ export type CompromissoRitmo = {
   situacao: SituacaoRitmo;
   /** Frase curta de estado — sempre concreta, nunca "tudo certo". */
   detalhe: string;
+  /**
+   * A DATA, em três ou quatro palavras ("fecha em 30/09", "a partir de
+   * 17/11"). Existe para caber dentro do card da leitura inteligente, onde
+   * o `detalhe` completo não caberia — e é ela que responde a pergunta que
+   * o RH traz da reunião: "quando?".
+   */
+  quando: string | null;
   destino: string;
   acao: string;
   /** `false` = a ação ainda não deve ser oferecida (ver `prontoParaPreparar`).
@@ -565,6 +572,24 @@ export function prontoParaPreparar(
   return dias <= DIAS_ANTECEDENCIA_PREPARO;
 }
 
+/**
+ * A data de um instrumento em três ou quatro palavras. É o que vai para
+ * dentro do card da leitura inteligente — onde só cabe a resposta a
+ * "quando?", não o estado inteiro.
+ */
+function quandoDoInstrumento(
+  r: { situacao: SituacaoRitmo; proxima: Date | null },
+  campanhas: PsychosocialCampanha[],
+  instrumento: 'who5' | 'jss',
+): string | null {
+  const aberta = campanhas.find(c => c.instrument === instrumento && c.status === 'aberta');
+  if (r.situacao === 'em_andamento' && aberta) return `fecha em ${fmt(aberta.janela_fim)}`;
+  if (r.situacao === 'aguardando_encerramento' && aberta) return `encerrou em ${fmt(aberta.janela_fim)}`;
+  if (r.situacao === 'vencido') return 'já era esperada';
+  if (r.proxima) return `a partir de ${fmt(r.proxima)}`;
+  return null;
+}
+
 export function ritmoDoCiclo(d: DadosJornada, hoje = new Date()): CompromissoRitmo[] {
   const itens: CompromissoRitmo[] = [];
 
@@ -577,6 +602,7 @@ export function ritmoDoCiclo(d: DadosJornada, hoje = new Date()): CompromissoRit
       cadencia: 'Mensal',
       situacao: who5.situacao,
       detalhe: who5.detalhe,
+      quando: quandoDoInstrumento(who5, d.campanhas, 'who5'),
       // 'aguardando_encerramento' vai para a lista de campanhas, como
       // 'em_andamento': mandar para ?nova=1 faria o RH tentar criar uma
       // segunda campanha do mesmo instrumento, que o banco recusa por
@@ -597,6 +623,7 @@ export function ritmoDoCiclo(d: DadosJornada, hoje = new Date()): CompromissoRit
       cadencia: 'Trimestral',
       situacao: jss.situacao,
       detalhe: jss.detalhe,
+      quando: quandoDoInstrumento(jss, d.campanhas, 'jss'),
       // 'aguardando_encerramento' vai para a lista de campanhas, como
       // 'em_andamento': mandar para ?nova=1 faria o RH tentar criar uma
       // segunda campanha do mesmo instrumento, que o banco recusa por
@@ -624,6 +651,7 @@ export function ritmoDoCiclo(d: DadosJornada, hoje = new Date()): CompromissoRit
         : d.ciclos.length === 0
           ? (temJss ? 'Há diagnóstico fechado e nenhuma conversa registrada.' : 'Começa quando o primeiro JSS for encerrado.')
           : `${d.ciclos.length} jornada(s) registrada(s). Nenhuma em aberto.`,
+      quando: ativo ? `até ${fmt(ativo.fim)}` : null,
       destino: ativo ? '/rh/plano-acao?visao=lideranca' : '/rh/plano-acao?visao=lideranca&nova=1',
       acao: ativo ? 'Acompanhar' : 'Preparar',
     });
@@ -643,6 +671,12 @@ export function ritmoDoCiclo(d: DadosJornada, hoje = new Date()): CompromissoRit
           : d.planos.length === 0
             ? 'Nenhuma medida registrada ainda.'
             : `${d.planos.length} medida(s), todas encerradas.`,
+      // O prazo mais próximo entre as medidas em aberto: é a data que
+      // decide se isso é para esta semana ou para o mês que vem.
+      quando: (() => {
+        const prazos = abertas.map(p => p.prazo).filter(Boolean).sort();
+        return prazos.length > 0 ? `prazo em ${fmt(prazos[0])}` : null;
+      })(),
       destino: '/rh/plano-acao',
       acao: 'Abrir plano',
     });

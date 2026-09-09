@@ -95,6 +95,46 @@ test.describe('janela vencida com campanha ainda aberta', () => {
   });
 });
 
+test.describe('a data curta que vai para dentro do card', () => {
+  // `quando` existe para caber no card da leitura inteligente, onde o
+  // `detalhe` completo não caberia. Se ele sumir ou vier longo, a agenda
+  // volta a ser um paredão de quatro linhas.
+  const quandoDe = (chave: string, d = dados()) =>
+    ritmoDoCiclo(d, HOJE).find(i => i.chave === chave)!.quando;
+
+  test('coleta em curso mostra quando fecha', () => {
+    const emCurso = dados({ campanhas: [campanha({ janela_fim: '2026-09-30' })] });
+    expect(quandoDe('who5', emCurso)).toBe('fecha em 30/09/2026');
+  });
+
+  test('coleta vencida mostra quando encerrou, não quando fecha', () => {
+    expect(quandoDe('who5')).toBe('encerrou em 31/08/2026');
+  });
+
+  test('sem coleta aberta, aponta a próxima janela', () => {
+    const encerrada = dados({
+      campanhas: [campanha({ status: 'encerrada', encerrada_em: '2026-08-31T23:59:59Z' })],
+    });
+    expect(quandoDe('who5', encerrada)).toMatch(/^a partir de \d{2}\/\d{2}\/\d{4}$/);
+  });
+
+  test('é curta o suficiente para caber no card', () => {
+    for (const item of ritmoDoCiclo(dados(), HOJE)) {
+      if (item.quando) expect(item.quando.length, item.chave).toBeLessThanOrEqual(28);
+    }
+  });
+
+  test('medida em aberto mostra o prazo mais próximo', () => {
+    const comPlano = dados({
+      planos: [
+        { status: 'planejada', prazo: '2026-12-01', atrasada: false },
+        { status: 'em_andamento', prazo: '2026-10-15', atrasada: false },
+      ] as any,
+    });
+    expect(quandoDe('plano', comPlano)).toBe('prazo em 15/10/2026');
+  });
+});
+
 test.describe('a jornada conduz para encerrar', () => {
   test('o próximo passo manda encerrar a coleta', () => {
     const passo = proximoPasso(dados(), HOJE);

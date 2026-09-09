@@ -10,9 +10,11 @@
 // de lib/rhJornada.ts para o porquê.
 // =====================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarClock, CheckCircle2, CircleDot, Clock, AlertTriangle } from 'lucide-react';
+import {
+  ArrowRight, CalendarClock, CheckCircle2, ChevronDown, CircleDot, Clock, AlertTriangle,
+} from 'lucide-react';
 import { ritmoDoCiclo, type CompromissoRitmo, type SituacaoRitmo } from '../../lib/rhJornada';
 import type { DadosJornada } from '../../lib/rhJornada';
 
@@ -68,35 +70,74 @@ const Linha: React.FC<{ item: CompromissoRitmo }> = ({ item }) => {
   );
 };
 
-export const RitmoDoCicloCard: React.FC<{ dados: DadosJornada }> = ({ dados }) => {
-  const itens = ritmoDoCiclo(dados);
+export const RitmoDoCicloCard: React.FC<{
+  dados: DadosJornada;
+  /** Já calculado pelo dashboard, que também alimenta os cards da leitura
+   *  inteligente com as mesmas datas. Recalcular aqui abriria espaço para
+   *  as duas partes da tela divergirem sobre a mesma data. */
+  itens?: CompromissoRitmo[];
+}> = ({ dados, itens: itensRecebidos }) => {
+  const itens = itensRecebidos ?? ritmoDoCiclo(dados);
   if (itens.length === 0) return null;
 
-  const atencao = itens.filter(i => i.situacao === 'vencido' || i.situacao === 'pendente').length;
+  const atencao = itens.filter(i =>
+    i.situacao === 'vencido' || i.situacao === 'pendente' || i.situacao === 'aguardando_encerramento').length;
+  // Nasce recolhida: quem precisa de "o que vem e quando" já tem a resposta
+  // na linha de resumo; o detalhe é consulta ocasional.
+  const [aberto, setAberto] = useState(false);
 
-  // Deixou de ser card próprio: mora dentro do card do ciclo, logo abaixo
-  // da leitura inteligente. Dois cartões com "ciclo" no título, um embaixo
-  // do outro, faziam o RH procurar a diferença entre eles em vez de ler
-  // qualquer um dos dois.
+  // ENCOLHEU DE PROPÓSITO.
+  //
+  // Eram quatro linhas gordas, com descrição e botão cada uma, repetindo
+  // assuntos que os cards da leitura inteligente já tratavam logo acima. A
+  // única informação exclusiva daqui era a DATA — e a data mudou de lugar:
+  // agora aparece dentro do card a que pertence.
+  //
+  // O que sobra é a agenda: uma linha só, que responde "o que vem, e
+  // quando", sem obrigar ninguém a ler quatro blocos para descobrir. O
+  // detalhe completo continua a um clique, para quem foi atrás dele.
+  const resumo = itens
+    .filter(item => item.quando)
+    .map(item => `${item.nome.replace(/\s*\(.*\)/, '')} ${item.quando}`)
+    .join(' · ');
+
   return (
     <section className="mt-5 border-t border-gray-100 pt-4" aria-labelledby="ritmo-titulo">
-      <h3 id="ritmo-titulo" className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">
-        <CalendarClock className="h-3.5 w-3.5" /> Ritmo do ciclo
-      </h3>
-      <p className="mb-4 mt-1 text-sm leading-relaxed text-gray-500">
-        A NR-1 não é um documento que se entrega uma vez: é um ciclo que se repete. Aqui está o
-        que a sua empresa combinou de fazer e quando cada coisa é esperada de novo.{' '}
-        {atencao > 0
-          ? <strong className="text-gray-700">{atencao} item(ns) pedem atenção.</strong>
-          : 'Nada em atraso no momento.'}
-      </p>
-      <div className="grid gap-2">
-        {itens.map(item => <Linha key={item.chave} item={item} />)}
-      </div>
-      <p className="mt-3 text-[11px] leading-relaxed text-gray-400">
-        As datas saem das suas próprias campanhas — não são prazo legal. A norma pede periodicidade
-        e revisão sempre que algo mudar no trabalho, sem fixar um calendário único.
-      </p>
+      <button
+        type="button"
+        onClick={() => setAberto(a => !a)}
+        aria-expanded={aberto}
+        className="flex w-full items-start justify-between gap-3 text-left"
+      >
+        <span className="min-w-0">
+          <span id="ritmo-titulo" className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">
+            <CalendarClock className="h-3.5 w-3.5" /> Agenda do ciclo
+            <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition ${aberto ? 'rotate-180' : ''}`} />
+          </span>
+          <span className="mt-1 block text-sm leading-relaxed text-gray-600">
+            {resumo || 'Sem datas definidas ainda.'}
+          </span>
+        </span>
+        {atencao > 0 && (
+          <span className="mt-0.5 shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+            {atencao} pede(m) atenção
+          </span>
+        )}
+      </button>
+
+      {aberto && (<>
+        <p className="mb-3 mt-3 text-sm leading-relaxed text-gray-500">
+          A NR-1 não é um documento que se entrega uma vez: é um ciclo que se repete. Aqui está o
+          que a sua empresa combinou de fazer e quando cada coisa é esperada de novo.
+        </p>
+        <div className="grid gap-2">
+          {itens.map(item => <Linha key={item.chave} item={item} />)}
+        </div>
+        <p className="mt-3 text-[11px] leading-relaxed text-gray-400">
+          As datas saem das suas próprias campanhas — não são prazo legal. A norma pede periodicidade
+          e revisão sempre que algo mudar no trabalho, sem fixar um calendário único.
+        </p>
+      </>)}
     </section>
   );
 };
