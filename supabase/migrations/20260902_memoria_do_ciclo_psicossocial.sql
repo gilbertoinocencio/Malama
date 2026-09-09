@@ -33,6 +33,61 @@
 
 
 -- =====================================================
+-- 0. PREFLIGHT
+--
+-- O SQL Editor aborta tudo no primeiro erro, e um erro cru na metade do
+-- arquivo ("relation X does not exist", linha 80) não diz o que fazer.
+-- Este bloco falha ANTES de qualquer criação, listando de uma vez o que
+-- falta e qual migração traz cada coisa.
+--
+-- Só entram aqui as dependências REAIS de criação: FKs, funções usadas em
+-- policy (que o Postgres valida na hora) e o trigger de updated_at. As
+-- fontes opcionais do snapshot desidentificado não estão nesta lista de
+-- propósito — a função que as usa degrada sozinha quando elas faltam.
+-- =====================================================
+
+DO $preflight$
+DECLARE
+  v_faltando TEXT[] := ARRAY[]::TEXT[];
+BEGIN
+  IF to_regclass('public.empresas') IS NULL THEN
+    v_faltando := v_faltando || 'tabela empresas (20260601_empresas_b2b.sql)';
+  END IF;
+  IF to_regclass('public.rh_usuarios') IS NULL THEN
+    v_faltando := v_faltando || 'tabela rh_usuarios (20260601_empresas_b2b.sql)';
+  END IF;
+  IF to_regclass('public.psychosocial_campaigns') IS NULL THEN
+    v_faltando := v_faltando || 'tabela psychosocial_campaigns (20260728_psychosocial_campaign_engine.sql)';
+  END IF;
+  IF to_regclass('public.psychosocial_instruments') IS NULL THEN
+    v_faltando := v_faltando || 'tabela psychosocial_instruments (20260728_psychosocial_campaign_engine.sql)';
+  END IF;
+  IF to_regclass('public.empresa_planos_acao') IS NULL THEN
+    v_faltando := v_faltando || 'tabela empresa_planos_acao (20260801_plano_acao.sql)';
+  END IF;
+  IF to_regprocedure('public.update_updated_at_column()') IS NULL THEN
+    v_faltando := v_faltando || 'função update_updated_at_column() (schema base)';
+  END IF;
+  IF to_regprocedure('public.is_super_admin()') IS NULL THEN
+    v_faltando := v_faltando || 'função is_super_admin() (RBAC)';
+  END IF;
+  -- Usadas nas policies e nos gates de módulo das RPCs novas.
+  IF to_regprocedure('public.rh_tem_permissao(text)') IS NULL THEN
+    v_faltando := v_faltando || 'função rh_tem_permissao(text) (20260901_correcoes_auditoria.sql)';
+  END IF;
+  IF to_regprocedure('public.rh_exige_modulo(text[])') IS NULL THEN
+    v_faltando := v_faltando || 'função rh_exige_modulo(text[]) (20260901_correcoes_auditoria.sql)';
+  END IF;
+
+  IF array_length(v_faltando, 1) > 0 THEN
+    RAISE EXCEPTION E'Faltam pré-requisitos para a memória do ciclo:\n  - %\n\nAplique a(s) migração(ões) indicada(s) e rode este arquivo de novo. Nada foi criado.',
+      array_to_string(v_faltando, E'\n  - ');
+  END IF;
+END;
+$preflight$;
+
+
+-- =====================================================
 -- 1. CONTEXTO DESIDENTIFICADO
 --
 -- Snapshot do CONTEXTO DE TRABALHO (não da empresa) no momento em que a
@@ -48,6 +103,17 @@
 --
 -- O CNAE entra só como divisão (2 primeiros dígitos), que é ramo de
 -- atividade, não identidade — e é o recorte que torna casos comparáveis.
+--
+-- POR QUE plpgsql COM GUARDA, E NÃO UM SELECT DIRETO:
+-- as duas fontes deste snapshot são OPCIONAIS. `empresa_contexto_operacional`
+-- (perfil do copiloto, 20260848) e as colunas de organização do trabalho em
+-- `empresa_setores` (20260849) podem não existir num banco que não recebeu
+-- essas migrações — foi exatamente o que aconteceu na primeira execução.
+--
+-- Este snapshot serve à etapa 2 (padrões entre empresas) e NADA o consome
+-- hoje. Ele não pode, portanto, impedir a criação do schema nem derrubar o
+-- briefing em tempo de execução: fonte ausente vira chave ausente, e o
+-- ciclo — que é o que importa agora — segue funcionando.
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION public.psicossocial_contexto_desidentificado(
@@ -55,33 +121,65 @@ CREATE OR REPLACE FUNCTION public.psicossocial_contexto_desidentificado(
   p_setor      TEXT
 )
 RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = public
-AS $$
-  SELECT jsonb_strip_nulls(jsonb_build_object(
-    'segmento',        NULLIF(TRIM(co.setor_atuacao), ''),
-    'cnae_divisao',    NULLIF(LEFT(regexp_replace(COALESCE(co.cnae_principal, ''), '[^0-9]', '', 'g'), 2), ''),
-    'modelos_trabalho', COALESCE(to_jsonb(s.modelos_trabalho), 'null'::jsonb),
-    'turnos',           COALESCE(to_jsonb(s.turnos), 'null'::jsonb),
+AS $fn$
+DECLARE
+  v_segmento  TEXT;
+  v_cnae      TEXT;
+  v_modelos   JSONB;
+  v_turnos    JSONB;
+  v_efetivo   INT;
+  v_setor     TEXT := NULLIF(TRIM(p_setor), '');
+BEGIN
+  -- Perfil operacional da empresa: segmento e ramo de atividade.
+  IF to_regclass('public.empresa_contexto_operacional') IS NOT NULL THEN
+    BEGIN
+      EXECUTE $q$
+        SELECT NULLIF(TRIM(setor_atuacao), ''),
+               NULLIF(LEFT(regexp_replace(COALESCE(cnae_principal, ''), '[^0-9]', '', 'g'), 2), '')
+        FROM public.empresa_contexto_operacional
+        WHERE empresa_id = $1
+      $q$ INTO v_segmento, v_cnae USING p_empresa_id;
+    EXCEPTION WHEN OTHERS THEN
+      v_segmento := NULL; v_cnae := NULL;
+    END;
+  END IF;
+
+  -- Organização do trabalho declarada para o setor.
+  IF v_setor IS NOT NULL AND to_regclass('public.empresa_setores') IS NOT NULL THEN
+    BEGIN
+      EXECUTE $q$
+        SELECT to_jsonb(modelos_trabalho), to_jsonb(turnos), efetivo
+        FROM public.empresa_setores
+        WHERE empresa_id = $1 AND lower(trim(nome)) = lower(trim($2))
+        LIMIT 1
+      $q$ INTO v_modelos, v_turnos, v_efetivo USING p_empresa_id, v_setor;
+    EXCEPTION WHEN OTHERS THEN
+      v_modelos := NULL; v_turnos := NULL; v_efetivo := NULL;
+    END;
+  END IF;
+
+  RETURN jsonb_strip_nulls(jsonb_build_object(
+    'segmento',         v_segmento,
+    'cnae_divisao',     v_cnae,
+    'modelos_trabalho', v_modelos,
+    'turnos',           v_turnos,
     -- Faixa, nunca o número exato: efetivo exato de um setor pequeno é
     -- quase-identificador quando cruzado com segmento e turno.
-    'porte_setor',     CASE
-                         WHEN s.efetivo IS NULL THEN NULL
-                         WHEN s.efetivo < 10  THEN 'ate_9'
-                         WHEN s.efetivo < 50  THEN '10_49'
-                         WHEN s.efetivo < 200 THEN '50_199'
-                         ELSE '200_mais'
-                       END,
-    'recorte',         CASE WHEN NULLIF(TRIM(p_setor), '') IS NULL THEN 'empresa' ELSE 'setor' END
-  ))
-  FROM (SELECT 1) AS base
-  LEFT JOIN public.empresa_contexto_operacional co ON co.empresa_id = p_empresa_id
-  LEFT JOIN public.empresa_setores s
-    ON s.empresa_id = p_empresa_id
-   AND lower(trim(s.nome)) = lower(trim(COALESCE(p_setor, '')))
-$$;
+    'porte_setor',      CASE
+                          WHEN v_efetivo IS NULL THEN NULL
+                          WHEN v_efetivo < 10  THEN 'ate_9'
+                          WHEN v_efetivo < 50  THEN '10_49'
+                          WHEN v_efetivo < 200 THEN '50_199'
+                          ELSE '200_mais'
+                        END,
+    'recorte',          CASE WHEN v_setor IS NULL THEN 'empresa' ELSE 'setor' END
+  ));
+END;
+$fn$;
 
 REVOKE ALL ON FUNCTION public.psicossocial_contexto_desidentificado(UUID, TEXT) FROM PUBLIC, anon;
 

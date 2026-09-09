@@ -103,6 +103,40 @@ test.describe('a memória do ciclo não toca dado individual', () => {
     }
   });
 
+  test('o snapshot desidentificado não depende de tabela opcional para ser criado', () => {
+    // Regressão: a primeira versão fazia LEFT JOIN direto em
+    // empresa_contexto_operacional, e a migration inteira falhou num banco
+    // que não recebeu a 20260848. O snapshot serve à etapa 2 e nada o
+    // consome hoje — ele não pode bloquear o ciclo, que é o que importa.
+    const corpo = migration.slice(
+      migration.indexOf('FUNCTION public.psicossocial_contexto_desidentificado'),
+      migration.indexOf('-- 2. HIPÓTESES'));
+    for (const opcional of ['empresa_contexto_operacional', 'empresa_setores']) {
+      expect(corpo, opcional).toContain(`to_regclass('public.${opcional}')`);
+    }
+    // Corpo em plpgsql: o Postgres não valida referências na criação, e a
+    // fonte ausente vira chave ausente em vez de erro.
+    expect(corpo).toContain('LANGUAGE plpgsql');
+    expect(corpo).toContain('EXCEPTION WHEN OTHERS THEN');
+    expect(corpo).toContain('jsonb_strip_nulls');
+  });
+
+  test('as dependências reais de criação são verificadas antes de criar qualquer coisa', () => {
+    const preflight = migration.slice(
+      migration.indexOf('DO $preflight$'), migration.indexOf('$preflight$;'));
+    expect(preflight).toBeTruthy();
+    // O preflight tem que vir ANTES da primeira criação de objeto.
+    expect(migration.indexOf('DO $preflight$'))
+      .toBeLessThan(migration.indexOf('CREATE OR REPLACE FUNCTION'));
+    for (const dependencia of ['public.empresas', 'public.rh_usuarios',
+                               'public.psychosocial_campaigns', 'public.empresa_planos_acao',
+                               'public.rh_tem_permissao(text)', 'public.rh_exige_modulo(text[])']) {
+      expect(preflight, dependencia).toContain(dependencia);
+    }
+    // Fonte opcional não entra no preflight: ela degrada, não bloqueia.
+    expect(preflight).not.toContain('empresa_contexto_operacional');
+  });
+
   test('o contexto desidentificado não carrega identidade da empresa nem do setor', () => {
     const corpo = migration.slice(
       migration.indexOf('FUNCTION public.psicossocial_contexto_desidentificado'),
