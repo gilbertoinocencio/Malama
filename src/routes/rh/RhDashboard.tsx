@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import {
   Users, UserPlus, Trash2, Download, Mail, AlertCircle,
   CheckCircle2, Clock, Building2, Calendar, Send, Brain, Phone,
-  ArrowRight, Circle, ClipboardCheck, UserCog,
+  ArrowRight, Circle, UserCog,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -67,7 +67,6 @@ const GuiaJornadaRh: React.FC<{
   principal: boolean;
 }> = ({ dados, usuariosEquipe, principal }) => {
   const passoAtual = proximoPasso(dados);
-  const { titulo, descricao, destino, acao, atalho } = passoAtual;
   const passos = passosPreparacao(dados);
   const concluidos = passos.filter(p => p.ok).length;
   const progresso = Math.round((concluidos / passos.length) * 100);
@@ -102,28 +101,10 @@ const GuiaJornadaRh: React.FC<{
           liderança já são cards da leitura inteligente, abaixo — e lá a
           adesão ainda vem aberta por setor, com o piso de anonimato
           aplicado. Faixa separada só disputava atenção com o próximo passo. */}
-      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-        <div className="flex min-w-0 gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#7d4a3c]/10 text-[#7d4a3c]">
-            <ClipboardCheck className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">Seu próximo passo</p>
-            <h2 id="guia-rh-titulo" className="mt-0.5 text-lg font-semibold text-gray-900">{titulo}</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-gray-600">{descricao}</p>
-            {atalho && (
-              <Link to={atalho.to} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#7d4a3c] hover:underline">
-                {atalho.label} <ArrowRight className="h-3 w-3" />
-              </Link>
-            )}
-          </div>
-        </div>
-        {destino && (
-          <Link to={destino} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#623a2f]">
-            {acao} <ArrowRight className="h-4 w-4" />
-          </Link>
-        )}
-      </div>
+      {/* O próximo passo NÃO é mais um bloco de cabeçalho: virou o primeiro
+          card da grade da leitura inteligente, em verde. Ele ocupa a vaga
+          onde ficava a prioridade crítica, e a cor separa "siga por aqui"
+          dos cartões que só pedem atenção. */}
 
       {/* O trilho substituiu o checklist de preparação: aquele cobria só os
           4 itens de cadastro e se recolhia ao completar, deixando o RH sem
@@ -138,6 +119,7 @@ const GuiaJornadaRh: React.FC<{
           explica o passo, não compete com ele; e recebe a etapa atual para
           não repetir como "prioridade" o que o passo já enunciou acima. */}
       <RhBriefing
+        passo={passoAtual}
         etapaAtual={passoAtual.etapa}
         marcosVencendo={{ urgentes: marcosParaVerificar.length, dias: DIAS_MARCO_URGENTE }}
       />

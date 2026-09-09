@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle, ArrowRight, CheckCircle2, ChevronDown, Clock, RefreshCw,
-  ShieldAlert, Sparkles, TrendingDown, TrendingUp,
+  AlertTriangle, ArrowRight, CheckCircle2, ChevronDown, ClipboardCheck, Clock,
+  RefreshCw, ShieldAlert, Sparkles, TrendingDown, TrendingUp,
 } from 'lucide-react';
 import {
   rhAgentService, type RhBriefing as RhBriefingData,
   type RhBriefingPriority, type RhBriefingSeverity,
   type RhForcaEvidencia, type RhReavaliacao,
 } from '../../services/rhAgentService';
-import type { EtapaChave } from '../../lib/rhJornada';
+import type { EtapaChave, PassoJornada } from '../../lib/rhJornada';
 
 // A JORNADA MANDA; O BRIEFING COMPLEMENTA.
 //
@@ -88,6 +88,39 @@ function actionTarget(priority: RhBriefingPriority) {
   if (measure.hipotese_id) params.set('hipotese', measure.hipotese_id);
   return `/rh/plano-acao?${params.toString()}`;
 }
+
+/**
+ * O próximo passo como PRIMEIRO card da grade, em verde.
+ *
+ * Verde porque é o único cartão da tela que não é alerta: os outros pedem
+ * atenção ou apontam oportunidade, este diz "siga por aqui". Cor de avanço
+ * ao lado de cores de aviso é o que faz a decisão ser óbvia sem precisar
+ * de instrução.
+ *
+ * Ele é renderizado em TODOS os estados do briefing — inclusive quando a
+ * leitura falha. A condução vem da jornada, que é calculada no cliente e
+ * não depende de a Edge Function estar no ar; se dependesse, uma queda do
+ * provedor apagaria a ação principal do painel.
+ */
+const ProximoPassoCard: React.FC<{ passo: PassoJornada }> = ({ passo }) => (
+  <article className="flex min-h-full flex-col rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+    <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide opacity-75">
+      <ClipboardCheck className="h-3.5 w-3.5" /> Seu próximo passo
+    </p>
+    <h2 id="guia-rh-titulo" className="mt-2 text-sm font-semibold leading-snug">{passo.titulo}</h2>
+    <p className="mt-1.5 flex-1 text-xs leading-relaxed opacity-80">{passo.descricao}</p>
+    {passo.atalho && (
+      <Link to={passo.atalho.to} className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold underline-offset-2 hover:underline">
+        {passo.atalho.label} <ArrowRight className="h-3 w-3" />
+      </Link>
+    )}
+    {passo.destino && (
+      <Link to={passo.destino} className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800">
+        {passo.acao} <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
+    )}
+  </article>
+);
 
 const PriorityCard: React.FC<{ priority: RhBriefingPriority; urgencia?: string }> = ({ priority, urgencia }) => {
   const target = actionTarget(priority);
@@ -173,7 +206,9 @@ export const RhBriefing: React.FC<{
    *  DENTRO do card de prioridade correspondente — antes eram uma faixa
    *  âmbar separada, que repetia o assunto do card logo abaixo dela. */
   marcosVencendo?: { urgentes: number; dias: number };
-}> = ({ etapaAtual, marcosVencendo }) => {
+  /** O passo calculado pela jornada. Vira o primeiro card, em verde. */
+  passo?: PassoJornada;
+}> = ({ etapaAtual, marcosVencendo, passo }) => {
   const [briefing, setBriefing] = useState<RhBriefingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -208,46 +243,24 @@ export const RhBriefing: React.FC<{
 
   useEffect(() => { void load(); }, [load]);
 
-  if (loading && !briefing) {
-    return (
-      <section className="mt-5 border-t border-gray-100 pt-4" aria-label="Carregando a leitura dos dados">
-        <div className="flex animate-pulse flex-col gap-2">
-          <div className="h-3 w-48 rounded bg-gray-200" />
-          <div className="h-3 w-2/3 rounded bg-gray-100" />
-        </div>
-      </section>
-    );
-  }
-
-  if (error && !briefing) {
-    return (
-      <section className="mt-5 border-t border-gray-100 pt-4 text-sm">
-        {/* O prazo é calculado no cliente, a leitura vem da Edge Function.
-            Se a função cair, o aviso de vencimento NÃO pode cair junto: ele
-            tem data e some sozinho quando o marco é verificado. */}
-        {urgencia && (
-          <p className="mb-3 flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
-            <Clock className="h-3.5 w-3.5 shrink-0" /> Marcos de liderança pendentes: {urgencia?.replace('deles ', '')}
-          </p>
-        )}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-gray-500">A leitura dos dados não pôde ser atualizada agora. O próximo passo acima continua valendo.</span>
-          <button onClick={() => void load()} className="inline-flex shrink-0 items-center gap-1.5 font-semibold text-[#7d4a3c]">
-            <RefreshCw className="h-4 w-4" /> Tentar novamente
-          </button>
-        </div>
-      </section>
-    );
-  }
-
-  if (!briefing) return null;
-  const priorities = briefing.prioridades
-    .filter(item => item.id !== prioridadeJaDita)
-    .slice(0, 3);
+  // Sem retorno antecipado por carregando/erro: o card verde do próximo
+  // passo precisa aparecer nos três estados. Só o CONTEÚDO DA LEITURA
+  // depende da Edge Function; a condução, não.
+  const prioridades = briefing
+    ? briefing.prioridades
+        .filter(item => item.id !== prioridadeJaDita)
+        // Uma vaga da grade é do próximo passo, então sobram duas: três
+        // cartões numa linha, sem quebrar para uma segunda fileira.
+        .slice(0, passo ? 2 : 3)
+    : [];
   // O bundle do app e as Edge Functions são publicados separadamente: uma
   // versão nova da tela pode conversar com uma função ainda sem estes
   // campos. Ausência vira lista vazia, não tela quebrada.
-  const reavaliacoes = briefing.reavaliacoes ?? [];
+  const reavaliacoes = briefing?.reavaliacoes ?? [];
+
+  const resumo = briefing?.resumo
+    ?? (loading ? 'Atualizando a leitura dos dados…'
+      : 'A leitura dos dados não pôde ser atualizada agora. O próximo passo ao lado continua valendo.');
 
   return (
     <section className="mt-5 border-t border-gray-100 pt-4" aria-labelledby="briefing-rh-title">
@@ -256,16 +269,26 @@ export const RhBriefing: React.FC<{
           <h3 id="briefing-rh-title" className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">
             <Sparkles className="h-3.5 w-3.5" /> Leitura inteligente dos dados
           </h3>
-          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-gray-600">{briefing.resumo}</p>
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-gray-600">{resumo}</p>
         </div>
         <button onClick={() => void load()} disabled={loading} title="Atualizar leitura" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50">
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Atualizar
         </button>
       </div>
 
-      {priorities.length > 0 && (
+      {/* Prazo de liderança quando a leitura não carregou: o card que o
+          exibiria não existe neste estado, e um aviso com data não pode
+          depender do provedor de IA estar no ar. */}
+      {!briefing && urgencia && (
+        <p className="mt-3 flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+          <Clock className="h-3.5 w-3.5 shrink-0" /> Marcos de liderança pendentes: {urgencia.replace('deles ', '')}
+        </p>
+      )}
+
+      {(passo || prioridades.length > 0) && (
         <div className="mt-4 grid gap-3 lg:grid-cols-3">
-          {priorities.map(priority => (
+          {passo && <ProximoPassoCard passo={passo} />}
+          {prioridades.map(priority => (
             <PriorityCard
               key={priority.id}
               priority={priority}
@@ -300,7 +323,7 @@ export const RhBriefing: React.FC<{
         </section>
       )}
 
-      {(briefing.tendencias.length > 0 || briefing.positivos.length > 0) && (
+      {briefing && (briefing.tendencias.length > 0 || briefing.positivos.length > 0) && (
         <details className="group mt-4 rounded-lg border border-gray-100 bg-gray-50/70 px-4 py-3">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-gray-700 [&::-webkit-details-marker]:hidden">
             <span>Ver evolução dos indicadores e sinais positivos</span>
