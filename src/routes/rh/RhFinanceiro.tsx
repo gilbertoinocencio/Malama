@@ -142,6 +142,10 @@ export const RhFinanceiro: React.FC = () => {
   }
 
   // Total mensal = valor por assento × assentos CONTRATADOS (cobra-se o contratado, não o uso).
+  // Sem preço definido para alguma modalidade contratada, o valor vem nulo — e aí a tela
+  // mostra "—", nunca R$ 0,00: zero se lê como "não custa nada", que é diferente de
+  // "ainda não foi precificado" e é justamente o caso em que a cobrança se recusa a emitir.
+  const semPreco = resumo.valor_por_assento == null;
   const totalMensal = (resumo.valor_por_assento ?? 0) * (resumo.max_assentos ?? 0);
   const faturaAtual = faturas.find(f => f.status !== 'pago' && f.status !== 'cancelado') ?? faturas[0];
 
@@ -225,13 +229,27 @@ export const RhFinanceiro: React.FC = () => {
           </div>
           <div>
             <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">Valor por assento</dt>
-            <dd className="mt-1 text-lg font-semibold text-gray-800">{fmtCurrency(resumo.valor_por_assento)}</dd>
+            <dd className="mt-1 text-lg font-semibold text-gray-800">
+              {semPreco ? '—' : fmtCurrency(resumo.valor_por_assento)}
+            </dd>
           </div>
           <div>
             <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide">Total mensal</dt>
-            <dd className="mt-1 text-lg font-semibold text-[#7d4a3c]">{fmtCurrency(totalMensal)}</dd>
+            <dd className="mt-1 text-lg font-semibold text-[#7d4a3c]">
+              {semPreco ? '—' : fmtCurrency(totalMensal)}
+            </dd>
           </div>
         </dl>
+
+        {semPreco && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>
+              O valor deste contrato ainda não está definido para todas as modalidades contratadas.
+              Enquanto isso, nenhuma fatura é emitida — o suporte da Malama resolve.
+            </span>
+          </div>
+        )}
 
         {/* O valor do assento aparecia sem dizer do que é composto — e é a
             primeira pergunta de quem confere a fatura. */}
@@ -256,9 +274,11 @@ export const RhFinanceiro: React.FC = () => {
             <span>
               Ajuste agendado: <strong>{resumo.max_assentos_agendado} assentos</strong> a partir de{' '}
               <strong>{fmtMesAno(resumo.max_assentos_vigencia)}</strong>. A fatura do mês atual mantém o valor vigente.
-              {' '}O novo total mensal será <strong>{fmtCurrency(
-                (resumo.valor_por_assento ?? 0) * resumo.max_assentos_agendado
-              )}</strong>.
+              {!semPreco && (
+                <> O novo total mensal será <strong>{fmtCurrency(
+                  (resumo.valor_por_assento ?? 0) * resumo.max_assentos_agendado
+                )}</strong>.</>
+              )}
             </span>
           </div>
         )}
