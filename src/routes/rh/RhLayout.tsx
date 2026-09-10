@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation, Link, Outlet } from 'react-router-dom';
 import {
   LogOut, Users, CreditCard, ShieldCheck, Leaf, Brain, CalendarX2,
@@ -7,7 +7,7 @@ import {
 import { supabase } from '../../services/supabase';
 import { MalamaLogo } from '../../components/MalamaLogo';
 import { rhService, type RhAcesso, type RhPermissao } from '../../services/empresaService';
-import { RhAccessProvider } from '../../contexts/RhAccessContext';
+import { RhAccessProvider, useRhAccess } from '../../contexts/RhAccessContext';
 import { RhJornadaProvider, useRhJornada } from '../../contexts/RhJornadaContext';
 import { PrimeiroAcessoRh } from '../../components/rh/PrimeiroAcessoRh';
 import { RhCopilot } from '../../components/rh/RhCopilot';
@@ -158,6 +158,36 @@ const EmpresaNoCabecalho: React.FC = () => {
   );
 };
 
+/**
+ * Termos vigentes sem assinatura do usuário principal reabrem a apresentação.
+ *
+ * A marca de "já viu a apresentação" é por usuário e não expira, então uma
+ * versão nova publicada depois do primeiro acesso passaria batida: o registro
+ * ficaria só na ciência automática, que não é assinatura. Este vigia devolve
+ * a apresentação — ela abre no passo dos Termos e não fecha antes do aceite.
+ *
+ * Dispara no máximo uma vez por sessão. Ao fechar, a lista de documentos
+ * ainda está sendo relida, e sem esse limite o painel reabriria o modal em
+ * cima de um aceite que acabou de ser registrado.
+ */
+const VigiaDeTermos: React.FC<{ ativo: boolean; onAbrir: () => void }> = ({ ativo, onAbrir }) => {
+  const { acesso } = useRhAccess();
+  const { documentos, loading } = useRhJornada();
+  const jaAbriu = useRef(false);
+
+  const pendente = acesso.principal && !loading && documentos.some(
+    d => d.tipo === 'termos_b2b' && d.exige_aceite && d.modo !== 'explicito',
+  );
+
+  useEffect(() => {
+    if (!ativo || !pendente || jaAbriu.current) return;
+    jaAbriu.current = true;
+    onAbrir();
+  }, [ativo, pendente, onAbrir]);
+
+  return null;
+};
+
 export const RhLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -165,6 +195,9 @@ export const RhLayout: React.FC = () => {
   const [acesso, setAcesso] = useState<RhAcesso | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [apresentando, setApresentando] = useState(false);
+  // Uma apresentação encerrada não volta sozinha nesta sessão — nem pelo
+  // vigia dos termos, que só existe para quem ainda não passou por ela.
+  const [apresentacaoEncerrada, setApresentacaoEncerrada] = useState(false);
   const [copilotoAberto, setCopilotoAberto] = useState(false);
 
   useEffect(() => {
@@ -182,6 +215,7 @@ export const RhLayout: React.FC = () => {
   const encerrarApresentacao = () => {
     if (acesso) marcarApresentacaoVista(acesso.id);
     setApresentando(false);
+    setApresentacaoEncerrada(true);
   };
 
   // O guard roda apenas na montagem. Sem acompanhar os eventos de Auth, uma
@@ -298,6 +332,10 @@ export const RhLayout: React.FC = () => {
 
         <main className="mx-auto w-full max-w-[1800px] p-4 sm:p-6 lg:px-8"><Outlet /></main>
         <RhCopilot open={copilotoAberto} onOpenChange={setCopilotoAberto} />
+        <VigiaDeTermos
+          ativo={!apresentando && !apresentacaoEncerrada}
+          onAbrir={() => setApresentando(true)}
+        />
         {apresentando && (
           <PrimeiroAcessoRh
             onFechar={encerrarApresentacao}

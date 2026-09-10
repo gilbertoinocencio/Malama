@@ -31,6 +31,7 @@ import { PerfilEmpresaForm } from '../../components/rh/PerfilEmpresaForm';
 import {
   rhService, type EmpresaPerfil, type DocumentoLegal,
 } from '../../services/empresaService';
+import { cabecalhoVigencia } from '../../lib/documentosLegais';
 // Colaboradores já vêm carregados pelo layout (RhJornadaProvider envolve
 // todas as rotas do portal) — reusar evita uma segunda chamada para o
 // mesmo dado que o dashboard também usa.
@@ -87,7 +88,9 @@ const DocumentoItem: React.FC<{
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-gray-800">{doc.titulo}</span>
-            <span className="text-xs text-gray-400">versão {doc.versao}</span>
+            {/* Versão e vigência vêm das colunas do documento, nunca do corpo
+                do texto: publicar uma versão nova atualiza esta linha sozinha. */}
+            <span className="text-xs text-gray-400">{cabecalhoVigencia(doc)}</span>
             {doc.especifico && (
               <span className="px-2 py-0.5 rounded-full text-xs bg-[#7d4a3c]/10 text-[#7d4a3c]">
                 Contrato da sua empresa
@@ -150,8 +153,13 @@ const DocumentoItem: React.FC<{
 
       {aberto && doc.conteudo && (
         <div className="border-t border-gray-100 bg-white">
-          {/* Texto puro vindo do banco: whitespace-pre-wrap, nunca HTML. */}
-          <div className="px-4 py-4 max-h-96 overflow-y-auto text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+          {/* Texto puro vindo do banco: whitespace-pre-wrap, nunca HTML. O
+              cabeçalho de vigência é impresso aqui, fora do texto, para que
+              quem lê ou imprime o documento veja qual versão está lendo. */}
+          <div className="px-4 pt-4 text-xs font-medium uppercase tracking-wide text-gray-400">
+            {cabecalhoVigencia(doc)}
+          </div>
+          <div className="px-4 pb-4 pt-2 max-h-96 overflow-y-auto text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
             {doc.conteudo}
           </div>
         </div>

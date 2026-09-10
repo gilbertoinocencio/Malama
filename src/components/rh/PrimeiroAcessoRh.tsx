@@ -9,6 +9,19 @@
 // Nenhuma tela aqui é tour de interface. O que falta não é saber onde clicar:
 // é saber o que se está fazendo, em que ordem, e de quem é cada parte.
 //
+// O ACEITE DOS TERMOS VEM ANTES DE TUDO, e só para o usuário principal.
+//   A ciência automática (`rh_registrar_ciencia`) continua existindo e grava
+//   sozinha o registro de quem abre o painel — mas ciência não é assinatura,
+//   e é a assinatura que o jurídico do cliente pede. Quem tem poderes para
+//   obrigar a empresa é o usuário principal, então é dele, e no primeiro
+//   acesso, que se pede o aceite explícito, com nome e cargo declarados.
+//   O passo não fecha no X nem no Esc enquanto não for assinado: o painel
+//   inteiro opera sob esses Termos, e começar a usar antes de aceitar é
+//   exatamente a ordem que o documento não admite.
+//   Usuário convidado pela equipe não vê o passo. Ele não assina pela
+//   empresa, e travá-lo numa assinatura que não lhe cabe o deixaria de fora
+//   do painel para sempre.
+//
 // O PERFIL ABRE A APRESENTAÇÃO, e não fecha.
 //   Ele estava no último passo, depois de três telas de leitura — o ponto de
 //   maior fadiga acumulada, com um botão "Fazer depois" ao lado. Era o campo
@@ -25,11 +38,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, ArrowLeft, Search, BarChart3, ClipboardList, CalendarClock,
-  X, Users, HardHat, Building2, Sparkles, Bot, CheckCircle2,
+  X, Users, HardHat, Building2, Sparkles, Bot, CheckCircle2, ShieldCheck,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { PerfilEmpresaForm } from './PerfilEmpresaForm';
 import { useRhJornada } from '../../contexts/RhJornadaContext';
 import { useRhAccess } from '../../contexts/RhAccessContext';
+import { rhService, type DocumentoLegal } from '../../services/empresaService';
+import { cabecalhoVigencia } from '../../lib/documentosLegais';
 
 type Passo = { chave: string; titulo: string; resumo: string; corpo: React.ReactNode };
 
@@ -233,12 +249,163 @@ const PassoPerfil: React.FC<{ nomeEmpresa?: string | null; jaConfirmado: boolean
   </div>
 );
 
+/**
+ * Aceite do contrato de adesão, no primeiro acesso do usuário principal.
+ *
+ * O texto inteiro é exibido aqui — não um resumo com link. Contrato de
+ * adesão assinado sobre um resumo é assinado sobre outra coisa. O botão só
+ * habilita depois que o documento foi rolado até o fim, e cai para
+ * habilitado quando o texto cabe na caixa sem rolagem, para que uma tela
+ * grande (ou um documento curto) não vire tranca.
+ */
+const PassoTermos: React.FC<{
+  doc: DocumentoLegal | null;
+  carregando: boolean;
+  aceito: boolean;
+  nomeSugerido: string | null;
+  onAceito: () => void;
+}> = ({ doc, carregando, aceito, nomeSugerido, onAceito }) => {
+  const [nome, setNome] = useState(nomeSugerido ?? '');
+  const [cargo, setCargo] = useState('');
+  const [lido, setLido] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const caixaRef = useRef<HTMLDivElement>(null);
+
+  // Texto que cabe na caixa nunca dispara evento de rolagem — sem esta
+  // medição o botão ficaria desabilitado para sempre.
+  useEffect(() => {
+    const el = caixaRef.current;
+    if (!el) return;
+    const medir = () => {
+      if (el.scrollHeight <= el.clientHeight + 8) setLido(true);
+    };
+    medir();
+    window.addEventListener('resize', medir);
+    return () => window.removeEventListener('resize', medir);
+  }, [doc?.id]);
+
+  const aoRolar = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) setLido(true);
+  };
+
+  const aceitar = async () => {
+    if (!doc) return;
+    if (!nome.trim()) { toast.error('Informe o nome de quem está aceitando.'); return; }
+    setEnviando(true);
+    try {
+      const res = await rhService.aceitarDocumento(doc.id, nome.trim(), cargo.trim());
+      if (!res.ok) { toast.error(res.error || 'Não foi possível registrar o aceite.'); return; }
+      toast.success('Aceite registrado.');
+      onAceito();
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  if (carregando) {
+    return (
+      <div className="flex h-40 items-center justify-center">
+        <div className="h-7 w-7 animate-spin rounded-full border-b-2 border-[#7d4a3c]" />
+      </div>
+    );
+  }
+
+  if (!doc) {
+    return (
+      <p className="text-sm leading-relaxed text-gray-600">
+        Nenhum documento pendente de aceite. Você pode seguir para o painel.
+      </p>
+    );
+  }
+
+  if (aceito) {
+    return (
+      <div className="flex gap-3 rounded-lg border border-green-200 bg-green-50 p-4">
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-green-900">Aceite registrado.</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-green-800">
+            Ficou gravado com a versão do documento, a data e o nome informado. O texto
+            continua disponível na área da empresa, pelo nome dela no cabeçalho.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 text-[#7d4a3c]">
+        <ShieldCheck className="h-4 w-4 shrink-0" />
+        <p className="text-xs font-semibold uppercase tracking-wide">Contrato de adesão</p>
+      </div>
+
+      <p className="text-sm leading-relaxed text-gray-600">
+        O painel inteiro funciona sob estes Termos: eles definem o que a Malama trata como
+        operadora, o que a empresa nunca vê de cada colaborador e o que a empresa se
+        compromete a não fazer com o que vê. Leia e assine em nome da empresa antes de
+        entrar — quem assina precisa ter poderes para obrigá-la.
+      </p>
+
+      <div className="rounded-xl border border-gray-200">
+        {/* Versão e vigência saem das colunas do documento vigente, e não do
+            corpo do texto: uma fonte só, sempre a do que está publicado. */}
+        <div className="border-b border-gray-100 px-4 py-2.5">
+          <p className="text-sm font-medium text-gray-800">{doc.titulo}</p>
+          <p className="mt-0.5 text-xs text-gray-400">{cabecalhoVigencia(doc)}</p>
+        </div>
+        <div
+          ref={caixaRef}
+          onScroll={aoRolar}
+          className="max-h-64 overflow-y-auto whitespace-pre-wrap px-4 py-3 text-xs leading-relaxed text-gray-700"
+        >
+          {doc.conteudo}
+        </div>
+      </div>
+
+      {!lido && (
+        <p className="text-xs text-gray-500">Role o documento até o fim para liberar o aceite.</p>
+      )}
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <input
+          type="text" value={nome} onChange={e => setNome(e.target.value)}
+          placeholder="Nome de quem aceita"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-[#7d4a3c]"
+        />
+        <input
+          type="text" value={cargo} onChange={e => setCargo(e.target.value)}
+          placeholder="Cargo (ex.: Diretora de RH)"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-[#7d4a3c]"
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={aceitar}
+        disabled={enviando || !lido}
+        className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#623a2f] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[#7d4a3c]"
+      >
+        <ShieldCheck className="h-4 w-4" />
+        {enviando ? 'Registrando...' : 'Li e aceito em nome da empresa'}
+      </button>
+
+      <p className="text-xs leading-relaxed text-gray-400">
+        O aceite fica registrado com a versão do documento, a data e a hora, o nome e o cargo
+        declarados e a conta autenticada. Publicar uma versão nova não apaga este registro.
+      </p>
+    </div>
+  );
+};
+
 export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar }) => {
   const [i, setI] = useState(0);
   const [perfilConcluido, setPerfilConcluido] = useState(false);
+  const [termosAceitos, setTermosAceitos] = useState(false);
   const painelRef = useRef<HTMLDivElement>(null);
-  const { empresa } = useRhJornada();
-  const { can } = useRhAccess();
+  const { empresa, documentos, loading: carregandoJornada, recarregar } = useRhJornada();
+  const { acesso, can } = useRhAccess();
 
   // Só é exigido de quem PODE preencher. PerfilEmpresaForm recusa a edição a
   // quem não tem o módulo 'empresa' — exigir dessa pessoa a trancaria fora do
@@ -246,7 +413,33 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
   // (`can` já devolve true para o usuário principal.)
   const perfilPendente = can('empresa') && !perfilConcluido;
 
+  // Contrato de adesão vigente que ainda não tem assinatura. `modo` vem
+  // 'automatico' quando existe só a ciência gravada no acesso — e é
+  // justamente esse caso que o passo existe para resolver.
+  const termo = acesso.principal
+    ? documentos.find(d => d.tipo === 'termos_b2b' && d.exige_aceite && d.modo !== 'explicito') ?? null
+    : null;
+  // Enquanto a jornada carrega ainda não se sabe se há termo pendente. O
+  // passo aparece assim mesmo, travado: deixar passar por causa de uma
+  // leitura em andamento pularia o aceite justamente no primeiro acesso.
+  const mostrarTermos = acesso.principal && (carregandoJornada || !!termo);
+  const termosPendentes = mostrarTermos && !termosAceitos;
+
   const PASSOS: Passo[] = [
+    ...(mostrarTermos ? [{
+      chave: 'termos',
+      titulo: termosAceitos ? 'Termos aceitos' : 'Antes de entrar: os termos de uso do painel',
+      resumo: 'Termos de uso',
+      corpo: (
+        <PassoTermos
+          doc={termo}
+          carregando={carregandoJornada}
+          aceito={termosAceitos}
+          nomeSugerido={acesso.nome}
+          onAceito={() => setTermosAceitos(true)}
+        />
+      ),
+    }] : []),
     {
       chave: 'perfil',
       titulo: perfilConcluido ? 'Confira o perfil da empresa' : 'Comece contando o que a empresa faz',
@@ -256,8 +449,12 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
     ...PASSOS_LEITURA,
   ];
 
-  const passo = PASSOS[i];
-  const ultimo = i === PASSOS.length - 1;
+  // A lista encolhe se a carga da jornada terminar sem termo pendente. Sem
+  // travar o índice dentro dela, um avanço rápido durante a carga apontaria
+  // para fora do array e a apresentação quebraria na hora de renderizar.
+  const indice = Math.min(i, PASSOS.length - 1);
+  const passo = PASSOS[indice];
+  const ultimo = indice === PASSOS.length - 1;
 
   // O perfil é obrigatório no início: enquanto ele não for confirmado, este
   // passo não avança, não fecha no X e não fecha no Esc. Não é gentileza
@@ -265,9 +462,20 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
   // trabalham no vazio pelo resto do ciclo. A porta que continua aberta é
   // "preencher manualmente", dentro do formulário, para que uma queda do
   // provedor de IA não vire tranca.
-  const travado = passo.chave === 'perfil' && perfilPendente;
+  const travado =
+    (passo.chave === 'perfil' && perfilPendente) ||
+    (passo.chave === 'termos' && termosPendentes);
 
-  const fechar = useCallback(() => onFechar(), [onFechar]);
+  const avisoDeTrava = passo.chave === 'termos'
+    ? 'Aceite os termos para continuar.'
+    : 'Confirme o perfil para continuar.';
+
+  // Ao sair, a jornada relê os documentos: o registro deixou de ser ciência
+  // automática e virou aceite assinado, e o resto do painel precisa saber.
+  const fechar = useCallback(() => {
+    if (termosAceitos) void recarregar();
+    onFechar();
+  }, [onFechar, recarregar, termosAceitos]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !travado) fechar(); };
     window.addEventListener('keydown', onKey);
@@ -276,7 +484,7 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
 
   // Foco no painel a cada passo: sem isto o leitor de tela continua anunciando
   // o conteúdo anterior depois de avançar.
-  useEffect(() => { painelRef.current?.focus(); }, [i]);
+  useEffect(() => { painelRef.current?.focus(); }, [indice]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6">
@@ -291,7 +499,7 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
         <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 pb-4 pt-5">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">
-              Bem-vindo ao Portal do RH · {i + 1} de {PASSOS.length}
+              Bem-vindo ao Portal do RH · {indice + 1} de {PASSOS.length}
             </p>
             <h2 id="primeiro-acesso-titulo" className="mt-1 text-xl font-semibold leading-snug text-gray-900">
               {passo.titulo}
@@ -336,22 +544,22 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
                 <span
                   key={p.chave}
                   className={`h-1.5 rounded-full transition-all ${
-                    idx === i ? 'w-6 bg-[#7d4a3c]' : 'w-1.5 bg-gray-300'
+                    idx === indice ? 'w-6 bg-[#7d4a3c]' : 'w-1.5 bg-gray-300'
                   }`}
                 />
               ))}
             </div>
             {/* Botão desabilitado sem explicação lê-se como tela quebrada. */}
             {travado && (
-              <p className="text-xs text-gray-500">Confirme o perfil para continuar.</p>
+              <p className="text-xs text-gray-500">{avisoDeTrava}</p>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            {i > 0 && (
+            {indice > 0 && (
               <button
                 type="button"
-                onClick={() => setI(v => v - 1)}
+                onClick={() => setI(indice - 1)}
                 className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100"
               >
                 <ArrowLeft className="h-4 w-4" /> Voltar
@@ -378,10 +586,10 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
               <button
                 type="button"
                 disabled={travado}
-                onClick={() => setI(v => v + 1)}
+                onClick={() => setI(indice + 1)}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#623a2f] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[#7d4a3c]"
               >
-                {PASSOS[i + 1].resumo} <ArrowRight className="h-4 w-4" />
+                {PASSOS[indice + 1].resumo} <ArrowRight className="h-4 w-4" />
               </button>
             )}
           </div>

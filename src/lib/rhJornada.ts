@@ -709,12 +709,25 @@ export function dossieNr1(d: DadosJornada): EtapaDossie[] {
   const comMedida = d.planos.length > 0;
   const naFonte = d.planos.some(p => p.nivel_controle === 'fonte' || p.nivel_controle === 'organizacional');
   const comEvidencia = d.planos.some(p => p.status === 'concluida' && !!p.evidencia);
-  // O contrato de adesão (`termos_b2b`) não autoriza tratar dado de saúde:
-  // ele rege a relação comercial. A base legal da coleta é o termo de
-  // tratamento de dados (controladora × operadora, LGPD art. 39).
-  const tratamentoDados = d.documentos.filter(
-    doc => doc.tipo === 'tratamento_dados' && doc.exige_aceite,
+  // Desde a versão 2.0 dos Termos, o acordo de tratamento de dados vive
+  // DENTRO do `termos_b2b`: papéis de controladora e operadora (seção 3),
+  // obrigações da operadora (9), suboperadores e transferência internacional
+  // (10), incidentes (11), direitos dos titulares (12) e eliminação (20).
+  // Não há mais um segundo documento a assinar — e exigir um que não existe
+  // deixava esta etapa vermelha para sempre.
+  //
+  // `tratamento_dados` continua aceito aqui porque um cliente pode negociar
+  // um DPA próprio (`empresa_id` preenchido), que se sobrepõe ao documento
+  // da plataforma. Quando existe, é ele que vale.
+  //
+  // O que NÃO afrouxou foi a exigência de assinatura: só conta `modo`
+  // 'explicito', com nome e cargo declarados. Ciência automática registra
+  // que alguém abriu o painel, não que a empresa assinou — e num documento
+  // feito para responder à fiscalização, a diferença é o ponto todo.
+  const baseLegal = d.documentos.filter(
+    doc => (doc.tipo === 'tratamento_dados' || doc.tipo === 'termos_b2b') && doc.exige_aceite,
   );
+  const assinado = baseLegal.filter(doc => doc.modo === 'explicito' && !!doc.aceito_em);
 
   return [
     {
@@ -765,18 +778,11 @@ export function dossieNr1(d: DadosJornada): EtapaDossie[] {
     {
       chave: 'formalizar',
       exige: 'Formalizar a base legal do tratamento de dados',
-      comprova: 'Termo de tratamento de dados aceito, com versão, data e signatário',
-      // SÓ o termo de tratamento de dados vale aqui. Antes qualquer aceite
-      // servia — e o único documento que existe é o contrato de adesão
-      // (`termos_b2b`), aceito automaticamente na primeira carga do painel.
-      // Ou seja: o dossiê dava esta etapa por cumprida sem que a empresa
-      // tivesse assinado nada sobre tratamento de dado de saúde. Num
-      // documento que existe para responder à fiscalização, afirmar isso é
-      // pior do que deixar a etapa em aberto.
-      ok: tratamentoDados.length > 0 && tratamentoDados.every(doc => !!doc.aceito_em),
-      pendencia: tratamentoDados.length === 0
-        ? 'Não há termo de tratamento de dados vigente para aceitar. O contrato de adesão não cobre isto — fale com a Malama.'
-        : 'O termo de tratamento de dados ainda não foi aceito.',
+      comprova: 'Termos assinados pela empresa, com versão, data e signatário',
+      ok: baseLegal.length > 0 && assinado.length === baseLegal.length,
+      pendencia: baseLegal.length === 0
+        ? 'Não há termos vigentes para assinar. Fale com a Malama.'
+        : 'Os termos vigentes ainda não foram assinados. Só o usuário principal assina pela empresa, informando nome e cargo — a ciência registrada no acesso ao painel não substitui a assinatura.',
       destino: '/rh/empresa#documentos',
     },
   ];

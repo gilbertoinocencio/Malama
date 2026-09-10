@@ -1647,9 +1647,13 @@ export const rhService = {
   },
 
   /**
-   * Documento de tratamento de dados vigente, para carimbar no relatório sob
-   * qual instrumento a coleta foi acordada. Silencioso em erro: falta de
-   * permissão para ler documentos não pode impedir a emissão do relatório.
+   * Documento vigente que rege o tratamento de dados, para carimbar no
+   * relatório sob qual instrumento a coleta foi acordada. Desde os Termos
+   * 2.0 o acordo de tratamento vive dentro do `termos_b2b`, então a busca
+   * cai nele; `tratamento_dados` continua com precedência porque, quando
+   * existe, é um DPA negociado com aquela empresa e se sobrepõe ao geral.
+   * Silencioso em erro: falta de permissão para ler documentos não pode
+   * impedir a emissão do relatório.
    */
   async getAceiteVigente(): Promise<AceiteVigente | null> {
     try {
