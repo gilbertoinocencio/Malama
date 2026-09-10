@@ -9,7 +9,6 @@ import { MalamaLogo } from '../../components/MalamaLogo';
 import { rhService, type RhAcesso, type RhPermissao } from '../../services/empresaService';
 import { RhAccessProvider } from '../../contexts/RhAccessContext';
 import { RhJornadaProvider, useRhJornada } from '../../contexts/RhJornadaContext';
-import { FaixaProximoPasso } from '../../components/rh/FaixaProximoPasso';
 import { PrimeiroAcessoRh } from '../../components/rh/PrimeiroAcessoRh';
 import { RhCopilot } from '../../components/rh/RhCopilot';
 import { RelatosSentinelaAlerta } from '../../components/rh/RelatosSentinelaAlerta';
@@ -295,9 +294,6 @@ export const RhLayout: React.FC = () => {
             <AbasDoPainel tabs={tabs} atual={location.pathname} />
           </div>
 
-          {/* Bússola em todas as abas: sem isto, "o que eu faço agora?" só
-              tinha resposta no dashboard. */}
-          <FaixaProximoPasso />
         </header>
 
         <main className="mx-auto w-full max-w-[1800px] p-4 sm:p-6 lg:px-8"><Outlet /></main>
