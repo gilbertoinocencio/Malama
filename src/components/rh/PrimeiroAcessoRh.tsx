@@ -11,15 +11,19 @@
 //
 // O ACEITE DOS TERMOS VEM ANTES DE TUDO, e só para o usuário principal.
 //   A ciência automática (`rh_registrar_ciencia`) continua existindo e grava
-//   sozinha o registro de quem abre o painel — mas ciência não é assinatura,
-//   e é a assinatura que o jurídico do cliente pede. Quem tem poderes para
-//   obrigar a empresa é o usuário principal, então é dele, e no primeiro
-//   acesso, que se pede o aceite explícito, com nome e cargo declarados.
-//   O passo não fecha no X nem no Esc enquanto não for assinado: o painel
+//   sozinha o registro de quem abre o painel — mas ciência não é aceite
+//   explícito, e é o aceite explícito que o jurídico do cliente pede. Quem
+//   tem poderes para obrigar a empresa é o usuário principal, então é dele,
+//   e no primeiro acesso, que se pede a marcação explícita: rolar o texto
+//   até o fim e marcar "li e aceito". Sem pedir nome e cargo de novo — eles
+//   já foram capturados quando o admin da Malama criou esta conta
+//   (`rh_usuarios.cargo`, migration 20260910), e é isso que vai para o
+//   registro do aceite.
+//   O passo não fecha no X nem no Esc enquanto não for aceito: o painel
 //   inteiro opera sob esses Termos, e começar a usar antes de aceitar é
 //   exatamente a ordem que o documento não admite.
-//   Usuário convidado pela equipe não vê o passo. Ele não assina pela
-//   empresa, e travá-lo numa assinatura que não lhe cabe o deixaria de fora
+//   Usuário convidado pela equipe não vê o passo. Ele não aceita pela
+//   empresa, e travá-lo num aceite que não lhe cabe o deixaria de fora
 //   do painel para sempre.
 //
 // O PERFIL ABRE A APRESENTAÇÃO, e não fecha.
@@ -45,7 +49,6 @@ import { PerfilEmpresaForm } from './PerfilEmpresaForm';
 import { useRhJornada } from '../../contexts/RhJornadaContext';
 import { useRhAccess } from '../../contexts/RhAccessContext';
 import { rhService, type DocumentoLegal } from '../../services/empresaService';
-import { cabecalhoVigencia } from '../../lib/documentosLegais';
 
 type Passo = { chave: string; titulo: string; resumo: string; corpo: React.ReactNode };
 
@@ -253,26 +256,35 @@ const PassoPerfil: React.FC<{ nomeEmpresa?: string | null; jaConfirmado: boolean
  * Aceite do contrato de adesão, no primeiro acesso do usuário principal.
  *
  * O texto inteiro é exibido aqui — não um resumo com link. Contrato de
- * adesão assinado sobre um resumo é assinado sobre outra coisa. O botão só
- * habilita depois que o documento foi rolado até o fim, e cai para
- * habilitado quando o texto cabe na caixa sem rolagem, para que uma tela
- * grande (ou um documento curto) não vire tranca.
+ * adesão aceito sobre um resumo é aceito sobre outra coisa.
+ *
+ * Sem campo de nome nem de cargo: os dois já foram capturados quando o
+ * admin da Malama criou esta conta — é informação da venda, coletada uma
+ * vez. Pedir de novo aqui não reforça a prova, só repete um campo que já
+ * existe em outro ponto do cadastro. O padrão é o de qualquer instalador:
+ * rolar até o fim libera o checkbox, marcar o checkbox libera o botão. A
+ * conta e o horário do clique é que ficam registrados como prova.
  */
 const PassoTermos: React.FC<{
   doc: DocumentoLegal | null;
   carregando: boolean;
   aceito: boolean;
-  nomeSugerido: string | null;
+  /** Nome da conta autenticada, já resolvido com o fallback do e-mail — é
+   *  o que vai para o registro, sem pedir para ninguém digitar de novo. */
+  nomeConta: string;
+  /** Cargo capturado na criação da conta (migration 20260910). Pode faltar
+   *  em conta antiga ou criada sem o campo preenchido — nesse caso grava
+   *  vazio, como sempre gravou antes de existir esta coluna. */
+  cargoConta: string;
   onAceito: () => void;
-}> = ({ doc, carregando, aceito, nomeSugerido, onAceito }) => {
-  const [nome, setNome] = useState(nomeSugerido ?? '');
-  const [cargo, setCargo] = useState('');
+}> = ({ doc, carregando, aceito, nomeConta, cargoConta, onAceito }) => {
   const [lido, setLido] = useState(false);
+  const [concordo, setConcordo] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const caixaRef = useRef<HTMLDivElement>(null);
 
   // Texto que cabe na caixa nunca dispara evento de rolagem — sem esta
-  // medição o botão ficaria desabilitado para sempre.
+  // medição o checkbox ficaria bloqueado para sempre.
   useEffect(() => {
     const el = caixaRef.current;
     if (!el) return;
@@ -289,14 +301,12 @@ const PassoTermos: React.FC<{
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) setLido(true);
   };
 
-  const aceitar = async () => {
+  const continuar = async () => {
     if (!doc) return;
-    if (!nome.trim()) { toast.error('Informe o nome de quem está aceitando.'); return; }
     setEnviando(true);
     try {
-      const res = await rhService.aceitarDocumento(doc.id, nome.trim(), cargo.trim());
+      const res = await rhService.aceitarDocumento(doc.id, nomeConta, cargoConta);
       if (!res.ok) { toast.error(res.error || 'Não foi possível registrar o aceite.'); return; }
-      toast.success('Aceite registrado.');
       onAceito();
     } finally {
       setEnviando(false);
@@ -326,7 +336,7 @@ const PassoTermos: React.FC<{
         <div className="min-w-0">
           <p className="text-sm font-semibold text-green-900">Aceite registrado.</p>
           <p className="mt-0.5 text-xs leading-relaxed text-green-800">
-            Ficou gravado com a versão do documento, a data e o nome informado. O texto
+            Ficou gravado com a versão do documento, a data e a conta que aceitou. O texto
             continua disponível na área da empresa, pelo nome dela no cabeçalho.
           </p>
         </div>
@@ -344,16 +354,13 @@ const PassoTermos: React.FC<{
       <p className="text-sm leading-relaxed text-gray-600">
         O painel inteiro funciona sob estes Termos: eles definem o que a Malama trata como
         operadora, o que a empresa nunca vê de cada colaborador e o que a empresa se
-        compromete a não fazer com o que vê. Leia e assine em nome da empresa antes de
-        entrar — quem assina precisa ter poderes para obrigá-la.
+        compromete a não fazer com o que vê. Leia o documento e marque que está de acordo
+        antes de entrar.
       </p>
 
       <div className="rounded-xl border border-gray-200">
-        {/* Versão e vigência saem das colunas do documento vigente, e não do
-            corpo do texto: uma fonte só, sempre a do que está publicado. */}
         <div className="border-b border-gray-100 px-4 py-2.5">
           <p className="text-sm font-medium text-gray-800">{doc.titulo}</p>
-          <p className="mt-0.5 text-xs text-gray-400">{cabecalhoVigencia(doc)}</p>
         </div>
         <div
           ref={caixaRef}
@@ -364,36 +371,33 @@ const PassoTermos: React.FC<{
         </div>
       </div>
 
+      <label className={`flex items-start gap-2 text-sm ${lido ? 'text-gray-700' : 'text-gray-400'}`}>
+        <input
+          type="checkbox"
+          checked={concordo}
+          disabled={!lido}
+          onChange={e => setConcordo(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-[#7d4a3c] focus:ring-[#7d4a3c] disabled:cursor-not-allowed"
+        />
+        Li e aceito as condições dos termos.
+      </label>
       {!lido && (
-        <p className="text-xs text-gray-500">Role o documento até o fim para liberar o aceite.</p>
+        <p className="-mt-1 text-xs text-gray-500">Role o documento até o fim para marcar esta opção.</p>
       )}
-
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <input
-          type="text" value={nome} onChange={e => setNome(e.target.value)}
-          placeholder="Nome de quem aceita"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-[#7d4a3c]"
-        />
-        <input
-          type="text" value={cargo} onChange={e => setCargo(e.target.value)}
-          placeholder="Cargo (ex.: Diretora de RH)"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-[#7d4a3c]"
-        />
-      </div>
 
       <button
         type="button"
-        onClick={aceitar}
-        disabled={enviando || !lido}
+        onClick={continuar}
+        disabled={enviando || !concordo}
         className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#623a2f] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[#7d4a3c]"
       >
         <ShieldCheck className="h-4 w-4" />
-        {enviando ? 'Registrando...' : 'Li e aceito em nome da empresa'}
+        {enviando ? 'Registrando...' : 'Continuar'}
       </button>
 
       <p className="text-xs leading-relaxed text-gray-400">
-        O aceite fica registrado com a versão do documento, a data e a hora, o nome e o cargo
-        declarados e a conta autenticada. Publicar uma versão nova não apaga este registro.
+        O aceite fica registrado com a versão do documento, a data, a hora e a conta
+        autenticada. Publicar uma versão nova não apaga este registro.
       </p>
     </div>
   );
@@ -435,7 +439,8 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
           doc={termo}
           carregando={carregandoJornada}
           aceito={termosAceitos}
-          nomeSugerido={acesso.nome}
+          nomeConta={acesso.nome || acesso.email}
+          cargoConta={acesso.cargo ?? ''}
           onAceito={() => setTermosAceitos(true)}
         />
       ),

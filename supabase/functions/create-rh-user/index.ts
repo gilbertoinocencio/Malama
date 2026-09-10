@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
   try {
     const {
       empresa, // { nome, cnpj, responsavel_nome, responsavel_email, responsavel_telefone, valor_por_assento, valor_assento_mental, valor_assento_metabolico, max_assentos, modo_mental, modo_metabolico, status, data_inicio }
-      rh,      // { email, password, nome }
+      rh,      // { email, password, nome, cargo }
     } = await req.json();
 
     if (!empresa?.nome) return json({ error: 'Nome da empresa é obrigatório' }, 400);
@@ -107,6 +107,9 @@ Deno.serve(async (req: Request) => {
         auth_user_id: userData.user.id,
         email: rh.email,
         nome: rh.nome || empresa.responsavel_nome || null,
+        // Capturado aqui, na criação, e não pedido de novo no onboarding: é
+        // o admin que sabe o cargo do responsável no momento da venda.
+        cargo: rh.cargo || null,
         papel: 'proprietario',
         principal: true,
         permissoes: [

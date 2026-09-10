@@ -58,6 +58,7 @@ type EmpresaForm = {
   nome: string;
   cnpj: string;
   responsavel_nome: string;
+  responsavel_cargo: string; // só na criação — vira o cargo da conta de login (rh_usuarios.cargo)
   responsavel_email: string;
   responsavel_telefone: string;
   valor_por_assento: string;
@@ -78,7 +79,7 @@ type EmpresaForm = {
 };
 
 const EMPTY_FORM: EmpresaForm = {
-  nome: '', cnpj: '', responsavel_nome: '', responsavel_email: '',
+  nome: '', cnpj: '', responsavel_nome: '', responsavel_cargo: '', responsavel_email: '',
   responsavel_telefone: '', valor_por_assento: '',
   valor_assento_mental: '', valor_assento_metabolico: '', max_assentos: '',
   // Compliance nasce marcado: ele acompanha qualquer contrato, e desmarcá-lo
@@ -101,6 +102,9 @@ const EmpresaModal: React.FC<{
           nome: initial.nome,
           cnpj: initial.cnpj ?? '',
           responsavel_nome: initial.responsavel_nome ?? '',
+          // Cargo é campo só de criação (vira rh_usuarios.cargo, não
+          // existe em `empresas`) — em edição não há de onde recuperá-lo.
+          responsavel_cargo: '',
           responsavel_email: initial.responsavel_email ?? '',
           responsavel_telefone: initial.responsavel_telefone ?? '',
           valor_por_assento: initial.valor_por_assento != null ? String(initial.valor_por_assento) : '',
@@ -201,7 +205,7 @@ const EmpresaModal: React.FC<{
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Responsável de RH</p>
             </div>
 
-            <div className="col-span-2">
+            <div className={initial ? 'col-span-2' : ''}>
               <label className="block text-xs font-medium text-gray-600 mb-1">Nome do responsável</label>
               <input
                 value={form.responsavel_nome} onChange={e => set('responsavel_nome', e.target.value)}
@@ -209,6 +213,21 @@ const EmpresaModal: React.FC<{
                 placeholder="Maria Oliveira"
               />
             </div>
+
+            {/* Só na criação: vira o cargo da conta de login (rh_usuarios.cargo),
+                que não existe em edição — a conta já existe e este campo não
+                a altera. É o que preenche sozinho o aceite dos Termos no
+                primeiro acesso, sem pedir de novo pro usuário principal. */}
+            {!initial && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Cargo do responsável</label>
+                <input
+                  value={form.responsavel_cargo} onChange={e => set('responsavel_cargo', e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+                  placeholder="Diretora de RH"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">E-mail {!initial && '*'}</label>
@@ -724,6 +743,7 @@ export const AdminEmpresas: React.FC = () => {
         email: form.responsavel_email,
         password: form.rh_password,
         nome: form.responsavel_nome || undefined,
+        cargo: form.responsavel_cargo || undefined,
       },
     });
     toast.success('Empresa criada! O RH já pode acessar em /rh com o e-mail e senha definidos.', { duration: 6000 });

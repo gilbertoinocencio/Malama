@@ -333,7 +333,7 @@ export const empresaAdminService = {
   // Cria empresa + conta de login do RH (via Edge Function service_role)
   async create(payload: {
     empresa: Partial<Empresa>;
-    rh: { email: string; password: string; nome?: string };
+    rh: { email: string; password: string; nome?: string; cargo?: string };
   }): Promise<Empresa> {
     const { data, error } = await supabase.functions.invoke('create-rh-user', {
       body: payload,
@@ -1142,6 +1142,9 @@ export type RhAcesso = {
   id: string;
   empresa_id: string;
   nome: string | null;
+  /** Capturado pelo admin na criação da conta (migration 20260910) — usado
+   *  para preencher o aceite dos Termos no onboarding sem perguntar de novo. */
+  cargo: string | null;
   email: string;
   papel: RhPapel;
   principal: boolean;
