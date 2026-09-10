@@ -73,6 +73,7 @@ type EmpresaForm = {
   max_assentos_psi: string;
   status: Empresa['status'];
   data_inicio: string;
+  cortesia_ate: string;
   rh_password: string; // apenas na criação
 };
 
@@ -85,7 +86,8 @@ const EMPTY_FORM: EmpresaForm = {
   modo_mental: true, modo_metabolico: false,
   modo_compliance: true, valor_assento_compliance: '',
   plano_psicologico: false, valor_assento_psi: '', max_assentos_psi: '',
-  status: 'ativa', data_inicio: new Date().toISOString().slice(0, 10), rh_password: '',
+  status: 'ativa', data_inicio: new Date().toISOString().slice(0, 10),
+  cortesia_ate: '', rh_password: '',
 };
 
 const EmpresaModal: React.FC<{
@@ -121,6 +123,7 @@ const EmpresaModal: React.FC<{
           max_assentos_psi: initial.max_assentos_psi != null ? String(initial.max_assentos_psi) : '',
           status: initial.status,
           data_inicio: initial.data_inicio ?? '',
+          cortesia_ate: initial.cortesia_ate ?? '',
           rh_password: '',
         }
       : { ...EMPTY_FORM }
@@ -402,6 +405,25 @@ const EmpresaModal: React.FC<{
                 type="date" value={form.data_inicio} onChange={e => set('data_inicio', e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
               />
+            </div>
+
+            {/* Cortesia é do CONTRATO, não do preço: o valor por assento
+                continua registrado e volta a valer sozinho quando a data
+                passa. Zerar o preço no lugar disto emitiria fatura de R$ 0,00
+                e apagaria quanto a empresa passa a pagar depois. */}
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Período grátis até <span className="font-normal text-gray-400">— opcional</span>
+              </label>
+              <input
+                type="date" value={form.cortesia_ate} onChange={e => set('cortesia_ate', e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {form.cortesia_ate
+                  ? `Nenhuma fatura é emitida até a competência de ${form.cortesia_ate.slice(0, 7)}, inclusive. A cobrança começa no mês seguinte, e o RH vê o período no painel dele.`
+                  : 'Em branco = cobrança normal desde o início. Preencha para dar meses de cortesia sem mexer no preço do contrato.'}
+              </p>
             </div>
 
             {/* ── Plano psicológico avulso — LEGADO ──
@@ -696,6 +718,7 @@ export const AdminEmpresas: React.FC = () => {
             ? parseFloat(form.valor_assento_compliance) : null,
         status: form.status,
         data_inicio: form.data_inicio || null,
+        cortesia_ate: form.cortesia_ate || null,
       },
       rh: {
         email: form.responsavel_email,
@@ -740,6 +763,7 @@ export const AdminEmpresas: React.FC = () => {
       max_assentos_psi: !form.modo_mental && form.plano_psicologico && form.max_assentos_psi ? parseInt(form.max_assentos_psi, 10) : null,
       status: form.status,
       data_inicio: form.data_inicio || null,
+      cortesia_ate: form.cortesia_ate || null,
     });
     toast.success('Empresa atualizada!');
     load();

@@ -66,10 +66,30 @@ Deno.serve(async (req: Request) => {
     // 1. Carregar empresa
     const { data: empresa, error: empErr } = await supabaseAdmin
       .from('empresas')
-      .select('id, nome, cnpj, cobranca_email, responsavel_email, valor_por_assento, max_assentos, max_assentos_agendado, max_assentos_vigencia, asaas_customer_id')
+      .select('id, nome, cnpj, cobranca_email, responsavel_email, valor_por_assento, max_assentos, max_assentos_agendado, max_assentos_vigencia, cortesia_ate, asaas_customer_id')
       .eq('id', empresa_id)
       .single();
     if (empErr || !empresa) return json({ error: 'Empresa não encontrada' }, 404);
+
+    // Período grátis: a recusa vem ANTES de qualquer escrita, porque a linha
+    // em empresa_faturas é criada antes de o gateway responder — emitir e
+    // desfazer deixaria fatura órfã no painel do RH. A comparação é contra a
+    // COMPETÊNCIA, não contra hoje: gerar em março a fatura de janeiro, mês
+    // que ainda era de cortesia, não pode passar só porque a cortesia já
+    // terminou. cortesia_ate é o último dia grátis, então a primeira
+    // competência cobrável é a do mês seguinte a ela.
+    if (empresa.cortesia_ate) {
+      // Cortesia que termina no meio do mês cobre o mês inteiro: a cobrança é
+      // mensal cheia, não tem rateio por dia.
+      const ultimaCompetenciaGratis = `${empresa.cortesia_ate.slice(0, 7)}-01`;
+      const competenciaPedida = `${vencimento.slice(0, 7)}-01`;
+      if (competenciaPedida <= ultimaCompetenciaGratis) {
+        return json({
+          error: `Empresa em período grátis até ${empresa.cortesia_ate}. `
+               + `A primeira competência cobrável é a do mês seguinte.`,
+        }, 422);
+      }
+    }
 
     // Valor por assento = soma das modalidades contratadas (mental e/ou
     // metabólico). A RPC devolve NULL quando uma modalidade ativa está sem

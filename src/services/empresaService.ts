@@ -48,6 +48,12 @@ export type Empresa = {
   valor_assento_metabolico?: number | null;
   /** Só usado quando compliance é a única modalidade. */
   valor_assento_compliance?: number | null;
+  /**
+   * Último dia do período grátis (migration 20260907). Enquanto não passa,
+   * a Edge Function de cobrança recusa emitir. O preço do contrato continua
+   * registrado nas colunas acima e volta a valer sozinho depois.
+   */
+  cortesia_ate?: string | null;
 };
 
 export type EmpresaSummary = Empresa & {
@@ -1121,6 +1127,8 @@ export type RhResumoFinanceiro = {
   acesso_bloqueado: boolean;
   max_assentos_agendado: number | null;
   max_assentos_vigencia: string | null;
+  /** Último dia do período grátis; nenhuma fatura é emitida até lá. */
+  cortesia_ate: string | null;
 };
 
 export type RhPermissao =

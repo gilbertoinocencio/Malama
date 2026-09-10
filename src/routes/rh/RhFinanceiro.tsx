@@ -24,6 +24,16 @@ const fmtCurrency = (v: number | null | undefined) =>
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
+/** Primeiro dia do mês seguinte, em string. Feito na mão porque `toISOString`
+ *  converte para UTC e, no fuso do Brasil, devolveria o último dia do mês
+ *  anterior — o mês inteiro erraria. */
+const mesSeguinte = (iso: string) => {
+  const [ano, mes] = iso.split('-').map(Number);
+  return mes === 12
+    ? `${ano + 1}-01-01`
+    : `${ano}-${String(mes + 1).padStart(2, '0')}-01`;
+};
+
 const statusBadge: Record<EmpresaFatura['status'], { label: string; cls: string }> = {
   pendente: { label: 'Pendente', cls: 'bg-yellow-100 text-yellow-700' },
   pago:     { label: 'Pago',     cls: 'bg-green-100 text-green-700' },
@@ -147,6 +157,14 @@ export const RhFinanceiro: React.FC = () => {
   // "ainda não foi precificado" e é justamente o caso em que a cobrança se recusa a emitir.
   const semPreco = resumo.valor_por_assento == null;
   const totalMensal = (resumo.valor_por_assento ?? 0) * (resumo.max_assentos ?? 0);
+
+  // Cortesia cobre a competência inteira em que termina: a cobrança é mensal
+  // cheia, sem rateio por dia. Mesma regra da Edge Function de cobrança —
+  // as duas precisam contar do mesmo jeito, senão a tela promete um mês a
+  // mais (ou a menos) do que o faturamento entrega.
+  const hoje = new Date().toISOString().slice(0, 10);
+  const emCortesia = resumo.cortesia_ate != null
+    && hoje.slice(0, 7) <= resumo.cortesia_ate.slice(0, 7);
   const faturaAtual = faturas.find(f => f.status !== 'pago' && f.status !== 'cancelado') ?? faturas[0];
 
   return (
@@ -241,7 +259,24 @@ export const RhFinanceiro: React.FC = () => {
           </div>
         </dl>
 
-        {semPreco && (
+        {emCortesia && resumo.cortesia_ate && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+            <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>
+              <strong>Período grátis até {fmtDate(resumo.cortesia_ate)}.</strong>{' '}
+              Nenhuma fatura é emitida enquanto ele durar.
+              {!semPreco && (
+                <> A cobrança de {fmtCurrency(totalMensal)} por mês começa na competência de{' '}
+                  {fmtMesAno(mesSeguinte(resumo.cortesia_ate))}.</>
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* Durante a cortesia o aviso de preço indefinido vira ruído: os dois
+            dizem "nenhuma fatura é emitida", e o que importa agora é o
+            período grátis. Ele volta quando a cortesia terminar. */}
+        {semPreco && !emCortesia && (
           <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <span>

@@ -64,8 +64,19 @@ Deno.serve(async (req: Request) => {
         // comportamento antigo: metabólico ligado, mental desligado.
         modo_mental: empresa.modo_mental ?? false,
         modo_metabolico: empresa.modo_metabolico ?? true,
+        // Compliance e o preço dele faltavam nesta lista: o formulário do
+        // admin manda os dois, e o insert descartava. Contrato só-compliance
+        // nascia sem modalidade nenhuma e sem preço — ou seja, impossível de
+        // faturar, porque empresa_valor_assento() devolve NULL nesse estado.
+        // O trigger de 20260846 ainda liga compliance sozinho quando há
+        // mental ou metabólico; aqui importa o caso em que ele vai sozinho.
+        modo_compliance: empresa.modo_compliance ?? true,
+        valor_assento_compliance: empresa.valor_assento_compliance ?? null,
         status: empresa.status || 'ativa',
         data_inicio: empresa.data_inicio || null,
+        // Período grátis (migration 20260907): normalmente definido já na
+        // criação, que é quando se combina a cortesia com o cliente.
+        cortesia_ate: empresa.cortesia_ate || null,
       }])
       .select()
       .single();
