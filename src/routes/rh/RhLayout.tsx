@@ -12,9 +12,10 @@ import { RhJornadaProvider, useRhJornada } from '../../contexts/RhJornadaContext
 import { PrimeiroAcessoRh } from '../../components/rh/PrimeiroAcessoRh';
 import { RhCopilot } from '../../components/rh/RhCopilot';
 import { RelatosSentinelaAlerta } from '../../components/rh/RelatosSentinelaAlerta';
+import { CartaoSuporte } from '../../components/rh/LinkSuporte';
 import { cicloCompleto, docsPendentesDe } from '../../lib/rhJornada';
 import { jaViuApresentacao, marcarApresentacaoVista } from '../../lib/rhPrimeiroAcesso';
-import { EMAIL_SUPORTE, linkSuporte } from '../../lib/suporteMalama';
+import { EMAIL_SUPORTE } from '../../lib/suporteMalama';
 
 /**
  * Grupos da barra. As oito abas chegavam com o mesmo peso e sem nenhuma
@@ -132,14 +133,23 @@ const AbasDoPainel: React.FC<{ tabs: Tab[]; atual: string }> = ({ tabs, atual })
  *  sem isso o atendimento começa perguntando quem é quem. */
 const SuporteNoCabecalho: React.FC<{ usuario: string }> = ({ usuario }) => {
   const { empresa } = useRhJornada();
+  const [aberto, setAberto] = useState(false);
   return (
-    <a
-      href={linkSuporte({ empresa: empresa?.nome, usuario, assunto: 'Preciso de ajuda' })}
-      title={`Falar com o suporte da Malama (${EMAIL_SUPORTE})`}
-      className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#7d4a3c] transition"
-    >
-      <LifeBuoy className="w-5 h-5" /><span className="hidden md:inline">Suporte</span>
-    </a>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setAberto(v => !v)}
+        title={`Falar com o suporte da Malama (${EMAIL_SUPORTE})`}
+        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#7d4a3c] transition"
+      >
+        <LifeBuoy className="w-5 h-5" /><span className="hidden md:inline">Suporte</span>
+      </button>
+      <CartaoSuporte
+        ctx={{ empresa: empresa?.nome, usuario, assunto: 'Preciso de ajuda' }}
+        aberto={aberto}
+        onFechar={() => setAberto(false)}
+      />
+    </div>
   );
 };
 
@@ -199,6 +209,10 @@ export const RhLayout: React.FC = () => {
   // vigia dos termos, que só existe para quem ainda não passou por ela.
   const [apresentacaoEncerrada, setApresentacaoEncerrada] = useState(false);
   const [copilotoAberto, setCopilotoAberto] = useState(false);
+  // Tela de acesso desativado é renderizada ANTES do RhJornadaProvider
+  // montar (não há `acesso` ainda), então o popover de suporte aqui não
+  // pode ser o `LinkSuporte` de sempre — ele depende de `useRhJornada()`.
+  const [suporteAberto, setSuporteAberto] = useState(false);
 
   useEffect(() => {
     rhService.getMeuAcesso()
@@ -256,14 +270,21 @@ export const RhLayout: React.FC = () => {
           Quem libera acesso é o usuário principal da sua empresa. Se você é o principal, o
           suporte resolve.
         </p>
-        <div className="mt-4 flex items-center justify-center gap-4">
+        <div className="relative mt-4 flex items-center justify-center gap-4">
           <button onClick={handleLogout} className="text-sm font-medium text-[#7d4a3c]">Voltar ao login</button>
-          <a
-            href={linkSuporte({ assunto: 'Acesso ao painel desativado', detalhe: 'O painel diz que o acesso está desativado.' })}
+          <button
+            type="button"
+            onClick={() => setSuporteAberto(v => !v)}
             className="text-sm font-medium text-gray-500 hover:text-[#7d4a3c]"
           >
             Falar com o suporte
-          </a>
+          </button>
+          <CartaoSuporte
+            ctx={{ assunto: 'Acesso ao painel desativado', detalhe: 'O painel diz que o acesso está desativado.' }}
+            aberto={suporteAberto}
+            onFechar={() => setSuporteAberto(false)}
+            alinhamento="esquerda"
+          />
         </div>
       </div>
     </div>
