@@ -116,3 +116,62 @@ input[type="range"]::-moz-range-thumb:active {
 .label-font {
     font-family: 'Plus Jakarta Sans', sans-serif;
 }
+
+/* =====================================================
+   Impressão de documento
+   Vale só quando alguma tela marca o body com `imprimindo-documento`. Sem
+   essa trava, um Ctrl+P em qualquer página do app cairia nestas regras.
+
+   O documento é levado para fora da árvore do app (React portal, direto no
+   body) e todo o resto some. Foi a saída para dois problemas: esconder por
+   `visibility` mantinha o espaço do app reservado e gerava páginas em
+   branco antes do conteúdo; e um ancestral `position: fixed` — o fundo
+   escurecido do modal — faz o navegador cortar a impressão na primeira
+   página. Sendo irmão do #root e voltando ao fluxo normal, a tabela
+   pagina sozinha.
+   ===================================================== */
+@media print {
+    body.imprimindo-documento > *:not(.print-overlay) {
+        display: none !important;
+    }
+
+    body.imprimindo-documento .print-overlay {
+        position: static !important;
+        display: block !important;
+        padding: 0 !important;
+        background: none !important;
+    }
+
+    body.imprimindo-documento .print-alvo {
+        max-width: none !important;
+        max-height: none !important;
+        overflow: visible !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    /* Linha partida entre duas páginas deixa a medida órfã do risco. */
+    body.imprimindo-documento .print-alvo tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    /* O min-width existe para a rolagem horizontal na tela. No papel ele
+       empurraria as últimas colunas para fora da folha, e elas sumiriam
+       sem aviso nenhum. */
+    body.imprimindo-documento .print-alvo table {
+        min-width: 0 !important;
+        width: 100% !important;
+        font-size: 9.5px;
+    }
+
+    /* Cabeçalho repetido a cada página: sem ele, da segunda em diante a
+       tabela vira uma grade de valores sem nome de coluna. */
+    body.imprimindo-documento .print-alvo thead {
+        display: table-header-group;
+    }
+
+    @page {
+        margin: 12mm;
+    }
+}

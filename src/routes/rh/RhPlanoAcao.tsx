@@ -10,6 +10,7 @@
 // =====================================================
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { ClipboardList, AlertTriangle, CheckCircle2, Clock, CalendarClock, X, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PlanoAcaoKanban } from '../../components/rh/PlanoAcaoKanban';
@@ -18,6 +19,7 @@ import {
   type PlanoAcao, type PlanoFator, type PlanoNivel, type RhPlanosResumo, type SetorEmpresa,
 } from '../../services/empresaService';
 import { FATOR_LABEL, NIVEL_LABEL, STATUS_INFO } from '../../lib/planoAcaoLabels';
+import { useRhJornada } from '../../contexts/RhJornadaContext';
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const fmtDate = (d: string | null) =>
@@ -27,6 +29,7 @@ const FATORES_VALIDOS: PlanoFator[] = ['demanda', 'controle', 'apoio', 'assedio'
 const NIVEIS_VALIDOS: PlanoNivel[] = ['fonte', 'organizacional', 'individual'];
 
 export const RhPlanoAcao: React.FC = () => {
+  const { empresa } = useRhJornada();
   const parametrosIniciais = new URLSearchParams(window.location.search);
   const [itens, setItens] = useState<PlanoAcao[]>([]);
   const [resumo, setResumo] = useState<RhPlanosResumo | null>(null);
@@ -179,62 +182,133 @@ export const RhPlanoAcao: React.FC = () => {
         </span>
       </div>
 
-      {verLista && <ListaCompletaModal itens={itens} onFechar={() => { setVerLista(false); void load(); }} />}
+      {verLista && (
+        <ListaCompletaModal
+          itens={itens}
+          empresaNome={empresa?.nome}
+          onFechar={() => { setVerLista(false); void load(); }}
+        />
+      )}
     </div>
   );
 };
 
 // ── Documento para fiscalização: somente leitura, gerado do mesmo dado do
 // quadro. Sem cadastro aqui — quem registra é o kanban. ──
-const ListaCompletaModal: React.FC<{ itens: PlanoAcao[]; onFechar: () => void }> = ({ itens, onFechar }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 print:static print:bg-white print:p-0" onMouseDown={onFechar}>
-    <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-xl print:max-h-none print:w-full print:max-w-none print:shadow-none" onMouseDown={e => e.stopPropagation()}>
-      <div className="flex items-center justify-between border-b p-5 print:hidden">
-        <div>
-          <h3 className="font-bold text-gray-900">Lista completa do plano de ação</h3>
-          <p className="mt-0.5 text-xs text-gray-500">{itens.length} item(ns) · gerada a partir dos registros do quadro, sem edição aqui.</p>
+const ListaCompletaModal: React.FC<{
+  itens: PlanoAcao[];
+  empresaNome?: string | null;
+  onFechar: () => void;
+}> = ({ itens, empresaNome, onFechar }) => {
+  // A regra de impressão em index.css esconde o app inteiro e revela só o
+  // `.print-alvo`. Ela é travada por esta classe no body porque, solta, faria
+  // qualquer Ctrl+P do produto sair em branco. Marcando enquanto o modal está
+  // aberto, o Ctrl+P do navegador imprime o documento igual ao botão.
+  useEffect(() => {
+    document.body.classList.add('imprimindo-documento');
+    return () => document.body.classList.remove('imprimindo-documento');
+  }, []);
+
+  // Portal: o documento precisa ser irmão do #root para que a impressão possa
+  // esconder o app inteiro sem esconder ele junto. Ver o bloco @media print
+  // em index.css.
+  return createPortal(
+    <div className="print-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onMouseDown={onFechar}>
+      <div
+        className="print-alvo max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-2xl bg-white shadow-xl"
+        onMouseDown={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b p-5 print:hidden">
+          <div>
+            <h3 className="font-bold text-gray-900">Lista completa do plano de ação</h3>
+            <p className="mt-0.5 text-xs text-gray-500">{itens.length} item(ns) · gerada a partir dos registros do quadro, sem edição aqui.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => window.print()} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50">Imprimir</button>
+            <button onClick={onFechar} aria-label="Fechar"><X className="h-5 w-5 text-gray-400" /></button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => window.print()} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50">Imprimir</button>
-          <button onClick={onFechar} aria-label="Fechar"><X className="h-5 w-5 text-gray-400" /></button>
+
+        {/* Cabeçalho só do papel: impresso, o documento perdia empresa, data e
+            contagem — e sem isso não dá para saber a que ele se refere. */}
+        <div className="hidden print:block border-b border-gray-300 pb-2 mb-3">
+          <p className="text-base font-bold text-gray-900">Plano de ação — riscos psicossociais (NR-1)</p>
+          <p className="text-xs text-gray-600">
+            {empresaNome ? `${empresaNome} · ` : ''}{itens.length} item(ns) · emitido em {new Date().toLocaleDateString('pt-BR')}
+          </p>
         </div>
-      </div>
-      <div className="overflow-x-auto p-5">
-        <table className="w-full min-w-[860px] text-left text-sm">
-          <thead>
-            <tr className="border-b text-xs uppercase tracking-wide text-gray-400">
-              <th className="py-2 pr-3">Status</th>
-              <th className="py-2 pr-3">Setor</th>
-              <th className="py-2 pr-3">Fator</th>
-              <th className="py-2 pr-3">Nível</th>
-              <th className="py-2 pr-3">Risco / medida</th>
-              <th className="py-2 pr-3">Responsável</th>
-              <th className="py-2 pr-3">Prazo</th>
-              <th className="py-2 pr-3">Evidência</th>
-              <th className="py-2 pr-3">Origem</th>
-            </tr>
-          </thead>
-          <tbody>
-            {itens.map(it => (
-              <tr key={it.id} className="border-b border-gray-100 align-top">
-                <td className="py-2 pr-3"><span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_INFO[it.status].cls}`}>{STATUS_INFO[it.status].label}</span>{it.atrasada && <span className="ml-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600">Fora do prazo</span>}</td>
-                <td className="py-2 pr-3 text-gray-700">{it.setor ?? 'Toda a empresa'}</td>
-                <td className="py-2 pr-3 text-gray-700">{FATOR_LABEL[it.fator]}</td>
-                <td className="py-2 pr-3 text-gray-700">{NIVEL_LABEL[it.nivel_controle]}</td>
-                <td className="py-2 pr-3 text-gray-700">
-                  <p>{it.risco_descricao}</p>
-                  <p className="mt-0.5 text-gray-500"><span className="text-gray-400">Medida:</span> {it.medida}</p>
-                </td>
-                <td className="py-2 pr-3 text-gray-700">{it.responsavel}</td>
-                <td className="py-2 pr-3 text-gray-700">{fmtDate(it.prazo)}{it.concluida_em && <><br /><span className="text-xs text-gray-400">concluída em {fmtDate(it.concluida_em)}</span></>}</td>
-                <td className="py-2 pr-3 text-gray-700">{it.evidencia ?? '—'}</td>
-                <td className="py-2 pr-3 text-gray-700">{it.lideranca_setor ? `Liderança · ${it.lideranca_setor}` : 'Geral'}</td>
+
+        <div className="overflow-x-auto p-5 print:overflow-visible print:p-0">
+          {/* `break-words` é herdado por todas as células: com table-fixed, uma
+              palavra só que não caiba na coluna (— "Organizacional" —) vaza por
+              cima do texto vizinho em vez de quebrar. */}
+          <table className="w-full min-w-[980px] table-fixed break-words text-left text-sm print:min-w-0">
+            {/* Sem larguras declaradas o navegador dava a mesma faixa para
+                "Nível" e para "Risco / medida", que carrega duas frases: o
+                status quebrava em duas linhas e a medida virava uma coluna
+                estreita e ilegível. */}
+            <colgroup>
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '8%' }} />
+            </colgroup>
+            <thead>
+              <tr className="border-b text-xs uppercase tracking-wide text-gray-400">
+                <th className="py-2 pr-3">Status</th>
+                <th className="py-2 pr-3">Setor</th>
+                <th className="py-2 pr-3">Fator</th>
+                <th className="py-2 pr-3">Nível</th>
+                <th className="py-2 pr-3">Risco / medida</th>
+                <th className="py-2 pr-3">Responsável</th>
+                <th className="py-2 pr-3">Prazo</th>
+                <th className="py-2 pr-3">Evidência</th>
+                <th className="py-2 pr-3">Origem</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {itens.length === 0 && <p className="py-8 text-center text-sm text-gray-400">Nenhum item no plano ainda.</p>}
+            </thead>
+            <tbody>
+              {itens.map(it => (
+                <tr key={it.id} className="border-b border-gray-100 align-top">
+                  <td className="py-2 pr-3">
+                    <span className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_INFO[it.status].cls}`}>{STATUS_INFO[it.status].label}</span>
+                    {it.atrasada && <span className="mt-1 inline-block whitespace-nowrap rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600">Fora do prazo</span>}
+                  </td>
+                  <td className="py-2 pr-3 text-gray-700">{it.setor ?? 'Toda a empresa'}</td>
+                  <td className="py-2 pr-3 text-gray-700">{FATOR_LABEL[it.fator]}</td>
+                  <td className="py-2 pr-3 text-gray-700">{NIVEL_LABEL[it.nivel_controle]}</td>
+                  <td className="py-2 pr-3 text-gray-700">
+                    <p>{it.risco_descricao}</p>
+                    <p className="mt-0.5 text-gray-500"><span className="text-gray-400">Medida:</span> {it.medida}</p>
+                  </td>
+                  <td className="py-2 pr-3 text-gray-700">{it.responsavel}</td>
+                  <td className="py-2 pr-3 text-gray-700">
+                    <span className="whitespace-nowrap">{fmtDate(it.prazo)}</span>
+                    {it.concluida_em && <><br /><span className="text-xs text-gray-400">concluída em {fmtDate(it.concluida_em)}</span></>}
+                  </td>
+                  <td className="py-2 pr-3 text-gray-700">{it.evidencia ?? '—'}</td>
+                  {/* O setor já é a coluna ao lado: repetir aqui só fazia a
+                      coluna estourar. O nome volta quando a jornada é de um
+                      setor diferente do que a ação atinge. */}
+                  <td className="py-2 pr-3 text-gray-700">
+                    {!it.lideranca_setor
+                      ? 'Geral'
+                      : it.lideranca_setor === it.setor
+                        ? 'Liderança'
+                        : `Liderança · ${it.lideranca_setor}`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {itens.length === 0 && <p className="py-8 text-center text-sm text-gray-400">Nenhum item no plano ainda.</p>}
+        </div>
       </div>
-    </div>
-  </div>
-);
+    </div>,
+    document.body,
+  );
+};
