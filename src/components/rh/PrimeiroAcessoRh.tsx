@@ -6,10 +6,19 @@
 // e não reconhecia o que comprou — e é essa dissonância dos primeiros trinta
 // segundos que vira o "estou perdido" que RH e SST relatam.
 //
-// Três telas, e nenhuma delas é tour de interface. O que falta não é saber
-// onde clicar: é saber o que se está fazendo, em que ordem, e de quem é cada
-// parte. A terceira tela existe porque RH e SST são pessoas diferentes com
-// responsabilidades diferentes, e o painel nunca disse isso em lugar nenhum.
+// Nenhuma tela aqui é tour de interface. O que falta não é saber onde clicar:
+// é saber o que se está fazendo, em que ordem, e de quem é cada parte.
+//
+// O PERFIL ABRE A APRESENTAÇÃO, e não fecha.
+//   Ele estava no último passo, depois de três telas de leitura — o ponto de
+//   maior fadiga acumulada, com um botão "Fazer depois" ao lado. Era o campo
+//   que alimenta o copiloto e as sugestões de setor sendo pedido no pior
+//   momento possível.
+//   Trazê-lo para a frente arrastou junto a explicação do copiloto: o passo
+//   do copiloto existia sobretudo para justificar o perfil e hospedá-lo, e
+//   deixá-lo para depois faria o passo 1 pedir trabalho sem dizer para quê.
+//   Os dois viraram um passo só. A ressalva de que o copiloto não substitui
+//   AEP, PGR, PCMSO nem decisão formal continua aqui, inteira.
 // =====================================================
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,6 +28,8 @@ import {
   X, Users, HardHat, Building2, Sparkles, Bot, CheckCircle2,
 } from 'lucide-react';
 import { PerfilEmpresaForm } from './PerfilEmpresaForm';
+import { useRhJornada } from '../../contexts/RhJornadaContext';
+import { useRhAccess } from '../../contexts/RhAccessContext';
 
 type Passo = { chave: string; titulo: string; resumo: string; corpo: React.ReactNode };
 
@@ -76,7 +87,9 @@ const PAPEIS = [
   },
 ];
 
-const PASSOS: Passo[] = [
+/** Passos de leitura. O de perfil é montado no componente porque depende do
+ *  nome da empresa e de o perfil já estar confirmado. */
+const PASSOS_LEITURA: Passo[] = [
   {
     chave: 'ciclo',
     titulo: 'A NR-1 não pede um documento. Pede um ciclo.',
@@ -168,69 +181,98 @@ const PASSOS: Passo[] = [
       </div>
     ),
   },
-  {
-    chave: 'copiloto',
-    titulo: 'Seu copiloto acompanha esse caminho com você',
-    resumo: 'Conheça seu copiloto',
-    corpo: (
-      <div className="flex flex-col gap-4">
-        <div className="flex gap-3 rounded-xl border border-[#7d4a3c]/10 bg-[#7d4a3c]/5 p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#7d4a3c] shadow-sm">
-            <Bot className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-900">Copiloto do RH</p>
-            <p className="mt-1 text-xs leading-relaxed text-gray-600">
-              Apoio sênior em RH e SST para explicar o painel, organizar informações da empresa
-              e ajudar você a executar o próximo passo indicado pelo Malama.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid gap-2 sm:grid-cols-2">
-          {[
-            'Traduz os dados agregados e o ciclo em linguagem clara.',
-            'Usa o perfil da empresa e os setores que você confirmou.',
-            'Prepara rascunhos e sugestões para sua revisão.',
-            'Aponta a tela certa sem alterar nada sozinho.',
-          ].map(item => (
-            <div key={item} className="flex gap-2 rounded-lg border border-gray-100 p-3">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
-              <p className="text-xs leading-relaxed text-gray-600">{item}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
-          O copiloto é uma ferramenta de apoio: não assume responsabilidade técnica, não substitui
-          AEP, PGR, PCMSO ou decisões formais da empresa e nunca cria setores ou grava mudanças sem
-          sua confirmação.
-        </div>
-
-        <p className="text-sm leading-relaxed text-gray-600">
-          Para começar, conte brevemente o que a empresa faz. O copiloto organiza o perfil e pode
-          sugerir setores; você revisa tudo e configura modalidade e turnos de cada setor no painel.
-        </p>
-      </div>
-    ),
-  },
 ];
+
+/** O que a empresa ganha por escrever o perfil. Fica antes do formulário
+ *  porque é o que compra o esforço: pedir texto livre sem dizer para onde ele
+ *  vai é o jeito mais rápido de receber uma linha e meia. */
+const RETORNO_DO_PERFIL = [
+  'Os setores que você citar já chegam sugeridos no cadastro.',
+  'O copiloto passa a falar da sua operação, não de uma empresa genérica.',
+  'As orientações do ciclo consideram seus turnos, unidades e picos.',
+  'Você revisa tudo antes de confirmar — nada é gravado sozinho.',
+];
+
+/**
+ * Cabeçalho do passo. Curto de propósito: o objetivo deste passo é receber
+ * texto, e cada bloco de enfeite acima empurra o campo para baixo da dobra.
+ * A ressalva legal do copiloto não vem aqui — ela é renderizada DEPOIS do
+ * formulário, porque é ressalva, não argumento para preencher.
+ */
+const PassoPerfil: React.FC<{ nomeEmpresa?: string | null; jaConfirmado: boolean }> = ({
+  nomeEmpresa, jaConfirmado,
+}) => (
+  <div className="flex flex-col gap-3">
+    <div className="flex items-center gap-2 text-[#7d4a3c]">
+      <Bot className="h-4 w-4 shrink-0" />
+      <p className="text-xs font-semibold uppercase tracking-wide">Copiloto do RH</p>
+    </div>
+
+    {jaConfirmado ? (
+      <p className="text-sm leading-relaxed text-gray-600">
+        O perfil {nomeEmpresa ? <strong className="text-gray-800">da {nomeEmpresa}</strong> : 'da empresa'} já
+        foi confirmado por alguém da equipe. Confira se ainda descreve a operação de hoje — turnos,
+        unidades e equipes mudam, e o copiloto continua respondendo pelo que estiver aqui.
+      </p>
+    ) : (
+      <p className="text-sm leading-relaxed text-gray-600">
+        Antes de abrir o painel, conte como {nomeEmpresa ? <strong className="text-gray-800">a {nomeEmpresa}</strong> : 'a empresa'} funciona
+        no dia a dia. É este texto que separa orientação sob medida de conselho genérico — o
+        copiloto responde pelo que estiver escrito aqui, e o que faltar vira campo vazio.
+      </p>
+    )}
+
+    <div className="grid gap-2 sm:grid-cols-2">
+      {RETORNO_DO_PERFIL.map(item => (
+        <div key={item} className="flex gap-2 rounded-lg border border-gray-100 p-2.5">
+          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-600" />
+          <p className="text-xs leading-relaxed text-gray-600">{item}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar }) => {
   const [i, setI] = useState(0);
   const [perfilConcluido, setPerfilConcluido] = useState(false);
   const painelRef = useRef<HTMLDivElement>(null);
+  const { empresa } = useRhJornada();
+  const { can } = useRhAccess();
+
+  // Só é exigido de quem PODE preencher. PerfilEmpresaForm recusa a edição a
+  // quem não tem o módulo 'empresa' — exigir dessa pessoa a trancaria fora do
+  // painel para sempre, por uma tarefa que ela não tem permissão de fazer.
+  // (`can` já devolve true para o usuário principal.)
+  const perfilPendente = can('empresa') && !perfilConcluido;
+
+  const PASSOS: Passo[] = [
+    {
+      chave: 'perfil',
+      titulo: perfilConcluido ? 'Confira o perfil da empresa' : 'Comece contando o que a empresa faz',
+      resumo: 'Perfil da empresa',
+      corpo: <PassoPerfil nomeEmpresa={empresa?.nome} jaConfirmado={perfilConcluido} />,
+    },
+    ...PASSOS_LEITURA,
+  ];
+
   const passo = PASSOS[i];
   const ultimo = i === PASSOS.length - 1;
 
-  // Esc fecha: uma sobreposição que trava a tela sem saída óbvia assusta
-  // mais do que orienta.
+  // O perfil é obrigatório no início: enquanto ele não for confirmado, este
+  // passo não avança, não fecha no X e não fecha no Esc. Não é gentileza
+  // retirada por capricho — sem o perfil, o copiloto e as sugestões de setor
+  // trabalham no vazio pelo resto do ciclo. A porta que continua aberta é
+  // "preencher manualmente", dentro do formulário, para que uma queda do
+  // provedor de IA não vire tranca.
+  const travado = passo.chave === 'perfil' && perfilPendente;
+
   const fechar = useCallback(() => onFechar(), [onFechar]);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') fechar(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !travado) fechar(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [fechar]);
+  }, [fechar, travado]);
 
   // Foco no painel a cada passo: sem isto o leitor de tela continua anunciando
   // o conteúdo anterior depois de avançar.
@@ -255,38 +297,54 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
               {passo.titulo}
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={fechar}
-            aria-label="Fechar apresentação"
-            className="shrink-0 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {!travado && (
+            <button
+              type="button"
+              onClick={fechar}
+              aria-label="Fechar apresentação"
+              className="shrink-0 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           {passo.corpo}
-          {passo.chave === 'copiloto' && (
-            <div className="mt-5 rounded-xl border border-gray-100 bg-gray-50/60 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#7d4a3c]">
-                Perfil inicial da empresa
+          {passo.chave === 'perfil' && (
+            <>
+              <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+                <PerfilEmpresaForm onSaved={() => setPerfilConcluido(true)} />
+              </div>
+              {/* Depois do formulário: é ressalva de responsabilidade, não
+                  argumento de venda. Acima, só empurrava o campo para fora
+                  da primeira tela do passo que existe para ser preenchido. */}
+              <p className="mt-3 rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
+                O copiloto é uma ferramenta de apoio: não assume responsabilidade técnica, não
+                substitui AEP, PGR, PCMSO ou decisões formais da empresa e nunca cria setores ou
+                grava mudanças sem sua confirmação. O perfil é declaração da empresa, não avaliação
+                de risco.
               </p>
-              <PerfilEmpresaForm onSaved={() => setPerfilConcluido(true)} />
-            </div>
+            </>
           )}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
-          <div className="flex items-center gap-1.5" aria-hidden="true">
-            {PASSOS.map((p, idx) => (
-              <span
-                key={p.chave}
-                className={`h-1.5 rounded-full transition-all ${
-                  idx === i ? 'w-6 bg-[#7d4a3c]' : 'w-1.5 bg-gray-300'
-                }`}
-              />
-            ))}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5" aria-hidden="true">
+              {PASSOS.map((p, idx) => (
+                <span
+                  key={p.chave}
+                  className={`h-1.5 rounded-full transition-all ${
+                    idx === i ? 'w-6 bg-[#7d4a3c]' : 'w-1.5 bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+            {/* Botão desabilitado sem explicação lê-se como tela quebrada. */}
+            {travado && (
+              <p className="text-xs text-gray-500">Confirme o perfil para continuar.</p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -313,14 +371,15 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
                   onClick={fechar}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#623a2f]"
                 >
-                  {perfilConcluido ? 'Entrar no painel' : 'Fazer depois'} <ArrowRight className="h-4 w-4" />
+                  Entrar no painel <ArrowRight className="h-4 w-4" />
                 </button>
               </>
             ) : (
               <button
                 type="button"
+                disabled={travado}
                 onClick={() => setI(v => v + 1)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#623a2f]"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#7d4a3c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#623a2f] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[#7d4a3c]"
               >
                 {PASSOS[i + 1].resumo} <ArrowRight className="h-4 w-4" />
               </button>

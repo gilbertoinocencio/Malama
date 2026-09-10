@@ -140,6 +140,24 @@ export const PerfilEmpresaForm: React.FC<{
     }, 0);
   };
 
+  /**
+   * Caminho sem IA para o mesmo destino.
+   *
+   * A etapa de revisão é um formulário comum — a IA só a pré-preenche. Sem
+   * esta porta, um provedor generativo fora do ar impede CONFIRMAR o perfil,
+   * e no onboarding (onde o perfil é obrigatório) isso trancaria a pessoa
+   * fora do painel por uma falha que não é dela. O texto já digitado vai
+   * junto, para ninguém perder o que escreveu.
+   */
+  const preencherManualmente = () => {
+    setErro('');
+    setRascunho(atual => ({
+      ...atual,
+      descricao_negocio: atual.descricao_negocio ?? (descricao.trim() || null),
+    }));
+    setEtapa('revisao');
+  };
+
   const gerar = async () => {
     if (conteudoUtil(descricao).length < 20) {
       setErro('Conte um pouco mais: o que a empresa faz, quais equipes existem e como o trabalho é organizado. Os tópicos acima ajudam a montar o texto.');
@@ -271,6 +289,9 @@ export const PerfilEmpresaForm: React.FC<{
         {erro && <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{erro}</p>}
         <button type="button" disabled={gerando} onClick={gerar} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
           {gerando ? <><Loader2 className="h-4 w-4 animate-spin" /> Organizando...</> : <><Sparkles className="h-4 w-4" /> Organizar para revisão</>}
+        </button>
+        <button type="button" onClick={preencherManualmente} className="w-full text-xs font-medium text-gray-500 hover:text-[#7d4a3c]">
+          Preencher os campos manualmente
         </button>
       </div>
     );
