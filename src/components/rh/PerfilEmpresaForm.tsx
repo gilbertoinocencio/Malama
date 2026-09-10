@@ -8,6 +8,40 @@ import { rhAgentService, type RhProfileDraft } from '../../services/rhAgentServi
 
 type Etapa = 'descricao' | 'revisao' | 'resumo';
 
+/**
+ * Roteiro da descrição livre.
+ *
+ * O extrator (RH_PROFILE_DRAFT_PROMPT) tem uma regra dura: "extraia apenas o
+ * que estiver explícito, use null quando faltar informação". Então tudo que a
+ * pessoa não escrever vira campo vazio, e o copiloto passa a trabalhar sem
+ * contexto — o que aparecia como IA fraca era, na verdade, entrada pobre.
+ * Cada item aqui existe porque alimenta um campo que o extrator devolve ou um
+ * assunto que o copiloto articula (organização do trabalho, jornada, turnos).
+ *
+ * São perguntas DESCRITIVAS de propósito. Nada aqui pede que o RH avalie
+ * risco: contexto declarado gera hipótese e pergunta, nunca prova de risco.
+ */
+const ROTEIRO: { rotulo: string; pergunta: string }[] = [
+  { rotulo: 'O que fazemos', pergunta: 'Qual é o produto ou serviço principal?' },
+  { rotulo: 'Equipes e setores', pergunta: 'Quais equipes existem e o que cada uma faz no dia a dia?' },
+  { rotulo: 'Como o trabalho é organizado', pergunta: 'Turnos, escalas, presencial ou home office?' },
+  { rotulo: 'Onde atuamos', pergunta: 'Uma unidade ou várias? Loja, fábrica, escritório, rua?' },
+  { rotulo: 'Picos e sazonalidade', pergunta: 'Há períodos previsíveis de pico (fim de mês, safra, feriados)?' },
+  { rotulo: 'Rotina', pergunta: 'Algo que ajude a entender o dia a dia: atendimento ao público, metas, esforço físico.' },
+];
+
+const EXEMPLO = `O que fazemos: rede de restaurantes de comida havaiana, com produção própria e três lojas de rua na região metropolitana.
+
+Equipes e setores: cozinha (montagem e preparo), atendimento (balcão e caixa), entregas (motoboys próprios), compras e administrativo.
+
+Como o trabalho é organizado: cozinha e atendimento trabalham em dois turnos, 11h-15h e 18h-23h, escala 6x1. Administrativo e compras são horário comercial, híbrido com dois dias em casa.
+
+Onde atuamos: três lojas, mais uma cozinha central que abastece as três.
+
+Picos e sazonalidade: almoço de sexta e todo fim de semana. Dezembro e janeiro dobram o volume de entrega.
+
+Rotina: atendimento ao público direto o tempo todo, meta de tempo de preparo por pedido, trabalho em pé na cozinha.`;
+
 const vazio: RhProfileDraft = {
   setor_atuacao: null,
   cnae_principal: null,
@@ -29,12 +63,22 @@ const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: str
   </label>
 );
 
-const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }> = ({ label, ...props }) => (
+const Textarea = React.forwardRef<
+  HTMLTextAreaElement,
+  React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }
+>(({ label, ...props }, ref) => (
   <label className="block text-xs font-medium text-gray-700">
     {label}
-    <textarea {...props} className="mt-1 w-full resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none transition focus:border-[#7d4a3c] focus:ring-2 focus:ring-[#7d4a3c]/10" />
+    <textarea {...props} ref={ref} className="mt-1 w-full resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none transition focus:border-[#7d4a3c] focus:ring-2 focus:ring-[#7d4a3c]/10" />
   </label>
-);
+));
+Textarea.displayName = 'Textarea';
+
+/** Texto sem os rótulos do roteiro. Um roteiro inserido e não preenchido tem
+ *  caracteres de sobra para passar no mínimo, mas nenhum fato dentro — e o
+ *  extrator devolveria um perfil vazio depois de gastar uma chamada de IA. */
+const conteudoUtil = (texto: string) =>
+  ROTEIRO.reduce((acc, item) => acc.split(`${item.rotulo}:`).join(' '), texto).trim();
 
 const doContexto = (contexto: EmpresaContextoOperacional): RhProfileDraft => ({
   setor_atuacao: contexto.setor_atuacao,
@@ -60,6 +104,8 @@ export const PerfilEmpresaForm: React.FC<{
   const [gerando, setGerando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+  const [verExemplo, setVerExemplo] = useState(false);
+  const campoDescricao = React.useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     rhService.getContextoOperacional()
@@ -78,9 +124,25 @@ export const PerfilEmpresaForm: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mostrarResumo]);
 
+  /** Acrescenta o tópico ao texto e deixa o cursor pronto para responder.
+   *  Não duplica o que já foi inserido. */
+  const inserirTopico = (rotulo: string) => {
+    setDescricao(atual => {
+      if (atual.includes(`${rotulo}:`)) return atual;
+      const base = atual.trimEnd();
+      return `${base}${base ? '\n\n' : ''}${rotulo}: `;
+    });
+    window.setTimeout(() => {
+      const campo = campoDescricao.current;
+      if (!campo) return;
+      campo.focus();
+      campo.setSelectionRange(campo.value.length, campo.value.length);
+    }, 0);
+  };
+
   const gerar = async () => {
-    if (descricao.trim().length < 20) {
-      setErro('Conte um pouco mais: o que a empresa faz, o que produz ou presta e quais setores possui.');
+    if (conteudoUtil(descricao).length < 20) {
+      setErro('Conte um pouco mais: o que a empresa faz, quais equipes existem e como o trabalho é organizado. Os tópicos acima ajudam a montar o texto.');
       return;
     }
     setGerando(true);
@@ -148,14 +210,64 @@ export const PerfilEmpresaForm: React.FC<{
   if (etapa === 'descricao') {
     return (
       <div className="space-y-3">
+        {/* O roteiro fica FORA do placeholder de propósito: placeholder some
+            no primeiro caractere, justamente quando a pessoa precisa saber o
+            que ainda falta contar. */}
+        <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+          <p className="text-xs font-medium text-gray-700">Responda estes pontos no texto</p>
+          <p className="mt-0.5 text-xs text-gray-500">
+            O copiloto só usa o que estiver escrito aqui — o que faltar vira campo vazio. Clique num
+            tópico para adicioná-lo ao texto.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {ROTEIRO.map(item => {
+              const jaNoTexto = descricao.includes(`${item.rotulo}:`);
+              return (
+                <button
+                  key={item.rotulo}
+                  type="button"
+                  onClick={() => inserirTopico(item.rotulo)}
+                  title={item.pergunta}
+                  className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                    jaNoTexto
+                      ? 'border-[#7d4a3c]/30 bg-[#7d4a3c]/10 text-[#7d4a3c]'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-[#7d4a3c] hover:text-[#7d4a3c]'
+                  }`}
+                >
+                  {jaNoTexto && <Check className="mr-1 inline h-3 w-3" />}
+                  {item.rotulo}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <Textarea
+          ref={campoDescricao}
           label="Descreva a empresa com suas palavras"
-          rows={5}
+          rows={8}
           value={descricao}
           onChange={event => setDescricao(event.target.value)}
           placeholder="Ex.: Somos uma padaria com produção própria e atendimento no balcão. Vendemos pães, refeições e encomendas. Temos os setores de produção, atendimento e administrativo..."
         />
-        <p className="text-xs text-gray-500">Inclua o que produz ou presta, onde atua e quais setores ou equipes possui.</p>
+
+        <button
+          type="button"
+          onClick={() => setVerExemplo(v => !v)}
+          className="text-xs font-medium text-[#7d4a3c] hover:underline"
+        >
+          {verExemplo ? 'Ocultar exemplo' : 'Ver um exemplo completo'}
+        </button>
+        {verExemplo && (
+          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+            <p className="mb-2 text-xs text-gray-500">
+              Exemplo de outra empresa, só para mostrar a profundidade que ajuda. Escreva com os
+              fatos da sua.
+            </p>
+            <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-gray-600">{EXEMPLO}</pre>
+          </div>
+        )}
+
         {erro && <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{erro}</p>}
         <button type="button" disabled={gerando} onClick={gerar} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
           {gerando ? <><Loader2 className="h-4 w-4 animate-spin" /> Organizando...</> : <><Sparkles className="h-4 w-4" /> Organizar para revisão</>}

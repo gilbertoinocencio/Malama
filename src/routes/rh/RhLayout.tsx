@@ -12,6 +12,7 @@ import { RhJornadaProvider, useRhJornada } from '../../contexts/RhJornadaContext
 import { FaixaProximoPasso } from '../../components/rh/FaixaProximoPasso';
 import { PrimeiroAcessoRh } from '../../components/rh/PrimeiroAcessoRh';
 import { RhCopilot } from '../../components/rh/RhCopilot';
+import { RelatosSentinelaAlerta } from '../../components/rh/RelatosSentinelaAlerta';
 import { cicloCompleto, docsPendentesDe } from '../../lib/rhJornada';
 import { jaViuApresentacao, marcarApresentacaoVista } from '../../lib/rhPrimeiroAcesso';
 import { EMAIL_SUPORTE, linkSuporte } from '../../lib/suporteMalama';
@@ -273,6 +274,10 @@ export const RhLayout: React.FC = () => {
               <span className="hidden sm:inline text-sm text-gray-400 border-l border-gray-200 pl-3">Portal do RH</span>
             </div>
             <div className="flex items-center gap-4">
+              {/* Antes vivia como card cheio dentro da aba Saúde Mental — só
+                  existe quando há relato, e aqui alcança qualquer rota do
+                  portal, não só quem passa por aquela aba específica. */}
+              <RelatosSentinelaAlerta />
               {can('empresa') && <EmpresaNoCabecalho />}
               <SuporteNoCabecalho usuario={acesso.nome ? `${acesso.nome} (${acesso.email})` : acesso.email} />
               {acesso.principal && (

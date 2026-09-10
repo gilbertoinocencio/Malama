@@ -42,7 +42,6 @@ import { JssDiagnosticoSetor } from '../../components/rh/JssDiagnosticoSetor';
 import { JssIndicadores } from '../../components/rh/JssIndicadores';
 import { JssTeiaTemas } from '../../components/rh/JssTeiaTemas';
 import { Who5Indicadores } from '../../components/rh/Who5Indicadores';
-import { RelatosSentinelaCard } from '../../components/rh/RelatosSentinelaCard';
 import { useScrollParaHash } from '../../hooks/useScrollParaHash';
 import { ritmoInstrumento, prontoParaPreparar } from '../../lib/rhJornada';
 import { hashDocumento, formatarHash } from '../../lib/hashDocumento';
@@ -660,7 +659,6 @@ export const RhSaudeMental: React.FC = () => {
         </div>
       )}
 
-      <RelatosSentinelaCard />
       {/* ── Campanhas ── */}
       <div id="campanhas" className="scroll-mt-6 bg-white rounded-xl shadow p-5">
         <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">

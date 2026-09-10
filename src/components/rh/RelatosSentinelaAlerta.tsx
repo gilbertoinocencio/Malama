@@ -4,7 +4,15 @@ import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { rhService, type RhResumoRelatos } from '../../services/empresaService';
 import { useRhAccess } from '../../contexts/RhAccessContext';
 
-export const RelatosSentinelaCard: React.FC = () => {
+/**
+ * Selo do cabeçalho para o canal confidencial. Vivia como card cheio dentro
+ * da aba Saúde Mental — mas quem tem só 'apuracao' (sem 'saude_mental') nunca
+ * chega naquela aba, e por isso nunca via o alerta. No cabeçalho, comum a
+ * todas as rotas do portal, o alerta alcança quem realmente precisa vê-lo.
+ * Só existe quando há relato: sem isso, é mais um item competindo por
+ * atenção numa barra que já tem empresa, suporte e equipe.
+ */
+export const RelatosSentinelaAlerta: React.FC = () => {
   const { can } = useRhAccess();
   const [resumo, setResumo] = useState<RhResumoRelatos | null>(null);
 
@@ -14,25 +22,34 @@ export const RelatosSentinelaCard: React.FC = () => {
 
   if (!resumo || resumo.total === 0) return null;
 
+  const urgente = resumo.urgentes_abertos > 0;
+  const texto = resumo.novos > 0
+    ? `${resumo.novos} relato(s) aguardando triagem`
+    : 'Relatos em tratamento';
+  const detalhe = urgente ? ` · ${resumo.urgentes_abertos} com atenção alta ou imediata` : '';
+
+  const classes = `flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition ${
+    urgente ? 'bg-red-50 text-red-700 hover:bg-red-100' : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+  }`;
+  const titulo = `Canal confidencial acionado: ${texto}${detalhe}. Detalhes ficam restritos à equipe de apuração.`;
+
+  const conteudo = (
+    <>
+      {urgente ? <AlertTriangle className="h-4 w-4 flex-shrink-0" /> : <ShieldCheck className="h-4 w-4 flex-shrink-0" />}
+      <span className="hidden lg:inline">{texto}</span>
+      <span className="lg:hidden">{resumo.total}</span>
+    </>
+  );
+
+  // Sem o módulo de apuração a pessoa não tem para onde ir — vira aviso
+  // estático em vez de link morto.
+  if (!can('apuracao')) {
+    return <span className={classes} title={titulo}>{conteudo}</span>;
+  }
+
   return (
-    <div className={`rounded-xl border p-5 ${resumo.urgentes_abertos > 0 ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}>
-      <div className="flex items-start gap-3">
-        {resumo.urgentes_abertos > 0 ? <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" /> : <ShieldCheck className="w-6 h-6 text-amber-700 flex-shrink-0" />}
-        <div className="flex-1">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <h2 className="font-semibold text-gray-900">Evento sentinela: canal confidencial acionado</h2>
-              <p className="text-sm text-gray-700 mt-1">
-                {resumo.novos > 0 ? `${resumo.novos} relato(s) aguardando triagem.` : 'Há relatos em tratamento.'}
-                {resumo.urgentes_abertos > 0 ? ` ${resumo.urgentes_abertos} marcado(s) com atenção alta ou imediata.` : ''}
-              </p>
-            </div>
-            {can('apuracao') && <Link to="/rh/relatos" className="px-4 py-2 rounded-lg bg-white border text-sm font-semibold text-[#7d4a3c]">Abrir fila de apuração</Link>}
-          </div>
-          <p className="text-xs text-gray-500 mt-3">Este alerta aparece desde o primeiro relato e não usa o corte estatístico de cinco pessoas. Detalhes ficam restritos à equipe de apuração.</p>
-        </div>
-      </div>
-    </div>
+    <Link to="/rh/relatos" className={classes} title={`${titulo} Abrir fila de apuração.`}>
+      {conteudo}
+    </Link>
   );
 };
-
