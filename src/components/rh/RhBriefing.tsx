@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { HipoteseContexto } from './HipoteseContexto';
 import { Link } from 'react-router-dom';
 import {
   AlertTriangle, ArrowRight, CalendarClock, ChevronDown,
@@ -199,6 +200,12 @@ const PriorityCard: React.FC<{
           <p className="mt-1.5 text-[11px] leading-relaxed opacity-70">
             <span className="font-semibold">Por que apareceu:</span> {priority.hipotese.por_que_foi_sugerida}
           </p>
+          <HipoteseContexto
+            variante="card"
+            ressalvas={priority.hipotese.ressalvas}
+            convergencias={priority.hipotese.convergencias}
+            contextoSetor={priority.hipotese.contexto_setor}
+          />
           {priority.hipotese.perguntas_validacao.length > 0 && (
             <>
               <p className="mt-2 text-[11px] font-semibold opacity-80">Perguntas para validar com a equipe</p>

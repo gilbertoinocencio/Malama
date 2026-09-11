@@ -63,6 +63,12 @@ export type RhHipotese = {
   caminhos_possiveis: { medida: string; nivel_controle: string }[];
   forca_evidencia: RhForcaEvidencia;
   origem: string;
+  /** Organização declarada do setor, em uma linha. Contexto, não evidência. */
+  contexto_setor?: string | null;
+  /** Confundidores a ler ANTES do número: pico sazonal, evento da empresa, calor. */
+  ressalvas?: string[];
+  /** Outros dados da empresa na mesma direção (absenteísmo cap. F, ambulatório). Convergência, não causa. */
+  convergencias?: string[];
 };
 
 /**

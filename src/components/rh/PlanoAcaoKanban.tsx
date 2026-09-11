@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { HipoteseContexto } from './HipoteseContexto';
 import {
   AlertTriangle, ArrowRight, Bell, CalendarClock, CalendarDays, Check, CheckCircle2, Clipboard,
   ClipboardList, Clock3, History, Lightbulb, Plus, RefreshCw, Sparkles, Target,
@@ -9,6 +10,7 @@ import {
   rhService, type LiderancaCiclo,
   type LiderancaEtapa, type LiderancaVerificacaoResultado, type PlanoAcao, type PlanoFator,
   type PlanoNivel, type PlanoStatus, type PsychosocialSetor, type SetorEmpresa,
+  type HipotesePersistida,
 } from '../../services/empresaService';
 import { gerarDiagnostico, type Diagnostico, type Sugestao } from '../../lib/planoSugestoes';
 import { FATOR_LABEL, FATORES, NIVEIS, NIVEL_LABEL, STATUS_INFO } from '../../lib/planoAcaoLabels';
@@ -94,6 +96,8 @@ export const PlanoAcaoKanban: React.FC<{
 }) => {
   const [ciclos, setCiclos] = useState<LiderancaCiclo[]>([]);
   const [planos, setPlanos] = useState<PlanoAcao[]>([]);
+  // Base de cada medida vinculada a uma hipótese: o que o RH viu quando decidiu.
+  const [hipoteses, setHipoteses] = useState<Record<string, HipotesePersistida>>({});
   const [selecionado, setSelecionado] = useState<string | null>(cicloFoco);
   const [acaoSelecionada, setAcaoSelecionada] = useState<string | null>(null);
   const [jss, setJss] = useState<Awaited<ReturnType<typeof rhService.getRelatorioJss>>>(null);
@@ -127,6 +131,7 @@ export const PlanoAcaoKanban: React.FC<{
         rhService.getPlanosAcao().catch(() => []),
       ]);
       setCiclos(lista); setJss(relatorio); setWho5(bemEstar); setPlanos(itensPlano);
+      setHipoteses(await rhService.getHipoteses(itensPlano.map(i => i.hipotese_id ?? '').filter(Boolean)));
       setSelecionado(atual => atual && lista.some(c => c.id === atual) ? atual : null);
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível carregar o plano de ação.'); }
     finally { setLoading(false); }
@@ -212,7 +217,7 @@ export const PlanoAcaoKanban: React.FC<{
       {ciclo && <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={() => setSelecionado(null)}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}><div className="mb-3 flex items-center justify-end">
         <button onClick={() => setSelecionado(null)} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700" aria-label="Fechar detalhes"><X className="h-5 w-5" /></button></div><JornadaDetalhe ciclo={ciclo} sugestoes={leitura.sugestoes} who5={setorWho5} onEditar={() => setEditando(true)} onAcao={setAcao} onVerificar={() => setVerificando(ciclo)} onAvancar={destino => setTransicao({ ciclo, destino })} onAtualizar={carregar} /></aside></div>}
 
-      {acaoAtual && <AcaoGeralDetalhe item={acaoAtual} onFechar={() => setAcaoSelecionada(null)} onStatus={mudarStatusAcaoGeral} onExcluir={excluirAcaoGeral} />}
+      {acaoAtual && <AcaoGeralDetalhe item={acaoAtual} hipotese={acaoAtual.hipotese_id ? hipoteses[acaoAtual.hipotese_id] ?? null : null} onFechar={() => setAcaoSelecionada(null)} onStatus={mudarStatusAcaoGeral} onExcluir={excluirAcaoGeral} />}
 
       {escolhendo && <EscolhaTipo
         onMedida={() => { setEscolhendo(false); setNovaAcao(true); }}
@@ -416,10 +421,11 @@ const KanbanPlano: React.FC<{
 
 const AcaoGeralDetalhe: React.FC<{
   item: PlanoAcao;
+  hipotese?: HipotesePersistida | null;
   onFechar: () => void;
   onStatus: (item: PlanoAcao, status: PlanoStatus) => Promise<void>;
   onExcluir: (item: PlanoAcao) => Promise<void>;
-}> = ({ item, onFechar, onStatus, onExcluir }) => {
+}> = ({ item, hipotese = null, onFechar, onStatus, onExcluir }) => {
   const info = STATUS_INFO[item.status];
   return <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={onFechar}>
     <aside className="h-full w-full max-w-lg overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}>
@@ -438,6 +444,7 @@ const AcaoGeralDetalhe: React.FC<{
         <p className="mt-2 text-sm leading-relaxed text-gray-600"><span className="text-gray-400">Medida:</span> {item.medida}</p>
         <p className="mt-2 text-xs text-gray-400">{item.responsavel} · prazo {dataBr(item.prazo)}{item.concluida_em && ` · concluída em ${dataBr(item.concluida_em)}`}</p>
         {item.evidencia && <p className="mt-2 rounded-lg bg-gray-50 px-2.5 py-1.5 text-xs leading-snug text-gray-500"><span className="text-gray-400">Evidência:</span> {item.evidencia}</p>}
+        {hipotese && <BaseDaMedida hipotese={hipotese} />}
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {item.status === 'planejada' && <button onClick={() => onStatus(item, 'em_andamento')} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">Iniciar</button>}
           {(item.status === 'planejada' || item.status === 'em_andamento') && <>
@@ -683,6 +690,39 @@ const PontosForm: React.FC<{ ciclo:LiderancaCiclo;jss:RelatorioJss;who5:Relatori
 
 const AcaoForm: React.FC<{ciclo:LiderancaCiclo;sugestao:Sugestao;onClose:()=>void;onSaved:()=>void}> = ({ciclo,sugestao,onClose,onSaved}) => {const prazoPadrao=new Date();prazoPadrao.setMonth(prazoPadrao.getMonth()+1);const[objetivo,setObjetivo]=useState(sugestao.objetivo);const[medida,setMedida]=useState(sugestao.medida);const[responsavel,setResponsavel]=useState('Gestor do setor');const[prazo,setPrazo]=useState(prazoPadrao.toISOString().slice(0,10));const[saving,setSaving]=useState(false);const salvar=async()=>{setSaving(true);const res=await rhService.adicionarLiderancaAcao({cicloId:ciclo.id,fator:sugestao.fator,objetivo,medida,nivelControle:sugestao.nivel,responsavel,prazo});setSaving(false);if(!res.ok)return toast.error(res.error||'Não foi possível registrar.');toast.success('Combinado adicionado ao plano de ação.');onSaved();};return <Modal title={`Novo combinado — ${ciclo.setor}`} onClose={onClose}><div className="space-y-4 p-5"><label className="block text-sm font-medium">Objetivo<textarea className={`${input} mt-1`} rows={2} value={objetivo} onChange={e=>setObjetivo(e.target.value)} /></label><label className="block text-sm font-medium">Ação combinada<textarea className={`${input} mt-1`} rows={3} value={medida} onChange={e=>setMedida(e.target.value)} /></label><div className="grid gap-3 sm:grid-cols-2"><label className="block text-sm font-medium">Responsável<input className={`${input} mt-1`} value={responsavel} onChange={e=>setResponsavel(e.target.value)} /></label><label className="block text-sm font-medium">Prazo<input type="date" className={`${input} mt-1`} value={prazo} onChange={e=>setPrazo(e.target.value)} /></label></div><p className="text-xs text-gray-500">O combinado também será registrado no Plano de Ação formal, com prazo e evidência.</p></div><div className="flex justify-end gap-2 border-t p-5"><button onClick={onClose} className="px-4 py-2 text-sm">Cancelar</button><button disabled={saving} onClick={salvar} className="rounded-lg bg-[#7d4a3c] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving?'Salvando...':'Adicionar combinado'}</button></div></Modal>;};
 
+/**
+ * De onde a medida veio, mastigado: a hipótese, o que ler antes do número,
+ * o que mais apontava na mesma direção e como o setor trabalha. Fica no
+ * formulário (quando a medida nasce de uma hipótese) e no detalhe da
+ * medida depois — para a justificativa sobreviver ao clique em salvar.
+ */
+const BaseDaMedida: React.FC<{ hipotese: HipotesePersistida; abertaPorPadrao?: boolean }> = ({ hipotese, abertaPorPadrao = false }) => {
+  const FORCA: Record<HipotesePersistida['forca_evidencia'], string> = {
+    evidencia_insuficiente: 'evidência insuficiente', sinal_inicial: 'sinal inicial',
+    padrao_recorrente: 'padrão recorrente', padrao_consistente: 'padrão consistente',
+  };
+  return <details open={abertaPorPadrao} className="group/base mt-3 rounded-xl border border-gray-200 bg-white">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
+      <span className="text-xs font-semibold text-gray-800">Base desta medida</span>
+      <span className="flex items-center gap-2 text-[11px] text-gray-500">
+        <span className="rounded-full border border-gray-200 px-1.5 py-px">{FORCA[hipotese.forca_evidencia]}</span>
+        <span className="transition group-open/base:rotate-180">▾</span>
+      </span>
+    </summary>
+    <div className="space-y-3 border-t border-gray-100 px-3 py-3">
+      <p className="text-xs leading-relaxed text-gray-700">{hipotese.descricao}</p>
+      <p className="text-xs leading-relaxed text-gray-500"><span className="font-semibold text-gray-600">Por que apareceu:</span> {hipotese.por_que_foi_sugerida}</p>
+      <HipoteseContexto ressalvas={hipotese.ressalvas} convergencias={hipotese.convergencias} contextoSetor={hipotese.contexto_setor} />
+      {hipotese.perguntas_validacao.length > 0 && <div>
+        <p className="text-xs font-semibold text-gray-600">Validar com a equipe antes de executar</p>
+        <ul className="mt-1 space-y-1 text-xs leading-relaxed text-gray-600">
+          {hipotese.perguntas_validacao.map(q => <li key={q} className="flex gap-1.5"><span aria-hidden>·</span><span>{q}</span></li>)}
+        </ul>
+      </div>}
+    </div>
+  </details>;
+};
+
 const NovaAcaoGeralForm: React.FC<{
   setores: SetorEmpresa[];
   jss: Awaited<ReturnType<typeof rhService.getRelatorioJss>>;
@@ -711,6 +751,16 @@ const NovaAcaoGeralForm: React.FC<{
   const [responsavel, setResponsavel] = useState('');
   const [prazo, setPrazo] = useState(prazoPadrao.toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
+  // A hipótese chega pelo id (deep link do briefing/copiloto). Buscar aqui,
+  // e não no pai, evita que o formulário abra vazio quando a medida nasce
+  // de um link — que é justamente o caso em que a base mais importa.
+  const [hipotese, setHipotese] = useState<HipotesePersistida | null>(null);
+  useEffect(() => {
+    if (!hipoteseId) { setHipotese(null); return; }
+    let ativo = true;
+    rhService.getHipoteses([hipoteseId]).then(mapa => { if (ativo) setHipotese(mapa[hipoteseId] ?? null); });
+    return () => { ativo = false; };
+  }, [hipoteseId]);
 
   const diagnosticoSetor = useMemo(() => setor
     ? gerarDiagnostico(jss?.setores.find(s => s.setor === setor), jss?.cortes, who5?.setores.find(s => s.setor === setor))
@@ -743,6 +793,7 @@ const NovaAcaoGeralForm: React.FC<{
 
   return <Modal title="Nova ação geral" onClose={onClose}>
     <div className="space-y-4 p-5">
+      {hipotese && <BaseDaMedida hipotese={hipotese} abertaPorPadrao />}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block text-sm font-medium">Setor
           <select className={`${input} mt-1`} value={setor} onChange={e => setSetor(e.target.value)}>

@@ -605,6 +605,28 @@ export type EmpresaDadosCnpj = {
   updated_at: string;
 };
 
+/**
+ * Hipótese persistida (migration 20260902 + 20260914). É a mesma que o
+ * briefing mostra; aqui ela é lida pelo id gravado na medida do plano de
+ * ação, para o RH ver de onde a medida veio — e o que mais apontava na
+ * mesma direção quando ela foi criada.
+ */
+export type HipotesePersistida = {
+  id: string;
+  setor: string | null;
+  indicador: string;
+  fator: string;
+  descricao: string;
+  por_que_foi_sugerida: string;
+  perguntas_validacao: string[];
+  caminhos_possiveis: { medida: string; nivel_controle: string }[];
+  forca_evidencia: 'evidencia_insuficiente' | 'sinal_inicial' | 'padrao_recorrente' | 'padrao_consistente';
+  contexto_setor: string | null;
+  ressalvas: string[];
+  convergencias: string[];
+  created_at: string;
+};
+
 // ── Documentos legais e aceite (migration 20260825) ──
 export type DocumentoTipo = 'termos_b2b' | 'tratamento_dados' | 'privacidade';
 
@@ -1431,6 +1453,25 @@ export const rhService = {
     });
     if (error) throw error;
     return data as EmpresaContextoOperacional;
+  },
+
+  /** Hipóteses por id (RLS: só as da própria empresa). Usado pelo plano de
+   *  ação para mostrar a base de cada medida vinculada. */
+  async getHipoteses(ids: string[]): Promise<Record<string, HipotesePersistida>> {
+    const unicos = [...new Set(ids.filter(Boolean))];
+    if (unicos.length === 0) return {};
+    const { data, error } = await supabase
+      .from('psicossocial_hipoteses')
+      .select('id, setor, indicador, fator, descricao, por_que_foi_sugerida, perguntas_validacao, caminhos_possiveis, forca_evidencia, contexto_setor, ressalvas, convergencias, created_at')
+      .in('id', unicos);
+    if (error) { console.error('[rhService] hipóteses:', error.message); return {}; }
+    return Object.fromEntries((data ?? []).map((h: any) => [h.id, {
+      ...h,
+      perguntas_validacao: Array.isArray(h.perguntas_validacao) ? h.perguntas_validacao : [],
+      caminhos_possiveis: Array.isArray(h.caminhos_possiveis) ? h.caminhos_possiveis : [],
+      ressalvas: Array.isArray(h.ressalvas) ? h.ressalvas : [],
+      convergencias: Array.isArray(h.convergencias) ? h.convergencias : [],
+    } as HipotesePersistida]));
   },
 
   /** Dados oficiais do CNPJ, para a tela de perfil da empresa. */
