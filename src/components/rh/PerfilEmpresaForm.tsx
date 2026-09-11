@@ -1,57 +1,46 @@
+// =====================================================
+// Malama — Perfil da empresa para o copiloto
+//
+// Antes, o formulário pedia descrição do NEGÓCIO (produtos, unidades, "o
+// que fazemos") em texto livre. O extrator de IA devolvia null para tudo
+// que não estivesse explícito, e o copiloto trabalhava no vazio.
+//
+// Agora a Receita responde o negócio (bloco no topo) e o que se pede é a
+// ORGANIZAÇÃO DO TRABALHO, em escolhas fixas: o que mudou nos últimos 12
+// meses, liderança, vínculos, jornada, remuneração variável, SST existente.
+// É o que muda a leitura de um resultado — "carga alta na Cozinha" vira
+// hipótese com contexto (escala 6x1, hora extra rotina, trocou gestão)
+// em vez de "a Cozinha está ruim". O texto aberto sobra para o que a
+// estrutura não previu.
+//
+// São perguntas DESCRITIVAS. Nada aqui avalia risco: contexto declarado
+// gera hipótese e pergunta, nunca prova.
+// =====================================================
+
 import React, { useEffect, useState } from 'react';
 import { Check, Loader2, Pencil, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRhAccess } from '../../contexts/RhAccessContext';
 import { rhSetorSugestoes } from '../../lib/rhSetorSugestoes';
 import {
+  EVENTOS_12M, LIDERANCA_FORMAL, PESSOAS_POR_LIDER, VINCULOS, HORA_EXTRA, ESCALAS,
+  REMUNERACAO_VARIAVEL, SST_EXISTENTE, ORGANIZACAO_EMPRESA_VAZIA,
+  organizacaoEmpresaPreenchida, type OrganizacaoEmpresa,
+} from '../../lib/organizacaoTrabalho';
+import {
   rhService, type EmpresaContextoOperacional, type EmpresaDadosCnpj,
 } from '../../services/empresaService';
 import { rhAgentService, type RhProfileDraft } from '../../services/rhAgentService';
 
-type Etapa = 'descricao' | 'revisao' | 'resumo';
-
-/**
- * Roteiro da descrição livre.
- *
- * O extrator (RH_PROFILE_DRAFT_PROMPT) tem uma regra dura: "extraia apenas o
- * que estiver explícito, use null quando faltar informação". Então tudo que a
- * pessoa não escrever vira campo vazio, e o copiloto passa a trabalhar sem
- * contexto — o que aparecia como IA fraca era, na verdade, entrada pobre.
- * Cada item aqui existe porque alimenta um campo que o extrator devolve ou um
- * assunto que o copiloto articula (organização do trabalho, jornada, turnos).
- *
- * São perguntas DESCRITIVAS de propósito. Nada aqui pede que o RH avalie
- * risco: contexto declarado gera hipótese e pergunta, nunca prova de risco.
- */
-const ROTEIRO: { rotulo: string; pergunta: string }[] = [
-  { rotulo: 'O que fazemos', pergunta: 'Qual é o produto ou serviço principal?' },
-  { rotulo: 'Equipes e setores', pergunta: 'Quais equipes existem e o que cada uma faz no dia a dia?' },
-  { rotulo: 'Como o trabalho é organizado', pergunta: 'Turnos, escalas, presencial ou home office?' },
-  { rotulo: 'Onde atuamos', pergunta: 'Uma unidade ou várias? Loja, fábrica, escritório, rua?' },
-  { rotulo: 'Picos e sazonalidade', pergunta: 'Há períodos previsíveis de pico (fim de mês, safra, feriados)?' },
-  { rotulo: 'Rotina', pergunta: 'Algo que ajude a entender o dia a dia: atendimento ao público, metas, esforço físico.' },
-];
-
-const EXEMPLO = `O que fazemos: rede de restaurantes de comida havaiana, com produção própria e três lojas de rua na região metropolitana.
-
-Equipes e setores: cozinha (montagem e preparo), atendimento (balcão e caixa), entregas (motoboys próprios), compras e administrativo.
-
-Como o trabalho é organizado: cozinha e atendimento trabalham em dois turnos, 11h-15h e 18h-23h, escala 6x1. Administrativo e compras são horário comercial, híbrido com dois dias em casa.
-
-Onde atuamos: três lojas, mais uma cozinha central que abastece as três.
-
-Picos e sazonalidade: almoço de sexta e todo fim de semana. Dezembro e janeiro dobram o volume de entrega.
-
-Rotina: atendimento ao público direto o tempo todo, meta de tempo de preparo por pedido, trabalho em pé na cozinha.`;
+type Etapa = 'organizacao' | 'revisao' | 'resumo';
 
 const vazio: RhProfileDraft = {
   setor_atuacao: null,
   cnae_principal: null,
   descricao_negocio: null,
-  produtos_servicos: [],
-  unidades: [],
   setores_sugeridos: [],
   contexto_adicional: null,
+  organizacao_sugerida: null,
 };
 
 const linhas = (items: string[]) => items.join('\n');
@@ -65,29 +54,174 @@ const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: str
   </label>
 );
 
-const Textarea = React.forwardRef<
-  HTMLTextAreaElement,
-  React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }
->(({ label, ...props }, ref) => (
+const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }> = ({ label, ...props }) => (
   <label className="block text-xs font-medium text-gray-700">
     {label}
-    <textarea {...props} ref={ref} className="mt-1 w-full resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none transition focus:border-[#7d4a3c] focus:ring-2 focus:ring-[#7d4a3c]/10" />
+    <textarea {...props} className="mt-1 w-full resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none transition focus:border-[#7d4a3c] focus:ring-2 focus:ring-[#7d4a3c]/10" />
   </label>
-));
-Textarea.displayName = 'Textarea';
+);
 
-/** Texto sem os rótulos do roteiro. Um roteiro inserido e não preenchido tem
- *  caracteres de sobra para passar no mínimo, mas nenhum fato dentro — e o
- *  extrator devolveria um perfil vazio depois de gastar uma chamada de IA. */
-const conteudoUtil = (texto: string) =>
-  ROTEIRO.reduce((acc, item) => acc.split(`${item.rotulo}:`).join(' '), texto).trim();
+// ── Chips ─────────────────────────────────────────────────────────────
 
-/**
- * O que a Receita já respondeu não deve ser pedido de novo. CNAE e setor
- * entram pré-preenchidos a partir da consulta feita no cadastro
- * (empresa_dados_cnpj) — só quando o rascunho não trouxe nada, para não
- * sobrescrever o que a pessoa escreveu ou o que a IA extraiu do texto.
- */
+const chipClasse = (ativo: boolean) =>
+  `rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+    ativo
+      ? 'border-[#7d4a3c]/30 bg-[#7d4a3c]/10 text-[#7d4a3c]'
+      : 'border-gray-200 bg-white text-gray-600 hover:border-[#7d4a3c] hover:text-[#7d4a3c]'
+  }`;
+
+function Escolha<K extends string>({ opcoes, valor, onChange }: {
+  opcoes: Record<K, string>; valor: K | null | undefined; onChange: (v: K | null) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {(Object.keys(opcoes) as K[]).map(k => (
+        <button key={k} type="button" onClick={() => onChange(valor === k ? null : k)} className={chipClasse(valor === k)}>
+          {valor === k && <Check className="mr-1 inline h-3 w-3" />}{opcoes[k]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Varios<K extends string>({ opcoes, valor, onChange, exclusivo }: {
+  opcoes: Record<K, string>; valor: K[] | undefined; onChange: (v: K[]) => void;
+  /** Opção que exclui as outras (ex.: "nenhum"). */
+  exclusivo?: K;
+}) {
+  const atual = valor ?? [];
+  const alternar = (k: K) => {
+    if (atual.includes(k)) return onChange(atual.filter(x => x !== k));
+    if (exclusivo && k === exclusivo) return onChange([k]);
+    onChange([...atual.filter(x => x !== exclusivo), k]);
+  };
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {(Object.keys(opcoes) as K[]).map(k => (
+        <button key={k} type="button" onClick={() => alternar(k)} className={chipClasse(atual.includes(k))}>
+          {atual.includes(k) && <Check className="mr-1 inline h-3 w-3" />}{opcoes[k]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const SimNao: React.FC<{ valor: boolean | null | undefined; onChange: (v: boolean | null) => void }> = ({ valor, onChange }) => (
+  <div className="flex gap-1.5">
+    <button type="button" onClick={() => onChange(valor === true ? null : true)} className={chipClasse(valor === true)}>Sim</button>
+    <button type="button" onClick={() => onChange(valor === false ? null : false)} className={chipClasse(valor === false)}>Não</button>
+  </div>
+);
+
+const Grupo: React.FC<{ titulo: string; ajuda?: string; children: React.ReactNode }> = ({ titulo, ajuda, children }) => (
+  <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+    <p className="text-xs font-medium text-gray-800">{titulo}</p>
+    {ajuda && <p className="mt-0.5 text-xs text-gray-500">{ajuda}</p>}
+    <div className="mt-2 space-y-2">{children}</div>
+  </div>
+);
+
+/** Os seis grupos. Compartilhado entre a etapa de preenchimento e a revisão. */
+const OrganizacaoCampos: React.FC<{
+  org: OrganizacaoEmpresa;
+  onChange: (o: OrganizacaoEmpresa) => void;
+}> = ({ org, onChange }) => {
+  const set = <K extends keyof OrganizacaoEmpresa>(k: K, v: OrganizacaoEmpresa[K]) => onChange({ ...org, [k]: v });
+  const temEvento = (org.eventos_12m ?? []).some(e => e !== 'nenhum');
+  return (
+    <div className="space-y-2.5">
+      <Grupo titulo="O que mudou nos últimos 12 meses?" ajuda="É o que mais explica uma piora que aparece em vários setores ao mesmo tempo.">
+        <Varios opcoes={EVENTOS_12M} valor={org.eventos_12m} onChange={v => set('eventos_12m', v)} exclusivo="nenhum" />
+        {temEvento && (
+          <Input label="Em uma linha, o que foi" maxLength={500} value={org.eventos_12m_detalhe ?? ''}
+            onChange={e => set('eventos_12m_detalhe', e.target.value || null)} placeholder="Ex.: troca de gerente na Cozinha em março" />
+        )}
+      </Grupo>
+
+      <Grupo titulo="Liderança" ajuda="Apoio e autonomia nos resultados são quase sempre sobre isso.">
+        <div>
+          <p className="mb-1 text-xs text-gray-500">Os setores têm líder formal?</p>
+          <Escolha opcoes={LIDERANCA_FORMAL} valor={org.lideranca_formal} onChange={v => set('lideranca_formal', v)} />
+        </div>
+        <div>
+          <p className="mb-1 text-xs text-gray-500">Quantas pessoas por líder, em média?</p>
+          <Escolha opcoes={PESSOAS_POR_LIDER} valor={org.pessoas_por_lider} onChange={v => set('pessoas_por_lider', v)} />
+        </div>
+        <div>
+          <p className="mb-1 text-xs text-gray-500">Algum setor trocou de líder nos últimos 12 meses?</p>
+          <SimNao valor={org.troca_lideranca_12m} onChange={v => set('troca_lideranca_12m', v)} />
+        </div>
+      </Grupo>
+
+      <Grupo titulo="Vínculos" ajuda="Terceirizado responde à pesquisa, mas a empresa não controla a jornada dele.">
+        <Varios opcoes={VINCULOS} valor={org.vinculos} onChange={v => set('vinculos', v)} />
+        {(org.vinculos?.length ?? 0) > 1 && (
+          <div>
+            <p className="mb-1 text-xs text-gray-500">Qual predomina?</p>
+            <Escolha
+              opcoes={Object.fromEntries((org.vinculos ?? []).map(v => [v, VINCULOS[v]])) as Record<string, string>}
+              valor={org.vinculo_predominante}
+              onChange={v => set('vinculo_predominante', v as OrganizacaoEmpresa['vinculo_predominante'])}
+            />
+          </div>
+        )}
+      </Grupo>
+
+      <Grupo titulo="Jornada" ajuda="Carga sem jornada é adivinhação.">
+        <div>
+          <p className="mb-1 text-xs text-gray-500">Hora extra é rotina?</p>
+          <Escolha opcoes={HORA_EXTRA} valor={org.hora_extra} onChange={v => set('hora_extra', v)} />
+        </div>
+        <div>
+          <p className="mb-1 text-xs text-gray-500">Existe banco de horas?</p>
+          <SimNao valor={org.banco_de_horas} onChange={v => set('banco_de_horas', v)} />
+        </div>
+        <div>
+          <p className="mb-1 text-xs text-gray-500">Escala mais comum</p>
+          <Escolha opcoes={ESCALAS} valor={org.escala_predominante} onChange={v => set('escala_predominante', v)} />
+        </div>
+      </Grupo>
+
+      <Grupo titulo="Remuneração variável ou meta individual" ajuda="Meta com cobrança individual muda a medida sugerida: organizacional, não pessoal.">
+        <Escolha opcoes={REMUNERACAO_VARIAVEL} valor={org.remuneracao_variavel} onChange={v => set('remuneracao_variavel', v)} />
+        {org.remuneracao_variavel && org.remuneracao_variavel !== 'nao' && (
+          <Input label="Em quais setores? (separe por vírgula)" value={(org.remuneracao_variavel_setores ?? []).join(', ')}
+            onChange={e => set('remuneracao_variavel_setores', e.target.value.split(',').map(s => s.trim()).filter(Boolean).slice(0, 50))}
+            placeholder="Ex.: Vendas, Entregas" />
+        )}
+      </Grupo>
+
+      <Grupo titulo="O que já existe de SST" ajuda="Define o que o copiloto pode acionar e o que precisa ser criado.">
+        <Varios opcoes={SST_EXISTENTE} valor={org.sst_existente} onChange={v => set('sst_existente', v)} exclusivo="nenhum" />
+      </Grupo>
+    </div>
+  );
+};
+
+const ResumoOrganizacao: React.FC<{ org: OrganizacaoEmpresa }> = ({ org }) => {
+  const linha = (rotulo: string, valor: string | null | undefined) => valor
+    ? <div><dt className="inline text-gray-400">{rotulo}: </dt><dd className="inline text-gray-700">{valor}</dd></div>
+    : null;
+  const eventos = (org.eventos_12m ?? []).map(e => EVENTOS_12M[e]).join(', ');
+  return (
+    <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+      {linha('Últimos 12 meses', eventos ? `${eventos}${org.eventos_12m_detalhe ? ` — ${org.eventos_12m_detalhe}` : ''}` : null)}
+      {linha('Liderança formal', org.lideranca_formal ? LIDERANCA_FORMAL[org.lideranca_formal] : null)}
+      {linha('Pessoas por líder', org.pessoas_por_lider ? PESSOAS_POR_LIDER[org.pessoas_por_lider] : null)}
+      {linha('Trocou líder no ano', org.troca_lideranca_12m == null ? null : org.troca_lideranca_12m ? 'Sim' : 'Não')}
+      {linha('Vínculos', (org.vinculos ?? []).map(v => VINCULOS[v]).join(', ') + (org.vinculo_predominante ? ` (predomina ${VINCULOS[org.vinculo_predominante]})` : '') || null)}
+      {linha('Hora extra', org.hora_extra ? HORA_EXTRA[org.hora_extra] : null)}
+      {linha('Banco de horas', org.banco_de_horas == null ? null : org.banco_de_horas ? 'Sim' : 'Não')}
+      {linha('Escala predominante', org.escala_predominante ? ESCALAS[org.escala_predominante] : null)}
+      {linha('Remuneração variável', org.remuneracao_variavel ? `${REMUNERACAO_VARIAVEL[org.remuneracao_variavel]}${org.remuneracao_variavel_setores?.length ? ` (${org.remuneracao_variavel_setores.join(', ')})` : ''}` : null)}
+      {linha('SST existente', (org.sst_existente ?? []).map(s => SST_EXISTENTE[s]).join(', ') || null)}
+    </dl>
+  );
+};
+
+// ── Mesclas ───────────────────────────────────────────────────────────
+
+/** CNAE e setor entram da Receita só quando o rascunho não trouxe nada. */
 const comDadosDaReceita = (rascunho: RhProfileDraft, dados: EmpresaDadosCnpj | null): RhProfileDraft => {
   if (!dados || dados.sync_status !== 'ok') return rascunho;
   return {
@@ -97,15 +231,30 @@ const comDadosDaReceita = (rascunho: RhProfileDraft, dados: EmpresaDadosCnpj | n
   };
 };
 
+/** O que a IA sugeriu para a organização só entra em campo vazio. */
+const comSugestoes = (org: OrganizacaoEmpresa, sugerida: Partial<OrganizacaoEmpresa> | null): OrganizacaoEmpresa => {
+  if (!sugerida) return org;
+  const saida = { ...org };
+  for (const k of Object.keys(sugerida) as (keyof OrganizacaoEmpresa)[]) {
+    const atual = saida[k];
+    const vazioAtual = atual == null || (Array.isArray(atual) && atual.length === 0);
+    const novo = sugerida[k];
+    const temNovo = novo != null && !(Array.isArray(novo) && novo.length === 0);
+    if (vazioAtual && temNovo) (saida as Record<string, unknown>)[k] = novo;
+  }
+  return saida;
+};
+
 const doContexto = (contexto: EmpresaContextoOperacional): RhProfileDraft => ({
   setor_atuacao: contexto.setor_atuacao,
   cnae_principal: contexto.cnae_principal,
   descricao_negocio: contexto.descricao_negocio,
-  produtos_servicos: contexto.produtos_servicos,
-  unidades: contexto.unidades,
   setores_sugeridos: [],
   contexto_adicional: contexto.contexto_adicional,
+  organizacao_sugerida: null,
 });
+
+// ── Componente ────────────────────────────────────────────────────────
 
 export const PerfilEmpresaForm: React.FC<{
   onSaved?: () => void;
@@ -113,21 +262,18 @@ export const PerfilEmpresaForm: React.FC<{
 }> = ({ onSaved, mostrarResumo = true }) => {
   const { acesso, can } = useRhAccess();
   const podeEditar = acesso.principal || can('empresa');
-  const [etapa, setEtapa] = useState<Etapa>('descricao');
+  const [etapa, setEtapa] = useState<Etapa>('organizacao');
   const [contexto, setContexto] = useState<EmpresaContextoOperacional | null>(null);
   const [dadosCnpj, setDadosCnpj] = useState<EmpresaDadosCnpj | null>(null);
+  const [organizacao, setOrganizacao] = useState<OrganizacaoEmpresa>(ORGANIZACAO_EMPRESA_VAZIA);
   const [descricao, setDescricao] = useState('');
   const [rascunho, setRascunho] = useState<RhProfileDraft>(vazio);
   const [loading, setLoading] = useState(true);
   const [gerando, setGerando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
-  const [verExemplo, setVerExemplo] = useState(false);
-  const campoDescricao = React.useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    // Os dados da Receita são complemento: se a leitura falhar, o
-    // formulário segue igual ao de antes, sem pré-preenchimento.
     Promise.all([
       rhService.getContextoOperacional(),
       rhService.getDadosCnpj().catch(() => null),
@@ -137,6 +283,8 @@ export const PerfilEmpresaForm: React.FC<{
         setDadosCnpj(cnpj);
         if (perfil) {
           setRascunho(doContexto(perfil));
+          setOrganizacao({ ...ORGANIZACAO_EMPRESA_VAZIA, ...(perfil.organizacao ?? {}) });
+          setDescricao(perfil.contexto_adicional ?? '');
           setEtapa(mostrarResumo ? 'resumo' : 'revisao');
           onSaved?.();
         }
@@ -148,49 +296,45 @@ export const PerfilEmpresaForm: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mostrarResumo]);
 
-  /** Acrescenta o tópico ao texto e deixa o cursor pronto para responder.
-   *  Não duplica o que já foi inserido. */
-  const inserirTopico = (rotulo: string) => {
-    setDescricao(atual => {
-      if (atual.includes(`${rotulo}:`)) return atual;
-      const base = atual.trimEnd();
-      return `${base}${base ? '\n\n' : ''}${rotulo}: `;
-    });
-    window.setTimeout(() => {
-      const campo = campoDescricao.current;
-      if (!campo) return;
-      campo.focus();
-      campo.setSelectionRange(campo.value.length, campo.value.length);
-    }, 0);
-  };
+  const gruposRespondidos = organizacaoEmpresaPreenchida(organizacao);
+  const podeAvancar = gruposRespondidos >= 2;
 
-  /**
-   * Caminho sem IA para o mesmo destino.
-   *
-   * A etapa de revisão é um formulário comum — a IA só a pré-preenche. Sem
-   * esta porta, um provedor generativo fora do ar impede CONFIRMAR o perfil,
-   * e no onboarding (onde o perfil é obrigatório) isso trancaria a pessoa
-   * fora do painel por uma falha que não é dela. O texto já digitado vai
-   * junto, para ninguém perder o que escreveu.
-   */
-  const preencherManualmente = () => {
+  /** Segue para a revisão sem IA. O texto vira contexto adicional. */
+  const continuar = () => {
+    if (!podeAvancar) {
+      setErro('Responda pelo menos dois grupos acima — é o mínimo para o copiloto ter contexto.');
+      return;
+    }
     setErro('');
     setRascunho(atual => comDadosDaReceita({
       ...atual,
-      descricao_negocio: atual.descricao_negocio ?? (descricao.trim() || null),
+      contexto_adicional: descricao.trim() || atual.contexto_adicional,
     }, dadosCnpj));
     setEtapa('revisao');
   };
 
-  const gerar = async () => {
-    if (conteudoUtil(descricao).length < 20) {
-      setErro('Conte um pouco mais: o que a empresa faz, quais equipes existem e como o trabalho é organizado. Os tópicos acima ajudam a montar o texto.');
+  /**
+   * IA opcional sobre o texto aberto: extrai setores sugeridos, descrição
+   * e dicas de organização (só para campos vazios). Se o provedor cair, o
+   * caminho sem IA continua aberto — no onboarding o perfil é obrigatório
+   * e uma falha de infraestrutura não pode trancar a pessoa fora.
+   */
+  const organizarComIa = async () => {
+    if (descricao.trim().length < 20) {
+      setErro('Escreva ao menos uma frase sobre como a empresa trabalha para a IA organizar.');
       return;
     }
     setGerando(true);
     setErro('');
     try {
-      setRascunho(comDadosDaReceita(await rhAgentService.criarRascunhoPerfil(descricao), dadosCnpj));
+      const draft = await rhAgentService.criarRascunhoPerfil(descricao);
+      setOrganizacao(atual => comSugestoes(atual, draft.organizacao_sugerida));
+      setRascunho(atual => comDadosDaReceita({
+        ...atual,
+        descricao_negocio: draft.descricao_negocio ?? atual.descricao_negocio,
+        setores_sugeridos: draft.setores_sugeridos,
+        contexto_adicional: draft.contexto_adicional ?? (descricao.trim() || atual.contexto_adicional),
+      }, dadosCnpj));
       setEtapa('revisao');
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não foi possível organizar a descrição.');
@@ -207,12 +351,19 @@ export const PerfilEmpresaForm: React.FC<{
     setSalvando(true);
     setErro('');
     try {
-      const salvo = await rhService.salvarContextoOperacional(rascunho);
+      const salvo = await rhService.salvarContextoOperacional({
+        setor_atuacao: rascunho.setor_atuacao,
+        cnae_principal: rascunho.cnae_principal,
+        descricao_negocio: rascunho.descricao_negocio,
+        contexto_adicional: rascunho.contexto_adicional,
+        organizacao,
+      });
       if (rascunho.setores_sugeridos.length > 0) {
         rhSetorSugestoes.adicionar(acesso.empresa_id, rascunho.setores_sugeridos);
       }
       setContexto(salvo);
       setRascunho(doContexto(salvo));
+      setOrganizacao({ ...ORGANIZACAO_EMPRESA_VAZIA, ...(salvo.organizacao ?? {}) });
       setEtapa('resumo');
       toast.success('Perfil da empresa confirmado.');
       onSaved?.();
@@ -232,140 +383,119 @@ export const PerfilEmpresaForm: React.FC<{
     return <p className="rounded-lg bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">O perfil é mantido pelo usuário principal ou por quem tem permissão para editar os dados da empresa.</p>;
   }
 
+  const blocoReceita = dadosCnpj?.sync_status === 'ok' && (
+    <div className="rounded-lg border border-green-100 bg-green-50/60 p-3">
+      <p className="text-xs font-medium text-green-900">Já sabemos pela Receita Federal</p>
+      <dl className="mt-1.5 grid gap-x-4 gap-y-1 text-xs text-gray-700 sm:grid-cols-2">
+        <div><dt className="inline text-gray-500">Razão social: </dt><dd className="inline">{dadosCnpj.razao_social ?? '—'}</dd></div>
+        <div><dt className="inline text-gray-500">Porte: </dt><dd className="inline">{dadosCnpj.porte ?? '—'}</dd></div>
+        <div className="sm:col-span-2">
+          <dt className="inline text-gray-500">CNAE principal: </dt>
+          <dd className="inline">{dadosCnpj.cnae_principal_codigo} — {dadosCnpj.cnae_principal_descricao}</dd>
+        </div>
+        <div><dt className="inline text-gray-500">Situação: </dt><dd className="inline">{dadosCnpj.situacao_cadastral ?? '—'}</dd></div>
+        {dadosCnpj.grau_risco_estimado && (
+          <div>
+            <dt className="inline text-gray-500">Grau de risco (NR-4): </dt>
+            <dd className="inline">{dadosCnpj.grau_risco_estimado} <span className="text-gray-400">· leitura preliminar pelo CNAE</span></dd>
+          </div>
+        )}
+      </dl>
+      <p className="mt-2 text-xs leading-relaxed text-green-900/80">
+        Isso entra sozinho. O que a Receita não sabe é como o trabalho é organizado — é isso que muda a leitura dos resultados.
+      </p>
+    </div>
+  );
+
   if (etapa === 'resumo' && contexto) {
     return (
       <div className="space-y-3">
         <div className="grid gap-3 text-sm sm:grid-cols-2">
           <div><p className="text-xs font-medium text-gray-400">Setor de atuação</p><p className="mt-1 text-gray-700">{contexto.setor_atuacao || 'Não informado'}</p></div>
           <div><p className="text-xs font-medium text-gray-400">CNAE</p><p className="mt-1 text-gray-700">{contexto.cnae_principal || 'Não informado'}</p></div>
-          <div className="sm:col-span-2"><p className="text-xs font-medium text-gray-400">O que a empresa faz</p><p className="mt-1 whitespace-pre-wrap text-gray-700">{contexto.descricao_negocio || 'Não informado'}</p></div>
-          <div><p className="text-xs font-medium text-gray-400">Produtos ou serviços</p><p className="mt-1 text-gray-700">{contexto.produtos_servicos.join(' · ') || 'Não informado'}</p></div>
-          <div><p className="text-xs font-medium text-gray-400">Unidades ou locais</p><p className="mt-1 text-gray-700">{contexto.unidades.join(' · ') || 'Não informado'}</p></div>
+          {contexto.descricao_negocio && (
+            <div className="sm:col-span-2"><p className="text-xs font-medium text-gray-400">O que a empresa faz</p><p className="mt-1 whitespace-pre-wrap text-gray-700">{contexto.descricao_negocio}</p></div>
+          )}
         </div>
-        <button type="button" onClick={() => setEtapa('revisao')} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50">
+        <div className="border-t border-gray-100 pt-3">
+          <p className="mb-2 text-xs font-medium text-gray-400">Organização do trabalho</p>
+          {organizacaoEmpresaPreenchida(contexto.organizacao) > 0
+            ? <ResumoOrganizacao org={contexto.organizacao} />
+            : <p className="text-sm text-gray-500">Ainda não preenchida — o copiloto responde sem esse contexto.</p>}
+        </div>
+        {contexto.contexto_adicional && (
+          <div><p className="text-xs font-medium text-gray-400">Contexto adicional</p><p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{contexto.contexto_adicional}</p></div>
+        )}
+        <button type="button" onClick={() => setEtapa('organizacao')} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50">
           <Pencil className="h-3.5 w-3.5" /> Editar perfil
         </button>
       </div>
     );
   }
 
-  if (etapa === 'descricao') {
+  if (etapa === 'organizacao') {
     return (
       <div className="space-y-3">
-        {/* O que a Receita já respondeu, para a pessoa não gastar o texto
-            com isso. CNAE e setor entram sozinhos na revisão; o que ela
-            precisa contar é o que o cadastro fiscal não sabe. */}
-        {dadosCnpj?.sync_status === 'ok' && (
-          <div className="rounded-lg border border-green-100 bg-green-50/60 p-3">
-            <p className="text-xs font-medium text-green-900">Já sabemos pela Receita Federal</p>
-            <dl className="mt-1.5 grid gap-x-4 gap-y-1 text-xs text-gray-700 sm:grid-cols-2">
-              <div><dt className="inline text-gray-500">Razão social: </dt><dd className="inline">{dadosCnpj.razao_social ?? '—'}</dd></div>
-              <div><dt className="inline text-gray-500">Porte: </dt><dd className="inline">{dadosCnpj.porte ?? '—'}</dd></div>
-              <div className="sm:col-span-2">
-                <dt className="inline text-gray-500">CNAE principal: </dt>
-                <dd className="inline">{dadosCnpj.cnae_principal_codigo} — {dadosCnpj.cnae_principal_descricao}</dd>
-              </div>
-              <div><dt className="inline text-gray-500">Situação: </dt><dd className="inline">{dadosCnpj.situacao_cadastral ?? '—'}</dd></div>
-              {dadosCnpj.grau_risco_estimado && (
-                <div>
-                  <dt className="inline text-gray-500">Grau de risco (NR-4): </dt>
-                  <dd className="inline">{dadosCnpj.grau_risco_estimado} <span className="text-gray-400">· leitura preliminar pelo CNAE</span></dd>
-                </div>
-              )}
-            </dl>
-            <p className="mt-2 text-xs leading-relaxed text-green-900/80">
-              Isso entra sozinho. Conte abaixo o que o cadastro fiscal não sabe: equipes, turnos,
-              unidades, picos e a rotina de quem trabalha.
-            </p>
-          </div>
-        )}
+        {blocoReceita}
 
-        {/* O roteiro fica FORA do placeholder de propósito: placeholder some
-            no primeiro caractere, justamente quando a pessoa precisa saber o
-            que ainda falta contar. */}
-        <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-          <p className="text-xs font-medium text-gray-700">Responda estes pontos no texto</p>
-          <p className="mt-0.5 text-xs text-gray-500">
-            O copiloto só usa o que estiver escrito aqui — o que faltar vira campo vazio. Clique num
-            tópico para adicioná-lo ao texto.
-          </p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {ROTEIRO.map(item => {
-              const jaNoTexto = descricao.includes(`${item.rotulo}:`);
-              return (
-                <button
-                  key={item.rotulo}
-                  type="button"
-                  onClick={() => inserirTopico(item.rotulo)}
-                  title={item.pergunta}
-                  className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
-                    jaNoTexto
-                      ? 'border-[#7d4a3c]/30 bg-[#7d4a3c]/10 text-[#7d4a3c]'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-[#7d4a3c] hover:text-[#7d4a3c]'
-                  }`}
-                >
-                  {jaNoTexto && <Check className="mr-1 inline h-3 w-3" />}
-                  {item.rotulo}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <OrganizacaoCampos org={organizacao} onChange={setOrganizacao} />
 
         <Textarea
-          ref={campoDescricao}
-          label="Descreva a empresa com suas palavras"
-          rows={8}
+          label="O que a Receita e as escolhas acima não contam sobre como vocês trabalham?"
+          rows={4}
           value={descricao}
           onChange={event => setDescricao(event.target.value)}
-          placeholder="Ex.: Somos uma padaria com produção própria e atendimento no balcão. Vendemos pães, refeições e encomendas. Temos os setores de produção, atendimento e administrativo..."
+          placeholder="Ex.: cozinha central abastece três lojas; entregas com motoboys próprios; almoço de sexta dobra o movimento; a Cozinha trocou de gerente em março."
         />
-
-        <button
-          type="button"
-          onClick={() => setVerExemplo(v => !v)}
-          className="text-xs font-medium text-[#7d4a3c] hover:underline"
-        >
-          {verExemplo ? 'Ocultar exemplo' : 'Ver um exemplo completo'}
-        </button>
-        {verExemplo && (
-          <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-            <p className="mb-2 text-xs text-gray-500">
-              Exemplo de outra empresa, só para mostrar a profundidade que ajuda. Escreva com os
-              fatos da sua.
-            </p>
-            <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-gray-600">{EXEMPLO}</pre>
-          </div>
-        )}
+        <p className="-mt-1 text-xs text-gray-500">
+          Opcional. Se citar equipes, escala ou hora extra, a IA pode organizar isso em campos — você revisa antes de confirmar.
+        </p>
 
         {erro && <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{erro}</p>}
-        <button type="button" disabled={gerando} onClick={gerar} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
-          {gerando ? <><Loader2 className="h-4 w-4 animate-spin" /> Organizando...</> : <><Sparkles className="h-4 w-4" /> Organizar para revisão</>}
-        </button>
-        <button type="button" onClick={preencherManualmente} className="w-full text-xs font-medium text-gray-500 hover:text-[#7d4a3c]">
-          Preencher os campos manualmente
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button type="button" disabled={salvando || gerando} onClick={continuar}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
+            Continuar para revisão
+          </button>
+          <button type="button" disabled={gerando || descricao.trim().length < 20} onClick={organizarComIa}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#7d4a3c]/30 px-4 py-2.5 text-sm font-semibold text-[#7d4a3c] disabled:opacity-50">
+            {gerando ? <><Loader2 className="h-4 w-4 animate-spin" /> Organizando...</> : <><Sparkles className="h-4 w-4" /> Organizar o texto com IA</>}
+          </button>
+        </div>
+        <p className="text-xs text-gray-400">{gruposRespondidos} de 6 grupos respondidos · mínimo 2 para continuar.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <p className="rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">Revise antes de confirmar. A IA apenas estruturou o que entendeu e pode ter deixado campos incompletos.</p>
+      <p className="rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
+        Revise antes de confirmar. O que veio da Receita ou da IA é só pré-preenchimento — a declaração é da empresa.
+      </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Input label="Setor de atuação" value={rascunho.setor_atuacao ?? ''} onChange={event => setCampo('setor_atuacao', event.target.value || null)} />
-        <Input label="CNAE (se souber)" value={rascunho.cnae_principal ?? ''} onChange={event => setCampo('cnae_principal', event.target.value || null)} />
+        <Input label="CNAE principal" value={rascunho.cnae_principal ?? ''} onChange={event => setCampo('cnae_principal', event.target.value || null)} />
       </div>
-      <Textarea label="O que a empresa faz" rows={3} value={rascunho.descricao_negocio ?? ''} onChange={event => setCampo('descricao_negocio', event.target.value || null)} />
-      <Textarea label="Produtos ou serviços · um por linha" rows={3} value={linhas(rascunho.produtos_servicos)} onChange={event => setCampo('produtos_servicos', emLista(event.target.value))} />
-      <Textarea label="Unidades ou locais · um por linha" rows={2} value={linhas(rascunho.unidades)} onChange={event => setCampo('unidades', emLista(event.target.value, 30))} />
+      <Textarea label="O que a empresa faz (uma ou duas frases)" rows={2} value={rascunho.descricao_negocio ?? ''} onChange={event => setCampo('descricao_negocio', event.target.value || null)} />
       <Textarea label="Setores sugeridos para revisar · um por linha" rows={3} value={linhas(rascunho.setores_sugeridos)} onChange={event => setCampo('setores_sugeridos', emLista(event.target.value, 50))} />
-      <p className="-mt-1 text-xs text-gray-500">As sugestões seguem para a área Setores. Você decide quais criar e configura modalidade e turnos de cada uma.</p>
+      <p className="-mt-1 text-xs text-gray-500">As sugestões seguem para a área Setores. Você decide quais criar e configura a organização de cada um lá.</p>
       <Textarea label="Contexto adicional" rows={2} value={rascunho.contexto_adicional ?? ''} onChange={event => setCampo('contexto_adicional', event.target.value || null)} />
+
+      <div className="rounded-lg border border-gray-100 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-medium text-gray-700">Organização do trabalho</p>
+          <button type="button" onClick={() => setEtapa('organizacao')} className="text-xs font-medium text-[#7d4a3c] hover:underline">Ajustar</button>
+        </div>
+        {organizacaoEmpresaPreenchida(organizacao) > 0
+          ? <ResumoOrganizacao org={organizacao} />
+          : <p className="text-xs text-gray-500">Nenhum grupo respondido.</p>}
+      </div>
+
       {erro && <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{erro}</p>}
       <div className="flex gap-2 pt-1">
-        {!contexto && <button type="button" onClick={() => setEtapa('descricao')} className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600">Voltar</button>}
-        {contexto && <button type="button" onClick={() => setEtapa('resumo')} className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600">Cancelar</button>}
+        <button type="button" onClick={() => setEtapa(contexto ? 'resumo' : 'organizacao')} className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600">
+          {contexto ? 'Cancelar' : 'Voltar'}
+        </button>
         <button type="button" disabled={salvando} onClick={salvar} className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
           {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Confirmar perfil
         </button>

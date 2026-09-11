@@ -21,6 +21,11 @@ import toast from 'react-hot-toast';
 import { useRhAccess } from '../../contexts/RhAccessContext';
 import { rhSetorSugestoes } from '../../lib/rhSetorSugestoes';
 import {
+  CONTATO_PUBLICO, RITMO_DITADO_POR, CONDICOES_FISICAS, ESCALAS, ESCALA_PREVISIVEL, MESES,
+  ORGANIZACAO_SETOR_VAZIA, organizacaoSetorPreenchida, resumoOrganizacaoSetor,
+  type OrganizacaoSetor,
+} from '../../lib/organizacaoTrabalho';
+import {
   rhService, type ModeloTrabalhoSetor, type SetorAdmin, type TurnoSetor,
 } from '../../services/empresaService';
 import { CabecalhoColapsavel, ResumoRecolhido, useSecaoAberta } from './SecaoColapsavel';
@@ -82,6 +87,103 @@ const GrupoCheckbox: React.FC<{
 /** Tamanho real do setor: efetivo declarado, nunca menos que os cadastrados. */
 const tamanhoSetor = (s: SetorAdmin) => Math.max(s.n, s.efetivo ?? 0);
 
+const chip = (ativo: boolean) =>
+  `rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+    ativo
+      ? 'border-[#7d4a3c]/30 bg-[#7d4a3c]/10 text-[#7d4a3c]'
+      : 'border-gray-200 bg-white text-gray-600 hover:border-[#7d4a3c] hover:text-[#7d4a3c]'
+  }`;
+
+function EscolhaUnica<K extends string>({ titulo, opcoes, valor, onChange, disabled }: {
+  titulo: string; opcoes: Record<K, string>; valor: K | null | undefined; onChange: (v: K | null) => void; disabled?: boolean;
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-medium text-gray-700">{titulo}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {(Object.keys(opcoes) as K[]).map(k => (
+          <button key={k} type="button" disabled={disabled} onClick={() => onChange(valor === k ? null : k)} className={chip(valor === k)}>
+            {opcoes[k]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EscolhaVarias<K extends string>({ titulo, opcoes, valor, onChange, disabled }: {
+  titulo: string; opcoes: Record<K, string>; valor: K[] | undefined; onChange: (v: K[]) => void; disabled?: boolean;
+}) {
+  const atual = valor ?? [];
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-medium text-gray-700">{titulo}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {(Object.keys(opcoes) as K[]).map(k => (
+          <button key={k} type="button" disabled={disabled} onClick={() => onChange(alternar(atual, k))} className={chip(atual.includes(k))}>
+            {opcoes[k]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const SimNaoSetor: React.FC<{ titulo: string; valor: boolean | null | undefined; onChange: (v: boolean | null) => void; disabled?: boolean }> =
+  ({ titulo, valor, onChange, disabled }) => (
+    <div>
+      <p className="mb-1.5 text-xs font-medium text-gray-700">{titulo}</p>
+      <div className="flex gap-1.5">
+        <button type="button" disabled={disabled} onClick={() => onChange(valor === true ? null : true)} className={chip(valor === true)}>Sim</button>
+        <button type="button" disabled={disabled} onClick={() => onChange(valor === false ? null : false)} className={chip(valor === false)}>Não</button>
+      </div>
+    </div>
+  );
+
+/**
+ * Organização do trabalho do setor. É o que transforma "JSS alta na Cozinha"
+ * em hipótese com contexto (escala 6x1, calor, pico em dez/jan, contato
+ * com público) — e é o que o copiloto cita antes de sugerir medida.
+ */
+const OrganizacaoSetorCampos: React.FC<{
+  org: OrganizacaoSetor; onChange: (o: OrganizacaoSetor) => void; disabled?: boolean;
+}> = ({ org, onChange, disabled }) => {
+  const set = <K extends keyof OrganizacaoSetor>(k: K, v: OrganizacaoSetor[K]) => onChange({ ...org, [k]: v });
+  const meses = org.pico_meses ?? [];
+  return (
+    <div className="space-y-3 border-t border-gray-200 pt-3">
+      <p className="text-xs font-medium text-gray-800">Organização do trabalho <span className="font-normal text-gray-500">· contexto para o copiloto, não avaliação</span></p>
+      <EscolhaUnica titulo="Contato com público" opcoes={CONTATO_PUBLICO} valor={org.contato_publico} onChange={v => set('contato_publico', v)} disabled={disabled} />
+      <EscolhaVarias titulo="Quem dita o ritmo" opcoes={RITMO_DITADO_POR} valor={org.ritmo_ditado_por} onChange={v => set('ritmo_ditado_por', v)} disabled={disabled} />
+      <EscolhaVarias titulo="Condições físicas" opcoes={CONDICOES_FISICAS} valor={org.condicoes_fisicas} onChange={v => set('condicoes_fisicas', v)} disabled={disabled} />
+      <EscolhaUnica titulo="Escala" opcoes={ESCALAS} valor={org.escala} onChange={v => set('escala', v)} disabled={disabled} />
+      <EscolhaUnica titulo="A escala é conhecida com antecedência?" opcoes={ESCALA_PREVISIVEL} valor={org.escala_previsivel} onChange={v => set('escala_previsivel', v)} disabled={disabled} />
+      <div>
+        <p className="mb-1.5 text-xs font-medium text-gray-700">Meses de pico</p>
+        <div className="flex flex-wrap gap-1.5">
+          {MESES.map((m, i) => (
+            <button key={m} type="button" disabled={disabled}
+              onClick={() => set('pico_meses', (meses.includes(i + 1) ? meses.filter(x => x !== i + 1) : [...meses, i + 1]).sort((a, b) => a - b))}
+              className={chip(meses.includes(i + 1))}>
+              {m}
+            </button>
+          ))}
+        </div>
+        <input
+          type="text" maxLength={200} disabled={disabled}
+          value={org.pico_descricao ?? ''} onChange={e => set('pico_descricao', e.target.value || null)}
+          placeholder="Ex.: sexta no almoço; fim de mês"
+          className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-1.5 text-xs outline-none focus:border-[#7d4a3c]"
+        />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <SimNaoSetor titulo="Tem líder formal?" valor={org.lider_formal} onChange={v => set('lider_formal', v)} disabled={disabled} />
+        <SimNaoSetor titulo="Meta ou remuneração individual?" valor={org.meta_individual} onChange={v => set('meta_individual', v)} disabled={disabled} />
+      </div>
+    </div>
+  );
+};
+
 export const SetoresCard: React.FC<{
   /** Avisa o formulário de colaborador para atualizar o seletor. */
   onChange?: (ativos: string[]) => void;
@@ -109,6 +211,7 @@ export const SetoresCard: React.FC<{
   const [operacaoEditandoId, setOperacaoEditandoId] = useState<string | null>(null);
   const [operacaoModelos, setOperacaoModelos] = useState<ModeloTrabalhoSetor[]>([]);
   const [operacaoTurnos, setOperacaoTurnos] = useState<TurnoSetor[]>([]);
+  const [operacaoOrg, setOperacaoOrg] = useState<OrganizacaoSetor>(ORGANIZACAO_SETOR_VAZIA);
   const [mostrarArquivados, setMostrarArquivados] = useState(false);
   // Rascunho por linha do campo de efetivo, para não gravar a cada tecla.
   const [efetivoEdit, setEfetivoEdit] = useState<Record<string, string>>({});
@@ -188,6 +291,7 @@ export const SetoresCard: React.FC<{
     setOperacaoEditandoId(s.id);
     setOperacaoModelos(s.modelos_trabalho ?? []);
     setOperacaoTurnos(s.turnos ?? []);
+    setOperacaoOrg({ ...ORGANIZACAO_SETOR_VAZIA, ...(s.organizacao ?? {}) });
   };
 
   const salvarOperacao = async (s: SetorAdmin) => {
@@ -195,6 +299,8 @@ export const SetoresCard: React.FC<{
     try {
       const res = await rhService.atualizarOperacaoSetor(s.id, operacaoModelos, operacaoTurnos);
       if (!res.ok) { toast.error(res.error || 'Não foi possível salvar a organização do setor.'); return; }
+      const resOrg = await rhService.atualizarOrganizacaoSetor(s.id, operacaoOrg);
+      if (!resOrg.ok) { toast.error(resOrg.error || 'Modalidade salva, mas a organização do trabalho não.'); return; }
       toast.success(`Organização do setor "${s.nome}" atualizada.`);
       setOperacaoEditandoId(null);
       await load();
@@ -471,7 +577,7 @@ export const SetoresCard: React.FC<{
                     <button
                       onClick={() => iniciarOperacao(s)}
                       disabled={disabled}
-                      title="Configurar modalidade e turnos"
+                      title="Configurar modalidade, turnos e organização do trabalho"
                       className="p-1.5 text-gray-400 hover:text-[#7d4a3c] hover:bg-gray-50 rounded-lg transition disabled:opacity-40"
                     >
                       <SlidersHorizontal className="w-4 h-4" />
@@ -512,6 +618,13 @@ export const SetoresCard: React.FC<{
                   ))}
                 </div>
               )}
+              {operacaoEditandoId !== s.id && s.ativo && (
+                organizacaoSetorPreenchida(s.organizacao)
+                  ? <p className="mt-1 pl-1 text-[11px] text-gray-500">{resumoOrganizacaoSetor(s.organizacao)}</p>
+                  : <button type="button" onClick={() => iniciarOperacao(s)} disabled={disabled} className="mt-1 pl-1 text-[11px] font-medium text-[#7d4a3c] hover:underline disabled:opacity-40">
+                      + organização do trabalho (contato com público, escala, pico)
+                    </button>
+              )}
 
               {operacaoEditandoId === s.id && (
                 <div className="mt-2 space-y-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
@@ -529,6 +642,7 @@ export const SetoresCard: React.FC<{
                     onToggle={valor => setOperacaoTurnos(atual => alternar(atual, valor as TurnoSetor))}
                     disabled={disabled || salvando}
                   />
+                  <OrganizacaoSetorCampos org={operacaoOrg} onChange={setOperacaoOrg} disabled={disabled || salvando} />
                   <div className="flex justify-end gap-2">
                     <button type="button" onClick={() => setOperacaoEditandoId(null)} className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-500">Cancelar</button>
                     <button type="button" onClick={() => salvarOperacao(s)} disabled={disabled || salvando} className="rounded-md bg-[#7d4a3c] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">Salvar</button>

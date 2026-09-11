@@ -1,10 +1,13 @@
 import type { PassoJornada } from '../lib/rhJornada';
+import type { OrganizacaoEmpresa } from '../lib/organizacaoTrabalho';
 import type { EmpresaContextoOperacionalInput } from './empresaService';
 import { supabase } from './supabase';
 
-export type RhProfileDraft = EmpresaContextoOperacionalInput & {
+export type RhProfileDraft = Omit<EmpresaContextoOperacionalInput, 'organizacao'> & {
   /** Sugestões para revisão no cadastro de setores; nunca são criadas pela IA. */
   setores_sugeridos: string[];
+  /** Só o que o texto explicitou; preenche apenas campos vazios do formulário. */
+  organizacao_sugerida: Partial<OrganizacaoEmpresa> | null;
 };
 
 export type RhAgentHistoryItem = {

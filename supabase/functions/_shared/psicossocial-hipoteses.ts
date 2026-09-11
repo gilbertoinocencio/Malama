@@ -27,6 +27,12 @@ import {
   type ForcaEvidencia, type IndicadorId, type NivelControle,
   type OrigemRecomendacao, type PlanoFator,
 } from './psicossocial-logica.ts';
+import {
+  descreverOrganizacaoSetor, type OrganizacaoEmpresa, type OrganizacaoSetor,
+} from './organizacao-trabalho.ts';
+import {
+  NOME_ESTACAO, NOME_MES, type ComparabilidadeSazonal, type ContextoTemporal,
+} from './contexto-temporal.ts';
 
 export type CaminhoPossivel = {
   medida: string;
@@ -57,6 +63,11 @@ export type Hipotese = {
   origem: OrigemRecomendacao;
   logica_versao: string;
   metricas_baseline: { valor: number | null; n: number | null; periodo_fim: string | null };
+  /** Organização declarada do setor, em uma linha, para o modelo citar. */
+  contexto_setor?: string | null;
+  /** Confundidores a nomear ANTES de interpretar: sazonalidade, calor,
+   *  evento da empresa no período. Enriquecem a hipótese; não a criam. */
+  ressalvas?: string[];
 };
 
 // =====================================================
@@ -182,6 +193,15 @@ type Tendencia = {
   periodo_atual?: { inicio?: string; fim?: string } | null;
 };
 
+export type ContextoOrganizacao = {
+  /** Organização declarada por setor, indexada pelo nome do setor. */
+  setores: Record<string, OrganizacaoSetor>;
+  empresa: OrganizacaoEmpresa | null;
+  temporal: ContextoTemporal | null;
+  /** Comparabilidade sazonal das tendências, por indicador. */
+  comparabilidade: Partial<Record<IndicadorId, ComparabilidadeSazonal>>;
+};
+
 export type ContextoHipoteses = {
   /** Tendências já calculadas pelo briefing (fonte 1). */
   tendencias: Tendencia[];
@@ -190,6 +210,9 @@ export type ContextoHipoteses = {
   /** Campanha encerrada mais recente por instrumento. */
   campanhaPorInstrumento: { who5?: string | null; jss?: string | null };
   recorrencia: RecorrenciaItem[];
+  /** Contexto declaratório e temporal. Opcional: sem ele, as hipóteses
+   *  saem exatamente como antes. NUNCA gera hipótese nova — só enriquece. */
+  organizacao?: ContextoOrganizacao;
 };
 
 function evidenciaDaTendencia(t: Tendencia): EvidenciaAgregada[] {
@@ -330,6 +353,161 @@ function hipotesesDaMatriz(ctx: ContextoHipoteses): Hipotese[] {
   return hipoteses;
 }
 
+// =====================================================
+// Enriquecimento por organização do trabalho e tempo
+//
+// Terceira coisa que este arquivo NÃO faz: criar hipótese a partir de
+// contexto. Contato com público, calor ou escala imprevisível não são
+// sinais — são o que torna um sinal que JÁ apareceu (tendência ou matriz)
+// legível. Aqui só se acrescenta: ressalvas a nomear antes de interpretar,
+// perguntas que o contexto torna pertinentes e caminhos na mesma
+// hierarquia de controle. Tudo determinístico e auditável.
+// =====================================================
+
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+function juntarUnico<T>(base: T[], extras: T[], chave: (t: T) => string): T[] {
+  const vistos = new Set(base.map(chave));
+  const saida = [...base];
+  for (const e of extras) {
+    const k = chave(e);
+    if (!vistos.has(k)) { vistos.add(k); saida.push(e); }
+  }
+  return saida;
+}
+
+function enriquecerComContexto(h: Hipotese, org: ContextoOrganizacao): Hipotese {
+  const setor = h.setor ? org.setores[h.setor] ?? null : null;
+  const temporal = org.temporal;
+  const campanha = temporal?.campanhas.find(c => c.id === h.campanha_baseline_id) ?? null;
+  const ressalvas: string[] = [];
+  const perguntas: string[] = [];
+  const caminhos: CaminhoPossivel[] = [];
+
+  // ── Tempo ──────────────────────────────────────────────────────────
+  if (campanha) {
+    const setoresEmPico = h.setor
+      ? campanha.setores_em_pico_declarado.filter(s => s === h.setor)
+      : campanha.setores_em_pico_declarado;
+    if (setoresEmPico.length > 0) {
+      ressalvas.push(
+        `A coleta (${campanha.janela.inicio ?? '?'} a ${campanha.janela.fim ?? '?'}) caiu em período de pico declarado`
+        + (h.setor ? ` para ${h.setor}` : ` para ${setoresEmPico.join(', ')}`)
+        + '. A comparação honesta é com a mesma época de outro ano; comparar com uma coleta fora do pico mede o calendário, não a mudança.');
+    } else if (campanha.em_pico_setorial) {
+      const rotulos = temporal!.calendario_setorial
+        .filter(c => c.meses.some(m => campanha.janela.inicio && campanha.janela.fim
+          && mesesEntre(campanha.janela.inicio, campanha.janela.fim).includes(m)))
+        .map(c => c.rotulo);
+      ressalvas.push(
+        `A coleta caiu em período que costuma ser de pico no setor econômico da empresa`
+        + (rotulos.length ? ` (${rotulos.join('; ')})` : '')
+        + '. Confirmar com a empresa se o pico se aplica e comparar com a mesma época.');
+    }
+    if (campanha.calor_provavel && setor?.condicoes_fisicas.includes('calor')) {
+      ressalvas.push(
+        `Coleta no ${campanha.estacao ? NOME_ESTACAO[campanha.estacao] : 'período quente'} em setor que declarou calor. `
+        + 'Parte do que a escala capta como carga pode ser exposição térmica — agente físico com norma própria (NR-15), '
+        + 'que vai ao PGR como tal e se resolve com engenharia e pausas, não com conversa de liderança.');
+      caminhos.push(
+        { medida: 'Avaliar a exposição térmica do setor como agente físico e implantar medida de engenharia (exaustão, ventilação, barreira de calor) antes do próximo período quente.', nivel_controle: 'fonte' },
+        { medida: 'Pausas de recuperação térmica e hidratação organizadas na escala, não deixadas ao improviso.', nivel_controle: 'organizacional' },
+      );
+    }
+  }
+  const comparabilidade = org.comparabilidade[h.indicador];
+  if (h.origem === 'tendencia_interna' && comparabilidade && comparabilidade !== 'mesma_epoca' && comparabilidade !== 'indeterminada') {
+    ressalvas.push(comparabilidade === 'pico_vs_fora_de_pico'
+      ? 'As duas coletas comparadas caem uma em pico e outra fora dele. A variação pode ser calendário, não mudança no trabalho — nomear isso antes de chamar de piora.'
+      : 'As duas coletas comparadas caem em estações diferentes. Vale considerar o calendário antes de ler a variação como mudança no trabalho.');
+  }
+  if (temporal?.proximo_pico && (h.indicador === 'jss_demanda' || h.indicador === 'who5_score')) {
+    const p = temporal.proximo_pico;
+    const quando = p.em_meses === 0 ? 'este mês' : p.em_meses === 1 ? 'no mês que vem' : `em ${p.em_meses} meses`;
+    caminhos.push({
+      medida: `Dimensionar cobertura e prioridades para o próximo pico (${NOME_MES[p.mes - 1]}, ${quando}) com antecedência, em vez de reagir dentro dele.`,
+      nivel_controle: 'fonte',
+    });
+  }
+
+  // ── Empresa: eventos dos últimos 12 meses ──────────────────────────
+  const eventos = org.empresa?.eventos_12m ?? [];
+  const eventosRelevantes = eventos.filter(e => e !== 'nenhum');
+  if (eventosRelevantes.length > 0) {
+    const rotulo: Record<string, string> = {
+      demissoes_coletivas: 'demissões em grupo', troca_gestao: 'troca de gestão', sistema_novo: 'sistema ou processo novo',
+      expansao_rapida: 'crescimento rápido', incidente_grave: 'incidente grave', fusao_aquisicao: 'fusão ou aquisição',
+      reestruturacao: 'reestruturação',
+    };
+    ressalvas.push(
+      `A empresa declarou nos últimos 12 meses: ${eventosRelevantes.map(e => rotulo[e] ?? e).join(', ')}. `
+      + 'Um evento da empresa inteira pode aparecer como sinal de um setor; validar se o padrão é do setor ou do período.');
+    perguntas.push('O que mudou na empresa como um todo neste período, e isso chegou de forma diferente a este setor?');
+  }
+
+  // ── Setor: perguntas e caminhos que o contexto torna pertinentes ───
+  if (setor) {
+    if (setor.contato_publico === 'exposicao_agressao' && (h.indicador === 'jss_apoio' || h.indicador === 'who5_score')) {
+      perguntas.push('Com que frequência a equipe enfrenta agressão ou ameaça de clientes/público, e o que acontece depois de uma ocorrência?');
+      caminhos.push(
+        { medida: 'Protocolo de ocorrência com público: quem aciona, quem assume, o que a pessoa faz em seguida, e apoio pós-ocorrência.', nivel_controle: 'organizacional' },
+        { medida: 'Reduzir a exposição na fonte: barreira física, dupla no atendimento nos horários críticos, canal de escalonamento imediato.', nivel_controle: 'fonte' },
+      );
+    }
+    if (setor.lider_formal === false && (h.indicador === 'jss_apoio' || h.indicador === 'jss_controle')) {
+      perguntas.push('Sem líder formal, a quem a equipe recorre quando trava — e essa pessoa tem tempo e autoridade para resolver?');
+      caminhos.push({ medida: 'Definir uma referência formal para o setor, com disponibilidade previsível e poder de decisão sobre o dia a dia.', nivel_controle: 'organizacional' });
+    }
+    if (setor.meta_individual === true && h.indicador === 'jss_demanda') {
+      perguntas.push('Como a meta individual é definida e cobrada, e o que acontece com quem não a atinge num mês de pico?');
+      caminhos.push({ medida: 'Revisar metas com a equipe considerando sazonalidade e cobertura real, e separar meta de equipe de cobrança individual.', nivel_controle: 'fonte' });
+    }
+    if (setor.escala_previsivel && setor.escala_previsivel !== 'sim' && (h.indicador === 'jss_demanda' || h.indicador === 'jss_controle')) {
+      perguntas.push('Com quanta antecedência a escala é conhecida, e quem decide as trocas de última hora?');
+      caminhos.push({ medida: 'Publicar a escala com antecedência definida e regra clara para trocas.', nivel_controle: 'organizacional' });
+    }
+    if (setor.ritmo_ditado_por.includes('maquina_sistema') && h.indicador === 'jss_controle') {
+      perguntas.push('Onde a máquina ou o sistema impõe o ritmo, existe margem para a pessoa regular pausas e ordem das tarefas?');
+    }
+    if (setor.condicoes_fisicas.includes('em_pe') || setor.condicoes_fisicas.includes('esforco_fisico')) {
+      if (h.indicador === 'who5_score' || h.indicador === 'jss_demanda') {
+        perguntas.push('Há pausas e rodízio para quem trabalha em pé ou com esforço físico, ou a recuperação fica para depois do turno?');
+      }
+    }
+  }
+
+  const contextoSetor = setor ? descreverOrganizacaoSetor(setor) : null;
+  const semMudanca = ressalvas.length === 0 && perguntas.length === 0 && caminhos.length === 0 && !contextoSetor;
+  if (semMudanca) return h;
+
+  return {
+    ...h,
+    contexto_setor: contextoSetor,
+    ressalvas: ressalvas.length ? ressalvas : undefined,
+    perguntas_validacao: juntarUnico(h.perguntas_validacao, perguntas, p => p),
+    caminhos_possiveis: juntarUnico(h.caminhos_possiveis, caminhos, c => c.medida),
+  };
+}
+
+function mesesEntre(inicio: string, fim: string): number[] {
+  const a = new Date(`${inicio}T00:00:00Z`);
+  const b = new Date(`${fim}T00:00:00Z`);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return [];
+  const meses = new Set<number>();
+  const cursor = new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), 1));
+  let guarda = 0;
+  while (cursor <= b && guarda++ < 24) {
+    meses.add(cursor.getUTCMonth() + 1);
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+  return [...meses];
+}
+
+/** Usado pelo prompt/UI para mostrar meses de pico de forma legível. */
+export function formatarMeses(meses: number[]): string {
+  return meses.map(m => MESES_CURTOS[m - 1]).filter(Boolean).join('/');
+}
+
 /**
  * Hipóteses do ciclo atual. Determinístico: mesma entrada, mesma saída,
  * sem chamada de rede e sem modelo de linguagem.
@@ -338,7 +516,10 @@ function hipotesesDaMatriz(ctx: ContextoHipoteses): Hipotese[] {
  * hipótese" é uma resposta válida e melhor que preencher a tela.
  */
 export function gerarHipoteses(ctx: ContextoHipoteses): Hipotese[] {
-  const todas = [...hipotesesDeTendencia(ctx), ...hipotesesDaMatriz(ctx)];
+  const geradas = [...hipotesesDeTendencia(ctx), ...hipotesesDaMatriz(ctx)];
+  const todas = ctx.organizacao
+    ? geradas.map(h => enriquecerComContexto(h, ctx.organizacao!))
+    : geradas;
 
   // Uma hipótese por (setor, indicador): tendência geral e matriz podem
   // apontar o mesmo indicador, e duas linhas iguais na tela só confundem.

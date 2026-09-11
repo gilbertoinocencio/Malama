@@ -1,7 +1,14 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { RH_AGENT_SYSTEM_PROMPT, RH_PROFILE_DRAFT_PROMPT } from '../_shared/rh-agent-prompt.ts';
 import { buildRhBriefing, calcularTendencias } from '../_shared/rh-briefing.ts';
-import { gerarHipoteses, type Hipotese } from '../_shared/psicossocial-hipoteses.ts';
+import { gerarHipoteses, type ContextoOrganizacao, type Hipotese } from '../_shared/psicossocial-hipoteses.ts';
+import {
+  organizacaoEmpresaSegura, organizacaoSetorSegura, type OrganizacaoSetor,
+} from '../_shared/organizacao-trabalho.ts';
+import {
+  calcularContextoTemporal, classificarComparabilidade,
+  type ComparabilidadeSazonal, type ContextoTemporal, type JanelaCampanha,
+} from '../_shared/contexto-temporal.ts';
 import {
   calcularResultadoObservado, execucaoDaMedida, type ResultadoObservado,
 } from '../_shared/psicossocial-resultado.ts';
@@ -239,10 +246,11 @@ function rascunhoSeguro(parsed: Record<string, unknown>) {
     setor_atuacao: campoOuNull(parsed.setor_atuacao, 120),
     cnae_principal: campoOuNull(parsed.cnae_principal, 20),
     descricao_negocio: campoOuNull(parsed.descricao_negocio, 2000),
-    produtos_servicos: lista(parsed.produtos_servicos, 20),
-    unidades: lista(parsed.unidades, 30),
     setores_sugeridos: lista(parsed.setores_sugeridos, 50),
     contexto_adicional: campoOuNull(parsed.contexto_adicional, 2000),
+    // Só o que o texto explicitou, e só valores do enum: o extrator é
+    // ajuda para preencher, a confirmação continua humana.
+    organizacao_sugerida: organizacaoEmpresaSegura(parsed.organizacao_sugerida),
   };
 }
 
@@ -253,9 +261,8 @@ function perfilOperacionalSeguro(value: unknown) {
     setor_atuacao: campoOuNull(perfil.setor_atuacao, 120),
     cnae_principal: campoOuNull(perfil.cnae_principal, 20),
     descricao_negocio: campoOuNull(perfil.descricao_negocio, 2000),
-    produtos_servicos: lista(perfil.produtos_servicos, 20),
-    unidades: lista(perfil.unidades, 30),
     contexto_adicional: campoOuNull(perfil.contexto_adicional, 2000),
+    organizacao: organizacaoEmpresaSegura(perfil.organizacao),
     confirmado_em: campoOuNull(perfil.confirmado_em, 80),
     versao: typeof perfil.versao === 'number' ? perfil.versao : null,
   };
@@ -436,6 +443,17 @@ async function leituraAnalitica(
           setor: texto(plano?.setor, 80) || 'Empresa toda', fator: texto(plano?.fator, 80),
           medida: texto(plano?.medida, 180), nivel_controle: texto(plano?.nivel_controle, 40),
           prazo: texto(plano?.prazo, 20), status: texto(plano?.status, 40), atrasada: plano?.atrasada === true,
+          responsavel: texto(plano?.responsavel, 80) || null,
+        })),
+      // Lista explícita, não só contagem: "quais medidas estão atrasadas?" é
+      // a pergunta mais concreta que o RH faz, e o modelo não deve ter que
+      // filtrar a lista de abertas por conta própria.
+      medidas_atrasadas: listaPlanos
+        .filter((plano: any) => ['planejada', 'em_andamento'].includes(plano?.status) && plano?.atrasada === true)
+        .slice(0, 20).map((plano: any) => ({
+          setor: texto(plano?.setor, 80) || 'Empresa toda',
+          medida: texto(plano?.medida, 180), prazo: texto(plano?.prazo, 20),
+          responsavel: texto(plano?.responsavel, 80) || null,
         })),
     } : null,
     lideranca: podePlano && Array.isArray(ciclos) ? ciclos.slice(0, 20).map((ciclo: any) => ({
@@ -572,7 +590,7 @@ function calcularReavaliacoes(leitura: any, memoria: any): ResultadoObservado[] 
  * o briefing: a leitura agregada é o que o RH precisa ver, e a memória é
  * acessória a ela.
  */
-async function montarMemoriaDoCiclo(supabase: any, leitura: any) {
+async function montarMemoriaDoCiclo(supabase: any, leitura: any, organizacao?: ContextoOrganizacao) {
   const vazia = { hipoteses: [], reavaliacoes: [] };
   const memoria = await rpcOpcional(supabase, 'rh_memoria_ciclo');
   if (!memoria) return vazia;
@@ -589,6 +607,7 @@ async function montarMemoriaDoCiclo(supabase: any, leitura: any) {
       leitura,
       campanhaPorInstrumento,
       recorrencia: Array.isArray(memoria.recorrencia) ? memoria.recorrencia : [],
+      organizacao,
     });
   } catch (error) {
     console.warn('[rh-agent] motor de hipóteses indisponível:', error);
@@ -630,6 +649,10 @@ async function montarMemoriaDoCiclo(supabase: any, leitura: any) {
       descricao: h.descricao, por_que_foi_sugerida: h.por_que_foi_sugerida,
       perguntas_validacao: h.perguntas_validacao, caminhos_possiveis: h.caminhos_possiveis,
       forca_evidencia: h.forca_evidencia, origem: h.origem,
+      // Contexto declaratório e confundidores: o modelo os NOMEIA antes de
+      // interpretar; não são evidência nem mudam a força da hipótese.
+      contexto_setor: h.contexto_setor ?? null,
+      ressalvas: h.ressalvas ?? [],
     })),
     reavaliacoes: reavaliacoes.map(r => ({
       plano_acao_id: r.plano_acao_id,
@@ -1009,7 +1032,10 @@ Deno.serve(async (req: Request) => {
     const { data: setores } = podeVerSetores
       ? await supabase.rpc('rh_setores_admin')
       : { data: null };
-    const estruturaTrabalho = Array.isArray(setores) ? setores
+    const estruturaTrabalho: {
+      nome: string; efetivo: number | null; colaboradores_cadastrados: number;
+      modelos_trabalho: string[]; turnos: string[]; organizacao: OrganizacaoSetor | null;
+    }[] = Array.isArray(setores) ? setores
       .filter((setor: any) => setor?.ativo !== false)
       .slice(0, 100).map((setor: any) => ({
       nome: texto(setor?.nome, 60),
@@ -1017,6 +1043,7 @@ Deno.serve(async (req: Request) => {
       colaboradores_cadastrados: typeof setor?.n === 'number' ? setor.n : 0,
       modelos_trabalho: lista(setor?.modelos_trabalho, 3),
       turnos: lista(setor?.turnos, 6),
+      organizacao: organizacaoSetorSegura(setor?.organizacao),
     })).filter((setor: { nome: string }) => setor.nome) : [];
     let leitura: any;
     try {
@@ -1026,14 +1053,102 @@ Deno.serve(async (req: Request) => {
       leitura = leituraVazia();
     }
     const estadoCiclo = estadoCicloDaLeitura(contexto, leitura);
+
+    // ── Contexto temporal + organização (determinístico) ────────────
+    // A data de cada campanha sempre esteve aqui; o que faltava era o que
+    // ela significa: estação por região, calendário do setor econômico,
+    // pico declarado por setor. Serve para NOMEAR confundidores.
+    const perfilSeguro = perfilOperacionalSeguro(contexto?.perfil_operacional);
+    const janelas: JanelaCampanha[] = [
+      ...leitura.campanhas_abertas.map((c: any) => ({
+        id: c.id ?? null, instrumento: c.instrumento ?? null, inicio: c.inicio ?? null, fim: c.fim ?? null,
+      })),
+      ...(['who5', 'jss'] as const).flatMap(instr => {
+        const enc = leitura.campanhas_encerradas?.[instr];
+        const periodo = leitura.ultimos_relatorios?.[instr]?.periodo;
+        return enc?.id ? [{
+          id: enc.id, instrumento: instr,
+          inicio: periodo?.inicio ?? null, fim: periodo?.fim ?? enc.janela_fim ?? null,
+        }] : [];
+      }),
+    ];
+    let contextoTemporal: ContextoTemporal | null = null;
+    try {
+      contextoTemporal = calcularContextoTemporal({
+        uf: campoOuNull(contexto?.dados_cadastrais?.uf, 2),
+        calendarioSetorial: Array.isArray(contexto?.calendario_setorial)
+          ? contexto.calendario_setorial.filter((c: any) => Array.isArray(c?.meses) && typeof c?.rotulo === 'string')
+          : [],
+        setores: estruturaTrabalho.map(s => ({ nome: s.nome, organizacao: s.organizacao })),
+        campanhas: janelas,
+      });
+    } catch (error) {
+      console.warn('[rh-agent] contexto temporal indisponível:', error);
+    }
+    const tendencias = calcularTendencias(leitura);
+    const comparabilidade: Partial<Record<IndicadorId, ComparabilidadeSazonal>> = {};
+    if (contextoTemporal) {
+      for (const t of tendencias) {
+        if (!ehIndicadorConhecido(t.id)) continue;
+        const pa = (t as any).periodo_atual ?? {};
+        const pb = (t as any).periodo_anterior ?? {};
+        comparabilidade[t.id as IndicadorId] = classificarComparabilidade(
+          contextoTemporal,
+          { inicio: pa?.inicio ?? null, fim: pa?.fim ?? null },
+          { inicio: pb?.inicio ?? null, fim: pb?.fim ?? null },
+        );
+      }
+    }
+    const organizacao: ContextoOrganizacao = {
+      setores: Object.fromEntries(estruturaTrabalho
+        .filter(s => s.organizacao).map(s => [s.nome, s.organizacao as OrganizacaoSetor])),
+      empresa: perfilSeguro?.organizacao ?? null,
+      temporal: contextoTemporal,
+      comparabilidade,
+    };
+
+    // ── Sinais derivados: absenteísmo agregado (só se o módulo existir) ─
+    // CID F = capítulo de transtornos mentais. Só agregados por setor, só
+    // reforça ou enfraquece uma hipótese — nunca a prova.
+    let sinaisDerivados: { absenteismo: unknown } = { absenteismo: null };
+    if (podeVerSaude) {
+      const fim = new Date();
+      const inicio = new Date(fim.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const abs = await rpcOpcional(supabase, 'rh_absenteismo_resumo', {
+        p_inicio: inicio.toISOString().slice(0, 10), p_fim: fim.toISOString().slice(0, 10),
+      });
+      if (abs && typeof abs === 'object') {
+        sinaisDerivados = {
+          absenteismo: {
+            periodo: { inicio: inicio.toISOString().slice(0, 10), fim: fim.toISOString().slice(0, 10) },
+            nota: 'Afastamentos lançados pela empresa nos últimos 90 dias, agregados por setor. Capítulo F = transtornos mentais e comportamentais.',
+            setores: (Array.isArray(abs.setores) ? abs.setores : []).slice(0, 50).map((s: any) => ({
+              setor: texto(s?.setor, 80),
+              episodios: typeof s?.episodios === 'number' ? s.episodios : null,
+              dias: typeof s?.dias === 'number' ? s.dias : null,
+              episodios_f: typeof s?.episodios_f === 'number' ? s.episodios_f : null,
+              dias_f: typeof s?.dias_f === 'number' ? s.dias_f : null,
+            })).filter((s: any) => s.setor),
+          },
+        };
+      }
+    }
+
     const memoria = podeVerPlano
-      ? await montarMemoriaDoCiclo(supabase, leitura)
+      ? await montarMemoriaDoCiclo(supabase, leitura, organizacao)
       : { hipoteses: [], reavaliacoes: [] };
     const briefing = buildRhBriefing(leitura, estadoCiclo, permitidas, memoria);
+    if (Array.isArray(briefing?.tendencias)) {
+      for (const t of briefing.tendencias as any[]) {
+        t.comparabilidade_sazonal = comparabilidade[t.id as IndicadorId] ?? 'indeterminada';
+      }
+    }
     const contextoSeguro = {
       ...contexto,
-      perfil_operacional: perfilOperacionalSeguro(contexto?.perfil_operacional),
+      perfil_operacional: perfilSeguro,
       estrutura_trabalho: estruturaTrabalho,
+      contexto_temporal: contextoTemporal,
+      sinais_derivados: sinaisDerivados,
       leitura_analitica: leitura,
       briefing_inteligente: briefing,
       estado_ciclo: estadoCiclo,

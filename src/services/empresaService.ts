@@ -5,6 +5,7 @@
 // =====================================================
 
 import { supabase } from './supabase';
+import type { OrganizacaoEmpresa, OrganizacaoSetor } from '../lib/organizacaoTrabalho';
 
 // ─── Tipos ─────────────────────────────────────────────
 export type EmpresaStatus = 'em_configuracao' | 'ativa' | 'pausada' | 'encerrada';
@@ -554,9 +555,10 @@ export type EmpresaContextoOperacional = {
   setor_atuacao: string | null;
   cnae_principal: string | null;
   descricao_negocio: string | null;
-  produtos_servicos: string[];
-  unidades: string[];
   contexto_adicional: string | null;
+  /** Organização do trabalho declarada (migration 20260912). É o que o
+   *  copiloto usa para ler os resultados por setor — não é avaliação. */
+  organizacao: OrganizacaoEmpresa;
   confirmado_em: string | null;
   versao: number;
   created_at: string;
@@ -912,6 +914,8 @@ export type SetorAdmin = {
   /** Modalidades e turnos declarados para este setor (migration 20260849). */
   modelos_trabalho: ModeloTrabalhoSetor[];
   turnos: TurnoSetor[];
+  /** Organização do trabalho do setor (migration 20260912). `{}` = não preenchido. */
+  organizacao: OrganizacaoSetor;
 };
 
 export type ModeloTrabalhoSetor = 'presencial' | 'home_office' | 'hibrido';
@@ -1413,20 +1417,15 @@ export const rhService = {
   async salvarContextoOperacional(
     contexto: EmpresaContextoOperacionalInput,
   ): Promise<EmpresaContextoOperacional> {
+    // Assinatura enxuta (migration 20260912): produtos, unidades e os
+    // campos legados de modalidade/turno saíram — a Receita responde o
+    // negócio, o setor responde turno, e o que sobrou é organização.
     const { data, error } = await supabase.rpc('rh_salvar_contexto_operacional', {
       p_setor_atuacao: contexto.setor_atuacao,
       p_cnae_principal: contexto.cnae_principal,
       p_descricao_negocio: contexto.descricao_negocio,
-      p_produtos_servicos: contexto.produtos_servicos,
-      // Campos legados da migration 48 ficam neutros. Modalidade e turnos
-      // agora pertencem a cada setor; processos já estão na descrição.
-      p_processos_principais: [],
-      p_unidades: contexto.unidades,
-      p_areas_funcoes: [],
-      p_modelo_trabalho: null,
-      p_turnos: [],
-      p_sazonalidade: null,
       p_contexto_adicional: contexto.contexto_adicional,
+      p_organizacao: contexto.organizacao ?? {},
     });
     if (error) throw error;
     return data as EmpresaContextoOperacional;
@@ -1863,6 +1862,16 @@ export const rhService = {
   ): Promise<SetorMutacao> {
     const { data, error } = await supabase.rpc('rh_setor_atualizar_operacao', {
       p_id: id, p_modelos_trabalho: modelosTrabalho, p_turnos: turnos,
+    });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;
+  },
+
+  /** Organização do trabalho do setor (contato com público, ritmo, escala,
+   *  pico, líder). A RPC valida os enums; valor fora deles volta como erro. */
+  async atualizarOrganizacaoSetor(id: string, organizacao: OrganizacaoSetor): Promise<SetorMutacao> {
+    const { data, error } = await supabase.rpc('rh_setor_atualizar_organizacao', {
+      p_id: id, p_organizacao: organizacao,
     });
     if (error) return { ok: false, error: error.message };
     return (data ?? { ok: false, error: 'Resposta vazia' }) as SetorMutacao;

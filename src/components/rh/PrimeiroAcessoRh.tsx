@@ -206,9 +206,9 @@ const PASSOS_LEITURA: Passo[] = [
  *  porque é o que compra o esforço: pedir texto livre sem dizer para onde ele
  *  vai é o jeito mais rápido de receber uma linha e meia. */
 const RETORNO_DO_PERFIL = [
-  'Os setores que você citar já chegam sugeridos no cadastro.',
-  'O copiloto passa a falar da sua operação, não de uma empresa genérica.',
-  'As orientações do ciclo consideram seus turnos, unidades e picos.',
+  'O copiloto lê cada resultado sabendo sua escala, liderança e o que mudou no último ano.',
+  'Um resultado ruim vira hipótese com contexto, não "o setor está mal".',
+  'A Receita já respondeu o que a empresa faz — aqui é como o trabalho é organizado.',
   'Você revisa tudo antes de confirmar — nada é gravado sozinho.',
 ];
 
@@ -230,14 +230,14 @@ const PassoPerfil: React.FC<{ nomeEmpresa?: string | null; jaConfirmado: boolean
     {jaConfirmado ? (
       <p className="text-sm leading-relaxed text-gray-600">
         O perfil {nomeEmpresa ? <strong className="text-gray-800">da {nomeEmpresa}</strong> : 'da empresa'} já
-        foi confirmado por alguém da equipe. Confira se ainda descreve a operação de hoje — turnos,
-        unidades e equipes mudam, e o copiloto continua respondendo pelo que estiver aqui.
+        foi confirmado por alguém da equipe. Confira se ainda descreve a operação de hoje — escala,
+        liderança e vínculos mudam, e o copiloto continua respondendo pelo que estiver aqui.
       </p>
     ) : (
       <p className="text-sm leading-relaxed text-gray-600">
-        Antes de abrir o painel, conte como {nomeEmpresa ? <strong className="text-gray-800">a {nomeEmpresa}</strong> : 'a empresa'} funciona
-        no dia a dia. É este texto que separa orientação sob medida de conselho genérico — o
-        copiloto responde pelo que estiver escrito aqui, e o que faltar vira campo vazio.
+        Antes de abrir o painel, conte como o trabalho é organizado {nomeEmpresa ? <>na <strong className="text-gray-800">{nomeEmpresa}</strong></> : 'na empresa'}:
+        o que mudou no último ano, liderança, vínculos, jornada. São escolhas rápidas, não redação —
+        e é o que separa orientação sob medida de conselho genérico.
       </p>
     )}
 
