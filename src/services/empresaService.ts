@@ -567,6 +567,40 @@ export type EmpresaContextoOperacionalInput = Omit<EmpresaContextoOperacional,
   'empresa_id' | 'confirmado_em' | 'versao' | 'created_at' | 'updated_at'
 >;
 
+/**
+ * Dados oficiais do CNPJ (BrasilAPI), lidos do que já está salvo —
+ * `dados_cadastrais` do copiloto vem de rh_agente_contexto(), sem sócios;
+ * este tipo inclui sócios porque é para a tela do RH, não para a IA.
+ */
+export type EmpresaDadosCnpj = {
+  empresa_id: string;
+  razao_social: string | null;
+  nome_fantasia: string | null;
+  natureza_juridica: string | null;
+  cnae_principal_codigo: string | null;
+  cnae_principal_descricao: string | null;
+  cnaes_secundarios: { codigo: string; descricao: string | null }[];
+  situacao_cadastral: string | null;
+  situacao_cadastral_data: string | null;
+  data_abertura: string | null;
+  porte: string | null;
+  opcao_simples: boolean | null;
+  opcao_simples_data: string | null;
+  socios: { nome: string; qualificacao: string | null }[];
+  endereco: {
+    logradouro: string | null; numero: string | null; complemento: string | null;
+    bairro: string | null; cep: string | null; municipio: string | null; uf: string | null;
+  } | null;
+  sync_status: 'pendente' | 'ok' | 'erro_invalido' | 'erro_nao_encontrado' | 'erro_timeout' | 'erro';
+  sync_erro: string | null;
+  /** Leitura preliminar do Anexo I da NR-4 pelo CNAE principal — não substitui GRO/PGR. */
+  grau_risco_estimado: 1 | 2 | 3 | 4 | null;
+  synced_at: string | null;
+  ultima_tentativa_em: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 // ── Documentos legais e aceite (migration 20260825) ──
 export type DocumentoTipo = 'termos_b2b' | 'tratamento_dados' | 'privacidade';
 
@@ -1396,6 +1430,27 @@ export const rhService = {
     });
     if (error) throw error;
     return data as EmpresaContextoOperacional;
+  },
+
+  /** Dados oficiais do CNPJ, para a tela de perfil da empresa. */
+  async getDadosCnpj(): Promise<EmpresaDadosCnpj | null> {
+    const { data, error } = await supabase.rpc('rh_dados_cnpj');
+    if (error) throw error;
+    return (data ?? null) as EmpresaDadosCnpj | null;
+  },
+
+  /** Dispara uma nova consulta à BrasilAPI para a empresa do RH logado. */
+  async resincronizarCnpj(): Promise<void> {
+    const { data, error } = await supabase.functions.invoke('empresa-cnpj-resync', { body: {} });
+    if (error) {
+      let message = error.message;
+      const response = (error as { context?: Response }).context;
+      if (response && typeof response.json === 'function') {
+        try { const body = await response.json(); if (body?.error) message = body.error; } catch { /* noop */ }
+      }
+      throw new Error(message);
+    }
+    if (data?.error) throw new Error(data.error);
   },
 
   /**

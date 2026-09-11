@@ -5,6 +5,7 @@
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sincronizarCnpj } from '../_shared/brasilapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -123,6 +124,19 @@ Deno.serve(async (req: Request) => {
       await supabaseAdmin.auth.admin.deleteUser(userData.user.id);
       await supabaseAdmin.from('empresas').delete().eq('id', empresaRow.id);
       return json({ error: rhError.message }, 400);
+    }
+
+    // Puxada única, depois de tudo confirmado (evita gastar a chamada à
+    // BrasilAPI numa empresa que ainda pode ser revertida por uma falha
+    // mais adiante) — só se o admin informou CNPJ, aqui é campo opcional.
+    // Nunca trava o cadastro: falha vira sync_status de erro,
+    // resync depois (lote noturno ou botão manual do RH).
+    if (empresaRow.cnpj) {
+      try {
+        await sincronizarCnpj(supabaseAdmin, empresaRow.id, empresaRow.cnpj);
+      } catch (err) {
+        console.error('[create-rh-user] falha ao sincronizar CNPJ:', err);
+      }
     }
 
     return json({ empresa: empresaRow });

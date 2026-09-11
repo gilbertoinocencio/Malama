@@ -264,11 +264,16 @@ const PassoPerfil: React.FC<{ nomeEmpresa?: string | null; jaConfirmado: boolean
  * existe em outro ponto do cadastro. O padrão é o de qualquer instalador:
  * rolar até o fim libera o checkbox, marcar o checkbox libera o botão. A
  * conta e o horário do clique é que ficam registrados como prova.
+ *
+ * Sem tela própria de "aceite registrado" depois do clique: `onAceito` avisa
+ * o pai, que tira este passo da lista na hora — o índice que apontava para
+ * ele passa a apontar direto para o próximo. Uma confirmação aqui dentro
+ * seria mais um clique para sair de uma tela que só existe para dizer que
+ * deu certo.
  */
 const PassoTermos: React.FC<{
   doc: DocumentoLegal | null;
   carregando: boolean;
-  aceito: boolean;
   /** Nome da conta autenticada, já resolvido com o fallback do e-mail — é
    *  o que vai para o registro, sem pedir para ninguém digitar de novo. */
   nomeConta: string;
@@ -277,7 +282,7 @@ const PassoTermos: React.FC<{
    *  vazio, como sempre gravou antes de existir esta coluna. */
   cargoConta: string;
   onAceito: () => void;
-}> = ({ doc, carregando, aceito, nomeConta, cargoConta, onAceito }) => {
+}> = ({ doc, carregando, nomeConta, cargoConta, onAceito }) => {
   const [lido, setLido] = useState(false);
   const [concordo, setConcordo] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -326,21 +331,6 @@ const PassoTermos: React.FC<{
       <p className="text-sm leading-relaxed text-gray-600">
         Nenhum documento pendente de aceite. Você pode seguir para o painel.
       </p>
-    );
-  }
-
-  if (aceito) {
-    return (
-      <div className="flex gap-3 rounded-lg border border-green-200 bg-green-50 p-4">
-        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-green-900">Aceite registrado.</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-green-800">
-            Ficou gravado com a versão do documento, a data e a conta que aceitou. O texto
-            continua disponível na área da empresa, pelo nome dela no cabeçalho.
-          </p>
-        </div>
-      </div>
     );
   }
 
@@ -426,19 +416,25 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
   // Enquanto a jornada carrega ainda não se sabe se há termo pendente. O
   // passo aparece assim mesmo, travado: deixar passar por causa de uma
   // leitura em andamento pularia o aceite justamente no primeiro acesso.
-  const mostrarTermos = acesso.principal && (carregandoJornada || !!termo);
-  const termosPendentes = mostrarTermos && !termosAceitos;
+  //
+  // `!termosAceitos` aqui é o que faz o passo DESAPARECER da lista assim
+  // que o aceite é registrado nesta sessão — não vira uma tela própria de
+  // "termos aceitos" que ainda precisa de mais um clique para sair dela.
+  // `i` continua apontando pro mesmo número (0) e o `Math.min` logo abaixo
+  // — que já existia para a lista encolher quando a carga termina sem termo
+  // pendente — faz o resto sozinho: com 'termos' fora do array, o índice 0
+  // aponta direto para o próximo passo de verdade.
+  const mostrarTermos = acesso.principal && !termosAceitos && (carregandoJornada || !!termo);
 
   const PASSOS: Passo[] = [
     ...(mostrarTermos ? [{
       chave: 'termos',
-      titulo: termosAceitos ? 'Termos aceitos' : 'Antes de entrar: os termos de uso do painel',
+      titulo: 'Antes de entrar: os termos de uso do painel',
       resumo: 'Termos de uso',
       corpo: (
         <PassoTermos
           doc={termo}
           carregando={carregandoJornada}
-          aceito={termosAceitos}
           nomeConta={acesso.nome || acesso.email}
           cargoConta={acesso.cargo ?? ''}
           onAceito={() => setTermosAceitos(true)}
@@ -467,9 +463,12 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
   // trabalham no vazio pelo resto do ciclo. A porta que continua aberta é
   // "preencher manualmente", dentro do formulário, para que uma queda do
   // provedor de IA não vire tranca.
+  // 'termos' só existe no array enquanto `mostrarTermos` for true, e isso já
+  // exige `!termosAceitos` — então estar neste passo já significa pendente,
+  // sem precisar de uma segunda variável para dizer a mesma coisa.
   const travado =
     (passo.chave === 'perfil' && perfilPendente) ||
-    (passo.chave === 'termos' && termosPendentes);
+    passo.chave === 'termos';
 
   const avisoDeTrava = passo.chave === 'termos'
     ? 'Aceite os termos para continuar.'

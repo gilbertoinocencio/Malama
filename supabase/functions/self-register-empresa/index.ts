@@ -5,6 +5,7 @@
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { cnpjValido, sincronizarCnpj } from '../_shared/brasilapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,22 +24,6 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 });
 
 const emailValido = (email: string) => /^\S+@\S+\.\S+$/.test(email);
-
-const cnpjValido = (cnpj: string) => {
-  if (!/^\d{14}$/.test(cnpj) || /^(\d)\1{13}$/.test(cnpj)) return false;
-  const digito = (base: string) => {
-    let soma = 0;
-    let peso = base.length - 7;
-    for (const n of base) {
-      soma += Number(n) * peso;
-      peso = peso === 2 ? 9 : peso - 1;
-    }
-    const resto = soma % 11;
-    return resto < 2 ? 0 : 11 - resto;
-  };
-  const base = cnpj.slice(0, 12);
-  return Number(cnpj[12]) === digito(base) && Number(cnpj[13]) === digito(base + cnpj[12]);
-};
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -138,6 +123,18 @@ Deno.serve(async (req: Request) => {
       await supabaseAdmin.auth.admin.deleteUser(userData.user.id);
       await supabaseAdmin.from('empresas').delete().eq('id', empresa.id);
       return json({ error: 'Não foi possível concluir o cadastro agora.' }, 500);
+    }
+
+    // Puxada única, depois de tudo confirmado — sem risco de gastar a
+    // chamada à BrasilAPI numa empresa que ainda pode ser revertida por uma
+    // falha mais adiante. Nunca trava o onboarding: se a BrasilAPI falhar,
+    // a empresa segue criada com sync_status de erro em
+    // empresa_dados_cnpj, e o lote noturno (ou o botão de resync do RH)
+    // tenta de novo depois.
+    try {
+      await sincronizarCnpj(supabaseAdmin, empresa.id, cnpj);
+    } catch (err) {
+      console.error('[self-register-empresa] falha ao sincronizar CNPJ:', err);
     }
 
     return json({ ok: true });

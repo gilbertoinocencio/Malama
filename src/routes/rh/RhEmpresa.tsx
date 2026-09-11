@@ -25,17 +25,19 @@ import { useScrollParaHash } from '../../hooks/useScrollParaHash';
 import {
   Building2, ArrowLeft, Save, FileText, ExternalLink, CheckCircle2,
   AlertCircle, ChevronDown, ChevronUp, ShieldCheck, KeyRound, Eye, EyeOff,
+  RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PerfilEmpresaForm } from '../../components/rh/PerfilEmpresaForm';
 import {
-  rhService, type EmpresaPerfil, type DocumentoLegal,
+  rhService, type EmpresaPerfil, type DocumentoLegal, type EmpresaDadosCnpj,
 } from '../../services/empresaService';
 import { cabecalhoVigencia } from '../../lib/documentosLegais';
 // Colaboradores já vêm carregados pelo layout (RhJornadaProvider envolve
 // todas as rotas do portal) — reusar evita uma segunda chamada para o
 // mesmo dado que o dashboard também usa.
 import { useRhJornada } from '../../contexts/RhJornadaContext';
+import { useRhAccess } from '../../contexts/RhAccessContext';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
@@ -319,10 +321,14 @@ const AcessoCard: React.FC<{ emailLogin: string | null }> = ({ emailLogin }) => 
 
 export const RhEmpresa: React.FC = () => {
   const { colaboradores } = useRhJornada();
+  const { acesso, can } = useRhAccess();
+  const podeEditarEmpresa = acesso.principal || can('empresa');
   const [perfil, setPerfil] = useState<EmpresaPerfil | null>(null);
   const [docs, setDocs] = useState<DocumentoLegal[]>([]);
+  const [dadosCnpj, setDadosCnpj] = useState<EmpresaDadosCnpj | null>(null);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [resincronizando, setResincronizando] = useState(false);
 
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -332,14 +338,16 @@ export const RhEmpresa: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [p, d, acesso] = await Promise.all([
+      const [p, d, emailDeAcesso, cnpj] = await Promise.all([
         rhService.getEmpresaPerfil(),
         rhService.getDocumentos(),
         rhService.getEmailDeAcesso(),
+        rhService.getDadosCnpj().catch(() => null),
       ]);
       setPerfil(p);
       setDocs(d);
-      setEmailLogin(acesso);
+      setEmailLogin(emailDeAcesso);
+      setDadosCnpj(cnpj);
       setNome(p?.responsavel_nome ?? '');
       setEmail(p?.responsavel_email ?? '');
       setTelefone(p?.responsavel_telefone ?? '');
@@ -352,6 +360,20 @@ export const RhEmpresa: React.FC = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleResincronizar = async () => {
+    setResincronizando(true);
+    try {
+      await rhService.resincronizarCnpj();
+      toast.success('Dados do CNPJ atualizados.');
+      const atualizado = await rhService.getDadosCnpj().catch(() => null);
+      setDadosCnpj(atualizado);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível sincronizar agora.');
+    } finally {
+      setResincronizando(false);
+    }
+  };
 
   // Destino de "#documentos", vindo do passo da jornada.
   useScrollParaHash(!loading);
@@ -490,6 +512,64 @@ export const RhEmpresa: React.FC = () => {
             {salvando ? 'Salvando...' : 'Salvar contato'}
           </button>
         </form>
+      </div>
+
+      {/* ── Dados oficiais do CNPJ (BrasilAPI) ──
+          Complementa o "Dados cadastrais" acima (que é o registro do
+          contrato Malama) com o que a Receita Federal tem sobre a empresa.
+          Puxado sozinho no cadastro; o botão aqui é só para quando algo
+          mudou fora do ciclo (ex.: CNAE, situação cadastral). */}
+      <div className="bg-white rounded-xl shadow p-5">
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-[#7d4a3c]" />
+            <h2 className="font-semibold text-gray-800">Dados oficiais do CNPJ</h2>
+          </div>
+          {podeEditarEmpresa && (
+            <button
+              type="button"
+              onClick={handleResincronizar}
+              disabled={resincronizando}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${resincronizando ? 'animate-spin' : ''}`} />
+              {resincronizando ? 'Sincronizando...' : 'Ressincronizar'}
+            </button>
+          )}
+        </div>
+        <p className="mb-4 text-xs leading-relaxed text-gray-500">
+          Vem direto da Receita Federal a partir do CNPJ cadastrado. O grau de risco é uma
+          leitura preliminar do Anexo I da NR-4 — não substitui GRO, PGR nem decisão técnica.
+        </p>
+
+        {(!dadosCnpj || dadosCnpj.sync_status !== 'ok') && (
+          <p className="mb-4 flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            Dados cadastrais pendentes de sincronização.
+            {dadosCnpj?.sync_erro ? ` (${dadosCnpj.sync_erro})` : ''}
+          </p>
+        )}
+
+        {dadosCnpj?.sync_status === 'ok' && (
+          <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Campo label="Razão social (Receita)">{dadosCnpj.razao_social || '—'}</Campo>
+            <Campo label="Situação cadastral">{dadosCnpj.situacao_cadastral || '—'}</Campo>
+            <Campo label="Porte">{dadosCnpj.porte || '—'}</Campo>
+            <Campo label="CNAE principal">
+              {dadosCnpj.cnae_principal_codigo
+                ? `${dadosCnpj.cnae_principal_codigo} — ${dadosCnpj.cnae_principal_descricao || ''}`
+                : '—'}
+            </Campo>
+            <Campo label="Natureza jurídica">{dadosCnpj.natureza_juridica || '—'}</Campo>
+            <Campo label="Data de abertura">{fmtDate(dadosCnpj.data_abertura)}</Campo>
+            <Campo label="Grau de risco estimado (NR-4)">
+              {dadosCnpj.grau_risco_estimado ? `Grau ${dadosCnpj.grau_risco_estimado}` : '—'}
+            </Campo>
+            <Campo label="Última sincronização">
+              {dadosCnpj.synced_at ? fmtDateTime(dadosCnpj.synced_at) : '—'}
+            </Campo>
+          </dl>
+        )}
       </div>
 
       {/* Contexto declaratório usado pelo copiloto. O primeiro preenchimento
