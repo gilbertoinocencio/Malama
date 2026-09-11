@@ -459,10 +459,10 @@ export const PrimeiroAcessoRh: React.FC<{ onFechar: () => void }> = ({ onFechar 
 
   // O perfil é obrigatório no início: enquanto ele não for confirmado, este
   // passo não avança, não fecha no X e não fecha no Esc. Não é gentileza
-  // retirada por capricho — sem o perfil, o copiloto e as sugestões de setor
-  // trabalham no vazio pelo resto do ciclo. A porta que continua aberta é
-  // "preencher manualmente", dentro do formulário, para que uma queda do
-  // provedor de IA não vire tranca.
+  // retirada por capricho — sem o perfil, o copiloto trabalha no vazio pelo
+  // resto do ciclo. O formulário não depende de nenhum provedor externo (a
+  // Receita só pré-preenche; a organização é sempre preenchida à mão), então
+  // não há risco de o passo trancar por uma falha de infraestrutura.
   // 'termos' só existe no array enquanto `mostrarTermos` for true, e isso já
   // exige `!termosAceitos` — então estar neste passo já significa pendente,
   // sem precisar de uma segunda variável para dizer a mesma coisa.

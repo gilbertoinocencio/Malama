@@ -11,17 +11,19 @@
 // É o que muda a leitura de um resultado — "carga alta na Cozinha" vira
 // hipótese com contexto (escala 6x1, hora extra rotina, trocou gestão)
 // em vez de "a Cozinha está ruim". O texto aberto sobra para o que a
-// estrutura não previu.
+// estrutura não previu — sem IA no meio: o que a pessoa escreve é o que
+// fica, sem passar por um extrator.
+//
+// Setores são cadastrados em Início (SetoresCard), não aqui.
 //
 // São perguntas DESCRITIVAS. Nada aqui avalia risco: contexto declarado
 // gera hipótese e pergunta, nunca prova.
 // =====================================================
 
 import React, { useEffect, useState } from 'react';
-import { Check, Loader2, Pencil, Sparkles } from 'lucide-react';
+import { Check, Loader2, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRhAccess } from '../../contexts/RhAccessContext';
-import { rhSetorSugestoes } from '../../lib/rhSetorSugestoes';
 import {
   EVENTOS_12M, LIDERANCA_FORMAL, PESSOAS_POR_LIDER, VINCULOS, HORA_EXTRA, ESCALAS,
   REMUNERACAO_VARIAVEL, SST_EXISTENTE, ORGANIZACAO_EMPRESA_VAZIA,
@@ -30,22 +32,20 @@ import {
 import {
   rhService, type EmpresaContextoOperacional, type EmpresaDadosCnpj,
 } from '../../services/empresaService';
-import { rhAgentService, type RhProfileDraft } from '../../services/rhAgentService';
 
 type Etapa = 'organizacao' | 'revisao' | 'resumo';
 
-const vazio: RhProfileDraft = {
-  setor_atuacao: null,
-  cnae_principal: null,
-  descricao_negocio: null,
-  setores_sugeridos: [],
-  contexto_adicional: null,
-  organizacao_sugerida: null,
+type Rascunho = {
+  setor_atuacao: string | null;
+  cnae_principal: string | null;
+  contexto_adicional: string | null;
 };
 
-const linhas = (items: string[]) => items.join('\n');
-const emLista = (value: string, max = 20) => value.split('\n')
-  .map(item => item.trim()).filter(Boolean).slice(0, max);
+const vazio: Rascunho = {
+  setor_atuacao: null,
+  cnae_principal: null,
+  contexto_adicional: null,
+};
 
 const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => (
   <label className="block text-xs font-medium text-gray-700">
@@ -222,7 +222,7 @@ const ResumoOrganizacao: React.FC<{ org: OrganizacaoEmpresa }> = ({ org }) => {
 // ── Mesclas ───────────────────────────────────────────────────────────
 
 /** CNAE e setor entram da Receita só quando o rascunho não trouxe nada. */
-const comDadosDaReceita = (rascunho: RhProfileDraft, dados: EmpresaDadosCnpj | null): RhProfileDraft => {
+const comDadosDaReceita = (rascunho: Rascunho, dados: EmpresaDadosCnpj | null): Rascunho => {
   if (!dados || dados.sync_status !== 'ok') return rascunho;
   return {
     ...rascunho,
@@ -231,27 +231,10 @@ const comDadosDaReceita = (rascunho: RhProfileDraft, dados: EmpresaDadosCnpj | n
   };
 };
 
-/** O que a IA sugeriu para a organização só entra em campo vazio. */
-const comSugestoes = (org: OrganizacaoEmpresa, sugerida: Partial<OrganizacaoEmpresa> | null): OrganizacaoEmpresa => {
-  if (!sugerida) return org;
-  const saida = { ...org };
-  for (const k of Object.keys(sugerida) as (keyof OrganizacaoEmpresa)[]) {
-    const atual = saida[k];
-    const vazioAtual = atual == null || (Array.isArray(atual) && atual.length === 0);
-    const novo = sugerida[k];
-    const temNovo = novo != null && !(Array.isArray(novo) && novo.length === 0);
-    if (vazioAtual && temNovo) (saida as Record<string, unknown>)[k] = novo;
-  }
-  return saida;
-};
-
-const doContexto = (contexto: EmpresaContextoOperacional): RhProfileDraft => ({
+const doContexto = (contexto: EmpresaContextoOperacional): Rascunho => ({
   setor_atuacao: contexto.setor_atuacao,
   cnae_principal: contexto.cnae_principal,
-  descricao_negocio: contexto.descricao_negocio,
-  setores_sugeridos: [],
   contexto_adicional: contexto.contexto_adicional,
-  organizacao_sugerida: null,
 });
 
 // ── Componente ────────────────────────────────────────────────────────
@@ -267,9 +250,8 @@ export const PerfilEmpresaForm: React.FC<{
   const [dadosCnpj, setDadosCnpj] = useState<EmpresaDadosCnpj | null>(null);
   const [organizacao, setOrganizacao] = useState<OrganizacaoEmpresa>(ORGANIZACAO_EMPRESA_VAZIA);
   const [descricao, setDescricao] = useState('');
-  const [rascunho, setRascunho] = useState<RhProfileDraft>(vazio);
+  const [rascunho, setRascunho] = useState<Rascunho>(vazio);
   const [loading, setLoading] = useState(true);
-  const [gerando, setGerando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -299,7 +281,7 @@ export const PerfilEmpresaForm: React.FC<{
   const gruposRespondidos = organizacaoEmpresaPreenchida(organizacao);
   const podeAvancar = gruposRespondidos >= 2;
 
-  /** Segue para a revisão sem IA. O texto vira contexto adicional. */
+  /** O texto livre vira contexto adicional na revisão. */
   const continuar = () => {
     if (!podeAvancar) {
       setErro('Responda pelo menos dois grupos acima — é o mínimo para o copiloto ter contexto.');
@@ -313,39 +295,9 @@ export const PerfilEmpresaForm: React.FC<{
     setEtapa('revisao');
   };
 
-  /**
-   * IA opcional sobre o texto aberto: extrai setores sugeridos, descrição
-   * e dicas de organização (só para campos vazios). Se o provedor cair, o
-   * caminho sem IA continua aberto — no onboarding o perfil é obrigatório
-   * e uma falha de infraestrutura não pode trancar a pessoa fora.
-   */
-  const organizarComIa = async () => {
-    if (descricao.trim().length < 20) {
-      setErro('Escreva ao menos uma frase sobre como a empresa trabalha para a IA organizar.');
-      return;
-    }
-    setGerando(true);
-    setErro('');
-    try {
-      const draft = await rhAgentService.criarRascunhoPerfil(descricao);
-      setOrganizacao(atual => comSugestoes(atual, draft.organizacao_sugerida));
-      setRascunho(atual => comDadosDaReceita({
-        ...atual,
-        descricao_negocio: draft.descricao_negocio ?? atual.descricao_negocio,
-        setores_sugeridos: draft.setores_sugeridos,
-        contexto_adicional: draft.contexto_adicional ?? (descricao.trim() || atual.contexto_adicional),
-      }, dadosCnpj));
-      setEtapa('revisao');
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível organizar a descrição.');
-    } finally {
-      setGerando(false);
-    }
-  };
-
   const salvar = async () => {
-    if (!rascunho.descricao_negocio?.trim() && !rascunho.setor_atuacao?.trim()) {
-      setErro('Confirme ao menos o setor de atuação ou a descrição do negócio.');
+    if (!rascunho.setor_atuacao?.trim() && !rascunho.contexto_adicional?.trim()) {
+      setErro('Confirme ao menos o setor de atuação ou o contexto adicional.');
       return;
     }
     setSalvando(true);
@@ -354,13 +306,10 @@ export const PerfilEmpresaForm: React.FC<{
       const salvo = await rhService.salvarContextoOperacional({
         setor_atuacao: rascunho.setor_atuacao,
         cnae_principal: rascunho.cnae_principal,
-        descricao_negocio: rascunho.descricao_negocio,
+        descricao_negocio: null,
         contexto_adicional: rascunho.contexto_adicional,
         organizacao,
       });
-      if (rascunho.setores_sugeridos.length > 0) {
-        rhSetorSugestoes.adicionar(acesso.empresa_id, rascunho.setores_sugeridos);
-      }
       setContexto(salvo);
       setRascunho(doContexto(salvo));
       setOrganizacao({ ...ORGANIZACAO_EMPRESA_VAZIA, ...(salvo.organizacao ?? {}) });
@@ -374,7 +323,7 @@ export const PerfilEmpresaForm: React.FC<{
     }
   };
 
-  const setCampo = <K extends keyof RhProfileDraft>(campo: K, valor: RhProfileDraft[K]) =>
+  const setCampo = <K extends keyof Rascunho>(campo: K, valor: Rascunho[K]) =>
     setRascunho(atual => ({ ...atual, [campo]: valor }));
 
   if (loading) return <div className="flex min-h-24 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-[#7d4a3c]" /></div>;
@@ -402,7 +351,7 @@ export const PerfilEmpresaForm: React.FC<{
         )}
       </dl>
       <p className="mt-2 text-xs leading-relaxed text-green-900/80">
-        Isso entra sozinho. O que a Receita não sabe é como o trabalho é organizado — é isso que muda a leitura dos resultados.
+        Isso entra sozinho. O que falta é como o trabalho é organizado — é isso que muda a leitura dos resultados.
       </p>
     </div>
   );
@@ -413,9 +362,6 @@ export const PerfilEmpresaForm: React.FC<{
         <div className="grid gap-3 text-sm sm:grid-cols-2">
           <div><p className="text-xs font-medium text-gray-400">Setor de atuação</p><p className="mt-1 text-gray-700">{contexto.setor_atuacao || 'Não informado'}</p></div>
           <div><p className="text-xs font-medium text-gray-400">CNAE</p><p className="mt-1 text-gray-700">{contexto.cnae_principal || 'Não informado'}</p></div>
-          {contexto.descricao_negocio && (
-            <div className="sm:col-span-2"><p className="text-xs font-medium text-gray-400">O que a empresa faz</p><p className="mt-1 whitespace-pre-wrap text-gray-700">{contexto.descricao_negocio}</p></div>
-          )}
         </div>
         <div className="border-t border-gray-100 pt-3">
           <p className="mb-2 text-xs font-medium text-gray-400">Organização do trabalho</p>
@@ -441,27 +387,19 @@ export const PerfilEmpresaForm: React.FC<{
         <OrganizacaoCampos org={organizacao} onChange={setOrganizacao} />
 
         <Textarea
-          label="O que a Receita e as escolhas acima não contam sobre como vocês trabalham?"
+          label="O que as escolhas acima não contam?"
           rows={4}
           value={descricao}
           onChange={event => setDescricao(event.target.value)}
           placeholder="Ex.: cozinha central abastece três lojas; entregas com motoboys próprios; almoço de sexta dobra o movimento; a Cozinha trocou de gerente em março."
         />
-        <p className="-mt-1 text-xs text-gray-500">
-          Opcional. Se citar equipes, escala ou hora extra, a IA pode organizar isso em campos — você revisa antes de confirmar.
-        </p>
+        <p className="-mt-1 text-xs text-gray-500">Opcional — qualquer coisa que ajude o copiloto a entender melhor a rotina.</p>
 
         {erro && <p className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{erro}</p>}
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <button type="button" disabled={salvando || gerando} onClick={continuar}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
-            Continuar para revisão
-          </button>
-          <button type="button" disabled={gerando || descricao.trim().length < 20} onClick={organizarComIa}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#7d4a3c]/30 px-4 py-2.5 text-sm font-semibold text-[#7d4a3c] disabled:opacity-50">
-            {gerando ? <><Loader2 className="h-4 w-4 animate-spin" /> Organizando...</> : <><Sparkles className="h-4 w-4" /> Organizar o texto com IA</>}
-          </button>
-        </div>
+        <button type="button" disabled={salvando} onClick={continuar}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#7d4a3c] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
+          Continuar para revisão
+        </button>
         <p className="text-xs text-gray-400">{gruposRespondidos} de 6 grupos respondidos · mínimo 2 para continuar.</p>
       </div>
     );
@@ -470,16 +408,13 @@ export const PerfilEmpresaForm: React.FC<{
   return (
     <div className="space-y-3">
       <p className="rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
-        Revise antes de confirmar. O que veio da Receita ou da IA é só pré-preenchimento — a declaração é da empresa.
+        Revise antes de confirmar. O que veio da Receita é só pré-preenchimento — a declaração é da empresa.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Input label="Setor de atuação" value={rascunho.setor_atuacao ?? ''} onChange={event => setCampo('setor_atuacao', event.target.value || null)} />
         <Input label="CNAE principal" value={rascunho.cnae_principal ?? ''} onChange={event => setCampo('cnae_principal', event.target.value || null)} />
       </div>
-      <Textarea label="O que a empresa faz (uma ou duas frases)" rows={2} value={rascunho.descricao_negocio ?? ''} onChange={event => setCampo('descricao_negocio', event.target.value || null)} />
-      <Textarea label="Setores sugeridos para revisar · um por linha" rows={3} value={linhas(rascunho.setores_sugeridos)} onChange={event => setCampo('setores_sugeridos', emLista(event.target.value, 50))} />
-      <p className="-mt-1 text-xs text-gray-500">As sugestões seguem para a área Setores. Você decide quais criar e configura a organização de cada um lá.</p>
-      <Textarea label="Contexto adicional" rows={2} value={rascunho.contexto_adicional ?? ''} onChange={event => setCampo('contexto_adicional', event.target.value || null)} />
+      <Textarea label="Contexto adicional" rows={4} value={rascunho.contexto_adicional ?? ''} onChange={event => setCampo('contexto_adicional', event.target.value || null)} />
 
       <div className="rounded-lg border border-gray-100 p-3">
         <div className="mb-2 flex items-center justify-between">

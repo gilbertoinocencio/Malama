@@ -1,14 +1,5 @@
 import type { PassoJornada } from '../lib/rhJornada';
-import type { OrganizacaoEmpresa } from '../lib/organizacaoTrabalho';
-import type { EmpresaContextoOperacionalInput } from './empresaService';
 import { supabase } from './supabase';
-
-export type RhProfileDraft = Omit<EmpresaContextoOperacionalInput, 'organizacao'> & {
-  /** Sugestões para revisão no cadastro de setores; nunca são criadas pela IA. */
-  setores_sugeridos: string[];
-  /** Só o que o texto explicitou; preenche apenas campos vazios do formulário. */
-  organizacao_sugerida: Partial<OrganizacaoEmpresa> | null;
-};
 
 export type RhAgentHistoryItem = {
   role: 'user' | 'assistant';
@@ -151,13 +142,6 @@ export const rhAgentService = {
   /** Acorda o Caramel sem bloquear a abertura do painel. */
   async warmup(): Promise<void> {
     await invoke<{ status: string }>({ action: 'warmup' });
-  },
-
-  async criarRascunhoPerfil(description: string): Promise<RhProfileDraft> {
-    const data = await invoke<{ draft: RhProfileDraft }>({
-      action: 'profile_draft', description,
-    });
-    return data.draft;
   },
 
   async obterBriefing(): Promise<RhBriefing> {

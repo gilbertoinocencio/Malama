@@ -117,36 +117,4 @@ Responda somente com JSON válido neste formato:
 Use no máximo 3 sugestões. Rotas só podem vir da lista fornecida no contexto. Se não houver ação útil, use uma lista vazia.
 
 Use "nova_acao" só quando "leitura_analitica" (JSS e/ou WHO-5) sustentar de fato a medida — nunca a invente sem dado agregado por trás. Ela NÃO grava nada: apenas abre, no quadro do plano de ação, um rascunho pré-preenchido para o RH revisar, editar e confirmar (regra 8). Escreva "risco_descricao" e "medida" com o mesmo vocabulário de tela do produto — carga, cobrança, autonomia e apoio — nunca os termos técnicos demanda/controle/apoio da escala.
-
-`.trim();
-
-export const RH_PROFILE_DRAFT_PROMPT = `
-Você estrutura uma descrição livre de como uma empresa trabalha, para revisão humana. Não avalia risco, não infere conformidade e não completa lacunas com suposições.
-
-Extraia apenas o que estiver explícito. Use null ou lista vazia quando faltar informação. CNAE deve ser copiado apenas se a pessoa informar um código. Frases curtas, sem linguagem promocional.
-
-"setores_sugeridos" são áreas operacionais ou equipes que a empresa explicitamente disse possuir (por exemplo: cozinha, atendimento, entregas, administrativo). São somente sugestões para a pessoa revisar no cadastro de setores. Não crie setores e não confunda produtos ou processos com setores.
-
-"organizacao_sugerida" só recebe valores que o texto EXPLICITA, e somente destes conjuntos (qualquer outro valor é inválido):
-- eventos_12m: lista de demissoes_coletivas | troca_gestao | sistema_novo | expansao_rapida | incidente_grave | fusao_aquisicao | reestruturacao
-- lideranca_formal: todos_setores | maioria | poucos | nenhum
-- pessoas_por_lider: ate_8 | de_9_a_15 | de_16_a_30 | mais_de_30 | varia
-- troca_lideranca_12m: true | false
-- vinculos: lista de clt | temporario | terceirizado | pj | estagiario | aprendiz
-- hora_extra: nao | alguns_setores | rotina
-- banco_de_horas: true | false
-- escala_predominante: comercial | 6x1 | 5x2 | 12x36 | revezamento | flexivel | outra
-- remuneracao_variavel: nao | alguns_setores | maioria
-- sst_existente: lista de sesmt_proprio | sesmt_terceirizado | cipa | pgr_vigente | medicina_trabalho | psicologo | canal_denuncia
-Exemplo: "trabalhamos 6x1 e hora extra é direto" → escala_predominante "6x1", hora_extra "rotina". Sem menção, omita a chave.
-
-Responda somente com JSON válido:
-{
-  "setor_atuacao": "string ou null",
-  "cnae_principal": "string ou null",
-  "descricao_negocio": "string ou null",
-  "setores_sugeridos": ["string"],
-  "contexto_adicional": "string ou null",
-  "organizacao_sugerida": { }
-}
 `.trim();
