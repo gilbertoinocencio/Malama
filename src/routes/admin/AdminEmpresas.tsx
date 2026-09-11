@@ -18,6 +18,7 @@ import {
   type BillingEvento,
   valorAssentoEmpresa,
 } from '../../services/empresaService';
+import { cnpjSomenteDigitos, cnpjValido } from '../../lib/cnpj';
 import toast from 'react-hot-toast';
 
 const fmtCurrency = (v: number) =>
@@ -147,6 +148,16 @@ const EmpresaModal: React.FC<{
     e.preventDefault();
     setFormError('');
     if (!form.nome.trim()) { setFormError('Informe o nome da empresa.'); return; }
+    // CNPJ é opcional, mas se vier tem que ser válido: é ele que alimenta a
+    // consulta à Receita (BrasilAPI). Um dígito trocado aqui viraria uma
+    // empresa que nunca sincroniza. Gravado só em dígitos, para o UNIQUE e a
+    // checagem de duplicata do self-signup não tratarem "23.147.091/0001-98"
+    // e "23147091000198" como empresas diferentes.
+    const cnpj = cnpjSomenteDigitos(form.cnpj);
+    if (cnpj && !cnpjValido(cnpj)) {
+      setFormError('CNPJ inválido. Confira os 14 dígitos — o dígito verificador não bate.');
+      return;
+    }
     if (!form.modo_mental && !form.modo_metabolico && !form.modo_compliance) {
       setFormError('Selecione ao menos um modo de contrato.'); return;
     }
@@ -161,7 +172,7 @@ const EmpresaModal: React.FC<{
     }
     setSaving(true);
     try {
-      await onSave(form);
+      await onSave({ ...form, cnpj });
       onClose();
     } catch (err: any) {
       setFormError(err?.message ?? 'Erro ao salvar empresa.');

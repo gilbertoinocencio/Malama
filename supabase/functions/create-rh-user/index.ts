@@ -5,7 +5,7 @@
 // =====================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sincronizarCnpj } from '../_shared/brasilapi.ts';
+import { cnpjValido, sincronizarCnpj } from '../_shared/brasilapi.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,12 +46,20 @@ Deno.serve(async (req: Request) => {
     if (!empresa?.nome) return json({ error: 'Nome da empresa é obrigatório' }, 400);
     if (!rh?.email || !rh?.password) return json({ error: 'Email e senha do RH são obrigatórios' }, 400);
 
+    // CNPJ é opcional, mas se vier tem que ser válido — é o que alimenta a
+    // consulta à Receita. O formulário do admin já valida; aqui é a garantia
+    // que não depende do cliente. Gravado só em dígitos.
+    const cnpj = String(empresa.cnpj ?? '').replace(/\D/g, '');
+    if (cnpj && !cnpjValido(cnpj)) {
+      return json({ error: 'CNPJ inválido. Confira os 14 dígitos.' }, 400);
+    }
+
     // 1. Criar a empresa
     const { data: empresaRow, error: empresaError } = await supabaseAdmin
       .from('empresas')
       .insert([{
         nome: empresa.nome,
-        cnpj: empresa.cnpj || null,
+        cnpj: cnpj || null,
         responsavel_nome: empresa.responsavel_nome || rh.nome || null,
         responsavel_email: empresa.responsavel_email || rh.email,
         responsavel_telefone: empresa.responsavel_telefone || null,
