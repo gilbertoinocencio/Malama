@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { RH_AGENT_SYSTEM_PROMPT } from '../_shared/rh-agent-prompt.ts';
 import { buildRhBriefing, calcularTendencias } from '../_shared/rh-briefing.ts';
-import { gerarHipoteses, type ContextoOrganizacao, type Hipotese } from '../_shared/psicossocial-hipoteses.ts';
+import { gerarHipoteses, type ContextoOrganizacao, type Hipotese, type SinaisDerivados } from '../_shared/psicossocial-hipoteses.ts';
 import {
   organizacaoEmpresaSegura, organizacaoSetorSegura, type OrganizacaoSetor,
 } from '../_shared/organizacao-trabalho.ts';
@@ -590,7 +590,9 @@ async function montarMemoriaDoCiclo(supabase: any, leitura: any, organizacao?: C
   let hipoteses: Hipotese[] = [];
   try {
     hipoteses = gerarHipoteses({
-      tendencias: calcularTendencias(leitura),
+      // Trend (briefing) e Tendencia (motor) só divergem no tipo de `periodo_*`
+      // (unknown vs objeto): o conteúdo é o mesmo objeto de período do relatório.
+      tendencias: calcularTendencias(leitura) as any,
       leitura,
       campanhaPorInstrumento,
       recorrencia: Array.isArray(memoria.recorrencia) ? memoria.recorrencia : [],
@@ -640,6 +642,7 @@ async function montarMemoriaDoCiclo(supabase: any, leitura: any, organizacao?: C
       // interpretar; não são evidência nem mudam a força da hipótese.
       contexto_setor: h.contexto_setor ?? null,
       ressalvas: h.ressalvas ?? [],
+      convergencias: h.convergencias ?? [],
     })),
     reavaliacoes: reavaliacoes.map(r => ({
       plano_acao_id: r.plano_acao_id,
@@ -1072,40 +1075,55 @@ Deno.serve(async (req: Request) => {
         );
       }
     }
+    // ── Sinais derivados: absenteísmo e ambulatório (só se o módulo existir) ─
+    // Afastamentos por capítulo F (transtornos mentais) e atendimentos por
+    // ansiedade/estresse, agregados por setor, últimos 90 dias. Entram no
+    // motor de hipóteses como CONVERGÊNCIA: outro dado da empresa apontando
+    // na mesma direção da pesquisa. Nunca como prova de causa no trabalho, e
+    // ausência de registro não descarta nada — a empresa pode não lançar.
+    const sinais: SinaisDerivados = { periodo: null, absenteismo: null, ambulatorio: null };
+    if (podeVerSaude) {
+      const fim = new Date();
+      const inicio = new Date(fim.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const periodo = { inicio: inicio.toISOString().slice(0, 10), fim: fim.toISOString().slice(0, 10) };
+      const [abs, amb] = await Promise.all([
+        rpcOpcional(supabase, 'rh_absenteismo_resumo', { p_inicio: periodo.inicio, p_fim: periodo.fim }),
+        rpcOpcional(supabase, 'rh_ambulatorio_resumo', { p_inicio: periodo.inicio, p_fim: periodo.fim }),
+      ]);
+      const n = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? v : 0;
+      if (abs && typeof abs === 'object') {
+        sinais.periodo = periodo;
+        sinais.absenteismo = (Array.isArray(abs.setores) ? abs.setores : []).slice(0, 50).map((s: any) => ({
+          setor: texto(s?.setor, 80),
+          episodios: n(s?.episodios), dias: n(s?.dias),
+          episodios_f: n(s?.episodios_f), dias_f: n(s?.dias_f),
+          dias_por_colaborador: typeof s?.dias_por_colaborador === 'number' ? s.dias_por_colaborador : null,
+        })).filter((s: { setor: string }) => s.setor);
+      }
+      if (amb && typeof amb === 'object') {
+        sinais.periodo = periodo;
+        sinais.ambulatorio = (Array.isArray(amb.setores) ? amb.setores : []).slice(0, 50).map((s: any) => ({
+          setor: texto(s?.setor, 80),
+          atendimentos: n(s?.atendimentos), ansiedade: n(s?.ansiedade),
+          por_colaborador: typeof s?.por_colaborador === 'number' ? s.por_colaborador : null,
+        })).filter((s: { setor: string }) => s.setor);
+      }
+    }
+    const sinaisDerivados = {
+      periodo: sinais.periodo,
+      nota: 'Últimos 90 dias, agregados por setor (piso de anonimato pelo tamanho do setor). Absenteísmo: capítulo F = transtornos mentais e comportamentais. Ambulatório: atendimentos, com recorte de ansiedade/estresse. Convergência com a pesquisa fortalece a prioridade de investigar; não prova causa no trabalho; ausência não descarta.',
+      absenteismo: sinais.absenteismo,
+      ambulatorio: sinais.ambulatorio,
+    };
+
     const organizacao: ContextoOrganizacao = {
       setores: Object.fromEntries(estruturaTrabalho
         .filter(s => s.organizacao).map(s => [s.nome, s.organizacao as OrganizacaoSetor])),
       empresa: perfilSeguro?.organizacao ?? null,
       temporal: contextoTemporal,
       comparabilidade,
+      sinais,
     };
-
-    // ── Sinais derivados: absenteísmo agregado (só se o módulo existir) ─
-    // CID F = capítulo de transtornos mentais. Só agregados por setor, só
-    // reforça ou enfraquece uma hipótese — nunca a prova.
-    let sinaisDerivados: { absenteismo: unknown } = { absenteismo: null };
-    if (podeVerSaude) {
-      const fim = new Date();
-      const inicio = new Date(fim.getTime() - 90 * 24 * 60 * 60 * 1000);
-      const abs = await rpcOpcional(supabase, 'rh_absenteismo_resumo', {
-        p_inicio: inicio.toISOString().slice(0, 10), p_fim: fim.toISOString().slice(0, 10),
-      });
-      if (abs && typeof abs === 'object') {
-        sinaisDerivados = {
-          absenteismo: {
-            periodo: { inicio: inicio.toISOString().slice(0, 10), fim: fim.toISOString().slice(0, 10) },
-            nota: 'Afastamentos lançados pela empresa nos últimos 90 dias, agregados por setor. Capítulo F = transtornos mentais e comportamentais.',
-            setores: (Array.isArray(abs.setores) ? abs.setores : []).slice(0, 50).map((s: any) => ({
-              setor: texto(s?.setor, 80),
-              episodios: typeof s?.episodios === 'number' ? s.episodios : null,
-              dias: typeof s?.dias === 'number' ? s.dias : null,
-              episodios_f: typeof s?.episodios_f === 'number' ? s.episodios_f : null,
-              dias_f: typeof s?.dias_f === 'number' ? s.dias_f : null,
-            })).filter((s: any) => s.setor),
-          },
-        };
-      }
-    }
 
     const memoria = podeVerPlano
       ? await montarMemoriaDoCiclo(supabase, leitura, organizacao)

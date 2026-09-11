@@ -68,6 +68,10 @@ export type Hipotese = {
   /** Confundidores a nomear ANTES de interpretar: sazonalidade, calor,
    *  evento da empresa no período. Enriquecem a hipótese; não a criam. */
   ressalvas?: string[];
+  /** Outros dados da própria empresa (afastamentos por capítulo F,
+   *  ambulatório por ansiedade/estresse) apontando na mesma direção que a
+   *  pesquisa. Fortalecem a prioridade de investigar; não provam causa. */
+  convergencias?: string[];
 };
 
 // =====================================================
@@ -193,6 +197,22 @@ type Tendencia = {
   periodo_atual?: { inicio?: string; fim?: string } | null;
 };
 
+/**
+ * Absenteísmo e ambulatório dos últimos 90 dias, por setor, já com o piso
+ * de anonimato aplicado pelo banco. `null` = módulo ausente ou sem leitura;
+ * lista vazia = módulo em uso, nenhum setor acima do piso.
+ */
+export type SinaisDerivados = {
+  periodo: { inicio: string; fim: string } | null;
+  absenteismo: {
+    setor: string; episodios: number; dias: number;
+    episodios_f: number; dias_f: number; dias_por_colaborador: number | null;
+  }[] | null;
+  ambulatorio: {
+    setor: string; atendimentos: number; ansiedade: number; por_colaborador: number | null;
+  }[] | null;
+};
+
 export type ContextoOrganizacao = {
   /** Organização declarada por setor, indexada pelo nome do setor. */
   setores: Record<string, OrganizacaoSetor>;
@@ -200,6 +220,7 @@ export type ContextoOrganizacao = {
   temporal: ContextoTemporal | null;
   /** Comparabilidade sazonal das tendências, por indicador. */
   comparabilidade: Partial<Record<IndicadorId, ComparabilidadeSazonal>>;
+  sinais?: SinaisDerivados;
 };
 
 export type ContextoHipoteses = {
@@ -430,6 +451,46 @@ function enriquecerComContexto(h: Hipotese, org: ContextoOrganizacao): Hipotese 
     });
   }
 
+  // ── Convergência com absenteísmo e ambulatório ─────────────────────
+  // Só o recorte que fala de saúde mental: capítulo F do CID e a categoria
+  // ansiedade/estresse do ambulatório. Dado presente e positivo vira
+  // convergência; zero ou ausente não vira nada — a empresa pode não ter
+  // lançado, e "sem registro" não é evidência de nada.
+  const convergencias: string[] = [];
+  const sinais = org.sinais;
+  if (sinais?.periodo) {
+    const mesmoSetor = (nome: string) => h.setor !== null && nome.trim().toLowerCase() === h.setor.trim().toLowerCase();
+    const janela = `${sinais.periodo.inicio} a ${sinais.periodo.fim}`;
+    if (h.setor) {
+      const abs = sinais.absenteismo?.find(a => mesmoSetor(a.setor));
+      if (abs && abs.episodios_f > 0) {
+        convergencias.push(
+          `Absenteísmo: ${abs.episodios_f} afastamento(s) por transtornos mentais e comportamentais (capítulo F) em ${h.setor}, ${abs.dias_f} dia(s), no período ${janela}. Converge com o sinal da pesquisa — outro dado da empresa na mesma direção, não prova de causa no trabalho.`);
+      }
+      const amb = sinais.ambulatorio?.find(a => mesmoSetor(a.setor));
+      if (amb && amb.ansiedade > 0) {
+        convergencias.push(
+          `Ambulatório: ${amb.ansiedade} atendimento(s) por ansiedade/estresse em ${h.setor} (de ${amb.atendimentos} no total) no período ${janela}. Converge com o sinal da pesquisa.`);
+      }
+    } else {
+      const totalF = (sinais.absenteismo ?? []).reduce((acc, a) => acc + a.episodios_f, 0);
+      const setoresF = (sinais.absenteismo ?? []).filter(a => a.episodios_f > 0).map(a => a.setor);
+      if (totalF > 0) {
+        convergencias.push(
+          `Absenteísmo: ${totalF} afastamento(s) por capítulo F na empresa no período ${janela}` +
+          (setoresF.length ? ` (${setoresF.join(', ')})` : '') +
+          '. Converge com a tendência geral — não prova causa no trabalho.');
+      }
+      const totalAns = (sinais.ambulatorio ?? []).reduce((acc, a) => acc + a.ansiedade, 0);
+      const setoresAns = (sinais.ambulatorio ?? []).filter(a => a.ansiedade > 0).map(a => a.setor);
+      if (totalAns > 0) {
+        convergencias.push(
+          `Ambulatório: ${totalAns} atendimento(s) por ansiedade/estresse na empresa no período ${janela}` +
+          (setoresAns.length ? ` (${setoresAns.join(', ')})` : '') + '. Converge com a tendência geral.');
+      }
+    }
+  }
+
   // ── Empresa: eventos dos últimos 12 meses ──────────────────────────
   const eventos = org.empresa?.eventos_12m ?? [];
   const eventosRelevantes = eventos.filter(e => e !== 'nenhum');
@@ -477,13 +538,15 @@ function enriquecerComContexto(h: Hipotese, org: ContextoOrganizacao): Hipotese 
   }
 
   const contextoSetor = setor ? descreverOrganizacaoSetor(setor) : null;
-  const semMudanca = ressalvas.length === 0 && perguntas.length === 0 && caminhos.length === 0 && !contextoSetor;
+  const semMudanca = ressalvas.length === 0 && perguntas.length === 0 && caminhos.length === 0
+    && convergencias.length === 0 && !contextoSetor;
   if (semMudanca) return h;
 
   return {
     ...h,
     contexto_setor: contextoSetor,
     ressalvas: ressalvas.length ? ressalvas : undefined,
+    convergencias: convergencias.length ? convergencias : undefined,
     perguntas_validacao: juntarUnico(h.perguntas_validacao, perguntas, p => p),
     caminhos_possiveis: juntarUnico(h.caminhos_possiveis, caminhos, c => c.medida),
   };
