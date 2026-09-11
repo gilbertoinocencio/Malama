@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const {
-      empresa, // { nome, cnpj, responsavel_nome, responsavel_email, responsavel_telefone, valor_por_assento, valor_assento_mental, valor_assento_metabolico, max_assentos, modo_mental, modo_metabolico, status, data_inicio }
+      empresa, // { nome, cnpj, responsavel_nome, responsavel_cargo, responsavel_email, responsavel_telefone, valor_por_assento, valor_assento_mental, valor_assento_metabolico, max_assentos, modo_mental, modo_metabolico, status, data_inicio }
       rh,      // { email, password, nome, cargo }
     } = await req.json();
 
@@ -61,6 +61,9 @@ Deno.serve(async (req: Request) => {
         nome: empresa.nome,
         cnpj: cnpj || null,
         responsavel_nome: empresa.responsavel_nome || rh.nome || null,
+        // Mesmo valor que popula rh_usuarios.cargo (abaixo): no cadastro,
+        // responsável comercial e conta de login são a mesma pessoa.
+        responsavel_cargo: empresa.responsavel_cargo || rh.cargo || null,
         responsavel_email: empresa.responsavel_email || rh.email,
         responsavel_telefone: empresa.responsavel_telefone || null,
         valor_por_assento: empresa.valor_por_assento ?? null,

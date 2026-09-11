@@ -331,6 +331,7 @@ export const RhEmpresa: React.FC = () => {
   const [resincronizando, setResincronizando] = useState(false);
 
   const [nome, setNome] = useState('');
+  const [cargo, setCargo] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [emailLogin, setEmailLogin] = useState<string | null>(null);
@@ -349,6 +350,7 @@ export const RhEmpresa: React.FC = () => {
       setEmailLogin(emailDeAcesso);
       setDadosCnpj(cnpj);
       setNome(p?.responsavel_nome ?? '');
+      setCargo(p?.responsavel_cargo ?? '');
       setEmail(p?.responsavel_email ?? '');
       setTelefone(p?.responsavel_telefone ?? '');
     } catch (err) {
@@ -382,7 +384,7 @@ export const RhEmpresa: React.FC = () => {
     e.preventDefault();
     setSalvando(true);
     try {
-      const res = await rhService.atualizarContato(nome, email, telefone);
+      const res = await rhService.atualizarContato(nome, email, telefone, cargo);
       if (!res.ok) { toast.error(res.error || 'Não foi possível salvar.'); return; }
       toast.success('Contato do responsável atualizado.');
       await load();
@@ -486,10 +488,15 @@ export const RhEmpresa: React.FC = () => {
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
             Responsável pela conta
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
             <input
               type="text" value={nome} onChange={e => setNome(e.target.value)}
               placeholder="Nome do responsável"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
+            />
+            <input
+              type="text" value={cargo} onChange={e => setCargo(e.target.value)}
+              placeholder="Cargo"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7d4a3c] focus:border-transparent"
             />
             <input

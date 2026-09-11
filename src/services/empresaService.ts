@@ -15,6 +15,7 @@ export type Empresa = {
   nome: string;
   cnpj: string | null;
   responsavel_nome: string | null;
+  responsavel_cargo: string | null;
   responsavel_email: string | null;
   responsavel_telefone: string | null;
   valor_por_assento: number | null;
@@ -542,6 +543,7 @@ export function modulosDaEmpresa(e: Pick<Empresa, 'modo_mental' | 'modo_metaboli
 // RhEmpresa: traz e-mail e telefone do responsável, que são os campos que o
 // próprio RH pode corrigir. Continua sem valor_por_assento.
 export type EmpresaPerfil = RhEmpresa & {
+  responsavel_cargo: string | null;
   responsavel_email: string | null;
   responsavel_telefone: string | null;
 };
@@ -1458,10 +1460,10 @@ export const rhService = {
    * neles, e `empresas` não tem policy de UPDATE para o RH.
    */
   async atualizarContato(
-    nome: string, email: string, telefone: string,
+    nome: string, email: string, telefone: string, cargo: string,
   ): Promise<{ ok: boolean; error?: string }> {
     const { data, error } = await supabase.rpc('rh_atualizar_contato', {
-      p_nome: nome, p_email: email, p_telefone: telefone,
+      p_nome: nome, p_email: email, p_telefone: telefone, p_cargo: cargo,
     });
     if (error) return { ok: false, error: error.message };
     return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
