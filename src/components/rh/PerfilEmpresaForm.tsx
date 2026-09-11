@@ -3,7 +3,9 @@ import { Check, Loader2, Pencil, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRhAccess } from '../../contexts/RhAccessContext';
 import { rhSetorSugestoes } from '../../lib/rhSetorSugestoes';
-import { rhService, type EmpresaContextoOperacional } from '../../services/empresaService';
+import {
+  rhService, type EmpresaContextoOperacional, type EmpresaDadosCnpj,
+} from '../../services/empresaService';
 import { rhAgentService, type RhProfileDraft } from '../../services/rhAgentService';
 
 type Etapa = 'descricao' | 'revisao' | 'resumo';
@@ -80,6 +82,21 @@ Textarea.displayName = 'Textarea';
 const conteudoUtil = (texto: string) =>
   ROTEIRO.reduce((acc, item) => acc.split(`${item.rotulo}:`).join(' '), texto).trim();
 
+/**
+ * O que a Receita já respondeu não deve ser pedido de novo. CNAE e setor
+ * entram pré-preenchidos a partir da consulta feita no cadastro
+ * (empresa_dados_cnpj) — só quando o rascunho não trouxe nada, para não
+ * sobrescrever o que a pessoa escreveu ou o que a IA extraiu do texto.
+ */
+const comDadosDaReceita = (rascunho: RhProfileDraft, dados: EmpresaDadosCnpj | null): RhProfileDraft => {
+  if (!dados || dados.sync_status !== 'ok') return rascunho;
+  return {
+    ...rascunho,
+    cnae_principal: rascunho.cnae_principal?.trim() || dados.cnae_principal_codigo,
+    setor_atuacao: rascunho.setor_atuacao?.trim() || dados.cnae_principal_descricao,
+  };
+};
+
 const doContexto = (contexto: EmpresaContextoOperacional): RhProfileDraft => ({
   setor_atuacao: contexto.setor_atuacao,
   cnae_principal: contexto.cnae_principal,
@@ -98,6 +115,7 @@ export const PerfilEmpresaForm: React.FC<{
   const podeEditar = acesso.principal || can('empresa');
   const [etapa, setEtapa] = useState<Etapa>('descricao');
   const [contexto, setContexto] = useState<EmpresaContextoOperacional | null>(null);
+  const [dadosCnpj, setDadosCnpj] = useState<EmpresaDadosCnpj | null>(null);
   const [descricao, setDescricao] = useState('');
   const [rascunho, setRascunho] = useState<RhProfileDraft>(vazio);
   const [loading, setLoading] = useState(true);
@@ -108,9 +126,15 @@ export const PerfilEmpresaForm: React.FC<{
   const campoDescricao = React.useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    rhService.getContextoOperacional()
-      .then(perfil => {
+    // Os dados da Receita são complemento: se a leitura falhar, o
+    // formulário segue igual ao de antes, sem pré-preenchimento.
+    Promise.all([
+      rhService.getContextoOperacional(),
+      rhService.getDadosCnpj().catch(() => null),
+    ])
+      .then(([perfil, cnpj]) => {
         setContexto(perfil);
+        setDadosCnpj(cnpj);
         if (perfil) {
           setRascunho(doContexto(perfil));
           setEtapa(mostrarResumo ? 'resumo' : 'revisao');
@@ -151,10 +175,10 @@ export const PerfilEmpresaForm: React.FC<{
    */
   const preencherManualmente = () => {
     setErro('');
-    setRascunho(atual => ({
+    setRascunho(atual => comDadosDaReceita({
       ...atual,
       descricao_negocio: atual.descricao_negocio ?? (descricao.trim() || null),
-    }));
+    }, dadosCnpj));
     setEtapa('revisao');
   };
 
@@ -166,7 +190,7 @@ export const PerfilEmpresaForm: React.FC<{
     setGerando(true);
     setErro('');
     try {
-      setRascunho(await rhAgentService.criarRascunhoPerfil(descricao));
+      setRascunho(comDadosDaReceita(await rhAgentService.criarRascunhoPerfil(descricao), dadosCnpj));
       setEtapa('revisao');
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não foi possível organizar a descrição.');
@@ -228,6 +252,34 @@ export const PerfilEmpresaForm: React.FC<{
   if (etapa === 'descricao') {
     return (
       <div className="space-y-3">
+        {/* O que a Receita já respondeu, para a pessoa não gastar o texto
+            com isso. CNAE e setor entram sozinhos na revisão; o que ela
+            precisa contar é o que o cadastro fiscal não sabe. */}
+        {dadosCnpj?.sync_status === 'ok' && (
+          <div className="rounded-lg border border-green-100 bg-green-50/60 p-3">
+            <p className="text-xs font-medium text-green-900">Já sabemos pela Receita Federal</p>
+            <dl className="mt-1.5 grid gap-x-4 gap-y-1 text-xs text-gray-700 sm:grid-cols-2">
+              <div><dt className="inline text-gray-500">Razão social: </dt><dd className="inline">{dadosCnpj.razao_social ?? '—'}</dd></div>
+              <div><dt className="inline text-gray-500">Porte: </dt><dd className="inline">{dadosCnpj.porte ?? '—'}</dd></div>
+              <div className="sm:col-span-2">
+                <dt className="inline text-gray-500">CNAE principal: </dt>
+                <dd className="inline">{dadosCnpj.cnae_principal_codigo} — {dadosCnpj.cnae_principal_descricao}</dd>
+              </div>
+              <div><dt className="inline text-gray-500">Situação: </dt><dd className="inline">{dadosCnpj.situacao_cadastral ?? '—'}</dd></div>
+              {dadosCnpj.grau_risco_estimado && (
+                <div>
+                  <dt className="inline text-gray-500">Grau de risco (NR-4): </dt>
+                  <dd className="inline">{dadosCnpj.grau_risco_estimado} <span className="text-gray-400">· leitura preliminar pelo CNAE</span></dd>
+                </div>
+              )}
+            </dl>
+            <p className="mt-2 text-xs leading-relaxed text-green-900/80">
+              Isso entra sozinho. Conte abaixo o que o cadastro fiscal não sabe: equipes, turnos,
+              unidades, picos e a rotina de quem trabalha.
+            </p>
+          </div>
+        )}
+
         {/* O roteiro fica FORA do placeholder de propósito: placeholder some
             no primeiro caractere, justamente quando a pessoa precisa saber o
             que ainda falta contar. */}

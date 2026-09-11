@@ -87,7 +87,7 @@ async function processarManual(req: Request) {
   if (!authHeader) return json({ error: 'Não autorizado' }, 401);
 
   const { data: caller } = await supabaseAdmin.auth.getUser(authHeader.replace(/^Bearer\s+/i, ''));
-  if (!caller?.user) return json({ error: 'Não autorizado' }, 401);
+  if (!caller?.user) return json({ error: 'Sessão inválida.' }, 401);
 
   const { data: rh } = await supabaseAdmin
     .from('rh_usuarios')
@@ -126,7 +126,9 @@ Deno.serve(async (req: Request) => {
 
   if (body.modo === 'lote') {
     const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
-    if (!token || token !== SERVICE_KEY) return json({ error: 'Não autorizado' }, 401);
+    // Mensagem distinta da do fluxo manual de propósito: quando o cron
+    // falha, é preciso saber se foi a chave ou o corpo que não chegou.
+    if (!token || token !== SERVICE_KEY) return json({ error: 'Lote exige a service role key.' }, 401);
     const limite = Number.isFinite(Number(body.limite)) ? Math.min(Math.max(Number(body.limite), 1), 20) : LIMITE_PADRAO;
     return processarLote(limite);
   }

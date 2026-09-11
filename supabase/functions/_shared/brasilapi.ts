@@ -146,7 +146,7 @@ function parseDadosCnpj(bruto: Record<string, unknown>): DadosParseados {
     situacao_cadastral: texto(bruto.descricao_situacao_cadastral),
     situacao_cadastral_data: data(bruto.data_situacao_cadastral),
     data_abertura: data(bruto.data_inicio_atividade),
-    porte: texto(bruto.descricao_porte),
+    porte: texto(bruto.porte),
     opcao_simples: typeof bruto.opcao_pelo_simples === 'boolean' ? bruto.opcao_pelo_simples : null,
     opcao_simples_data: data(bruto.data_opcao_pelo_simples),
     socios,
