@@ -77,12 +77,56 @@ export type RhHipotese = {
  */
 export type RhReavaliacao = {
   plano_acao_id: string;
+  campanha_followup_id?: string;
   setor: string | null;
   indicador: string;
   classificacao: 'favoravel' | 'estavel' | 'desfavoravel' | 'inconclusivo';
   comparabilidade: string;
+  /** Estado da medida no cálculo: 'executada' | 'em_andamento' | 'nao_executada' | 'cancelada'. */
+  execucao?: string;
   narrativa: string;
   medida?: string;
+  nivel_controle?: string | null;
+};
+
+export type RhDirecaoFechamento = 'melhorou' | 'piorou' | 'estavel' | 'sem_par';
+
+/**
+ * Recap determinístico do último ciclo encerrado, calculado UMA vez na Edge
+ * Function (supabase/functions/_shared/fechamento-ciclo.ts). A tela de
+ * fechamento, o PDF do ciclo e o copiloto leem este mesmo objeto.
+ */
+export type RhFechamentoCiclo = {
+  campanha: {
+    id: string; instrumento: 'who5' | 'jss'; instrumento_nome: string;
+    janela_inicio: string | null; janela_fim: string | null; encerrada_em: string | null;
+    n_convidados: number; n_respondentes: number; leitura_registrada_em: string | null;
+  };
+  anterior: {
+    id: string; instrumento: 'who5' | 'jss'; instrumento_nome: string;
+    janela_inicio: string | null; janela_fim: string | null; encerrada_em: string | null;
+    n_convidados: number; n_respondentes: number;
+  } | null;
+  dias_desde_encerramento: number;
+  pendente: boolean;
+  comparabilidade: 'mesma_epoca' | 'estacoes_diferentes' | 'pico_vs_fora_de_pico' | 'indeterminada';
+  comparabilidade_texto: string;
+  indicadores: {
+    id: string; label: string; atual: number | null; anterior: number | null; delta: number | null;
+    direcao: RhDirecaoFechamento; favoravel_quando: 'sobe' | 'cai'; n_atual: number; n_anterior: number;
+  }[];
+  setores: {
+    setor: string; atual: number | null; anterior: number | null; delta: number | null;
+    direcao: RhDirecaoFechamento; suprimido: boolean;
+  }[];
+  setores_suprimidos: number;
+  medidas_no_intervalo: {
+    id: string; setor: string | null; medida: string; nivel_controle: string;
+    status: string; concluida_em: string | null;
+  }[];
+  resultados: RhReavaliacao[];
+  proximo_pico: string | null;
+  resumo: string;
 };
 
 export type RhBriefingPriority = {
@@ -116,6 +160,8 @@ export type RhBriefing = {
   hipoteses: RhHipotese[];
   /** O que aconteceu na reavaliação das medidas com linha de base. */
   reavaliacoes: RhReavaliacao[];
+  /** Recap do último ciclo encerrado; null fora da janela de leitura. */
+  fechamento_ciclo?: RhFechamentoCiclo | null;
   positivos: string[];
   qualidade_dados: {
     comparacoes_disponiveis: number;

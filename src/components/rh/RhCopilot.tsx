@@ -10,6 +10,13 @@ import {
 } from '../../services/rhAgentService';
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void };
+
+export const EVENTO_ABRIR_COPILOTO = 'malama:rh-copiloto:abrir';
+
+/** Abre o painel do copiloto e, se houver, envia a pergunta na hora. */
+export function abrirCopilotoCom(prompt?: string): void {
+  window.dispatchEvent(new CustomEvent(EVENTO_ABRIR_COPILOTO, { detail: { prompt } }));
+}
 type ChatItem = RhAgentHistoryItem & { suggestions?: RhAgentSuggestion[] };
 
 export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
@@ -39,6 +46,27 @@ export const RhCopilot: React.FC<Props> = ({ open, onOpenChange }) => {
   }, [open, onOpenChange]);
 
   useEffect(() => { fimRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chat, enviando]);
+
+  // Outras telas abrem o copiloto já com uma pergunta (ex.: "Como foi este
+  // ciclo?" no fechamento). Evento, não prop: o botão que dispara está a
+  // várias camadas de distância do layout que segura o estado do painel.
+  const [perguntaPendente, setPerguntaPendente] = useState<string | null>(null);
+  useEffect(() => {
+    const abrirCom = (e: Event) => {
+      const prompt = (e as CustomEvent<{ prompt?: string }>).detail?.prompt;
+      if (typeof prompt === 'string' && prompt.trim()) setPerguntaPendente(prompt.trim());
+      onOpenChange(true);
+    };
+    window.addEventListener(EVENTO_ABRIR_COPILOTO, abrirCom);
+    return () => window.removeEventListener(EVENTO_ABRIR_COPILOTO, abrirCom);
+  }, [onOpenChange]);
+  useEffect(() => {
+    if (!open || !perguntaPendente || enviando || jornadaLoading) return;
+    const pergunta = perguntaPendente;
+    setPerguntaPendente(null);
+    void enviar(pergunta);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, perguntaPendente, enviando, jornadaLoading]);
 
   useEffect(() => {
     if (!open || chat.length > 0 || jornadaLoading) return;

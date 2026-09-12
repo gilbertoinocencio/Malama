@@ -17,7 +17,7 @@ import { Link } from 'react-router-dom';
 import {
   Brain, Plus, Play, X, Users, BarChart3, Info, AlertCircle, FileDown,
   ChevronDown, ChevronUp, HeartPulse, Activity, CalendarRange, Megaphone,
-  ArrowRight, CheckCircle2, Clock3,
+  Clock3,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -42,6 +42,7 @@ import { JssDiagnosticoSetor } from '../../components/rh/JssDiagnosticoSetor';
 import { JssIndicadores } from '../../components/rh/JssIndicadores';
 import { JssTeiaTemas } from '../../components/rh/JssTeiaTemas';
 import { Who5Indicadores } from '../../components/rh/Who5Indicadores';
+import { FechamentoCiclo } from '../../components/rh/FechamentoCiclo';
 import { useScrollParaHash } from '../../hooks/useScrollParaHash';
 import { ritmoInstrumento, prontoParaPreparar } from '../../lib/rhJornada';
 import { hashDocumento, formatarHash } from '../../lib/hashDocumento';
@@ -523,7 +524,6 @@ export const RhSaudeMental: React.FC = () => {
   const [setores, setSetores] = useState<SetorEmpresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [criando, setCriando] = useState(() => parametrosIniciais.get('nova') === '1');
-  const [campanhaEncerrada, setCampanhaEncerrada] = useState<PsychosocialCampanha | null>(null);
   const [expandida, setExpandida] = useState<string | null>(null);
   // Separado da adesão de propósito: o RH costuma querer os links (para
   // reenviar) enquanto olha a adesão, e fechar um para ver o outro atrapalha.
@@ -602,9 +602,9 @@ export const RhSaudeMental: React.FC = () => {
     if (!confirm(`Encerrar a campanha de ${c.instrument_nome}? Quem ainda não respondeu não poderá mais responder.`)) return;
     const res = await rhService.encerrarCampanha(c.id);
     if (!res.ok) { toast.error(res.error || 'Erro ao encerrar.'); return; }
-    toast.success('Campanha encerrada. Os resultados já podem orientar o próximo passo.');
-    setCampanhaEncerrada(c);
+    toast.success('Campanha encerrada. O fechamento do ciclo está logo abaixo.');
     await load();
+    window.setTimeout(() => document.getElementById('fechamento')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
   };
 
   if (loading) {
@@ -629,35 +629,12 @@ export const RhSaudeMental: React.FC = () => {
         }}
       />
 
-      {campanhaEncerrada && (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
-              <div>
-                <p className="text-sm font-semibold text-green-900">Pesquisa encerrada. Agora transforme o resultado em conversa.</p>
-                <p className="mt-1 text-xs leading-relaxed text-green-800">Revise os dados agregados, reconheça o que está funcionando e escolha poucos pontos para melhorar.</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPeriodo(campanhaEncerrada.instrument === 'who5' ? 'mes' : 'tri');
-                      window.setTimeout(() => document.getElementById(campanhaEncerrada.instrument === 'who5' ? 'resultado-who5' : 'resultado-jss')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white"
-                  >
-                    Ver resultados <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                  {campanhaEncerrada.instrument === 'jss' && (
-                    <Link to="/rh/plano-acao?visao=lideranca&nova=1" className="inline-flex items-center gap-1.5 rounded-lg border border-green-300 bg-white px-3 py-2 text-xs font-semibold text-green-800">Preparar conversa com a liderança</Link>
-                  )}
-                </div>
-              </div>
-            </div>
-            <button type="button" onClick={() => setCampanhaEncerrada(null)} aria-label="Fechar orientação" className="text-green-700/60 hover:text-green-900"><X className="h-4 w-4" /></button>
-          </div>
-        </div>
-      )}
+      {/* ── Fechamento de ciclo ──
+          Substitui o banner "Pesquisa encerrada" que só vivia na sessão: o
+          fechamento é a etapa Ler do trilho, fica até o RH clicar "Entendi,
+          fechar ciclo" (coluna no banco, vale em qualquer máquina) e mostra o
+          mesmo recap que o copiloto e o PDF do ciclo usam. */}
+      <FechamentoCiclo campanhas={campanhas} onLido={load} />
 
       {/* ── Campanhas ── */}
       <div id="campanhas" className="scroll-mt-6 bg-white rounded-xl shadow p-5">

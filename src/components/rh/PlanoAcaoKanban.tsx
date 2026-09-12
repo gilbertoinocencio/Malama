@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { HipoteseContexto } from './HipoteseContexto';
 import {
   AlertTriangle, ArrowRight, Bell, CalendarClock, CalendarDays, Check, CheckCircle2, Clipboard,
-  ClipboardList, Clock3, History, Lightbulb, Plus, RefreshCw, Sparkles, Target,
+  ClipboardList, Clock3, FileText, History, Lightbulb, Plus, RefreshCw, Sparkles, Target,
   ThumbsUp, Trash2, UsersRound, X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -10,10 +10,12 @@ import {
   rhService, type LiderancaCiclo,
   type LiderancaEtapa, type LiderancaVerificacaoResultado, type PlanoAcao, type PlanoFator,
   type PlanoNivel, type PlanoStatus, type PsychosocialSetor, type SetorEmpresa,
-  type HipotesePersistida,
+  type HipotesePersistida, type DossieMedida,
 } from '../../services/empresaService';
 import { gerarDiagnostico, type Diagnostico, type Sugestao } from '../../lib/planoSugestoes';
-import { FATOR_LABEL, FATORES, NIVEIS, NIVEL_LABEL, STATUS_INFO } from '../../lib/planoAcaoLabels';
+import { FATOR_LABEL, FATORES, NIVEIS, NIVEL_LABEL, RESULTADO_LABEL, STATUS_INFO } from '../../lib/planoAcaoLabels';
+import { emitirDossieMedida } from '../../lib/emissaoDocumentos';
+import { useRhAccess } from '../../contexts/RhAccessContext';
 
 const ETAPAS: { id: LiderancaEtapa; label: string; curto: string }[] = [
   { id: 'iniciada', label: 'Jornada iniciada', curto: 'Início' },
@@ -105,6 +107,12 @@ export const PlanoAcaoKanban: React.FC<{
   const [loading, setLoading] = useState(true);
   const [novo, setNovo] = useState(abrirNovo);
   const [novaAcao, setNovaAcao] = useState(novaAcaoInicial);
+  // "Nova medida a partir desta": quando o indicador não moveu, a próxima
+  // medida nasce ligada à MESMA leitura (hipótese), no mesmo setor e fator,
+  // com nível sugerido "fonte". Sobrepõe os iniciais vindos por deep link.
+  const [derivada, setDerivada] = useState<{
+    setor: string | null; fator: PlanoFator; risco: string; hipoteseId: string | null; nivel: PlanoNivel;
+  } | null>(null);
   // Um botão só, com a escolha explicada no momento em que ela é feita.
   // Dois botões lado a lado exigiam saber de antemão que uma jornada CONTÉM
   // ações — e sem isso as duas pareciam a mesma coisa.
@@ -217,7 +225,24 @@ export const PlanoAcaoKanban: React.FC<{
       {ciclo && <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={() => setSelecionado(null)}><aside className="h-full w-full max-w-3xl overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}><div className="mb-3 flex items-center justify-end">
         <button onClick={() => setSelecionado(null)} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700" aria-label="Fechar detalhes"><X className="h-5 w-5" /></button></div><JornadaDetalhe ciclo={ciclo} sugestoes={leitura.sugestoes} who5={setorWho5} onEditar={() => setEditando(true)} onAcao={setAcao} onVerificar={() => setVerificando(ciclo)} onAvancar={destino => setTransicao({ ciclo, destino })} onAtualizar={carregar} /></aside></div>}
 
-      {acaoAtual && <AcaoGeralDetalhe item={acaoAtual} hipotese={acaoAtual.hipotese_id ? hipoteses[acaoAtual.hipotese_id] ?? null : null} onFechar={() => setAcaoSelecionada(null)} onStatus={mudarStatusAcaoGeral} onExcluir={excluirAcaoGeral} />}
+      {acaoAtual && <AcaoGeralDetalhe
+        item={acaoAtual}
+        hipotese={acaoAtual.hipotese_id ? hipoteses[acaoAtual.hipotese_id] ?? null : null}
+        onFechar={() => setAcaoSelecionada(null)}
+        onStatus={mudarStatusAcaoGeral}
+        onExcluir={excluirAcaoGeral}
+        onNovaAPartirDesta={item => {
+          setDerivada({
+            setor: item.setor, fator: item.fator, risco: item.risco_descricao,
+            hipoteseId: item.hipotese_id ?? null,
+            // Sugestão, não imposição: se a anterior já era na fonte, o RH
+            // troca a variável e mantém o nível; o seletor segue livre.
+            nivel: 'fonte',
+          });
+          setAcaoSelecionada(null);
+          setNovaAcao(true);
+        }}
+      />}
 
       {escolhendo && <EscolhaTipo
         onMedida={() => { setEscolhendo(false); setNovaAcao(true); }}
@@ -232,12 +257,14 @@ export const PlanoAcaoKanban: React.FC<{
       {transicao && <PrazoMarcoForm ciclo={transicao.ciclo} destino={transicao.destino} onClose={() => setTransicao(null)} onSaved={() => { setTransicao(null); void carregar(); }} />}
       {novaAcao && <NovaAcaoGeralForm
         setores={setores} jss={jss} who5={who5}
-        setorInicial={novaAcaoSetorInicial} fatorInicial={novaAcaoFatorInicial}
-        riscoInicial={novaAcaoRiscoInicial} medidaInicial={novaAcaoMedidaInicial}
-        nivelInicial={novaAcaoNivelInicial}
-        hipoteseId={novaAcaoHipoteseInicial}
-        onClose={() => setNovaAcao(false)}
-        onSaved={async () => { setNovaAcao(false); await carregar(); }}
+        setorInicial={derivada ? derivada.setor : novaAcaoSetorInicial}
+        fatorInicial={derivada ? derivada.fator : novaAcaoFatorInicial}
+        riscoInicial={derivada ? derivada.risco : novaAcaoRiscoInicial}
+        medidaInicial={derivada ? null : novaAcaoMedidaInicial}
+        nivelInicial={derivada ? derivada.nivel : novaAcaoNivelInicial}
+        hipoteseId={derivada ? derivada.hipoteseId : novaAcaoHipoteseInicial}
+        onClose={() => { setNovaAcao(false); setDerivada(null); }}
+        onSaved={async () => { setNovaAcao(false); setDerivada(null); await carregar(); }}
       />}
     </div>
   );
@@ -425,8 +452,32 @@ const AcaoGeralDetalhe: React.FC<{
   onFechar: () => void;
   onStatus: (item: PlanoAcao, status: PlanoStatus) => Promise<void>;
   onExcluir: (item: PlanoAcao) => Promise<void>;
-}> = ({ item, hipotese = null, onFechar, onStatus, onExcluir }) => {
+  onNovaAPartirDesta: (item: PlanoAcao) => void;
+}> = ({ item, hipotese = null, onFechar, onStatus, onExcluir, onNovaAPartirDesta }) => {
   const info = STATUS_INFO[item.status];
+  const { acesso } = useRhAccess();
+  const [emitindo, setEmitindo] = useState(false);
+  // O resultado observado vem do dossiê (uma via só): é ele que diz se a
+  // medida foi executada e o indicador não moveu — o gatilho para tentar
+  // outro nível ou outra variável, em vez de repetir a mesma ação.
+  const [resultados, setResultados] = useState<DossieMedida['resultados']>([]);
+  useEffect(() => {
+    let ativo = true;
+    if (!item.campanha_baseline_id) { setResultados([]); return; }
+    rhService.getDossieMedida(item.id)
+      .then(d => { if (ativo) setResultados(d?.resultados ?? []); })
+      .catch(() => { if (ativo) setResultados([]); });
+    return () => { ativo = false; };
+  }, [item.id, item.campanha_baseline_id, item.status]);
+  const semMovimento = resultados.find(r =>
+    r.execucao === 'executada' && r.comparabilidade === 'comparavel'
+    && (r.classificacao === 'estavel' || r.classificacao === 'desfavoravel'));
+  const ultimoResultado = resultados[0] ?? null;
+  const emitir = async () => {
+    setEmitindo(true);
+    try { await emitirDossieMedida(item.id, { nome: acesso.nome, email: acesso.email }); }
+    finally { setEmitindo(false); }
+  };
   return <div className="fixed inset-0 z-40 flex justify-end bg-black/35" onMouseDown={onFechar}>
     <aside className="h-full w-full max-w-lg overflow-y-auto bg-gray-50 p-4 shadow-2xl sm:p-6" onMouseDown={e => e.stopPropagation()}>
       <div className="mb-3 flex items-center justify-end"><button onClick={onFechar} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700" aria-label="Fechar detalhes"><X className="h-5 w-5" /></button></div>
@@ -445,7 +496,27 @@ const AcaoGeralDetalhe: React.FC<{
         <p className="mt-2 text-xs text-gray-400">{item.responsavel} · prazo {dataBr(item.prazo)}{item.concluida_em && ` · concluída em ${dataBr(item.concluida_em)}`}</p>
         {item.evidencia && <p className="mt-2 rounded-lg bg-gray-50 px-2.5 py-1.5 text-xs leading-snug text-gray-500"><span className="text-gray-400">Evidência:</span> {item.evidencia}</p>}
         {hipotese && <BaseDaMedida hipotese={hipotese} />}
+        {ultimoResultado && !semMovimento && (
+          <p className="mt-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs leading-relaxed text-gray-600">
+            <span className="font-semibold text-gray-800">Resultado observado:</span> {RESULTADO_LABEL[ultimoResultado.classificacao]}. {ultimoResultado.narrativa}
+          </p>
+        )}
+        {semMovimento && (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-900"><AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Medida executada, indicador não moveu</p>
+            <p className="mt-1 text-xs leading-relaxed text-amber-900/90">{semMovimento.narrativa}</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-amber-900/90">
+              Antes de repetir a mesma ação, vale tentar <span className="font-semibold">outro nível</span>{item.nivel_controle !== 'fonte' ? ' (na fonte: o que gera a carga, não só quem a sente)' : ''} ou <span className="font-semibold">outra variável</span>{hipotese && (hipotese.convergencias.length > 0 || hipotese.contexto_setor) ? ' — as convergências e a organização do setor acima são candidatas' : ''}. Isso não é falha da medida: o indicador não moveu no período.
+            </p>
+            <button type="button" onClick={() => onNovaAPartirDesta(item)} className="mt-2 inline-flex items-center gap-1 rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800">
+              <Plus className="h-3.5 w-3.5" /> Nova medida a partir desta
+            </button>
+          </div>
+        )}
         <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button onClick={() => void emitir()} disabled={emitindo} title="Leitura de origem, medida, combinados, execução e resultado — em um documento registrado" className="inline-flex items-center gap-1 rounded-lg border border-[#7d4a3c]/30 px-3 py-1.5 text-xs font-medium text-[#7d4a3c] hover:bg-[#7d4a3c]/5 disabled:opacity-50">
+            <FileText className="h-3.5 w-3.5" /> {emitindo ? 'Gerando…' : 'Emitir dossiê'}
+          </button>
           {item.status === 'planejada' && <button onClick={() => onStatus(item, 'em_andamento')} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">Iniciar</button>}
           {(item.status === 'planejada' || item.status === 'em_andamento') && <>
             <button onClick={() => onStatus(item, 'concluida')} className="rounded-lg bg-[#7d4a3c] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#623a2f]">Concluir com evidência</button>
@@ -774,6 +845,17 @@ const NovaAcaoGeralForm: React.FC<{
 
   const ajudaNivel = NIVEIS.find(n => n.v === nivel)?.ajuda;
 
+  // Medida individual para uma leitura que aponta para a organização do
+  // trabalho (fator demanda/controle/apoio, ou convergência com outros
+  // dados da empresa): avisa, não bloqueia. O mesmo texto vai no prompt do
+  // copiloto, para tela e agente dizerem a mesma coisa.
+  const [complementoAceito, setComplementoAceito] = useState(false);
+  const [mostrarCaminhos, setMostrarCaminhos] = useState(false);
+  const sinalOrganizacional = !!hipotese
+    && (['demanda', 'controle', 'apoio'].includes(hipotese.fator) || hipotese.convergencias.length > 0);
+  const avisoNivel = nivel === 'individual' && sinalOrganizacional && !complementoAceito;
+  const caminhosDeFonte = (hipotese?.caminhos_possiveis ?? []).filter(c => c.nivel_controle !== 'individual');
+
   const salvar = async () => {
     if (!risco.trim()) return toast.error('Descreva o risco identificado.');
     if (!medida.trim()) return toast.error('Descreva a medida de controle.');
@@ -842,6 +924,30 @@ const NovaAcaoGeralForm: React.FC<{
           ))}
         </div>
         {ajudaNivel && <p className="mt-1.5 text-xs leading-snug text-gray-500">{ajudaNivel}</p>}
+        {avisoNivel && (
+          <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-900"><AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Esta leitura aponta para como o trabalho está organizado</p>
+            <p className="mt-1 text-xs leading-relaxed text-amber-900/90">
+              Uma medida individual (treinamento, apoio psicológico) pode ajudar, mas não muda a causa. A NR-1 espera primeiro uma medida na fonte ou organizacional. Quer registrar esta como complemento e criar também uma medida de fonte?
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" onClick={() => setComplementoAceito(true)} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100">Registrar como complemento</button>
+              {caminhosDeFonte.length > 0 && (
+                <button type="button" onClick={() => setMostrarCaminhos(v => !v)} className="rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800">{mostrarCaminhos ? 'Ocultar caminhos' : 'Ver caminhos de fonte'}</button>
+              )}
+            </div>
+            {mostrarCaminhos && (
+              <ul className="mt-2 space-y-1.5">
+                {caminhosDeFonte.map(c => (
+                  <li key={c.medida} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-white px-2.5 py-2 text-xs">
+                    <span className="text-gray-800">{c.medida} <span className="text-gray-400">· {NIVEL_LABEL[c.nivel_controle as PlanoNivel] ?? c.nivel_controle}</span></span>
+                    <button type="button" onClick={() => { setMedida(c.medida); setNivel((c.nivel_controle as PlanoNivel) || 'fonte'); setMostrarCaminhos(false); }} className="text-[11px] font-semibold text-[#7d4a3c]">Usar este caminho</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block text-sm font-medium">Responsável

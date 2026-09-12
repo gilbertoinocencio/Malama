@@ -13,6 +13,7 @@ import {
   calcularResultadoObservado, execucaoDaMedida, type ResultadoObservado,
 } from '../_shared/psicossocial-resultado.ts';
 import { ehIndicadorConhecido, type IndicadorId } from '../_shared/psicossocial-logica.ts';
+import { calcularFechamentoCiclo, type FechamentoCiclo } from '../_shared/fechamento-ciclo.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -272,6 +273,20 @@ async function rpcOpcional(supabase: any, funcao: string, args?: Record<string, 
   }
 }
 
+/** Identidade agregada de uma campanha: datas e contagens, nunca pessoas. */
+function identidadeCampanha(campanha: any) {
+  if (!campanha?.id) return null;
+  return {
+    id: texto(campanha.id, 60),
+    janela_inicio: texto(campanha.janela_inicio, 20),
+    janela_fim: texto(campanha.janela_fim, 20),
+    encerrada_em: texto(campanha.encerrada_em, 40) || null,
+    n_convidados: typeof campanha.n_convidados === 'number' ? campanha.n_convidados : 0,
+    n_respondentes: typeof campanha.n_respondentes === 'number' ? campanha.n_respondentes : 0,
+    leitura_registrada_em: texto(campanha.leitura_registrada_em, 40) || null,
+  };
+}
+
 function resumoWho5(relatorio: any) {
   if (!relatorio || typeof relatorio !== 'object') return null;
   const geral = relatorio.geral;
@@ -406,8 +421,11 @@ async function leituraAnalitica(
     // isso o vínculo teria que ser adivinhado por data, que é exatamente o
     // tipo de inferência que não queremos no aprendizado.
     campanhas_encerradas: {
-      who5: who5 ? { id: texto(who5.id, 60), janela_fim: texto(who5.janela_fim, 20) } : null,
-      jss: jss ? { id: texto(jss.id, 60), janela_fim: texto(jss.janela_fim, 20) } : null,
+      who5: identidadeCampanha(who5),
+      jss: identidadeCampanha(jss),
+      // O ciclo anterior de cada instrumento é o par do fechamento de ciclo.
+      who5_anterior: identidadeCampanha(who5Anterior),
+      jss_anterior: identidadeCampanha(jssAnterior),
     },
     ultimos_relatorios: {
       who5: resumoWho5(who5Relatorio),
@@ -441,6 +459,19 @@ async function leituraAnalitica(
           setor: texto(plano?.setor, 80) || 'Empresa toda',
           medida: texto(plano?.medida, 180), prazo: texto(plano?.prazo, 20),
           responsavel: texto(plano?.responsavel, 80) || null,
+        })),
+      // Linha do tempo das medidas (todas, exceto canceladas): é o que o
+      // fechamento de ciclo usa para dizer "o que foi feito no meio".
+      medidas_do_ciclo: listaPlanos
+        .filter((plano: any) => plano?.status !== 'cancelada')
+        .slice(0, 60).map((plano: any) => ({
+          id: texto(plano?.id, 60), setor: texto(plano?.setor, 80) || null,
+          medida: texto(plano?.medida, 180), nivel_controle: texto(plano?.nivel_controle, 40),
+          status: texto(plano?.status, 40), prazo: texto(plano?.prazo, 20),
+          concluida_em: texto(plano?.concluida_em, 20) || null,
+          created_at: texto(plano?.created_at, 10) || null,
+          campanha_baseline_id: texto(plano?.campanha_baseline_id, 60) || null,
+          hipotese_id: texto(plano?.hipotese_id, 60) || null,
         })),
     } : null,
     lideranca: podePlano && Array.isArray(ciclos) ? ciclos.slice(0, 20).map((ciclo: any) => ({
@@ -625,11 +656,12 @@ async function montarMemoriaDoCiclo(supabase: any, leitura: any, organizacao?: C
     console.warn('[rh-agent] motor de resultado indisponível:', error);
   }
 
-  const medidaPorId = new Map<string, { medida: string; setor: string | null }>(
+  const medidaPorId = new Map<string, { medida: string; setor: string | null; nivel_controle: string | null }>(
     (Array.isArray(memoria.medidas_com_linha_de_base) ? memoria.medidas_com_linha_de_base : [])
       .map((m: any) => [String(m.plano_acao_id), {
         medida: texto(m.medida, 180),
         setor: texto(m.setor, 80) || null,
+        nivel_controle: texto(m.nivel_controle, 40) || null,
       }]));
 
   return {
@@ -646,13 +678,180 @@ async function montarMemoriaDoCiclo(supabase: any, leitura: any, organizacao?: C
     })),
     reavaliacoes: reavaliacoes.map(r => ({
       plano_acao_id: r.plano_acao_id,
+      campanha_followup_id: r.campanha_followup_id,
       setor: medidaPorId.get(r.plano_acao_id)?.setor ?? null,
       indicador: r.indicador,
       classificacao: r.classificacao,
       comparabilidade: r.comparabilidade,
+      // Estado da medida no cálculo. É o que separa "executada e o indicador
+      // não moveu" (vale outro nível/variável) de "nem saiu do papel".
+      execucao: r.execucao,
       narrativa: r.narrativa,
       medida: medidaPorId.get(r.plano_acao_id)?.medida,
+      nivel_controle: medidaPorId.get(r.plano_acao_id)?.nivel_controle ?? null,
     })),
+  };
+}
+
+/**
+ * Tudo que o briefing e o chat têm em comum: leitura agregada, setores,
+ * contexto temporal, sinais derivados, memória do ciclo e fechamento. Uma
+ * função só, para o Início e o copiloto nunca divergirem — antes o briefing
+ * gerava hipóteses SEM organização/tempo e as persistia assim.
+ */
+async function montarPanorama(
+  supabase: any,
+  contexto: any,
+  perms: { podeVerSetores: boolean; podeVerSaude: boolean; podeVerPlano: boolean; podeVerCompliance: boolean },
+  permitidas: string[],
+) {
+  const { podeVerSetores, podeVerSaude, podeVerPlano, podeVerCompliance } = perms;
+  // A estrutura dos setores é contexto declaratório e agregado. O agente
+  // recebe nomes, modalidades e turnos, mas nunca pessoas ou respostas.
+  const { data: setores } = podeVerSetores
+    ? await supabase.rpc('rh_setores_admin')
+    : { data: null };
+  const estruturaTrabalho: {
+    nome: string; efetivo: number | null; colaboradores_cadastrados: number;
+    modelos_trabalho: string[]; turnos: string[]; organizacao: OrganizacaoSetor | null;
+  }[] = Array.isArray(setores) ? setores
+    .filter((setor: any) => setor?.ativo !== false)
+    .slice(0, 100).map((setor: any) => ({
+    nome: texto(setor?.nome, 60),
+    efetivo: typeof setor?.efetivo === 'number' ? setor.efetivo : null,
+    colaboradores_cadastrados: typeof setor?.n === 'number' ? setor.n : 0,
+    modelos_trabalho: lista(setor?.modelos_trabalho, 3),
+    turnos: lista(setor?.turnos, 6),
+    organizacao: organizacaoSetorSegura(setor?.organizacao),
+  })).filter((setor: { nome: string }) => setor.nome) : [];
+  let leitura: any;
+  try {
+    leitura = await leituraAnalitica(supabase, podeVerSaude, podeVerPlano, podeVerCompliance);
+  } catch (error) {
+    console.error('[rh-agent] leitura analítica indisponível:', error);
+    leitura = leituraVazia();
+  }
+  const estadoCiclo = estadoCicloDaLeitura(contexto, leitura);
+
+  // ── Contexto temporal + organização (determinístico) ────────────
+  // A data de cada campanha sempre esteve aqui; o que faltava era o que
+  // ela significa: estação por região, calendário do setor econômico,
+  // pico declarado por setor. Serve para NOMEAR confundidores.
+  const perfilSeguro = perfilOperacionalSeguro(contexto?.perfil_operacional);
+  const janelas: JanelaCampanha[] = [
+    ...leitura.campanhas_abertas.map((c: any) => ({
+      id: c.id ?? null, instrumento: c.instrumento ?? null, inicio: c.inicio ?? null, fim: c.fim ?? null,
+    })),
+    ...(['who5', 'jss'] as const).flatMap(instr => {
+      const enc = leitura.campanhas_encerradas?.[instr];
+      const periodo = leitura.ultimos_relatorios?.[instr]?.periodo;
+      return enc?.id ? [{
+        id: enc.id, instrumento: instr,
+        inicio: periodo?.inicio ?? null, fim: periodo?.fim ?? enc.janela_fim ?? null,
+      }] : [];
+    }),
+  ];
+  let contextoTemporal: ContextoTemporal | null = null;
+  try {
+    contextoTemporal = calcularContextoTemporal({
+      uf: campoOuNull(contexto?.dados_cadastrais?.uf, 2),
+      calendarioSetorial: Array.isArray(contexto?.calendario_setorial)
+        ? contexto.calendario_setorial.filter((c: any) => Array.isArray(c?.meses) && typeof c?.rotulo === 'string')
+        : [],
+      setores: estruturaTrabalho.map(s => ({ nome: s.nome, organizacao: s.organizacao })),
+      campanhas: janelas,
+    });
+  } catch (error) {
+    console.warn('[rh-agent] contexto temporal indisponível:', error);
+  }
+  const tendencias = calcularTendencias(leitura);
+  const comparabilidade: Partial<Record<IndicadorId, ComparabilidadeSazonal>> = {};
+  if (contextoTemporal) {
+    for (const t of tendencias) {
+      if (!ehIndicadorConhecido(t.id)) continue;
+      const pa = (t as any).periodo_atual ?? {};
+      const pb = (t as any).periodo_anterior ?? {};
+      comparabilidade[t.id as IndicadorId] = classificarComparabilidade(
+        contextoTemporal,
+        { inicio: pa?.inicio ?? null, fim: pa?.fim ?? null },
+        { inicio: pb?.inicio ?? null, fim: pb?.fim ?? null },
+      );
+    }
+  }
+  // ── Sinais derivados: absenteísmo e ambulatório (só se o módulo existir) ─
+  // Afastamentos por capítulo F (transtornos mentais) e atendimentos por
+  // ansiedade/estresse, agregados por setor, últimos 90 dias. Entram no
+  // motor de hipóteses como CONVERGÊNCIA: outro dado da empresa apontando
+  // na mesma direção da pesquisa. Nunca como prova de causa no trabalho, e
+  // ausência de registro não descarta nada — a empresa pode não lançar.
+  const sinais: SinaisDerivados = { periodo: null, absenteismo: null, ambulatorio: null };
+  if (podeVerSaude) {
+    const fim = new Date();
+    const inicio = new Date(fim.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const periodo = { inicio: inicio.toISOString().slice(0, 10), fim: fim.toISOString().slice(0, 10) };
+    const [abs, amb] = await Promise.all([
+      rpcOpcional(supabase, 'rh_absenteismo_resumo', { p_inicio: periodo.inicio, p_fim: periodo.fim }),
+      rpcOpcional(supabase, 'rh_ambulatorio_resumo', { p_inicio: periodo.inicio, p_fim: periodo.fim }),
+    ]);
+    const n = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? v : 0;
+    if (abs && typeof abs === 'object') {
+      sinais.periodo = periodo;
+      sinais.absenteismo = (Array.isArray(abs.setores) ? abs.setores : []).slice(0, 50).map((s: any) => ({
+        setor: texto(s?.setor, 80),
+        episodios: n(s?.episodios), dias: n(s?.dias),
+        episodios_f: n(s?.episodios_f), dias_f: n(s?.dias_f),
+        dias_por_colaborador: typeof s?.dias_por_colaborador === 'number' ? s.dias_por_colaborador : null,
+      })).filter((s: { setor: string }) => s.setor);
+    }
+    if (amb && typeof amb === 'object') {
+      sinais.periodo = periodo;
+      sinais.ambulatorio = (Array.isArray(amb.setores) ? amb.setores : []).slice(0, 50).map((s: any) => ({
+        setor: texto(s?.setor, 80),
+        atendimentos: n(s?.atendimentos), ansiedade: n(s?.ansiedade),
+        por_colaborador: typeof s?.por_colaborador === 'number' ? s.por_colaborador : null,
+      })).filter((s: { setor: string }) => s.setor);
+    }
+  }
+  const sinaisDerivados = {
+    periodo: sinais.periodo,
+    nota: 'Últimos 90 dias, agregados por setor (piso de anonimato pelo tamanho do setor). Absenteísmo: capítulo F = transtornos mentais e comportamentais. Ambulatório: atendimentos, com recorte de ansiedade/estresse. Convergência com a pesquisa fortalece a prioridade de investigar; não prova causa no trabalho; ausência não descarta.',
+    absenteismo: sinais.absenteismo,
+    ambulatorio: sinais.ambulatorio,
+  };
+
+  const organizacao: ContextoOrganizacao = {
+    setores: Object.fromEntries(estruturaTrabalho
+      .filter(s => s.organizacao).map(s => [s.nome, s.organizacao as OrganizacaoSetor])),
+    empresa: perfilSeguro?.organizacao ?? null,
+    temporal: contextoTemporal,
+    comparabilidade,
+    sinais,
+  };
+
+  const memoria = podeVerPlano
+    ? await montarMemoriaDoCiclo(supabase, leitura, organizacao)
+    : { hipoteses: [], reavaliacoes: [] };
+  // Fechamento de ciclo: recap determinístico do último ciclo encerrado.
+  // Tela, PDF e copiloto leem este mesmo objeto.
+  let fechamento: FechamentoCiclo | null = null;
+  if (podeVerSaude) {
+    try {
+      fechamento = calcularFechamentoCiclo({
+        leitura, comparabilidade, temporal: contextoTemporal, reavaliacoes: memoria.reavaliacoes,
+      });
+    } catch (error) {
+      console.warn('[rh-agent] fechamento de ciclo indisponível:', error);
+    }
+  }
+  const briefing = buildRhBriefing(leitura, estadoCiclo, permitidas, memoria, fechamento);
+  if (Array.isArray(briefing?.tendencias)) {
+    for (const t of briefing.tendencias as any[]) {
+      t.comparabilidade_sazonal = comparabilidade[t.id as IndicadorId] ?? 'indeterminada';
+    }
+  }
+  return {
+    leitura, estadoCiclo, estruturaTrabalho, perfilSeguro, contextoTemporal,
+    sinaisDerivados, memoria, briefing, fechamento,
   };
 }
 
@@ -736,6 +935,40 @@ function linhaResultados(leitura: any) {
     partes.push(`JSS (${dataPt(jss.periodo?.inicio)} a ${dataPt(jss.periodo?.fim)}): demanda ${jss.geral.demanda_medio}, controle ${jss.geral.controle_medio} e apoio ${jss.geral.apoio_medio}`);
   }
   return partes.length > 0 ? partes.join('. ') : 'Ainda não há relatório encerrado disponível para uma leitura agregada';
+}
+
+/**
+ * "Como foi este ciclo?" tem resposta pronta e igual à tela: o recap do
+ * fechamento. Não passa pelo modelo — nem precisa, e assim não diverge.
+ */
+function respostaFechamento(fechamento: FechamentoCiclo, permitidas: string[]) {
+  const linhas: string[] = [fechamento.resumo];
+  const seta = (d: string) => d === 'melhorou' ? '↑' : d === 'piorou' ? '↓' : d === 'estavel' ? '→' : '·';
+  const comPar = fechamento.indicadores.filter(i => i.direcao !== 'sem_par');
+  if (comPar.length > 0) {
+    linhas.push('Antes de ler as setas: ' + fechamento.comparabilidade_texto + '.');
+    linhas.push(comPar.map(i =>
+      `${seta(i.direcao)} ${i.label}: ${i.anterior} → ${i.atual} (${(i.delta ?? 0) > 0 ? '+' : ''}${i.delta})`).join('\n'));
+  }
+  const setoresComPar = fechamento.setores.filter(s => s.direcao !== 'sem_par');
+  if (setoresComPar.length > 0) {
+    linhas.push('Por setor: ' + setoresComPar.slice(0, 8).map(s =>
+      `${s.setor} ${seta(s.direcao)} ${s.anterior} → ${s.atual}`).join('; ') + '.');
+  }
+  if (fechamento.resultados.length > 0) {
+    linhas.push('Medidas com linha de base:\n' + fechamento.resultados.slice(0, 4)
+      .map(r => `- ${texto(r.narrativa, 400)}`).join('\n'));
+  }
+  if (fechamento.proximo_pico) {
+    linhas.push(`Próximo pico previsto: ${fechamento.proximo_pico}. Vale ter a próxima medição fora dele para linha de base, ou nos dois para ver a diferença.`);
+  }
+  linhas.push(fechamento.pendente
+    ? 'Próximo passo: registre a leitura em "Entendi, fechar ciclo" e leve o que mudou para a conversa com as lideranças.'
+    : 'Ciclo já lido. O próximo passo é a jornada quem indica no Início.');
+  const suggestions = permitidas.includes('/rh/saude-mental')
+    ? [{ label: 'Ver o fechamento', action: 'navigate', target: '/rh/saude-mental#fechamento' }]
+    : [];
+  return { message: linhas.join('\n\n'), suggestions };
 }
 
 function respostaDeterministica(
@@ -964,20 +1197,9 @@ Deno.serve(async (req: Request) => {
     // k-anonimato. Assim, alertas importantes continuam disponíveis mesmo se
     // os provedores generativos estiverem temporariamente indisponíveis.
     if (action === 'briefing') {
-      let leitura: any;
-      try {
-        leitura = await leituraAnalitica(supabase, podeVerSaude, podeVerPlano, podeVerCompliance);
-      } catch (error) {
-        console.error('[rh-agent] briefing analítico indisponível:', error);
-        leitura = leituraVazia();
-      }
-      const estadoCiclo = estadoCicloDaLeitura(contexto, leitura);
-      // A memória do ciclo só faz sentido para quem enxerga o plano de
-      // ação: é lá que a hipótese vira medida e que a reavaliação aparece.
-      const memoria = podeVerPlano
-        ? await montarMemoriaDoCiclo(supabase, leitura)
-        : { hipoteses: [], reavaliacoes: [] };
-      return json({ briefing: buildRhBriefing(leitura, estadoCiclo, permitidas, memoria) });
+      const { briefing } = await montarPanorama(
+        supabase, contexto, { podeVerSetores, podeVerSaude, podeVerPlano, podeVerCompliance }, permitidas);
+      return json({ briefing });
     }
 
     const { data: withinQuota } = await supabase.rpc('consume_edge_quota', {
@@ -1003,143 +1225,17 @@ Deno.serve(async (req: Request) => {
       destino: texto(body.visibleStep.destino, 180),
       acao: texto(body.visibleStep.acao, 100),
     } : null;
-    // A estrutura dos setores é contexto declaratório e agregado. O agente
-    // recebe nomes, modalidades e turnos, mas nunca pessoas ou respostas.
-    const { data: setores } = podeVerSetores
-      ? await supabase.rpc('rh_setores_admin')
-      : { data: null };
-    const estruturaTrabalho: {
-      nome: string; efetivo: number | null; colaboradores_cadastrados: number;
-      modelos_trabalho: string[]; turnos: string[]; organizacao: OrganizacaoSetor | null;
-    }[] = Array.isArray(setores) ? setores
-      .filter((setor: any) => setor?.ativo !== false)
-      .slice(0, 100).map((setor: any) => ({
-      nome: texto(setor?.nome, 60),
-      efetivo: typeof setor?.efetivo === 'number' ? setor.efetivo : null,
-      colaboradores_cadastrados: typeof setor?.n === 'number' ? setor.n : 0,
-      modelos_trabalho: lista(setor?.modelos_trabalho, 3),
-      turnos: lista(setor?.turnos, 6),
-      organizacao: organizacaoSetorSegura(setor?.organizacao),
-    })).filter((setor: { nome: string }) => setor.nome) : [];
-    let leitura: any;
-    try {
-      leitura = await leituraAnalitica(supabase, podeVerSaude, podeVerPlano, podeVerCompliance);
-    } catch (error) {
-      console.error('[rh-agent] leitura analítica indisponível:', error);
-      leitura = leituraVazia();
-    }
-    const estadoCiclo = estadoCicloDaLeitura(contexto, leitura);
-
-    // ── Contexto temporal + organização (determinístico) ────────────
-    // A data de cada campanha sempre esteve aqui; o que faltava era o que
-    // ela significa: estação por região, calendário do setor econômico,
-    // pico declarado por setor. Serve para NOMEAR confundidores.
-    const perfilSeguro = perfilOperacionalSeguro(contexto?.perfil_operacional);
-    const janelas: JanelaCampanha[] = [
-      ...leitura.campanhas_abertas.map((c: any) => ({
-        id: c.id ?? null, instrumento: c.instrumento ?? null, inicio: c.inicio ?? null, fim: c.fim ?? null,
-      })),
-      ...(['who5', 'jss'] as const).flatMap(instr => {
-        const enc = leitura.campanhas_encerradas?.[instr];
-        const periodo = leitura.ultimos_relatorios?.[instr]?.periodo;
-        return enc?.id ? [{
-          id: enc.id, instrumento: instr,
-          inicio: periodo?.inicio ?? null, fim: periodo?.fim ?? enc.janela_fim ?? null,
-        }] : [];
-      }),
-    ];
-    let contextoTemporal: ContextoTemporal | null = null;
-    try {
-      contextoTemporal = calcularContextoTemporal({
-        uf: campoOuNull(contexto?.dados_cadastrais?.uf, 2),
-        calendarioSetorial: Array.isArray(contexto?.calendario_setorial)
-          ? contexto.calendario_setorial.filter((c: any) => Array.isArray(c?.meses) && typeof c?.rotulo === 'string')
-          : [],
-        setores: estruturaTrabalho.map(s => ({ nome: s.nome, organizacao: s.organizacao })),
-        campanhas: janelas,
-      });
-    } catch (error) {
-      console.warn('[rh-agent] contexto temporal indisponível:', error);
-    }
-    const tendencias = calcularTendencias(leitura);
-    const comparabilidade: Partial<Record<IndicadorId, ComparabilidadeSazonal>> = {};
-    if (contextoTemporal) {
-      for (const t of tendencias) {
-        if (!ehIndicadorConhecido(t.id)) continue;
-        const pa = (t as any).periodo_atual ?? {};
-        const pb = (t as any).periodo_anterior ?? {};
-        comparabilidade[t.id as IndicadorId] = classificarComparabilidade(
-          contextoTemporal,
-          { inicio: pa?.inicio ?? null, fim: pa?.fim ?? null },
-          { inicio: pb?.inicio ?? null, fim: pb?.fim ?? null },
-        );
-      }
-    }
-    // ── Sinais derivados: absenteísmo e ambulatório (só se o módulo existir) ─
-    // Afastamentos por capítulo F (transtornos mentais) e atendimentos por
-    // ansiedade/estresse, agregados por setor, últimos 90 dias. Entram no
-    // motor de hipóteses como CONVERGÊNCIA: outro dado da empresa apontando
-    // na mesma direção da pesquisa. Nunca como prova de causa no trabalho, e
-    // ausência de registro não descarta nada — a empresa pode não lançar.
-    const sinais: SinaisDerivados = { periodo: null, absenteismo: null, ambulatorio: null };
-    if (podeVerSaude) {
-      const fim = new Date();
-      const inicio = new Date(fim.getTime() - 90 * 24 * 60 * 60 * 1000);
-      const periodo = { inicio: inicio.toISOString().slice(0, 10), fim: fim.toISOString().slice(0, 10) };
-      const [abs, amb] = await Promise.all([
-        rpcOpcional(supabase, 'rh_absenteismo_resumo', { p_inicio: periodo.inicio, p_fim: periodo.fim }),
-        rpcOpcional(supabase, 'rh_ambulatorio_resumo', { p_inicio: periodo.inicio, p_fim: periodo.fim }),
-      ]);
-      const n = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? v : 0;
-      if (abs && typeof abs === 'object') {
-        sinais.periodo = periodo;
-        sinais.absenteismo = (Array.isArray(abs.setores) ? abs.setores : []).slice(0, 50).map((s: any) => ({
-          setor: texto(s?.setor, 80),
-          episodios: n(s?.episodios), dias: n(s?.dias),
-          episodios_f: n(s?.episodios_f), dias_f: n(s?.dias_f),
-          dias_por_colaborador: typeof s?.dias_por_colaborador === 'number' ? s.dias_por_colaborador : null,
-        })).filter((s: { setor: string }) => s.setor);
-      }
-      if (amb && typeof amb === 'object') {
-        sinais.periodo = periodo;
-        sinais.ambulatorio = (Array.isArray(amb.setores) ? amb.setores : []).slice(0, 50).map((s: any) => ({
-          setor: texto(s?.setor, 80),
-          atendimentos: n(s?.atendimentos), ansiedade: n(s?.ansiedade),
-          por_colaborador: typeof s?.por_colaborador === 'number' ? s.por_colaborador : null,
-        })).filter((s: { setor: string }) => s.setor);
-      }
-    }
-    const sinaisDerivados = {
-      periodo: sinais.periodo,
-      nota: 'Últimos 90 dias, agregados por setor (piso de anonimato pelo tamanho do setor). Absenteísmo: capítulo F = transtornos mentais e comportamentais. Ambulatório: atendimentos, com recorte de ansiedade/estresse. Convergência com a pesquisa fortalece a prioridade de investigar; não prova causa no trabalho; ausência não descarta.',
-      absenteismo: sinais.absenteismo,
-      ambulatorio: sinais.ambulatorio,
-    };
-
-    const organizacao: ContextoOrganizacao = {
-      setores: Object.fromEntries(estruturaTrabalho
-        .filter(s => s.organizacao).map(s => [s.nome, s.organizacao as OrganizacaoSetor])),
-      empresa: perfilSeguro?.organizacao ?? null,
-      temporal: contextoTemporal,
-      comparabilidade,
-      sinais,
-    };
-
-    const memoria = podeVerPlano
-      ? await montarMemoriaDoCiclo(supabase, leitura, organizacao)
-      : { hipoteses: [], reavaliacoes: [] };
-    const briefing = buildRhBriefing(leitura, estadoCiclo, permitidas, memoria);
-    if (Array.isArray(briefing?.tendencias)) {
-      for (const t of briefing.tendencias as any[]) {
-        t.comparabilidade_sazonal = comparabilidade[t.id as IndicadorId] ?? 'indeterminada';
-      }
-    }
+    const {
+      leitura, estadoCiclo, estruturaTrabalho, perfilSeguro, contextoTemporal,
+      sinaisDerivados, briefing, fechamento,
+    } = await montarPanorama(supabase, contexto, { podeVerSetores, podeVerSaude, podeVerPlano, podeVerCompliance }, permitidas);
     const contextoSeguro = {
       ...contexto,
       perfil_operacional: perfilSeguro,
       estrutura_trabalho: estruturaTrabalho,
       contexto_temporal: contextoTemporal,
       sinais_derivados: sinaisDerivados,
+      fechamento_ciclo: fechamento,
       leitura_analitica: leitura,
       briefing_inteligente: briefing,
       estado_ciclo: estadoCiclo,
@@ -1153,6 +1249,9 @@ Deno.serve(async (req: Request) => {
     const perguntaNormalizada = message.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     if (/campanh/.test(perguntaNormalizada) && /(colaborador|pessoa|setor|anonim)/.test(perguntaNormalizada)) {
       return json(respostaRegraCampanha(contexto, estruturaTrabalho, permitidas));
+    }
+    if (fechamento && /(fech|encerr|termin|compar).*(ciclo|anterior|pesquisa|coleta)|(ciclo|pesquisa|coleta).*(anterior|passad|compar|como foi)/.test(perguntaNormalizada)) {
+      return json(respostaFechamento(fechamento, permitidas));
     }
     if (/proximo passo|o que (devo|faco|fazer)|kpis?|indicadores|panorama|resumo|status|situacao|como est(a|ao)/.test(perguntaNormalizada)) {
       return json(respostaDeterministica(passo, permitidas, leitura, estadoCiclo, message, briefing));

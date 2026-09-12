@@ -90,6 +90,27 @@ const diasAte = (iso: string, hoje: Date): number => {
  */
 const DIAS_MINIMOS_PARA_DIVULGAR = 3;
 
+/**
+ * Até quantos dias depois de encerrada uma campanha a jornada cobra a
+ * leitura do ciclo. Espelha JANELA_PENDENTE_DIAS em
+ * supabase/functions/_shared/fechamento-ciclo.ts — os dois têm que
+ * concordar, senão o Início pede uma leitura que o briefing já não mostra.
+ */
+const DIAS_PARA_FECHAR_CICLO = 45;
+
+/** Campanha encerrada mais recente (qualquer instrumento) ainda sem
+ *  "Entendi, fechar ciclo", dentro da janela de leitura. */
+export function cicloPendenteDeLeitura(campanhas: PsychosocialCampanha[], hoje = new Date()): PsychosocialCampanha | null {
+  const encerradas = campanhas
+    .filter(c => c.status === 'encerrada')
+    .sort((a, b) => String(b.encerrada_em ?? b.janela_fim).localeCompare(String(a.encerrada_em ?? a.janela_fim)));
+  const ultima = encerradas[0];
+  if (!ultima || ultima.leitura_registrada_em) return null;
+  const referencia = (ultima.encerrada_em ?? ultima.janela_fim).slice(0, 10);
+  const dias = -diasAte(referencia, hoje);
+  return dias >= 0 && dias <= DIAS_PARA_FECHAR_CICLO ? ultima : null;
+}
+
 // ── Próximo passo ──────────────────────────────────────
 export function proximoPasso(d: DadosJornada, hoje = new Date()): PassoJornada {
   const { pode } = d;
@@ -174,6 +195,23 @@ export function proximoPasso(d: DadosJornada, hoje = new Date()): PassoJornada {
       destino: '/rh/saude-mental#campanhas',
       acao: 'Encerrar coleta',
       etapa: 'medir',
+    };
+  }
+
+  // Ciclo recém-encerrado ainda não lido. É a etapa "Ler" do trilho — não
+  // uma etapa nova: o fechamento É a leitura, em três blocos (o que mudou,
+  // o que foi feito no meio, próximo passo). Vem antes de medida vencida
+  // porque leva dois minutos e é o que dá sentido ao resto.
+  const cicloParaFechar = pode.saudeMental ? cicloPendenteDeLeitura(d.campanhas, hoje) : null;
+  if (cicloParaFechar) {
+    const nome = cicloParaFechar.instrument === 'jss' ? 'carga de trabalho' : 'bem-estar';
+    return {
+      titulo: `Feche o ciclo de ${nome}`,
+      descricao: `A medição encerrou em ${fmt((cicloParaFechar.encerrada_em ?? cicloParaFechar.janela_fim).slice(0, 10))}. `
+        + 'Veja o que mudou desde a anterior e o que foi feito no meio. Leva dois minutos e é o que dá sentido ao próximo passo.',
+      destino: '/rh/saude-mental#fechamento',
+      acao: 'Ver o fechamento',
+      etapa: 'ler',
     };
   }
 
@@ -378,9 +416,9 @@ const ETAPAS: DefEtapa[] = [
   {
     chave: 'ler', nome: 'Ler', resumo: 'Quais setores pedem atenção',
     destino: '/rh/saude-mental#resultado-jss',
-    // A leitura não deixa rastro próprio; o que prova que aconteceu é a
-    // decisão que veio depois.
-    ok: d => d.ciclos.length > 0 || d.planos.length > 0,
+    // O fechamento de ciclo deixa rastro (leitura_registrada_em). Antes
+    // dele existir, o que provava a leitura era a decisão que veio depois.
+    ok: d => d.campanhas.some(c => !!c.leitura_registrada_em) || d.ciclos.length > 0 || d.planos.length > 0,
     visivel: p => p.saudeMental,
   },
   {

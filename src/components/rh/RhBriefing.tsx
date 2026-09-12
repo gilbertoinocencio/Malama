@@ -8,7 +8,6 @@ import {
 import {
   rhAgentService, type RhBriefing as RhBriefingData,
   type RhBriefingPriority, type RhBriefingSeverity,
-  type RhForcaEvidencia, type RhReavaliacao,
 } from '../../services/rhAgentService';
 import type { CompromissoRitmo, EtapaChave, PassoJornada } from '../../lib/rhJornada';
 
@@ -55,32 +54,10 @@ const PRIORIDADE_JA_DITA_PELO_PASSO: Partial<Record<EtapaChave, string>> = {
   comprovar: 'medidas_atrasadas',
   conversar: 'lideranca_pendente',
   medir: 'sem_linha_base',
+  ler: 'fechamento_de_ciclo',
 };
 
-// Categoria, nunca porcentagem: o sistema não tem base para atribuir
-// probabilidade a uma hipótese, e um número inventado viraria a parte mais
-// citada do relatório.
-const FORCA_LABEL: Record<RhForcaEvidencia, string> = {
-  evidencia_insuficiente: 'Evidência insuficiente',
-  sinal_inicial: 'Sinal inicial',
-  padrao_recorrente: 'Padrão recorrente',
-  padrao_consistente: 'Padrão consistente',
-};
-
-// Descreve o movimento do indicador no período — nunca o efeito da medida.
-const RESULTADO_LABEL: Record<RhReavaliacao['classificacao'], string> = {
-  favoravel: 'Indicador no sentido desejado',
-  estavel: 'Indicador estável',
-  desfavoravel: 'Indicador no sentido oposto',
-  inconclusivo: 'Sem comparação possível',
-};
-
-const RESULTADO_CLS: Record<RhReavaliacao['classificacao'], string> = {
-  favoravel: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  estavel: 'bg-gray-50 text-gray-700 border-gray-200',
-  desfavoravel: 'bg-red-50 text-red-800 border-red-200',
-  inconclusivo: 'bg-gray-50 text-gray-500 border-gray-200',
-};
+import { FORCA_LABEL, RESULTADO_CLS, RESULTADO_LABEL } from '../../lib/planoAcaoLabels';
 
 const severityStyles: Record<RhBriefingSeverity, string> = {
   critico: 'border-red-200 bg-red-50 text-red-950',

@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-  rhService, modulosDaEmpresa,
+  rhService, modulosDaEmpresa, RELATORIO_TIPO_LABEL,
   type CertificadoColaborador, type ComplianceDoc, type RelatorioEmitido,
   type RhComplianceMetricas, type RhRelatorioJss, type RhRelatorioPsicossocial,
 } from '../../services/empresaService';
@@ -402,9 +402,7 @@ export const RhDocumentos: React.FC = () => {
                 ))}
                 {emitidos.map(r => (
                   <tr key={r.id}>
-                    <td className="py-2 text-gray-700">
-                      {r.tipo === 'jss' ? 'Relatório de carga de trabalho' : 'Relatório de bem-estar'}
-                    </td>
+                    <td className="py-2 text-gray-700">{RELATORIO_TIPO_LABEL[r.tipo]}</td>
                     <td className="py-2 font-mono text-xs text-gray-600">{r.numero_doc}</td>
                     <td className="hidden py-2 text-xs text-gray-500 sm:table-cell">{fmtDataHora(r.emitido_em)}</td>
                     <td className="py-2 text-right">

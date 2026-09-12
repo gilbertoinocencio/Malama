@@ -862,6 +862,8 @@ export type PsychosocialCampanha = {
   created_at: string;
   n_convidados: number;
   n_respondentes: number;
+  /** Quando o RH clicou "Entendi, fechar ciclo". NULL = ciclo ainda não lido. */
+  leitura_registrada_em?: string | null;
 };
 
 export type CampanhaParticipacaoSetor = {
@@ -1142,7 +1144,49 @@ export type CertificadoColaborador = {
 // ── Relatórios psicossociais emitidos (migration 20260841) ──
 // Snapshot do que foi impresso. Reemitir lê daqui e nunca recalcula: sem
 // isso o mesmo número de documento designava conteúdos diferentes.
-export type RelatorioTipo = 'jss' | 'who5';
+export type RelatorioTipo = 'jss' | 'who5' | 'medida' | 'ciclo';
+
+export const RELATORIO_TIPO_LABEL: Record<RelatorioTipo, string> = {
+  jss: 'Relatório de carga de trabalho',
+  who5: 'Relatório de bem-estar',
+  medida: 'Dossiê da medida',
+  ciclo: 'Registro de fechamento de ciclo',
+};
+
+/**
+ * Dossiê da medida, como `rh_dossie_medida()` devolve: a trilha completa
+ * hipótese → medida → combinados → execução → resultado, em uma via.
+ */
+export type DossieMedida = {
+  empresa: { nome: string; cnpj: string | null } | null;
+  medida: PlanoAcao & { origem: PlanoOrigem; atrasada: boolean };
+  hipotese: (Omit<HipotesePersistida, 'created_at'> & {
+    instrumento: string;
+    evidencias: unknown;
+    campanha: { id: string; instrumento: string; instrumento_nome: string; janela_inicio: string; janela_fim: string };
+  }) | null;
+  baseline: { id: string; instrumento: string; instrumento_nome: string; janela_inicio: string; janela_fim: string } | null;
+  resultados: {
+    indicador: string; instrumento: string;
+    valor_baseline: number | null; valor_followup: number | null; delta: number | null;
+    favoravel_quando: 'sobe' | 'cai'; n_baseline: number | null; n_followup: number | null;
+    intervalo_dias: number | null; execucao: string;
+    classificacao: 'favoravel' | 'estavel' | 'desfavoravel' | 'inconclusivo';
+    comparabilidade: string; narrativa: string; calculado_em: string;
+    followup: { id: string; janela_inicio: string; janela_fim: string };
+  }[];
+  lideranca: {
+    id: string; setor: string; inicio: string; fim: string; responsavel_rh: string;
+    etapa: string; status: string; pontos_fortes: string[]; pontos_atencao: string[];
+    nota_evolucao: string | null;
+  } | null;
+  combinados: {
+    id: string; medida: string; responsavel: string; prazo: string; status: PlanoStatus;
+    evidencia: string | null; concluida_em: string | null;
+  }[];
+  historico: { acao: string; quando: string; detalhes: unknown }[];
+  gerado_em: string;
+};
 
 export type RelatorioEmitido = {
   id: string;
@@ -1827,6 +1871,20 @@ export const rhService = {
     });
     if (error) return { ok: false, error: error.message };
     return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; campaign_id?: string; error?: string };
+  },
+
+  /** Registra que o RH leu o fechamento do ciclo. Idempotente. */
+  async marcarCicloLido(campaignId: string): Promise<{ ok: boolean; error?: string }> {
+    const { data, error } = await supabase.rpc('rh_marcar_ciclo_lido', { p_campanha_id: campaignId });
+    if (error) return { ok: false, error: error.message };
+    return (data ?? { ok: false, error: 'Resposta vazia' }) as { ok: boolean; error?: string };
+  },
+
+  /** Dossiê da medida em uma via: hipótese, medida, liderança, execução e resultado. */
+  async getDossieMedida(planoId: string): Promise<DossieMedida | null> {
+    const { data, error } = await supabase.rpc('rh_dossie_medida', { p_plano_id: planoId });
+    if (error) { console.error('[rhService] dossiê da medida:', error.message); throw error; }
+    return (data ?? null) as DossieMedida | null;
   },
 
   async encerrarCampanha(campaignId: string, cancelar = false): Promise<{ ok: boolean; error?: string }> {

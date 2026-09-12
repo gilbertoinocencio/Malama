@@ -1,3 +1,5 @@
+import type { FechamentoCiclo } from './fechamento-ciclo.ts';
+
 export type RhBriefingSeverity = 'critico' | 'atencao' | 'oportunidade' | 'positivo' | 'informativo';
 export type RhBriefingDirection = 'melhorou' | 'piorou' | 'estavel';
 
@@ -47,17 +49,24 @@ export type HipoteseDoBriefing = {
   caminhos_possiveis: { medida: string; nivel_controle: string }[];
   forca_evidencia: string;
   origem: string;
+  contexto_setor?: string | null;
+  ressalvas?: string[];
+  convergencias?: string[];
 };
 
 /** Resultado observado de uma medida num ciclo posterior. */
 export type ReavaliacaoDoBriefing = {
   plano_acao_id: string;
+  campanha_followup_id?: string;
   setor: string | null;
   indicador: string;
   classificacao: string;
   comparabilidade: string;
+  /** 'executada' | 'em_andamento' | 'nao_executada' | 'cancelada' */
+  execucao?: string;
   narrativa: string;
   medida?: string;
+  nivel_controle?: string | null;
 };
 
 export type MemoriaDoCiclo = {
@@ -218,6 +227,7 @@ export function buildRhBriefing(
   cycle: any,
   allowedRoutes: string[],
   memoria?: MemoriaDoCiclo,
+  fechamento?: FechamentoCiclo | null,
 ) {
   const currentWho5 = reading?.ultimos_relatorios?.who5;
   const previousWho5 = reading?.relatorios_anteriores?.who5;
@@ -265,6 +275,54 @@ export function buildRhBriefing(
   priorities.push(...trends
     .map(item => priorityFromTrend(item, hipotesePorIndicador.get(item.id)))
     .filter((item): item is Priority => item !== null));
+
+  // Medida executada e o indicador não moveu: o aprendizado do ciclo. Não
+  // é "a medida não funcionou" (não temos como afirmar isso) — é que, com
+  // comparação honesta, o número ficou onde estava. A resposta é tentar
+  // OUTRO NÍVEL da hierarquia (fonte antes de indivíduo) e OUTRA VARIÁVEL
+  // (o que a convergência e a organização do setor apontam). Uma prioridade
+  // por (setor, indicador), para não empilhar a mesma leitura.
+  const semMovimento = new Map<string, ReavaliacaoDoBriefing>();
+  for (const r of memoria?.reavaliacoes ?? []) {
+    if (r.execucao !== 'executada' || r.comparabilidade !== 'comparavel') continue;
+    if (r.classificacao !== 'estavel' && r.classificacao !== 'desfavoravel') continue;
+    const chave = `${r.setor ?? ''}|${r.indicador}`;
+    if (!semMovimento.has(chave)) semMovimento.set(chave, r);
+  }
+  for (const r of semMovimento.values()) {
+    const hipotese = (memoria?.hipoteses ?? []).find(h => h.indicador === r.indicador && (h.setor ?? null) === (r.setor ?? null))
+      ?? hipotesePorIndicador.get(r.indicador);
+    const onde = r.setor ?? 'empresa toda';
+    const nivelAtual = r.nivel_controle ?? null;
+    const sugestaoNivel = nivelAtual === 'fonte'
+      ? 'A medida já era na fonte; o que pode estar faltando é outra variável, não outro nível.'
+      : `A medida era ${nivelAtual === 'individual' ? 'individual' : 'organizacional'}; vale tentar uma medida na fonte (o que gera a carga), não só quem a sente.`;
+    const evidencias = [r.narrativa];
+    for (const c of hipotese?.convergencias ?? []) evidencias.push(`Outra variável na mesma direção: ${c}`);
+    if (hipotese?.contexto_setor) evidencias.push(`Como o setor trabalha: ${hipotese.contexto_setor}`);
+    priorities.push({
+      id: `medida_sem_movimento:${r.plano_acao_id}`, severidade: 'atencao',
+      titulo: `Medida executada, indicador não moveu em ${onde}`,
+      descricao: `${sugestaoNivel} Antes de repetir a mesma ação, revise com a equipe o que ela não alcançou e registre a próxima medida ligada à mesma leitura.`,
+      evidencias: evidencias.slice(0, 4),
+      acao: { label: 'Registrar próxima medida', target: '/rh/plano-acao?visao=acoes' },
+      hipotese,
+    });
+  }
+
+  // Ciclo recém-encerrado e ainda não lido: o fechamento é uma fase, e a
+  // fase só termina quando o RH olha o que mudou. Informativo — não é
+  // alarme, é o convite para a leitura de dois minutos.
+  if (fechamento?.pendente) priorities.push({
+    id: 'fechamento_de_ciclo', severidade: 'informativo',
+    titulo: `Feche o ciclo de ${fechamento.campanha.instrumento_nome}`,
+    descricao: fechamento.resumo,
+    evidencias: fechamento.indicadores
+      .filter(i => i.direcao !== 'sem_par')
+      .map(i => `${i.label}: ${i.anterior} → ${i.atual} (${i.direcao === 'estavel' ? 'sem variação relevante' : i.direcao})`)
+      .slice(0, 4),
+    acao: { label: 'Ver o fechamento', target: '/rh/saude-mental#fechamento' },
+  });
 
   const campaigns = Array.isArray(reading?.campanhas_abertas) ? reading.campanhas_abertas : [];
   const now = Date.now();
@@ -342,6 +400,9 @@ export function buildRhBriefing(
     // são repassadas para a tela e para o Copiloto.
     hipoteses: memoria?.hipoteses ?? [],
     reavaliacoes: memoria?.reavaliacoes ?? [],
+    // Recap do último ciclo encerrado (null fora da janela). É o mesmo
+    // objeto que a tela de fechamento e o PDF do ciclo usam.
+    fechamento_ciclo: fechamento ?? null,
     positivos: positives.slice(0, 4),
     qualidade_dados: {
       comparacoes_disponiveis: trends.length,
