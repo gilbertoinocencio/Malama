@@ -7,8 +7,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ShieldCheck, FileDown, AlertCircle, Info, ArrowRight,
-  Droplet, Beef, Activity, Sparkles, Flame, TrendingUp, Award,
+  FileDown, AlertCircle, Info, ArrowRight,
+  Droplet, Beef, Activity, Sparkles, Flame, TrendingUp,
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
@@ -17,84 +17,39 @@ import toast from 'react-hot-toast';
 import {
   rhService,
   type RhComplianceMetricas,
-  type ComplianceDoc,
   type RhMetricasBemestar,
   type RhEvolucaoBemestar,
-  type CertificadoColaborador,
-  type RhEmpresa,
 } from '../../services/empresaService';
-import { emitirRelatorioEvidencia, reemitirRelatorioEvidencia } from '../../lib/emissaoDocumentos';
-import {
-  generateCertificadoPDF, generateCertificadosLotePDF, type CertificadoMeta,
-} from '../../lib/certificadoDisponibilizacao';
 import { DossieNr1Card } from '../../components/rh/DossieNr1Card';
 import { LinkSuporte } from '../../components/rh/LinkSuporte';
-import { CabecalhoColapsavel, ResumoRecolhido } from '../../components/rh/SecaoColapsavel';
 import { useScrollParaHash } from '../../hooks/useScrollParaHash';
 import { useRhJornada } from '../../contexts/RhJornadaContext';
-import { useRhAccess } from '../../contexts/RhAccessContext';
-import { hashDocumento } from '../../lib/hashDocumento';
-
-// Serviços disponibilizados a todo colaborador com assento, por modo
-// contratado. O certificado é documento de evidência — precisa listar o
-// que a empresa de fato contratou, nem a mais nem a menos.
-const SERVICOS_MENTAL = [
-  'Acompanhamento psicológico mensal por telemedicina (psicólogo com CRP e e-Psi ativo)',
-  'Rastreio periódico de bem-estar (WHO-5)',
-  'Avaliação de fatores de risco psicossocial no trabalho, com relatório agregado para o PGR',
-];
-
-const SERVICOS_METABOLICO = [
-  'Acompanhamento nutricional contínuo com IA',
-  'Telemedicina com endocrinologistas e nutrólogos',
-  'Monitoramento metabólico e de composição corporal',
-];
-
-/**
- * Serviços a declarar no certificado — só os efetivamente contratados.
- *
- * Havia um fallback para a lista metabólica quando nenhum modo estava
- * marcado. O certificado começa com "A Malama declara, para os devidos
- * fins", então esse palpite virava declaração de serviço que a empresa podia
- * não ter contratado. Lista vazia agora BLOQUEIA a emissão: a migração
- * 20260727 já nasceu com modo_metabolico = true para todo contrato antigo,
- * então cair aqui significa dado inconsistente, não contrato legado.
- */
-function servicosDoContrato(empresa: RhEmpresa | null): string[] {
-  return [
-    ...(empresa?.modo_mental ? SERVICOS_MENTAL : []),
-    ...(empresa?.modo_metabolico ? SERVICOS_METABOLICO : []),
-  ];
-}
 
 const MIN_COORTE = 5; // piso de privacidade: oculta % abaixo de 5 colaboradores com dados
 
-const fmtDateTime = (d: string) =>
-  new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-
 export const RhCompliance: React.FC = () => {
-  const { dados } = useRhJornada();
-  const { acesso } = useRhAccess();
+  const { dados, empresa } = useRhJornada();
   const [metricas, setMetricas] = useState<RhComplianceMetricas | null>(null);
-  const [empresa, setEmpresa] = useState<RhEmpresa | null>(null);
   const [bemestar, setBemestar] = useState<RhMetricasBemestar | null>(null);
   const [evolucao, setEvolucao] = useState<RhEvolucaoBemestar[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Hábitos (água, proteína, atividade, flow) só existem para quem usa o
+  // app de nutrição. Sem o modo metabólico o card ficaria eternamente em
+  // "dados insuficientes" — e nem vale a consulta.
+  const metabolico = !!empresa?.modo_metabolico;
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       // O histórico de documentos e a lista de certificados saíram daqui
       // junto com a emissão: quem carrega isso agora é a aba Documentos.
-      const [m, be, ev, emp] = await Promise.all([
+      const [m, be, ev] = await Promise.all([
         rhService.getComplianceMetricas(),
-        rhService.getMetricasBemestar(),
-        rhService.getEvolucaoBemestar(),
-        rhService.getMyEmpresa(),
+        metabolico ? rhService.getMetricasBemestar() : null,
+        metabolico ? rhService.getEvolucaoBemestar() : [],
       ]);
       setMetricas(m);
-      setEmpresa(emp);
       setBemestar(be);
       setEvolucao(ev);
     } catch (err) {
@@ -103,7 +58,7 @@ export const RhCompliance: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [metabolico]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -134,22 +89,6 @@ export const RhCompliance: React.FC = () => {
     );
   }
 
-  const taxa = metricas.colaboradores_elegiveis > 0
-    ? Math.round((metricas.colaboradores_ativos / metricas.colaboradores_elegiveis) * 100)
-    : 0;
-
-  // Os módulos vêm de `empresa`, a mesma fonte que o certificado já usa em
-  // `servicosDoContrato` — e que não depende da migration 20260845. Assim a
-  // descrição do documento fica correta assim que este código sobe.
-  //
-  // A SEPARAÇÃO das consultas por tipo de profissional é que depende da
-  // migração. Sem ela os campos vêm `undefined`, e mostrar 0 seria afirmar
-  // que ninguém foi atendido: nesse caso o documento volta ao número único,
-  // como era antes.
-  const modulos = { mental: !!empresa?.modo_mental, metabolico: !!empresa?.modo_metabolico };
-  const temQuebraDeConsultas =
-    metricas.consultas_psicologo != null && metricas.consultas_medico != null;
-
   const pctOuNull = (num: number, den: number): number | null =>
     den < MIN_COORTE ? null : Math.round((num / den) * 100);
 
@@ -173,15 +112,16 @@ export const RhCompliance: React.FC = () => {
       {/* Primeiro de tudo: é a pergunta que traz o RH a esta aba. */}
       <DossieNr1Card dados={dados} />
 
-      {/* Resultados de bem-estar */}
-      {bemestar && (
+      {/* Resultados do plano metabólico — só quando contratado. */}
+      {metabolico && bemestar && (
         <div className="bg-white rounded-xl shadow p-5">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-5 h-5 text-[#7d4a3c]" />
-            <h2 className="font-semibold text-gray-800">Resultados de bem-estar</h2>
+            <h2 className="font-semibold text-gray-800">Resultados do plano metabólico</h2>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Evolução dos hábitos dos colaboradores nos últimos 30 dias (comparado aos 30 anteriores).
+            Evolução dos hábitos dos colaboradores que usam o app nos últimos 30 dias
+            (comparado aos 30 anteriores).
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-5">
