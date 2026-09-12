@@ -13,6 +13,7 @@
 // =====================================================
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Layers, Plus, Pencil, Archive, ArchiveRestore, Trash2, Check, X, AlertTriangle,
   SlidersHorizontal,
@@ -196,7 +197,10 @@ export const SetoresCard: React.FC<{
   disabled?: boolean;
   /** Total de pessoas contratado pela empresa, distribuído entre os setores. */
   limitePessoas?: number | null;
-}> = ({ onChange, onMutacao, disabled, limitePessoas }) => {
+  /** Colaboradores com acesso e sem setor: entram nas campanhas e nos
+   *  totais, mas em setor nenhum — a soma dos efetivos não os alcança. */
+  semSetor?: number;
+}> = ({ onChange, onMutacao, disabled, limitePessoas, semSetor = 0 }) => {
   const { acesso } = useRhAccess();
   const [setores, setSetores] = useState<SetorAdmin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -494,6 +498,21 @@ export const SetoresCard: React.FC<{
               : `${saldoPessoas} pessoa(s) ainda podem ser distribuídas. A soma dos efetivos não pode ultrapassar o limite contratado.`}
           </p>
         </div>
+      )}
+
+      {semSetor > 0 && (
+        <p className="mb-4 flex items-start gap-1.5 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-800">
+          <AlertTriangle className="mt-px h-3.5 w-3.5 flex-shrink-0" />
+          <span>
+            {semSetor === 1
+              ? '1 colaborador com acesso está sem setor'
+              : `${semSetor} colaboradores com acesso estão sem setor`}
+            {' — entra(m) nas campanhas e nos totais, mas em setor nenhum. '}
+            <Link to="#colaboradores" className="font-medium text-[#7d4a3c] hover:underline">
+              Defina o setor na lista de colaboradores
+            </Link>.
+          </span>
+        </p>
       )}
 
       {loading ? (

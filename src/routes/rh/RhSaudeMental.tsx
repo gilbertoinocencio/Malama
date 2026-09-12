@@ -168,8 +168,10 @@ const ParticipacaoSetores: React.FC<{ campaignId: string }> = ({ campaignId }) =
         </table>
       )}
 
-      {/* Sem esta linha o RH acha que sumiu gente: o total da empresa não
-          fecha com a soma das linhas quando há setor abaixo do piso. */}
+      {/* Sem estas linhas o RH acha que sumiu gente: o total da empresa não
+          fecha com a soma das linhas quando há setor abaixo do piso ou
+          colaborador sem setor. São causas diferentes, com correções em
+          lugares diferentes — por isso duas mensagens. */}
       {dados.ocultos_setores > 0 && (
         <p className="text-[11px] text-gray-500 bg-white border border-gray-200 rounded-lg p-2 mt-2 leading-snug">
           {dados.ocultos_setores === 1
@@ -181,6 +183,17 @@ const ParticipacaoSetores: React.FC<{ campaignId: string }> = ({ campaignId }) =
             Unir esse setor a outro maior
           </Link>{' '}
           faz a adesão dele aparecer detalhada nas próximas campanhas.
+        </p>
+      )}
+      {dados.sem_setor_convidados > 0 && (
+        <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg p-2 mt-2 leading-snug">
+          {dados.sem_setor_convidados === 1
+            ? '1 colaborador com acesso está sem setor definido'
+            : `${dados.sem_setor_convidados} colaboradores com acesso estão sem setor definido`}
+          {' — conta(m) no total da empresa, mas não em nenhum setor. '}
+          <Link to="/rh/dashboard#colaboradores" className="font-medium text-[#7d4a3c] hover:underline">
+            Defina o setor na lista de colaboradores
+          </Link>.
         </p>
       )}
 

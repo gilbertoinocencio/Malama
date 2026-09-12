@@ -890,6 +890,10 @@ export type CampanhaParticipacao = {
   // A UI usa para explicar a diferença entre o total e a soma das linhas.
   ocultos_setores: number;
   ocultos_convidados: number;
+  /** Convidados sem setor definido que não aparecem em linha (grupo abaixo
+   *  do piso). Não é setor pequeno: é cadastro incompleto, e a correção é
+   *  na lista de colaboradores. */
+  sem_setor_convidados: number;
 };
 
 /** Um link de campanha, válido para um SETOR inteiro. Ninguém se identifica

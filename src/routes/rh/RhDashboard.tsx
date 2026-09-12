@@ -185,8 +185,9 @@ export const RhDashboard: React.FC = () => {
   const [psi, setPsi] = useState<{ plano_ativo: boolean; max_assentos: number; assentos_em_uso: number } | null>(null);
   const [togglingPsi, setTogglingPsi] = useState<string | null>(null);
   // A lista cresce sem limite e empurrava o resto do dashboard para fora
-  // da tela; nasce fechada e o RH abre quando precisa mexer nela.
-  const [listaAberta, setListaAberta] = useState(false);
+  // da tela; nasce fechada e o RH abre quando precisa mexer nela — ou
+  // quando chega pela âncora, vindo do aviso de colaborador sem setor.
+  const [listaAberta, setListaAberta] = useSecaoAberta('#colaboradores', false);
   // O formulário é uso ocasional depois da carga inicial — mas continua
   // aberto enquanto não houver ninguém, e reabre quando o guia aponta
   // para ele pela âncora.
@@ -212,6 +213,11 @@ export const RhDashboard: React.FC = () => {
   const usados = colaboradores.length;
   const limite = empresa?.max_assentos ?? null;
   const cheio = limite != null && usados >= limite;
+  // Mesmo recorte do banco (status ativo/convidado): quem está aqui conta
+  // nas campanhas mas não aparece em setor nenhum.
+  const semSetor = colaboradores.filter(
+    c => (c.status === 'ativo' || c.status === 'convidado') && !c.setor?.trim(),
+  ).length;
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -473,6 +479,7 @@ export const RhDashboard: React.FC = () => {
       <div id="setores" className="scroll-mt-6">
       <SetoresCard
         limitePessoas={empresa.max_assentos}
+        semSetor={semSetor}
         disabled={empresa.status !== 'ativa' && empresa.status !== 'em_configuracao'}
         // Renomear/unir setor reescreve o texto gravado em cada colaborador:
         // a lista precisa ser relida para não exibir o nome antigo.
@@ -579,7 +586,7 @@ export const RhDashboard: React.FC = () => {
       </div>
 
       {/* ── Lista de colaboradores ── */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
+      <div id="colaboradores" className="scroll-mt-6 bg-white rounded-xl shadow overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between gap-3">
           <CabecalhoColapsavel
             icone={<Users className="w-5 h-5 text-[#7d4a3c]" />}
