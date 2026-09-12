@@ -176,7 +176,11 @@ const ParticipacaoSetores: React.FC<{ campaignId: string }> = ({ campaignId }) =
             ? `1 setor com menos de ${dados.min_coorte} pessoas não aparece detalhado`
             : `${dados.ocultos_setores} setores com menos de ${dados.min_coorte} pessoas não aparecem detalhados`}
           {` (${dados.ocultos_convidados} colaborador(es)). `}
-          Eles continuam somados no total da empresa.
+          Eles continuam somados no total da empresa.{' '}
+          <Link to="/rh/dashboard#setores" className="font-medium text-[#7d4a3c] hover:underline">
+            Unir esse setor a outro maior
+          </Link>{' '}
+          faz a adesão dele aparecer detalhada nas próximas campanhas.
         </p>
       )}
 
