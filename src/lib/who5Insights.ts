@@ -51,3 +51,13 @@ export function obterInsightWho5(setor: PsychosocialSetor): Who5Insight {
 
   return { prioridade, bemEstarReduzido, fatores, encaminhamentos };
 }
+
+/**
+ * O que o WHO-5 tem de bom a dizer sobre o setor — o espelho de `fatores`.
+ * Só fala quando não há nada de atenção: bem-estar médio na faixa esperada
+ * e ninguém na faixa de maior atenção. Meio-termo não vira elogio.
+ */
+export function pontoForteWho5(setor: PsychosocialSetor): string | null {
+  if (!setor.n_respondentes || setor.score_medio < 50 || setor.faixa_risco > 0) return null;
+  return 'Bem-estar médio do setor dentro do esperado, sem ninguém na faixa de maior atenção.';
+}

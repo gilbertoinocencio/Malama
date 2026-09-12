@@ -1,8 +1,10 @@
 import type {
   JssCortes, JssItemKey, JssSetor, PlanoFator, PlanoNivel, PsychosocialSetor,
 } from '../services/empresaService';
-import { obterInsightJss } from './jssInsights';
-import { obterInsightWho5 } from './who5Insights';
+import {
+  obterInsightJss, itensFortesJss, JSS_ITENS_POR_DIMENSAO, type JssDimensao,
+} from './jssInsights';
+import { obterInsightWho5, pontoForteWho5 } from './who5Insights';
 
 export type Sugestao = {
   fator: PlanoFator; titulo: string; objetivo: string; medida: string; nivel: PlanoNivel;
@@ -52,26 +54,35 @@ export function gerarDiagnostico(
   setorWho5?: PsychosocialSetor,
 ): Diagnostico {
   const who5 = setorWho5 ? obterInsightWho5(setorWho5) : null;
+  const forteWho5 = setorWho5 ? pontoForteWho5(setorWho5) : null;
 
   if (!setorJss || !cortesJss) {
     if (who5 && who5.fatores.length > 0) {
       return { fortes: [], atencao: who5.fatores.slice(0, 6), sugestoes: SUGESTOES.bemEstar };
     }
-    return { fortes: [], atencao: [], sugestoes: SUGESTOES.manutencao };
+    return { fortes: forteWho5 ? [forteWho5] : [], atencao: [], sugestoes: SUGESTOES.manutencao };
   }
 
   const temSinal = (itens: JssItemKey[]) => itens.some(item => (setorJss.itens_risco?.[item] ?? 0) >= 50);
-  const sinalDemanda = temSinal(['a', 'b', 'c', 'd', 'e']);
-  const sinalControle = temSinal(['f', 'g', 'h', 'i', 'j', 'k']);
-  const sinalApoio = temSinal(['l', 'm', 'n', 'o', 'p', 'q']);
+  const sinalDemanda = temSinal(JSS_ITENS_POR_DIMENSAO.demanda);
+  const sinalControle = temSinal(JSS_ITENS_POR_DIMENSAO.controle);
+  const sinalApoio = temSinal(JSS_ITENS_POR_DIMENSAO.apoio);
   const fortes: string[] = [];
   const mistos: string[] = [];
+  // Dimensões que NÃO saíram como ponto forte no conjunto: é dentro delas
+  // que vale nomear o item que já funciona.
+  const dimensoesEmAtencao: JssDimensao[] = [];
   if (setorJss.demanda < cortesJss.demanda && !sinalDemanda) fortes.push('A cobrança está mais equilibrada que o ponto de referência atual.');
+  else dimensoesEmAtencao.push('demanda');
   if (setorJss.controle >= cortesJss.controle && !sinalControle) fortes.push('A equipe demonstra boa autonomia para organizar o trabalho.');
+  else dimensoesEmAtencao.push('controle');
   if (setorJss.apoio >= cortesJss.apoio && !sinalApoio) fortes.push('O apoio entre equipe e liderança aparece como ponto positivo.');
+  else dimensoesEmAtencao.push('apoio');
   if (setorJss.demanda < cortesJss.demanda && sinalDemanda) mistos.push('Resultado misto na cobrança: o geral é favorável, mas há situações específicas para investigar.');
   if (setorJss.controle >= cortesJss.controle && sinalControle) mistos.push('Resultado misto na autonomia: o geral é favorável, mas há situações específicas para investigar.');
   if (setorJss.apoio >= cortesJss.apoio && sinalApoio) mistos.push('Resultado misto no apoio: o geral é favorável, mas há situações específicas para investigar.');
+  if (forteWho5) fortes.push(forteWho5);
+  fortes.push(...itensFortesJss(setorJss, dimensoesEmAtencao));
   const insight = obterInsightJss(setorJss, cortesJss);
   let atencao = [...insight.fatores, ...mistos, ...insight.sinais];
 

@@ -153,6 +153,57 @@ const ITEM_SINAIS: Record<JssItemKey, string> = {
   q: 'Pouco vínculo com os colegas',
 };
 
+// O mesmo item, lido pelo lado bom. Serve para dizer ao gestor o que já
+// funciona dentro de uma dimensão que, no conjunto, está em atenção — é
+// por onde a conversa de liderança precisa começar.
+const ITEM_FORTES: Record<JssItemKey, string> = {
+  a: 'O ritmo de trabalho é sentido como adequado',
+  b: 'O volume de trabalho cabe no tempo disponível',
+  c: 'O trabalho não é sentido como exigente demais',
+  d: 'O tempo dá para as tarefas',
+  e: 'As ordens são claras e não se contradizem',
+  f: 'A equipe aprende coisas novas no trabalho',
+  g: 'As pessoas usam o que sabem fazer',
+  h: 'Há espaço para tomar iniciativa',
+  i: 'O trabalho tem variedade',
+  j: 'As pessoas escolhem como fazer o trabalho',
+  k: 'As pessoas têm voz sobre o que fazer',
+  l: 'O ambiente é tranquilo',
+  m: 'A convivência no time é boa',
+  n: 'Dá para contar com os colegas',
+  o: 'Há compreensão dos colegas nos dias ruins',
+  p: 'A relação com a chefia é boa',
+  q: 'Há vínculo entre os colegas',
+};
+
+export type JssDimensao = 'demanda' | 'controle' | 'apoio';
+
+export const JSS_ITENS_POR_DIMENSAO: Record<JssDimensao, JssItemKey[]> = {
+  demanda:  ['a', 'b', 'c', 'd', 'e'],
+  controle: ['f', 'g', 'h', 'i', 'j', 'k'],
+  apoio:    ['l', 'm', 'n', 'o', 'p', 'q'],
+};
+
+/** Abaixo disto a contribuição adversa do item é baixa o bastante para ser
+ *  nomeada como ponto positivo. Metade do corte de sinal (50), de propósito:
+ *  o meio do caminho não é elogio nem alerta. */
+const ITEM_RISCO_BAIXO = 25;
+
+/**
+ * Itens com contribuição adversa baixa nas dimensões pedidas, do melhor
+ * para o pior. Recebe as dimensões que NÃO saíram como ponto forte no
+ * conjunto: dentro delas é que vale apontar o que já vai bem.
+ */
+export function itensFortesJss(setor: JssSetor, dimensoes: JssDimensao[], limite = 3): string[] {
+  const chaves = dimensoes.flatMap(d => JSS_ITENS_POR_DIMENSAO[d]);
+  return chaves
+    .map(key => [key, setor.itens_risco?.[key]] as const)
+    .filter((par): par is readonly [JssItemKey, number] => Number.isFinite(par[1]) && par[1]! <= ITEM_RISCO_BAIXO)
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, limite)
+    .map(([key]) => ITEM_FORTES[key]);
+}
+
 const ORDEM: JssPrioridade[] = ['critica', 'alta', 'moderada', 'acompanhamento'];
 
 export const prioridadeOrdem = (p: JssPrioridade) => ORDEM.indexOf(p);
